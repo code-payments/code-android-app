@@ -100,6 +100,7 @@ data class ConversationScreen(
         val messages = vm.messages.collectAsLazyPagingItems()
 
         val goBack = {
+            vm.dispatchEvent(ConversationViewModel.Event.OnClose)
             navigator.popUntil { it is TabbedHomeScreen }
         }
 

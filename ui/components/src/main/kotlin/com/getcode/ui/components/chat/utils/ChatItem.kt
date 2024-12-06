@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat.utils
 
+import androidx.compose.runtime.Stable
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
@@ -14,7 +15,9 @@ data class ChatMessageIndice(
     val messageContent: MessageContent,
 )
 
+@Stable
 sealed class ChatItem(open val key: Any) {
+    @Stable
     data class Message(
         val id: String = UUID.randomUUID().toString(),
         val chatMessageId: ID,
@@ -32,5 +35,6 @@ sealed class ChatItem(open val key: Any) {
         override val key: Any = id
     ) : ChatItem(key)
 
+    @Stable
     data class Date(val date: String) : ChatItem(date)
 }

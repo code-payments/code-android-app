@@ -220,7 +220,7 @@ class FcNotificationService : FirebaseMessagingService(),
                     applicationContext,
                     type.id.hashCode(),
                     resultIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
 
             NotificationCompat.Action.Builder(

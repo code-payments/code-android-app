@@ -10,6 +10,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
+import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageStatus
@@ -63,8 +64,12 @@ class RoomController @Inject constructor(
             .onSuccess {
                 val dbMembers = it.map { m -> conversationMemberMapper.map(identifier to m) }
                 val memberIds = dbMembers.map { member -> member.id.base58 }
-                db.conversationMembersDao().purgeMembersNotIn(identifier, memberIds)
-                db.conversationMembersDao().upsertMembers(*dbMembers.toTypedArray())
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationMembersDao().purgeMembersNotIn(identifier, memberIds)
+                        db.conversationMembersDao().upsertMembers(*dbMembers.toTypedArray())
+                    }
+                }
             }
     }
 
@@ -106,24 +111,30 @@ class RoomController @Inject constructor(
             MessageStatus.Sent -> {
                 messagingRepository.advancePointer(conversationId, messageId, status)
                     .onSuccess {
-                        db.conversationPointersDao()
-                            .insert(conversationId, messageId.uuid!!, status)
+                        withContext(Dispatchers.IO) {
+                            db.conversationPointersDao()
+                                .insert(conversationId, messageId.uuid!!, status)
+                        }
                     }
             }
 
             MessageStatus.Delivered -> {
                 messagingRepository.advancePointer(conversationId, messageId, status)
                     .onSuccess {
-                        db.conversationPointersDao()
-                            .insert(conversationId, messageId.uuid!!, status)
+                        withContext(Dispatchers.IO) {
+                            db.conversationPointersDao()
+                                .insert(conversationId, messageId.uuid!!, status)
+                        }
                     }
             }
 
             MessageStatus.Read -> {
                 messagingRepository.advancePointer(conversationId, messageId, status)
                     .onSuccess {
-                        db.conversationPointersDao()
-                            .insert(conversationId, messageId.uuid!!, status)
+                        withContext(Dispatchers.IO) {
+                            db.conversationPointersDao()
+                                .insert(conversationId, messageId.uuid!!, status)
+                        }
                     }
             }
 
@@ -167,9 +178,13 @@ class RoomController @Inject constructor(
         userManager.userId?.let {
             val isMember = db.conversationDao().isUserMemberIn(it, conversationId)
             if (!isMember) {
-                db.conversationDao().deleteConversationById(conversationId)
-                db.conversationMembersDao().removeMembersFrom(conversationId)
-                db.conversationMessageDao().removeForConversation(conversationId)
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao().deleteConversationById(conversationId)
+                        db.conversationMembersDao().removeMembersFrom(conversationId)
+                        db.conversationMessageDao().removeForConversation(conversationId)
+                    }
+                }
             }
         }
     }
@@ -177,9 +192,13 @@ class RoomController @Inject constructor(
     suspend fun leaveRoom(conversationId: ID): Result<Unit> {
         return chatRepository.leaveChat(conversationId)
             .onSuccess {
-                db.conversationDao().deleteConversationById(conversationId)
-                db.conversationPointersDao().deletePointerForConversation(conversationId)
-                db.conversationMessageDao().removeForConversation(conversationId)
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao().deleteConversationById(conversationId)
+                        db.conversationPointersDao().deletePointerForConversation(conversationId)
+                        db.conversationMessageDao().removeForConversation(conversationId)
+                    }
+                }
             }
     }
 
@@ -189,7 +208,9 @@ class RoomController @Inject constructor(
     ): Result<Unit> {
         return messagingRepository.deleteMessage(conversationId, messageId)
             .onSuccess {
-                db.conversationMessageDao().markDeletedAndRemoveContents(messageId)
+                withContext(Dispatchers.IO) {
+                    db.conversationMessageDao().markDeletedAndRemoveContents(messageId)
+                }
             }
     }
 
@@ -199,7 +220,9 @@ class RoomController @Inject constructor(
     ): Result<Unit> {
         return chatRepository.removeUser(conversationId, userId)
             .onSuccess {
-                db.conversationMembersDao().removeMemberFromConversation(userId, conversationId)
+                withContext(Dispatchers.IO) {
+                    db.conversationMembersDao().removeMemberFromConversation(userId, conversationId)
+                }
             }
     }
 
@@ -223,7 +246,9 @@ class RoomController @Inject constructor(
     ): Result<Unit> {
         return chatRepository.setCoverCharge(conversationId, amount)
             .onSuccess {
-                db.conversationDao().updateCoverCharge(conversationId, amount.kin)
+                withContext(Dispatchers.IO) {
+                    db.conversationDao().updateCoverCharge(conversationId, amount.kin)
+                }
             }
     }
 }
@@ -298,8 +323,7 @@ private class MessagesRemoteMediator(
 
                 LoadType.APPEND -> {
                     // Get the last item from our data
-                    val lastItem = state.lastItemOrNull()
-                    lastItem?.message?.id
+                    state.lastItemOrNull()?.message?.id
                 }
             }
 

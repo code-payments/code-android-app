@@ -122,7 +122,7 @@ private fun LogoutButton(
                 subtitle = context
                     .getString(R.string.prompt_description_logout),
                 positiveText = context.getString(R.string.action_logout),
-                negativeText = context.getString(R.string.action_cancel),
+                tertiaryText = context.getString(R.string.action_cancel),
                 onPositive = {
                     onConfirmed()
                 }

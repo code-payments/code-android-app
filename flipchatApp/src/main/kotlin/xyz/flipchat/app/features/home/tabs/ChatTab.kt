@@ -33,6 +33,7 @@ import cafe.adriel.voyager.navigator.tab.TabOptions
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
@@ -69,7 +70,7 @@ internal object ChatTab : ChildNavTab {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val context = LocalContext.current
-        val viewModel = getViewModel<ChatListViewModel>()
+        val viewModel = getActivityScopedViewModel<ChatListViewModel>()
         val settingsVm = getViewModel<SettingsViewModel>()
         val state by viewModel.stateFlow.collectAsState()
 

@@ -119,8 +119,8 @@ internal fun ConversationMessages(
         )
 
 
-        val canJumpToBottom by remember(lazyListState) {
-            derivedStateOf { lazyListState.canScrollBackward }
+        val canJumpToBottom = remember(lazyListState.canScrollBackward) {
+             lazyListState.canScrollBackward
         }
 
         val alpha by animateFloatAsState(

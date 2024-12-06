@@ -9,6 +9,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
+import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
@@ -61,9 +62,13 @@ class ChatsController @Inject constructor(
     suspend fun updateRoom(roomId: ID) {
         chatRepository.getChat(ChatIdentifier.Id(roomId))
             .onSuccess { (room, members) ->
-                db.conversationDao().upsertConversations(conversationMapper.map(room))
-                members.map { conversationMemberMapper.map(room.id to it) }.onEach {
-                    db.conversationMembersDao().upsertMembers(it)
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao().upsertConversations(conversationMapper.map(room))
+                        members.map { conversationMemberMapper.map(room.id to it) }.onEach {
+                            db.conversationMembersDao().upsertMembers(it)
+                        }
+                    }
                 }
 
                 syncMessagesFromLast(conversationId = roomId)
@@ -74,12 +79,14 @@ class ChatsController @Inject constructor(
         runCatching {
             chatRepository.openEventStream(coroutineScope) { event ->
                 coroutineScope.launch {
-                    event.conversation?.let {
-                        db.conversationDao().upsertConversations(it)
-                    }
+                    withContext(Dispatchers.IO) {
+                        event.conversation?.let {
+                            db.conversationDao().upsertConversations(it)
+                        }
 
-                    if (event.members.isNotEmpty()) {
-                        db.conversationMembersDao().upsertMembers(*event.members.toTypedArray())
+                        if (event.members.isNotEmpty()) {
+                            db.conversationMembersDao().upsertMembers(*event.members.toTypedArray())
+                        }
                     }
 
                     event.message?.let { newMessage ->
@@ -90,7 +97,10 @@ class ChatsController @Inject constructor(
         }
     }
 
-    private suspend fun syncMessagesFromLast(conversationId: ID, newMessage: ConversationMessageWithContent? = null) {
+    private suspend fun syncMessagesFromLast(
+        conversationId: ID,
+        newMessage: ConversationMessageWithContent? = null
+    ) {
         var token: ID?
         if (newMessage != null) {
             val (message, _) = newMessage
@@ -98,7 +108,9 @@ class ChatsController @Inject constructor(
             val newestInDb =
                 db.conversationMessageDao().getNewestMessage(conversationId)
             if (newestInDb?.id == message.id) {
-                db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                withContext(Dispatchers.IO) {
+                    db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                }
                 return
             }
 
@@ -113,15 +125,21 @@ class ChatsController @Inject constructor(
             val query = QueryOptions(token = token, descending = false, limit = 1_000)
             messagingRepository.getMessages(conversationId, query)
                 .onSuccess { syncedMessages ->
-                    trace("synced ${syncedMessages.count()} missing messages for ${conversationId.base58}", type = TraceType.Silent)
+                    trace(
+                        "synced ${syncedMessages.count()} missing messages for ${conversationId.base58}",
+                        type = TraceType.Silent
+                    )
                     val messagesWithContent = syncedMessages.map {
                         conversationMessageWithContentMapper.map(conversationId to it)
                     }
-                    db.conversationMessageDao().upsertMessagesWithContent(
-                        *(messagesWithContent).toTypedArray()
-                    )
+                    withContext(Dispatchers.IO) {
+                        db.conversationMessageDao().upsertMessagesWithContent(
+                            *(messagesWithContent).toTypedArray()
+                        )
+                    }
 
-                    val nextToken = db.conversationMessageDao().getNewestMessage(conversationId)?.id
+                    val nextToken =
+                        db.conversationMessageDao().getNewestMessage(conversationId)?.id
                     if (nextToken == token || messagesWithContent.isEmpty()) {
                         return
                     }
@@ -130,7 +148,9 @@ class ChatsController @Inject constructor(
                 }
                 .onFailure {
                     if (newMessage != null) {
-                        db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                        withContext(Dispatchers.IO) {
+                            db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                        }
                     }
                     return
                 }
@@ -148,18 +168,28 @@ class ChatsController @Inject constructor(
     }
 
     suspend fun previewRoom(room: RoomWithMembers) {
-        db.conversationDao().upsertConversations(conversationMapper.map(room.room))
         val members = room.members.map { conversationMemberMapper.map(room.room.id to it) }
-        db.conversationMessageDao().clearMessagesForChat(room.room.id)
-        db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+        db.withTransaction {
+            withContext(Dispatchers.IO) {
+                db.conversationDao().upsertConversations(conversationMapper.map(room.room))
+                db.conversationMessageDao().clearMessagesForChat(room.room.id)
+                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+            }
+        }
     }
 
     suspend fun createDirectMessage(recipient: ID): Result<RoomWithMembers> {
         return chatRepository.startChat(StartChatRequestType.TwoWay(recipient))
             .onSuccess { result ->
-                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
-                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
-                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                val members =
+                    result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao()
+                            .upsertConversations(conversationMapper.map(result.room))
+                        db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                    }
+                }
             }
     }
 
@@ -170,27 +200,45 @@ class ChatsController @Inject constructor(
     ): Result<RoomWithMembers> {
         return chatRepository.startChat(StartChatRequestType.Group(title, participants, paymentId))
             .onSuccess { result ->
-                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
-                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
-                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                val members =
+                    result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao()
+                            .upsertConversations(conversationMapper.map(result.room))
+                        db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                    }
+                }
             }
     }
 
     suspend fun joinRoomAsSpectator(roomId: ID): Result<RoomWithMembers> {
         return chatRepository.joinChat(ChatIdentifier.Id(roomId))
             .onSuccess { result ->
-                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
-                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
-                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                val members =
+                    result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao()
+                            .upsertConversations(conversationMapper.map(result.room))
+                        db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                    }
+                }
             }
     }
 
     suspend fun joinRoomAsFullMember(roomId: ID, paymentId: ID?): Result<RoomWithMembers> {
         return chatRepository.joinChat(ChatIdentifier.Id(roomId), paymentId)
             .onSuccess { result ->
-                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
-                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
-                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                val members =
+                    result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        db.conversationDao()
+                            .upsertConversations(conversationMapper.map(result.room))
+                        db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                    }
+                }
             }
     }
 

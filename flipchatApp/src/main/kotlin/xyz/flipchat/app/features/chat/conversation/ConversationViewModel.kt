@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
@@ -40,7 +41,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -50,6 +53,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -142,6 +146,7 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data object OnClose: Event
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnMembersChanged(val members: List<ConversationMember>): Event
@@ -209,8 +214,36 @@ class ConversationViewModel @Inject constructor(
             .map { it.chatId }
             .filterNotNull()
             .onEach { roomController.getChatMembers(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
             .flatMapLatest { roomController.observeMembersIn(it) }
+            .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnMembersChanged(it)) }
+            .onEach { members ->
+                val selfMember = members.firstOrNull { it.id == userManager.userId }
+                val chattableState = if (selfMember != null) {
+                    val isMuted = selfMember.isMuted
+                    val isSpectator = !selfMember.isFullMember
+                    when {
+                        isSpectator -> ChattableState.Spectator(
+                            KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.coverChargeQuarks)
+                        )
+
+                        isMuted -> ChattableState.DisabledByMute
+                        else -> ChattableState.Enabled
+                    }
+                } else {
+                    ChattableState.Lurker
+                }
+
+                if (stateFlow.value.chattableState != chattableState) {
+                    dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
+                }
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -245,32 +278,6 @@ class ConversationViewModel @Inject constructor(
             .flatMapLatest {
                 roomController.observeConversation(it)
             }.filterNotNull()
-            .onEach {
-                val selfMember = it.members.firstOrNull { it.id == userManager.userId }
-                val chattableState = if (selfMember != null) {
-                    val isMuted = selfMember.isMuted
-                    val isSpectator = !selfMember.isFullMember
-                    when {
-                        isSpectator -> ChattableState.Spectator(
-                            KinAmount.newInstance(
-                                it.conversation.coverCharge,
-                                Rate.oneToOne
-                            )
-                        )
-
-                        isMuted -> ChattableState.DisabledByMute
-                        else -> ChattableState.Enabled
-                    }
-                } else {
-                    ChattableState.Lurker
-                }
-
-                if (stateFlow.value.chattableState != chattableState) {
-                    dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
-                }
-            }
-            .distinctUntilChanged { old, new -> old.members.count() != new.members.count() || old.pointers != new.pointers }
-            .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -606,6 +613,14 @@ class ConversationViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnClose>()
+            .onEach {
+                stateFlow.value.conversationId?.let {
+                    roomController.endPreviewIfLurking(it)
+                }
+            }.launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -821,6 +836,9 @@ class ConversationViewModel @Inject constructor(
         roomController.closeMessageStream()
         viewModelScope.launch {
             stateFlow.value.conversationId?.let {
+                if (stateFlow.value.chattableState is ChattableState.Lurker) {
+                    roomController.endPreviewIfLurking(it)
+                }
                 roomController.onUserStoppedTypingIn(it)
             }
         }
@@ -831,6 +849,7 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnChatIdChanged -> Timber.d("onChatID changed ${event.chatId?.base58}")
                 is Event.OnSelfChanged -> Timber.d("onSelf changed ${event.id?.base58}")
+                is Event.OnMembersChanged -> Timber.d("members changed => ${event.members.count()}")
                 is Event.OnConversationChanged -> {
                     val members = event.conversationWithPointers.members.count()
                     Timber.d(
@@ -909,6 +928,7 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
+                is Event.OnClose,
                 is Event.OnJoinRequestedFromSpectating,
                 is Event.OnFollowRoom,
                 is Event.Error,

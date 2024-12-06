@@ -35,11 +35,12 @@ import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
 import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    userManager: xyz.flipchat.services.user.UserManager,
+    userManager: UserManager,
     private val chatsController: ChatsController,
     private val paymentController: PaymentController,
     private val profileController: ProfileController,
@@ -197,11 +198,6 @@ class ChatListViewModel @Inject constructor(
                 }
             }
             .cachedIn(viewModelScope)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Eagerly,
-                initialValue = PagingData.empty()
-            )
 
     companion object {
         private const val TAP_THRESHOLD = 6
