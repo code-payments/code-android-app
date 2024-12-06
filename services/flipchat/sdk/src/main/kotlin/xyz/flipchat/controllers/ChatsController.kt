@@ -166,16 +166,6 @@ class ChatsController @Inject constructor(
         return chatRepository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
     }
 
-    suspend fun previewRoom(room: RoomWithMembers) {
-        val members = room.members.map { conversationMemberMapper.map(room.room.id to it) }
-        db.withTransaction {
-            withContext(Dispatchers.IO) {
-                db.conversationDao().upsertConversations(conversationMapper.map(room.room))
-                db.conversationMessageDao().clearMessagesForChat(room.room.id)
-                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
-            }
-        }
-    }
 
     suspend fun createDirectMessage(recipient: ID): Result<RoomWithMembers> {
         return chatRepository.startChat(StartChatRequestType.TwoWay(recipient))

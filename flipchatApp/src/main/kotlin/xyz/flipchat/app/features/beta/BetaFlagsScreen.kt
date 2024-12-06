@@ -75,6 +75,6 @@ private val BetaFlag.title: String
 
 private val BetaFlag.message: String
     get() = when (this) {
-        BetaFlag.FollowerMode -> "When enabled, joining a room will drop you in as a follower first"
+        BetaFlag.FollowerMode -> "When enabled, you will gain the ability to watch rooms without joining first"
         BetaFlag.ReplyToMessage -> "When enabled, you will gain the ability to swipe to reply to messages in chat"
     }

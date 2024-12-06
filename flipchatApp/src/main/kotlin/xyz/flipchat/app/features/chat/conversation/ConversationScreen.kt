@@ -100,7 +100,6 @@ data class ConversationScreen(
         val messages = vm.messages.collectAsLazyPagingItems()
 
         val goBack = {
-            vm.dispatchEvent(ConversationViewModel.Event.OnClose)
             navigator.popUntil { it is TabbedHomeScreen }
         }
 
@@ -133,16 +132,14 @@ data class ConversationScreen(
                     AppBarDefaults.UpNavigation { goBack() }
                 },
                 rightContents = {
-                    if (state.chattableState.isMember()) {
-                        AppBarDefaults.Overflow {
-                            navigator.push(
-                                ScreenRegistry.get(
-                                    NavScreenProvider.Chat.Info(
-                                        state.roomInfoArgs
-                                    )
+                    AppBarDefaults.Overflow {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                NavScreenProvider.Chat.Info(
+                                    state.roomInfoArgs
                                 )
                             )
-                        }
+                        )
                     }
                 }
             )
@@ -232,7 +229,7 @@ private fun ConversationScreenContent(
 
                 Column(
                     modifier = Modifier
-                        .addIf(state.chattableState.isActiveMember()) {
+                        .addIf(state.chattableState?.isActiveMember() == true) {
                             Modifier.withTopBorder(color = CodeTheme.colors.dividerVariant)
                         }
                 ) {

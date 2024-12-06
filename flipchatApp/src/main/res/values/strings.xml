@@ -74,6 +74,8 @@
     <string name="title_changeCoverCharge">Change Cover Charge</string>
 
     <string name="action_joinRoomByName">Join %1$s</string>
+    <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
+    <string name="action_watchRoom">Let me watch first</string>
 
     <string name="title_leaveRoom">Leave Room?</string>
     <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
@@ -154,7 +156,6 @@
     <string name="prompt_title_logout">Log Out?</string>
     <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
 
-    <string name="joinRoomFromSpectating">Join Room: ⬢ %1$s</string>
     <string name="action_reply">Reply</string>
 
     <string name="title_betaFlags">Beta Flags</string>

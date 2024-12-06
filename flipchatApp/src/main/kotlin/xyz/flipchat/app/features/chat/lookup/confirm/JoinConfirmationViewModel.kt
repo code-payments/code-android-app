@@ -7,10 +7,12 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.services.model.ExtendedMetadata
+import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -18,7 +20,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
+import xyz.flipchat.app.beta.BetaFlag
+import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.app.data.RoomInfo
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.controllers.ChatsController
@@ -30,6 +35,12 @@ import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
+
+data class LoadingSuccessState(
+    val loading: Boolean = false,
+    val success: Boolean = false,
+)
 
 @HiltViewModel
 class JoinConfirmationViewModel @Inject constructor(
@@ -38,29 +49,38 @@ class JoinConfirmationViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val paymentController: PaymentController,
     private val resources: ResourceHelper,
+    betaFlags: BetaFlags,
 ) : BaseViewModel2<JoinConfirmationViewModel.State, JoinConfirmationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
 
     data class State(
+        val followEnabled: Boolean = false,
         val canJoin: Boolean = false,
         val paymentDestination: PublicKey? = null,
         val paymentReceipt: ID? = null,
         val roomInfo: RoomInfo = RoomInfo(),
-        val joining: Boolean = false,
+        val joining: LoadingSuccessState = LoadingSuccessState(),
+        val following: LoadingSuccessState = LoadingSuccessState(),
     )
 
     sealed interface Event {
         data class OnJoinArgsChanged(val args: RoomInfoArgs) : Event
-        data class OnJoiningChanged(val joining: Boolean) : Event
+        data class OnJoiningChanged(val joining: Boolean, val joined: Boolean = false) : Event
+        data class OnFollowingChanged(val following: Boolean, val followed: Boolean = false) : Event
+        data object OnWatchRoomClicked : Event
         data object JoinRoomClicked : Event
-        data object JoinRoom : Event
-        data class OnJoinedSuccessfully(val roomId: ID) : Event
+        data class OnBecameMember(val roomId: ID) : Event
+        data class OnFollowCapabilityEnabled(val canFollow: Boolean) : Event
         data class OnDestinationChanged(val destination: PublicKey) : Event
     }
 
     init {
+        betaFlags.observe(BetaFlag.FollowerMode)
+            .onEach { dispatchEvent(Event.OnFollowCapabilityEnabled(it)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnJoinArgsChanged>()
             .mapNotNull { it.args.ownerId }
@@ -82,6 +102,34 @@ class JoinConfirmationViewModel @Inject constructor(
                 }
             ).launchIn(viewModelScope)
 
+        eventFlow
+            .filterIsInstance<Event.OnWatchRoomClicked>()
+            .map { stateFlow.value.roomInfo }
+            .onEach { roomInfo ->
+                dispatchEvent(Event.OnFollowingChanged(true))
+                chatsController.joinRoomAsSpectator(roomInfo.id.orEmpty())
+                    .onFailure {
+                        dispatchEvent(Event.OnFollowingChanged(true))
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToFollowRoom),
+                                resources.getString(
+                                    R.string.error_description_failedToFollowRoom,
+                                    stateFlow.value.roomInfo.title
+                                )
+                            )
+                        )
+                    }.onSuccessWithDelay(2.seconds) {
+                        dispatchEvent(
+                            Event.OnFollowingChanged(
+                                following = false,
+                                followed = true
+                            )
+                        )
+                        delay(2.seconds)
+                        dispatchEvent(Event.OnBecameMember(it.room.id))
+                    }
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.JoinRoomClicked>()
@@ -144,8 +192,15 @@ class JoinConfirmationViewModel @Inject constructor(
                             }
                             .onSuccess {
                                 event.acknowledge(true) {
-                                    dispatchEvent(Event.OnJoiningChanged(false))
-                                    dispatchEvent(Event.OnJoinedSuccessfully(it.room.id))
+                                    viewModelScope.launch {
+                                        dispatchEvent(
+                                            Event.OnJoiningChanged(
+                                                joining = false,
+                                                joined = true
+                                            )
+                                        )
+                                        dispatchEvent(Event.OnBecameMember(it.room.id))
+                                    }
                                 }
                             }
                     }
@@ -172,14 +227,32 @@ class JoinConfirmationViewModel @Inject constructor(
                 }
 
                 Event.JoinRoomClicked,
-                Event.JoinRoom,
-                is Event.OnJoinedSuccessfully -> { state -> state }
+                Event.OnWatchRoomClicked,
+                is Event.OnBecameMember -> { state -> state }
 
-                is Event.OnJoiningChanged -> { state -> state.copy(joining = event.joining) }
+                is Event.OnJoiningChanged -> { state ->
+                    state.copy(
+                        joining = LoadingSuccessState(
+                            event.joining,
+                            event.joined
+                        )
+                    )
+                }
+
                 is Event.OnDestinationChanged -> { state ->
                     state.copy(
                         paymentDestination = event.destination,
                         canJoin = true
+                    )
+                }
+
+                is Event.OnFollowCapabilityEnabled -> { state -> state.copy(followEnabled = event.canFollow) }
+                is Event.OnFollowingChanged -> { state ->
+                    state.copy(
+                        following = LoadingSuccessState(
+                            event.following,
+                            event.followed
+                        )
                     )
                 }
             }

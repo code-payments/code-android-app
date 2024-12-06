@@ -112,7 +112,7 @@ private fun LogoutButton(
 ) {
     val context = LocalContext.current
     CodeButton(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
         buttonState = ButtonState.Filled,
         text = "Log out"
     ) {

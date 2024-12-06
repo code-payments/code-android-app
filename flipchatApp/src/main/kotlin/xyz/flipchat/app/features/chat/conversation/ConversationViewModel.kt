@@ -12,6 +12,7 @@ import androidx.paging.map
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
@@ -98,7 +99,7 @@ class ConversationViewModel @Inject constructor(
         val hostId: ID?,
         val conversationId: ID?,
         val unreadCount: Int,
-        val chattableState: ChattableState,
+        val chattableState: ChattableState?,
         val textFieldState: TextFieldState,
         val replyEnabled: Boolean,
         val replyMessage: ChatItem.Message?,
@@ -123,7 +124,7 @@ class ConversationViewModel @Inject constructor(
                 imageUri = null,
                 conversationId = null,
                 unreadCount = 0,
-                chattableState = ChattableState.Enabled,
+                chattableState = null,
                 textFieldState = TextFieldState(),
                 attemptingToFollow = false,
                 replyEnabled = false,
@@ -140,7 +141,6 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data object OnClose: Event
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnMembersChanged(val members: List<ConversationMember>): Event
@@ -161,7 +161,6 @@ class ConversationViewModel @Inject constructor(
         data class ReplyTo(val message: ChatItem.Message) : Event
         data object CancelReply : Event
 
-        data object OnFollowRoom : Event
         data class OnFollowingRoomChanged(val attempting: Boolean): Event
         data object OnJoinRequestedFromSpectating : Event
 
@@ -208,30 +207,6 @@ class ConversationViewModel @Inject constructor(
             .map { it.chatId }
             .filterNotNull()
             .onEach { roomController.getChatMembers(it) }
-            .flatMapLatest { roomController.observeMembersIn(it) }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnMembersChanged(it)) }
-            .onEach { members ->
-                val selfMember = members.firstOrNull { it.id == userManager.userId }
-                val chattableState = if (selfMember != null) {
-                    val isMuted = selfMember.isMuted
-                    val isSpectator = !selfMember.isFullMember
-                    when {
-                        isSpectator -> ChattableState.Spectator(
-                            KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.coverChargeQuarks)
-                        )
-
-                        isMuted -> ChattableState.DisabledByMute
-                        else -> ChattableState.Enabled
-                    }
-                } else {
-                    ChattableState.Lurker
-                }
-
-                if (stateFlow.value.chattableState != chattableState) {
-                    dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
-                }
-            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -267,13 +242,34 @@ class ConversationViewModel @Inject constructor(
                 roomController.observeConversation(it)
             }.filterNotNull()
             .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
+            .onEach {
+                val (_, members, _) = it
+                val selfMember = members.firstOrNull { it.id == userManager.userId }
+                val chattableState = if (selfMember != null) {
+                    val isMuted = selfMember.isMuted
+                    val isSpectator = !selfMember.isFullMember
+                    when {
+                        isSpectator -> ChattableState.Spectator(
+                            Kin.fromQuarks(it.conversation.coverChargeQuarks ?: 0)
+                        )
+
+                        isMuted -> ChattableState.DisabledByMute
+                        else -> ChattableState.Enabled
+                    }
+                } else {
+                    ChattableState.Enabled
+                }
+
+                if (stateFlow.value.chattableState != chattableState) {
+                    dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
+                }
+                dispatchEvent(Event.OnConversationChanged(it))
+            }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.MarkRead>()
             .onEach { delay(300) }
-            .filter { stateFlow.value.chattableState.isMember() }
             .map { it.messageId }
             .filter { stateFlow.value.conversationId != null }
             .map { it to stateFlow.value.conversationId!! }
@@ -288,7 +284,6 @@ class ConversationViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.MarkDelivered>()
             .onEach { delay(300) }
-            .filter { stateFlow.value.chattableState.isMember() }
             .map { it.messageId }
             .filter { stateFlow.value.conversationId != null }
             .map { it to stateFlow.value.conversationId!! }
@@ -522,28 +517,6 @@ class ConversationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnFollowRoom>()
-            .mapNotNull { stateFlow.value.conversationId }
-            .onEach { roomId ->
-                dispatchEvent(Event.OnFollowingRoomChanged(true))
-                chatsController.joinRoomAsSpectator(roomId)
-                    .onFailure {
-                        dispatchEvent(Event.OnFollowingRoomChanged(false))
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                resources.getString(R.string.error_title_failedToFollowRoom),
-                                resources.getString(
-                                    R.string.error_description_failedToFollowRoom,
-                                    stateFlow.value.title
-                                )
-                            )
-                        )
-                    }.onSuccess {
-                        dispatchEvent(Event.OnFollowingRoomChanged(false))
-                    }
-            }.launchIn(viewModelScope)
-
-        eventFlow
             .filterIsInstance<Event.OnJoinRequestedFromSpectating>()
             .map { stateFlow.value.roomInfoArgs }
             .filter { it.ownerId != null }
@@ -601,14 +574,6 @@ class ConversationViewModel @Inject constructor(
                                 }
                             }
                     }
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnClose>()
-            .onEach {
-                stateFlow.value.conversationId?.let {
-                    roomController.endPreviewIfLurking(it)
                 }
             }.launchIn(viewModelScope)
     }
@@ -822,9 +787,6 @@ class ConversationViewModel @Inject constructor(
         roomController.closeMessageStream()
         viewModelScope.launch {
             stateFlow.value.conversationId?.let {
-                if (stateFlow.value.chattableState is ChattableState.Lurker) {
-                    roomController.endPreviewIfLurking(it)
-                }
                 roomController.onUserStoppedTypingIn(it)
             }
         }
@@ -889,7 +851,7 @@ class ConversationViewModel @Inject constructor(
                             ownerId = conversation.ownerId,
                             hostName = host?.memberName,
                             memberCount = members.count(),
-                            coverChargeQuarks = conversation.coverChargeQuarks ?: 0,
+                            coverChargeQuarks = conversation.coverCharge.quarks
                         )
                     )
                 }
@@ -914,9 +876,7 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
-                is Event.OnClose,
                 is Event.OnJoinRequestedFromSpectating,
-                is Event.OnFollowRoom,
                 is Event.Error,
                 Event.RevealIdentity,
                 Event.SendCash,

@@ -175,21 +175,6 @@ class RoomController @Inject constructor(
         messagingRepository.onStoppedTyping(conversationId)
     }
 
-    suspend fun endPreviewIfLurking(conversationId: ID) {
-        userManager.userId?.let {
-            val isMember = db.conversationDao().isUserMemberIn(it, conversationId)
-            if (!isMember) {
-                db.withTransaction {
-                    withContext(Dispatchers.IO) {
-                        db.conversationDao().deleteConversationById(conversationId)
-                        db.conversationMembersDao().removeMembersFrom(conversationId)
-                        db.conversationMessageDao().removeForConversation(conversationId)
-                    }
-                }
-            }
-        }
-    }
-
     suspend fun leaveRoom(conversationId: ID): Result<Unit> {
         return chatRepository.leaveChat(conversationId)
             .onSuccess {

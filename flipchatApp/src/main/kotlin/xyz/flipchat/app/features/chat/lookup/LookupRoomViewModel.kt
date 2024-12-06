@@ -29,7 +29,6 @@ import javax.inject.Inject
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
     resources: ResourceHelper,
-    betaFeatures: BetaFlags,
 ) : BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -42,7 +41,6 @@ class LookupRoomViewModel @Inject constructor(
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(
             amountData = NumberInputHelper.AmountAnimatedData("")
         ),
-        val joinAsFollower: Boolean = false,
         val canLookup: Boolean = false,
     )
 
@@ -52,20 +50,14 @@ class LookupRoomViewModel @Inject constructor(
         data object OnBackspace : Event
         data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
         data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel) : Event
-        data class OnFollowerFlagChanged(val enabled: Boolean): Event
         data object OnLookupRoom : Event
         data object OnRoomFound : Event
-        data class PreviewRoom(val room: RoomWithMembers) : Event
         data class OnOpenConfirmation(val args: RoomInfoArgs) : Event
         data class OpenExistingRoom(val roomId: ID) : Event
     }
 
     init {
         numberInputHelper.reset()
-
-        betaFeatures.observe(BetaFlag.FollowerMode)
-            .onEach { dispatchEvent(Event.OnFollowerFlagChanged(it)) }
-            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnNumberPressed>()
@@ -128,33 +120,21 @@ class LookupRoomViewModel @Inject constructor(
                             dispatchEvent(Event.OpenExistingRoom(it.room.id))
                         }
                     } else {
-                        if (stateFlow.value.joinAsFollower) {
-                            dispatchEvent(Event.PreviewRoom(it))
-                        } else {
-                            val host = it.members.firstOrNull { m -> m.isModerator }
+                        val host = it.members.firstOrNull { m -> m.isModerator }
 
-                            val confirmJoinArgs = RoomInfoArgs(
-                                roomId = it.room.id,
-                                roomTitle = it.room.titleOrFallback(resources),
-                                roomNumber = it.room.roomNumber,
-                                memberCount = it.members.count(),
-                                ownerId = it.room.ownerId,
-                                hostName = host?.identity?.displayName,
-                                coverChargeQuarks = it.room.coverCharge.quarks
-                            )
-                            dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
-                        }
+                        val confirmJoinArgs = RoomInfoArgs(
+                            roomId = it.room.id,
+                            roomTitle = it.room.titleOrFallback(resources),
+                            roomNumber = it.room.roomNumber,
+                            memberCount = it.members.count(),
+                            ownerId = it.room.ownerId,
+                            hostName = host?.identity?.displayName,
+                            coverChargeQuarks = it.room.coverCharge.quarks
+                        )
+                        dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
                     }
                 }
             ).launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PreviewRoom>()
-            .map { it.room }
-            .onEach { roomWithMembers ->
-                chatsController.previewRoom(roomWithMembers)
-                dispatchEvent(Event.OpenExistingRoom(roomWithMembers.room.id))
-            }.launchIn(viewModelScope)
     }
 
 
@@ -174,12 +154,10 @@ class LookupRoomViewModel @Inject constructor(
                 Event.OnLookupRoom,
                 is Event.OnOpenConfirmation,
                 is Event.OpenExistingRoom,
-                is Event.PreviewRoom,
                 is Event.OnNumberPressed -> { state -> state }
 
                 is Event.OnRoomFound -> { state -> state.copy(success = true) }
                 is Event.OnLookingUpRoom -> { state -> state.copy(lookingUp = event.requesting) }
-                is Event.OnFollowerFlagChanged -> { state -> state.copy(joinAsFollower = event.enabled) }
             }
         }
     }
