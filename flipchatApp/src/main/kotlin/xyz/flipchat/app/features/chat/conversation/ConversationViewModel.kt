@@ -70,6 +70,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.extensions.titleOrFallback
+import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import java.util.UUID
 import javax.inject.Inject
@@ -143,7 +144,7 @@ class ConversationViewModel @Inject constructor(
     sealed interface Event {
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
-        data class OnMembersChanged(val members: List<ConversationMember>): Event
+        data class OnMembersChanged(val members: List<ConversationMember>) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
@@ -161,8 +162,11 @@ class ConversationViewModel @Inject constructor(
         data class ReplyTo(val message: ChatItem.Message) : Event
         data object CancelReply : Event
 
-        data class OnFollowingRoomChanged(val attempting: Boolean): Event
+        data class OnFollowingRoomChanged(val attempting: Boolean) : Event
         data object OnJoinRequestedFromSpectating : Event
+        data object NeedsAccountCreated : Event
+        data object OnAccountCreated : Event
+        data object OnJoinRoom : Event
 
         data object ReopenStream : Event
         data object CloseStream : Event
@@ -518,6 +522,18 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnJoinRequestedFromSpectating>()
+            .map { userManager.authState }
+            .onEach {
+                if (it is AuthState.LoggedIn) {
+                    dispatchEvent(Event.OnJoinRoom)
+                } else {
+                    dispatchEvent(Event.NeedsAccountCreated)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnJoinRoom>()
             .map { stateFlow.value.roomInfoArgs }
             .filter { it.ownerId != null }
             .map { profileController.getPaymentDestinationForUser(it.ownerId!!) }
@@ -876,6 +892,9 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
+                is Event.OnJoinRoom,
+                is Event.OnAccountCreated,
+                is Event.NeedsAccountCreated,
                 is Event.OnJoinRequestedFromSpectating,
                 is Event.Error,
                 Event.RevealIdentity,
