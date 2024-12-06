@@ -1,11 +1,10 @@
 package xyz.flipchat.services.internal.inject
 
-import android.app.NotificationManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
 import xyz.flipchat.services.internal.data.mapper.ChatMessageMapper
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
@@ -13,7 +12,6 @@ import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
 import xyz.flipchat.services.internal.data.mapper.MemberUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.MetadataRoomMapper
 import xyz.flipchat.services.internal.data.mapper.ProfileMapper
-import xyz.flipchat.services.internal.data.mapper.RoomWithMemberCountMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
 import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.repository.accounts.AccountRepository
@@ -50,23 +48,21 @@ internal object RepositoryModule {
         service: ChatService,
         roomMapper: MetadataRoomMapper,
         conversationMapper: RoomConversationMapper,
-        roomWithMemberCountMapper: RoomWithMemberCountMapper,
         roomWithMembersMapper: RoomWithMembersMapper,
         memberUpdateMapper: MemberUpdateMapper,
         conversationMemberMapper: ConversationMemberMapper,
         messageMapper: LastMessageMapper,
-        messageWithContentMapper: ConversationMessageWithContentMapper,
+        messageWithContentMapper: ConversationMessageMapper,
     ): ChatRepository = RealChatRepository(
         userManager = userManager,
         service = service,
         roomMapper = roomMapper,
-        roomWithMemberCountMapper = roomWithMemberCountMapper,
         roomWithMembersMapper = roomWithMembersMapper,
         conversationMapper = conversationMapper,
         memberUpdateMapper = memberUpdateMapper,
         conversationMemberMapper = conversationMemberMapper,
-        messageMapper = messageMapper,
-        messageWithContentMapper = messageWithContentMapper
+        lastMessageMapper = messageMapper,
+        messageMapper = messageWithContentMapper
     )
 
     @Provides
@@ -75,13 +71,13 @@ internal object RepositoryModule {
         service: MessagingService,
         messageMapper: ChatMessageMapper,
         lastMessageMapper: LastMessageMapper,
-        messageWithContentMapper: ConversationMessageWithContentMapper
+        messageWithContentMapper: ConversationMessageMapper
     ): MessagingRepository = RealMessagingRepository(
         userManager = userManager,
         service = service,
-        messageMapper = messageMapper,
+        chatMessageMapper = messageMapper,
         lastMessageMapper = lastMessageMapper,
-        messageWithContentMapper = messageWithContentMapper
+        messageMapper = messageWithContentMapper
     )
 
     @Provides

@@ -12,12 +12,16 @@ class ConversationMessageMapper @Inject constructor() :
     override fun map(from: Pair<ID, ChatMessage>): ConversationMessage {
         val (conversationId, message) = from
 
+        val content = message.contents.first()
+
         return ConversationMessage(
             idBase58 = message.id.base58,
             conversationIdBase58 = conversationId.base58,
             senderIdBase58 = message.senderId.base58,
             dateMillis = message.dateMillis,
-            deleted = false // TODO:
+            deleted = false, // TODO:
+            type = content.kind,
+            content = content.content
         )
     }
 }

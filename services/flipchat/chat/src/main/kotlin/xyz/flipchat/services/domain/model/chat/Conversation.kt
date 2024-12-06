@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.getcode.model.ID
 import com.getcode.model.Kin
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.utils.serializer.KinQuarksSerializer
 import com.getcode.vendor.Base58
@@ -79,9 +80,9 @@ data class ConversationWithMembersAndLastMessage(
         parentColumn = "idBase58",
         entityColumn = "conversationIdBase58",
         entity = ConversationMessage::class,
-        projection = ["idBase58", "dateMillis", "senderIdBase58"]
+        projection = ["idBase58", "dateMillis", "senderIdBase58", "type", "content"]
     )
-    val lastMessage: ConversationMessageWithContent?
+    val lastMessage: ConversationMessage?
 ) {
     val id: ID
         get() = conversation.id
@@ -102,5 +103,8 @@ data class ConversationWithMembersAndLastMessage(
 
     val ownerId: ID?
         get() = conversation.ownerId
+
+    val messageContentPreview: MessageContent?
+        get() = lastMessage?.let { MessageContent.fromData(it.type, it.content, false) }
 }
 

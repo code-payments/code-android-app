@@ -22,9 +22,9 @@ import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.data.StartChatRequestType
-import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
@@ -38,7 +38,7 @@ import javax.inject.Singleton
 class ChatsController @Inject constructor(
     private val conversationMapper: RoomConversationMapper,
     private val conversationMemberMapper: ConversationMemberMapper,
-    private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
+    private val conversationMessageMapper: ConversationMessageMapper,
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
     private val userManager: UserManager,
@@ -90,7 +90,7 @@ class ChatsController @Inject constructor(
                     }
 
                     event.message?.let { newMessage ->
-                        syncMessagesFromLast(newMessage.message.conversationId, newMessage)
+                        syncMessagesFromLast(newMessage.conversationId, newMessage)
                     }
                 }
             }
@@ -99,17 +99,16 @@ class ChatsController @Inject constructor(
 
     private suspend fun syncMessagesFromLast(
         conversationId: ID,
-        newMessage: ConversationMessageWithContent? = null
+        newMessage: ConversationMessage? = null
     ) {
         var token: ID?
         if (newMessage != null) {
-            val (message, _) = newMessage
             // sync between last in DB and this message
             val newestInDb =
                 db.conversationMessageDao().getNewestMessage(conversationId)
-            if (newestInDb?.id == message.id) {
+            if (newestInDb?.id == newMessage.id) {
                 withContext(Dispatchers.IO) {
-                    db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                    db.conversationMessageDao().upsertMessages(newMessage)
                 }
                 return
             }
@@ -130,10 +129,10 @@ class ChatsController @Inject constructor(
                         type = TraceType.Silent
                     )
                     val messagesWithContent = syncedMessages.map {
-                        conversationMessageWithContentMapper.map(conversationId to it)
+                        conversationMessageMapper.map(conversationId to it)
                     }
                     withContext(Dispatchers.IO) {
-                        db.conversationMessageDao().upsertMessagesWithContent(
+                        db.conversationMessageDao().upsertMessages(
                             *(messagesWithContent).toTypedArray()
                         )
                     }
@@ -149,7 +148,7 @@ class ChatsController @Inject constructor(
                 .onFailure {
                     if (newMessage != null) {
                         withContext(Dispatchers.IO) {
-                            db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                            db.conversationMessageDao().upsertMessages(newMessage)
                         }
                     }
                     return

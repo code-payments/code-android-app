@@ -67,9 +67,6 @@ class FcNotificationService : FirebaseMessagingService(),
     lateinit var pushController: PushController
 
     @Inject
-    lateinit var codeController: CodeController
-
-    @Inject
     lateinit var chatsController: ChatsController
 
     @Inject

@@ -3,17 +3,13 @@ package xyz.flipchat.internal.db
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import xyz.flipchat.services.domain.model.chat.Conversation
-import xyz.flipchat.services.domain.model.chat.ConversationMember
-import xyz.flipchat.services.domain.model.chat.ConversationMessage
-import xyz.flipchat.services.domain.model.chat.ConversationMessageContent
-import xyz.flipchat.services.domain.model.chat.ConversationPointerCrossRef
 import com.getcode.services.db.ClosableDatabase
 import com.getcode.services.db.SharedConverters
 import com.getcode.services.model.PrefBool
@@ -21,14 +17,14 @@ import com.getcode.services.model.PrefDouble
 import com.getcode.services.model.PrefInt
 import com.getcode.services.model.PrefString
 import com.getcode.utils.TraceType
-import com.getcode.utils.decodeBase64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
-import io.reactivex.rxjava3.core.BackpressureStrategy
-import io.reactivex.rxjava3.subjects.BehaviorSubject
-import net.sqlcipher.database.SupportFactory
 import org.kin.sdk.base.tools.subByteArray
 import timber.log.Timber
+import xyz.flipchat.services.domain.model.chat.Conversation
+import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationPointerCrossRef
 import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.db.ConversationMemberDao
 import xyz.flipchat.services.internal.db.ConversationMessageDao
@@ -45,7 +41,6 @@ import java.io.File
         ConversationMember::class,
         ConversationPointerCrossRef::class,
         ConversationMessage::class,
-        ConversationMessageContent::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -63,8 +58,9 @@ import java.io.File
         AutoMigration(from = 13, to = 14, spec = FcAppDatabase.Migration13To14::class),
         AutoMigration(from = 14, to = 15, spec = FcAppDatabase.Migration14To15::class),
         AutoMigration(from = 15, to = 16),
+        AutoMigration(from = 16, to = 17, spec = FcAppDatabase.Migration16To17::class),
     ],
-    version = 16,
+    version = 17,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -123,6 +119,14 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     class Migration14To15 : Migration(14, 15), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             // drop messages to allow proper use of message ID as the timestamp
+            db.execSQL("DELETE FROM messages")
+        }
+    }
+
+    @DeleteTable(tableName = "message_contents")
+    class Migration16To17 : Migration(16, 17), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // drop messages and contents to flatten things
             db.execSQL("DELETE FROM messages")
         }
     }

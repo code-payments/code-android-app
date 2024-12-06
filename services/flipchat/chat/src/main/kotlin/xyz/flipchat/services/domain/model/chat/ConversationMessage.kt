@@ -1,7 +1,6 @@
 package xyz.flipchat.services.domain.model.chat
 
 import androidx.room.ColumnInfo
-import androidx.room.DatabaseView
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -30,6 +29,10 @@ data class ConversationMessage(
     val senderIdBase58: String,
     val dateMillis: Long,
     private val deleted: Boolean?,
+    @ColumnInfo(defaultValue = "1")
+    val type: Int,
+    @ColumnInfo(defaultValue = "")
+    val content: String
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
@@ -44,42 +47,18 @@ data class ConversationMessage(
     val isDeleted: Boolean = deleted == true
 }
 
-@Serializable
-@Entity(
-    tableName = "message_contents", primaryKeys = ["messageIdBase58", "content"],
-    indices = [
-        Index(value = ["messageIdBase58"]) // For joining on message ID
-    ]
-)
-data class ConversationMessageContent(
-    val messageIdBase58: String,
-    val content: MessageContent
-)
-
-data class ConversationMessageWithContent(
+data class ConversationMessageWithMember(
     @Embedded val message: ConversationMessage,
-    @Relation(
-        parentColumn = "idBase58",
-        entityColumn = "messageIdBase58",
-        entity = ConversationMessageContent::class,
-        projection = ["content"]
-    )
-    val contents: List<MessageContent>,
-)
-
-data class ConversationMessageWithContentAndMember(
-    @Embedded val message: ConversationMessage,
-    @Relation(
-        parentColumn = "idBase58",
-        entityColumn = "messageIdBase58",
-        entity = ConversationMessageContent::class,
-        projection = ["content"]
-    )
-    val contents: List<MessageContent>,
     @Relation(
         parentColumn = "senderIdBase58",
         entityColumn = "memberIdBase58",
-        entity = ConversationMember::class
+        entity = ConversationMember::class,
     )
     val member: ConversationMember?
+)
+
+data class ConversationMessageWithMemberAndContent(
+    @Embedded val message: ConversationMessage,
+    val member: ConversationMember?,
+    val content: MessageContent
 )

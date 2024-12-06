@@ -17,7 +17,7 @@ import xyz.flipchat.services.data.Member
 import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.data.StartChatRequestType
-import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
 import xyz.flipchat.services.domain.model.chat.MemberUpdate
 import xyz.flipchat.services.domain.model.chat.db.ChatDbUpdate
@@ -26,7 +26,6 @@ import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
 import xyz.flipchat.services.internal.data.mapper.MemberUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.MetadataRoomMapper
-import xyz.flipchat.services.internal.data.mapper.RoomWithMemberCountMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
 import xyz.flipchat.services.internal.network.chat.ChatStreamUpdate
 import xyz.flipchat.services.internal.network.service.ChatHomeStreamReference
@@ -40,13 +39,12 @@ internal class RealChatRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: ChatService,
     private val roomMapper: MetadataRoomMapper,
-    private val roomWithMemberCountMapper: RoomWithMemberCountMapper,
     private val roomWithMembersMapper: RoomWithMembersMapper,
     private val conversationMapper: RoomConversationMapper,
     private val memberUpdateMapper: MemberUpdateMapper,
     private val conversationMemberMapper: ConversationMemberMapper,
-    private val messageMapper: LastMessageMapper,
-    private val messageWithContentMapper: ConversationMessageWithContentMapper,
+    private val lastMessageMapper: LastMessageMapper,
+    private val messageMapper: ConversationMessageMapper,
 ): ChatRepository {
     private var homeStreamReference: ChatHomeStreamReference? = null
     private val _typingChats = MutableStateFlow<List<ID>>(emptyList())
@@ -180,8 +178,8 @@ internal class RealChatRepository @Inject constructor(
                         val message = if (userManager.openRoom != updatedRoom?.id) {
                             update.lastMessage?.let {
                                 val chatId = update.id
-                                val mapped = messageMapper.map(userId to it)
-                                messageWithContentMapper.map(chatId to mapped)
+                                val mapped = lastMessageMapper.map(userId to it)
+                                messageMapper.map(chatId to mapped)
                             }
                         }  else {
                             null

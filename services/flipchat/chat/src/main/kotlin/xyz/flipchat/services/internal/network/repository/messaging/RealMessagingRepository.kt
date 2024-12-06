@@ -8,8 +8,8 @@ import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
+import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ChatMessageMapper
 import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
@@ -21,9 +21,9 @@ import javax.inject.Inject
 internal class RealMessagingRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: MessagingService,
-    private val messageMapper: ChatMessageMapper,
+    private val chatMessageMapper: ChatMessageMapper,
     private val lastMessageMapper: LastMessageMapper,
-    private val messageWithContentMapper: ConversationMessageWithContentMapper,
+    private val messageMapper: ConversationMessageMapper,
 ): MessagingRepository {
     private var messageStream: ChatMessageStreamReference? = null
 
@@ -36,7 +36,7 @@ internal class RealMessagingRepository @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             service.getMessages(owner, chatId, queryOptions)
-                .map { it.map { meta -> messageMapper.map(userId to meta) } }
+                .map { it.map { meta -> chatMessageMapper.map(userId to meta) } }
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }
@@ -87,7 +87,7 @@ internal class RealMessagingRepository @Inject constructor(
         coroutineScope: CoroutineScope,
         chatId: ID,
         lastMessageId: suspend () -> ID?,
-        onMessagesUpdated: (List<ConversationMessageWithContent>) -> Unit
+        onMessagesUpdated: (List<ConversationMessage>) -> Unit
     ) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No ed25519 signature found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
@@ -102,7 +102,7 @@ internal class RealMessagingRepository @Inject constructor(
                 if (result.isSuccess) {
                     val data = result.getOrNull() ?: return@stream
                     val messages = data.map { lastMessageMapper.map(userId to it) }
-                    val messagesWithContents = messages.map { messageWithContentMapper.map(chatId to it) }
+                    val messagesWithContents = messages.map { messageMapper.map(chatId to it) }
                     onMessagesUpdated(messagesWithContents)
                 } else {
                     result.exceptionOrNull()?.let {

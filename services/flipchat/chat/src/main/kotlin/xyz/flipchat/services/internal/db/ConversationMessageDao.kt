@@ -1,6 +1,5 @@
 package xyz.flipchat.services.internal.db
 
-import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -8,12 +7,9 @@ import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.model.ID
-import com.getcode.model.chat.MessageContent
 import com.getcode.utils.base58
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
-import xyz.flipchat.services.domain.model.chat.ConversationMessageContent
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMember
 
 @Dao
 interface ConversationMessageDao {
@@ -25,32 +21,6 @@ interface ConversationMessageDao {
         upsertMessages(*message.toTypedArray())
     }
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertMessageContent(vararg content: ConversationMessageContent)
-
-    suspend fun upsertMessageContent(messageId: ID, contents: List<MessageContent>) {
-        val contentList = contents.map {
-            ConversationMessageContent(messageId.base58, it)
-        }
-        upsertMessageContent(*contentList.toTypedArray())
-    }
-
-    @Transaction
-    suspend fun upsertMessagesWithContent(vararg message: ConversationMessageWithContent) {
-        message.onEach {
-            upsertMessages(it.message)
-            upsertMessageContent(it.message.id, it.contents)
-        }
-    }
-
-    @Transaction
-    suspend fun upsertMessagesWithContent(messages: List<ConversationMessageWithContent>) {
-        messages.onEach {
-            upsertMessages(it.message)
-            upsertMessageContent(it.message.id, it.contents)
-        }
-    }
-
     @RewriteQueriesToDropUnusedColumns
     @Transaction
     @Query("""
@@ -59,19 +29,20 @@ interface ConversationMessageDao {
         messages.senderIdBase58 AS senderIdBase58,
         messages.dateMillis AS dateMillis,
         messages.conversationIdBase58 AS conversationIdBase58,
-        message_contents.content AS content,
+        messages.type AS type,
+        messages.content AS content,
         members.memberIdBase58 AS memberIdBase58,
         members.memberName AS memberName
     FROM messages
-    LEFT JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58
+
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
     WHERE messages.conversationIdBase58 = :id
     ORDER BY messages.dateMillis DESC
     LIMIT :limit OFFSET :offset
 """)
-    suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember>
-    suspend fun getPagedMessages(id: ID, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember> {
+    suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithMember>
+    suspend fun getPagedMessages(id: ID, limit: Int, offset: Int): List<ConversationMessageWithMember> {
         return getPagedMessages(id.base58, limit, offset)
     }
 
@@ -107,18 +78,6 @@ interface ConversationMessageDao {
 
     suspend fun markDeleted(messageId: ID) {
         markDeleted(messageId.base58)
-    }
-
-    @Query("DELETE FROM message_contents WHERE messageIdBase58 = :messageId")
-    suspend fun removeContentsForMessage(messageId: String)
-
-    suspend fun removeContentsForMessage(messageId: ID) {
-        removeContentsForMessage(messageId.base58)
-    }
-
-    suspend fun markDeletedAndRemoveContents(messageId: ID) {
-        markDeleted(messageId)
-        removeContentsForMessage(messageId)
     }
 
     @Query("DELETE FROM messages WHERE conversationIdBase58 NOT IN (:chatIds)")

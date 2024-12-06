@@ -7,15 +7,12 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
-import androidx.paging.cachedIn
-import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.Rate
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
@@ -41,9 +38,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -53,7 +48,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -214,12 +208,6 @@ class ConversationViewModel @Inject constructor(
             .map { it.chatId }
             .filterNotNull()
             .onEach { roomController.getChatMembers(it) }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnChatIdChanged>()
-            .map { it.chatId }
-            .filterNotNull()
             .flatMapLatest { roomController.observeMembersIn(it) }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnMembersChanged(it)) }
@@ -278,6 +266,8 @@ class ConversationViewModel @Inject constructor(
             .flatMapLatest {
                 roomController.observeConversation(it)
             }.filterNotNull()
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -631,23 +621,19 @@ class ConversationViewModel @Inject constructor(
             roomController.messages(it).flow
         }
         .map { page ->
-            page.flatMap { mwc ->
+            page.map { mwc ->
                 if (mwc.message.isDeleted) {
-                    listOf(
-                        ConversationMessageIndice(
-                            mwc.message,
-                            mwc.member,
-                            MessageContent.RawText("", mwc.message.senderId == userManager.userId),
-                        )
+                    ConversationMessageIndice(
+                        mwc.message,
+                        mwc.member,
+                        MessageContent.RawText("", mwc.message.senderId == userManager.userId),
                     )
                 } else {
-                    mwc.contents.map {
-                        ConversationMessageIndice(
-                            mwc.message,
-                            mwc.member,
-                            it
-                        )
-                    }
+                    ConversationMessageIndice(
+                        mwc.message,
+                        mwc.member,
+                        mwc.content
+                    )
                 }
             }
         }

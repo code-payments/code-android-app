@@ -2,12 +2,17 @@ package com.getcode.model.chat
 
 import com.getcode.model.EncryptedData
 import com.getcode.model.GenericAmount
+import com.getcode.utils.base64
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Serializable
 sealed interface MessageContent {
     val kind: Int
     val isFromSelf: Boolean
+
+    val content: String
 
     @Serializable
     data class Localized(
@@ -36,6 +41,8 @@ sealed interface MessageContent {
 
             return true
         }
+
+        override val content: String = value
     }
 
     @Serializable
@@ -65,6 +72,8 @@ sealed interface MessageContent {
 
             return true
         }
+
+        override val content: String = value
     }
 
     @Serializable
@@ -103,6 +112,8 @@ sealed interface MessageContent {
 
             return true
         }
+
+        override val content: String = Json.encodeToString(this)
     }
 
     @Serializable
@@ -132,6 +143,8 @@ sealed interface MessageContent {
 
             return true
         }
+
+        override val content: String = Json.encodeToString(this)
     }
 
     @Serializable
@@ -161,6 +174,8 @@ sealed interface MessageContent {
 
             return true
         }
+
+        override val content: String = value
     }
 
     @Serializable
@@ -190,7 +205,21 @@ sealed interface MessageContent {
 
             return true
         }
+
+        override val content: String = data
     }
 
-    companion object
+    companion object {
+        fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
+            return when (type) {
+                0 -> Localized(content, isFromSelf)
+                1 -> RawText(content, isFromSelf)
+                2 -> Json.decodeFromString(content)
+                3 -> Json.decodeFromString(content)
+                4 -> Announcement(content, isFromSelf)
+                6 -> Decrypted(content, isFromSelf)
+                else -> throw IllegalArgumentException()
+            }
+        }
+    }
 }

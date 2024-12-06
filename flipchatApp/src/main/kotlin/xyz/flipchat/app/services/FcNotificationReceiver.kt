@@ -13,7 +13,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.chat.RoomController
-import xyz.flipchat.notifications.FcNotification
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext

@@ -92,7 +92,7 @@ fun ChatNode(
                     contentDescription = null,
                 )
             },
-            timestamp = chat.lastMessage?.message?.dateMillis,
+            timestamp = chat.lastMessage?.dateMillis,
             isMuted = muteContentState,
             showMuteByTitle = true,
             isHost = chat.ownerId == userManager.userId,
@@ -122,7 +122,7 @@ private fun DismissBackground(dismissState: DismissState, isMuted: Boolean) {
     ) {
         if (direction == DismissDirection.EndToStart) {
             Text(
-               text = if (isMuted) "Unmute" else "Mute",
+                text = if (isMuted) "Unmute" else "Mute",
                 color = Color.White,
                 style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700)
             )
@@ -132,7 +132,10 @@ private fun DismissBackground(dismissState: DismissState, isMuted: Boolean) {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun rememberChatDismissState(isChatMuted: () -> Boolean, onToggleMute: (mute: Boolean) -> Unit): DismissState {
+private fun rememberChatDismissState(
+    isChatMuted: () -> Boolean,
+    onToggleMute: (mute: Boolean) -> Unit
+): DismissState {
     val mutedState by rememberUpdatedState(isChatMuted())
     return remember {
         DismissState(
@@ -149,16 +152,8 @@ private fun rememberChatDismissState(isChatMuted: () -> Boolean, onToggleMute: (
 
 private val ConversationWithMembersAndLastMessage.messagePreview: Pair<AnnotatedString, Map<String, InlineTextContent>>
     @Composable get() {
-        val contents = lastMessage?.contents ?: return AnnotatedString("No content") to emptyMap()
-
-        var filtered: List<MessageContent> = contents.filterIsInstance<MessageContent.Localized>()
-        if (filtered.isEmpty()) {
-            filtered = contents
-        }
-
-        // joinToString does expose a Composable scoped lambda
-        @Suppress("SimplifiableCallChain")
-        val messageBody = filtered.map { it.localizedText }.joinToString(" ")
+        val contents = messageContentPreview ?: return AnnotatedString("No content") to emptyMap()
+        val messageBody = contents.localizedText
 
         return AnnotatedString(messageBody) to emptyMap()
     }
