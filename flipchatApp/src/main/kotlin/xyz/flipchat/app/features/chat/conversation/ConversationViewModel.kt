@@ -518,7 +518,7 @@ class ConversationViewModel @Inject constructor(
                             val roomInfo = RoomInfoArgs(
                                 roomId = room.id,
                                 roomNumber = room.roomNumber,
-                                roomTitle = room.titleOrFallback(resources),
+                                roomTitle = room.titleOrFallback(resources, includeRoomPrefix = false),
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,
@@ -679,11 +679,11 @@ class ConversationViewModel @Inject constructor(
                 )
             }
         }
-        .flowOn(Dispatchers.Default) // Optimize heavy computations
+        .flowOn(Dispatchers.Default)
         .mapLatest { page ->
             page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
-                val beforeDate = before?.date?.formatDateRelatively()
-                val afterDate = after?.date?.formatDateRelatively()
+                val beforeDate = before?.relativeDate
+                val afterDate = after?.relativeDate
 
                 if (beforeDate != afterDate) {
                     beforeDate?.let { ChatItem.Date(before.date) }

@@ -4,7 +4,7 @@ import xyz.flipchat.services.data.Room
 import com.getcode.util.resources.ResourceHelper
 import xyz.flipchat.services.chat.R
 
-fun Room.titleOrFallback(resources: ResourceHelper): String {
+fun Room.titleOrFallback(resources: ResourceHelper, includeRoomPrefix: Boolean = true): String {
     return if (title != null) {
         resources.getString(
             R.string.title_explicitRoomTitle,
@@ -12,9 +12,16 @@ fun Room.titleOrFallback(resources: ResourceHelper): String {
             title!!
         )
     } else {
-        return resources.getString(
-            R.string.title_implicitRoomTitle,
-            roomNumber
-        )
+        if (includeRoomPrefix) {
+            resources.getString(
+                R.string.title_implicitRoomTitle,
+                roomNumber
+            )
+        } else {
+            resources.getString(
+                R.string.title_implicitRoomTitleWithoutPrefix,
+                roomNumber
+            )
+        }
     }
 }

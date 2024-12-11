@@ -158,7 +158,7 @@
 
     <string name="action_reply">Reply</string>
 
-    <string name="title_betaFlags">Beta Flags</string>
+    <string name="title_betaFlags">Labs</string>
 
     <string name="action_notNow">Not Now</string>
     <string name="title_createAccountToJoinRooms">Create an account to join rooms</string>

@@ -34,7 +34,9 @@ sealed class ChatItem(open val key: Any) {
         val enableMarkup: Boolean = false,
         val enableReply: Boolean = false,
         override val key: Any = id
-    ) : ChatItem(key)
+    ) : ChatItem(key) {
+        val relativeDate: String = date.formatDateRelatively()
+    }
 
     @Stable
     data class Date(val date: Instant) : ChatItem(date) {
