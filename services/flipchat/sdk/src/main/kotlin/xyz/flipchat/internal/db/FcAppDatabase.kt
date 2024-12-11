@@ -58,7 +58,7 @@ import java.io.File
         AutoMigration(from = 13, to = 14, spec = FcAppDatabase.Migration13To14::class),
         AutoMigration(from = 14, to = 15, spec = FcAppDatabase.Migration14To15::class),
         AutoMigration(from = 15, to = 16),
-        AutoMigration(from = 16, to = 17, spec = FcAppDatabase.Migration16To17::class),
+        // explicit no migration to fallback to reset
     ],
     version = 17,
 )
@@ -119,14 +119,6 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     class Migration14To15 : Migration(14, 15), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             // drop messages to allow proper use of message ID as the timestamp
-            db.execSQL("DELETE FROM messages")
-        }
-    }
-
-    @DeleteTable(tableName = "message_contents")
-    class Migration16To17 : Migration(16, 17), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            // drop messages and contents to flatten things
             db.execSQL("DELETE FROM messages")
         }
     }
