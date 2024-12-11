@@ -34,6 +34,8 @@ import xyz.flipchat.app.util.AndroidLocale
 import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
+import xyz.flipchat.services.billing.BillingController
+import xyz.flipchat.services.billing.GooglePlayBillingController
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Singleton
 
@@ -141,4 +143,10 @@ object AppModule {
     fun providesBetaController(
         @ApplicationContext context: Context
     ): BetaFlags = BetaFlagController(context)
+
+    @Singleton
+    @Provides
+    fun providesBillingController(
+        @ApplicationContext context: Context
+    ): BillingController = GooglePlayBillingController(context)
 }

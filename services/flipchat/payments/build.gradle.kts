@@ -86,6 +86,9 @@ dependencies {
 
     implementation(Libs.lib_phone_number_google)
 
+    api(Libs.google_play_billing_runtime)
+    api(Libs.google_play_billing_ktx)
+
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)
     androidTestImplementation(Libs.androidx_test_runner)

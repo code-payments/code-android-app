@@ -11,6 +11,7 @@ import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.trace
@@ -26,6 +27,8 @@ import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.domain.model.chat.db.ConversationMemberUpdate
+import xyz.flipchat.services.domain.model.chat.db.ConversationUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
@@ -80,12 +83,75 @@ class ChatsController @Inject constructor(
             chatRepository.openEventStream(coroutineScope) { event ->
                 coroutineScope.launch {
                     withContext(Dispatchers.IO) {
-                        event.conversation?.let {
-                            db.conversationDao().upsertConversations(it)
+
+                        db.withTransaction {
+                            event.metadata.onEach { update ->
+                                when (update) {
+                                    is ConversationUpdate.CoverCharge -> {
+                                        db.conversationDao().updateCoverCharge(update.roomId, Kin.fromQuarks(update.amount))
+                                    }
+                                    is ConversationUpdate.DisplayName -> {
+                                        db.conversationDao().setDisplayName(update.roomId, update.name)
+                                    }
+                                    is ConversationUpdate.LastActivity -> {
+                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)
+                                        if (conversation != null) {
+                                            db.conversationDao().upsertConversations(
+                                                conversation.copy(lastActivity = update.timestamp)
+                                            )
+                                        }
+                                    }
+                                    is ConversationUpdate.Refresh -> db.conversationDao().upsertConversations(update.conversation)
+                                    is ConversationUpdate.UnreadCount -> {
+                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)
+                                        if (conversation != null) {
+                                            db.conversationDao().upsertConversations(
+                                                conversation.copy(unreadCount = update.numUnread, hasMoreUnread = update.hasMoreUnread)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
-                        if (event.members.isNotEmpty()) {
-                            db.conversationMembersDao().upsertMembers(*event.members.toTypedArray())
+                        db.withTransaction {
+                            event.members.onEach { update ->
+                                when (update) {
+                                    is ConversationMemberUpdate.FullRefresh -> {
+                                        db.conversationMembersDao()
+                                            .upsertMembers(*update.members.toTypedArray())
+                                    }
+
+                                    is ConversationMemberUpdate.IndividualRefresh -> {
+                                        db.conversationMembersDao().upsertMembers(update.member)
+                                    }
+
+                                    is ConversationMemberUpdate.Joined -> {
+                                        db.conversationMembersDao().upsertMembers(update.member)
+                                    }
+
+                                    is ConversationMemberUpdate.Left -> {
+                                        db.conversationMembersDao().removeMemberFromConversation(
+                                            memberId = update.memberId,
+                                            conversationId = update.roomId
+                                        )
+                                    }
+
+                                    is ConversationMemberUpdate.Muted -> {
+                                        db.conversationMembersDao().muteMember(
+                                            conversationId = update.roomId,
+                                            memberId = update.memberId
+                                        )
+                                    }
+
+                                    is ConversationMemberUpdate.Removed -> {
+                                        db.conversationMembersDao().removeMemberFromConversation(
+                                            memberId = update.memberId,
+                                            conversationId = update.roomId
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

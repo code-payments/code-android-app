@@ -40,6 +40,8 @@ import com.getcode.ui.theme.CodeScaffold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
+import xyz.flipchat.services.billing.BillingController
+import xyz.flipchat.services.billing.IapProduct
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
@@ -148,10 +150,9 @@ private fun RegisterInfoScreenContent(
                 )
 
                 Text(
-                    modifier = Modifier.alpha(0f),
-                    text = stringResource(R.string.title_createAccountToJoinRooms),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain
+                    text = "New accounts cost ${viewModel.costOfAccount}",
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary
                 )
             }
         }
@@ -160,9 +161,13 @@ private fun RegisterInfoScreenContent(
 
 @HiltViewModel
 private class RegisterInfoViewModel @Inject constructor(
-    private val userManager: UserManager
+    private val userManager: UserManager,
+    private val iapController: BillingController
 ) : ViewModel() {
 
     val userId: ID?
         get() = userManager.userId
+
+    val costOfAccount: String
+        get() = iapController.costOf(IapProduct.CreateAccount)
 }

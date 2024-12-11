@@ -271,7 +271,8 @@ object Libs {
     const val play_service_auth_phone =
         "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
 
-    const val google_play_billing = "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
+    const val google_play_billing_runtime = "com.android.billingclient:billing:${Versions.google_play_billing}"
+    const val google_play_billing_ktx = "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
 
     const val grpc_okhttp = "io.grpc:grpc-okhttp:${Versions.grpc_okhttp}"
     const val grpc_kotlin = "io.grpc:grpc-kotlin-stub:${Versions.grpc_kotlin}"

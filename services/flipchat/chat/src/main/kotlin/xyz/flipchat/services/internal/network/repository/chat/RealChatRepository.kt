@@ -19,14 +19,17 @@ import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
-import xyz.flipchat.services.domain.model.chat.MemberUpdate
-import xyz.flipchat.services.domain.model.chat.db.ChatDbUpdate
+import xyz.flipchat.services.domain.model.chat.StreamMemberUpdate
+import xyz.flipchat.services.domain.model.chat.db.ChatUpdate
+import xyz.flipchat.services.domain.model.chat.db.ConversationMemberUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
 import xyz.flipchat.services.internal.data.mapper.MemberUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.MetadataRoomMapper
+import xyz.flipchat.services.internal.data.mapper.MetadataUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
+import xyz.flipchat.services.internal.data.mapper.StreamMetadataUpdateMapper
 import xyz.flipchat.services.internal.network.chat.ChatStreamUpdate
 import xyz.flipchat.services.internal.network.service.ChatHomeStreamReference
 import xyz.flipchat.services.internal.network.service.ChatService
@@ -41,11 +44,13 @@ internal class RealChatRepository @Inject constructor(
     private val roomMapper: MetadataRoomMapper,
     private val roomWithMembersMapper: RoomWithMembersMapper,
     private val conversationMapper: RoomConversationMapper,
+    private val metadataUpdateMapper: MetadataUpdateMapper,
+    private val streamMetadataUpdateMapper: StreamMetadataUpdateMapper,
     private val memberUpdateMapper: MemberUpdateMapper,
     private val conversationMemberMapper: ConversationMemberMapper,
     private val lastMessageMapper: LastMessageMapper,
     private val messageMapper: ConversationMessageMapper,
-): ChatRepository {
+) : ChatRepository {
     private var homeStreamReference: ChatHomeStreamReference? = null
     private val _typingChats = MutableStateFlow<List<ID>>(emptyList())
     override val typingChats: StateFlow<List<ID>>
@@ -54,7 +59,8 @@ internal class RealChatRepository @Inject constructor(
     override suspend fun getChats(
         queryOptions: QueryOptions,
     ): Result<List<Room>> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.getChats(owner, queryOptions)
@@ -64,7 +70,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.getChat(owner, identifier)
@@ -74,7 +81,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun getChatMembers(identifier: ChatIdentifier): Result<List<Member>> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.getChat(owner, identifier)
@@ -85,7 +93,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun startChat(type: StartChatRequestType): Result<RoomWithMembers> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.startChat(owner, type)
@@ -94,8 +103,12 @@ internal class RealChatRepository @Inject constructor(
         }
     }
 
-    override suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID?): Result<RoomWithMembers> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+    override suspend fun joinChat(
+        identifier: ChatIdentifier,
+        paymentId: ID?
+    ): Result<RoomWithMembers> {
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.joinChat(owner, identifier, paymentId)
@@ -105,7 +118,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun leaveChat(chatId: ID): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.leaveChat(owner, chatId)
@@ -114,7 +128,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.setDisplayName(owner, chatId, displayName)
@@ -123,7 +138,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun mute(chatId: ID): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.muteChat(owner, chatId)
@@ -132,7 +148,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun unmute(chatId: ID): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.unmuteChat(owner, chatId)
@@ -141,7 +158,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.setCoverCharge(owner, chatId, amount)
@@ -154,7 +172,7 @@ internal class RealChatRepository @Inject constructor(
             .map { chatId in it }
     }
 
-    override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatDbUpdate) -> Unit) {
+    override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatUpdate) -> Unit) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("user not established")
         if (homeStreamReference == null) {
@@ -174,46 +192,80 @@ internal class RealChatRepository @Inject constructor(
                             }
                         }
 
-                        val memberUpdate = update.memberUpdate?.let {
-                            memberUpdateMapper.map(it)
-                        }
+                        val memberUpdates = update.memberUpdates.map { memberUpdateMapper.map(it) }
 
-                        val updatedRoom = update.metadata?.let {
-                            roomMapper.map(it)
-                        }
-
-                        val conversation = updatedRoom?.let { conversationMapper.map(it) }
+                        val streamMetadataUpdates = update.metadataUpdates.mapNotNull { metadataUpdateMapper.map(it) }
+                        val metadataUpdates = streamMetadataUpdates.map { streamMetadataUpdateMapper.map(update.id to it) }
 
                         // handle last message update
-                        val message = if (userManager.openRoom != updatedRoom?.id) {
+                        val message = if (userManager.openRoom != update.id) {
                             update.lastMessage?.let {
                                 val chatId = update.id
                                 val mapped = lastMessageMapper.map(userId to it)
                                 messageMapper.map(chatId to mapped)
                             }
-                        }  else {
+                        } else {
                             null
                         }
 
-                        val members = when (memberUpdate) {
-                            is MemberUpdate.Refresh -> {
-                                memberUpdate.members.map {
-                                    conversationMemberMapper.map(
-                                        Pair(
-                                            update.id,
-                                            it
+                        val convoMemberUpdates = memberUpdates.map { memberUpdate ->
+                            when (memberUpdate) {
+                                is StreamMemberUpdate.Refresh -> {
+                                    val members = memberUpdate.members.map {
+                                        conversationMemberMapper.map(
+                                            Pair(
+                                                update.id,
+                                                it
+                                            )
+                                        )
+                                    }
+                                    ConversationMemberUpdate.FullRefresh(members)
+                                }
+
+                                is StreamMemberUpdate.IndividualRefresh -> {
+                                    ConversationMemberUpdate.IndividualRefresh(
+                                        conversationMemberMapper.map(
+                                            Pair(update.id, memberUpdate.member)
                                         )
                                     )
                                 }
-                            }
 
-                            null -> emptyList()
-                        }
+                                is StreamMemberUpdate.Joined -> {
+                                    ConversationMemberUpdate.Joined(
+                                        conversationMemberMapper.map(
+                                            Pair(update.id, memberUpdate.member)
+                                        )
+                                    )
+                                }
+
+                                is StreamMemberUpdate.Left -> {
+                                    ConversationMemberUpdate.Left(update.id, memberUpdate.memberId)
+                                }
+
+                                is StreamMemberUpdate.Muted -> {
+                                    ConversationMemberUpdate.Muted(
+                                        update.id,
+                                        memberUpdate.memberId,
+                                        memberUpdate.mutedBy
+                                    )
+                                }
+
+                                is StreamMemberUpdate.Removed -> {
+                                    ConversationMemberUpdate.Removed(
+                                        update.id,
+                                        memberUpdate.memberId,
+                                        memberUpdate.removedBy
+                                    )
+                                }
+
+                                null -> null
+                            }
+                        }.filterNotNull()
 
                         onEvent(
-                            ChatDbUpdate(
-                                conversation = conversation,
-                                members = members,
+                            ChatUpdate(
+                                metadata = metadataUpdates,
+                                members = convoMemberUpdates,
                                 message = message
                             )
                         )
@@ -233,7 +285,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun removeUser(chatId: ID, userId: ID): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         return withContext(Dispatchers.IO) {
             service.removeUser(owner, chatId, userId)
                 .onFailure { ErrorUtils.handleError(it) }
@@ -244,7 +297,8 @@ internal class RealChatRepository @Inject constructor(
         userId: ID,
         messageId: ID
     ): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         return withContext(Dispatchers.IO) {
             service.reportUser(owner, userId, messageId)
                 .onFailure { ErrorUtils.handleError(it) }
@@ -252,7 +306,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun muteUser(chatId: ID, userId: ID): Result<Unit> {
-        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         return withContext(Dispatchers.IO) {
             service.muteUser(owner, chatId, userId)
                 .onFailure { ErrorUtils.handleError(it) }

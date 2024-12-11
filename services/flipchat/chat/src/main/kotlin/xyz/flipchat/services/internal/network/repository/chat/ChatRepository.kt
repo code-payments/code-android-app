@@ -10,7 +10,7 @@ import xyz.flipchat.services.data.Member
 import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.data.StartChatRequestType
-import xyz.flipchat.services.domain.model.chat.db.ChatDbUpdate
+import xyz.flipchat.services.domain.model.chat.db.ChatUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
 
 interface ChatRepository {
@@ -31,7 +31,7 @@ interface ChatRepository {
     suspend fun unmute(chatId: ID): Result<Unit>
     suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit>
     fun observeTyping(chatId: ID): Flow<Boolean>
-    fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatDbUpdate) -> Unit)
+    fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatUpdate) -> Unit)
     fun closeEventStream()
 
     val typingChats: StateFlow<List<ID>>

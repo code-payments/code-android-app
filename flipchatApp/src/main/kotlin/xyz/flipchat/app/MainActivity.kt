@@ -32,6 +32,10 @@ import xyz.flipchat.app.ui.LocalBetaFeatures
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController
+import xyz.flipchat.services.billing.BillingController
+import xyz.flipchat.services.billing.GooglePlayBillingController
+import xyz.flipchat.services.billing.LocalIapController
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import kotlin.system.exitProcess
 
@@ -54,7 +58,7 @@ class MainActivity : FragmentActivity() {
     lateinit var vibrator: Vibrator
 
     @Inject
-    lateinit var userManager: xyz.flipchat.services.user.UserManager
+    lateinit var userManager: UserManager
 
     @Inject
     lateinit var client: Client
@@ -64,6 +68,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var betaFeatures: BetaFlags
+
+    @Inject
+    lateinit var iapController: BillingController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,7 +86,8 @@ class MainActivity : FragmentActivity() {
                 LocalVibrator provides vibrator,
                 LocalUserManager provides userManager,
                 LocalPaymentController provides paymentController,
-                LocalBetaFeatures provides betaFeatures
+                LocalBetaFeatures provides betaFeatures,
+                LocalIapController provides iapController
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)
@@ -91,6 +99,7 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         client.startTimer()
+        iapController.connect()
     }
 
     override fun onStop() {

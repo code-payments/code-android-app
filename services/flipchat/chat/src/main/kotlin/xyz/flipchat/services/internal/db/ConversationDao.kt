@@ -56,6 +56,14 @@ interface ConversationDao {
         return findConversation(id.base58)
     }
 
+    @RewriteQueriesToDropUnusedColumns
+    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    suspend fun findConversationRaw(id: String): Conversation?
+
+    suspend fun findConversationRaw(id: ID): Conversation? {
+        return findConversationRaw(id.base58)
+    }
+
     @Query("SELECT * FROM conversations")
     suspend fun queryConversations(): List<Conversation>
 

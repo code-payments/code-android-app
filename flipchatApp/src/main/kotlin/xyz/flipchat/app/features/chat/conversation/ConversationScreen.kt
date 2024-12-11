@@ -47,10 +47,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
@@ -66,6 +64,7 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.generateComplementaryColorPalette
+import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.withTopBorder
 import kotlinx.coroutines.flow.filter
@@ -173,20 +172,27 @@ data class ConversationScreen(
             }
         }
 
+        val openRoomDetails = {
+            navigator.push(
+                ScreenRegistry.get(
+                    NavScreenProvider.Chat.Info(
+                        state.roomInfoArgs
+                    )
+                )
+            )
+        }
         Column {
             AppBarWithTitle(
-                title = { ConversationTitle(modifier = Modifier, state = state) },
+                title = {
+                    ConversationTitle(
+                        modifier = Modifier
+                            .noRippleClickable { openRoomDetails() },
+                        state = state
+                    )
+                },
                 leftIcon = { AppBarDefaults.UpNavigation { goBack() } },
                 rightContents = {
-                    AppBarDefaults.Overflow {
-                        navigator.push(
-                            ScreenRegistry.get(
-                                NavScreenProvider.Chat.Info(
-                                    state.roomInfoArgs
-                                )
-                            )
-                        )
-                    }
+                    AppBarDefaults.Overflow { openRoomDetails() }
                 }
             )
             ConversationScreenContent(

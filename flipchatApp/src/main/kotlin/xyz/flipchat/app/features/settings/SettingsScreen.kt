@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -94,7 +95,7 @@ class SettingsScreen : Screen, Parcelable {
                     item {
                         SettingsRow(
                             modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                            title = "Beta Flags",
+                            title = stringResource(R.string.title_betaFlags),
                             icon = rememberVectorPainter(Icons.Outlined.Science)
                         ) {
                             navigator.push(ScreenRegistry.get(NavScreenProvider.BetaFlags))

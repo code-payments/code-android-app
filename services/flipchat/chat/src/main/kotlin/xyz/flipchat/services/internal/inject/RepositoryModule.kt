@@ -11,8 +11,10 @@ import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
 import xyz.flipchat.services.internal.data.mapper.MemberUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.MetadataRoomMapper
+import xyz.flipchat.services.internal.data.mapper.MetadataUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.ProfileMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
+import xyz.flipchat.services.internal.data.mapper.StreamMetadataUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.repository.accounts.AccountRepository
 import xyz.flipchat.services.internal.network.repository.accounts.RealAccountRepository
@@ -50,6 +52,8 @@ internal object RepositoryModule {
         conversationMapper: RoomConversationMapper,
         roomWithMembersMapper: RoomWithMembersMapper,
         memberUpdateMapper: MemberUpdateMapper,
+        metadataUpdateMapper: MetadataUpdateMapper,
+        streamMetadataUpdateMapper: StreamMetadataUpdateMapper,
         conversationMemberMapper: ConversationMemberMapper,
         messageMapper: LastMessageMapper,
         messageWithContentMapper: ConversationMessageMapper,
@@ -62,7 +66,9 @@ internal object RepositoryModule {
         memberUpdateMapper = memberUpdateMapper,
         conversationMemberMapper = conversationMemberMapper,
         lastMessageMapper = messageMapper,
-        messageMapper = messageWithContentMapper
+        messageMapper = messageWithContentMapper,
+        metadataUpdateMapper = metadataUpdateMapper,
+        streamMetadataUpdateMapper = streamMetadataUpdateMapper
     )
 
     @Provides

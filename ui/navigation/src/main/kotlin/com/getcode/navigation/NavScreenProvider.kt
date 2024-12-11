@@ -22,6 +22,7 @@ sealed class NavScreenProvider : ScreenProvider {
         data object Start: NavScreenProvider()
         data class NameEntry(val showInModal: Boolean = false) : NavScreenProvider()
         data class AccessKey(val showInModal: Boolean = false) : NavScreenProvider()
+        data object Purchase: NavScreenProvider()
     }
 
     data class AppHomeScreen(val deeplink: DeepLink? = null) : NavScreenProvider()

@@ -22,8 +22,6 @@
         android:name="android.permission.READ_PHONE_STATE"
         android:maxSdkVersion="28" />
 
-    <uses-permission android:name="com.android.vending.BILLING" />
-
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />

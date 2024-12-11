@@ -14,7 +14,7 @@ import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.ChatInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
 import xyz.flipchat.app.features.chat.lookup.confirm.JoinConfirmationScreen
-import xyz.flipchat.app.features.login.accesskey.AccessKeyModalScreen
+import xyz.flipchat.app.features.login.register.AccessKeyModalScreen
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
 import xyz.flipchat.app.features.login.accesskey.SeedInputScreen
 import xyz.flipchat.app.features.login.permissions.NotificationPermissionScreen

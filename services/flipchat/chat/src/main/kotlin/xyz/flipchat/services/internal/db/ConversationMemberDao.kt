@@ -55,6 +55,18 @@ interface ConversationMemberDao {
         upsertMembers(*members.toTypedArray())
     }
 
+    @Query("UPDATE members SET isMuted = 1 WHERE conversationIdBase58 = :conversationId AND memberIdBase58 = :memberId")
+    suspend fun muteMember(conversationId: String, memberId: String)
+    suspend fun muteMember(conversationId: ID, memberId: ID) {
+        muteMember(conversationId.base58, memberId.base58)
+    }
+
+    @Query("UPDATE members SET isMuted = 0 WHERE conversationIdBase58 = :conversationId AND memberIdBase58 = :memberId")
+    suspend fun unmuteMember(conversationId: String, memberId: String)
+    suspend fun unmuteMember(conversationId: ID, memberId: ID) {
+        unmuteMember(conversationId.base58, memberId.base58)
+    }
+
     @Query("DELETE FROM members")
     fun clearMembers()
 }
