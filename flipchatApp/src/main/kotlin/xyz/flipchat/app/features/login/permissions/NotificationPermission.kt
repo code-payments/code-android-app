@@ -44,7 +44,11 @@ fun NotificationPermission(fromOnboarding: Boolean = false) {
             if (fromOnboarding) {
 //                analytics.action(Action.CompletedOnboarding)
             }
-            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+            if (navigator.lastModalItem is NotificationPermissionScreen) {
+                navigator.hide()
+            } else {
+                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+            }
         }
     }
     val notificationPermissionCheck =

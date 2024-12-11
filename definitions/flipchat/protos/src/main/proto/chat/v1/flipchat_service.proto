@@ -36,6 +36,9 @@ service Chat {
     rpc JoinChat(JoinChatRequest) returns (JoinChatResponse);
     // LeaveChat leaves a given chat.
     rpc LeaveChat(LeaveChatRequest) returns (LeaveChatResponse);
+    // SetDisplayName sets a chat's display name. If the display name isn't allowed,
+    // then a set of alternate suggestions may be provided
+    rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
     // SetCoverCharge sets a chat's cover charge
     rpc SetCoverCharge(SetCoverChargeRequest) returns (SetCoverChargeResponse);
     // RemoveUser removes a user from a chat
@@ -165,8 +168,8 @@ message StartChatRequest {
     message StartGroupChatParameters {
         // A set of users (not including self) to initially set in the group chat.
         repeated common.v1.UserId users = 1 ;
-        // Optional title to set for the group.
-        string title = 2;
+        // Reserved for display_name field
+        reserved 2;
         // Optional payment for creating the group. It's up to server to decide
         // if the user is allowed to create a group without payment.
         common.v1.IntentId payment_intent = 3;
@@ -232,6 +235,20 @@ message LeaveChatResponse {
     enum Result {
         OK = 0;
     }
+}
+message SetDisplayNameRequest {
+    common.v1.ChatId chat_id = 1;
+    string display_name = 2 ;
+    common.v1.Auth auth = 3;
+}
+message SetDisplayNameResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+        CANT_SET = 2;
+    }
+    repeated string alternate_suggestions = 2 ;
 }
 message SetCoverChargeRequest {
     common.v1.ChatId chat_id = 1;
@@ -312,9 +329,8 @@ message Metadata {
         TWO_WAY = 1;
         GROUP   = 2;
     }
-    // The chat title, which is _only_ set by server if an explicit title
-    // was set. Otherwise, clients should fill in an appropriate chat title.
-    string title = 3 ;
+    // The chat display name
+    string display_name = 3 ;
     // If non-zero, the room number associated with the chat.
     uint64 room_number = 4;
     // Are push notifications enabled for this chat (from the perspective of the caller)?

@@ -36,7 +36,7 @@ class ProfileApi @Inject constructor(
     fun setDisplayName(owner: KeyPair, displayName: String): Flow<ProfileService.SetDisplayNameResponse> {
         val request = SetDisplayNameRequest.newBuilder()
             .setDisplayName(displayName)
-            .apply { authenticate(owner) }
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::setDisplayName

@@ -72,16 +72,18 @@ import xyz.flipchat.app.R
 import xyz.flipchat.app.util.launchAppSettings
 
 @Parcelize
-data object AccessKeyScreen: Screen, NamedScreen, Parcelable {
+class AccessKeyScreen: Screen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.title_accessKey)
+
     @Composable
     override fun Content() {
         val viewModel = getViewModel<LoginAccessKeyViewModel>()
+        val navigator = LocalCodeNavigator.current
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -90,7 +92,9 @@ data object AccessKeyScreen: Screen, NamedScreen, Parcelable {
             AppBarWithTitle(
                 title = name,
             )
-            AccessKeyScreenContent(viewModel)
+            AccessKeyScreenContent(viewModel) {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true)))
+            }
         }
 
         BackHandler { /* intercept */ }
@@ -99,7 +103,7 @@ data object AccessKeyScreen: Screen, NamedScreen, Parcelable {
 
 
 @Composable
-private fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel) {
+internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onCompleted: () -> Unit) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
@@ -132,7 +136,7 @@ private fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel) {
             viewModel.saveImage()
                 .onSuccess {
                     delay(400)
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true)))
+                    onCompleted()
                 }
                 .onFailure {
                     isExportSeedRequested = false
@@ -155,7 +159,7 @@ private fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel) {
 
     }
     val onSkipClick = {
-        navigator.push(ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true)))
+        onCompleted()
     }
 
     var buttonHeight by remember {

@@ -14,7 +14,7 @@ class MetadataRoomMapper @Inject constructor(
         return Room(
             id = from.chatId.value.toByteArray().toList(),
             ownerId = from.owner.value.toByteArray().toList(),
-            _title = from.title.nullIfEmpty(),
+            _title = from.displayName.nullIfEmpty(),
             roomNumber = from.roomNumber,
             type = ChatType.entries[from.type.ordinal],
             unread = from.numUnread,

@@ -51,7 +51,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
                     if (state.followerModeEnabled) {
                         vm.dispatchEvent(LoginViewModel.Event.CreateAccount)
                     } else {
-                        navigator.push(ScreenRegistry.get(NavScreenProvider.Login.Registration))
+                        navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.NameEntry()))
                     }
                 },
                 login = {

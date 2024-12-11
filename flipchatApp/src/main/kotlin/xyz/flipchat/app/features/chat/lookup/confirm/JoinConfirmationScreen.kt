@@ -101,36 +101,14 @@ private fun JoinRoomScreenContent(viewModel: JoinConfirmationViewModel) {
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     buttonState = ButtonState.Filled,
-                    text = stringResource(
-                        R.string.action_joinRoomWithCost,
-                        formatAmountString(
-                            resources = LocalResources.current!!,
-                            currency = Currency.Kin,
-                            amount = state.roomInfo.coverCharge.quarks.toDouble(),
-                            suffix = stringResource(R.string.core_kin)
-                        )
-                    ),
+                    text = stringResource(R.string.action_watchRoom),
                     enabled = state.canJoin,
-                    isLoading = state.joining.loading,
-                    isSuccess = state.joining.success,
+                    isLoading = state.following.loading,
+                    isSuccess = state.following.success,
                 ) {
-                    viewModel.dispatchEvent(JoinConfirmationViewModel.Event.JoinRoomClicked)
-                }
-
-                if (state.followEnabled) {
-                    CodeButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        buttonState = ButtonState.Subtle,
-                        text = stringResource(R.string.action_watchRoom),
-                        enabled = state.canJoin,
-                        isLoading = state.following.loading,
-                        isSuccess = state.following.success,
-                    ) {
-                        viewModel.dispatchEvent(JoinConfirmationViewModel.Event.OnWatchRoomClicked)
-                    }
+                    viewModel.dispatchEvent(JoinConfirmationViewModel.Event.OnWatchRoomClicked)
                 }
             }
         }

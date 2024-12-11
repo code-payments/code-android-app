@@ -75,7 +75,7 @@
 
     <string name="action_joinRoomByName">Join %1$s</string>
     <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
-    <string name="action_watchRoom">Let me watch first</string>
+    <string name="action_watchRoom">Watch Room</string>
 
     <string name="title_leaveRoom">Leave Room?</string>
     <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
@@ -159,4 +159,7 @@
     <string name="action_reply">Reply</string>
 
     <string name="title_betaFlags">Beta Flags</string>
+
+    <string name="action_notNow">Not Now</string>
+    <string name="title_createAccountToJoinRooms">Create an account to join rooms</string>
 </resources>

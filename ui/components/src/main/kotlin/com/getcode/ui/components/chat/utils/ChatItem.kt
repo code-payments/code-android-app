@@ -7,6 +7,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.ui.components.chat.messagecontents.MessageControls
+import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
 import java.util.UUID
 
@@ -36,5 +37,9 @@ sealed class ChatItem(open val key: Any) {
     ) : ChatItem(key)
 
     @Stable
-    data class Date(val date: String) : ChatItem(date)
+    data class Date(val date: Instant) : ChatItem(date) {
+        val dateString: String = date.formatDateRelatively()
+
+        override val key: Any = date.toEpochMilliseconds()
+    }
 }

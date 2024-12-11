@@ -1,11 +1,9 @@
 package xyz.flipchat.app.features.login.register
 
 import android.os.Parcelable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -29,15 +27,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import xyz.flipchat.app.R
-import xyz.flipchat.app.features.login.register.RegisterDisplayNameViewModel.Event
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.AppBarWithTitle
@@ -47,36 +41,39 @@ import com.getcode.ui.components.keyboardAsState
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import io.grpc.Status.Code
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
+import xyz.flipchat.app.R
+import xyz.flipchat.app.features.login.register.RegisterDisplayNameViewModel.Event
 
 @Parcelize
-data object RegisterScreen : Screen, Parcelable {
+class RegisterScreen : Screen, Parcelable {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+
         Column {
             AppBarWithTitle(
                 backButton = true,
                 onBackIconClicked = navigator::pop
             )
-            RegisterScreenContent(getViewModel())
+            RegisterDisplayNameScreenContent(getViewModel()) {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey(false)))
+            }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RegisterScreenContent(
-    viewModel: RegisterDisplayNameViewModel
+internal fun RegisterDisplayNameScreenContent(
+    viewModel: RegisterDisplayNameViewModel,
+    onShowAccessKey: () -> Unit,
 ) {
     val state by viewModel.stateFlow.collectAsState()
-    val navigator = LocalCodeNavigator.current
 
     val keyboardVisible by keyboardAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -98,9 +95,8 @@ private fun RegisterScreenContent(
         viewModel.eventFlow
             .filterIsInstance<Event.OnSuccess>()
             .onEach { delay(400) }
-            .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Login.AccessKey))
-            }.launchIn(this)
+            .onEach { onShowAccessKey() }
+            .launchIn(this)
     }
 
     CodeScaffold(

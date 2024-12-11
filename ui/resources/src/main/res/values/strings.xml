@@ -7,4 +7,5 @@
     <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough Kin to complete this payment</string>
 
     <string name="title_implicitRoomTitle">Room #%1$s</string>
+    <string name="title_explicitRoomTitle">#%1$s - %2$s</string>
 </resources>

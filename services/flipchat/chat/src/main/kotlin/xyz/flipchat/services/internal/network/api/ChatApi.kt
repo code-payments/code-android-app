@@ -49,9 +49,6 @@ class ChatApi @Inject constructor(
                     val groupBuilder =
                         FlipchatService.StartChatRequest.StartGroupChatParameters.newBuilder()
                     with(groupBuilder) {
-                        if (type.title != null) {
-                            setTitle(type.title)
-                        }
                         type.recipients
                             .map { it.toUserId() }
                             .onEachIndexed { index, user -> setUsers(index, user) }
@@ -150,6 +147,24 @@ class ChatApi @Inject constructor(
             .build()
 
         return api::leaveChat
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // SetDisplayName sets a chat's display name. If the display name isn't allowed,
+    // then a set of alternate suggestions may be provided
+    fun setDisplayName(
+        owner: KeyPair,
+        chatId: ID,
+        displayName: String,
+    ): Flow<FlipchatService.SetDisplayNameResponse> {
+        val request = FlipchatService.SetDisplayNameRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setDisplayName(displayName)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::setDisplayName
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

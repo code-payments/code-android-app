@@ -18,6 +18,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.utils.base58
+import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -133,8 +134,14 @@ class RoomController @Inject constructor(
                 messagingRepository.advancePointer(conversationId, messageId, status)
                     .onSuccess {
                         withContext(Dispatchers.IO) {
-                            db.conversationPointersDao()
-                                .insert(conversationId, messageId.uuid!!, status)
+                            db.withTransaction {
+                                db.conversationPointersDao()
+                                    .insert(conversationId, messageId.uuid!!, status)
+                                val newest = db.conversationMessageDao().getNewestMessage(conversationId)
+                                if ((messageId.uuid?.timestamp ?: -1) >= (newest?.id?.uuid?.timestamp ?: 0L)) {
+                                    db.conversationDao().resetUnreadCount(conversationId)
+                                }
+                            }
                         }
                     }
             }
@@ -185,6 +192,13 @@ class RoomController @Inject constructor(
                         db.conversationMessageDao().removeForConversation(conversationId)
                     }
                 }
+            }
+    }
+
+    suspend fun setDisplayName(conversationId: ID, displayName: String): Result<Unit> {
+        return chatRepository.setDisplayName(conversationId, displayName)
+            .onSuccess {
+                db.conversationDao().setDisplayName(conversationId, displayName)
             }
     }
 

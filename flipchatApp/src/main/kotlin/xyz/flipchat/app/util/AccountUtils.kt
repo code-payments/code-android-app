@@ -52,14 +52,13 @@ object AccountUtils {
             }
     }
 
-    suspend fun updateAccount(context: Context, name: String, password: String): Result<Unit> {
+    suspend fun updateAccount(context: Context, name: String): Result<Unit> {
         return runCatching {
             val account = getAccount(context)
                 .mapOptional {
                     Optional.ofNullable(it.second)
                 }.blockingGet() ?: throw Throwable("Unable to get account")
             val am: AccountManager = AccountManager.get(context)
-            am.setPassword(account, password)
 
             suspendCancellableCoroutine { cont ->
                 am.renameAccount(/* account = */ account,
@@ -74,6 +73,7 @@ object AccountUtils {
                                 cont.resumeWith(Result.failure(Throwable("Failed to update name")))
                             }
                         } catch (e: AuthenticatorException) {
+                            e.printStackTrace()
                             cont.resumeWith(Result.failure(e))
                         }
                     },

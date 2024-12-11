@@ -14,10 +14,14 @@ sealed class NavScreenProvider : ScreenProvider {
 
     sealed class Login {
         data class Home(val seed: String? = null) : NavScreenProvider()
-        data object Registration : NavScreenProvider()
         data object SeedInput : NavScreenProvider()
-        data object AccessKey : NavScreenProvider()
         data class NotificationPermission(val fromOnboarding: Boolean = false) : NavScreenProvider()
+    }
+
+    sealed interface CreateAccount {
+        data object Start: NavScreenProvider()
+        data class NameEntry(val showInModal: Boolean = false) : NavScreenProvider()
+        data class AccessKey(val showInModal: Boolean = false) : NavScreenProvider()
     }
 
     data class AppHomeScreen(val deeplink: DeepLink? = null) : NavScreenProvider()

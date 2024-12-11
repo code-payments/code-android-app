@@ -71,7 +71,7 @@ fun BottomSheetScreenTransition(
                     targetState = lastItem,
                     transitionSpec = transition,
                     modifier = modifier,
-                    label = "screen transition"
+                    label = "screen transition",
                 ) { screen ->
                     navigator.saveableState("transition", screen = screen) {
                         content(screen)

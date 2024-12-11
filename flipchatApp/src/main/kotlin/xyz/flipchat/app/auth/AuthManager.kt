@@ -16,6 +16,7 @@ import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
+import com.google.android.gms.auth.api.Auth
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
@@ -98,6 +99,7 @@ class AuthManager @Inject constructor(
                     token = entropy,
                     isUnregistered = true
                 )
+                userManager.set(userId)
                 userManager.set(AuthState.Unregistered)
                 profileController.getUserFlags()
             }.onFailure {
@@ -106,7 +108,7 @@ class AuthManager @Inject constructor(
             }
     }
 
-    @Deprecated("Being replaced with a delayed account creation flow")
+
     suspend fun register(displayName: String): Result<ID> {
         val entropyB64 = userManager.entropy ?: setupAsNew()
         if (entropyB64.isEmpty()) {
@@ -119,23 +121,51 @@ class AuthManager @Inject constructor(
 
         FlipchatServices.openDatabase(context, entropyB64)
 
-        return authController.register(displayName)
-            .onSuccess { userId ->
-                AccountUtils.updateAccount(
-                    context = context,
-                    name = displayName,
-                    password = userId.base58,
-                )
-                userManager.set(userId = userId)
-                userManager.set(displayName = displayName)
-                userManager.set(AuthState.LoggedIn)
-                savePrefs()
-            }
-            .onFailure {
-                it.printStackTrace()
-                softLoginDisabled = false
-                clearToken()
-            }
+        // if we are in an unregistered state attempting to register
+        // it means the user account was setup on device and a public key registered on server.
+        // in this case, we simply need to set the display name on server to flip `is_registered`.
+        if (userManager.authState is AuthState.Unregistered) {
+            return profileController.setDisplayName(displayName)
+                .onSuccess {
+                    AccountUtils.updateAccount(
+                        context = context,
+                        name = displayName,
+                    )
+                    userManager.set(displayName = displayName)
+                    userManager.set(AuthState.LoggedIn)
+                    profileController.getUserFlags()
+                    savePrefs()
+                }
+                .map { userManager.userId!! }
+        } else {
+            return authController.register(displayName)
+                .onSuccess { userId ->
+                    if (userManager.authState is AuthState.Unregistered) {
+                        AccountUtils.updateAccount(
+                            context = context,
+                            name = displayName,
+                        )
+                    } else {
+                        AccountUtils.addAccount(
+                            context = context,
+                            name = displayName,
+                            password = userId.base58,
+                            token = entropyB64,
+                            isUnregistered = false,
+                        )
+                        userManager.set(userId = userId)
+                    }
+                    userManager.set(displayName = displayName)
+                    userManager.set(AuthState.LoggedIn)
+                    profileController.getUserFlags()
+                    savePrefs()
+                }
+                .onFailure {
+                    it.printStackTrace()
+                    softLoginDisabled = false
+                    clearToken()
+                }
+        }
     }
 
     suspend fun login(
@@ -190,18 +220,20 @@ class AuthManager @Inject constructor(
                         isUnregistered = false,
                     )
                 }
+
                 userManager.set(userId = userId)
                 if (displayName != null) {
                     userManager.set(displayName = displayName)
                 }
+
                 profileController.getUserFlags()
-                userManager.set(
-                    authState = if (lookup is UserIdResult.Unregistered) {
-                        AuthState.Unregistered
-                    } else {
-                        AuthState.LoggedIn
+                    .onSuccess {
+                        println("$it")
+                        userManager.set(authState = if (it?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered)
+                    }.onFailure {
+                        userManager.set(authState =  AuthState.Unregistered)
                     }
-                )
+
                 savePrefs()
             }
             .onFailure {

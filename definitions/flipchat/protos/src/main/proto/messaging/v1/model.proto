@@ -18,7 +18,7 @@ message Message {
     // The chat member that sent the message. For NOTIFICATION chats, this field
     // is omitted since the chat has exactly 1 member.
     common.v1.UserId sender_id = 2;
-    // Ordered message content. A message may have more than one piece of content.
+    // Message content, which is currently guaranteed to have exactly one item.
     repeated Content content = 3 ;
     // Timestamp this message was generated at. This value is also encoded in
     // any time-based UUID message IDs.
@@ -50,11 +50,13 @@ message IsTyping {
 // Content for a chat message
 message Content {
     oneof type {
-        TextContent                   text              = 1;
+        TextContent                   text                    = 1;
         LocalizedAnnouncementContent  localized_announcement  = 2;
-        //ExchangeDataContent         exchange_data     = 3;
-        NaclBoxEncryptedContent       nacl_box          = 4;
+        ReactionContent               reaction                = 5;
+        ReplyContent                  reply                   = 6;
     }
+    reserved 3; // ExchangeDataContent
+    reserved 4; // NaclBoxEncryptedContent
 }
 // Raw text content
 message TextContent {
@@ -67,13 +69,17 @@ message LocalizedAnnouncementContent {
     string key_or_text = 1 ;
     // todo: define arguments
 }
-// Encrypted piece of content using NaCl box encryption
-message NaclBoxEncryptedContent {
-    // The sender's public key that is used to derive the shared private key for
-    // decryption for message content.
-    common.v1.PublicKey peer_public_key = 1;
-    // Globally random nonce that is unique to this encrypted piece of content
-    bytes nonce = 2 ;
-    // The encrypted piece of message content
-    bytes encrypted_payload = 3 ;
+// Emoji reaction to another message
+message ReactionContent {
+    // The message ID of the message this reaction is associated with
+    MessageId original_message_id = 1 ;
+    // The emoji or reaction symbol
+    string emoji = 2 ;
+}
+// Text reply of another message
+message ReplyContent {
+    // The message ID of the message this reply is referencing
+    MessageId original_message_id = 1 ;
+    // The reply text, which can be handled similarly to TextContent
+    string reply_text = 2 ;
 }

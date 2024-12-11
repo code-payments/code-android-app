@@ -9,8 +9,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -28,6 +26,7 @@ import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.Instant
 
 sealed interface MessageListEvent {
@@ -61,26 +60,25 @@ fun MessageList(
     },
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
-    LaunchedEffect(messages.itemSnapshotList, listState) {
+    LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
-            .debounce(300)
+            .debounce(500) // Increased debounce interval
+            .distinctUntilChanged() // Avoid duplicate emissions
             .collect { index ->
-                val snapshot = messages.itemSnapshotList.toList()
-                val closetChatMessage = snapshot.getClosestChat(index)
-                val mostRecentRead = snapshot.filterIsInstance<ChatItem.Message>()
-                    .filter { it.status == MessageStatus.Read }
+                val closetChatMessage = messages[index]?.let { it as? ChatItem.Message }
+                val mostRecentRead = messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
                     .maxByOrNull { it.date }?.date
 
-                if (closetChatMessage != null) {
-                    val (id, isFromSelf, date, status) = closetChatMessage
-                    if (!isFromSelf && status != MessageStatus.Read) {
-                        if ((mostRecentRead != null && date >= mostRecentRead) || mostRecentRead == null) {
-                            dispatch(MessageListEvent.AdvancePointer(id))
+                closetChatMessage?.let { message ->
+                    if (!message.sender.isSelf && message.status != MessageStatus.Read) {
+                        if ((mostRecentRead == null || message.date >= mostRecentRead)) {
+                            dispatch(MessageListEvent.AdvancePointer(message.chatMessageId))
                         }
                     }
                 }
             }
     }
+
 
     LazyColumn(
         modifier = modifier,
@@ -104,19 +102,13 @@ fun MessageList(
             when (val item = messages[index]) {
                 is ChatItem.Date -> DateBubble(
                     modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
-                    date = item.date
+                    date = item.dateString
                 )
 
                 is ChatItem.Message -> {
                     // reverse layout so +1 to get previous
-                    val prev = runCatching { messages[index + 1] }
-                        .map { it as? ChatItem.Message }
-                        .getOrNull()
-
-                    // reverse layout so -1 to get next
-                    val next = runCatching { messages[index - 1] }
-                        .map { it as? ChatItem.Message }
-                        .getOrNull()
+                    val prev = messages.safeGet(index + 1) as? ChatItem.Message
+                    val next = messages.safeGet(index - 1) as? ChatItem.Message
 
                     val pointerRef = MessageListPointer(item, prev, next)
 
@@ -133,26 +125,8 @@ fun MessageList(
                         else -> CodeTheme.dimens.grid.x3
                     }
 
-                    val showTimestamp = remember(isPreviousGrouped, item, isNextGrouped) {
-                        // if the provided item requests the timestamp, then show it
-                        if (item.showTimestamp) return@remember true
-                        // if not in a grouping, then always show a timestamp
-                        if (!isPreviousGrouped && !isNextGrouped) return@remember true
-                        // If both previous and next are grouped, check minute boundary with next
-                        if (isPreviousGrouped && isNextGrouped) {
-                            val nextDate = next?.date
-                            if (nextDate != null && item.date.epochSeconds / 60 == nextDate.epochSeconds / 60) {
-                                return@remember false
-                            }
-                        }
-
-                        // Show timestamp only if this is the last message in the group
-                        val isLastInGroup = !isNextGrouped || next?.date?.let { nextDate ->
-                            nextDate.epochSeconds / 60 != item.date.epochSeconds / 60
-                        } ?: true
-
-                        // Show timestamp if it's the last in the group or breaks with the next
-                        isLastInGroup
+                    val showTimestamp = remember(isPreviousGrouped, isNextGrouped, item.date, next?.date) {
+                        !isPreviousGrouped || !isNextGrouped || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(60)
                     }
 
                     MessageNode(
@@ -226,3 +200,7 @@ private data class Quad<out A, out B, out C, out D>(
     val third: C,
     val fourth: D
 )
+
+fun <T : Any> LazyPagingItems<T>.safeGet(index: Int): T? {
+    return if (index in 0 until itemCount) get(index) else null
+}

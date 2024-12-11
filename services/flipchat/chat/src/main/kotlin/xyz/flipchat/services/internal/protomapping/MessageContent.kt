@@ -67,19 +67,6 @@ operator fun MessageContent.Companion.invoke(
 //            }
 //        }
 
-        Model.Content.TypeCase.NACL_BOX -> {
-            val encryptedContent = proto.naclBox
-            val peerPublicKey =
-                encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
-
-            val data = EncryptedData(
-                peerPublicKey = peerPublicKey,
-                nonce = encryptedContent.nonce.toByteArray().toList(),
-                encryptedData = encryptedContent.encryptedPayload.toByteArray().toList(),
-            )
-            MessageContent.SodiumBox(isFromSelf = isFromSelf, data = data)
-        }
-
         Model.Content.TypeCase.TEXT -> MessageContent.RawText(
             isFromSelf = isFromSelf,
             value = proto.text.text

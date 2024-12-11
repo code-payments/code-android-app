@@ -13,7 +13,9 @@ service Messaging {
     // pointer of the caller. This can be overridden by setting 'last_message',
     // 'latest_only'.
     rpc StreamMessages(stream StreamMessagesRequest) returns (stream StreamMessagesResponse);
-    // GetMessages gets the set of messages for a chat member using a paged API
+    // GetMessage gets a single message in a chat
+    rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+    // GetMessages gets the set of messages for a chat using a paged API
     rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
     // SendMessage sends a message to a chat.
     rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
@@ -59,6 +61,20 @@ message StreamMessagesResponse {
         repeated Message messages = 1 ;
     }
 }
+message GetMessageRequest {
+    common.v1.ChatId chat_id = 1;
+    MessageId message_id = 2;
+    common.v1.Auth auth = 3;
+}
+message GetMessageResponse {
+    Result result = 1;
+    enum Result {
+        OK        = 0;
+        DENIED    = 1;
+        NOT_FOUND = 2;
+    }
+    Message message = 2;
+}
 message GetMessagesRequest {
     common.v1.ChatId chat_id = 1;
     common.v1.QueryOptions query_options = 2;
@@ -76,14 +92,16 @@ message SendMessageRequest {
     common.v1.ChatId chat_id = 1;
     // Allowed content types that can be sent by client:
     //  - TextContent
+    //  - ReactionContent
+    //  - ReplyContent
     repeated Content content = 2 ;
     common.v1.Auth auth = 3;
 }
 message SendMessageResponse {
     Result result = 1;
     enum Result {
-        OK                   = 0;
-        DENIED               = 1;
+        OK     = 0;
+        DENIED = 1;
     }
     // The chat message that was sent if the RPC was succesful, which includes
     // server-side metadata like the generated message ID and official timestamp

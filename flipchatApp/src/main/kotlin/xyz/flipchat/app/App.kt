@@ -13,6 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.stack.StackEvent
+import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import xyz.flipchat.app.features.payments.PaymentScaffold
@@ -47,17 +49,19 @@ fun App(
             Lifecycle.Event.ON_RESUME -> {
                 homeViewModel.onAppOpen()
             }
+
             Lifecycle.Event.ON_STOP,
             Lifecycle.Event.ON_DESTROY -> {
                 homeViewModel.closeStream()
             }
+
             else -> Unit
         }
     }
 
     FlipchatTheme {
+        val barManager = rememberBarManager()
         AppScreenContent {
-            val barManager = rememberBarManager()
             AppNavHost {
                 val codeNavigator = LocalCodeNavigator.current
                 TipScaffold(tipsEngine = tipsEngine) {
@@ -84,10 +88,10 @@ fun App(
                         }
                     }
                 }
-                TopBarContainer(barManager.barMessages)
-                BottomBarContainer(barManager.barMessages)
             }
         }
+        TopBarContainer(barManager.barMessages)
+        BottomBarContainer(barManager.barMessages)
     }
 }
 

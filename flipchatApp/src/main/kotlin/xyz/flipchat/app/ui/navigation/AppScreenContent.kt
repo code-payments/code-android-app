@@ -14,9 +14,12 @@ import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.ChatInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
 import xyz.flipchat.app.features.chat.lookup.confirm.JoinConfirmationScreen
+import xyz.flipchat.app.features.login.accesskey.AccessKeyModalScreen
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
 import xyz.flipchat.app.features.login.accesskey.SeedInputScreen
 import xyz.flipchat.app.features.login.permissions.NotificationPermissionScreen
+import xyz.flipchat.app.features.login.register.RegisterInfoScreen
+import xyz.flipchat.app.features.login.register.RegisterModalScreen
 import xyz.flipchat.app.features.login.register.RegisterScreen
 
 @Composable
@@ -26,12 +29,24 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             LoginScreen(it.seed)
         }
 
-        register<NavScreenProvider.Login.Registration> {
-            RegisterScreen
+        register<NavScreenProvider.CreateAccount.Start> {
+            RegisterInfoScreen()
         }
 
-        register<NavScreenProvider.Login.AccessKey> {
-            AccessKeyScreen
+        register<NavScreenProvider.CreateAccount.NameEntry> {
+            if (it.showInModal) {
+                RegisterModalScreen()
+            } else {
+                RegisterScreen()
+            }
+        }
+
+        register<NavScreenProvider.CreateAccount.AccessKey> {
+            if (it.showInModal) {
+                AccessKeyModalScreen()
+            } else {
+                AccessKeyScreen()
+            }
         }
 
         register<NavScreenProvider.Login.NotificationPermission> {

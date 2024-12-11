@@ -50,10 +50,12 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -66,6 +68,7 @@ import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.withTopBorder
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -78,7 +81,7 @@ import xyz.flipchat.app.features.home.TabbedHomeScreen
 data class ConversationScreen(
     val chatId: ID? = null,
     val intentId: ID? = null
-) : Screen, Parcelable {
+) : AppScreen(), Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -95,66 +98,11 @@ data class ConversationScreen(
             }
         }
 
-        val state by vm.stateFlow.collectAsState()
-
-        val messages = vm.messages.collectAsLazyPagingItems()
-
-        val goBack = {
-            navigator.popUntil { it is TabbedHomeScreen }
-        }
-
-        BackHandler { goBack() }
-
-        OnLifecycleEvent { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    vm.dispatchEvent(ConversationViewModel.Event.ReopenStream)
-                }
-
-                Lifecycle.Event.ON_STOP,
-                Lifecycle.Event.ON_DESTROY -> {
-                    vm.dispatchEvent(ConversationViewModel.Event.CloseStream)
-                }
-
-                else -> Unit
-            }
-        }
-
-        Column {
-            AppBarWithTitle(
-                title = {
-                    ConversationTitle(
-                        modifier = Modifier,
-                        state = state,
-                    )
-                },
-                leftIcon = {
-                    AppBarDefaults.UpNavigation { goBack() }
-                },
-                rightContents = {
-                    AppBarDefaults.Overflow {
-                        navigator.push(
-                            ScreenRegistry.get(
-                                NavScreenProvider.Chat.Info(
-                                    state.roomInfoArgs
-                                )
-                            )
-                        )
-                    }
-                }
-            )
-            ConversationScreenContent(
-                state = state,
-                messages = messages,
-                dispatchEvent = vm::dispatchEvent
-            )
-        }
-
         LaunchedEffect(vm) {
             vm.eventFlow
-                .filterIsInstance<ConversationViewModel.Event.SendCash>()
+                .filterIsInstance<ConversationViewModel.Event.NeedsAccountCreated>()
                 .onEach {
-//                    navigator.push(EnterTipModal(isInChat = true))
+                    navigator.show(ScreenRegistry.get(NavScreenProvider.CreateAccount.Start))
                 }.launchIn(this)
         }
 
@@ -193,6 +141,60 @@ data class ConversationScreen(
                     )
                 }.launchIn(this)
         }
+
+        LaunchedEffect(result) {
+            result
+                .filter { it == true }
+                .onEach { vm.dispatchEvent(ConversationViewModel.Event.OnAccountCreated) }
+                .launchIn(this)
+        }
+
+        val state by vm.stateFlow.collectAsState()
+        val messages = vm.messages.collectAsLazyPagingItems()
+
+        val goBack = {
+            navigator.popUntil { it is TabbedHomeScreen }
+        }
+
+        BackHandler { goBack() }
+
+        OnLifecycleEvent { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    vm.dispatchEvent(ConversationViewModel.Event.Resumed)
+                }
+
+                Lifecycle.Event.ON_STOP,
+                Lifecycle.Event.ON_DESTROY -> {
+                    vm.dispatchEvent(ConversationViewModel.Event.Stopped)
+                }
+
+                else -> Unit
+            }
+        }
+
+        Column {
+            AppBarWithTitle(
+                title = { ConversationTitle(modifier = Modifier, state = state) },
+                leftIcon = { AppBarDefaults.UpNavigation { goBack() } },
+                rightContents = {
+                    AppBarDefaults.Overflow {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                NavScreenProvider.Chat.Info(
+                                    state.roomInfoArgs
+                                )
+                            )
+                        )
+                    }
+                }
+            )
+            ConversationScreenContent(
+                state = state,
+                messages = messages,
+                dispatchEvent = vm::dispatchEvent
+            )
+        }
     }
 }
 
@@ -202,13 +204,16 @@ private fun ConversationScreenContent(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
+    val navigator = LocalCodeNavigator.current
     val focusRequester = remember { FocusRequester() }
 
     CodeScaffold(
         bottomBar = {
             Column(
                 modifier = Modifier
-                    .imePadding(),
+                    .addIf(navigator.lastItem is ConversationScreen) {
+                        Modifier.imePadding()
+                    },
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
                 AnimatedVisibility(

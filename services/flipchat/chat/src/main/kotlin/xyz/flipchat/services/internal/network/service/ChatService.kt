@@ -221,6 +221,44 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun setDisplayName(
+        owner: KeyPair,
+        chatId: ID,
+        displayName: String,
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.setDisplayName(owner, chatId, displayName))
+                .map { response ->
+                    when (response.result) {
+                        FlipchatService.SetDisplayNameResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        FlipchatService.SetDisplayNameResponse.Result.DENIED -> {
+                            val error = SetDisplayNameError.Denied()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        FlipchatService.SetDisplayNameResponse.Result.CANT_SET -> {
+                            val error = SetDisplayNameError.CantSet(response.alternateSuggestionsList.toList())
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = SetDisplayNameError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = SetDisplayNameError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     suspend fun muteChat(owner: KeyPair, chatId: ID): Result<Unit> {
         return try {
             networkOracle.managedRequest(api.muteChat(owner, chatId))
@@ -578,6 +616,13 @@ internal class ChatService @Inject constructor(
         class Unrecognized : MuteChatStateError()
         class Denied : MuteChatStateError()
         data class Other(override val cause: Throwable? = null) : MuteChatStateError()
+    }
+
+    sealed class SetDisplayNameError(open val alternateSuggestions: List<String> = emptyList()) : Throwable() {
+        class Unrecognized : SetDisplayNameError()
+        data class CantSet(override val alternateSuggestions: List<String>): SetDisplayNameError(alternateSuggestions)
+        class Denied : SetDisplayNameError()
+        data class Other(override val cause: Throwable? = null) : SetDisplayNameError()
     }
 
     sealed class GetChatError : Throwable() {

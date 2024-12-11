@@ -113,6 +113,15 @@ internal class RealChatRepository @Inject constructor(
         }
     }
 
+    override suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.setDisplayName(owner, chatId, displayName)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
     override suspend fun mute(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
@@ -154,6 +163,7 @@ internal class RealChatRepository @Inject constructor(
                     val data = result.getOrNull() ?: return@openChatStream
                     val updates = data.mapNotNull { ChatStreamUpdate.invoke(it) }
 
+                    println(updates.joinToString())
                     updates.onEach { update ->
                         // handle typing state changes
                         if (update.isTyping != null) {

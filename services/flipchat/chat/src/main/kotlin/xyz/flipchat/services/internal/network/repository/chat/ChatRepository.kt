@@ -26,6 +26,7 @@ interface ChatRepository {
         paymentId: ID? = null,
     ): Result<RoomWithMembers>
     suspend fun leaveChat(chatId: ID): Result<Unit>
+    suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit>
     suspend fun mute(chatId: ID): Result<Unit>
     suspend fun unmute(chatId: ID): Result<Unit>
     suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit>

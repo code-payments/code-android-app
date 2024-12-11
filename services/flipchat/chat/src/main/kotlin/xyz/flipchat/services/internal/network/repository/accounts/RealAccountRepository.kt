@@ -23,7 +23,7 @@ internal class RealAccountRepository @Inject constructor(
         return service.register(
             owner = owner,
             displayName = null
-        ).onFailure { ErrorUtils.handleError(it) }
+        ).onFailure { ErrorUtils.handleError(it) }.onSuccess { println("created user=$it") }
     }
 
     @Deprecated("Being replaced with a delayed account creation flow")

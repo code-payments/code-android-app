@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import com.getcode.model.Currency
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
-import com.getcode.ui.components.text.AmountSizeStore.remember
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.util.resources.LocalResources
@@ -98,7 +96,6 @@ fun ConversationChatInput(
                         )
                         .navigationBarsPadding(),
                     buttonState = ButtonState.Filled,
-                    isLoading = state.attemptingToFollow,
                     text = stringResource(
                         R.string.action_joinRoomWithCost,
                         formatAmountString(

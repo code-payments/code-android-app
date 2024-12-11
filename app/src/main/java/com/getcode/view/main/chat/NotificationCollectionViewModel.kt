@@ -177,11 +177,8 @@ class NotificationCollectionViewModel @Inject constructor(
         }
         .mapLatest { page ->
             page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
-                val beforeDate = before?.date?.formatDateRelatively()
-                val afterDate = after?.date?.formatDateRelatively()
-
-                if (beforeDate != afterDate) {
-                    beforeDate?.let { ChatItem.Date(it) }
+                if (before?.date != after?.date) {
+                    before?.date?.let { ChatItem.Date(it) }
                 } else {
                     null
                 }

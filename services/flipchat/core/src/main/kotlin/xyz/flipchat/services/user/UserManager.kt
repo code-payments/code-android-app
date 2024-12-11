@@ -137,6 +137,7 @@ class UserManager @Inject constructor(
                     /* section = */ "userflags",
                     /* value = */ mapOf(
                         "isStaff" to flags.isStaff,
+                        "isRegistered" to flags.isRegistered,
                         "createCost" to FormatUtils.formatWholeRoundDown(flags.createCost.toKinValueDouble())
                     )
                 )

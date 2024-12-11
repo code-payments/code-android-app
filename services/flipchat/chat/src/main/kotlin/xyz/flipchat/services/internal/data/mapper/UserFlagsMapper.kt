@@ -11,6 +11,7 @@ class UserFlagsMapper @Inject constructor(): Mapper<AccountService.UserFlags, Us
     override fun map(from: AccountService.UserFlags): UserFlags {
         return UserFlags(
             isStaff = from.isStaff,
+            isRegistered = from.isRegisteredAccount,
             createCost = Kin.fromQuarks(from.startGroupFee.quarks.ifZeroOrElse(200) { it / 100_000 }),
             feeDestination = from.feeDestination.toPublicKey()
         )

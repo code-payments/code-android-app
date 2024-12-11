@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.getcode.manager.BottomBarManager
@@ -36,6 +37,8 @@ import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -44,11 +47,13 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -104,12 +109,12 @@ class ConversationViewModel @Inject constructor(
         val textFieldState: TextFieldState,
         val replyEnabled: Boolean,
         val replyMessage: ChatItem.Message?,
-        val attemptingToFollow: Boolean,
         val title: String,
         val imageUri: String?,
         val lastSeen: Instant?,
         val members: Int?,
         val pointers: Map<UUID, MessageStatus>,
+        val pointerRefs: Map<Long, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
         val roomInfoArgs: RoomInfoArgs,
@@ -127,12 +132,12 @@ class ConversationViewModel @Inject constructor(
                 unreadCount = 0,
                 chattableState = null,
                 textFieldState = TextFieldState(),
-                attemptingToFollow = false,
                 replyEnabled = false,
                 replyMessage = null,
                 title = "",
                 lastSeen = null,
                 pointers = emptyMap(),
+                pointerRefs = emptyMap(),
                 members = null,
                 showTypingIndicator = false,
                 isSelfTyping = false,
@@ -144,7 +149,6 @@ class ConversationViewModel @Inject constructor(
     sealed interface Event {
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
-        data class OnMembersChanged(val members: List<ConversationMember>) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
@@ -162,14 +166,13 @@ class ConversationViewModel @Inject constructor(
         data class ReplyTo(val message: ChatItem.Message) : Event
         data object CancelReply : Event
 
-        data class OnFollowingRoomChanged(val attempting: Boolean) : Event
         data object OnJoinRequestedFromSpectating : Event
         data object NeedsAccountCreated : Event
         data object OnAccountCreated : Event
         data object OnJoinRoom : Event
 
-        data object ReopenStream : Event
-        data object CloseStream : Event
+        data object Resumed : Event
+        data object Stopped : Event
 
         data object OnTypingStarted : Event
         data object OnTypingStopped : Event
@@ -229,7 +232,6 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.OnChatIdChanged>()
             .map { it.chatId }
             .filterNotNull()
-            .onEach { roomController.resetUnreadCount(it) }
             .onEach {
                 runCatching {
                     roomController.openMessageStream(viewModelScope, it)
@@ -267,6 +269,7 @@ class ConversationViewModel @Inject constructor(
                 if (stateFlow.value.chattableState != chattableState) {
                     dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
                 }
+
                 dispatchEvent(Event.OnConversationChanged(it))
             }
             .launchIn(viewModelScope)
@@ -339,7 +342,7 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.ReopenStream>()
+            .filterIsInstance<Event.Resumed>()
             .mapNotNull { stateFlow.value.conversationId }
             .distinctUntilChanged()
             .onEach {
@@ -352,7 +355,13 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.CloseStream>()
+            .filterIsInstance<Event.OnAccountCreated>()
+            .onEach { delay(400) }
+            .onEach { dispatchEvent(Event.OnJoinRoom) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.Stopped>()
             .onEach {
                 roomController.closeMessageStream()
                 userManager.roomClosed()
@@ -534,6 +543,7 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnJoinRoom>()
+            .filter { stateFlow.value.chattableState is ChattableState.Spectator }
             .map { stateFlow.value.roomInfoArgs }
             .filter { it.ownerId != null }
             .map { profileController.getPaymentDestinationForUser(it.ownerId!!) }
@@ -594,12 +604,15 @@ class ConversationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatItem>> = stateFlow
         .map { it.conversationId }
         .filterNotNull()
         .distinctUntilChanged()
         .flatMapLatest {
-            roomController.messages(it).flow
+            roomController
+                .messages(it).flow
+                .cachedIn(viewModelScope)
         }
         .map { page ->
             page.map { mwc ->
@@ -619,19 +632,14 @@ class ConversationViewModel @Inject constructor(
             }
         }
         .map { page ->
+            val currentState = stateFlow.value // Cache state upfront
+            val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
+            val enableReply = currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
             page.map { indice ->
                 val (message, member, contents) = indice
 
-                val pointers = stateFlow.value.pointers
-                val pointerRefs = pointers
-                    .mapKeys { it.key.timestamp }
-                    .filterKeys { it != null }
-                    .mapKeys { it.key!! }
-
-                val messageTimestamp = message.id.uuid?.timestamp
-
                 val status = findClosestMessageStatus(
-                    timestamp = messageTimestamp,
+                    timestamp = message.id.uuid?.timestamp,
                     statusMap = pointerRefs,
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
@@ -644,14 +652,14 @@ class ConversationViewModel @Inject constructor(
                     isDeleted = message.isDeleted,
                     showAsChatBubble = true,
                     enableMarkup = true,
-                    enableReply = stateFlow.value.replyEnabled && stateFlow.value.chattableState is ChattableState.Enabled,
-                    showTimestamp = false, // allow message list to show/hide wrt grouping
+                    enableReply = enableReply,
+                    showTimestamp = false,
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
                         displayName = member?.memberName ?: "Deleted",
                         isSelf = contents.isFromSelf,
-                        isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
+                        isHost = message.senderId == currentState.hostId && !contents.isFromSelf,
                     ),
                     messageControls = MessageControls(
                         actions = listOf(
@@ -670,13 +678,15 @@ class ConversationViewModel @Inject constructor(
                     key = message.id.uuid.toString()
                 )
             }
-        }.mapLatest { page ->
+        }
+        .flowOn(Dispatchers.Default) // Optimize heavy computations
+        .mapLatest { page ->
             page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
                 val beforeDate = before?.date?.formatDateRelatively()
                 val afterDate = after?.date?.formatDateRelatively()
 
                 if (beforeDate != afterDate) {
-                    beforeDate?.let { ChatItem.Date(it) }
+                    beforeDate?.let { ChatItem.Date(before.date) }
                 } else {
                     null
                 }
@@ -813,7 +823,6 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnChatIdChanged -> Timber.d("onChatID changed ${event.chatId?.base58}")
                 is Event.OnSelfChanged -> Timber.d("onSelf changed ${event.id?.base58}")
-                is Event.OnMembersChanged -> Timber.d("members changed => ${event.members.count()}")
                 is Event.OnConversationChanged -> {
                     val members = event.conversationWithPointers.members.count()
                     Timber.d(
@@ -835,19 +844,6 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnMembersChanged -> { state ->
-                    val members = event.members
-                    val host = members.firstOrNull { it.isHost }
-                    state.copy(
-                        hostId = host?.id,
-                        members = members.count().takeIf { it > 0 },
-                        roomInfoArgs = state.roomInfoArgs.copy(
-                            hostName = host?.memberName,
-                            memberCount = members.count(),
-                        )
-                    )
-                }
-
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
@@ -858,7 +854,11 @@ class ConversationViewModel @Inject constructor(
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
-                        members = event.conversationWithPointers.members.count(),
+                        pointerRefs = event.conversationWithPointers.pointers
+                            .asSequence()
+                            .mapNotNull { (key, value) -> key.timestamp?.let { it to value } }
+                            .toMap(),
+                        members = members.count(),
                         hostId = host?.id,
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
@@ -906,8 +906,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.RemoveUser,
                 is Event.ReportUser,
                 is Event.MuteUser,
-                is Event.ReopenStream,
-                is Event.CloseStream,
+                is Event.Resumed,
+                is Event.Stopped,
                 is Event.LookupRoom,
                 is Event.OpenJoinConfirmation,
                 is Event.OpenRoom,
@@ -931,7 +931,6 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }
-                is Event.OnFollowingRoomChanged -> { state -> state.copy(attemptingToFollow = event.attempting) }
             }
         }
     }
