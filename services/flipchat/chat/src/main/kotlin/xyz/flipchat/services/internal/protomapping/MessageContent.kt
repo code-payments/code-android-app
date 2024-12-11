@@ -15,61 +15,21 @@ operator fun MessageContent.Companion.invoke(
             value = proto.localizedAnnouncement.keyOrText
         )
 
-//        Model.Content.TypeCase.EXCHANGE_DATA -> {
-//            val verb = com.getcode.model.chat.Verb(proto.exchangeData.verb)
-//            when (proto.exchangeData.exchangeDataCase) {
-//                ChatService.ExchangeDataContent.ExchangeDataCase.EXACT -> {
-//                    val exact = proto.exchangeData.exact
-//                    val currency =
-//                        com.getcode.model.CurrencyCode.tryValueOf(exact.currency) ?: return null
-//                    val kinAmount = KinAmount.newInstance(
-//                        kin = Kin.fromQuarks(exact.quarks),
-//                        rate = Rate(
-//                            fx = exact.exchangeRate,
-//                            currency = currency
-//                        )
-//                    )
-//
-//
-//                    val reference = com.getcode.model.chat.Reference(proto.exchangeData)
-//                    MessageContent.Exchange(
-//                        isFromSelf = isFromSelf,
-//                        amount = GenericAmount.Exact(kinAmount),
-//                        verb = verb,
-//                        reference = reference,
-//                        hasInteracted = false,
-//                    )
-//                }
-//
-//                ChatService.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
-//                    val partial = proto.exchangeData.partial
-//                    val currency =
-//                        com.getcode.model.CurrencyCode.tryValueOf(partial.currency) ?: return null
-//
-//                    val fiat = Fiat(
-//                        currency = currency,
-//                        amount = partial.nativeAmount
-//                    )
-//
-//                    val reference = com.getcode.model.chat.Reference(proto.exchangeData)
-//
-//                    MessageContent.Exchange(
-//                        isFromSelf = isFromSelf,
-//                        amount = GenericAmount.Partial(fiat),
-//                        verb = verb,
-//                        reference = reference,
-//                        hasInteracted = false
-//                    )
-//                }
-//
-//                ChatService.ExchangeDataContent.ExchangeDataCase.EXCHANGEDATA_NOT_SET -> return null
-//                else -> return null
-//            }
-//        }
-
         Model.Content.TypeCase.TEXT -> MessageContent.RawText(
             isFromSelf = isFromSelf,
             value = proto.text.text
+        )
+
+        Model.Content.TypeCase.REACTION -> MessageContent.Reaction(
+            emoji = proto.reaction.emoji,
+            originalMessageId = proto.reaction.originalMessageId.value.toList(),
+            isFromSelf = isFromSelf
+        )
+
+        Model.Content.TypeCase.REPLY -> MessageContent.Reply(
+            text = proto.reply.replyText,
+            originalMessageId = proto.reply.originalMessageId.value.toList(),
+            isFromSelf = isFromSelf
         )
 
         Model.Content.TypeCase.TYPE_NOT_SET -> return null

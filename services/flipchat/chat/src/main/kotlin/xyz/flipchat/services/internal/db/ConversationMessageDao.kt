@@ -37,7 +37,7 @@ interface ConversationMessageDao {
 
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
-    WHERE messages.conversationIdBase58 = :id
+    WHERE messages.conversationIdBase58 = :id AND type IN (1, 4)
     ORDER BY messages.dateMillis DESC
     LIMIT :limit OFFSET :offset
 """)

@@ -109,6 +109,9 @@ fun MessageContent.localizedText(
 
             resources.getString(resId, "some username")
         }
+
+        is MessageContent.Reaction -> content.emoji
+        is MessageContent.Reply -> content.text
     }
 }
 
@@ -187,6 +190,9 @@ val MessageContent.localizedText: String
             is MessageContent.RawText -> content.value
             is MessageContent.Announcement -> { content.value
             }
+
+            is MessageContent.Reaction -> content.emoji
+            is MessageContent.Reply -> content.text
         }
     }
 

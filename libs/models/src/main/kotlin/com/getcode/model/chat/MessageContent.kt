@@ -2,6 +2,7 @@ package com.getcode.model.chat
 
 import com.getcode.model.EncryptedData
 import com.getcode.model.GenericAmount
+import com.getcode.model.ID
 import com.getcode.utils.base64
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -209,6 +210,74 @@ sealed interface MessageContent {
         override val content: String = data
     }
 
+    @Serializable
+    data class Reaction(
+        val emoji: String,
+        val originalMessageId: ID,
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 7
+
+        override fun hashCode(): Int {
+            var result = emoji.hashCode()
+            result += originalMessageId.hashCode()
+            result += isFromSelf.hashCode()
+            result += kind.hashCode()
+
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Reaction
+
+            if (emoji != other.emoji) return false
+            if (originalMessageId != other.originalMessageId) return false
+            if (isFromSelf != other.isFromSelf) return false
+            if (kind != other.kind) return false
+
+            return true
+        }
+
+        override val content: String = emoji
+    }
+
+    @Serializable
+    data class Reply(
+        val text: String,
+        val originalMessageId: ID,
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 8
+
+        override fun hashCode(): Int {
+            var result = text.hashCode()
+            result += originalMessageId.hashCode()
+            result += isFromSelf.hashCode()
+            result += kind.hashCode()
+
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Reaction
+
+            if (text != other.emoji) return false
+            if (originalMessageId != other.originalMessageId) return false
+            if (isFromSelf != other.isFromSelf) return false
+            if (kind != other.kind) return false
+
+            return true
+        }
+
+        override val content: String = text
+    }
+
     companion object {
         fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
             return when (type) {
@@ -218,6 +287,8 @@ sealed interface MessageContent {
                 3 -> Json.decodeFromString(content)
                 4 -> Announcement(content, isFromSelf)
                 6 -> Decrypted(content, isFromSelf)
+                7 -> Json.decodeFromString(content)
+                8 -> Json.decodeFromString(content)
                 else -> throw IllegalArgumentException()
             }
         }
