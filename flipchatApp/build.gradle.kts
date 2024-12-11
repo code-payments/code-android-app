@@ -237,6 +237,8 @@ dependencies {
     implementation(Libs.play_service_auth)
     implementation(Libs.play_service_auth_phone)
 
+    implementation(Libs.google_play_billing)
+
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
 

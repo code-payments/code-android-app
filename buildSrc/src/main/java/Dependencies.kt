@@ -83,6 +83,7 @@ object Versions {
     const val crashlytics_gradle: String = "2.8.1"
     const val play_service_auth = "20.7.0"
     const val play_service_auth_phone = "18.0.2"
+    const val google_play_billing = "7.1.1"
 
     const val grpc: String = "1.62.2"
     const val grpc_okhttp: String = "1.33.1"
@@ -269,6 +270,8 @@ object Libs {
         "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
     const val play_service_auth_phone =
         "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
+
+    const val google_play_billing = "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
 
     const val grpc_okhttp = "io.grpc:grpc-okhttp:${Versions.grpc_okhttp}"
     const val grpc_kotlin = "io.grpc:grpc-kotlin-stub:${Versions.grpc_kotlin}"
