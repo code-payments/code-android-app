@@ -3,8 +3,8 @@ package com.getcode.model.chat
 import com.getcode.model.EncryptedData
 import com.getcode.model.GenericAmount
 import com.getcode.model.ID
-import com.getcode.utils.base64
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -82,7 +82,6 @@ sealed interface MessageContent {
         val amount: GenericAmount,
         val verb: Verb,
         val reference: Reference?,
-        val hasInteracted: Boolean,
         override val isFromSelf: Boolean,
     ) : MessageContent {
         override val kind: Int = 2
@@ -91,7 +90,6 @@ sealed interface MessageContent {
             var result = amount.hashCode()
             result += verb.hashCode()
             result += (reference?.hashCode() ?: 0)
-            result += hasInteracted.hashCode()
             result += isFromSelf.hashCode()
             result += kind.hashCode()
 
@@ -107,14 +105,21 @@ sealed interface MessageContent {
             if (amount != other.amount) return false
             if (verb != other.verb) return false
             if (reference != other.reference) return false
-            if (hasInteracted != other.hasInteracted) return false
             if (isFromSelf != other.isFromSelf) return false
             if (kind != other.kind) return false
 
             return true
         }
 
-        override val content: String = Json.encodeToString(this)
+        @Serializable
+        internal data class Content(
+            val amount: GenericAmount,
+            val verb: Verb,
+            val reference: Reference?,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(amount, verb, reference))
     }
 
     @Serializable
@@ -145,7 +150,13 @@ sealed interface MessageContent {
             return true
         }
 
-        override val content: String = Json.encodeToString(this)
+        @Serializable
+        internal data class Content(
+            val data: EncryptedData,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(data))
     }
 
     @Serializable
@@ -241,7 +252,14 @@ sealed interface MessageContent {
             return true
         }
 
-        override val content: String = emoji
+        @Serializable
+        internal data class Content(
+            val emoji: String,
+            val originalMessageId: ID,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(emoji, originalMessageId))
     }
 
     @Serializable
@@ -265,9 +283,9 @@ sealed interface MessageContent {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
 
-            other as Reaction
+            other as Reply
 
-            if (text != other.emoji) return false
+            if (text != other.text) return false
             if (originalMessageId != other.originalMessageId) return false
             if (isFromSelf != other.isFromSelf) return false
             if (kind != other.kind) return false
@@ -275,7 +293,14 @@ sealed interface MessageContent {
             return true
         }
 
-        override val content: String = text
+        @Serializable
+        internal data class Content(
+            val text: String,
+            val originalMessageId: ID,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(text, originalMessageId))
     }
 
     companion object {
@@ -283,12 +308,24 @@ sealed interface MessageContent {
             return when (type) {
                 0 -> Localized(content, isFromSelf)
                 1 -> RawText(content, isFromSelf)
-                2 -> Json.decodeFromString(content)
-                3 -> Json.decodeFromString(content)
+                2 -> {
+                    val data = Json.decodeFromString<Exchange.Content>(content)
+                    Exchange(data.amount, data.verb, data.reference, isFromSelf)
+                }
+                3 -> {
+                    val data = Json.decodeFromString<SodiumBox.Content>(content)
+                    SodiumBox(data.data, isFromSelf)
+                }
                 4 -> Announcement(content, isFromSelf)
                 6 -> Decrypted(content, isFromSelf)
-                7 -> Json.decodeFromString(content)
-                8 -> Json.decodeFromString(content)
+                7 -> {
+                    val data = Json.decodeFromString<Reaction.Content>(content)
+                    Reaction(data.emoji, data.originalMessageId, isFromSelf)
+                }
+                8 -> {
+                    val data = Json.decodeFromString<Reply.Content>(content)
+                    Reply(data.text, data.originalMessageId, isFromSelf)
+                }
                 else -> throw IllegalArgumentException()
             }
         }
