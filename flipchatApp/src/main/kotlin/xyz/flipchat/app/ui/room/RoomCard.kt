@@ -14,25 +14,36 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.getcode.model.Currency
 import xyz.flipchat.app.R
 import xyz.flipchat.app.theme.FlipchatTheme
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.dropShadow
+import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.Geometry
+import com.getcode.ui.utils.constrain
+import com.getcode.ui.utils.measured
 import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin
 import com.getcode.utils.decodeBase58
@@ -91,6 +102,7 @@ fun RoomCard(
         contentAlignment = Alignment.Center
     ) {
         BoxWithConstraints {
+            val maxWidth = maxWidth
             val geometry = RoomCardGeometry(maxWidth, maxHeight)
             Column(
                 modifier = Modifier
@@ -109,11 +121,32 @@ fun RoomCard(
                     contentDescription = null
                 )
                 Spacer(Modifier.requiredHeight(geometry.titleTopPadding))
-                Text(
-                    text = roomInfo.title,
-                    style = CodeTheme.typography.displaySmall,
-                    color = Color.White,
-                )
+
+                val titleStyle = CodeTheme.typography.displaySmall
+                var textSize by remember { mutableStateOf(titleStyle.fontSize) }
+                var titleSize by remember { mutableStateOf(DpSize.Zero) }
+
+                Box(modifier = Modifier.measured { titleSize = it }) {
+                    Text(
+                        modifier = Modifier.constrain(
+                            mode = ConstraintMode.AutoSize(
+                                CodeTheme.typography.displaySmall.copy(
+                                    fontSize = 16.sp
+                                )
+                            ),
+                            text = roomInfo.title,
+                            style = CodeTheme.typography.displaySmall,
+                            frameConstraints = Constraints(
+                                maxWidth = with(LocalDensity.current) { maxWidth.roundToPx() },
+                                maxHeight = with(LocalDensity.current) { titleSize.height.roundToPx() },
+                            )
+                        ) { textSize = it },
+                        text = roomInfo.title,
+                        style = CodeTheme.typography.displaySmall.copy(fontSize = textSize),
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                }
                 Spacer(Modifier.requiredHeight(geometry.titleBottomPadding))
                 Column(
                     modifier = Modifier

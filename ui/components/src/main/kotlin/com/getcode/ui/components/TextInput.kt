@@ -57,16 +57,13 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
 import com.getcode.ui.utils.AutoSizeTextMeasurer
+import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.constrain
 import com.getcode.ui.utils.measured
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.roundToInt
-
-sealed interface ConstraintMode {
-    data object Free : ConstraintMode
-    data class AutoSize(val minimum: TextStyle) : ConstraintMode
-}
 
 @Composable
 fun TextInput(
@@ -169,47 +166,6 @@ fun TextInput(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-private fun Modifier.constrain(
-    mode: ConstraintMode,
-    state: TextFieldState,
-    style: TextStyle,
-    frameConstraints: Constraints,
-    onTextSizeDetermined: (TextUnit) -> Unit
-): Modifier = this.composed {
-    val textMeasurer = rememberTextMeasurer()
-    val autosizeTextMeasurer = remember(textMeasurer) { AutoSizeTextMeasurer(textMeasurer) }
-    val textLayoutResult = remember { Ref<TextLayoutResult?>() }
-    var flag by remember { mutableStateOf(Unit, neverEqualPolicy()) }
-
-    Modifier.addIf(mode is ConstraintMode.AutoSize) {
-        Modifier.layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            val result = autosizeTextMeasurer.measure(
-                text = AnnotatedString(state.text.toString()),
-                style = style,
-                constraints = Constraints(
-                    maxWidth = (frameConstraints.maxWidth * 0.85f).roundToInt(),
-                    minHeight = 0
-                ),
-                minFontSize = (mode as ConstraintMode.AutoSize).minimum.fontSize,
-                maxFontSize = style.fontSize,
-                autosizeGranularity = 100
-            )
-
-            textLayoutResult.value = result
-            flag = Unit
-
-            onTextSizeDetermined(result.layoutInput.style.fontSize)
-
-            layout(placeable.width, placeable.height) {
-                placeable.placeRelative(0, 0)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DecoratorBox(
     state: TextFieldState,
