@@ -17,8 +17,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +40,7 @@ import cafe.adriel.voyager.navigator.compositionUniqueId
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
+import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,7 +66,7 @@ fun BottomSheetNavigator(
     sheetContentColor: Color = CodeTheme.colors.onSurface,
     sheetGesturesEnabled: Boolean = true,
     skipHalfExpanded: Boolean = true,
-    animationSpec: AnimationSpec<Float> =  tween(),
+    animationSpec: AnimationSpec<Float> = tween(),
     key: String = compositionUniqueId(),
     sheetContent: BottomSheetNavigatorContent = { CurrentScreen() },
     onHide: () -> Unit = { },
@@ -95,7 +99,14 @@ fun BottomSheetNavigator(
             }
         }
 
-        CompositionLocalProvider(LocalBottomSheetNavigator provides bottomSheetNavigator) {
+        var gesturesEnabled by rememberSaveable(sheetGesturesEnabled) {
+            mutableStateOf(sheetGesturesEnabled)
+        }
+
+        CompositionLocalProvider(
+            LocalBottomSheetNavigator provides bottomSheetNavigator,
+            LocalSheetGesturesState provides { gesturesEnabled = it },
+        ) {
             ModalBottomSheetLayout(
                 modifier = modifier,
                 scrimColor = scrimColor,
@@ -104,9 +115,13 @@ fun BottomSheetNavigator(
                 sheetElevation = sheetElevation,
                 sheetBackgroundColor = sheetBackgroundColor,
                 sheetContentColor = sheetContentColor,
-                sheetGesturesEnabled = sheetGesturesEnabled,
+                sheetGesturesEnabled = gesturesEnabled,
                 sheetContent = {
-                    BottomSheetNavigatorBackHandler(bottomSheetNavigator, sheetState, hideOnBackPress)
+                    BottomSheetNavigatorBackHandler(
+                        bottomSheetNavigator,
+                        sheetState,
+                        hideOnBackPress
+                    )
                     sheetContent(bottomSheetNavigator)
                 },
                 content = {
@@ -243,7 +258,8 @@ object HiddenBottomSheetScreen : Screen {
 }
 
 @ExperimentalMaterialApi
-@Composable fun BottomSheetNavigatorBackHandler(
+@Composable
+fun BottomSheetNavigatorBackHandler(
     navigator: BottomSheetNavigator,
     sheetState: ModalBottomSheetState,
     hideOnBackPress: Boolean
@@ -257,7 +273,7 @@ object HiddenBottomSheetScreen : Screen {
 
 class SheetStacks(
     map: LinkedHashMap<Screen, List<Screen>>
-): Stack<Pair<Screen, List<Screen>>> by map.toMutableStateStack() {
+) : Stack<Pair<Screen, List<Screen>>> by map.toMutableStateStack() {
 
     fun pushTo(stackRoot: Screen, screen: Screen) {
         val stack = items.firstOrNull { it.first == stackRoot } ?: return
@@ -273,6 +289,7 @@ class SheetStacks(
         val stack = lastItemOrNull ?: return
         pushTo(stack.first, screen)
     }
+
     infix fun push(screen: Screen) {
         push(screen to listOf(screen))
     }

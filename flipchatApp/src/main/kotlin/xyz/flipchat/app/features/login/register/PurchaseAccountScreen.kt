@@ -1,6 +1,7 @@
 package xyz.flipchat.app.features.login.register
 
 import android.os.Parcelable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.DisableSheetGestures
 import com.getcode.util.getActivity
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -74,6 +76,8 @@ class PurchaseAccountScreen : ModalScreen, Parcelable {
             )
             PurchaseAccountScreenContent(getViewModel())
         }
+        BackHandler { /** swallow **/ }
+        DisableSheetGestures()
     }
 }
 
@@ -217,7 +221,7 @@ private class PurchaseAccountViewModel @Inject constructor(
                         )
                         null
                     }
-                    IapPaymentEvent.OnSuccess -> event
+                    is IapPaymentEvent.OnSuccess -> event
                 }
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
             .onEach {

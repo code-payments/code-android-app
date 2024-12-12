@@ -150,10 +150,11 @@ object AppModule {
     @Singleton
     @Provides
     fun providesBillingController(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        userManager: UserManager,
     ): BillingController = if (BuildConfig.DEBUG) {
         StubBillingController
     } else {
-        GooglePlayBillingController(context)
+        GooglePlayBillingController(context, userManager)
     }
 }

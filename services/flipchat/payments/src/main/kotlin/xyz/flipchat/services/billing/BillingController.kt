@@ -2,6 +2,7 @@ package xyz.flipchat.services.billing
 
 import android.app.Activity
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.android.billingclient.api.BillingResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,12 +13,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Duration.Companion.seconds
 
 sealed interface IapPaymentEvent {
-    data object OnSuccess : IapPaymentEvent
+    data class OnSuccess(val productId: String) : IapPaymentEvent
     data object OnCancelled : IapPaymentEvent
-    data class OnError(val error: Throwable): IapPaymentEvent
+    data class OnError(val productId: String, val error: Throwable): IapPaymentEvent
 }
 
-class IapPaymentError(val code: Int, override val message: String): Throwable(message)
+class IapPaymentError(val code: Int, override val message: String): Throwable(message) {
+    constructor(result: BillingResult): this(result.responseCode, result.debugMessage)
+}
 
 enum class BillingClientState {
     Disconnected,
@@ -60,6 +63,6 @@ object StubBillingController: BillingController {
     override fun costOf(product: IapProduct): String = "NOT_DEFINED"
     override suspend fun purchase(activity: Activity, product: IapProduct) {
         delay(1.seconds)
-        _eventFlow.emit(IapPaymentEvent.OnSuccess)
+        _eventFlow.emit(IapPaymentEvent.OnSuccess(product.productId))
     }
 }

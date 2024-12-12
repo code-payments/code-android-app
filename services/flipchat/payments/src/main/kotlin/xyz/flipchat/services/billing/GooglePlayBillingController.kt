@@ -2,11 +2,14 @@ package xyz.flipchat.services.billing
 
 import android.app.Activity
 import android.content.Context
+import android.util.Base64
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
@@ -15,6 +18,14 @@ import com.android.billingclient.api.PurchasesResponseListener
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.acknowledgePurchase
+import com.android.billingclient.api.consumePurchase
+import com.codeinc.gen.user.v1.user
+import com.getcode.model.uuid
+import com.getcode.services.utils.base64EncodedData
+import com.getcode.utils.base58
+import com.getcode.utils.base64
+import com.getcode.utils.encodeBase64
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -27,10 +38,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import xyz.flipchat.services.user.UserManager
 
 
 class GooglePlayBillingController(
-    @ApplicationContext context: Context
+    @ApplicationContext context: Context,
+    private val userManager: UserManager,
 ) : BillingController, PurchasesUpdatedListener {
 
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -73,15 +87,6 @@ class GooglePlayBillingController(
         } else if (billingResult.responseCode == BillingResponseCode.USER_CANCELED) {
             // Handle an error caused by a user canceling the purchase flow.
             scope.launch { _eventFlow.emit(IapPaymentEvent.OnCancelled) }
-        } else {
-            // Handle any other error codes.
-            scope.launch {
-                _eventFlow.emit(
-                    IapPaymentEvent.OnError(
-                        IapPaymentError(billingResult.responseCode, billingResult.debugMessage)
-                    )
-                )
-            }
         }
     }
 
@@ -113,6 +118,7 @@ class GooglePlayBillingController(
             scope.launch {
                 _eventFlow.emit(
                     IapPaymentEvent.OnError(
+                        product.productId,
                         Throwable("Unable to resolve product details for ${product.productId}")
                     )
                 )
@@ -133,6 +139,7 @@ class GooglePlayBillingController(
         if (details == null) {
             _eventFlow.emit(
                 IapPaymentEvent.OnError(
+                    product.productId,
                     Throwable("Unable to resolve product details for ${product.productId}")
                 )
             )
@@ -147,13 +154,56 @@ class GooglePlayBillingController(
                         .build()
                 )
             )
+            .setObfuscatedAccountId(userManager.userId?.uuid.toString())
             .build()
 
         client.launchBillingFlow(activity, billingFlowParams)
     }
 
     private fun completePurchase(item: Purchase) {
+        if (!item.isAcknowledged) {
+            acknowledgeOrConsume(item)
+        }
+
         purchases[item.products.first()] = item.purchaseState
+    }
+
+    private fun acknowledgeOrConsume(item: Purchase) {
+        val productId = item.products.first()
+        val product = IapProduct.entries.firstOrNull { it.productId == productId }
+        if (product != null) {
+            scope.launch {
+                if (product.isConsumable) {
+                    val consumeResult = withContext(Dispatchers.IO) {
+                        client.consumePurchase(
+                            ConsumeParams.newBuilder()
+                                .setPurchaseToken(item.purchaseToken)
+                                .build()
+                        )
+                    }
+
+                    if (consumeResult.billingResult.responseCode == BillingResponseCode.OK) {
+                        _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
+                    } else {
+                        _eventFlow.emit(IapPaymentEvent.OnError(productId, IapPaymentError(consumeResult.billingResult)))
+                    }
+                } else {
+                    val acknowledgeResult = withContext(Dispatchers.IO) {
+                        client.acknowledgePurchase(
+                            AcknowledgePurchaseParams.newBuilder()
+                                .setPurchaseToken(item.purchaseToken)
+                                .build()
+                        )
+                    }
+
+                    if (acknowledgeResult.responseCode == BillingResponseCode.OK) {
+                        _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
+                    } else {
+                        _eventFlow.emit(IapPaymentEvent.OnError(productId, IapPaymentError(acknowledgeResult)))
+                    }
+                }
+            }
+        }
     }
 
     private fun queryProducts() {

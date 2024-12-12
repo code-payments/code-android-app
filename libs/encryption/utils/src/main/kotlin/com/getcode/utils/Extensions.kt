@@ -34,6 +34,9 @@ fun ByteArray.decodeBase64(): ByteArray {
     return Base64.decode(this, Base64.NO_WRAP)
 }
 
+val ByteArray.base64: String
+    get() = Base64.encodeToString(this, Base64.NO_WRAP)
+
 fun ByteArray.encodeBase64(): String {
     return Base64.encodeToString(this, Base64.NO_WRAP)
 }

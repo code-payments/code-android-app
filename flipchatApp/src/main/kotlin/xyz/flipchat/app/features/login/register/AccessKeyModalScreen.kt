@@ -14,6 +14,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
+import com.getcode.ui.utils.DisableSheetGestures
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreenContent
@@ -43,5 +44,6 @@ class AccessKeyModalScreen : ModalScreen, Parcelable {
         }
 
         BackHandler { /* intercept */ }
+        DisableSheetGestures()
     }
 }
