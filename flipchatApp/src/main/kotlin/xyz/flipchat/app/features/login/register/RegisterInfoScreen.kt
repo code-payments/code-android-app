@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -41,7 +40,7 @@ import com.getcode.ui.theme.CodeScaffold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
-import xyz.flipchat.services.billing.BillingController
+import xyz.flipchat.services.billing.BillingClient
 import xyz.flipchat.services.billing.IapProduct
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
@@ -164,7 +163,7 @@ private fun RegisterInfoScreenContent(
 @HiltViewModel
 private class RegisterInfoViewModel @Inject constructor(
     private val userManager: UserManager,
-    private val iapController: BillingController
+    private val iapController: BillingClient
 ) : ViewModel() {
 
     val userId: ID?

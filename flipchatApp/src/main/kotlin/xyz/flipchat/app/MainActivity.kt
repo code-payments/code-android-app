@@ -24,17 +24,13 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
-import dev.theolm.rinku.RinkuInit
 import dev.theolm.rinku.compose.ext.Rinku
 import xyz.flipchat.app.beta.BetaFlags
-import xyz.flipchat.app.features.home.HomeViewModel
 import xyz.flipchat.app.ui.LocalBetaFeatures
-import xyz.flipchat.app.util.Router
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController
-import xyz.flipchat.services.billing.BillingController
-import xyz.flipchat.services.billing.GooglePlayBillingController
-import xyz.flipchat.services.billing.LocalIapController
+import xyz.flipchat.services.billing.BillingClient
+import xyz.flipchat.services.billing.LocalBillingClient
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import kotlin.system.exitProcess
@@ -70,7 +66,7 @@ class MainActivity : FragmentActivity() {
     lateinit var betaFeatures: BetaFlags
 
     @Inject
-    lateinit var iapController: BillingController
+    lateinit var iapController: BillingClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,7 +83,7 @@ class MainActivity : FragmentActivity() {
                 LocalUserManager provides userManager,
                 LocalPaymentController provides paymentController,
                 LocalBetaFeatures provides betaFeatures,
-                LocalIapController provides iapController
+                LocalBillingClient provides iapController
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

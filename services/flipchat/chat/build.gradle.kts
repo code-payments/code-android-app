@@ -46,6 +46,9 @@ dependencies {
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)
 
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
+
     implementation(Libs.grpc_android)
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
@@ -69,6 +72,9 @@ dependencies {
 
     kapt(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
+
+    api(Libs.google_play_billing_runtime)
+    api(Libs.google_play_billing_ktx)
 
     implementation(Libs.fingerprint_pro)
 

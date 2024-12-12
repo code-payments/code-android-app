@@ -20,6 +20,8 @@ import xyz.flipchat.services.internal.network.repository.accounts.AccountReposit
 import xyz.flipchat.services.internal.network.repository.accounts.RealAccountRepository
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.chat.RealChatRepository
+import xyz.flipchat.services.internal.network.repository.iap.InAppPurchaseRepository
+import xyz.flipchat.services.internal.network.repository.iap.RealInAppPurchaseRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
 import xyz.flipchat.services.internal.network.repository.messaging.RealMessagingRepository
 import xyz.flipchat.services.internal.network.repository.profile.ProfileRepository
@@ -30,6 +32,7 @@ import xyz.flipchat.services.internal.network.service.AccountService
 import xyz.flipchat.services.internal.network.service.ChatService
 import xyz.flipchat.services.internal.network.service.MessagingService
 import xyz.flipchat.services.internal.network.service.ProfileService
+import xyz.flipchat.services.internal.network.service.PurchaseService
 import xyz.flipchat.services.internal.network.service.PushService
 import xyz.flipchat.services.user.UserManager
 
@@ -70,6 +73,12 @@ internal object RepositoryModule {
         metadataUpdateMapper = metadataUpdateMapper,
         streamMetadataUpdateMapper = streamMetadataUpdateMapper
     )
+
+    @Provides
+    internal fun providesInAppPurchaseRepository(
+        userManager: UserManager,
+        service: PurchaseService
+    ): InAppPurchaseRepository = RealInAppPurchaseRepository(userManager, service)
 
     @Provides
     internal fun providesMessagingRepository(

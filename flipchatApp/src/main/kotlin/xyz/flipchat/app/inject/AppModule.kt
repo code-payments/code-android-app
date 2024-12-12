@@ -7,7 +7,6 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.VibratorManager
-import android.support.v4.os.IResultReceiver.Stub
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
 import com.getcode.services.analytics.AnalyticsService
@@ -36,9 +35,10 @@ import xyz.flipchat.app.util.AndroidLocale
 import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
-import xyz.flipchat.services.billing.BillingController
-import xyz.flipchat.services.billing.GooglePlayBillingController
-import xyz.flipchat.services.billing.StubBillingController
+import xyz.flipchat.services.billing.BillingClient
+import xyz.flipchat.services.billing.GooglePlayBillingClient
+import xyz.flipchat.services.billing.StubBillingClient
+import xyz.flipchat.services.internal.network.repository.iap.InAppPurchaseRepository
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Singleton
 
@@ -152,9 +152,10 @@ object AppModule {
     fun providesBillingController(
         @ApplicationContext context: Context,
         userManager: UserManager,
-    ): BillingController = if (BuildConfig.DEBUG) {
-        StubBillingController
+        purchaseRepository: InAppPurchaseRepository
+    ): BillingClient = if (BuildConfig.DEBUG) {
+        StubBillingClient
     } else {
-        GooglePlayBillingController(context, userManager)
+        GooglePlayBillingClient(context, userManager, purchaseRepository)
     }
 }

@@ -58,10 +58,11 @@ import xyz.flipchat.app.R
 import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.app.features.chat.lookup.confirm.LoadingSuccessState
 import xyz.flipchat.app.ui.LocalUserManager
-import xyz.flipchat.services.billing.BillingController
+import xyz.flipchat.controllers.PurchaseController
+import xyz.flipchat.services.billing.BillingClient
 import xyz.flipchat.services.billing.IapPaymentEvent
 import xyz.flipchat.services.billing.IapProduct
-import xyz.flipchat.services.billing.LocalIapController
+import xyz.flipchat.services.billing.LocalBillingClient
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -85,7 +86,7 @@ class PurchaseAccountScreen : ModalScreen, Parcelable {
 private fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
-    val billingController = LocalIapController.current
+    val billingController = LocalBillingClient.current
     val userManager = LocalUserManager.current
     val composeScope = rememberCoroutineScope()
 
@@ -179,7 +180,8 @@ private fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
 private class PurchaseAccountViewModel @Inject constructor(
     private val userManager: UserManager,
     private val authManager: AuthManager,
-    iapController: BillingController,
+    iapController: PurchaseController,
+    billingClient: BillingClient,
     resources: ResourceHelper,
 ) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
     initialState = State(),
@@ -205,10 +207,10 @@ private class PurchaseAccountViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         viewModelScope.launch {
-            dispatchEvent(Event.OnCostChanged(iapController.costOf(IapProduct.CreateAccount)))
+            dispatchEvent(Event.OnCostChanged(billingClient.costOf(IapProduct.CreateAccount)))
         }
 
-        iapController.eventFlow
+        billingClient.eventFlow
             .mapNotNull { event ->
                 when (event) {
                     IapPaymentEvent.OnCancelled -> null
@@ -224,6 +226,7 @@ private class PurchaseAccountViewModel @Inject constructor(
                     is IapPaymentEvent.OnSuccess -> event
                 }
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
+
             .onEach {
                 dispatchEvent(Event.OnCreatingChanged(true))
                 authManager.register(userManager.displayName!!)

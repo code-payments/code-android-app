@@ -3,7 +3,6 @@ package xyz.flipchat.services.billing
 import android.app.Activity
 import android.content.Context
 import com.android.billingclient.api.AcknowledgePurchaseParams
-import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -33,13 +32,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import xyz.flipchat.services.internal.network.repository.iap.InAppPurchaseRepository
 import xyz.flipchat.services.user.UserManager
+import com.android.billingclient.api.BillingClient as GooglePlayBillingClient
 
 
-class GooglePlayBillingController(
+class GooglePlayBillingClient(
     @ApplicationContext context: Context,
     private val userManager: UserManager,
-) : BillingController, PurchasesUpdatedListener {
+    private val purchaseRepository: InAppPurchaseRepository
+) : BillingClient, PurchasesUpdatedListener {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -54,7 +56,7 @@ class GooglePlayBillingController(
         val failedToConnect: Boolean = false,
     )
 
-    private val client = BillingClient.newBuilder(context)
+    private val client = GooglePlayBillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases(
             PendingPurchasesParams.newBuilder()
@@ -74,7 +76,7 @@ class GooglePlayBillingController(
         billingResult: BillingResult,
         purchases: MutableList<Purchase>?
     ) {
-        println("GPBC onPurchasesUpdated c=${billingResult.responseCode} m=${billingResult.debugMessage}; p=${purchases?.count()}")
+        printLog("onPurchasesUpdated c=${billingResult.responseCode} m=${billingResult.debugMessage}; p=${purchases?.count()}")
         if (billingResult.responseCode == BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
                 completePurchase(purchase)
@@ -156,9 +158,23 @@ class GooglePlayBillingController(
     }
 
     private fun completePurchase(item: Purchase) {
-        println("GPBC complete purchase ${item.orderId} ack=${item.isAcknowledged}")
+        printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
         if (!item.isAcknowledged) {
-            acknowledgeOrConsume(item)
+            scope.launch {
+                printLog("onPurchaseComplete for ${item.purchaseToken}")
+                purchaseRepository.onPurchaseCompleted(item.purchaseToken)
+                    .onSuccess {
+                        acknowledgeOrConsume(item)
+                    }.onFailure {
+                        _eventFlow.emit(
+                            IapPaymentEvent.OnError(
+                                item.products.firstOrNull() ?: "NONE",
+                                it
+                            )
+                        )
+                    }
+            }
+
         } else {
             val productId = item.products.first()
             val product = IapProduct.entries.firstOrNull { it.productId == productId }
@@ -173,13 +189,13 @@ class GooglePlayBillingController(
     }
 
     private fun acknowledgeOrConsume(item: Purchase) {
-        println("GPBC ack or consume purchase")
+        printLog("ack or consume purchase")
         val productId = item.products.first()
         val product = IapProduct.entries.firstOrNull { it.productId == productId }
         if (product != null) {
             scope.launch {
                 if (product.isConsumable) {
-                    println("GPBC consumable")
+                    printLog("consumable")
                     val consumeResult = withContext(Dispatchers.IO) {
                         client.consumePurchase(
                             ConsumeParams.newBuilder()
@@ -191,10 +207,15 @@ class GooglePlayBillingController(
                     if (consumeResult.billingResult.responseCode == BillingResponseCode.OK) {
                         _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
                     } else {
-                        _eventFlow.emit(IapPaymentEvent.OnError(productId, IapPaymentError(consumeResult.billingResult)))
+                        _eventFlow.emit(
+                            IapPaymentEvent.OnError(
+                                productId,
+                                IapPaymentError(consumeResult.billingResult)
+                            )
+                        )
                     }
                 } else {
-                    println("GPBC non-consumable")
+                    printLog("non-consumable")
                     val acknowledgeResult = withContext(Dispatchers.IO) {
                         client.acknowledgePurchase(
                             AcknowledgePurchaseParams.newBuilder()
@@ -206,7 +227,12 @@ class GooglePlayBillingController(
                     if (acknowledgeResult.responseCode == BillingResponseCode.OK) {
                         _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
                     } else {
-                        _eventFlow.emit(IapPaymentEvent.OnError(productId, IapPaymentError(acknowledgeResult)))
+                        _eventFlow.emit(
+                            IapPaymentEvent.OnError(
+                                productId,
+                                IapPaymentError(acknowledgeResult)
+                            )
+                        )
                     }
                 }
             }
@@ -223,7 +249,7 @@ class GooglePlayBillingController(
                 ImmutableList.of(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(product.productId)
-                        .setProductType(BillingClient.ProductType.INAPP)
+                        .setProductType(GooglePlayBillingClient.ProductType.INAPP)
                         .build()
                 )
             )
@@ -232,7 +258,7 @@ class GooglePlayBillingController(
         client.queryProductDetailsAsync(
             queryProductDetailsParams
         ) { result, productDetailsList ->
-            println("products for ${product.productId} = ${productDetailsList.count()}")
+            printLog("products for ${product.productId} = ${productDetailsList.count()}")
             if (productDetailsList.isNotEmpty()) {
                 productDetails[product.productId] = productDetailsList.first()
             }
@@ -241,7 +267,7 @@ class GooglePlayBillingController(
 
     private fun restorePurchases() {
         val queryPurchasesParams = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
+            .setProductType(GooglePlayBillingClient.ProductType.INAPP)
             .build()
 
         client.queryPurchasesAsync(
@@ -251,7 +277,7 @@ class GooglePlayBillingController(
     }
 
     private val restorePurchasesListener = PurchasesResponseListener { _, purchases ->
-        println("GPBC restore ${purchases.count()}")
+        printLog("restore ${purchases.count()}")
         purchases.onEach { completePurchase(it) }
     }
 
@@ -260,19 +286,21 @@ class GooglePlayBillingController(
             billingResult: BillingResult
         ) {
             if (billingResult.responseCode == BillingResponseCode.OK) {
-                println("GPBC connected!")
+                printLog("connected!")
                 _stateFlow.update { BillingClientState.Connected }
                 queryProducts()
                 restorePurchases()
             } else {
-                println("GPBC connection failed")
+                printLog("connection failed")
                 _stateFlow.update { BillingClientState.Failed }
             }
         }
 
         override fun onBillingServiceDisconnected() {
-            println("GPBC connection lost")
+            printLog("connection lost")
             _stateFlow.update { BillingClientState.ConnectionLost }
         }
     }
+
+    private fun printLog(message: String) = println("GPBC $message")
 }

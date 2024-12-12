@@ -32,9 +32,9 @@ enum class BillingClientState {
     fun canConnect() = this == Disconnected || this == ConnectionLost || this == Failed
 }
 
-val LocalIapController = staticCompositionLocalOf<BillingController> { StubBillingController }
+val LocalBillingClient = staticCompositionLocalOf<BillingClient> { StubBillingClient }
 
-interface BillingController {
+interface BillingClient {
     val eventFlow: SharedFlow<IapPaymentEvent>
     val state: StateFlow<BillingClientState>
 
@@ -45,7 +45,7 @@ interface BillingController {
     suspend fun purchase(activity: Activity, product: IapProduct)
 }
 
-object StubBillingController: BillingController {
+object StubBillingClient: BillingClient {
     private val _eventFlow: MutableSharedFlow<IapPaymentEvent> = MutableSharedFlow()
     override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
 
