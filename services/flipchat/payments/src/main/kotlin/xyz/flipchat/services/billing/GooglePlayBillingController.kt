@@ -2,7 +2,6 @@ package xyz.flipchat.services.billing
 
 import android.app.Activity
 import android.content.Context
-import android.util.Base64
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.BillingResponseCode
@@ -20,12 +19,7 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
-import com.codeinc.gen.user.v1.user
 import com.getcode.model.uuid
-import com.getcode.services.utils.base64EncodedData
-import com.getcode.utils.base58
-import com.getcode.utils.base64
-import com.getcode.utils.encodeBase64
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -80,6 +74,7 @@ class GooglePlayBillingController(
         billingResult: BillingResult,
         purchases: MutableList<Purchase>?
     ) {
+        println("GPBC onPurchasesUpdated c=${billingResult.responseCode} m=${billingResult.debugMessage}; p=${purchases?.count()}")
         if (billingResult.responseCode == BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
                 completePurchase(purchase)
@@ -123,10 +118,10 @@ class GooglePlayBillingController(
                     )
                 )
             }
-            return "ERROR"
+            return "     "
         }
 
-        return details.oneTimePurchaseOfferDetails?.formattedPrice ?: "$0.99"
+        return details.oneTimePurchaseOfferDetails?.formattedPrice ?: "     "
     }
 
     override suspend fun purchase(activity: Activity, product: IapProduct) {
@@ -161,19 +156,30 @@ class GooglePlayBillingController(
     }
 
     private fun completePurchase(item: Purchase) {
+        println("GPBC complete purchase ${item.orderId} ack=${item.isAcknowledged}")
         if (!item.isAcknowledged) {
             acknowledgeOrConsume(item)
+        } else {
+            val productId = item.products.first()
+            val product = IapProduct.entries.firstOrNull { it.productId == productId }
+            if (product != null) {
+                scope.launch {
+                    _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
+                }
+            }
         }
 
         purchases[item.products.first()] = item.purchaseState
     }
 
     private fun acknowledgeOrConsume(item: Purchase) {
+        println("GPBC ack or consume purchase")
         val productId = item.products.first()
         val product = IapProduct.entries.firstOrNull { it.productId == productId }
         if (product != null) {
             scope.launch {
                 if (product.isConsumable) {
+                    println("GPBC consumable")
                     val consumeResult = withContext(Dispatchers.IO) {
                         client.consumePurchase(
                             ConsumeParams.newBuilder()
@@ -188,6 +194,7 @@ class GooglePlayBillingController(
                         _eventFlow.emit(IapPaymentEvent.OnError(productId, IapPaymentError(consumeResult.billingResult)))
                     }
                 } else {
+                    println("GPBC non-consumable")
                     val acknowledgeResult = withContext(Dispatchers.IO) {
                         client.acknowledgePurchase(
                             AcknowledgePurchaseParams.newBuilder()
@@ -239,11 +246,12 @@ class GooglePlayBillingController(
 
         client.queryPurchasesAsync(
             queryPurchasesParams,
-            purchasesListener
+            restorePurchasesListener
         )
     }
 
-    private val purchasesListener = PurchasesResponseListener { _, purchases ->
+    private val restorePurchasesListener = PurchasesResponseListener { _, purchases ->
+        println("GPBC restore ${purchases.count()}")
         purchases.onEach { completePurchase(it) }
     }
 
@@ -252,15 +260,18 @@ class GooglePlayBillingController(
             billingResult: BillingResult
         ) {
             if (billingResult.responseCode == BillingResponseCode.OK) {
+                println("GPBC connected!")
                 _stateFlow.update { BillingClientState.Connected }
                 queryProducts()
                 restorePurchases()
             } else {
+                println("GPBC connection failed")
                 _stateFlow.update { BillingClientState.Failed }
             }
         }
 
         override fun onBillingServiceDisconnected() {
+            println("GPBC connection lost")
             _stateFlow.update { BillingClientState.ConnectionLost }
         }
     }
