@@ -12,12 +12,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.controllers.CodeController
+import xyz.flipchat.services.user.AuthState
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 @HiltViewModel
 class RegisterDisplayNameViewModel @Inject constructor(
     authManager: AuthManager,
     codeController: CodeController,
+    userManager: UserManager,
 ): BaseViewModel2<RegisterDisplayNameViewModel.State, RegisterDisplayNameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -43,9 +46,14 @@ class RegisterDisplayNameViewModel @Inject constructor(
             .map { stateFlow.value }
             .map {
                 val textFieldState = it.textFieldState
-                val text = textFieldState.text.toString()
+                val text = textFieldState.text.toString().trim()
 
-                authManager.register(text)
+                if (userManager.authState == AuthState.Unregistered) {
+                    userManager.set(displayName = text)
+                    Result.success(userManager.userId!!)
+                } else {
+                    authManager.register(text)
+                }
             }
             .onResult(
                 onError = { dispatchEvent(Event.OnError(it.message ?: "Something went wrong")) },

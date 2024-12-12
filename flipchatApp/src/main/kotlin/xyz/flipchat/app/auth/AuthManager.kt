@@ -125,6 +125,8 @@ class AuthManager @Inject constructor(
         // it means the user account was setup on device and a public key registered on server.
         // in this case, we simply need to set the display name on server to flip `is_registered`.
         if (userManager.authState is AuthState.Unregistered) {
+            userManager.set(displayName = displayName)
+
             return profileController.setDisplayName(displayName)
                 .onSuccess {
                     AccountUtils.updateAccount(

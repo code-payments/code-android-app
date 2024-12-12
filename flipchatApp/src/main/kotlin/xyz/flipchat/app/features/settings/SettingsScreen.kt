@@ -115,7 +115,7 @@ private fun LogoutButton(
     CodeButton(
         modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
         buttonState = ButtonState.Filled,
-        text = "Log out"
+        text = stringResource(R.string.action_logout)
     ) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(

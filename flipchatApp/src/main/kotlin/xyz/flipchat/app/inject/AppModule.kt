@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.VibratorManager
+import android.support.v4.os.IResultReceiver.Stub
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
 import com.getcode.services.analytics.AnalyticsService
@@ -28,6 +29,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import xyz.flipchat.app.BuildConfig
 import xyz.flipchat.app.beta.BetaFlagController
 import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.app.util.AndroidLocale
@@ -36,6 +38,7 @@ import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
 import xyz.flipchat.services.billing.BillingController
 import xyz.flipchat.services.billing.GooglePlayBillingController
+import xyz.flipchat.services.billing.StubBillingController
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Singleton
 
@@ -148,5 +151,9 @@ object AppModule {
     @Provides
     fun providesBillingController(
         @ApplicationContext context: Context
-    ): BillingController = GooglePlayBillingController(context)
+    ): BillingController = if (BuildConfig.DEBUG) {
+        StubBillingController
+    } else {
+        GooglePlayBillingController(context)
+    }
 }

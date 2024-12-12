@@ -12,7 +12,7 @@
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
     <string name="subtitle_loadingChats">Loading your chats</string>
     <string name="action_joinRoom">Join Room</string>
-
+    <string name="action_findRoom">Find Room</string>
     <string name="title_chat">Chat</string>
 
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
@@ -55,9 +55,11 @@
     <string name="error_title_failedToUnmuteChat">Something Went Wrong</string>
     <string name="error_description_failedToUnmuteChat">Please check your network connection and try again</string>
 
-
     <string name="error_title_failedToOpenLink">Something Went Wrong</string>
     <string name="error_description_failedToOpenLink">We were unable to open this link. Please try again</string>
+
+    <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
+    <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
 
 
     <string name="title_connectYourX">Connect Your X</string>
@@ -162,4 +164,10 @@
 
     <string name="action_notNow">Not Now</string>
     <string name="title_createAccountToJoinRooms">Create an account to join rooms</string>
+    <string name="action_purchaseAccount">Purchase Your Account</string>
+    <string name="title_newAccountsCost">New accounts cost %1$s</string>
+    <string name="title_finalizeAccountCreation">Finalize account creation</string>
+    <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
+    <string name="action_changeCoverCharge">Change Cover Charge</string>
+    <string name="action_leaveRoom">Leave Room</string>
 </resources>

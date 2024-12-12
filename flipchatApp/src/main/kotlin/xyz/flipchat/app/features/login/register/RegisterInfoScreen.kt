@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -150,7 +151,8 @@ private fun RegisterInfoScreenContent(
                 )
 
                 Text(
-                    text = "New accounts cost ${viewModel.costOfAccount}",
+                    text = stringResource(R.string.title_newAccountsCost, viewModel.costOfAccount),
+                    textAlign = TextAlign.Center,
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textSecondary
                 )

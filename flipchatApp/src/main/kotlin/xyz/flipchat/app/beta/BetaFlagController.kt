@@ -33,8 +33,8 @@ sealed interface BetaFlag {
 
     data object FollowerMode : BetaFlag {
         override val key: String = "pref_follower_mode_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     companion object {

@@ -2,6 +2,14 @@ package xyz.flipchat.services.billing
 
 import android.app.Activity
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Duration.Companion.seconds
 
 sealed interface IapPaymentEvent {
     data object OnSuccess : IapPaymentEvent
@@ -16,12 +24,17 @@ enum class BillingClientState {
     Connecting,
     Connected,
     ConnectionLost,
-    Failed,
+    Failed;
+
+    fun canConnect() = this == Disconnected || this == ConnectionLost || this == Failed
 }
 
-val LocalIapController = staticCompositionLocalOf<BillingController> { NoOpBillingController }
+val LocalIapController = staticCompositionLocalOf<BillingController> { StubBillingController }
 
 interface BillingController {
+    val eventFlow: SharedFlow<IapPaymentEvent>
+    val state: StateFlow<BillingClientState>
+
     fun connect()
     fun disconnect()
     fun hasPaidFor(product: IapProduct): Boolean
@@ -29,10 +42,24 @@ interface BillingController {
     suspend fun purchase(activity: Activity, product: IapProduct)
 }
 
-object NoOpBillingController: BillingController {
+object StubBillingController: BillingController {
+    private val _eventFlow: MutableSharedFlow<IapPaymentEvent> = MutableSharedFlow()
+    override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
+
+    private val _stateFlow = MutableStateFlow(BillingClientState.Disconnected)
+    override val state: StateFlow<BillingClientState> = _stateFlow.asStateFlow()
+
+    data class State(
+        val connected: Boolean = false,
+        val failedToConnect: Boolean = false,
+    )
+
     override fun connect() = Unit
     override fun disconnect() = Unit
     override fun hasPaidFor(product: IapProduct): Boolean = false
-    override fun costOf(product: IapProduct): String = "$0.00"
-    override suspend fun purchase(activity: Activity, product: IapProduct) = Unit
+    override fun costOf(product: IapProduct): String = "NOT_DEFINED"
+    override suspend fun purchase(activity: Activity, product: IapProduct) {
+        delay(1.seconds)
+        _eventFlow.emit(IapPaymentEvent.OnSuccess)
+    }
 }

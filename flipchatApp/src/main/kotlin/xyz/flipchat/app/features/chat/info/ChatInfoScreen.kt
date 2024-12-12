@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import xyz.flipchat.app.R
 
 @Parcelize
 class ChatInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
@@ -91,7 +93,7 @@ private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel, onChangeCover: (
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
                         buttonState = ButtonState.Filled,
-                        text = "Change Cover Charge",
+                        text = stringResource(R.string.action_changeCoverCharge),
                     ) {
                         onChangeCover(state.roomInfo.id!!)
                     }
@@ -100,7 +102,7 @@ private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel, onChangeCover: (
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
                     buttonState = ButtonState.Filled,
-                    text = "Leave Room",
+                    text = stringResource(R.string.action_leaveRoom),
                     isLoading = state.requestBeingSent,
                 ) {
                     viewModel.dispatchEvent(ChatInfoViewModel.Event.LeaveRoom)

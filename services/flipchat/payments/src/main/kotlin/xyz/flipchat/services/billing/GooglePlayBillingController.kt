@@ -36,10 +36,10 @@ class GooglePlayBillingController(
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private val _eventFlow: MutableSharedFlow<IapPaymentEvent> = MutableSharedFlow()
-    val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
+    override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
 
     private val _stateFlow = MutableStateFlow(BillingClientState.Disconnected)
-    val state: StateFlow<BillingClientState> = _stateFlow.asStateFlow()
+    override val state: StateFlow<BillingClientState> = _stateFlow.asStateFlow()
 
     data class State(
         val connected: Boolean = false,
@@ -86,8 +86,10 @@ class GooglePlayBillingController(
     }
 
     override fun connect() {
-        _stateFlow.update { BillingClientState.Connecting }
-        client.startConnection(clientStateListener)
+        if (_stateFlow.value.canConnect()) {
+            _stateFlow.update { BillingClientState.Connecting }
+            client.startConnection(clientStateListener)
+        }
     }
 
     override fun disconnect() {

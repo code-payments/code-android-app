@@ -18,6 +18,7 @@ import xyz.flipchat.app.features.login.register.AccessKeyModalScreen
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
 import xyz.flipchat.app.features.login.accesskey.SeedInputScreen
 import xyz.flipchat.app.features.login.permissions.NotificationPermissionScreen
+import xyz.flipchat.app.features.login.register.PurchaseAccountScreen
 import xyz.flipchat.app.features.login.register.RegisterInfoScreen
 import xyz.flipchat.app.features.login.register.RegisterModalScreen
 import xyz.flipchat.app.features.login.register.RegisterScreen
@@ -47,6 +48,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             } else {
                 AccessKeyScreen()
             }
+        }
+
+        register<NavScreenProvider.CreateAccount.Purchase> {
+            PurchaseAccountScreen()
         }
 
         register<NavScreenProvider.Login.NotificationPermission> {
