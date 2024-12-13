@@ -37,8 +37,14 @@ sealed interface BetaFlag {
         override val launched: Boolean = false
     }
 
+    data object StartChatAtUnread : BetaFlag {
+        override val key: String = "pref_start_at_unread_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
-        val entries = listOf(ReplyToMessage, FollowerMode)
+        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread)
         internal fun byKey(key: Preferences.Key<*>): BetaFlag? {
             return entries.firstOrNull { it.key == key.name }
         }

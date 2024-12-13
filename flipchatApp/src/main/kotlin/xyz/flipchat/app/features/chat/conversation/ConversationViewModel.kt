@@ -26,7 +26,6 @@ import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.util.formatDateRelatively
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.CurrencyUtils
@@ -54,7 +53,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -62,7 +60,6 @@ import timber.log.Timber
 import xyz.flipchat.app.R
 import xyz.flipchat.app.beta.BetaFlag
 import xyz.flipchat.app.beta.BetaFlags
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
@@ -111,6 +108,7 @@ class ConversationViewModel @Inject constructor(
         val textFieldState: TextFieldState,
         val replyEnabled: Boolean,
         val replyMessage: ChatItem.Message?,
+        val startAtUnread: Boolean,
         val title: String,
         val imageUri: String?,
         val lastSeen: Instant?,
@@ -137,6 +135,7 @@ class ConversationViewModel @Inject constructor(
                 lastReadMessage = null,
                 textFieldState = TextFieldState(),
                 replyEnabled = false,
+                startAtUnread = false,
                 replyMessage = null,
                 title = "",
                 lastSeen = null,
@@ -169,6 +168,8 @@ class ConversationViewModel @Inject constructor(
         data class OnReplyEnabled(val enabled: Boolean) : Event
         data class ReplyTo(val message: ChatItem.Message) : Event
         data object CancelReply : Event
+
+        data class OnStartAtUnread(val enabled: Boolean) : Event
 
         data object OnJoinRequestedFromSpectating : Event
         data object NeedsAccountCreated : Event
@@ -211,6 +212,10 @@ class ConversationViewModel @Inject constructor(
 
         betaFeatures.observe(BetaFlag.ReplyToMessage)
             .onEach { dispatchEvent(Event.OnReplyEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(BetaFlag.StartChatAtUnread)
+            .onEach { dispatchEvent(Event.OnStartAtUnread(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -725,6 +730,7 @@ class ConversationViewModel @Inject constructor(
 
                 // if we have unread messages, insert a separator to call out
                 if (
+                    stateFlow.value.startAtUnread &&
                     !unreadSeparatorInserted &&
                     after?.chatMessageId?.uuid == stateFlow.value.lastReadMessage &&
                     before?.sender?.isSelf == false
@@ -974,6 +980,7 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnAbilityToChatChanged -> { state -> state.copy(chattableState = event.state) }
                 is Event.OnReplyEnabled -> { state -> state.copy(replyEnabled = event.enabled) }
+                is Event.OnStartAtUnread -> { state -> state.copy(startAtUnread = event.enabled) }
                 is Event.ReplyTo -> { state ->
                     state.copy(replyMessage = event.message)
                 }

@@ -71,10 +71,12 @@ private val BetaFlag.title: String
     get() = when (this) {
         BetaFlag.FollowerMode -> "Follower Mode"
         BetaFlag.ReplyToMessage -> "Swipe To Reply"
+        BetaFlag.StartChatAtUnread -> "Open Conversation @ Last Unread"
     }
 
 private val BetaFlag.message: String
     get() = when (this) {
         BetaFlag.FollowerMode -> "When enabled, you will gain the ability to watch rooms without joining first"
         BetaFlag.ReplyToMessage -> "When enabled, you will gain the ability to swipe to reply to messages in chat"
+        BetaFlag.StartChatAtUnread -> "When enabled, conversations will resume at the last message you read"
     }
