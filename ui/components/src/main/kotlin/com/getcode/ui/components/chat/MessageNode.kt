@@ -86,7 +86,7 @@ object MessageNodeDefaults {
         @Composable get() = DefaultShape.copy(topStart = CornerSize(3.dp))
 
     private val NextSameShapeIncoming: CornerBasedShape
-        @Composable get() = DefaultShape.copy(bottomStart = CornerSize(3.dp))
+        @Composable get() = DefaultShape.copy(bottomStart = CornerSize(3.dp), topStart = CornerSize(3.dp))
 
     private val MiddleSameShapeIncoming: CornerBasedShape
         @Composable get() = DefaultShape.copy(
@@ -98,7 +98,7 @@ object MessageNodeDefaults {
         @Composable get() = DefaultShape.copy(topEnd = CornerSize(3.dp))
 
     private val NextSameShapeOutgoing: CornerBasedShape
-        @Composable get() = DefaultShape.copy(bottomEnd = CornerSize(3.dp))
+        @Composable get() = DefaultShape.copy(bottomEnd = CornerSize(3.dp), topEnd = CornerSize(3.dp))
 
     private val MiddleSameShapeOutgoing: CornerBasedShape
         @Composable get() = DefaultShape.copy(
@@ -117,14 +117,14 @@ object MessageNodeDefaults {
                 isPreviousInGroup && isNextInGroup -> MiddleSameShapeIncoming
                 isPreviousInGroup -> PreviousSameShapeIncoming
                 isNextInGroup -> NextSameShapeIncoming
-                else -> DefaultShape
+                else -> DefaultShape.copy(topStart = CornerSize(3.dp))
             }
         } else {
             when {
                 isPreviousInGroup && isNextInGroup -> MiddleSameShapeOutgoing
                 isPreviousInGroup -> PreviousSameShapeOutgoing
                 isNextInGroup -> NextSameShapeOutgoing
-                else -> DefaultShape
+                else -> DefaultShape.copy(topEnd = CornerSize(3.dp))
             }
         }
     }
