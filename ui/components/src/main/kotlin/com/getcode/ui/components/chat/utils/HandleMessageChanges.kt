@@ -9,12 +9,16 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
+import com.getcode.model.chat.MessageStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 
 @Composable
 fun HandleMessageChanges(
@@ -32,10 +36,10 @@ fun HandleMessageChanges(
     // handle incoming/outgoing messages - scroll to bottom to reset view in the following circumstances:
     // 1) New message is from self (e.g outgoing)
     // 2) New message is from participant and we are already at the bottom (to prevent rug pull)
-    LaunchedEffect(listState) {
-        snapshotFlow { items.itemSnapshotList }
-            .map { it.firstOrNull() }
-            .filterNotNull()
+    LaunchedEffect(listState, items) {
+        snapshotFlow { items.loadState }
+            .filter { it.refresh is LoadState.NotLoading }
+            .mapNotNull { items.itemSnapshotList.firstOrNull() }
             .filterIsInstance<ChatItem.Message>()
             .distinctUntilChangedBy { it.date }
             .collect { newMessage ->
@@ -60,8 +64,9 @@ fun HandleMessageChanges(
                                 }
                             }
 
-                            onMessageDelivered(newMessage)
-                            lastMessageReceived = newMessage.date.toEpochMilliseconds()
+                            if (newMessage.status == MessageStatus.Unknown) {
+                                onMessageDelivered(newMessage)
+                            }
                         }
 
                         lastMessageReceived = newMessage.date.toEpochMilliseconds()

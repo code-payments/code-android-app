@@ -8,6 +8,7 @@ import javax.inject.Inject
 
 class MetadataUpdateMapper @Inject constructor(): Mapper<ApiMetadataUpdate, StreamMetadataUpdate?> {
     override fun map(from: ApiMetadataUpdate): StreamMetadataUpdate? {
+        println("metadata unread=${from.unreadCountChanged.numUnread}")
         return when (from.kindCase) {
             ChatService.StreamChatEventsResponse.MetadataUpdate.KindCase.FULL_REFRESH -> StreamMetadataUpdate.Refresh(from.fullRefresh.metadata)
             ChatService.StreamChatEventsResponse.MetadataUpdate.KindCase.UNREAD_COUNT_CHANGED -> StreamMetadataUpdate.UnreadCount(from.unreadCountChanged.numUnread, from.unreadCountChanged.hasMoreUnread)

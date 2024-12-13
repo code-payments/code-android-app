@@ -16,11 +16,7 @@ import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
 
 data class ChatStreamUpdate(
     val id: ID,
-    @Deprecated("replaced with metadataUpdates")
-    val metadata: ChatServiceRpc.Metadata? = null,
     val metadataUpdates: List<MetadataUpdate>,
-    @Deprecated("replaced with memberUpdates")
-    val memberUpdate: MemberUpdate? = null,
     val memberUpdates: List<MemberUpdate>,
     val lastMessage: Model.Message?,
     val lastPointer: PointerUpdate?,

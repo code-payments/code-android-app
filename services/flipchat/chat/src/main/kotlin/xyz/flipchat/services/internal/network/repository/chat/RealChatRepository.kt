@@ -181,7 +181,6 @@ internal class RealChatRepository @Inject constructor(
                     val data = result.getOrNull() ?: return@openChatStream
                     val updates = data.mapNotNull { ChatStreamUpdate.invoke(it) }
 
-                    println(updates.joinToString())
                     updates.onEach { update ->
                         // handle typing state changes
                         if (update.isTyping != null) {
@@ -208,7 +207,7 @@ internal class RealChatRepository @Inject constructor(
                             null
                         }
 
-                        val convoMemberUpdates = memberUpdates.map { memberUpdate ->
+                        val convoMemberUpdates = memberUpdates.mapNotNull { memberUpdate ->
                             when (memberUpdate) {
                                 is StreamMemberUpdate.Refresh -> {
                                     val members = memberUpdate.members.map {
@@ -260,7 +259,7 @@ internal class RealChatRepository @Inject constructor(
 
                                 null -> null
                             }
-                        }.filterNotNull()
+                        }
 
                         onEvent(
                             ChatUpdate(

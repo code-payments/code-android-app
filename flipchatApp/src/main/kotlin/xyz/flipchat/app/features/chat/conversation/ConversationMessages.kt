@@ -51,7 +51,6 @@ import java.util.UUID
 @Composable
 internal fun ConversationMessages(
     modifier: Modifier = Modifier,
-    lastReadMessageId: UUID? = null,
     messages: LazyPagingItems<ChatItem>,
     focusRequester: FocusRequester,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
@@ -63,26 +62,6 @@ internal fun ConversationMessages(
     val composeScope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-
-
-    var hasScrolled by remember { mutableStateOf(false) }
-
-    LaunchedEffect(messages, lastReadMessageId) {
-        snapshotFlow { messages.loadState }
-            .collect { loadState ->
-                if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
-                    if (!hasScrolled) {
-                        val startIndex = messages.itemSnapshotList
-                            .indexOfFirst { it is ChatItem.UnreadSeparator }
-
-                        if (startIndex >= 0) {
-                            lazyListState.animateScrollToItem(startIndex)
-                            hasScrolled = true
-                        }
-                    }
-                }
-            }
-    }
 
     val density = LocalDensity.current
 

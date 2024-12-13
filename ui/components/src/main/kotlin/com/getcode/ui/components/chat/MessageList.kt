@@ -1,23 +1,21 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -28,13 +26,14 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.Pill
-import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
-import kotlinx.datetime.Instant
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID) : MessageListEvent
@@ -68,22 +67,62 @@ fun MessageList(
     },
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
+    var hasSetAtUnread by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+
+    LaunchedEffect(listState, messages, hasSetAtUnread) {
+        combine(
+            snapshotFlow {
+                messages.loadState.prepend is LoadState.NotLoading ||
+                        messages.loadState.append is LoadState.NotLoading
+            }.distinctUntilChanged(),
+            snapshotFlow { listState.firstVisibleItemIndex }.distinctUntilChanged()
+        ) { loadState, firstVisibleIndex ->
+            Pair(loadState, firstVisibleIndex)
+        }.filter { (loadStateIsNotLoading, _) ->
+            // Filter out when messages are loading or unread flag is not set
+            loadStateIsNotLoading && messages.itemCount > 0 && hasSetAtUnread
+        }.distinctUntilChanged().collect { (_, firstVisibleIndex) ->
+                val closestChatMessage =
+                    messages[firstVisibleIndex]?.let { it as? ChatItem.Message }
+
+                val mostRecentReadMessage =
+                    messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
+                        .filter { it.status == MessageStatus.Read }
+                        .maxByOrNull { it.date }
+
+                val mostRecentReadAt = mostRecentReadMessage?.date
+
+                closestChatMessage?.let { message ->
+                    if (!message.sender.isSelf &&
+                        message.status != MessageStatus.Read
+                    ) {
+                        if (mostRecentReadAt == null || message.date >= mostRecentReadAt) {
+                            dispatch(MessageListEvent.AdvancePointer(message.chatMessageId))
+                        }
+                    }
+                }
+            }
+    }
+
     LaunchedEffect(listState, messages) {
         snapshotFlow { messages.loadState }
             .collect { loadState ->
                 if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
-                    val closetChatMessage =
-                        messages[listState.firstVisibleItemIndex]?.let { it as? ChatItem.Message }
-                    val mostRecentRead =
-                        messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
-                            .maxByOrNull { it.date }?.date
+                    val separatorIndex = messages.itemSnapshotList
+                        .indexOfFirst { it is ChatItem.UnreadSeparator }
 
-                    closetChatMessage?.let { message ->
-                        if (!message.sender.isSelf && message.status != MessageStatus.Read) {
-                            if ((mostRecentRead == null || message.date >= mostRecentRead)) {
-                                dispatch(MessageListEvent.AdvancePointer(message.chatMessageId))
-                            }
+                    if (separatorIndex >= 0 && !hasSetAtUnread) {
+                        // Calculate the center offset
+                        val centerOffset = with(density) {
+                            val viewportHeight = listState.layoutInfo.viewportSize.height.toDp()
+                            viewportHeight.roundToPx() / 2
                         }
+
+                        hasSetAtUnread = true
+                        listState.scrollToItem(separatorIndex, scrollOffset = -centerOffset)
+                    } else {
+                        hasSetAtUnread = true
                     }
                 }
             }
@@ -208,23 +247,6 @@ fun MessageList(
                 }
             }
         }
-    }
-}
-
-
-private fun List<ChatItem?>.getClosestChat(index: Int): Quad<ID, Boolean, Instant, MessageStatus>? {
-    if (index !in indices) return null
-    val item = this[index]
-    return when {
-        item is ChatItem.Message -> Quad(
-            item.chatMessageId,
-            item.sender.isSelf,
-            item.date,
-            item.status
-        )
-
-        index > 0 -> getClosestChat(index - 1)
-        else -> null
     }
 }
 
