@@ -729,14 +729,16 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 // if we have unread messages, insert a separator to call out
+                val unreadCount = stateFlow.value.unreadCount ?: 0
                 if (
                     stateFlow.value.startAtUnread &&
                     !unreadSeparatorInserted &&
                     after?.chatMessageId?.uuid == stateFlow.value.lastReadMessage &&
-                    before?.sender?.isSelf == false
+                    before?.sender?.isSelf == false &&
+                    unreadCount > 0
                 ) {
                     unreadSeparatorInserted = true
-                    return@insertSeparators ChatItem.UnreadSeparator(stateFlow.value.unreadCount ?: 0)
+                    return@insertSeparators ChatItem.UnreadSeparator(unreadCount)
                 }
 
                 // No separator in other cases
