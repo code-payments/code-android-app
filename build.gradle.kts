@@ -34,6 +34,10 @@ allprojects {
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
     }
+
+//    tasks.matching { it.name.contains("kapt") }.configureEach {
+//        enabled = false
+//    }
 }
 
 tasks.register("clean", Delete::class) {

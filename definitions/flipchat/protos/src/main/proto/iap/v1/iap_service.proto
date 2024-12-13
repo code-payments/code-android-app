@@ -3,7 +3,7 @@ package flipchat.iap.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/iap/v1;iappb";
 option java_package = "com.codeinc.flipchat.gen.iap.v1";
 option objc_class_prefix = "FPBIapV1";
-import "common/v1/flipchat.proto";
+import "common/v1/common.proto";
 
 service Iap {
     // OnPurchaseCompleted is called when an IAP has been completed

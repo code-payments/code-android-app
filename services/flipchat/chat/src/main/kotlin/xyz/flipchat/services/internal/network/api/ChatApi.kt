@@ -1,7 +1,6 @@
 package xyz.flipchat.services.internal.network.api
 
 import com.codeinc.flipchat.gen.chat.v1.ChatGrpc
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -23,6 +22,7 @@ import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.extensions.toUserId
 import xyz.flipchat.services.internal.network.utils.authenticate
 import javax.inject.Inject
+import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
 
 class ChatApi @Inject constructor(
     @ChatManagedChannel
@@ -35,19 +35,19 @@ class ChatApi @Inject constructor(
     fun startChat(
         owner: KeyPair,
         type: StartChatRequestType,
-    ): Flow<FlipchatService.StartChatResponse> {
-        val builder = FlipchatService.StartChatRequest.newBuilder()
+    ): Flow<ChatServiceRpc.StartChatResponse> {
+        val builder = ChatServiceRpc.StartChatRequest.newBuilder()
 
         with(builder) {
             when (type) {
                 is StartChatRequestType.TwoWay -> setTwoWayChat(
-                    FlipchatService.StartChatRequest.StartTwoWayChatParameters.newBuilder()
+                    ChatServiceRpc.StartChatRequest.StartTwoWayChatParameters.newBuilder()
                         .setOtherUserId(type.recipient.toUserId())
                 )
 
                 is StartChatRequestType.Group -> {
                     val groupBuilder =
-                        FlipchatService.StartChatRequest.StartGroupChatParameters.newBuilder()
+                        ChatServiceRpc.StartChatRequest.StartGroupChatParameters.newBuilder()
                     with(groupBuilder) {
                         type.recipients
                             .map { it.toUserId() }
@@ -75,8 +75,8 @@ class ChatApi @Inject constructor(
     fun getChats(
         owner: KeyPair,
         queryOptions: QueryOptions,
-    ): Flow<FlipchatService.GetChatsResponse> {
-        val request = FlipchatService.GetChatsRequest.newBuilder()
+    ): Flow<ChatServiceRpc.GetChatsResponse> {
+        val request = ChatServiceRpc.GetChatsRequest.newBuilder()
             .setQueryOptions(queryOptions.toProto())
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -90,9 +90,9 @@ class ChatApi @Inject constructor(
     fun getChat(
         owner: KeyPair,
         identifier: ChatIdentifier,
-    ): Flow<FlipchatService.GetChatResponse> {
+    ): Flow<ChatServiceRpc.GetChatResponse> {
 
-        val builder = FlipchatService.GetChatRequest.newBuilder()
+        val builder = ChatServiceRpc.GetChatRequest.newBuilder()
         when (identifier) {
             is ChatIdentifier.Id -> builder.setChatId(identifier.roomId.toChatId())
             is ChatIdentifier.RoomNumber -> builder.setRoomNumber(identifier.number)
@@ -112,8 +112,8 @@ class ChatApi @Inject constructor(
         owner: KeyPair,
         identifier: ChatIdentifier,
         paymentId: ID?,
-    ): Flow<FlipchatService.JoinChatResponse> {
-        val builder = FlipchatService.JoinChatRequest.newBuilder()
+    ): Flow<ChatServiceRpc.JoinChatResponse> {
+        val builder = ChatServiceRpc.JoinChatRequest.newBuilder()
 
         if (paymentId != null) {
             builder.setWithoutSendPermission(false)
@@ -140,8 +140,8 @@ class ChatApi @Inject constructor(
     fun leaveChat(
         owner: KeyPair,
         chatId: ID,
-    ): Flow<FlipchatService.LeaveChatResponse> {
-        val request = FlipchatService.LeaveChatRequest.newBuilder()
+    ): Flow<ChatServiceRpc.LeaveChatResponse> {
+        val request = ChatServiceRpc.LeaveChatRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -157,8 +157,8 @@ class ChatApi @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         displayName: String,
-    ): Flow<FlipchatService.SetDisplayNameResponse> {
-        val request = FlipchatService.SetDisplayNameRequest.newBuilder()
+    ): Flow<ChatServiceRpc.SetDisplayNameResponse> {
+        val request = ChatServiceRpc.SetDisplayNameRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setDisplayName(displayName)
             .apply { setAuth(authenticate(owner)) }
@@ -173,8 +173,8 @@ class ChatApi @Inject constructor(
     fun muteChat(
         owner: KeyPair,
         chatId: ID,
-    ): Flow<FlipchatService.MuteChatResponse> {
-        val request = FlipchatService.MuteChatRequest.newBuilder()
+    ): Flow<ChatServiceRpc.MuteChatResponse> {
+        val request = ChatServiceRpc.MuteChatRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -188,8 +188,8 @@ class ChatApi @Inject constructor(
     fun unmuteChat(
         owner: KeyPair,
         chatId: ID,
-    ): Flow<FlipchatService.UnmuteChatResponse> {
-        val request = FlipchatService.UnmuteChatRequest.newBuilder()
+    ): Flow<ChatServiceRpc.UnmuteChatResponse> {
+        val request = ChatServiceRpc.UnmuteChatRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -204,8 +204,8 @@ class ChatApi @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         amount: KinAmount,
-    ): Flow<FlipchatService.SetCoverChargeResponse> {
-        val request = FlipchatService.SetCoverChargeRequest.newBuilder()
+    ): Flow<ChatServiceRpc.SetCoverChargeResponse> {
+        val request = ChatServiceRpc.SetCoverChargeRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setCoverCharge(amount.toPaymentAmount())
             .apply { setAuth(authenticate(owner)) }
@@ -221,8 +221,8 @@ class ChatApi @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         userId: ID,
-    ): Flow<FlipchatService.RemoveUserResponse> {
-        val request = FlipchatService.RemoveUserRequest.newBuilder()
+    ): Flow<ChatServiceRpc.RemoveUserResponse> {
+        val request = ChatServiceRpc.RemoveUserRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setUserId(userId.toUserId())
             .apply { setAuth(authenticate(owner)) }
@@ -238,8 +238,8 @@ class ChatApi @Inject constructor(
         owner: KeyPair,
         userId: ID,
         messageId: ID,
-    ): Flow<FlipchatService.ReportUserResponse> {
-        val request = FlipchatService.ReportUserRequest.newBuilder()
+    ): Flow<ChatServiceRpc.ReportUserResponse> {
+        val request = ChatServiceRpc.ReportUserRequest.newBuilder()
             .setUserId(userId.toUserId())
             .setMessageId(messageId.toMessageId())
             .apply { setAuth(authenticate(owner)) }
@@ -255,8 +255,8 @@ class ChatApi @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         userId: ID,
-    ): Flow<FlipchatService.MuteUserResponse> {
-        val request = FlipchatService.MuteUserRequest.newBuilder()
+    ): Flow<ChatServiceRpc.MuteUserResponse> {
+        val request = ChatServiceRpc.MuteUserRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setUserId(userId.toUserId())
             .apply { setAuth(authenticate(owner)) }
@@ -283,8 +283,8 @@ class ChatApi @Inject constructor(
     // of chats, but using StreamMessages provides a guarentee of message events
     // for all chats.
     fun streamEvents(
-        observer: StreamObserver<FlipchatService.StreamChatEventsResponse>
-    ): StreamObserver<FlipchatService.StreamChatEventsRequest>? {
+        observer: StreamObserver<ChatServiceRpc.StreamChatEventsResponse>
+    ): StreamObserver<ChatServiceRpc.StreamChatEventsRequest>? {
         return api.streamChatEvents(observer)
     }
 }

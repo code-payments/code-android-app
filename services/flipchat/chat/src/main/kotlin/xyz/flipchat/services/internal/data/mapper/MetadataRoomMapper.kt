@@ -1,6 +1,6 @@
 package xyz.flipchat.services.internal.data.mapper
 
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
+import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.codeinc.flipchat.gen.chat.v1.lastActivityOrNull
 import com.getcode.model.Kin
 import com.getcode.model.chat.ChatType
@@ -9,8 +9,8 @@ import xyz.flipchat.services.data.Room
 import javax.inject.Inject
 
 class MetadataRoomMapper @Inject constructor(
-): Mapper<FlipchatService.Metadata, Room> {
-    override fun map(from: FlipchatService.Metadata): Room {
+): Mapper<ChatService.Metadata, Room> {
+    override fun map(from: ChatService.Metadata): Room {
         return Room(
             id = from.chatId.value.toByteArray().toList(),
             ownerId = from.owner.value.toByteArray().toList(),

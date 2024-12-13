@@ -1,7 +1,6 @@
 package xyz.flipchat.services.internal.network.api
 
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
-import com.codeinc.flipchat.gen.common.v1.Flipchat
+import com.codeinc.flipchat.gen.common.v1.Common
 import com.codeinc.flipchat.gen.iap.v1.IapGrpc
 import com.codeinc.flipchat.gen.iap.v1.IapService
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -26,7 +25,7 @@ class PurchaseApi @Inject constructor(
         receiptValue: String,
     ): Flow<IapService.OnPurchaseCompletedResponse> {
         val request = IapService.OnPurchaseCompletedRequest.newBuilder()
-            .setPlatform(Flipchat.Platform.GOOGLE)
+            .setPlatform(Common.Platform.GOOGLE)
             .setReceipt(IapService.Receipt.newBuilder().setValue(receiptValue))
             .apply { setAuth(authenticate(owner)) }
             .build()

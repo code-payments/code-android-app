@@ -1,6 +1,6 @@
 package xyz.flipchat.services.domain.model.chat
 
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
+import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.getcode.model.ID
 import com.getcode.model.uuid
 import xyz.flipchat.services.data.Member
@@ -45,7 +45,7 @@ sealed interface StreamMemberUpdate {
 }
 
 sealed interface StreamMetadataUpdate {
-    data class Refresh(val metadata: FlipchatService.Metadata): StreamMetadataUpdate
+    data class Refresh(val metadata: ChatService.Metadata): StreamMetadataUpdate
     data class UnreadCount(val numUnread: Int, val hasMoreUnread: Boolean): StreamMetadataUpdate
     data class DisplayName(val name: String): StreamMetadataUpdate
     data class CoverCharge(val amount: Long): StreamMetadataUpdate

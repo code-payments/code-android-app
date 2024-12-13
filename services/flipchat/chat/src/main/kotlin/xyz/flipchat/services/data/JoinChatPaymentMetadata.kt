@@ -1,6 +1,6 @@
 package xyz.flipchat.services.data
 
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
+import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.getcode.model.ID
 import kotlinx.serialization.Serializable
 import xyz.flipchat.services.internal.network.extensions.toChatId
@@ -13,7 +13,7 @@ data class JoinChatPaymentMetadata(
 )
 
 // TODO: make this somehow generic
-fun JoinChatPaymentMetadata.erased(): ByteArray = FlipchatService.JoinChatPaymentMetadata.newBuilder()
+fun JoinChatPaymentMetadata.erased(): ByteArray = ChatService.JoinChatPaymentMetadata.newBuilder()
     .setChatId(chatId.toChatId())
     .setUserId(userId.toUserId())
     .build().toByteArray()

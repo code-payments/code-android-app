@@ -1,7 +1,7 @@
 package xyz.flipchat.services.internal.network.service
 
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
-import com.codeinc.flipchat.gen.common.v1.Flipchat
+import com.codeinc.flipchat.gen.common.v1.Common
+import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -27,7 +27,7 @@ import xyz.flipchat.services.internal.network.chat.GetOrJoinChatResponse
 import xyz.flipchat.services.internal.network.utils.authenticate
 import javax.inject.Inject
 
-typealias ChatHomeStreamReference = BidirectionalStreamReference<FlipchatService.StreamChatEventsRequest, FlipchatService.StreamChatEventsResponse>
+typealias ChatHomeStreamReference = BidirectionalStreamReference<ChatServiceRpc.StreamChatEventsRequest, ChatServiceRpc.StreamChatEventsResponse>
 
 
 internal class ChatService @Inject constructor(
@@ -37,7 +37,7 @@ internal class ChatService @Inject constructor(
     suspend fun getChats(
         owner: KeyPair,
         queryOptions: QueryOptions = QueryOptions()
-    ): Result<List<FlipchatService.Metadata>> {
+    ): Result<List<ChatServiceRpc.Metadata>> {
         return try {
             networkOracle.managedRequest(
                 api.getChats(
@@ -47,11 +47,11 @@ internal class ChatService @Inject constructor(
             )
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.GetChatsResponse.Result.OK -> {
+                        ChatServiceRpc.GetChatsResponse.Result.OK -> {
                             Result.success(response.chatsList)
                         }
 
-                        FlipchatService.GetChatsResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.GetChatsResponse.Result.UNRECOGNIZED -> {
                             val error = GetChatsError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -78,17 +78,17 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.getChat(owner, identifier))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.GetChatResponse.Result.OK -> {
+                        ChatServiceRpc.GetChatResponse.Result.OK -> {
                             Result.success(GetOrJoinChatResponse(response.metadata, response.membersList))
                         }
 
-                        FlipchatService.GetChatResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.GetChatResponse.Result.UNRECOGNIZED -> {
                             val error = GetChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.GetChatResponse.Result.NOT_FOUND -> {
+                        ChatServiceRpc.GetChatResponse.Result.NOT_FOUND -> {
                             val error = GetChatError.NotFound()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -116,23 +116,23 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.startChat(owner, type))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.StartChatResponse.Result.OK -> {
+                        ChatServiceRpc.StartChatResponse.Result.OK -> {
                             Result.success(GetOrJoinChatResponse(response.chat, response.membersList))
                         }
 
-                        FlipchatService.StartChatResponse.Result.DENIED -> {
+                        ChatServiceRpc.StartChatResponse.Result.DENIED -> {
                             val error = StartChatError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.StartChatResponse.Result.USER_NOT_FOUND -> {
+                        ChatServiceRpc.StartChatResponse.Result.USER_NOT_FOUND -> {
                             val error = StartChatError.UserNotFound()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.StartChatResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.StartChatResponse.Result.UNRECOGNIZED -> {
                             val error = StartChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -161,17 +161,17 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.joinChat(owner, identifier, paymentId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.JoinChatResponse.Result.OK -> {
+                        ChatServiceRpc.JoinChatResponse.Result.OK -> {
                             Result.success(GetOrJoinChatResponse(response.metadata, response.membersList))
                         }
 
-                        FlipchatService.JoinChatResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.JoinChatResponse.Result.UNRECOGNIZED -> {
                             val error = JoinChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.JoinChatResponse.Result.DENIED -> {
+                        ChatServiceRpc.JoinChatResponse.Result.DENIED -> {
                             val error = JoinChatError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -198,11 +198,11 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.leaveChat(owner, chatId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.LeaveChatResponse.Result.OK -> {
+                        ChatServiceRpc.LeaveChatResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.LeaveChatResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.LeaveChatResponse.Result.UNRECOGNIZED -> {
                             val error = LeaveChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -230,17 +230,17 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.setDisplayName(owner, chatId, displayName))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.SetDisplayNameResponse.Result.OK -> {
+                        ChatServiceRpc.SetDisplayNameResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.SetDisplayNameResponse.Result.DENIED -> {
+                        ChatServiceRpc.SetDisplayNameResponse.Result.DENIED -> {
                             val error = SetDisplayNameError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.SetDisplayNameResponse.Result.CANT_SET -> {
+                        ChatServiceRpc.SetDisplayNameResponse.Result.CANT_SET -> {
                             val error = SetDisplayNameError.CantSet(response.alternateSuggestionsList.toList())
                             Timber.e(t = error)
                             Result.failure(error)
@@ -264,17 +264,17 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.muteChat(owner, chatId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.MuteChatResponse.Result.OK -> {
+                        ChatServiceRpc.MuteChatResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.MuteChatResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.MuteChatResponse.Result.UNRECOGNIZED -> {
                             val error = MuteChatStateError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.MuteChatResponse.Result.DENIED -> {
+                        ChatServiceRpc.MuteChatResponse.Result.DENIED -> {
                             val error = MuteChatStateError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -298,17 +298,17 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.unmuteChat(owner, chatId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.UnmuteChatResponse.Result.OK -> {
+                        ChatServiceRpc.UnmuteChatResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.UnmuteChatResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.UnmuteChatResponse.Result.UNRECOGNIZED -> {
                             val error = MuteChatStateError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.UnmuteChatResponse.Result.DENIED -> {
+                        ChatServiceRpc.UnmuteChatResponse.Result.DENIED -> {
                             val error = MuteChatStateError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -336,23 +336,23 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.setCoverCharge(owner, chatId, amount))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.SetCoverChargeResponse.Result.OK -> {
+                        ChatServiceRpc.SetCoverChargeResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.SetCoverChargeResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.SetCoverChargeResponse.Result.UNRECOGNIZED -> {
                             val error = CoverChargeError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.SetCoverChargeResponse.Result.DENIED -> {
+                        ChatServiceRpc.SetCoverChargeResponse.Result.DENIED -> {
                             val error = CoverChargeError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.SetCoverChargeResponse.Result.CANT_SET -> {
+                        ChatServiceRpc.SetCoverChargeResponse.Result.CANT_SET -> {
                             val error = CoverChargeError.CantSet()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -380,17 +380,17 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.removeUser(owner, chatId, userId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.RemoveUserResponse.Result.OK -> {
+                        ChatServiceRpc.RemoveUserResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.RemoveUserResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.RemoveUserResponse.Result.UNRECOGNIZED -> {
                             val error = RemoveUserError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
-                        FlipchatService.RemoveUserResponse.Result.DENIED -> {
+                        ChatServiceRpc.RemoveUserResponse.Result.DENIED -> {
                             val error = RemoveUserError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -418,11 +418,11 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.reportUser(owner, userId, messageId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.ReportUserResponse.Result.OK -> {
+                        ChatServiceRpc.ReportUserResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.ReportUserResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.ReportUserResponse.Result.UNRECOGNIZED -> {
                             val error = ReportUserError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -450,11 +450,11 @@ internal class ChatService @Inject constructor(
             networkOracle.managedRequest(api.muteUser(owner, chatId, userId))
                 .map { response ->
                     when (response.result) {
-                        FlipchatService.MuteUserResponse.Result.OK -> {
+                        ChatServiceRpc.MuteUserResponse.Result.OK -> {
                             Result.success(Unit)
                         }
 
-                        FlipchatService.MuteUserResponse.Result.UNRECOGNIZED -> {
+                        ChatServiceRpc.MuteUserResponse.Result.UNRECOGNIZED -> {
                             val error = MuteUserError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
@@ -476,7 +476,7 @@ internal class ChatService @Inject constructor(
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
-        onEvent: (Result<List<FlipchatService.StreamChatEventsResponse.ChatUpdate>>) -> Unit
+        onEvent: (Result<List<ChatServiceRpc.StreamChatEventsResponse.ChatUpdate>>) -> Unit
     ): ChatHomeStreamReference {
         trace("Chat Opening stream.")
         val streamReference = ChatHomeStreamReference(scope)
@@ -498,13 +498,13 @@ internal class ChatService @Inject constructor(
     private fun openChatStream(
         owner: KeyPair,
         reference: ChatHomeStreamReference,
-        onEvent: (Result<List<FlipchatService.StreamChatEventsResponse.ChatUpdate>>) -> Unit
+        onEvent: (Result<List<ChatServiceRpc.StreamChatEventsResponse.ChatUpdate>>) -> Unit
     ) {
         try {
             reference.cancel()
             reference.stream =
-                api.streamEvents(object : StreamObserver<FlipchatService.StreamChatEventsResponse> {
-                    override fun onNext(value: FlipchatService.StreamChatEventsResponse?) {
+                api.streamEvents(object : StreamObserver<ChatServiceRpc.StreamChatEventsResponse> {
+                    override fun onNext(value: ChatServiceRpc.StreamChatEventsResponse?) {
                         val result = value?.typeCase
                         if (result == null) {
                             trace(
@@ -515,15 +515,15 @@ internal class ChatService @Inject constructor(
                         }
 
                         when (result) {
-                            FlipchatService.StreamChatEventsResponse.TypeCase.EVENTS -> {
+                            ChatServiceRpc.StreamChatEventsResponse.TypeCase.EVENTS -> {
                                 onEvent(Result.success(value.events.updatesList))
                             }
 
-                            FlipchatService.StreamChatEventsResponse.TypeCase.PING -> {
+                            ChatServiceRpc.StreamChatEventsResponse.TypeCase.PING -> {
                                 val stream = reference.stream ?: return
-                                val request = FlipchatService.StreamChatEventsRequest.newBuilder()
+                                val request = ChatServiceRpc.StreamChatEventsRequest.newBuilder()
                                     .setPong(
-                                        Flipchat.ClientPong.newBuilder()
+                                        Common.ClientPong.newBuilder()
                                             .setTimestamp(
                                                 Timestamp.newBuilder()
                                                     .setSeconds(System.currentTimeMillis() / 1_000)
@@ -535,8 +535,8 @@ internal class ChatService @Inject constructor(
                                 trace("Pong Chat Stream Server timestamp: ${value.ping.timestamp}")
                             }
 
-                            FlipchatService.StreamChatEventsResponse.TypeCase.TYPE_NOT_SET -> Unit
-                            FlipchatService.StreamChatEventsResponse.TypeCase.ERROR -> {
+                            ChatServiceRpc.StreamChatEventsResponse.TypeCase.TYPE_NOT_SET -> Unit
+                            ChatServiceRpc.StreamChatEventsResponse.TypeCase.ERROR -> {
                                 trace(
                                     type = TraceType.Error,
                                     message = "Chat Stream hit a snag. ${value.error.code}"
@@ -565,9 +565,9 @@ internal class ChatService @Inject constructor(
                 })
 
             reference.coroutineScope.launch {
-                val request = FlipchatService.StreamChatEventsRequest.newBuilder()
+                val request = ChatServiceRpc.StreamChatEventsRequest.newBuilder()
                     .setParams(
-                        FlipchatService.StreamChatEventsRequest.Params.newBuilder()
+                        ChatServiceRpc.StreamChatEventsRequest.Params.newBuilder()
                             .setTs(
                                 Timestamp.newBuilder()
                                     .setSeconds(System.currentTimeMillis() / 1_000)

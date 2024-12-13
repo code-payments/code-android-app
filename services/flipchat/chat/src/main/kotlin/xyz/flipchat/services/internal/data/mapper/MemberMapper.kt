@@ -1,6 +1,6 @@
 package xyz.flipchat.services.internal.data.mapper
 
-import com.codeinc.flipchat.gen.chat.v1.FlipchatService
+import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.getcode.services.mapper.Mapper
 import xyz.flipchat.services.data.Member
 import javax.inject.Inject
@@ -8,8 +8,8 @@ import javax.inject.Inject
 class MemberMapper @Inject constructor(
     private val identityMapper: MemberIdentityMapper,
     private val pointerModelMapper: PointerModelMapper,
-): Mapper<FlipchatService.Member, Member> {
-    override fun map(from: FlipchatService.Member): Member {
+): Mapper<ChatService.Member, Member> {
+    override fun map(from: ChatService.Member): Member {
         val memberId = from.userId.value.toByteArray().toList()
         return Member(
             id = memberId,

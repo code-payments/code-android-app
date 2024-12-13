@@ -3,7 +3,7 @@ package flipchat.badge.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/badge/v1;badgepb";
 option java_package = "com.codeinc.flipchat.gen.badge.v1";
 option objc_class_prefix = "FPBBadgeV1";
-import "common/v1/flipchat.proto";
+import "common/v1/common.proto";
 
 service Badge {
     // ResetBadgeCount resets an owner account's app icon badge count back to zero

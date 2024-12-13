@@ -1,6 +1,6 @@
 package xyz.flipchat.services.internal.network.service
 
-import com.codeinc.flipchat.gen.common.v1.Flipchat
+import com.codeinc.flipchat.gen.common.v1.Common
 import com.codeinc.flipchat.gen.messaging.v1.MessagingService
 import com.codeinc.flipchat.gen.messaging.v1.MessagingService.AdvancePointerResponse
 import com.codeinc.flipchat.gen.messaging.v1.MessagingService.GetMessagesResponse
@@ -301,7 +301,7 @@ internal class MessagingService @Inject constructor(
                                 val request = MessagingService.StreamMessagesRequest.newBuilder()
                                     .setParams(Params.newBuilder().setChatId(chatId.toChatId()))
                                     .setPong(
-                                        Flipchat.ClientPong.newBuilder()
+                                        Common.ClientPong.newBuilder()
                                             .setTimestamp(
                                                 Timestamp.newBuilder()
                                                     .setSeconds(System.currentTimeMillis() / 1_000)

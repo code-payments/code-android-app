@@ -33,8 +33,8 @@ sealed interface BetaFlag {
 
     data object FollowerMode : BetaFlag {
         override val key: String = "pref_follower_mode_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object StartChatAtUnread : BetaFlag {
@@ -94,7 +94,7 @@ class BetaFlagController @Inject constructor(
     }.stateIn(dataScope, started = SharingStarted.Eagerly, flag.default)
 
     override fun observe(): StateFlow<List<BetaFeature>> = betaFlags.data.map { prefs ->
-        BetaFlag.entries.map {
+        BetaFlag.entries.filterNot { it.launched }.map {
             val value = if (it.launched) {
                 it.default
             } else {

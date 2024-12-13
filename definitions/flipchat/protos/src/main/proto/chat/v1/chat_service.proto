@@ -3,7 +3,7 @@ package flipchat.chat.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/chat/v1;chatpb";
 option java_package = "com.codeinc.flipchat.gen.chat.v1";
 option objc_class_prefix = "FCPBChatV1";
-import "common/v1/flipchat.proto";
+import "common/v1/common.proto";
 import "messaging/v1/model.proto";
 import "google/protobuf/timestamp.proto";
 

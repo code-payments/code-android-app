@@ -3,7 +3,7 @@ package flipchat.account.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/account/v1;acountpb";
 option java_package = "com.codeinc.flipchat.gen.account.v1";
 option objc_class_prefix = "FCPBAccountV1";
-import "common/v1/flipchat.proto";
+import "common/v1/common.proto";
 import "google/protobuf/timestamp.proto";
 
 service Account {
