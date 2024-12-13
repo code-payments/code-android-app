@@ -24,4 +24,11 @@ class PushController @Inject constructor(
         return repository.deleteToken(owner, token)
             .onFailure { ErrorUtils.handleError(it) }
     }
+
+    suspend fun deleteTokens(): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(Throwable("No owner"))
+        val installationId = Firebase.installations.installationId()
+        return repository.deleteTokens(owner, installationId)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
 }

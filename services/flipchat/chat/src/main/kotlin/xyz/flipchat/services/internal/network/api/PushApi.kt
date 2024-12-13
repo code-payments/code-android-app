@@ -53,5 +53,20 @@ class PushApi @Inject constructor(
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }
+
+    fun deleteTokens(
+        owner: KeyPair,
+        installationId: String?,
+    ): Flow<PushService.DeleteTokensResponse> {
+        val request =
+            PushService.DeleteTokensRequest.newBuilder()
+                .setAppInstall(Common.AppInstallId.newBuilder().setValue(installationId))
+                .apply { setAuth(authenticate(owner)) }
+                .build()
+
+        return api::deleteTokens
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
 }
 

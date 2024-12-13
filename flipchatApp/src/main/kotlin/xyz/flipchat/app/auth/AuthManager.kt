@@ -301,11 +301,8 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun clearToken() {
-        val token = FirebaseMessaging.getInstance().token()
         FirebaseMessaging.getInstance().deleteToken()
-        if (token != null) {
-            pushController.deleteToken(token)
-        }
+        pushController.deleteTokens()
         Database.close()
         userManager.clear()
         Database.delete(context)

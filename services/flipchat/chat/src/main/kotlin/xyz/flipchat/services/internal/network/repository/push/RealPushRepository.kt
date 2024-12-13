@@ -21,4 +21,8 @@ internal class RealPushRepository @Inject constructor(
     override suspend fun deleteToken(owner: Ed25519.KeyPair, token: String): Result<Unit> {
         return service.deleteToken(owner, token)
     }
+
+    override suspend fun deleteTokens(owner: Ed25519.KeyPair,  installationId: String?): Result<Unit> {
+        return service.deleteTokens(owner, installationId)
+    }
 }

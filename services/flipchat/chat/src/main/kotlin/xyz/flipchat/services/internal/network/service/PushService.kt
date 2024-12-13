@@ -74,6 +74,33 @@ internal class PushService @Inject constructor(
         }
     }
 
+    suspend fun deleteTokens(
+        owner: KeyPair,
+        installationId: String?,
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.deleteTokens(owner, installationId))
+                .map {
+                    when (it.result) {
+                        PushService.DeleteTokensResponse.Result.OK -> Result.success(Unit)
+                        PushService.DeleteTokensResponse.Result.UNRECOGNIZED -> {
+                            val error = DeleteTokenError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        else -> {
+                            val error = DeleteTokenError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = DeleteTokenError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     internal sealed class AddTokenError : Throwable() {
         class InvalidPushToken : AddTokenError()
         class Unrecognized : AddTokenError()
@@ -81,7 +108,6 @@ internal class PushService @Inject constructor(
     }
 
     internal sealed class DeleteTokenError : Throwable() {
-        class InvalidPushToken : DeleteTokenError()
         class Unrecognized : DeleteTokenError()
         data class Other(override val cause: Throwable? = null) : DeleteTokenError()
     }
