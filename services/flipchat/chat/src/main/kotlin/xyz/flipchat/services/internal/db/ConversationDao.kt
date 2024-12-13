@@ -134,6 +134,9 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET coverChargeQuarks = :quarks WHERE idBase58 = :conversationId")
     suspend fun updateCoverCharge(conversationId: String, quarks: Long)
+    suspend fun updateCoverCharge(conversationId: ID, quarks: Long) {
+        updateCoverCharge(conversationId.base58, quarks)
+    }
     suspend fun updateCoverCharge(conversationId: ID, kin: Kin) {
         updateCoverCharge(conversationId.base58, kin.toKinTruncatingLong())
     }

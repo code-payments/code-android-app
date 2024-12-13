@@ -88,7 +88,7 @@ class ChatsController @Inject constructor(
                             event.metadata.onEach { update ->
                                 when (update) {
                                     is ConversationUpdate.CoverCharge -> {
-                                        db.conversationDao().updateCoverCharge(update.roomId, Kin.fromQuarks(update.amount))
+                                        db.conversationDao().updateCoverCharge(update.roomId, update.amount)
                                     }
                                     is ConversationUpdate.DisplayName -> {
                                         db.conversationDao().setDisplayName(update.roomId, update.name)
