@@ -2,10 +2,10 @@ package xyz.flipchat.app.auth
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import com.bugsnag.android.Bugsnag
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.ID
-import com.getcode.network.repository.PaymentError
 import xyz.flipchat.app.util.AccountUtils
 import xyz.flipchat.app.util.TokenResult
 import com.getcode.services.db.Database
@@ -16,7 +16,6 @@ import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
-import com.google.android.gms.auth.api.Auth
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
@@ -35,7 +34,6 @@ import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.controllers.PushController
 import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,6 +45,7 @@ class AuthManager @Inject constructor(
     private val userManager: UserManager,
     private val pushController: PushController,
     private val betaFlags: BetaFlags,
+    private val notificationManager: NotificationManagerCompat,
 //    private val balanceController: BalanceController,
 //    private val notificationCollectionHistory: NotificationCollectionHistoryController,
 //    private val analytics: AnalyticsService,
@@ -303,6 +302,7 @@ class AuthManager @Inject constructor(
     private suspend fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
         pushController.deleteTokens()
+        notificationManager.cancelAll()
         Database.close()
         userManager.clear()
         Database.delete(context)
