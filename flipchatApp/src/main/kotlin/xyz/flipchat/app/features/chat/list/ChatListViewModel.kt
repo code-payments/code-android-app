@@ -11,6 +11,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
@@ -35,6 +37,7 @@ import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
 import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
@@ -70,11 +73,14 @@ class ChatListViewModel @Inject constructor(
         data class OnNetworkChanged(val connected: Boolean) : Event
         data object OnOpen : Event
         data object CreateRoomSelected : Event
+        data object CreateRoom : Event
+        data object NeedsAccountCreated : Event
+        data object OnAccountCreated : Event
         data class OpenRoom(val roomId: ID) : Event
-        data object OnChatsTapped: Event
-        data class MuteRoom(val roomId: ID): Event
-        data class UnmuteRoom(val roomId: ID): Event
-        data object OnLogOutUnlocked: Event
+        data object OnChatsTapped : Event
+        data class MuteRoom(val roomId: ID) : Event
+        data class UnmuteRoom(val roomId: ID) : Event
+        data object OnLogOutUnlocked : Event
     }
 
     init {
@@ -129,6 +135,23 @@ class ChatListViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CreateRoomSelected>()
+            .map { userManager.authState }
+            .onEach {
+                if (it is AuthState.LoggedIn) {
+                    dispatchEvent(Event.CreateRoom)
+                } else {
+                    dispatchEvent(Event.NeedsAccountCreated)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnAccountCreated>()
+            .onEach { delay(400) }
+            .onEach { dispatchEvent(Event.CreateRoom) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.CreateRoom>()
             .map { profileController.getUserFlags() }
             .mapNotNull {
                 it.exceptionOrNull()?.let {
@@ -176,9 +199,9 @@ class ChatListViewModel @Inject constructor(
                                 )
                             }
                         }.onSuccess {
-                                event.acknowledge(true) {
-                                    dispatchEvent(Event.OpenRoom(it.room.id))
-                                }
+                            event.acknowledge(true) {
+                                dispatchEvent(Event.OpenRoom(it.room.id))
+                            }
                         }
                     }
                 }
@@ -203,17 +226,15 @@ class ChatListViewModel @Inject constructor(
         private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnOpen -> { state -> state }
                 is Event.OnNetworkChanged -> { state ->
                     state.copy(networkConnected = event.connected)
                 }
-
-                is Event.CreateRoomSelected -> { state -> state }
 
                 is Event.OnChatsTapped -> { state ->
                     if (state.chatTapCount >= TAP_THRESHOLD) state
                     else state.copy(chatTapCount = state.chatTapCount + 1)
                 }
+
                 is Event.OnLogOutUnlocked -> { state -> state.copy(isLogOutEnabled = true) }
                 is Event.OpenRoom -> { state -> state }
                 is Event.ShowFullScreenSpinner -> { state ->
@@ -224,7 +245,13 @@ class ChatListViewModel @Inject constructor(
                 }
 
                 is Event.OnSelfIdChanged -> { state -> state.copy(selfId = event.id) }
-                is Event.MuteRoom -> { state -> state }
+
+                is Event.NeedsAccountCreated,
+                is Event.OnAccountCreated,
+                is Event.OnOpen,
+                is Event.CreateRoomSelected,
+                is Event.CreateRoom,
+                is Event.MuteRoom,
                 is Event.UnmuteRoom -> { state -> state }
             }
         }

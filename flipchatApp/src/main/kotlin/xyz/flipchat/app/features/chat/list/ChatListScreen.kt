@@ -38,6 +38,7 @@ import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
@@ -45,6 +46,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import io.grpc.Status.Code
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -52,10 +54,11 @@ import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
 
 @Parcelize
-class ChatListScreen : Screen, NamedScreen, Parcelable {
+class ChatListScreen : AppScreen(), NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -73,6 +76,21 @@ class ChatListScreen : Screen, NamedScreen, Parcelable {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it)))
             }
         )
+
+        LaunchedEffect(result) {
+            result
+                .filter { it == true }
+                .onEach { viewModel.dispatchEvent(ChatListViewModel.Event.OnAccountCreated) }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatListViewModel.Event.NeedsAccountCreated>()
+                .onEach {
+                    navigator.show(ScreenRegistry.get(NavScreenProvider.CreateAccount.Start))
+                }.launchIn(this)
+        }
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
