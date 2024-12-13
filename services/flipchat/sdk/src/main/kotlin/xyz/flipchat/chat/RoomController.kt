@@ -29,6 +29,7 @@ import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -59,6 +60,10 @@ class RoomController @Inject constructor(
 
     suspend fun getConversation(identifier: ID): ConversationWithMembersAndLastPointers? {
         return db.conversationDao().findConversation(identifier)
+    }
+
+    suspend fun getMessage(id: ID): ConversationMessageWithMemberAndContent? {
+        return db.conversationMessageDao().getMessageWithContentById(id, userManager.userId)
     }
 
     suspend fun getChatMembers(identifier: ID) {
@@ -152,6 +157,12 @@ class RoomController @Inject constructor(
 
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID> {
         val output = OutgoingMessageContent.Text(message)
+        return messagingRepository.sendMessage(conversationId, output)
+            .map { it.id }
+    }
+
+    suspend fun sendReply(conversationId: ID, originalMessageId: ID, message: String): Result<ID> {
+        val output = OutgoingMessageContent.Reply(originalMessageId, message)
         return messagingRepository.sendMessage(conversationId, output)
             .map { it.id }
     }

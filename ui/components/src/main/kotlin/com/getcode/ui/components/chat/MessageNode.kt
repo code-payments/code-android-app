@@ -1,12 +1,12 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -55,6 +55,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
@@ -64,7 +65,9 @@ import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
+import com.getcode.ui.components.chat.messagecontents.MessageReplyContent
 import com.getcode.ui.components.chat.messagecontents.MessageText
+import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.vibration.LocalVibrator
@@ -194,10 +197,12 @@ fun MessageNode(
     date: Instant,
     sender: Sender,
     status: MessageStatus,
+    originalMessage: ReplyMessageAnchor?,
     modifier: Modifier = Modifier,
     options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
     openMessageControls: () -> Unit,
     onReply: () -> Unit,
+    onViewOriginalMessage: (ID) -> Unit,
 ) {
     val vibrator = LocalVibrator.current
 
@@ -205,6 +210,7 @@ fun MessageNode(
         if (!options.canReplyTo) return@remember false
         when (contents) {
             is MessageContent.RawText -> true
+            is MessageContent.Reply -> true
             else -> false
         }
     }
@@ -213,7 +219,7 @@ fun MessageNode(
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val maxWidth = maxWidth
-        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.15f
+        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.30f
         var hasTriggeredTick by remember { mutableStateOf(false) }
         var hasFiredReply by remember { mutableStateOf(false) }
 
@@ -238,7 +244,7 @@ fun MessageNode(
                     true
                 },
                 snapAnimationSpec = tween(durationMillis = 400),
-                decayAnimationSpec = exponentialDecay()
+                decayAnimationSpec = splineBasedDecay(density)
             )
         }
 
@@ -393,7 +399,39 @@ fun MessageNode(
                             }
 
                             is MessageContent.Reaction -> Unit
-                            is MessageContent.Reply -> Unit
+                            is MessageContent.Reply -> {
+                                ContentFromSender(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    sender = sender,
+                                    isFirstInSeries = !options.isPreviousGrouped
+                                ) {
+                                    if (originalMessage != null) {
+                                        MessageReplyContent(
+                                            content = contents.text,
+                                            shape = shape,
+                                            date = date,
+                                            status = status,
+                                            isFromSelf = sender.isSelf,
+                                            options = options,
+                                            showControls = openMessageControls,
+                                            originalMessage = originalMessage,
+                                            onOriginalMessageClicked = {
+                                                onViewOriginalMessage(originalMessage.id)
+                                            }
+                                        )
+                                    } else {
+                                        MessageText(
+                                            content = contents.text,
+                                            shape = shape,
+                                            date = date,
+                                            status = status,
+                                            isFromSelf = sender.isSelf,
+                                            options = options,
+                                            showControls = openMessageControls,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -405,7 +443,7 @@ fun MessageNode(
                 exit = scaleOut() + fadeOut(),
                 modifier = Modifier.align(Alignment.CenterEnd)
                     .offset {
-                        IntOffset(x = -replyDragState.offset.coerceAtMost(maxWidth.toPx()).roundToInt(), y = 0)
+                        IntOffset(x = -(replyDragState.offset.coerceAtMost(maxWidth.toPx()).roundToInt()) +  20.dp.roundToPx(), y = 0)
                     }
             ) {
                 Icon(

@@ -1,19 +1,26 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
@@ -21,19 +28,20 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.Pill
+import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.Instant
 
 sealed interface MessageListEvent {
-    data class AdvancePointer(val messageId: ID): MessageListEvent
-    data class OpenMessageActions(val actions: List<MessageControlAction>): MessageListEvent
-    data class OnMarkupEvent(val markup: Markup): MessageListEvent
-    data class ReplyToMessage(val message: ChatItem.Message): MessageListEvent
+    data class AdvancePointer(val messageId: ID) : MessageListEvent
+    data class OpenMessageActions(val actions: List<MessageControlAction>) : MessageListEvent
+    data class OnMarkupEvent(val markup: Markup) : MessageListEvent
+    data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
+    data class ViewOriginalMessage(val messageId: ID): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -60,19 +68,20 @@ fun MessageList(
     },
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.firstVisibleItemIndex }
-            .debounce(500) // Increased debounce interval
-            .distinctUntilChanged() // Avoid duplicate emissions
-            .collect { index ->
-                val closetChatMessage = messages[index]?.let { it as? ChatItem.Message }
-                val mostRecentRead = messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
-                    .maxByOrNull { it.date }?.date
+    LaunchedEffect(listState, messages) {
+        snapshotFlow { messages.loadState }
+            .collect { loadState ->
+                if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
+                    val closetChatMessage = messages[listState.firstVisibleItemIndex]?.let { it as? ChatItem.Message }
+                    val mostRecentRead =
+                        messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
+                            .maxByOrNull { it.date }?.date
 
-                closetChatMessage?.let { message ->
-                    if (!message.sender.isSelf && message.status != MessageStatus.Read) {
-                        if ((mostRecentRead == null || message.date >= mostRecentRead)) {
-                            dispatch(MessageListEvent.AdvancePointer(message.chatMessageId))
+                    closetChatMessage?.let { message ->
+                        if (!message.sender.isSelf && message.status != MessageStatus.Read) {
+                            if ((mostRecentRead == null || message.date >= mostRecentRead)) {
+                                dispatch(MessageListEvent.AdvancePointer(message.chatMessageId))
+                            }
                         }
                     }
                 }
@@ -96,6 +105,7 @@ fun MessageList(
                 when (item) {
                     is ChatItem.Date -> "separators"
                     is ChatItem.Message -> "messages"
+                    is ChatItem.UnreadSeparator -> "unread_divider"
                 }
             }
         ) { index ->
@@ -125,12 +135,16 @@ fun MessageList(
                         else -> CodeTheme.dimens.grid.x3
                     }
 
-                    val showTimestamp = remember(isPreviousGrouped, isNextGrouped, item.date, next?.date) {
-                        !isPreviousGrouped || !isNextGrouped || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(60)
-                    }
+                    val showTimestamp =
+                        remember(isPreviousGrouped, isNextGrouped, item.date, next?.date) {
+                            !isPreviousGrouped || !isNextGrouped || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(
+                                60
+                            )
+                        }
 
                     MessageNode(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .padding(top = spacingBefore, bottom = spacingAfter)
                             .animateItem(),
                         contents = item.message,
@@ -157,8 +171,23 @@ fun MessageList(
                                 )
                             )
                         },
-                        onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) }
+                        onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) },
+                        originalMessage = item.originalMessage,
+                        onViewOriginalMessage = {
+                            dispatch(MessageListEvent.ViewOriginalMessage(it))
+                        }
                     )
+                }
+
+                is ChatItem.UnreadSeparator -> {
+                    Box(modifier = Modifier.fillParentMaxWidth().background(Color.Black.copy(0.1f))) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Center),
+                            text = "Unread Messages",
+                            style = CodeTheme.typography.textMedium,
+                            color = Color.White
+                        )
+                    }
                 }
 
                 else -> Unit
@@ -188,7 +217,13 @@ private fun List<ChatItem?>.getClosestChat(index: Int): Quad<ID, Boolean, Instan
     if (index !in indices) return null
     val item = this[index]
     return when {
-        item is ChatItem.Message -> Quad(item.chatMessageId, item.sender.isSelf, item.date, item.status)
+        item is ChatItem.Message -> Quad(
+            item.chatMessageId,
+            item.sender.isSelf,
+            item.date,
+            item.status
+        )
+
         index > 0 -> getClosestChat(index - 1)
         else -> null
     }

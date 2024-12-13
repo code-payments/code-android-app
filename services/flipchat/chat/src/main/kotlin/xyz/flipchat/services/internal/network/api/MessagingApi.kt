@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.flowOn
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
+import xyz.flipchat.services.internal.network.extensions.toMessageId
 import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.utils.authenticate
 import javax.inject.Inject
@@ -90,6 +91,15 @@ class MessagingApi @Inject constructor(
         val contentProto = when (content) {
             is OutgoingMessageContent.Text -> Model.Content.newBuilder()
                 .setText(Model.TextContent.newBuilder().setText(content.text))
+
+            is OutgoingMessageContent.Reply -> {
+                Model.Content.newBuilder()
+                    .setReply(
+                        Model.ReplyContent.newBuilder()
+                            .setOriginalMessageId(content.messageId.toMessageId())
+                            .setReplyText(content.text)
+                    )
+            }
         }
 
         val request = MessagingService.SendMessageRequest.newBuilder()

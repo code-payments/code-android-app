@@ -24,6 +24,7 @@ import com.getcode.services.model.ExtendedMetadata
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.formatDateRelatively
 import com.getcode.util.resources.ResourceHelper
@@ -61,6 +62,7 @@ import timber.log.Timber
 import xyz.flipchat.app.R
 import xyz.flipchat.app.beta.BetaFlag
 import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
@@ -118,6 +120,7 @@ class ConversationViewModel @Inject constructor(
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
         val roomInfoArgs: RoomInfoArgs,
+        val lastReadMessage: UUID?,
     ) {
         val isHost: Boolean
             get() = selfId != null && hostId != null && selfId == hostId
@@ -131,6 +134,7 @@ class ConversationViewModel @Inject constructor(
                 conversationId = null,
                 unreadCount = 0,
                 chattableState = null,
+                lastReadMessage = null,
                 textFieldState = TextFieldState(),
                 replyEnabled = false,
                 replyMessage = null,
@@ -305,40 +309,43 @@ class ConversationViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.SendMessage>()
             .map { stateFlow.value }
-            .onEach {
+            .mapNotNull {
                 val textFieldState = it.textFieldState
                 val text = textFieldState.text.toString().trim()
-                if (text.isNotEmpty()) {
-                    textFieldState.clearText()
+                if (text.isEmpty()) return@mapNotNull null
 
-                    val replyingTo = it.replyMessage
-                    // TODO: handle replies in the future
+                textFieldState.clearText()
 
-                    val message = if (replyingTo != null) {
-                        replyingTo.sender.displayName?.let { name -> "@$name: $text" } ?: text
-                    } else {
+                val replyingTo = it.replyMessage
+
+                dispatchEvent(Event.CancelReply)
+
+                if (replyingTo != null) {
+                    roomController.sendReply(
+                        it.conversationId!!,
+                        replyingTo.chatMessageId,
                         text
-                    }
-
-                    dispatchEvent(Event.CancelReply)
-                    roomController.sendMessage(it.conversationId!!, message)
-                        .onSuccess {
-                            trace(
-                                tag = "Conversation",
-                                message = "message sent successfully",
-                                type = TraceType.Silent
-                            )
-                        }
-                        .onFailure { error ->
-                            trace(
-                                tag = "Conversation",
-                                message = "message failed to send",
-                                type = TraceType.Error,
-                                error = error
-                            )
-                        }
+                    )
+                } else {
+                    roomController.sendMessage(it.conversationId!!, text)
                 }
-            }
+            }.onResult(
+                onError = {
+                    trace(
+                        tag = "Conversation",
+                        message = "message failed to send",
+                        type = TraceType.Error,
+                        error = it
+                    )
+                },
+                onSuccess = {
+                    trace(
+                        tag = "Conversation",
+                        message = "message sent successfully",
+                        type = TraceType.Silent
+                    )
+                }
+            )
             .launchIn(viewModelScope)
 
         eventFlow
@@ -518,7 +525,10 @@ class ConversationViewModel @Inject constructor(
                             val roomInfo = RoomInfoArgs(
                                 roomId = room.id,
                                 roomNumber = room.roomNumber,
-                                roomTitle = room.titleOrFallback(resources, includeRoomPrefix = false),
+                                roomTitle = room.titleOrFallback(
+                                    resources,
+                                    includeRoomPrefix = false
+                                ),
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,
@@ -634,7 +644,8 @@ class ConversationViewModel @Inject constructor(
         .map { page ->
             val currentState = stateFlow.value // Cache state upfront
             val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
-            val enableReply = currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
+            val enableReply =
+                currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
             page.map { indice ->
                 val (message, member, contents) = indice
 
@@ -643,6 +654,25 @@ class ConversationViewModel @Inject constructor(
                     statusMap = pointerRefs,
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
+
+                val anchor = if (contents is MessageContent.Reply) {
+                    val originalMessage = roomController.getMessage(contents.originalMessageId)
+                    originalMessage?.let {
+                        ReplyMessageAnchor(
+                            id = contents.originalMessageId,
+                            message = it.content,
+                            sender = Sender(
+                                id = it.message.senderId,
+                                profileImage = it.member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                                displayName = it.member?.memberName ?: "Deleted",
+                                isSelf = it.content.isFromSelf,
+                                isHost = it.message.senderId == currentState.hostId && !contents.isFromSelf,
+                            )
+                        )
+                    }
+                } else {
+                    null
+                }
 
                 ChatItem.Message(
                     chatMessageId = message.id,
@@ -661,6 +691,7 @@ class ConversationViewModel @Inject constructor(
                         isSelf = contents.isFromSelf,
                         isHost = message.senderId == currentState.hostId && !contents.isFromSelf,
                     ),
+                    originalMessage = anchor,
                     messageControls = MessageControls(
                         actions = listOf(
                             MessageControlAction.Copy {
@@ -681,15 +712,29 @@ class ConversationViewModel @Inject constructor(
         }
         .flowOn(Dispatchers.Default)
         .mapLatest { page ->
+            var unreadSeparatorInserted = false
+
             page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
                 val beforeDate = before?.relativeDate
                 val afterDate = after?.relativeDate
 
+                // if the date changes between two items, add a date separator
                 if (beforeDate != afterDate) {
-                    beforeDate?.let { ChatItem.Date(before.date) }
-                } else {
-                    null
+                    return@insertSeparators beforeDate?.let { ChatItem.Date(before.date) }
                 }
+
+                // if we have unread messages, insert a separator to call out
+                if (
+                    !unreadSeparatorInserted &&
+                    after?.chatMessageId?.uuid == stateFlow.value.lastReadMessage &&
+                    before?.sender?.isSelf == false
+                ) {
+                    unreadSeparatorInserted = true
+                    return@insertSeparators ChatItem.UnreadSeparator { stateFlow.value.unreadCount }
+                }
+
+                // No separator in other cases
+                null
             }
         }
 
@@ -848,12 +893,15 @@ class ConversationViewModel @Inject constructor(
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
+
                     state.copy(
                         conversationId = conversation.id,
                         unreadCount = conversation.unreadCount,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
+                        lastReadMessage = state.lastReadMessage
+                            ?: findLastReadMessage(event.conversationWithPointers.pointers),
                         pointerRefs = event.conversationWithPointers.pointers
                             .asSequence()
                             .mapNotNull { (key, value) -> key.timestamp?.let { it to value } }
@@ -934,6 +982,15 @@ class ConversationViewModel @Inject constructor(
             }
         }
     }
+}
+
+private fun findLastReadMessage(
+    statusMap: Map<UUID, MessageStatus>,
+): UUID? {
+    return statusMap
+        .filter { it.value == MessageStatus.Read }
+        .maxByOrNull { it.key.timestamp ?: 0L }
+        ?.key
 }
 
 private fun findClosestMessageStatus(

@@ -59,6 +59,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.TypingIndicator
+import com.getcode.ui.components.chat.messagecontents.MessageReplyPreview
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.theme.CodeScaffold
@@ -252,40 +253,17 @@ private fun ConversationScreenContent(
                         label = "replying to message visibility",
                     ) { replyingTo ->
                         if (replyingTo != null) {
-                            val colors = generateComplementaryColorPalette(replyingTo.sender.id!!)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(CodeTheme.colors.background)
                                     .height(IntrinsicSize.Min)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .width(CodeTheme.dimens.thickBorder)
-                                        .background(colors?.first ?: CodeTheme.colors.tertiary)
+                                MessageReplyPreview(
+                                    modifier = Modifier.weight(1f),
+                                    sender = replyingTo.sender,
+                                    message = replyingTo.message
                                 )
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .padding(start = CodeTheme.dimens.grid.x1)
-                                        .padding(vertical = CodeTheme.dimens.grid.x1)
-                                        .weight(1f)
-                                ) {
-                                    Text(
-                                        text = replyingTo.sender.displayName.orEmpty()
-                                            .ifEmpty { "Member" },
-                                        color = colors?.second ?: CodeTheme.colors.tertiary,
-                                        style = CodeTheme.typography.textSmall
-                                    )
-                                    Text(
-                                        text = replyingTo.message.localizedText,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        color = CodeTheme.colors.textMain,
-                                        style = CodeTheme.typography.caption
-                                    )
-                                }
                                 Image(
                                     modifier = Modifier
                                         .align(Alignment.CenterVertically)

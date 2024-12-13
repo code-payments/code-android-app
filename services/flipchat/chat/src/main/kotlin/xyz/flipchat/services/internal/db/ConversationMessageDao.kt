@@ -7,9 +7,11 @@ import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.model.ID
+import com.getcode.model.chat.MessageContent
 import com.getcode.utils.base58
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 
 @Dao
 interface ConversationMessageDao {
@@ -37,7 +39,7 @@ interface ConversationMessageDao {
 
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
-    WHERE messages.conversationIdBase58 = :id AND type IN (1, 4)
+    WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8)
     ORDER BY messages.dateMillis DESC
     LIMIT :limit OFFSET :offset
 """)
@@ -65,6 +67,41 @@ interface ConversationMessageDao {
     suspend fun getNewestMessage(conversationId: ID): ConversationMessage? {
         return getNewestMessage(conversationId.base58)
     }
+
+    @Query(
+        """
+            SELECT 
+                messages.idBase58 AS idBase58,
+                messages.senderIdBase58 AS senderIdBase58,
+                messages.dateMillis AS dateMillis,
+                messages.conversationIdBase58 AS conversationIdBase58,
+                messages.type AS type,
+                messages.content AS content,
+                members.memberIdBase58 AS memberIdBase58,
+                members.memberName AS memberName
+            FROM messages
+
+            LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
+                       AND messages.conversationIdBase58 = members.conversationIdBase58
+            WHERE messages.idBase58 = :messageId
+            LIMIT 1
+        """)
+    suspend fun getMessageById(messageId: String): ConversationMessageWithMember?
+
+
+    suspend fun getMessageWithContentById(messageId: String, selfId: String?): ConversationMessageWithMemberAndContent? {
+        val row = getMessageById(messageId) ?: return null
+        return ConversationMessageWithMemberAndContent(
+            message = row.message,
+            member = row.member,
+            content = MessageContent.fromData(row.message.type, row.message.content, isFromSelf = row.message.senderIdBase58 == selfId),
+        )
+    }
+
+    suspend fun getMessageWithContentById(messageId: ID, selfID: ID?): ConversationMessageWithMemberAndContent? {
+        return getMessageWithContentById(messageId.base58, selfID?.base58)
+    }
+
 
     @Query("DELETE FROM messages WHERE conversationIdBase58 = :conversationId")
     suspend fun removeForConversation(conversationId: String)

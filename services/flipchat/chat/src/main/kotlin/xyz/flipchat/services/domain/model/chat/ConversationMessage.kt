@@ -32,7 +32,7 @@ data class ConversationMessage(
     @ColumnInfo(defaultValue = "1")
     val type: Int,
     @ColumnInfo(defaultValue = "")
-    val content: String
+    val content: String,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()

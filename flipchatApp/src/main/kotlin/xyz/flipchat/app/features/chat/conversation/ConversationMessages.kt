@@ -12,20 +12,26 @@ import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.manager.TopBarManager
+import com.getcode.model.uuid
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageList
@@ -39,11 +45,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 import xyz.flipchat.app.util.dialNumber
+import java.util.UUID
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun ConversationMessages(
     modifier: Modifier = Modifier,
+    lastReadMessageId: UUID? = null,
     messages: LazyPagingItems<ChatItem>,
     focusRequester: FocusRequester,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
@@ -55,6 +63,28 @@ internal fun ConversationMessages(
     val composeScope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+
+
+    var hasScrolled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(messages, lastReadMessageId) {
+        snapshotFlow { messages.loadState }
+            .collect { loadState ->
+                if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
+                    if (!hasScrolled) {
+                        val startIndex = messages.itemSnapshotList
+                            .indexOfFirst { it is ChatItem.UnreadSeparator }
+
+                        if (startIndex >= 0) {
+                            lazyListState.animateScrollToItem(startIndex)
+                            hasScrolled = true
+                        }
+                    }
+                }
+            }
+    }
+
+    val density = LocalDensity.current
 
     Box(
         modifier = modifier,
@@ -113,6 +143,31 @@ internal fun ConversationMessages(
                     is MessageListEvent.ReplyToMessage -> {
                         dispatchEvent(ConversationViewModel.Event.ReplyTo(event.message))
                         focusRequester.requestFocus()
+                    }
+
+                    is MessageListEvent.ViewOriginalMessage -> {
+                        composeScope.launch {
+                            val itemIndex = messages.itemSnapshotList
+                                .filterIsInstance<ChatItem.Message>()
+                                .indexOfFirst { it.chatMessageId == event.messageId }
+                            if (itemIndex >= 0) {
+                                val currentIndex = lazyListState.firstVisibleItemIndex
+                                val distance = kotlin.math.abs(itemIndex - currentIndex)
+
+                                // Calculate the center offset
+                                val centerOffset = with(density) {
+                                    val viewportHeight = lazyListState.layoutInfo.viewportSize.height.toDp()
+                                    viewportHeight.roundToPx() / 2
+                                }
+
+                                if (distance <= 100) {
+                                    lazyListState.animateScrollToItem(itemIndex, scrollOffset = -centerOffset)
+                                } else {
+                                    lazyListState.scrollToItem(itemIndex, scrollOffset = -centerOffset)
+                                }
+
+                            }
+                        }
                     }
                 }
             }

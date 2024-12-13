@@ -16,6 +16,12 @@ data class ChatMessageIndice(
     val messageContent: MessageContent,
 )
 
+data class ReplyMessageAnchor(
+    val id: ID,
+    val sender: Sender,
+    val message: MessageContent,
+)
+
 @Stable
 sealed class ChatItem(open val key: Any) {
     @Stable
@@ -33,10 +39,14 @@ sealed class ChatItem(open val key: Any) {
         val showAsChatBubble: Boolean = false,
         val enableMarkup: Boolean = false,
         val enableReply: Boolean = false,
+        val originalMessage: ReplyMessageAnchor? = null,
         override val key: Any = id
     ) : ChatItem(key) {
         val relativeDate: String = date.formatDateRelatively()
     }
+
+    @Stable
+    data class UnreadSeparator(val count: () -> Int) : ChatItem("unread")
 
     @Stable
     data class Date(val date: Instant) : ChatItem(date) {
