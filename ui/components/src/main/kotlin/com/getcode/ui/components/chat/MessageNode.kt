@@ -278,13 +278,13 @@ fun MessageNode(
                     state = replyDragState,
                     enabled = enableReply,
                     orientation = Orientation.Horizontal,
-                    reverseDirection = true
+                    reverseDirection = false
                 )
         ) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset)
-                    .offset { IntOffset(x = -(replyDragState.offset.coerceAtMost(swipeThreshold).roundToInt()), y = 0) }
+                    .offset { IntOffset(x = replyDragState.offset.coerceAtMost(swipeThreshold).roundToInt(), y = 0) }
             ) {
                 val scope = rememberMessageNodeScope(
                     contents = contents,
@@ -441,10 +441,8 @@ fun MessageNode(
                 visible = replyDragState.offset > 0f,
                 enter = fadeIn() + scaleIn(),
                 exit = scaleOut() + fadeOut(),
-                modifier = Modifier.align(Alignment.CenterEnd)
-                    .offset {
-                        IntOffset(x = -(replyDragState.offset.coerceAtMost(maxWidth.toPx()).roundToInt()) +  20.dp.roundToPx(), y = 0)
-                    }
+                modifier = Modifier.align(Alignment.CenterStart)
+                    .offset { IntOffset(x = replyDragState.offset.coerceAtMost(swipeThreshold).roundToInt() - 20.dp.roundToPx(), y = 0) }
             ) {
                 Icon(
                     modifier = Modifier,
