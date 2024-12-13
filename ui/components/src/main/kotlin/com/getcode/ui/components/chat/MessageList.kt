@@ -41,7 +41,7 @@ sealed interface MessageListEvent {
     data class OpenMessageActions(val actions: List<MessageControlAction>) : MessageListEvent
     data class OnMarkupEvent(val markup: Markup) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
-    data class ViewOriginalMessage(val messageId: ID): MessageListEvent
+    data class ViewOriginalMessage(val messageId: ID) : MessageListEvent
 }
 
 data class MessageListPointer(
@@ -72,7 +72,8 @@ fun MessageList(
         snapshotFlow { messages.loadState }
             .collect { loadState ->
                 if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
-                    val closetChatMessage = messages[listState.firstVisibleItemIndex]?.let { it as? ChatItem.Message }
+                    val closetChatMessage =
+                        messages[listState.firstVisibleItemIndex]?.let { it as? ChatItem.Message }
                     val mostRecentRead =
                         messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
                             .maxByOrNull { it.date }?.date
@@ -180,14 +181,12 @@ fun MessageList(
                 }
 
                 is ChatItem.UnreadSeparator -> {
-                    Box(modifier = Modifier.fillParentMaxWidth().background(Color.Black.copy(0.1f))) {
-                        Text(
-                            modifier = Modifier.align(Alignment.Center),
-                            text = "Unread Messages",
-                            style = CodeTheme.typography.textMedium,
-                            color = Color.White
-                        )
-                    }
+                    UnreadSeparator(
+                        modifier = Modifier
+                            .fillParentMaxWidth()
+                            .padding(vertical = CodeTheme.dimens.grid.x2),
+                        count = item.count
+                    )
                 }
 
                 else -> Unit

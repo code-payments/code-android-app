@@ -103,7 +103,7 @@ class ConversationViewModel @Inject constructor(
         val selfName: String?,
         val hostId: ID?,
         val conversationId: ID?,
-        val unreadCount: Int,
+        val unreadCount: Int?,
         val chattableState: ChattableState?,
         val textFieldState: TextFieldState,
         val replyEnabled: Boolean,
@@ -130,7 +130,7 @@ class ConversationViewModel @Inject constructor(
                 hostId = null,
                 imageUri = null,
                 conversationId = null,
-                unreadCount = 0,
+                unreadCount = null,
                 chattableState = null,
                 lastReadMessage = null,
                 textFieldState = TextFieldState(),
@@ -736,7 +736,7 @@ class ConversationViewModel @Inject constructor(
                     before?.sender?.isSelf == false
                 ) {
                     unreadSeparatorInserted = true
-                    return@insertSeparators ChatItem.UnreadSeparator { stateFlow.value.unreadCount }
+                    return@insertSeparators ChatItem.UnreadSeparator(stateFlow.value.unreadCount ?: 0)
                 }
 
                 // No separator in other cases
@@ -902,7 +902,7 @@ class ConversationViewModel @Inject constructor(
 
                     state.copy(
                         conversationId = conversation.id,
-                        unreadCount = conversation.unreadCount,
+                        unreadCount = state.unreadCount ?: conversation.unreadCount,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,

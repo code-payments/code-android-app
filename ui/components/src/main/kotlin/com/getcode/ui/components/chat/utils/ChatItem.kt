@@ -46,7 +46,7 @@ sealed class ChatItem(open val key: Any) {
     }
 
     @Stable
-    data class UnreadSeparator(val count: () -> Int) : ChatItem("unread")
+    data class UnreadSeparator(val count: Int) : ChatItem("unread")
 
     @Stable
     data class Date(val date: Instant) : ChatItem(date) {
