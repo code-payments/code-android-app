@@ -12,13 +12,9 @@ import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,10 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.manager.TopBarManager
-import com.getcode.model.uuid
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageList
@@ -45,7 +39,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 import xyz.flipchat.app.util.dialNumber
-import java.util.UUID
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -131,7 +125,7 @@ internal fun ConversationMessages(
                                 .indexOfFirst { it.chatMessageId == event.messageId }
                             if (itemIndex >= 0) {
                                 val currentIndex = lazyListState.firstVisibleItemIndex
-                                val distance = kotlin.math.abs(itemIndex - currentIndex)
+                                val distance = abs(itemIndex - currentIndex)
 
                                 // Calculate the center offset
                                 val centerOffset = with(density) {

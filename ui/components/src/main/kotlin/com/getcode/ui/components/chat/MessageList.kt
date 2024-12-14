@@ -32,7 +32,6 @@ import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 
 sealed interface MessageListEvent {
@@ -68,66 +67,14 @@ fun MessageList(
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
     var hasSetAtUnread by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
 
-    LaunchedEffect(listState, messages, hasSetAtUnread) {
-        combine(
-            snapshotFlow {
-                messages.loadState.prepend is LoadState.NotLoading ||
-                        messages.loadState.append is LoadState.NotLoading
-            }.distinctUntilChanged(),
-            snapshotFlow { listState.firstVisibleItemIndex }.distinctUntilChanged()
-        ) { loadState, firstVisibleIndex ->
-            Pair(loadState, firstVisibleIndex)
-        }.filter { (loadStateIsNotLoading, _) ->
-            // Filter out when messages are loading or unread flag is not set
-            loadStateIsNotLoading && messages.itemCount > 0 && hasSetAtUnread
-        }.distinctUntilChanged().collect { (_, firstVisibleIndex) ->
-                val closestChatMessage =
-                    messages[firstVisibleIndex]?.let { it as? ChatItem.Message }
-
-                val mostRecentReadMessage =
-                    messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
-                        .filter { it.status == MessageStatus.Read }
-                        .maxByOrNull { it.date }
-
-                val mostRecentReadAt = mostRecentReadMessage?.date
-
-                closestChatMessage?.let { message ->
-                    if (!message.sender.isSelf &&
-                        message.status != MessageStatus.Read
-                    ) {
-                        if (mostRecentReadAt == null || message.date >= mostRecentReadAt) {
-                            dispatch(MessageListEvent.AdvancePointer(message.chatMessageId))
-                        }
-                    }
-                }
-            }
+    HandleMessageReads(listState, messages, hasSetAtUnread) {
+        dispatch(MessageListEvent.AdvancePointer(it))
     }
 
-    LaunchedEffect(listState, messages) {
-        snapshotFlow { messages.loadState }
-            .collect { loadState ->
-                if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
-                    val separatorIndex = messages.itemSnapshotList
-                        .indexOfFirst { it is ChatItem.UnreadSeparator }
-
-                    if (separatorIndex >= 0 && !hasSetAtUnread) {
-                        // Calculate the center offset
-                        val centerOffset = with(density) {
-                            val viewportHeight = listState.layoutInfo.viewportSize.height.toDp()
-                            viewportHeight.roundToPx() / 2
-                        }
-
-                        hasSetAtUnread = true
-                        listState.scrollToItem(separatorIndex, scrollOffset = -centerOffset)
-                    } else {
-                        hasSetAtUnread = true
-                    }
-                }
-            }
+    HandleStartAtUnread(listState, messages, hasSetAtUnread) {
+        hasSetAtUnread = true
     }
-
 
     LazyColumn(
         modifier = modifier,
@@ -220,12 +167,14 @@ fun MessageList(
                 }
 
                 is ChatItem.UnreadSeparator -> {
-                    UnreadSeparator(
-                        modifier = Modifier
-                            .fillParentMaxWidth()
-                            .padding(vertical = CodeTheme.dimens.grid.x2),
-                        count = item.count
-                    )
+                    if (item.count > 0) {
+                        UnreadSeparator(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(vertical = CodeTheme.dimens.grid.x2),
+                            count = item.count
+                        )
+                    }
                 }
 
                 else -> Unit
@@ -250,13 +199,84 @@ fun MessageList(
     }
 }
 
-private data class Quad<out A, out B, out C, out D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)
-
 fun <T : Any> LazyPagingItems<T>.safeGet(index: Int): T? {
     return if (index in 0 until itemCount) get(index) else null
+}
+
+@Composable
+private fun HandleMessageReads(
+    listState: LazyListState,
+    messages: LazyPagingItems<ChatItem>,
+    hasSetAtUnread: Boolean,
+    markAsRead: (ID) -> Unit,
+) {
+    LaunchedEffect(listState, messages, hasSetAtUnread) {
+        var previousFirstVisibleIndex = Int.MAX_VALUE // Start high since it's reverse
+
+        combine(
+            snapshotFlow {
+                messages.loadState.prepend is LoadState.NotLoading ||
+                        messages.loadState.append is LoadState.NotLoading
+            }.distinctUntilChanged(),
+            snapshotFlow { listState.isScrollInProgress },
+            snapshotFlow { listState.firstVisibleItemIndex },
+        ) { loadState, isScrolling, firstVisibleIndex ->
+            Triple(loadState, isScrolling, firstVisibleIndex)
+        }.filter { (loadStateIsNotLoading, isScrolling, _) ->
+            // Wait until scrolling stops, messages are not loading, and we are at the bottom
+            loadStateIsNotLoading && !isScrolling && messages.itemCount > 0 && hasSetAtUnread
+        }.collect { (_, _, firstVisibleIndex) ->
+            val closestChatMessage =
+                messages[firstVisibleIndex]?.let { it as? ChatItem.Message }
+
+            val mostRecentReadMessage =
+                messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
+                    .filter { it.status == MessageStatus.Read }
+                    .maxByOrNull { it.date }
+
+            val mostRecentReadAt = mostRecentReadMessage?.date
+
+            closestChatMessage?.let { message ->
+                if (!message.sender.isSelf &&
+                    message.status != MessageStatus.Read
+                ) {
+                    if (mostRecentReadAt == null || message.date >= mostRecentReadAt) {
+                        markAsRead(message.chatMessageId)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HandleStartAtUnread(
+    listState: LazyListState,
+    messages: LazyPagingItems<ChatItem>,
+    hasSetAtUnread: Boolean,
+    onHandled: () -> Unit,
+) {
+    val density = LocalDensity.current
+    LaunchedEffect(listState, messages) {
+        snapshotFlow { messages.loadState }
+            .collect { loadState ->
+                if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
+                    val separatorIndex = messages.itemSnapshotList
+                        .indexOfFirst { it is ChatItem.UnreadSeparator }
+
+                    if (separatorIndex >= 0 && !hasSetAtUnread) {
+                        // Calculate the center offset
+                        val centerOffset = with(density) {
+                            val viewportHeight = listState.layoutInfo.viewportSize.height.toDp()
+                            viewportHeight.roundToPx() / 2
+                        }
+
+                        onHandled()
+                        listState.scrollToItem(separatorIndex, scrollOffset = -centerOffset)
+                    } else {
+                        onHandled()
+                    }
+                }
+            }
+    }
 }

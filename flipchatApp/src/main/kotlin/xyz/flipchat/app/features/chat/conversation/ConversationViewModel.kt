@@ -716,10 +716,10 @@ class ConversationViewModel @Inject constructor(
             }
         }
         .flowOn(Dispatchers.Default)
-        .mapLatest { page ->
+        .mapLatest { data ->
             var unreadSeparatorInserted = false
 
-            page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
+            data.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
                 val beforeDate = before?.relativeDate
                 val afterDate = after?.relativeDate
 
@@ -728,16 +728,14 @@ class ConversationViewModel @Inject constructor(
                     return@insertSeparators beforeDate?.let { ChatItem.Date(before.date) }
                 }
 
-                // if we have unread messages, insert a separator to call out
-                val unreadCount = stateFlow.value.unreadCount ?: 0
                 if (
                     stateFlow.value.startAtUnread &&
                     !unreadSeparatorInserted &&
                     after?.chatMessageId?.uuid == stateFlow.value.lastReadMessage &&
-                    before?.sender?.isSelf == false &&
-                    unreadCount > 0
+                    before?.sender?.isSelf == false
                 ) {
                     unreadSeparatorInserted = true
+                    val unreadCount = stateFlow.value.unreadCount ?: return@insertSeparators null
                     return@insertSeparators ChatItem.UnreadSeparator(unreadCount)
                 }
 

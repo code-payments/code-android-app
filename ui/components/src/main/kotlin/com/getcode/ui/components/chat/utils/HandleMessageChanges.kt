@@ -62,10 +62,10 @@ fun HandleMessageChanges(
                                 } else {
                                     listState.animateScrollToItem(0)
                                 }
-                            }
-
-                            if (newMessage.status == MessageStatus.Unknown) {
-                                onMessageDelivered(newMessage)
+                            } else {
+                                if (newMessage.status == MessageStatus.Unknown) {
+                                    onMessageDelivered(newMessage)
+                                }
                             }
                         }
 
