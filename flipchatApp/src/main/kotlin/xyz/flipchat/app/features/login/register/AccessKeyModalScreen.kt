@@ -14,7 +14,11 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
+import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.DisableSheetGestures
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreenContent
@@ -30,16 +34,15 @@ class AccessKeyModalScreen : ModalScreen, Parcelable {
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
-        val userManager = LocalUserManager.current
         val viewModel = getViewModel<LoginAccessKeyViewModel>()
 
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            AppBarWithTitle(backButton = false)
             AccessKeyScreenContent(viewModel) {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
-//                navigator.hideWithResult(userManager?.userFlags?.isRegistered == true)
             }
         }
 
