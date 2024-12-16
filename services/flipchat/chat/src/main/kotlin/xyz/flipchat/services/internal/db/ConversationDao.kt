@@ -18,6 +18,12 @@ import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPoi
 @Dao
 interface ConversationDao {
 
+    @Query("SELECT * FROM conversations")
+    suspend fun getConversations(): List<Conversation>
+    suspend fun getConversationIds(): List<ID> {
+        return getConversations().map { it.id }
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertConversations(vararg conversation: Conversation)
 
@@ -122,6 +128,12 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversations")
     fun clearConversations()
+
+    @Query("SELECT unreadCount FROM conversations WHERE idBase58 = :conversationId")
+    suspend fun getUnreadCount(conversationId: String): Int
+    suspend fun getUnreadCount(conversationId: ID): Int {
+        return getUnreadCount(conversationId.base58)
+    }
 
     suspend fun resetUnreadCount(conversationId: String) {
         val conversation = findConversation(conversationId)?.conversation ?: return

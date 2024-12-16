@@ -6,7 +6,7 @@
 
     <string name="action_getStarted">Get Started</string>
 
-    <string name="login_description_byTapping">By tapping \"Create an Account\" you</string>
+    <string name="login_description_byTapping">By tapping any button above you</string>
 
     <string name="action_payToChat">Send %1$s to Start Chatting</string>
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
@@ -163,10 +163,10 @@
     <string name="title_betaFlags">Labs</string>
 
     <string name="action_notNow">Not Now</string>
-    <string name="title_createAccountToJoinRooms">Create an account to join rooms</string>
+    <string name="title_createAccountToJoinRooms">Create an Account to Join Rooms</string>
     <string name="action_purchaseAccount">Purchase Your Account</string>
     <string name="title_newAccountsCost">New accounts cost %1$s</string>
-    <string name="title_finalizeAccountCreation">Finalize account creation</string>
+    <string name="title_finalizeAccountCreation">Finalize Account Creation</string>
     <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
     <string name="action_changeCoverCharge">Change Cover Charge</string>
     <string name="action_leaveRoom">Leave Room</string>

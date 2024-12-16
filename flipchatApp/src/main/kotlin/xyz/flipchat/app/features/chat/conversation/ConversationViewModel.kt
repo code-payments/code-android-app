@@ -155,6 +155,7 @@ class ConversationViewModel @Inject constructor(
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
+        data class OnInitialUnreadCountDetermined(val count: Int): Event
         data class OnUserActivity(val activity: Instant) : Event
         data object SendCash : Event
         data object SendMessage : Event
@@ -223,6 +224,14 @@ class ConversationViewModel @Inject constructor(
             .map { it.chatId }
             .filterNotNull()
             .onEach { roomController.getChatMembers(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
+            .map { roomController.getUnreadCount(it) }
+            .onEach { dispatchEvent(Event.OnInitialUnreadCountDetermined(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -895,6 +904,8 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnInitialUnreadCountDetermined -> { state -> state.copy(unreadCount = event.count) }
+
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
@@ -902,7 +913,6 @@ class ConversationViewModel @Inject constructor(
 
                     state.copy(
                         conversationId = conversation.id,
-                        unreadCount = state.unreadCount ?: conversation.unreadCount,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,

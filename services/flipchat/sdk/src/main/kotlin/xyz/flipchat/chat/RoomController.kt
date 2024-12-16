@@ -66,6 +66,10 @@ class RoomController @Inject constructor(
         return db.conversationMessageDao().getMessageWithContentById(id, userManager.userId)
     }
 
+    suspend fun getUnreadCount(identifier: ID): Int {
+        return db.conversationDao().getUnreadCount(identifier)
+    }
+
     suspend fun getChatMembers(identifier: ID) {
         chatRepository.getChatMembers(ChatIdentifier.Id(identifier))
             .onSuccess {

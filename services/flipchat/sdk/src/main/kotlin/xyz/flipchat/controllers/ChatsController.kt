@@ -17,6 +17,8 @@ import com.getcode.utils.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
@@ -61,6 +63,14 @@ class ChatsController @Inject constructor(
             ChatsPagingSource(db)
         }
     }
+
+    suspend fun updateRooms() = coroutineScope {
+        val rooms = db.conversationDao().getConversationIds()
+        rooms.map { roomId ->
+            async { updateRoom(roomId) }
+        }.forEach { it.await() }
+    }
+
 
     suspend fun updateRoom(roomId: ID) {
         chatRepository.getChat(ChatIdentifier.Id(roomId))

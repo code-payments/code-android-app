@@ -52,6 +52,7 @@ class HomeViewModel @Inject constructor(
         getUpdatedUserFlags()
         openStream()
         requestAirdrop()
+        updateChats()
     }
 
     private fun getUpdatedUserFlags() {
@@ -66,6 +67,14 @@ class HomeViewModel @Inject constructor(
                 codeController.fetchBalance()
                     .onFailure { it.printStackTrace() }
                     .onSuccess { codeController.requestAirdrop() }
+            }
+        }
+    }
+
+    private fun updateChats() {
+        viewModelScope.launch {
+            if (userManager.authState.canOpenChatStream()) {
+                chatsController.updateRooms()
             }
         }
     }
