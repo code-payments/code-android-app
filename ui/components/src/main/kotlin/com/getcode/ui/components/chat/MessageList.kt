@@ -211,8 +211,6 @@ private fun HandleMessageReads(
     markAsRead: (ID) -> Unit,
 ) {
     LaunchedEffect(listState, messages, hasSetAtUnread) {
-        var previousFirstVisibleIndex = Int.MAX_VALUE // Start high since it's reverse
-
         combine(
             snapshotFlow {
                 messages.loadState.prepend is LoadState.NotLoading ||
@@ -237,9 +235,7 @@ private fun HandleMessageReads(
             val mostRecentReadAt = mostRecentReadMessage?.date
 
             closestChatMessage?.let { message ->
-                if (!message.sender.isSelf &&
-                    message.status != MessageStatus.Read
-                ) {
+                if (message.status != MessageStatus.Read) {
                     if (mostRecentReadAt == null || message.date >= mostRecentReadAt) {
                         markAsRead(message.chatMessageId)
                     }
