@@ -94,7 +94,6 @@ fun ChatNode(
             },
             timestamp = chat.lastMessage?.dateMillis,
             isMuted = muteContentState,
-            showMuteByTitle = true,
             isHost = chat.ownerId == userManager.userId,
             unreadCount = chat.unreadCount,
             showMoreUnread = chat.hasMoreUnread,

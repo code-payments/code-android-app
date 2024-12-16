@@ -50,7 +50,6 @@ fun ChatNode(
     messageMinLines: Int = 2,
     timestamp: Long? = null,
     isMuted: Boolean = false,
-    showMuteByTitle: Boolean = false,
     isHost: Boolean = false,
     unreadCount: Int = 0,
     showMoreUnread: Boolean = unreadCount > 99,
@@ -114,16 +113,6 @@ fun ChatNode(
                     maxLines = 1,
                     style = titleTextStyle
                 )
-                if (isMuted && showMuteByTitle) {
-                    Icon(
-                        modifier = Modifier
-                            .padding(start = CodeTheme.dimens.grid.x1)
-                            .size(CodeTheme.dimens.staticGrid.x3),
-                        imageVector = Icons.AutoMirrored.Filled.VolumeOff,
-                        contentDescription = "chat is muted",
-                        tint = CodeTheme.colors.textSecondary
-                    )
-                }
                 Spacer(Modifier.weight(1f))
                 timestamp?.let {
                     val isToday = DateUtils.isToday(it)
@@ -135,7 +124,6 @@ fun ChatNode(
                         },
                         style = CodeTheme.typography.textSmall,
                         color = when {
-                            isMuted && showMuteByTitle -> CodeTheme.colors.textSecondary
                             hasUnreadMessages -> CodeTheme.colors.indicator
                             else -> CodeTheme.colors.textSecondary
                         },
@@ -145,6 +133,7 @@ fun ChatNode(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+                verticalAlignment = Alignment.Top
             ) {
 
                 val (preview, inlineContent) = messagePreview
@@ -159,28 +148,28 @@ fun ChatNode(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (isMuted && !showMuteByTitle) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.VolumeOff,
-                        contentDescription = "chat is muted",
-                        tint = CodeTheme.colors.brandLight
-                    )
-                } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isMuted) {
+                        Icon(
+                            modifier = Modifier
+                                .size(CodeTheme.dimens.staticGrid.x4),
+                            imageVector = Icons.AutoMirrored.Filled.VolumeOff,
+                            contentDescription = "chat is muted",
+                            tint = CodeTheme.colors.textSecondary
+                        )
+                    }
+
                     Badge(
-                        Modifier
-                            .padding(end = CodeTheme.dimens.grid.x1),
                         count = unreadCount,
                         showMoreUnread = showMoreUnread,
-                        color = when {
-                            isMuted -> White10
-                            else -> CodeTheme.colors.indicator
-                        },
-                        contentColor = when {
-                            isMuted -> CodeTheme.colors.background
-                            else -> Color.White
-                        }
+                        color = CodeTheme.colors.indicator,
+                        contentColor = Color.White
                     )
                 }
+
             }
         }
     }
