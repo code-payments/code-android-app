@@ -32,7 +32,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
-                .onEach { navigator.push(ScreenRegistry.get(NavScreenProvider.AppHomeScreen())) }
+                .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen())) }
                 .launchIn(this)
         }
 

@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.login
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
+import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filter
@@ -15,6 +16,7 @@ import xyz.flipchat.app.beta.BetaFlag
 import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.app.features.login.register.onResult
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -55,21 +57,20 @@ class LoginViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CreateAccount>()
-            .map { authManager.createAccount() }
-            .onResult(
-                onError = {
-                    dispatchEvent(Event.CreateFailed)
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            title = "Create Account Failed",
-                            message = it.message ?: "Something went wrong"
+            .map {
+                authManager.createAccount()
+                    .onFailure {
+                        dispatchEvent(Event.CreateFailed)
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                title = "Create Account Failed",
+                                message = it.message ?: "Something went wrong"
+                            )
                         )
-                    )
-                },
-                onSuccess = {
-                    dispatchEvent(Event.OnAccountCreated)
-                }
-            )
+                    }.onSuccessWithDelay(2.seconds) {
+                        dispatchEvent(Event.OnAccountCreated)
+                    }
+            }
             .launchIn(viewModelScope)
     }
 
