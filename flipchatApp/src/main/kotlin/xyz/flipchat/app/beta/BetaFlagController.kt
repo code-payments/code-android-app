@@ -73,6 +73,13 @@ class BetaFlagController @Inject constructor(
         produceFile = { context.preferencesDataStoreFile("beta-flags") }
     )
 
+    init {
+        // reset launched flags
+        BetaFlag.entries
+            .filter { it.launched }
+            .onEach { reset(it) }
+    }
+
     override fun set(flag: BetaFlag, value: Boolean) {
         dataScope.launch(Dispatchers.IO) {
             betaFlags.edit { prefs ->
@@ -108,6 +115,12 @@ class BetaFlagController @Inject constructor(
         started = SharingStarted.Eagerly,
         BetaFlag.entries.map { BetaFeature(it, it.default) }
     )
+
+    override fun reset(flag: BetaFlag) {
+        dataScope.launch {
+            betaFlags.edit { it.remove(flag.preferenceKey) }
+        }
+    }
 
     override fun reset() {
         dataScope.launch {

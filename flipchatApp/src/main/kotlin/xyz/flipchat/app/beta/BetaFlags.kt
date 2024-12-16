@@ -8,6 +8,7 @@ interface BetaFlags {
     suspend fun get(flag: BetaFlag): Boolean
     fun observe(flag: BetaFlag): StateFlow<Boolean>
     fun observe(): StateFlow<List<BetaFeature>>
+    fun reset(flag: BetaFlag)
     fun reset()
 }
 
@@ -21,6 +22,7 @@ object NoOpBetaFlags: BetaFlags {
     override fun observe(): StateFlow<List<BetaFeature>> =
         MutableStateFlow(BetaFlag.entries.map { BetaFeature(it, it.default) })
 
+    override fun reset(flag: BetaFlag) = Unit
     override fun reset() = Unit
 
 }
