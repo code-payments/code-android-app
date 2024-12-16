@@ -82,19 +82,21 @@ internal fun MessageNodeScope.MessageReplyContent(
 
                 val replyPreviewPlaceable = subcompose("MessageReplyPreview") {
                     MessageReplyPreview(
-                        modifier = Modifier
-                            .width(messageContentPlaceable.width.toDp())
-                            .noRippleClickable { onOriginalMessageClicked() },
+                        modifier = Modifier.noRippleClickable { onOriginalMessageClicked() },
                         sender = originalMessage.sender,
                         message = originalMessage.message,
                         backgroundColor = Color.Black.copy(0.1f)
                     )
-                }.first().measure(constraints.copy(maxWidth = messageContentPlaceable.width))
+                }.first().measure(constraints)
 
-                val totalHeight =
-                    replyPreviewPlaceable.height + spacing + messageContentPlaceable.height
+                // Determine the final width based on the longer of the two components
+                val finalWidth = maxOf(messageContentPlaceable.width, replyPreviewPlaceable.width)
 
-                layout(messageContentPlaceable.width, totalHeight) {
+                // Calculate the total height
+                val totalHeight = replyPreviewPlaceable.height + spacing + messageContentPlaceable.height
+
+                // Layout the components
+                layout(finalWidth, totalHeight) {
                     replyPreviewPlaceable.place(0, 0)
                     messageContentPlaceable.place(0, replyPreviewPlaceable.height + spacing)
                 }
