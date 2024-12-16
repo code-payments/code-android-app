@@ -14,6 +14,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -23,6 +24,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
@@ -113,12 +115,13 @@ fun MessageReplyPreview(
         modifier = modifier
             .width(IntrinsicSize.Max)
             .height(IntrinsicSize.Min)
-            .background(backgroundColor, CodeTheme.shapes.small)
+            .background(backgroundColor, CodeTheme.shapes.extraSmall)
+            .clip(CodeTheme.shapes.extraSmall)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(CodeTheme.dimens.thickBorder)
+                .width(3.dp)
                 .background(colors?.first ?: CodeTheme.colors.tertiary)
         )
         Column(
