@@ -67,7 +67,7 @@ fun ChatNode(
     ) {
         avatar?.let {
             val imageModifier = Modifier
-                .size(CodeTheme.dimens.staticGrid.x10)
+                .size(CodeTheme.dimens.staticGrid.x12)
                 .clip(CircleShape)
 
             Box(
