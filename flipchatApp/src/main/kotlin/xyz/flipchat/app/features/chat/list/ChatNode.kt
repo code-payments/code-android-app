@@ -14,6 +14,9 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FixedThreshold
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -121,10 +124,10 @@ private fun DismissBackground(dismissState: DismissState, isMuted: Boolean) {
         horizontalArrangement = Arrangement.End
     ) {
         if (direction == DismissDirection.EndToStart) {
-            Text(
-                text = if (isMuted) "Unmute" else "Mute",
-                color = Color.White,
-                style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700)
+            Image(
+                imageVector = if (isMuted) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                colorFilter = ColorFilter.tint(Color.White),
+                contentDescription = null
             )
         }
     }
