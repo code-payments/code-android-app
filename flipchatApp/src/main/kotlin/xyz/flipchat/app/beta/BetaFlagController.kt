@@ -27,8 +27,8 @@ sealed interface BetaFlag {
 
     data object ReplyToMessage : BetaFlag {
         override val key = "pref_reply_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object FollowerMode : BetaFlag {
@@ -39,8 +39,8 @@ sealed interface BetaFlag {
 
     data object StartChatAtUnread : BetaFlag {
         override val key: String = "pref_start_at_unread_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     companion object {
