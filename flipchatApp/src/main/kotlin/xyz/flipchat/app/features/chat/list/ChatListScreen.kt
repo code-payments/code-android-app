@@ -147,10 +147,6 @@ private fun ChatListScreenContent(
                                 }
                             },
                         ) { openChat(it.conversation.id) }
-                        Divider(
-                            modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                            color = CodeTheme.colors.divider,
-                        )
                     }
                 }
             }
