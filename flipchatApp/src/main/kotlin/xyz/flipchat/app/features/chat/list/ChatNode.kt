@@ -34,6 +34,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.model.chat.MessageContent
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import xyz.flipchat.app.R
@@ -136,12 +137,14 @@ private fun rememberChatDismissState(
     onToggleMute: (mute: Boolean) -> Unit
 ): DismissState {
     val mutedState by rememberUpdatedState(isChatMuted())
+    val vibrator = LocalVibrator.current
     return remember {
         DismissState(
             initialValue = DismissValue.Default,
             confirmStateChange = {
                 if (it == DismissValue.DismissedToStart) {
                     onToggleMute(!mutedState)
+                    vibrator.tick()
                     true
                 } else false
             }
