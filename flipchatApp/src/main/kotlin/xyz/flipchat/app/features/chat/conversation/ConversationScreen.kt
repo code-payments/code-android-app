@@ -36,12 +36,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
@@ -65,14 +67,17 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.generateComplementaryColorPalette
+import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.withTopBorder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.features.home.TabbedHomeScreen
@@ -151,9 +156,18 @@ data class ConversationScreen(
 
         val state by vm.stateFlow.collectAsState()
         val messages = vm.messages.collectAsLazyPagingItems()
+        val keyboardVisible by keyboardAsState()
+        val keyboard = LocalSoftwareKeyboardController.current
+        val composeScope = rememberCoroutineScope()
 
         val goBack = {
-            navigator.popUntil { it is TabbedHomeScreen }
+            composeScope.launch {
+                if (keyboardVisible) {
+                    keyboard?.hide()
+                    delay(500)
+                }
+                navigator.popUntil { it is TabbedHomeScreen }
+            }
         }
 
         BackHandler { goBack() }
