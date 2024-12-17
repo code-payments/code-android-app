@@ -266,9 +266,26 @@ private fun HandleStartAtUnread(
                         .indexOfFirst { it is ChatItem.UnreadSeparator }
 
                     if (separatorIndex > 0 && !hasSetAtUnread) {
-                        onHandled()
+                        val previousItemIndex = separatorIndex - 1
+
+                        // First scroll to bring the item into view
+                        listState.scrollToItem(previousItemIndex)
+
+                        // Dynamically calculate the correct offset
+                        val itemInfo = listState.layoutInfo.visibleItemsInfo
+                            .find { it.index == previousItemIndex }
+
+                        itemInfo?.let {
+                            val viewportEnd = listState.layoutInfo.viewportEndOffset
+                            val offsetFromEnd = viewportEnd - (it.offset + it.size)
+
+                            // Scroll only if the item isn't sufficiently visible
+                            if (offsetFromEnd > 0) {
+                                listState.scrollToItem(previousItemIndex, scrollOffset = it.offset)
+                            }
+                        }
                         hasScrolledToUnread = true
-                        listState.scrollToItem(separatorIndex - 1)
+                        onHandled()
                     } else {
                         onHandled()
                     }
