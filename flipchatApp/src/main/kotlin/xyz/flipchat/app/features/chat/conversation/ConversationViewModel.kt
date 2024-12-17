@@ -88,8 +88,8 @@ class ConversationViewModel @Inject constructor(
     private val paymentController: PaymentController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
+    private val currencyUtils: CurrencyUtils,
     clipboardManager: ClipboardManager,
-    currencyUtils: CurrencyUtils,
     betaFeatures: BetaFlags,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
@@ -107,7 +107,7 @@ class ConversationViewModel @Inject constructor(
         val chattableState: ChattableState?,
         val textFieldState: TextFieldState,
         val replyEnabled: Boolean,
-        val replyMessage: ChatItem.Message?,
+        val replyMessage: MessageReplyAnchor?,
         val startAtUnread: Boolean,
         val title: String,
         val imageUri: String?,
@@ -155,7 +155,7 @@ class ConversationViewModel @Inject constructor(
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
-        data class OnInitialUnreadCountDetermined(val count: Int): Event
+        data class OnInitialUnreadCountDetermined(val count: Int) : Event
         data class OnUserActivity(val activity: Instant) : Event
         data object SendCash : Event
         data object SendMessage : Event
@@ -167,7 +167,16 @@ class ConversationViewModel @Inject constructor(
         data class MarkDelivered(val messageId: ID) : Event
 
         data class OnReplyEnabled(val enabled: Boolean) : Event
-        data class ReplyTo(val message: ChatItem.Message) : Event
+        data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
+            constructor(chatItem: ChatItem.Message) : this(
+                MessageReplyAnchor(
+                    chatItem.chatMessageId,
+                    chatItem.sender,
+                    chatItem.message
+                )
+            )
+        }
+
         data object CancelReply : Event
 
         data class OnStartAtUnread(val enabled: Boolean) : Event
@@ -337,7 +346,7 @@ class ConversationViewModel @Inject constructor(
                 if (replyingTo != null) {
                     roomController.sendReply(
                         it.conversationId!!,
-                        replyingTo.chatMessageId,
+                        replyingTo.id,
                         text
                     )
                 } else {
@@ -677,7 +686,9 @@ class ConversationViewModel @Inject constructor(
                             message = it.content,
                             sender = Sender(
                                 id = it.message.senderId,
-                                profileImage = it.member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                                profileImage = it.member?.imageUri.takeIf {
+                                    it.orEmpty().isNotEmpty()
+                                },
                                 displayName = it.member?.memberName ?: "Deleted",
                                 isSelf = it.content.isFromSelf,
                                 isHost = it.message.senderId == currentState.hostId && !contents.isFromSelf,
@@ -707,18 +718,7 @@ class ConversationViewModel @Inject constructor(
                     ),
                     originalMessage = anchor,
                     messageControls = MessageControls(
-                        actions = listOf(
-                            MessageControlAction.Copy {
-                                dispatchEvent(
-                                    Event.CopyMessage(
-                                        contents.localizedText(
-                                            resources = resources,
-                                            currencyUtils = currencyUtils
-                                        )
-                                    )
-                                )
-                            }
-                        ) + buildSelfDefenseControls(message, member, contents),
+                        actions = buildMessageActions(message, member, contents, enableReply),
                     ),
                     key = message.id.uuid.toString()
                 )
@@ -752,6 +752,44 @@ class ConversationViewModel @Inject constructor(
                 null
             }
         }
+
+    private fun buildMessageActions(
+        message: ConversationMessage,
+        member: ConversationMember?,
+        contents: MessageContent,
+        enableReply: Boolean,
+    ): List<MessageControlAction> {
+        return mutableListOf<MessageControlAction>().apply {
+            add(
+                MessageControlAction.Copy {
+                    dispatchEvent(
+                        Event.CopyMessage(
+                            contents.localizedText(
+                                resources = resources,
+                                currencyUtils = currencyUtils
+                            )
+                        )
+                    )
+                }
+            )
+
+            if (enableReply) {
+                add(
+                    MessageControlAction.Reply {
+                        val sender = Sender(
+                            id = message.senderId,
+                            profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                            displayName = member?.memberName ?: "Deleted",
+                            isSelf = contents.isFromSelf,
+                            isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
+                        )
+                        val anchor = MessageReplyAnchor(message.id, sender, contents)
+                        dispatchEvent(Event.ReplyTo(anchor))
+                    }
+                )
+            }
+        } + buildSelfDefenseControls(message, member, contents)
+    }
 
     private fun buildSelfDefenseControls(
         message: ConversationMessage,
@@ -992,7 +1030,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnReplyEnabled -> { state -> state.copy(replyEnabled = event.enabled) }
                 is Event.OnStartAtUnread -> { state -> state.copy(startAtUnread = event.enabled) }
                 is Event.ReplyTo -> { state ->
-                    state.copy(replyMessage = event.message)
+                    state.copy(replyMessage = event.anchor)
                 }
 
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }

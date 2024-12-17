@@ -1,9 +1,11 @@
 package xyz.flipchat.app.features.chat.conversation
 
 import androidx.compose.runtime.Stable
+import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Sender
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 
@@ -21,3 +23,9 @@ sealed interface ChattableState {
 
     fun isActiveMember() = this is Enabled || this is DisabledByMute
 }
+
+data class MessageReplyAnchor(
+    val id: ID,
+    val sender: Sender,
+    val message: MessageContent
+)

@@ -45,6 +45,8 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                             R.string.action_muteUser,
                             action.name
                         )
+
+                        is MessageControlAction.Reply -> stringResource(R.string.action_reply)
                     },
                     style = CodeTheme.typography.textMedium,
                     modifier = Modifier
