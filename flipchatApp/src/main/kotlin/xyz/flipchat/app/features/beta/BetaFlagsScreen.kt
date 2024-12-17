@@ -1,10 +1,12 @@
 package xyz.flipchat.app.features.beta
 
 import android.os.Parcelable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,6 +17,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SettingsSwitchRow
 import kotlinx.parcelize.IgnoredOnParcel
@@ -62,6 +65,33 @@ private fun BetaFlagsScreenContent() {
                 checked = feature.enabled
             ) {
                 betaFlagsController.set(feature.flag, !feature.enabled)
+            }
+        }
+        if (betaFlags.isEmpty()) {
+            item {
+                Box(modifier = Modifier.fillParentMaxSize()) {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "\uD83D\uDE2D",
+                            style = CodeTheme.typography.displayMedium
+                        )
+                        Text(
+                            text = "Nothing Cooking in the Lab Right Now",
+                            style = CodeTheme.typography.textLarge,
+                            color = CodeTheme.colors.textMain
+                        )
+
+                        Text(
+                            text = "Check back in the next app update.",
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.textSecondary
+                        )
+
+                    }
+                }
             }
         }
     }
