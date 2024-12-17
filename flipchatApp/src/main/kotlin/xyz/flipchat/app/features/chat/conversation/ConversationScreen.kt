@@ -95,6 +95,10 @@ data class ConversationScreen(
         val navigator = LocalCodeNavigator.current
         val vm = getViewModel<ConversationViewModel>()
 
+        val keyboardVisible by keyboardAsState()
+        val keyboard = LocalSoftwareKeyboardController.current
+        val composeScope = rememberCoroutineScope()
+
         LaunchedEffect(chatId) {
             if (chatId != null) {
                 vm.dispatchEvent(
@@ -156,9 +160,7 @@ data class ConversationScreen(
 
         val state by vm.stateFlow.collectAsState()
         val messages = vm.messages.collectAsLazyPagingItems()
-        val keyboardVisible by keyboardAsState()
-        val keyboard = LocalSoftwareKeyboardController.current
-        val composeScope = rememberCoroutineScope()
+
 
         val goBack = {
             composeScope.launch {
@@ -188,14 +190,21 @@ data class ConversationScreen(
         }
 
         val openRoomDetails = {
-            navigator.push(
-                ScreenRegistry.get(
-                    NavScreenProvider.Chat.Info(
-                        state.roomInfoArgs
+            composeScope.launch {
+                if (keyboardVisible) {
+                    keyboard?.hide()
+                    delay(500)
+                }
+                navigator.push(
+                    ScreenRegistry.get(
+                        NavScreenProvider.Chat.Info(
+                            state.roomInfoArgs
+                        )
                     )
                 )
-            )
+            }
         }
+
         Column {
             AppBarWithTitle(
                 title = {
