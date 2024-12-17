@@ -13,13 +13,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -56,8 +59,6 @@ internal fun ConversationMessages(
     val composeScope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-
-    val density = LocalDensity.current
 
     Box(
         modifier = modifier,
@@ -127,16 +128,10 @@ internal fun ConversationMessages(
                                 val currentIndex = lazyListState.firstVisibleItemIndex
                                 val distance = abs(itemIndex - currentIndex)
 
-                                // Calculate the center offset
-                                val centerOffset = with(density) {
-                                    val viewportHeight = lazyListState.layoutInfo.viewportSize.height.toDp()
-                                    viewportHeight.roundToPx() / 2
-                                }
-
                                 if (distance <= 100) {
-                                    lazyListState.animateScrollToItem(itemIndex, scrollOffset = -centerOffset)
+                                    lazyListState.animateScrollToItem(itemIndex)
                                 } else {
-                                    lazyListState.scrollToItem(itemIndex, scrollOffset = -centerOffset)
+                                    lazyListState.scrollToItem(itemIndex)
                                 }
 
                             }
@@ -146,19 +141,11 @@ internal fun ConversationMessages(
             }
         )
 
-
-        val canJumpToBottom = remember(lazyListState.canScrollBackward) {
-             lazyListState.canScrollBackward
-        }
-
-        val alpha by animateFloatAsState(
-            targetValue = if (canJumpToBottom) 1f else 0f,
-            label = "show/hide jump-to-bottom"
-        )
-
         Surface(
             modifier = Modifier
-                .alpha(alpha)
+                .graphicsLayer {
+                    alpha = if (lazyListState.canScrollBackward) 1f else 0f
+                }
                 .padding(
                     end = CodeTheme.dimens.inset,
                     bottom = CodeTheme.dimens.inset
