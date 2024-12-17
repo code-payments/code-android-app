@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -31,24 +32,30 @@ fun Badge(
     enterTransition: EnterTransition = scaleIn(tween(durationMillis = 300)) + fadeIn(),
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
-    AnimatedVisibility(modifier = modifier, visible = count > 0, enter = enterTransition, exit = exitTransition) {
-        val text = when  {
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = count > 0,
+        enter = enterTransition,
+        exit = exitTransition
+    ) {
+        val text = when {
             count == 0 -> ""
             showMoreUnread -> "$count+"
             else -> "$count"
         }
 
-        Text(
-            text = text,
-            color = contentColor,
-            style = textStyle,
-            modifier = Modifier
-                .drawBehind {
-                    drawCircle(
-                        color = color,
-                        radius = this.size.maxDimension / 2f
-                    )
-                }.padding(1.dp)
-        )
+        Pill(
+            backgroundColor = color,
+            contentColor = contentColor,
+            contentPadding = PaddingValues(
+                horizontal = CodeTheme.dimens.grid.x1,
+                vertical = 0.dp
+            )
+        ) {
+            Text(
+                text = text,
+                style = textStyle,
+            )
+        }
     }
 }
