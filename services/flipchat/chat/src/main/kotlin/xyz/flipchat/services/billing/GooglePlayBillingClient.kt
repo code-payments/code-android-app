@@ -2,6 +2,8 @@ package xyz.flipchat.services.billing
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClientStateListener
@@ -19,6 +21,8 @@ import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
 import com.getcode.model.uuid
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +38,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.services.internal.network.repository.iap.InAppPurchaseRepository
 import xyz.flipchat.services.user.UserManager
+import kotlin.math.pow
 import com.android.billingclient.api.BillingClient as GooglePlayBillingClient
 
 
@@ -42,6 +47,14 @@ class GooglePlayBillingClient(
     private val userManager: UserManager,
     private val purchaseRepository: InAppPurchaseRepository
 ) : BillingClient, PurchasesUpdatedListener {
+
+    companion object {
+        private const val TAG = "IAP"
+        private val MAX_RETRY_ATTEMPTS = 5
+        private var retryAttempt = 0
+        private val baseDelayMillis = 1000L // Initial delay: 1 second
+
+    }
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -286,19 +299,110 @@ class GooglePlayBillingClient(
             billingResult: BillingResult
         ) {
             if (billingResult.responseCode == BillingResponseCode.OK) {
+                // Billing client connected successfully
                 printLog("connected!")
+                retryAttempt = 0 // Reset retry count
+
                 _stateFlow.update { BillingClientState.Connected }
                 queryProducts()
                 restorePurchases()
             } else {
-                printLog("connection failed")
                 _stateFlow.update { BillingClientState.Failed }
+                handleConnectionFailure(billingResult)
             }
         }
 
         override fun onBillingServiceDisconnected() {
             printLog("connection lost")
             _stateFlow.update { BillingClientState.ConnectionLost }
+            retryBillingConnection()
+        }
+    }
+
+    private fun handleConnectionFailure(billingResult: BillingResult) {
+        when (billingResult.responseCode) {
+            BillingResponseCode.SERVICE_UNAVAILABLE -> {
+                trace(
+                    tag = TAG,
+                    message = "Billing Service is unavailable. Please check your network connection.",
+                    type = TraceType.Silent
+                )
+                retryBillingConnection()
+            }
+
+            BillingResponseCode.SERVICE_DISCONNECTED -> {
+                trace(
+                    tag = TAG,
+                    message = "Billing Service disconnected. Retrying...",
+                    type = TraceType.Silent
+                )
+                retryBillingConnection()
+            }
+
+            BillingResponseCode.BILLING_UNAVAILABLE -> {
+                trace(
+                    tag = TAG,
+                    message = "Billing is not available on this device. Ensure Play Store is installed.",
+                    type = TraceType.Error
+                )
+            }
+
+            BillingResponseCode.ITEM_UNAVAILABLE -> {
+                trace(
+                    tag = TAG,
+                    message = "Requested item is not available.",
+                    type = TraceType.Error
+                )
+            }
+
+            BillingResponseCode.ERROR -> {
+                trace(
+                    tag = TAG,
+                    message = "An unknown error occurred with billing: ${billingResult.debugMessage}",
+                    type = TraceType.Error
+                )
+                retryBillingConnection()
+            }
+
+            BillingResponseCode.USER_CANCELED -> {
+                trace(
+                    tag = TAG,
+                    message = "User canceled the purchase flow.",
+                    type = TraceType.Silent
+                )
+            }
+
+            else -> {
+                trace(
+                    tag = TAG,
+                    message = "Unhandled billing response: ${billingResult.responseCode}, ${billingResult.debugMessage}",
+                    type = TraceType.Error
+                )
+                retryBillingConnection()
+            }
+        }
+    }
+
+    private fun retryBillingConnection() {
+        if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+            val delayMillis = baseDelayMillis * (2.0.pow(retryAttempt)).toLong()
+
+            Handler(Looper.getMainLooper()).postDelayed({
+                retryAttempt++
+                connect()
+            }, delayMillis)
+
+            trace(
+                tag = TAG,
+                message = "Retrying connection: Attempt $retryAttempt after ${delayMillis}ms",
+                type = TraceType.Silent
+            )
+        } else {
+            trace(
+                tag = TAG,
+                message = "Max retry attempts reached. Could not connect to billing service.",
+                type = TraceType.Error
+            )
         }
     }
 
