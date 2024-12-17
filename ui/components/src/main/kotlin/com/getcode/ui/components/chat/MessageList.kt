@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -33,6 +34,7 @@ import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNot
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID) : MessageListEvent
@@ -66,7 +68,7 @@ fun MessageList(
     },
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
-    var hasSetAtUnread by remember { mutableStateOf(false) }
+    var hasSetAtUnread by rememberSaveable(key = "0") { mutableStateOf(false) }
 
     HandleMessageReads(listState, messages, hasSetAtUnread) {
         dispatch(MessageListEvent.AdvancePointer(it))
@@ -252,23 +254,21 @@ private fun HandleStartAtUnread(
     hasSetAtUnread: Boolean,
     onHandled: () -> Unit,
 ) {
-    val density = LocalDensity.current
+    // Flag to ensure scroll logic runs only once
+    var hasScrolledToUnread by rememberSaveable { mutableStateOf(false) }
+
     LaunchedEffect(listState, messages) {
         snapshotFlow { messages.loadState }
+            .filterNot { hasScrolledToUnread }
             .collect { loadState ->
                 if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
                     val separatorIndex = messages.itemSnapshotList
                         .indexOfFirst { it is ChatItem.UnreadSeparator }
 
-                    if (separatorIndex >= 0 && !hasSetAtUnread) {
-                        // Calculate the center offset
-                        val centerOffset = with(density) {
-                            val viewportHeight = listState.layoutInfo.viewportSize.height.toDp()
-                            viewportHeight.roundToPx() / 2
-                        }
-
+                    if (separatorIndex > 0 && !hasSetAtUnread) {
                         onHandled()
-                        listState.scrollToItem(separatorIndex, scrollOffset = -centerOffset)
+                        hasScrolledToUnread = true
+                        listState.scrollToItem(separatorIndex - 1)
                     } else {
                         onHandled()
                     }

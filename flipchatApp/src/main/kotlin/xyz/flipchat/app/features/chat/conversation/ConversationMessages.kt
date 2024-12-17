@@ -1,7 +1,10 @@
 package xyz.flipchat.app.features.chat.conversation
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -135,10 +138,16 @@ internal fun ConversationMessages(
             }
         )
 
+        val animatedAlpha by animateFloatAsState(
+            targetValue = if (lazyListState.canScrollBackward) 1f else 0f,
+            animationSpec = tween(durationMillis = 300),
+            label = "alpha of jump-to-bottom"
+        )
+
         Surface(
             modifier = Modifier
                 .graphicsLayer {
-                    alpha = if (lazyListState.canScrollBackward) 1f else 0f
+                    alpha = animatedAlpha
                 }
                 .padding(
                     end = CodeTheme.dimens.inset,

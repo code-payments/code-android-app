@@ -6,6 +6,7 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
+import com.getcode.model.uuid
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
@@ -26,7 +27,6 @@ data class ReplyMessageAnchor(
 sealed class ChatItem(open val key: Any) {
     @Stable
     data class Message(
-        val id: String = UUID.randomUUID().toString(),
         val chatMessageId: ID,
         val message: MessageContent,
         val sender: Sender,
@@ -40,8 +40,7 @@ sealed class ChatItem(open val key: Any) {
         val enableMarkup: Boolean = false,
         val enableReply: Boolean = false,
         val originalMessage: ReplyMessageAnchor? = null,
-        override val key: Any = id
-    ) : ChatItem(key) {
+    ) : ChatItem(chatMessageId.uuid!!) {
         val relativeDate: String = date.formatDateRelatively()
     }
 

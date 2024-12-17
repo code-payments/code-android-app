@@ -720,7 +720,6 @@ class ConversationViewModel @Inject constructor(
                     messageControls = MessageControls(
                         actions = buildMessageActions(message, member, contents, enableReply),
                     ),
-                    key = message.id.uuid.toString()
                 )
             }
         }
