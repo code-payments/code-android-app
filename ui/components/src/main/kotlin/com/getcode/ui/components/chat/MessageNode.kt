@@ -219,7 +219,7 @@ fun MessageNode(
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val maxWidth = maxWidth
-        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.30f
+        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.20f
         var hasTriggeredTick by remember { mutableStateOf(false) }
         var hasFiredReply by remember { mutableStateOf(false) }
 
@@ -234,8 +234,8 @@ fun MessageNode(
             AnchoredDraggableState(
                 initialValue = MessageNodeDragAnchors.DEFAULT,
                 anchors = anchors,
-                positionalThreshold = { swipeThreshold },
-                velocityThreshold = { with(density) { 50.dp.toPx() } },
+                positionalThreshold = { it * 0.3f },
+                velocityThreshold = { with(density) { 200.dp.toPx() } },
                 confirmValueChange = { targetValue ->
                     if (targetValue == MessageNodeDragAnchors.REPLY && !hasFiredReply) {
                         hasFiredReply = true
