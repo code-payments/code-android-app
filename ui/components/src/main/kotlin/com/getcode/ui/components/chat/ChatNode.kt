@@ -31,9 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White10
 import com.getcode.ui.components.Badge
-import com.getcode.ui.components.Pill
 import com.getcode.ui.components.R
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils

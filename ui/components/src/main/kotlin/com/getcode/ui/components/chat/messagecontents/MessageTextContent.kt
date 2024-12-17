@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -38,6 +39,7 @@ import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 sealed interface MessageControlAction {
@@ -89,9 +91,7 @@ internal fun MessageNodeScope.MessageText(
                 .padding(CodeTheme.dimens.grid.x2)
         ) contents@{
             val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
-            Column(
-                modifier = Modifier.background(color),
-            ) {
+            Column {
                 MessageContent(
                     maxWidth = maxWidthPx,
                     message = content,
@@ -109,6 +109,7 @@ internal fun MessageNodeScope.MessageText(
 @Composable
 private fun rememberAlignmentRule(
     contentTextStyle: TextStyle,
+    minWidth:Int = 0,
     maxWidth: Int,
     message: String,
     date: Instant
@@ -119,7 +120,7 @@ private fun rememberAlignmentRule(
     val spacingPx = with(density) { DateWithStatusDefaults.Spacing.roundToPx() }
     val contentPaddingPx = with(density) { CodeTheme.dimens.grid.x2.roundToPx() }
 
-    return remember(maxWidth, message, date) {
+    return remember(minWidth, maxWidth, message, date) {
         mutableStateOf<AlignmentRule?>(null)
     }.apply {
         val textMeasurer = rememberTextMeasurer()
@@ -129,7 +130,8 @@ private fun rememberAlignmentRule(
                 style = dateTextStyle,
                 maxLines = 1
             )
-            result.size.width + spacingPx + iconSizePx
+
+            max(minWidth, result.size.width + spacingPx + iconSizePx)
         }
 
         val bufferSize by remember(dateStatusWidth) {
@@ -167,6 +169,7 @@ private fun rememberAlignmentRule(
 @Composable
 internal fun MessageContent(
     modifier: Modifier = Modifier,
+    minWidth: Int = 0,
     maxWidth: Int,
     message: String,
     date: Instant,
@@ -177,6 +180,7 @@ internal fun MessageContent(
 ) {
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = options.contentStyle,
+        minWidth = minWidth,
         maxWidth = maxWidth,
         message = message,
         date = date,

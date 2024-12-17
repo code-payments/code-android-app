@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -68,6 +69,7 @@ internal fun MessageNodeScope.MessageReplyContent(
         ) {
             SubcomposeLayout { constraints ->
                 val spacing = 2.5.dp.roundToPx()
+
                 val messageContentPlaceable = subcompose("MessageContent") {
                     MessageContent(
                         maxWidth = constraints.maxWidth,
@@ -82,12 +84,16 @@ internal fun MessageNodeScope.MessageReplyContent(
 
                 val replyPreviewPlaceable = subcompose("MessageReplyPreview") {
                     MessageReplyPreview(
-                        modifier = Modifier.noRippleClickable { onOriginalMessageClicked() },
+                        modifier = Modifier
+                            .widthIn(min = messageContentPlaceable.width.toDp())
+                            .noRippleClickable { onOriginalMessageClicked() },
                         sender = originalMessage.sender,
                         message = originalMessage.message,
                         backgroundColor = Color.Black.copy(0.1f)
                     )
-                }.first().measure(constraints)
+                }.first().measure(
+                    constraints.copy(minWidth = messageContentPlaceable.width, maxWidth = constraints.maxWidth)
+                )
 
                 // Determine the final width based on the longer of the two components
                 val finalWidth = maxOf(messageContentPlaceable.width, replyPreviewPlaceable.width)
