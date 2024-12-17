@@ -949,6 +949,12 @@ class ConversationViewModel @Inject constructor(
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
 
+                    val cardTitle = if (conversation.title.startsWith("Room")) {
+                        "#${conversation.roomNumber}"
+                    } else {
+                        conversation.title
+                    }
+
                     state.copy(
                         conversationId = conversation.id,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
@@ -965,7 +971,7 @@ class ConversationViewModel @Inject constructor(
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
-                            roomTitle = conversation.title,
+                            roomTitle = cardTitle,
                             ownerId = conversation.ownerId,
                             hostName = host?.memberName,
                             memberCount = members.count(),
