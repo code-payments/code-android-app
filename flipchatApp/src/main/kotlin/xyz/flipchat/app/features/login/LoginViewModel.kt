@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.app.beta.BetaFlag
 import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.features.chat.lookup.confirm.LoadingSuccessState
 import xyz.flipchat.app.features.login.register.onResult
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -28,7 +29,7 @@ class LoginViewModel @Inject constructor(
 ) {
     data class State(
         val followerModeEnabled: Boolean = false,
-        val creatingAccount: Boolean = false,
+        val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
     )
@@ -78,9 +79,9 @@ class LoginViewModel @Inject constructor(
         private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.CreateAccount -> { state -> state.copy(creatingAccount = true) }
-                Event.OnAccountCreated -> { state -> state.copy(creatingAccount = false) }
-                Event.CreateFailed -> { state -> state.copy(creatingAccount = false) }
+                Event.CreateAccount -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = true)) }
+                Event.OnAccountCreated -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false, success = true)) }
+                Event.CreateFailed -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false)) }
                 is Event.OnFollowerModeEnabled -> { state -> state.copy(followerModeEnabled = event.enabled) }
                 is Event.BetaOptionsUnlocked -> { state -> state.copy(betaOptionsVisible = true) }
                 is Event.OnLogoTapped -> { state ->

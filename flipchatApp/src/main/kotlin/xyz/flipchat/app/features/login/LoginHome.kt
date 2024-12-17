@@ -37,12 +37,13 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.noRippleClickable
 import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.lookup.confirm.LoadingSuccessState
 import xyz.flipchat.app.util.ChromeTabsUtils
 
 @Composable
 fun LoginHome(
     isSpectatorJoinEnabled: Boolean = false,
-    isCreatingAccount: Boolean = false,
+    isCreatingAccount: LoadingSuccessState = LoadingSuccessState(),
     betaFlagsVisible: Boolean = false,
     onLogoTapped: () -> Unit,
     openBetaFlags: () -> Unit,
@@ -87,7 +88,8 @@ fun LoginHome(
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset),
                 onClick = createAccount,
-                isLoading = isCreatingAccount,
+                isLoading = isCreatingAccount.loading,
+                isSuccess = isCreatingAccount.success,
                 text = if (isSpectatorJoinEnabled) {
                     stringResource(R.string.action_getStarted)
                 } else {

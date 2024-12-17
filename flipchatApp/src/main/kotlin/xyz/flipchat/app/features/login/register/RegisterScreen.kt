@@ -104,15 +104,17 @@ internal fun RegisterDisplayNameScreenContent(
             .fillMaxSize()
             .imePadding(),
         bottomBar = {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = CodeTheme.dimens.grid.x3),
+            ) {
                 CodeButton(
                     enabled = state.canAdvance,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x2),
+                        .padding(horizontal = CodeTheme.dimens.inset),
                     buttonState = ButtonState.Filled,
                     text = stringResource(R.string.action_next),
                     isLoading = isChecking,
@@ -129,10 +131,11 @@ internal fun RegisterDisplayNameScreenContent(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterStart)
-                .padding(horizontal = CodeTheme.dimens.inset),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.CenterStart)
+                    .padding(horizontal = CodeTheme.dimens.inset),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
                 TextInput(

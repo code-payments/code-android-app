@@ -12,11 +12,13 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
 data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
@@ -32,6 +34,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
+                .onEach { delay(2.seconds) }
                 .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen())) }
                 .launchIn(this)
         }
