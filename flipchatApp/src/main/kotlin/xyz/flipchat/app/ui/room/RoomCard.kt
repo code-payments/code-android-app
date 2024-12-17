@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -44,6 +45,7 @@ import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.Geometry
 import com.getcode.ui.utils.constrain
 import com.getcode.ui.utils.measured
+import com.getcode.ui.utils.withDropShadow
 import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin
 import com.getcode.utils.decodeBase58
@@ -92,7 +94,8 @@ fun RoomCard(
                         0.67f to roomInfo.gradientColors.third,
                     ),
                 ),
-            ).background(
+            )
+            .background(
                 brush = Brush.radialGradient(
                     colors = listOf(Color.White.copy(0.65f), Color.Transparent),
                     center = Offset(-200f, -200f),
@@ -142,7 +145,9 @@ fun RoomCard(
                             )
                         ) { textSize = it },
                         text = roomInfo.title,
-                        style = CodeTheme.typography.displaySmall.copy(fontSize = textSize),
+                        style = CodeTheme.typography.displaySmall
+                            .copy(fontSize = textSize,)
+                            .withDropShadow(),
                         color = Color.White,
                         maxLines = 1
                     )
@@ -155,18 +160,26 @@ fun RoomCard(
                 ) {
                     if (roomInfo.hostName != null) {
                         Text(
-                            text = stringResource(R.string.title_roomCardHostedBy, roomInfo.hostName),
-                            style = CodeTheme.typography.textSmall,
+                            text = stringResource(
+                                R.string.title_roomCardHostedBy,
+                                roomInfo.hostName
+                            ),
+                            style = CodeTheme.typography.textSmall.withDropShadow(),
                             color = Color.White.copy(0.80f)
                         )
                     }
                     Text(
-                        text = pluralStringResource(R.plurals.title_roomCardMemberCount, roomInfo.memberCount, roomInfo.memberCount),
-                        style = CodeTheme.typography.textSmall,
+                        text = pluralStringResource(
+                            R.plurals.title_roomCardMemberCount,
+                            roomInfo.memberCount,
+                            roomInfo.memberCount
+                        ),
+                        style = CodeTheme.typography.textSmall.withDropShadow(),
                         color = Color.White.copy(0.80f)
                     )
                     Text(
-                        text = stringResource(R.string.title_roomCardJoinCost,
+                        text = stringResource(
+                            R.string.title_roomCardJoinCost,
                             formatAmountString(
                                 resources = LocalResources.current!!,
                                 currency = Currency.Kin,
@@ -175,7 +188,7 @@ fun RoomCard(
                             )
                         ),
                         textAlign = TextAlign.Center,
-                        style = CodeTheme.typography.textSmall,
+                        style = CodeTheme.typography.textSmall.withDropShadow(),
                         color = Color.White.copy(0.80f)
                     )
                 }
