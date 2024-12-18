@@ -60,7 +60,7 @@ data class ConversationWithMembersAndLastPointers(
     )
     val pointersCrossRef: List<ConversationPointerCrossRef>,
 ) {
-    val pointers: Map<UUID, MessageStatus>
+    val pointers: Map<UUID, MessageStatus?>
         get() {
             return pointersCrossRef
                 .associateBy { it.status }

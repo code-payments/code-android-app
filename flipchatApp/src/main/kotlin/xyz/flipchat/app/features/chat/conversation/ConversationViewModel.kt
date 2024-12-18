@@ -113,7 +113,7 @@ class ConversationViewModel @Inject constructor(
         val imageUri: String?,
         val lastSeen: Instant?,
         val members: Int?,
-        val pointers: Map<UUID, MessageStatus>,
+        val pointers: Map<UUID, MessageStatus?>,
         val pointerRefs: Map<Long, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
@@ -963,7 +963,9 @@ class ConversationViewModel @Inject constructor(
                             ?: findLastReadMessage(event.conversationWithPointers.pointers),
                         pointerRefs = event.conversationWithPointers.pointers
                             .asSequence()
-                            .mapNotNull { (key, value) -> key.timestamp?.let { it to value } }
+                            .mapNotNull { (key, value) ->
+                                key.timestamp?.let { it to (value ?: MessageStatus.Unknown) }
+                            }
                             .toMap(),
                         members = members.count(),
                         hostId = host?.id,
@@ -1045,7 +1047,7 @@ class ConversationViewModel @Inject constructor(
 }
 
 private fun findLastReadMessage(
-    statusMap: Map<UUID, MessageStatus>,
+    statusMap: Map<UUID, MessageStatus?>,
 ): UUID? {
     return statusMap
         .filter { it.value == MessageStatus.Read }
