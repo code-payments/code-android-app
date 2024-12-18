@@ -78,10 +78,6 @@ class GooglePlayBillingClient(
         )
         .build()
 
-    init {
-        connect()
-    }
-
     private val productDetails = mutableMapOf<String, ProductDetails>()
     private val purchases = mutableMapOf<String, Int>()
 
