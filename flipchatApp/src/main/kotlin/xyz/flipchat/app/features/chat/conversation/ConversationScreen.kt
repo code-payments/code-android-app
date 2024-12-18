@@ -159,8 +159,6 @@ data class ConversationScreen(
         }
 
         val state by vm.stateFlow.collectAsState()
-        val messages = vm.messages.collectAsLazyPagingItems()
-
 
         val goBack = {
             composeScope.launch {
@@ -219,6 +217,9 @@ data class ConversationScreen(
                     AppBarDefaults.Overflow { openRoomDetails() }
                 }
             )
+
+            val messages = vm.messages.collectAsLazyPagingItems()
+
             ConversationScreenContent(
                 state = state,
                 messages = messages,

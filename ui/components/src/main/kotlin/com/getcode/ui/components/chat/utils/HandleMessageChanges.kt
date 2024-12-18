@@ -53,16 +53,7 @@ fun HandleMessageChanges(
                 } else {
                     listState.handleAndReplayAfter(300) {
                         if (newMessage.date.toEpochMilliseconds() > lastMessageReceived) {
-                            if (!listState.canScrollBackward) {
-                                // Android 10 we have to utilize a mimic for IME nested scrolling
-                                // using the [LazyListState#isScrollInProgress] which animateScrollToItem triggers
-                                // thus causing the IME to be dismissed when we trigger the sync.
-                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                                    listState.scrollToItem(0)
-                                } else {
-                                    listState.animateScrollToItem(0)
-                                }
-                            } else {
+                            if (listState.canScrollBackward) {
                                 if (newMessage.status == MessageStatus.Unknown) {
                                     onMessageDelivered(newMessage)
                                 }

@@ -242,7 +242,7 @@ fun MessageNode(
 
     val density = LocalDensity.current
 
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val maxWidth = maxWidth
         val swipeThreshold = with(density) { maxWidth.toPx() } * 0.40f
         var hasReachedThreshold by remember { mutableStateOf(false) }
@@ -295,7 +295,7 @@ fun MessageNode(
         }
 
         Box(
-            modifier = modifier
+            modifier = Modifier
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .nestedScroll(nestedScrollConnection)
                 .anchoredDraggable(

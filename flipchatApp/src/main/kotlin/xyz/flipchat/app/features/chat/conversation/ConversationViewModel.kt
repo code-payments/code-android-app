@@ -642,11 +642,7 @@ class ConversationViewModel @Inject constructor(
         .map { it.conversationId }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest {
-            roomController
-                .messages(it).flow
-                .cachedIn(viewModelScope)
-        }
+        .flatMapLatest { roomController.messages(it).flow }
         .map { page ->
             page.map { mwc ->
                 if (mwc.message.isDeleted) {
@@ -750,7 +746,7 @@ class ConversationViewModel @Inject constructor(
                 // No separator in other cases
                 null
             }
-        }
+        }.cachedIn(viewModelScope)
 
     private fun buildMessageActions(
         message: ConversationMessage,

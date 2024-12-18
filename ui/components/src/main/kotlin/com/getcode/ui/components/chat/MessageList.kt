@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -30,6 +31,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.utils.addIf
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -100,7 +102,9 @@ fun MessageList(
         ) { index ->
             when (val item = messages[index]) {
                 is ChatItem.Date -> DateBubble(
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                    modifier = Modifier
+                        .padding(vertical = CodeTheme.dimens.grid.x2)
+                        .animateItem(),
                     date = item.dateString
                 )
 
@@ -173,7 +177,8 @@ fun MessageList(
                         UnreadSeparator(
                             modifier = Modifier
                                 .fillParentMaxWidth()
-                                .padding(vertical = CodeTheme.dimens.grid.x2),
+                                .padding(vertical = CodeTheme.dimens.grid.x2)
+                                .animateItem(),
                             count = item.count
                         )
                     }
@@ -192,10 +197,25 @@ fun MessageList(
                         date.formatDateRelatively()
                     }
                     DateBubble(
-                        modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
+                        modifier = Modifier
+                            .padding(bottom = CodeTheme.dimens.grid.x2)
+                            .animateItem(),
                         date = dateString
                     )
                 }
+            }
+        }
+
+        // opts out of the list maintaining
+        // scroll position when adding elements before the first item
+        // we are checking first visible item index to ensure
+        // the list doesn't shift when viewing scroll back
+        Snapshot.withoutReadObservation {
+            if (listState.firstVisibleItemIndex == 0) {
+                listState.requestScrollToItem(
+                    index = listState.firstVisibleItemIndex,
+                    scrollOffset = listState.firstVisibleItemScrollOffset
+                )
             }
         }
     }
