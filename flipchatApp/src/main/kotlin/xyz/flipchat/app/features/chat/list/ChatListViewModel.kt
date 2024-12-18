@@ -13,7 +13,6 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -24,7 +23,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
@@ -59,11 +57,13 @@ class ChatListViewModel @Inject constructor(
         val showFullscreenSpinner: Boolean = false,
         val networkConnected: Boolean = true,
         val chatTapCount: Int = 0,
+        val isLoggedIn: Boolean = false,
         val isLogOutEnabled: Boolean = false,
     )
 
     sealed interface Event {
         data class OnSelfIdChanged(val id: ID?) : Event
+        data class OnLoggedInStateChanged(val loggedIn: Boolean): Event
         data class ShowFullScreenSpinner(
             val showScrim: Boolean = true,
             val showSpinner: Boolean = true
@@ -87,9 +87,14 @@ class ChatListViewModel @Inject constructor(
         userManager.state
             .map { it.userId }
             .distinctUntilChanged()
-            .onEach {
-                dispatchEvent(Event.OnSelfIdChanged(it))
-            }.launchIn(viewModelScope)
+            .onEach { dispatchEvent(Event.OnSelfIdChanged(it)) }
+            .launchIn(viewModelScope)
+
+        userManager.state
+            .map { it.authState }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnLoggedInStateChanged(it is AuthState.LoggedIn)) }
+            .launchIn(viewModelScope)
 
         networkObserver.state
             .map { it.connected }
@@ -245,6 +250,8 @@ class ChatListViewModel @Inject constructor(
                 }
 
                 is Event.OnSelfIdChanged -> { state -> state.copy(selfId = event.id) }
+
+                is Event.OnLoggedInStateChanged -> { state -> state.copy(isLoggedIn = event.loggedIn) }
 
                 is Event.NeedsAccountCreated,
                 is Event.OnAccountCreated,

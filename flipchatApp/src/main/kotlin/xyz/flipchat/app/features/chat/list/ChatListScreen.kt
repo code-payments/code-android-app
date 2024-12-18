@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,11 +16,13 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -45,6 +48,7 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.addIf
 import io.grpc.Status.Code
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -110,6 +114,7 @@ private fun ChatListScreenContent(
 ) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
+    val state by viewModel.stateFlow.collectAsState()
     val chats = viewModel.chats.collectAsLazyPagingItems()
     val isLoading = chats.loadState.refresh is LoadState.Loading
     var isInitialLoad by rememberSaveable { mutableStateOf(true) }
@@ -117,14 +122,6 @@ private fun ChatListScreenContent(
     val composeScope = rememberCoroutineScope()
 
     CodeScaffold { padding ->
-        SideEffect {
-            if (!listState.canScrollBackward) {
-                composeScope.launch {
-                    listState.scrollToItem(0)
-                }
-            }
-        }
-
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(bottom = CodeTheme.dimens.inset),
@@ -178,7 +175,8 @@ private fun ChatListScreenContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = CodeTheme.dimens.grid.x6)
-                                .padding(horizontal = CodeTheme.dimens.inset),
+                                .padding(horizontal = CodeTheme.dimens.inset)
+                                .addIf(!state.isLoggedIn) { Modifier.navigationBarsPadding() },
                             buttonState = ButtonState.Filled,
                             text = stringResource(R.string.action_findRoom)
                         ) {
@@ -190,6 +188,15 @@ private fun ChatListScreenContent(
                         }
                     }
                 }
+            }
+
+            // opts out of the list maintaining
+            // scroll position when adding elements before the first item
+            Snapshot.withoutReadObservation {
+                listState.requestScrollToItem(
+                    index = listState.firstVisibleItemIndex,
+                    scrollOffset = listState.firstVisibleItemScrollOffset
+                )
             }
         }
     }
