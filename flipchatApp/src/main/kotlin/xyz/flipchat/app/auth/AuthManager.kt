@@ -55,8 +55,8 @@ class AuthManager @Inject constructor(
 
     companion object {
         private const val TAG = "AuthManager"
-        internal fun taggedTrace(message: String, type: TraceType = TraceType.Log) {
-            trace(message = message, type = type, tag = TAG)
+        internal fun taggedTrace(message: String, type: TraceType = TraceType.Log, cause: Throwable? = null) {
+            trace(message = message, type = type, tag = TAG, error = cause)
         }
     }
 
@@ -229,9 +229,9 @@ class AuthManager @Inject constructor(
 
                 profileController.getUserFlags()
                     .onSuccess {
-                        println("$it")
                         userManager.set(authState = if (it?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered)
                     }.onFailure {
+                        taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
                         userManager.set(authState =  AuthState.Unregistered)
                     }
 
