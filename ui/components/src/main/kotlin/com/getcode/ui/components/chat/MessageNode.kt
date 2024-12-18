@@ -1,6 +1,8 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,6 +16,8 @@ import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +34,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -40,27 +46,37 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.Anchor
 import com.getcode.ui.components.R
+import com.getcode.ui.components.SlideToConfirmDefaults
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
@@ -70,10 +86,13 @@ import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.utils.toPx
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 
@@ -86,7 +105,10 @@ object MessageNodeDefaults {
         @Composable get() = DefaultShape.copy(topStart = CornerSize(3.dp))
 
     private val NextSameShapeIncoming: CornerBasedShape
-        @Composable get() = DefaultShape.copy(bottomStart = CornerSize(3.dp), topStart = CornerSize(3.dp))
+        @Composable get() = DefaultShape.copy(
+            bottomStart = CornerSize(3.dp),
+            topStart = CornerSize(3.dp)
+        )
 
     private val MiddleSameShapeIncoming: CornerBasedShape
         @Composable get() = DefaultShape.copy(
@@ -98,7 +120,10 @@ object MessageNodeDefaults {
         @Composable get() = DefaultShape.copy(topEnd = CornerSize(3.dp))
 
     private val NextSameShapeOutgoing: CornerBasedShape
-        @Composable get() = DefaultShape.copy(bottomEnd = CornerSize(3.dp), topEnd = CornerSize(3.dp))
+        @Composable get() = DefaultShape.copy(
+            bottomEnd = CornerSize(3.dp),
+            topEnd = CornerSize(3.dp)
+        )
 
     private val MiddleSameShapeOutgoing: CornerBasedShape
         @Composable get() = DefaultShape.copy(
@@ -189,7 +214,7 @@ private enum class MessageNodeDragAnchors {
     DEFAULT, REPLY
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun MessageNode(
     contents: MessageContent,
@@ -219,9 +244,8 @@ fun MessageNode(
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val maxWidth = maxWidth
-        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.20f
-        var hasTriggeredTick by remember { mutableStateOf(false) }
-        var hasFiredReply by remember { mutableStateOf(false) }
+        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.40f
+        var hasReachedThreshold by remember { mutableStateOf(false) }
 
         val anchors = remember(maxWidth) {
             DraggableAnchors {
@@ -234,46 +258,46 @@ fun MessageNode(
             AnchoredDraggableState(
                 initialValue = MessageNodeDragAnchors.DEFAULT,
                 anchors = anchors,
-                positionalThreshold = { it * 0.3f },
-                velocityThreshold = { with(density) { 200.dp.toPx() } },
+                positionalThreshold = { it * 0.9f },
+                velocityThreshold = { Float.POSITIVE_INFINITY },
                 confirmValueChange = { targetValue ->
-                    if (targetValue == MessageNodeDragAnchors.REPLY && !hasFiredReply) {
-                        hasFiredReply = true
-                        onReply()
+                    if (targetValue == MessageNodeDragAnchors.REPLY && !hasReachedThreshold) {
+                        hasReachedThreshold = true
+                        vibrator.tick()
                     }
-                    true
+                    false
                 },
-                snapAnimationSpec = tween(durationMillis = 400),
+                snapAnimationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
                 decayAnimationSpec = splineBasedDecay(density)
             )
         }
 
-        LaunchedEffect(replyDragState.currentValue) {
-            if (replyDragState.currentValue == MessageNodeDragAnchors.REPLY) {
-                // Reset drag state to allow future replies
-                delay(200)
-                try {
-                    replyDragState.snapTo(MessageNodeDragAnchors.DEFAULT)
-                    println("Animation completed")
-                } catch (e: CancellationException) {
-                    println("Animation canceled: ${e.message}")
-                }
-
-                hasFiredReply = false
-                hasTriggeredTick = false
+        LaunchedEffect(hasReachedThreshold, replyDragState.targetValue) {
+            if (hasReachedThreshold && replyDragState.targetValue == MessageNodeDragAnchors.DEFAULT && replyDragState.isAnimationRunning) {
+                onReply()
+                hasReachedThreshold = false
             }
         }
 
-        LaunchedEffect(replyDragState.offset) {
-            if (replyDragState.offset >= swipeThreshold && !hasTriggeredTick) {
-                hasTriggeredTick = true
-                vibrator.tick()
+        val nestedScrollConnection = remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    // Block vertical scrolling only when horizontal drag is active
+                    return if (replyDragState.offset != 0f) Offset.Zero else super.onPreScroll(
+                        available,
+                        source
+                    )
+                }
             }
         }
 
         Box(
             modifier = modifier
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .nestedScroll(nestedScrollConnection)
                 .anchoredDraggable(
                     state = replyDragState,
                     enabled = enableReply,
@@ -284,7 +308,13 @@ fun MessageNode(
             Box(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset)
-                    .offset { IntOffset(x = replyDragState.offset.coerceAtMost(swipeThreshold).roundToInt(), y = 0) }
+                    .offset {
+                        IntOffset(
+                            x = replyDragState.offset.coerceAtMost(maxWidth.toPx() * 0.3f)
+                                .roundToInt(),
+                            y = 0
+                        )
+                    }
             ) {
                 val scope = rememberMessageNodeScope(
                     contents = contents,
@@ -308,8 +338,12 @@ fun MessageNode(
 
                         when (contents) {
                             is MessageContent.Exchange -> {
-                                val alignment = if (sender.isSelf) Alignment.CenterEnd else Alignment.CenterStart
-                                Box(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+                                val alignment =
+                                    if (sender.isSelf) Alignment.CenterEnd else Alignment.CenterStart
+                                Box(
+                                    modifier = modifier.fillMaxWidth(),
+                                    contentAlignment = alignment
+                                ) {
                                     MessagePayment(
                                         modifier = Modifier
                                             .sizeableWidth()
@@ -340,8 +374,12 @@ fun MessageNode(
                             }
 
                             is MessageContent.SodiumBox -> {
-                                val alignment = if (sender.isSelf) Alignment.CenterEnd else Alignment.CenterStart
-                                Box(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+                                val alignment =
+                                    if (sender.isSelf) Alignment.CenterEnd else Alignment.CenterStart
+                                Box(
+                                    modifier = modifier.fillMaxWidth(),
+                                    contentAlignment = alignment
+                                ) {
                                     EncryptedContent(
                                         modifier = Modifier
                                             .sizeableWidth()
@@ -438,14 +476,22 @@ fun MessageNode(
             }
 
             AnimatedVisibility(
-                visible = replyDragState.offset > 0f,
+                visible = replyDragState.offset > with(density) { 5.dp.toPx() },
                 enter = fadeIn() + scaleIn(),
                 exit = scaleOut() + fadeOut(),
-                modifier = Modifier.align(Alignment.CenterStart)
-                    .offset { IntOffset(x = replyDragState.offset.coerceAtMost(swipeThreshold).roundToInt() - 20.dp.roundToPx(), y = 0) }
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset {
+                        IntOffset(
+                            x = replyDragState.offset.times(0.2f).coerceAtMost(20.dp.toPx())
+                                .roundToInt(), y = 0
+                        )
+                    }
             ) {
                 Icon(
-                    modifier = Modifier,
+                    modifier = Modifier.graphicsLayer {
+                        alpha = (replyDragState.offset.times(0.2f) / 20.dp.toPx()).coerceIn(0f, 1f)
+                    },
                     imageVector = Icons.AutoMirrored.Default.Reply,
                     contentDescription = "Swipe to Reply",
                 )
