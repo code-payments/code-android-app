@@ -133,7 +133,7 @@ private fun ChatListScreenContent(
                 contentType = chats.itemContentType { "chat" }
             ) { index ->
                 chats[index]?.let {
-                    Column(modifier = Modifier.animateItemPlacement()) {
+                    Column {
                         ChatNode(
                             chat = it,
                             onToggleMute = { mute ->
@@ -192,11 +192,15 @@ private fun ChatListScreenContent(
 
             // opts out of the list maintaining
             // scroll position when adding elements before the first item
+            // we are checking first visible item index to ensure
+            // the list doesn't shift when scrolled
             Snapshot.withoutReadObservation {
-                listState.requestScrollToItem(
-                    index = listState.firstVisibleItemIndex,
-                    scrollOffset = listState.firstVisibleItemScrollOffset
-                )
+                if (listState.firstVisibleItemIndex == 0) {
+                    listState.requestScrollToItem(
+                        index = listState.firstVisibleItemIndex,
+                        scrollOffset = listState.firstVisibleItemScrollOffset
+                    )
+                }
             }
         }
     }
