@@ -21,12 +21,17 @@ data class Fiat(
     }
 }
 
+@Serializable
 sealed interface GenericAmount {
 
     val currencyCode: CurrencyCode
+
+    @Serializable
     data class Exact(val amount: KinAmount): GenericAmount {
         override val currencyCode: CurrencyCode = amount.rate.currency
     }
+
+    @Serializable
     data class Partial(val fiat: Fiat): GenericAmount {
         override val currencyCode: CurrencyCode = fiat.currency
     }

@@ -68,6 +68,7 @@ open class Key32(bytes: List<Byte>) : KeyType(bytes) {
         return result
     }
 }
+
 open class Key64(bytes: List<Byte>) : KeyType(bytes) {
 
     constructor(base58: String): this (Base58.decode(base58).toList())

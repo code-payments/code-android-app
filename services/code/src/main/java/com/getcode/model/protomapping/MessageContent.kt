@@ -44,7 +44,6 @@ operator fun MessageContent.Companion.invoke(
                         amount = GenericAmount.Exact(kinAmount),
                         verb = verb,
                         reference = messageId?.let { Reference.IntentId(it) },
-                        hasInteracted = false,
                     )
                 }
 
@@ -63,7 +62,6 @@ operator fun MessageContent.Companion.invoke(
                         amount = GenericAmount.Partial(fiat),
                         verb = verb,
                         reference = messageId?.let { Reference.IntentId(it) },
-                        hasInteracted = false
                     )
                 }
 

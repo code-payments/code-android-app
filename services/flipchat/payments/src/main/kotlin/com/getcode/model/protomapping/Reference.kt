@@ -9,8 +9,8 @@ import com.getcode.model.chat.Reference.Signature
 
 operator fun Reference.Companion.invoke(proto: ExchangeDataContent): Reference {
     return when (proto.referenceCase) {
-        ReferenceCase.INTENT -> IntentId(proto.intent.toByteArray().toList())
-        ReferenceCase.SIGNATURE -> Signature(com.getcode.solana.keys.Signature(proto.signature.toByteArray().toList()))
+        ReferenceCase.INTENT -> IntentId(proto.intent.value.toByteArray().toList())
+        ReferenceCase.SIGNATURE -> Signature(proto.signature.value.toByteArray().toList())
         ReferenceCase.REFERENCE_NOT_SET -> NoneSet
         null -> NoneSet
     }
