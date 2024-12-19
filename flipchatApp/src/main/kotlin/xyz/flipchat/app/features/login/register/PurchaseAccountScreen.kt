@@ -228,7 +228,6 @@ private class PurchaseAccountViewModel @Inject constructor(
                     is IapPaymentEvent.OnSuccess -> event
                 }
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
-
             .onEach {
                 dispatchEvent(Event.OnCreatingChanged(true))
                 authManager.register(userManager.displayName!!)

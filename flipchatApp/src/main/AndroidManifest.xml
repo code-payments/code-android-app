@@ -109,7 +109,7 @@
         </service>
 
         <service
-            android:name=".services.FcNotificationService"
+            android:name=".notifications.FcNotificationService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -117,7 +117,7 @@
         </service>
 
         <receiver
-            android:name=".services.FcNotificationReceiver"
+            android:name=".notifications.FcNotificationReceiver"
             android:enabled="true"
             android:exported="false" />
 
