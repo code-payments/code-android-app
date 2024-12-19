@@ -54,5 +54,8 @@ jobs:
       - name: Setup Mixpanel API Key
         run: echo MIXPANEL_API_KEY=\"${{ secrets.MIXPANEL_API_KEY }}\" >> ./local.properties
 
-      - name: Run tests
-        run: bundle exec fastlane android test
+      - name: Run Code tests
+        run: bundle exec fastlane android code_tests
+
+      - name: Run Flipchat tests
+        run: bundle exec fastlane android fc_tests
