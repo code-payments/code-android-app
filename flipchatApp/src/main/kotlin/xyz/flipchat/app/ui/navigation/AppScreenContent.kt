@@ -63,7 +63,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Balance> {
-            BalanceScreen
+            BalanceScreen()
         }
 
         register<NavScreenProvider.AppHomeScreen> {

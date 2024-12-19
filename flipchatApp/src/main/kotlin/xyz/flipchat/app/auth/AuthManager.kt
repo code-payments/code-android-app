@@ -252,35 +252,9 @@ class AuthManager @Inject constructor(
             }.map { it.first }
     }
 
-    suspend fun deleteAndLogout(context: Context, onComplete: () -> Unit = {}) {
+    suspend fun deleteAndLogout(context: Context): Result<Unit> {
         //todo: add account deletion
-        logout(context, onComplete)
-    }
-
-    suspend fun logout(context: Context, onComplete: () -> Unit = {}) {
-        coroutineScope {
-            val token = AccountUtils.getToken(context)
-            when (token) {
-                is TokenResult.Account -> {
-                    AccountUtils.removeAccounts(context)
-                        .doOnSuccess { res: Boolean ->
-                            if (res) {
-                                launch {
-                                    clearToken()
-                                }
-                                onComplete()
-                            }
-                        }
-                        .subscribe()
-                }
-
-                is TokenResult.Code -> {
-                    onComplete()
-                }
-
-                null -> Unit
-            }
-        }
+        return logout(context)
     }
 
     suspend fun logout(context: Context): Result<Unit> {

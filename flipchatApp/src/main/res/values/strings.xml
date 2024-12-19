@@ -170,4 +170,9 @@
     <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
     <string name="action_changeCoverCharge">Change Cover Charge</string>
     <string name="action_leaveRoom">Leave Room</string>
+
+    <string name="action_deleteMyAccount">Delete My Account</string>
+    <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
+    <string name="prompt_description_deleteAccount">This will permanently delete your Flipchat account</string>
+    <string name="action_permanentlyDeleteAccount">Permanently Delete My Account</string>
 </resources>

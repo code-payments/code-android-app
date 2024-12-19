@@ -96,9 +96,6 @@ class SeedInputViewModel @Inject constructor(
         }
     }
 
-    suspend fun logout(activity: Activity, onComplete: () -> Unit = {}) =
-        authManager.logout(activity, onComplete)
-
     @SuppressLint("CheckResult")
     fun performLogin(navigator: CodeNavigator, entropyB64: String, deeplink: Boolean = false) {
         viewModelScope.launch {

@@ -47,6 +47,14 @@ class SettingsViewModel @Inject constructor(
             }
     }
 
+    fun deleteAccount(activity: Activity, onComplete: () -> Unit) = viewModelScope.launch {
+        authManager.deleteAndLogout(activity)
+            .onSuccess {
+                chatsController.closeEventStream()
+                onComplete()
+            }
+    }
+
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {

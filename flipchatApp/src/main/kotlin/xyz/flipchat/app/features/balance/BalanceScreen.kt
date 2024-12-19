@@ -49,7 +49,7 @@ import kotlinx.parcelize.Parcelize
 import xyz.flipchat.services.user.AuthState
 
 @Parcelize
-data object BalanceScreen : Screen, Parcelable {
+class BalanceScreen : Screen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -96,8 +96,6 @@ fun BalanceContent(
 //    }
 
     val canClickBalance = false
-
-    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier

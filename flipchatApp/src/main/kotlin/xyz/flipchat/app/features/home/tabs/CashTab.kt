@@ -1,18 +1,40 @@
 package xyz.flipchat.app.features.home.tabs
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ChildNavTab
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.getActivity
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
+import xyz.flipchat.app.features.home.HomeViewModel
+import xyz.flipchat.app.features.settings.SettingsViewModel
 
 internal object CashTab : ChildNavTab {
     override val key: ScreenKey = uniqueScreenKey
@@ -28,11 +50,50 @@ internal object CashTab : ChildNavTab {
 
     @Composable
     override fun Content() {
+        val viewModel = getViewModel<SettingsViewModel>()
+        val context = LocalContext.current
+        val composeScope = rememberCoroutineScope()
+        val navigator = LocalCodeNavigator.current
         Column {
             AppBarWithTitle(
                 title = options.title,
             )
-            Navigator(ScreenRegistry.get(NavScreenProvider.Balance))
+            CodeScaffold(
+                bottomBar = {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(bottom = CodeTheme.dimens.grid.x3),
+                        buttonState = ButtonState.Subtle,
+                        text = stringResource(R.string.action_deleteMyAccount)
+                    ) {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(R.string.prompt_title_deleteAccount),
+                                subtitle = context
+                                    .getString(R.string.prompt_description_deleteAccount),
+                                positiveText = context.getString(R.string.action_permanentlyDeleteAccount),
+                                tertiaryText = context.getString(R.string.action_cancel),
+                                onPositive = {
+                                    composeScope.launch {
+                                        delay(150)
+                                        context.getActivity()?.let {
+                                            viewModel.deleteAccount(it) {
+                                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        )
+                    }
+                },
+            ) { padding ->
+                Box(modifier = Modifier.padding(padding)) {
+                    Navigator(ScreenRegistry.get(NavScreenProvider.Balance))
+                }
+            }
         }
     }
 }
