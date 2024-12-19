@@ -17,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -31,7 +30,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
-import com.getcode.ui.utils.addIf
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -103,8 +101,7 @@ fun MessageList(
             when (val item = messages[index]) {
                 is ChatItem.Date -> DateBubble(
                     modifier = Modifier
-                        .padding(vertical = CodeTheme.dimens.grid.x2)
-                        .animateItem(),
+                        .padding(vertical = CodeTheme.dimens.grid.x2),
                     date = item.dateString
                 )
 
@@ -138,8 +135,7 @@ fun MessageList(
                     MessageNode(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = spacingBefore, bottom = spacingAfter)
-                            .animateItem(),
+                            .padding(top = spacingBefore, bottom = spacingAfter),
                         contents = item.message,
                         status = item.status,
                         isDeleted = item.isDeleted,
@@ -177,8 +173,7 @@ fun MessageList(
                         UnreadSeparator(
                             modifier = Modifier
                                 .fillParentMaxWidth()
-                                .padding(vertical = CodeTheme.dimens.grid.x2)
-                                .animateItem(),
+                                .padding(vertical = CodeTheme.dimens.grid.x2),
                             count = item.count
                         )
                     }
@@ -198,8 +193,7 @@ fun MessageList(
                     }
                     DateBubble(
                         modifier = Modifier
-                            .padding(bottom = CodeTheme.dimens.grid.x2)
-                            .animateItem(),
+                            .padding(bottom = CodeTheme.dimens.grid.x2),
                         date = dateString
                     )
                 }
