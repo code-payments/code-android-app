@@ -59,53 +59,18 @@ import xyz.flipchat.app.util.DeeplinkType
 import kotlin.math.log
 
 @Parcelize
-class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parcelable {
+class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
-        val context = LocalContext.current
         val viewModel = getActivityScopedViewModel<HomeViewModel>()
-        val settingsViewModel = getViewModel<SettingsViewModel>()
         val router = viewModel.router
 
         val codeNavigator = LocalCodeNavigator.current
 
         val isLoggedIn by viewModel.isLoggedIn.collectAsState()
-
-        //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
-        //authenticated. Currently we will require authentication to see anything, but can be changed in future.
-        var deepLink by remember(deeplink) { mutableStateOf(deeplink) }
-        var loginRequest by remember { mutableStateOf<String?>(null) }
-
-        DeepLinkListener {
-            val type = router.processType(it)
-            if (type is DeeplinkType.Login) {
-                loginRequest = type.entropy
-                return@DeepLinkListener
-            }
-            deepLink = it
-        }
-
-        LaunchedEffect(loginRequest) {
-            loginRequest?.let { entropy ->
-                viewModel.handleLoginEntropy(
-                    entropy,
-                    onSwitchAccounts = {
-                        loginRequest = null
-                        context.getActivity()?.let {
-                            settingsViewModel.logout(it) {
-                                codeNavigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(entropy)))
-                            }
-                        }
-                    },
-                    onCancel = {
-                        loginRequest = null
-                    }
-                )
-            }
-        }
 
         val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
 

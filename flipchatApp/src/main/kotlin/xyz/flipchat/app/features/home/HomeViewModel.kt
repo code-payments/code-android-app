@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.home
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.BottomBarManager
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
+import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.CodeController
@@ -27,6 +29,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    private val authManager: AuthManager,
     private val codeController: CodeController,
     private val chatsController: ChatsController,
     private val profileController: ProfileController,
@@ -102,6 +105,22 @@ class HomeViewModel @Inject constructor(
                 )
             )
         }
+    }
+
+    fun logout(activity: Activity, onComplete: () -> Unit) = viewModelScope.launch {
+        authManager.logout(activity)
+            .onSuccess {
+                chatsController.closeEventStream()
+                onComplete()
+            }
+    }
+
+    fun deleteAccount(activity: Activity, onComplete: () -> Unit) = viewModelScope.launch {
+        authManager.deleteAndLogout(activity)
+            .onSuccess {
+                chatsController.closeEventStream()
+                onComplete()
+            }
     }
 
     override fun onCleared() {

@@ -12,11 +12,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.stack.StackEvent
+import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.getcode.navigation.NavScreenProvider
 import xyz.flipchat.app.features.payments.PaymentScaffold
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
@@ -33,17 +37,22 @@ import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.getActivity
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import xyz.flipchat.app.features.home.HomeViewModel
+import xyz.flipchat.app.util.DeeplinkType
 
 @Composable
 fun App(
     tipsEngine: TipsEngine,
 ) {
     val homeViewModel = getActivityScopedViewModel<HomeViewModel>()
+    val router = homeViewModel.router
+    val context = LocalContext.current
+
     OnLifecycleEvent { _, event ->
         when (event) {
             Lifecycle.Event.ON_RESUME -> {
@@ -57,6 +66,20 @@ fun App(
 
             else -> Unit
         }
+    }
+
+    //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
+    //authenticated. Currently we will require authentication to see anything, but can be changed in future.
+    var deepLink by remember { mutableStateOf<DeepLink?>(null) }
+    var loginRequest by remember { mutableStateOf<String?>(null) }
+
+    DeepLinkListener {
+        val type = router.processType(it)
+        if (type is DeeplinkType.Login) {
+            loginRequest = type.entropy
+            return@DeepLinkListener
+        }
+        deepLink = it
     }
 
     FlipchatTheme {
@@ -83,6 +106,33 @@ fun App(
                                     ) {
                                         SlideTransition(navigator)
                                     }
+
+                                    LaunchedEffect(deepLink) {
+                                        if (deepLink != null) {
+                                            val screenSet = router.processDestination(deepLink)
+                                            codeNavigator.replaceAll(screenSet)
+                                        }
+                                    }
+
+                                    LaunchedEffect(loginRequest) {
+                                        loginRequest?.let { entropy ->
+                                            homeViewModel.handleLoginEntropy(
+                                                entropy,
+                                                onSwitchAccounts = {
+                                                    loginRequest = null
+                                                    context.getActivity()?.let {
+                                                        homeViewModel.logout(it) {
+                                                            codeNavigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(entropy)))
+                                                        }
+                                                    }
+                                                },
+                                                onCancel = {
+                                                    loginRequest = null
+                                                }
+                                            )
+                                        }
+                                    }
+
                                 }
                             }
                         }
