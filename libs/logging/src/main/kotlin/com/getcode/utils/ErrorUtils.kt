@@ -21,11 +21,18 @@ object ErrorUtils {
         ErrorUtils.isDisplayErrors = isDisplayErrors
     }
 
+    private val ignoredErrors = listOf(
+        UnknownHostException::class,
+        TimeoutException::class,
+        TimeoutCancellationException::class,
+        ConnectException::class,
+    )
+
     fun handleError(throwable: Throwable) {
         if (isNetworkError(throwable) || isRuntimeError(throwable)) return
 
         val throwableCause: Throwable =
-            if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException))
+            if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException || throwable is FlipchatServerError))
                 throwable.cause ?: throwable
             else throwable
 
@@ -41,10 +48,8 @@ object ErrorUtils {
 
         if (
             BuildConfig.NOTIFY_ERRORS &&
-            throwable !is UnknownHostException &&
-            throwable !is TimeoutException &&
-            throwable !is TimeoutCancellationException &&
-            throwable !is ConnectException
+            ignoredErrors.none { it.isInstance(throwable) } &&
+            ignoredErrors.none { it.isInstance(throwableCause) }
         ) {
             FirebaseCrashlytics.getInstance().recordException(throwable)
             if (Bugsnag.isStarted()) {
@@ -67,4 +72,4 @@ object ErrorUtils {
         throwable is SQLException || throwable is net.sqlcipher.SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException
 }
 
-data class SuppressibleException(override val message: String): Throwable(message)
+data class SuppressibleException(override val message: String) : Throwable(message)

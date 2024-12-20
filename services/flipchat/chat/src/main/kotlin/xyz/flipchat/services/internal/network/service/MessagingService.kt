@@ -28,6 +28,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.network.api.MessagingApi
+import com.getcode.utils.FlipchatServerError
 import xyz.flipchat.services.internal.network.extensions.toChatId
 import xyz.flipchat.services.internal.network.extensions.toMessageId
 import xyz.flipchat.services.internal.network.utils.authenticate
@@ -369,28 +370,40 @@ internal class MessagingService @Inject constructor(
         }
     }
 
-    sealed class GetMessagesError : Throwable() {
+    sealed class GetMessagesError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : GetMessagesError()
         class Denied : GetMessagesError()
-        data class Other(override val cause: Throwable? = null) : GetMessagesError()
+        data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
     }
 
-    sealed class AdvancePointerError : Throwable() {
+    sealed class AdvancePointerError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : AdvancePointerError()
         class Denied : AdvancePointerError()
-        data class Other(override val cause: Throwable? = null) : AdvancePointerError()
+        data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
     }
 
-    sealed class TypingChangeError : Throwable() {
+    sealed class TypingChangeError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : AdvancePointerError()
         class Denied : AdvancePointerError()
-        data class Other(override val cause: Throwable? = null) : AdvancePointerError()
+        data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
     }
 
-    sealed class SendMessageError : Throwable() {
+    sealed class SendMessageError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : GetMessagesError()
         class Denied : GetMessagesError()
         class InvalidContentType : GetMessagesError()
-        data class Other(override val cause: Throwable? = null) : GetMessagesError()
+        data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
     }
 }

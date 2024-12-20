@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import xyz.flipchat.services.internal.network.api.PushApi
+import com.getcode.utils.FlipchatServerError
 import javax.inject.Inject
 
 internal class PushService @Inject constructor(
@@ -101,14 +102,20 @@ internal class PushService @Inject constructor(
         }
     }
 
-    internal sealed class AddTokenError : Throwable() {
+    internal sealed class AddTokenError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class InvalidPushToken : AddTokenError()
         class Unrecognized : AddTokenError()
-        data class Other(override val cause: Throwable? = null) : AddTokenError()
+        data class Other(override val cause: Throwable? = null) : AddTokenError(cause = cause)
     }
 
-    internal sealed class DeleteTokenError : Throwable() {
+    internal sealed class DeleteTokenError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : DeleteTokenError()
-        data class Other(override val cause: Throwable? = null) : DeleteTokenError()
+        data class Other(override val cause: Throwable? = null) : DeleteTokenError(cause = cause)
     }
 }

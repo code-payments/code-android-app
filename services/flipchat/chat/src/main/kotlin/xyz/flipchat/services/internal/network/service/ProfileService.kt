@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import xyz.flipchat.services.internal.network.api.ProfileApi
+import com.getcode.utils.FlipchatServerError
 import javax.inject.Inject
 
 internal class ProfileService @Inject constructor(
@@ -22,12 +23,12 @@ internal class ProfileService @Inject constructor(
                     when (it.result) {
                         ProfileService.GetProfileResponse.Result.OK -> Result.success(it.userProfile)
                         ProfileService.GetProfileResponse.Result.NOT_FOUND -> {
-                            val error = GetProfileError.NotFound
+                            val error = GetProfileError.NotFound()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                         ProfileService.GetProfileResponse.Result.UNRECOGNIZED -> {
-                            val error = GetProfileError.Unrecognized
+                            val error = GetProfileError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -51,12 +52,12 @@ internal class ProfileService @Inject constructor(
                     when (it.result) {
                         ProfileService.SetDisplayNameResponse.Result.OK -> Result.success(Unit)
                         ProfileService.SetDisplayNameResponse.Result.INVALID_DISPLAY_NAME -> {
-                            val error = SetDisplayNameError.InvalidDisplayName
+                            val error = SetDisplayNameError.InvalidDisplayName()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                         ProfileService.SetDisplayNameResponse.Result.UNRECOGNIZED -> {
-                            val error = SetDisplayNameError.Unrecognized
+                            val error = SetDisplayNameError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -73,15 +74,21 @@ internal class ProfileService @Inject constructor(
         }
     }
 
-    internal sealed class GetProfileError : Throwable() {
-        data object NotFound : GetProfileError()
-        data object Unrecognized : GetProfileError()
-        data class Other(override val cause: Throwable? = null) : GetProfileError()
+    internal sealed class GetProfileError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
+        class NotFound : GetProfileError()
+        class Unrecognized : GetProfileError()
+        data class Other(override val cause: Throwable? = null) : GetProfileError(cause = cause)
     }
 
-    internal sealed class SetDisplayNameError : Throwable() {
-        data object InvalidDisplayName : SetDisplayNameError()
-        data object Unrecognized : SetDisplayNameError()
-        data class Other(override val cause: Throwable? = null) : SetDisplayNameError()
+    internal sealed class SetDisplayNameError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
+        class InvalidDisplayName : SetDisplayNameError()
+        class Unrecognized : SetDisplayNameError()
+        data class Other(override val cause: Throwable? = null) : SetDisplayNameError(cause = cause)
     }
 }

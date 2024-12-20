@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import xyz.flipchat.services.data.PaymentTarget
 import xyz.flipchat.services.internal.network.api.AccountApi
+import com.getcode.utils.FlipchatServerError
 import xyz.flipchat.services.internal.network.extensions.toPublicKey
 import javax.inject.Inject
 
@@ -33,16 +34,19 @@ internal class AccountService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         RegisterResponse.Result.INVALID_DISPLAY_NAME -> {
                             val error = RegisterError.InvalidDisplayName(response.errorReason)
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         RegisterResponse.Result.UNRECOGNIZED -> {
                             val error = RegisterError.Unrecognized(response.errorReason)
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = RegisterError.Other("Failed to register")
                             Timber.e(t = error)
@@ -51,7 +55,10 @@ internal class AccountService @Inject constructor(
                     }
                 }.first()
         } catch (e: Exception) {
-            val error = RegisterError.Other("Road to greatness is bumpy. Apologies for the hiccup.", cause = e)
+            val error = RegisterError.Other(
+                "Road to greatness is bumpy. Apologies for the hiccup.",
+                cause = e
+            )
             Result.failure(error)
         }
     }
@@ -76,11 +83,13 @@ internal class AccountService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         LoginResponse.Result.DENIED -> {
                             val error = LoginError.Denied("Failed to login")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = LoginError.Other("Failed to login")
                             Timber.e(t = error)
@@ -89,7 +98,10 @@ internal class AccountService @Inject constructor(
                     }
                 }.first()
         } catch (e: Exception) {
-            val error = RegisterError.Other("Road to greatness is bumpy. Apologies for the hiccup.", cause = e)
+            val error = RegisterError.Other(
+                "Road to greatness is bumpy. Apologies for the hiccup.",
+                cause = e
+            )
             Result.failure(error)
         }
     }
@@ -99,17 +111,22 @@ internal class AccountService @Inject constructor(
             networkOracle.managedRequest(api.getPaymentDestination(target))
                 .map { response ->
                     when (response.result) {
-                        AccountService.GetPaymentDestinationResponse.Result.OK -> Result.success(response.paymentDestination.toPublicKey())
+                        AccountService.GetPaymentDestinationResponse.Result.OK -> Result.success(
+                            response.paymentDestination.toPublicKey()
+                        )
+
                         AccountService.GetPaymentDestinationResponse.Result.NOT_FOUND -> {
                             val error = GetPaymentDestinationError.NotFound()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         AccountService.GetPaymentDestinationResponse.Result.UNRECOGNIZED -> {
                             val error = GetPaymentDestinationError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = GetPaymentDestinationError.Other()
                             Timber.e(t = error)
@@ -134,11 +151,13 @@ internal class AccountService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         AccountService.GetUserFlagsResponse.Result.UNRECOGNIZED -> {
                             val error = GetUserFlagsError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = GetUserFlagsError.Other()
                             Timber.e(t = error)
@@ -152,28 +171,42 @@ internal class AccountService @Inject constructor(
         }
     }
 
-    sealed class LoginError(override val message: String): Throwable(message) {
-        data class InvalidTimestamp(override val message: String): LoginError(message)
-        data class NotFound(override val message: String): LoginError(message)
-        data class Denied(override val message: String): LoginError(message)
-        data class Unrecognized(override val message: String): LoginError(message)
-        data class Other(override val message: String, override val cause: Throwable? = null): LoginError(message)
+    sealed class LoginError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
+        data class InvalidTimestamp(override val message: String) : LoginError(message)
+        data class NotFound(override val message: String) : LoginError(message)
+        data class Denied(override val message: String) : LoginError(message)
+        data class Unrecognized(override val message: String) : LoginError(message)
+        data class Other(override val message: String, override val cause: Throwable? = null) :
+            LoginError(message, cause)
     }
 
-    sealed class RegisterError(override val message: String): Throwable(message) {
-        data class InvalidSignature(override val message: String): RegisterError(message)
-        data class InvalidDisplayName(override val message: String): RegisterError(message)
-        data class Unrecognized(override val message: String): RegisterError(message)
-        data class Other(override val message: String, override val cause: Throwable? = null): RegisterError(message)
+    sealed class RegisterError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
+        data class InvalidSignature(override val message: String) : RegisterError(message)
+        data class InvalidDisplayName(override val message: String) : RegisterError(message)
+        data class Unrecognized(override val message: String) : RegisterError(message)
+        data class Other(override val message: String, override val cause: Throwable? = null) :
+            RegisterError(message)
     }
 
-    sealed class GetPaymentDestinationError : Throwable() {
+    sealed class GetPaymentDestinationError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : GetPaymentDestinationError()
         class NotFound : GetPaymentDestinationError()
         data class Other(override val cause: Throwable? = null) : GetPaymentDestinationError()
     }
 
-    sealed class GetUserFlagsError : Throwable() {
+    sealed class GetUserFlagsError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : GetUserFlagsError()
         class Denied : GetUserFlagsError()
         data class Other(override val cause: Throwable? = null) : GetUserFlagsError()

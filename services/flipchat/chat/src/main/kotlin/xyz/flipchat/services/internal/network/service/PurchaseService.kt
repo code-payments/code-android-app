@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import xyz.flipchat.services.internal.network.api.PurchaseApi
+import com.getcode.utils.FlipchatServerError
 import javax.inject.Inject
 
 internal class PurchaseService @Inject constructor(
@@ -48,10 +49,13 @@ internal class PurchaseService @Inject constructor(
         }
     }
 
-    sealed class PurchaseAckError : Throwable() {
+    sealed class PurchaseAckError(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : FlipchatServerError(message, cause) {
         class Unrecognized : PurchaseAckError()
         class Denied : PurchaseAckError()
         class InvalidReceipt: PurchaseAckError()
-        data class Other(override val cause: Throwable? = null) : PurchaseAckError()
+        data class Other(override val cause: Throwable? = null) : PurchaseAckError(cause = cause)
     }
 }
