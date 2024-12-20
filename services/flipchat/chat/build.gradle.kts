@@ -14,6 +14,8 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
+        consumerProguardFiles("consumer-rules.pro")
+
         buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipchat.versionName}\"")
     }
 

@@ -13,6 +13,8 @@ android {
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
+
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     java {
