@@ -25,11 +25,8 @@ import com.getcode.navigation.screens.NamedScreen
 import xyz.flipchat.app.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.CodeKeyPad
-import com.getcode.utils.network.LocalNetworkObserver
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -69,7 +66,7 @@ class LookupRoomScreen : Screen, NamedScreen, Parcelable {
                 .filterIsInstance<LookupRoomViewModel.Event.OpenExistingRoom>()
                 .map { it.roomId }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(it)))
                 }.launchIn(this)
         }
 
@@ -78,7 +75,7 @@ class LookupRoomScreen : Screen, NamedScreen, Parcelable {
                 .filterIsInstance<LookupRoomViewModel.Event.OnOpenConfirmation>()
                 .map { it.args }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Lookup.Confirm(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Lookup.Confirm(it)))
                 }.launchIn(this)
         }
     }

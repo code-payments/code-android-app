@@ -21,7 +21,7 @@ fun openChatDirectiveBottomModal(
             negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
             tertiaryText = context.getString(R.string.action_cancel),
             onPositive = {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Lookup.Entry))
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Lookup.Entry))
             },
             onNegative = {
                 viewModel.dispatchEvent(ChatListViewModel.Event.CreateRoomSelected)

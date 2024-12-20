@@ -92,7 +92,7 @@ class RouterImpl(
                 is DeeplinkType.Login -> listOf(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
                 is DeeplinkType.OpenRoom ->  listOf(
                     ScreenRegistry.get(NavScreenProvider.AppHomeScreen()),
-                    ScreenRegistry.get(NavScreenProvider.Chat.Conversation(type.roomId))
+                    ScreenRegistry.get(NavScreenProvider.Room.Messages(type.roomId))
                 )
             }
         } ?: emptyList()

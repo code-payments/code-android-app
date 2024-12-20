@@ -251,27 +251,27 @@ internal class ChatService @Inject constructor(
                         }
 
                         ChatServiceRpc.SetDisplayNameResponse.Result.DENIED -> {
-                            val error = SetDisplayNameError.Denied()
+                            val error = SetRoomDisplayNameError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         ChatServiceRpc.SetDisplayNameResponse.Result.CANT_SET -> {
                             val error =
-                                SetDisplayNameError.CantSet(response.alternateSuggestionsList.toList())
+                                SetRoomDisplayNameError.CantSet(response.alternateSuggestionsList.toList())
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         else -> {
-                            val error = SetDisplayNameError.Other()
+                            val error = SetRoomDisplayNameError.Other()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                     }
                 }.first()
         } catch (e: Exception) {
-            val error = SetDisplayNameError.Other(cause = e)
+            val error = SetRoomDisplayNameError.Other(cause = e)
             Result.failure(error)
         }
     }
@@ -607,105 +607,104 @@ internal class ChatService @Inject constructor(
             }
         }
     }
+}
 
+sealed class StartChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class UserNotFound : StartChatError()
+    class Denied : StartChatError()
+    class Unrecognized : StartChatError()
+    data class Other(override val cause: Throwable? = null) : StartChatError(cause = cause)
+}
 
-    sealed class StartChatError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class UserNotFound : StartChatError()
-        class Denied : StartChatError()
-        class Unrecognized : StartChatError()
-        data class Other(override val cause: Throwable? = null) : StartChatError(cause = cause)
-    }
+sealed class GetChatsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : GetChatsError()
+    data class Other(override val cause: Throwable? = null) : GetChatsError(cause = cause)
+}
 
-    sealed class GetChatsError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : GetChatsError()
-        data class Other(override val cause: Throwable? = null) : GetChatsError(cause = cause)
-    }
+sealed class JoinChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : JoinChatError()
+    class Denied : JoinChatError()
+    data class Other(override val cause: Throwable? = null) : JoinChatError(cause = cause)
+}
 
-    sealed class JoinChatError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : JoinChatError()
-        class Denied : JoinChatError()
-        data class Other(override val cause: Throwable? = null) : JoinChatError(cause = cause)
-    }
+sealed class LeaveChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : LeaveChatError()
+    data class Other(override val cause: Throwable? = null) : LeaveChatError(cause = cause)
+}
 
-    sealed class LeaveChatError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : LeaveChatError()
-        data class Other(override val cause: Throwable? = null) : LeaveChatError(cause = cause)
-    }
+sealed class MuteChatStateError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : MuteChatStateError()
+    class Denied : MuteChatStateError()
+    data class Other(override val cause: Throwable? = null) : MuteChatStateError(cause = cause)
+}
 
-    sealed class MuteChatStateError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : MuteChatStateError()
-        class Denied : MuteChatStateError()
-        data class Other(override val cause: Throwable? = null) : MuteChatStateError(cause = cause)
-    }
+sealed class SetRoomDisplayNameError(
+    open val alternateSuggestions: List<String> = emptyList(),
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    data class CantSet(override val alternateSuggestions: List<String>) :
+        SetRoomDisplayNameError(alternateSuggestions)
 
-    sealed class SetDisplayNameError(
-        open val alternateSuggestions: List<String> = emptyList(),
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        data class CantSet(override val alternateSuggestions: List<String>) :
-            SetDisplayNameError(alternateSuggestions)
+    class Denied : SetRoomDisplayNameError()
+    data class Other(override val cause: Throwable? = null) : SetRoomDisplayNameError(cause = cause)
+}
 
-        class Denied : SetDisplayNameError()
-        data class Other(override val cause: Throwable? = null) : SetDisplayNameError(cause = cause)
-    }
+sealed class GetChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class NotFound : GetChatError()
+    class Unrecognized : GetChatError()
+    data class Other(override val cause: Throwable? = null) : GetChatError(cause = cause)
+}
 
-    sealed class GetChatError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class NotFound : GetChatError()
-        class Unrecognized : GetChatError()
-        data class Other(override val cause: Throwable? = null) : GetChatError(cause = cause)
-    }
+sealed class CoverChargeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : CoverChargeError()
+    class Denied : CoverChargeError()
+    class CantSet : CoverChargeError()
+    data class Other(override val cause: Throwable? = null) : CoverChargeError(cause = cause)
+}
 
-    sealed class CoverChargeError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : CoverChargeError()
-        class Denied : CoverChargeError()
-        class CantSet : CoverChargeError()
-        data class Other(override val cause: Throwable? = null) : CoverChargeError(cause = cause)
-    }
+sealed class RemoveUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : RemoveUserError()
+    class Denied : RemoveUserError()
+    data class Other(override val cause: Throwable? = null) : RemoveUserError(cause = cause)
+}
 
-    sealed class RemoveUserError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : RemoveUserError()
-        class Denied : RemoveUserError()
-        data class Other(override val cause: Throwable? = null) : RemoveUserError(cause = cause)
-    }
+sealed class MuteUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : MuteUserError()
+    data class Other(override val cause: Throwable? = null) : MuteUserError(cause = cause)
+}
 
-    sealed class MuteUserError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : MuteUserError()
-        data class Other(override val cause: Throwable? = null) : MuteUserError(cause = cause)
-    }
-
-    sealed class ReportUserError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : ReportUserError()
-        data class Other(override val cause: Throwable? = null) : ReportUserError(cause = cause)
-    }
+sealed class ReportUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : ReportUserError()
+    data class Other(override val cause: Throwable? = null) : ReportUserError(cause = cause)
 }

@@ -7,7 +7,6 @@ import com.bugsnag.android.Bugsnag
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.ID
 import xyz.flipchat.app.util.AccountUtils
-import xyz.flipchat.app.util.TokenResult
 import com.getcode.services.db.Database
 import com.getcode.services.utils.token
 import com.getcode.utils.ErrorUtils
@@ -23,11 +22,10 @@ import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import xyz.flipchat.FlipchatServices
 import xyz.flipchat.app.BuildConfig
-import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.util.UserIdResult
 import xyz.flipchat.controllers.AuthController
 import xyz.flipchat.controllers.ProfileController
@@ -44,7 +42,7 @@ class AuthManager @Inject constructor(
     private val profileController: ProfileController,
     private val userManager: UserManager,
     private val pushController: PushController,
-    private val betaFlags: BetaFlags,
+    private val betaFlags: Labs,
     private val notificationManager: NotificationManagerCompat,
 //    private val balanceController: BalanceController,
 //    private val notificationCollectionHistory: NotificationCollectionHistoryController,

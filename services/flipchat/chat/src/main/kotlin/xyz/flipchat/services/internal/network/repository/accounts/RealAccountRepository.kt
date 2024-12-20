@@ -7,6 +7,7 @@ import xyz.flipchat.services.data.PaymentTarget
 import xyz.flipchat.services.user.UserFlags
 import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.service.AccountService
+import xyz.flipchat.services.internal.network.service.RegisterError
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,7 +28,7 @@ internal class RealAccountRepository @Inject constructor(
     }
 
     @Deprecated("Being replaced with a delayed account creation flow")
-    @Throws(AccountService.RegisterError::class, IllegalStateException::class)
+    @Throws(RegisterError::class, IllegalStateException::class)
     override suspend fun register(displayName: String): Result<ID> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         return service.register(

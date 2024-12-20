@@ -10,7 +10,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.modal.FullScreenModalScreen
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.keyboardAsState
@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class RegisterModalScreen : ModalScreen, Parcelable {
+class RegisterModalScreen : FullScreenModalScreen, Parcelable {
 
     @Composable
     override fun ModalContent() {

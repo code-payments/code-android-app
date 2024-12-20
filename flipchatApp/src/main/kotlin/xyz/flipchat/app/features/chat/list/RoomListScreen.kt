@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +32,6 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.model.ID
@@ -49,20 +46,17 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
-import io.grpc.Status.Code
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
 
 @Parcelize
-class ChatListScreen : AppScreen(), NamedScreen, Parcelable {
+class RoomListScreen : AppScreen(), NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -77,7 +71,7 @@ class ChatListScreen : AppScreen(), NamedScreen, Parcelable {
         ChatListScreenContent(
             viewModel = viewModel,
             openChat = {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it)))
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(chatId = it)))
             }
         )
 
@@ -100,7 +94,7 @@ class ChatListScreen : AppScreen(), NamedScreen, Parcelable {
             viewModel.eventFlow
                 .filterIsInstance<ChatListViewModel.Event.OpenRoom>()
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it.roomId)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(it.roomId)))
                 }.launchIn(this)
         }
     }

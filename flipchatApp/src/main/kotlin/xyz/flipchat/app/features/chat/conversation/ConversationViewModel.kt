@@ -58,8 +58,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.app.R
-import xyz.flipchat.app.beta.BetaFlag
-import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
@@ -90,7 +90,7 @@ class ConversationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
     clipboardManager: ClipboardManager,
-    betaFeatures: BetaFlags,
+    betaFeatures: Labs,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -220,11 +220,11 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnSelfChanged(id, displayName))
             }.launchIn(viewModelScope)
 
-        betaFeatures.observe(BetaFlag.ReplyToMessage)
+        betaFeatures.observe(Lab.ReplyToMessage)
             .onEach { dispatchEvent(Event.OnReplyEnabled(it)) }
             .launchIn(viewModelScope)
 
-        betaFeatures.observe(BetaFlag.StartChatAtUnread)
+        betaFeatures.observe(Lab.StartChatAtUnread)
             .onEach { dispatchEvent(Event.OnStartAtUnread(it)) }
             .launchIn(viewModelScope)
 

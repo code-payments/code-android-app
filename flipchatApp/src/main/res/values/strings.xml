@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="subtitle_yourName">Your Name</string>
+    <string name="subtitle_roomName">Room Name</string>
 
     <string name="action_nevermind">Nevermind</string>
 
@@ -60,6 +61,12 @@
 
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
     <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
+
+    <string name="error_title_failedToChangeRoomNameBecauseInappropriate">Inappropriate Room Name</string>
+    <string name="error_description_failedToChangeRoomNameBecauseInappropriate">Room names need to be appropriate for all ages</string>
+
+    <string name="error_title_failedToChangeRoomNameOtherReason">Something Went Wrong</string>
+    <string name="error_description_failedToChangeRoomNameOtherReason">We were unable to change the room name at this time. Please try again later</string>
 
 
     <string name="title_connectYourX">Connect Your X</string>
@@ -137,8 +144,10 @@
         <item quantity="other">@string/title_conversationMemberCountMany</item>
     </plurals>
 
+    <string name="action_save">Save</string>
     <string name="action_saveChanges">Save Changes</string>
     <string name="subtitle_displayNameHint">This is how you\’ll show up in chats</string>
+    <string name="subtitle_roomNameHint">Enter a name appropriate for all ages</string>
 
     <string name="title_youHaveBeenMuted">You\'ve been muted</string>
 
@@ -169,6 +178,9 @@
     <string name="title_finalizeAccountCreation">Finalize Account Creation</string>
     <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
     <string name="action_changeCoverCharge">Change Cover Charge</string>
+    <string name="action_addRoomName">Add Room Name</string>
+    <string name="action_editRoomName">Edit Room Name</string>
+    <string name="action_customize">Customize</string>
     <string name="action_leaveRoom">Leave Room</string>
 
     <string name="action_deleteMyAccount">Delete My Account</string>

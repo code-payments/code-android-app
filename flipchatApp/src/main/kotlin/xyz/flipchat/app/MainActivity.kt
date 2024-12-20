@@ -25,8 +25,8 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.compose.ext.Rinku
-import xyz.flipchat.app.beta.BetaFlags
-import xyz.flipchat.app.ui.LocalBetaFeatures
+import xyz.flipchat.app.beta.Labs
+import xyz.flipchat.app.ui.LocalLabs
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.billing.BillingClient
@@ -63,7 +63,7 @@ class MainActivity : FragmentActivity() {
     lateinit var paymentController: PaymentController
 
     @Inject
-    lateinit var betaFeatures: BetaFlags
+    lateinit var betaFeatures: Labs
 
     @Inject
     lateinit var iapController: BillingClient
@@ -82,7 +82,7 @@ class MainActivity : FragmentActivity() {
                 LocalVibrator provides vibrator,
                 LocalUserManager provides userManager,
                 LocalPaymentController provides paymentController,
-                LocalBetaFeatures provides betaFeatures,
+                LocalLabs provides betaFeatures,
                 LocalBillingClient provides iapController
             ) {
                 Rinku {

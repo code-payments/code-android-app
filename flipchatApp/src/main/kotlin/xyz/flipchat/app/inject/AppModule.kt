@@ -29,8 +29,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import xyz.flipchat.app.BuildConfig
-import xyz.flipchat.app.beta.BetaFlagController
-import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.beta.LabsController
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.util.AndroidLocale
 import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
@@ -145,7 +145,7 @@ object AppModule {
     @Provides
     fun providesBetaController(
         @ApplicationContext context: Context
-    ): BetaFlags = BetaFlagController(context)
+    ): Labs = LabsController(context)
 
     @Singleton
     @Provides

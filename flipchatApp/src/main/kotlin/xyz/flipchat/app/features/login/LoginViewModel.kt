@@ -12,17 +12,16 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
-import xyz.flipchat.app.beta.BetaFlag
-import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.chat.lookup.confirm.LoadingSuccessState
-import xyz.flipchat.app.features.login.register.onResult
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
-    betaFlags: BetaFlags,
+    betaFlags: Labs,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -44,7 +43,7 @@ class LoginViewModel @Inject constructor(
     }
 
     init {
-        betaFlags.observe(BetaFlag.FollowerMode)
+        betaFlags.observe(Lab.FollowerMode)
             .onEach { dispatchEvent(Event.OnFollowerModeEnabled(it)) }
             .launchIn(viewModelScope)
 

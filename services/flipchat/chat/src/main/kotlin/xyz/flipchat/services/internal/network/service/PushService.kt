@@ -101,21 +101,21 @@ internal class PushService @Inject constructor(
             Result.failure(error)
         }
     }
+}
 
-    internal sealed class AddTokenError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class InvalidPushToken : AddTokenError()
-        class Unrecognized : AddTokenError()
-        data class Other(override val cause: Throwable? = null) : AddTokenError(cause = cause)
-    }
+sealed class AddTokenError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class InvalidPushToken : AddTokenError()
+    class Unrecognized : AddTokenError()
+    data class Other(override val cause: Throwable? = null) : AddTokenError(cause = cause)
+}
 
-    internal sealed class DeleteTokenError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : DeleteTokenError()
-        data class Other(override val cause: Throwable? = null) : DeleteTokenError(cause = cause)
-    }
+sealed class DeleteTokenError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : DeleteTokenError()
+    data class Other(override val cause: Throwable? = null) : DeleteTokenError(cause = cause)
 }
