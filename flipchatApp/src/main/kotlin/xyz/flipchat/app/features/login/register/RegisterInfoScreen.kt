@@ -29,7 +29,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.modal.FullScreenModalScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -46,8 +46,7 @@ import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 @Parcelize
-class RegisterInfoScreen : ModalScreen, Parcelable {
-
+class RegisterInfoScreen : FullScreenModalScreen, Parcelable {
 
     @Composable
     override fun ModalContent() {

@@ -255,6 +255,26 @@ class RoomController @Inject constructor(
         return chatRepository.muteUser(chatId, userId)
     }
 
+    suspend fun blockUser(
+        userId: ID,
+    ): Result<Unit> {
+        withContext(Dispatchers.IO) {
+            db.conversationMembersDao().blockMember(userId)
+        }
+
+        return Result.success(Unit)
+    }
+
+    suspend fun unblockUser(
+        userId: ID,
+    ): Result<Unit> {
+        withContext(Dispatchers.IO) {
+            db.conversationMembersDao().unblockMember(userId)
+        }
+
+        return Result.success(Unit)
+    }
+
     suspend fun setCoverCharge(
         conversationId: ID,
         amount: KinAmount

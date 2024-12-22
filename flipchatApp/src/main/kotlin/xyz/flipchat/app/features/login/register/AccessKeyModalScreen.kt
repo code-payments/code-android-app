@@ -13,20 +13,16 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.ui.components.AppBarDefaults
+import com.getcode.navigation.modal.FullScreenModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.DisableSheetGestures
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreenContent
 import xyz.flipchat.app.features.login.accesskey.LoginAccessKeyViewModel
-import xyz.flipchat.app.ui.LocalUserManager
 
 @Parcelize
-class AccessKeyModalScreen : ModalScreen, Parcelable {
+class AccessKeyModalScreen : FullScreenModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey

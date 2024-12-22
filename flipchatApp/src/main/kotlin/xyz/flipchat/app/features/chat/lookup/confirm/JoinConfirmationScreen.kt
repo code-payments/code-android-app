@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,7 +20,6 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.model.Currency
 import xyz.flipchat.app.features.home.TabbedHomeScreen
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.NavScreenProvider
@@ -33,9 +31,6 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.resources.LocalResources
-import com.getcode.utils.Kin
-import com.getcode.utils.formatAmountString
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -64,7 +59,7 @@ data class JoinConfirmationScreen(val args: RoomInfoArgs, val returnToSender: Bo
                 .filterIsInstance<JoinConfirmationViewModel.Event.OnBecameMember>()
                 .map { it.roomId }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(it)))
                 }.launchIn(this)
         }
 

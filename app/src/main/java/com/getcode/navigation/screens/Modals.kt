@@ -33,13 +33,10 @@ import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.keyboardAsState
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.navigation.modal.ModalHeightMetric
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-sealed interface ModalHeightMetric {
-    data class Weight(val weight: Float) : ModalHeightMetric
-    data object WrapContent : ModalHeightMetric
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

@@ -17,11 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import xyz.flipchat.app.beta.BetaFlag
-import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.controllers.ChatsController
-import xyz.flipchat.services.data.Room
-import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.extensions.titleOrFallback
 import javax.inject.Inject
 

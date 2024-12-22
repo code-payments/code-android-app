@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircleOutline
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,7 +34,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.modal.FullScreenModalScreen
 import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -70,7 +68,8 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
-class PurchaseAccountScreen : ModalScreen, Parcelable {
+class PurchaseAccountScreen : FullScreenModalScreen, Parcelable {
+
     @Composable
     override fun ModalContent() {
         Column {

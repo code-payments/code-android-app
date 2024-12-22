@@ -4,16 +4,17 @@ import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import xyz.flipchat.app.features.balance.BalanceScreen
 import xyz.flipchat.app.features.chat.conversation.ConversationScreen
-import xyz.flipchat.app.features.chat.list.ChatListScreen
+import xyz.flipchat.app.features.chat.list.RoomListScreen
 import xyz.flipchat.app.features.home.TabbedHomeScreen
 import xyz.flipchat.app.features.login.LoginScreen
 import xyz.flipchat.app.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
 import xyz.flipchat.app.features.beta.BetaFlagsScreen
 import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
-import xyz.flipchat.app.features.chat.info.ChatInfoScreen
+import xyz.flipchat.app.features.chat.info.RoomInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
 import xyz.flipchat.app.features.chat.lookup.confirm.JoinConfirmationScreen
+import xyz.flipchat.app.features.chat.name.RoomNameScreen
 import xyz.flipchat.app.features.login.register.AccessKeyModalScreen
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
 import xyz.flipchat.app.features.login.accesskey.SeedInputScreen
@@ -70,31 +71,35 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             TabbedHomeScreen(it.deeplink)
         }
 
-        register<NavScreenProvider.Chat.List> {
-            ChatListScreen()
+        register<NavScreenProvider.Room.List> {
+            RoomListScreen()
         }
 
-        register<NavScreenProvider.Chat.Lookup.Entry> {
+        register<NavScreenProvider.Room.Lookup.Entry> {
             LookupRoomScreen()
         }
 
-        register<NavScreenProvider.Chat.Lookup.Confirm> {
+        register<NavScreenProvider.Room.Lookup.Confirm> {
             JoinConfirmationScreen(it.args, it.returnToSender)
         }
 
-        register<NavScreenProvider.Chat.Conversation> {
+        register<NavScreenProvider.Room.Messages> {
             ConversationScreen(
                 chatId = it.chatId,
                 intentId = it.intentId,
             )
         }
 
-        register<NavScreenProvider.Chat.Info> {
-            ChatInfoScreen(it.args)
+        register<NavScreenProvider.Room.Info> {
+            RoomInfoScreen(it.args)
         }
 
-        register<NavScreenProvider.Chat.ChangeCover> {
+        register<NavScreenProvider.Room.ChangeCover> {
             CoverChargeScreen(it.id)
+        }
+
+        register<NavScreenProvider.Room.ChangeName> {
+            RoomNameScreen(it.id, it.title)
         }
 
         register<NavScreenProvider.Settings> {

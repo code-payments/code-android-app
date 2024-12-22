@@ -23,8 +23,8 @@ import com.getcode.ui.components.SettingsSwitchRow
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
-import xyz.flipchat.app.beta.BetaFlag
-import xyz.flipchat.app.ui.LocalBetaFeatures
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.ui.LocalLabs
 
 @Parcelize
 class BetaFlagsScreen : Screen, Parcelable {
@@ -52,7 +52,7 @@ class BetaFlagsScreen : Screen, Parcelable {
 
 @Composable
 private fun BetaFlagsScreenContent() {
-    val betaFlagsController = LocalBetaFeatures.current
+    val betaFlagsController = LocalLabs.current
     val betaFlags by betaFlagsController.observe().collectAsState()
 
     LazyColumn(
@@ -97,16 +97,18 @@ private fun BetaFlagsScreenContent() {
     }
 }
 
-private val BetaFlag.title: String
+private val Lab.title: String
     get() = when (this) {
-        BetaFlag.FollowerMode -> "Follower Mode"
-        BetaFlag.ReplyToMessage -> "Swipe To Reply"
-        BetaFlag.StartChatAtUnread -> "Open Conversation @ Last Unread"
+        Lab.FollowerMode -> "Follower Mode"
+        Lab.ReplyToMessage -> "Swipe To Reply"
+        Lab.StartChatAtUnread -> "Open Conversation @ Last Unread"
+        Lab.RoomNameChanges -> "Room Name Changes For Hosts"
     }
 
-private val BetaFlag.message: String
+private val Lab.message: String
     get() = when (this) {
-        BetaFlag.FollowerMode -> "When enabled, you will gain the ability to watch rooms without joining first"
-        BetaFlag.ReplyToMessage -> "When enabled, you will gain the ability to swipe to reply to messages in chat"
-        BetaFlag.StartChatAtUnread -> "When enabled, conversations will resume at the last message you read"
+        Lab.FollowerMode -> "When enabled, you will gain the ability to watch rooms without joining first"
+        Lab.ReplyToMessage -> "When enabled, you will gain the ability to swipe to reply to messages in chat"
+        Lab.StartChatAtUnread -> "When enabled, conversations will resume at the last message you read"
+        Lab.RoomNameChanges -> "When enabled, hosts will gain the ability to set a desired name for their room"
     }

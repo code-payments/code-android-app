@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.filterNot
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID) : MessageListEvent
     data class OpenMessageActions(val actions: List<MessageControlAction>) : MessageListEvent
-    data class OnMarkupEvent(val markup: Markup) : MessageListEvent
+    data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID) : MessageListEvent
 }
@@ -148,7 +148,7 @@ fun MessageList(
                             isNextGrouped = isNextGrouped,
                             isInteractive = item.messageControls.hasAny,
                             canReplyTo = item.enableReply,
-                            onMarkupClicked = if (item.enableMarkup) { markup: Markup ->
+                            onMarkupClicked = if (item.enableMarkup) { markup: Markup.Interactive ->
                                 dispatch(MessageListEvent.OnMarkupEvent(markup))
                             } else null,
                             contentStyle = contentStyle,

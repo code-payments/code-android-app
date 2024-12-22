@@ -17,18 +17,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.runtime.Composable
@@ -44,7 +40,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -63,10 +58,8 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.messagecontents.MessageReplyPreview
 import com.getcode.ui.components.chat.utils.ChatItem
-import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.unboundedClickable
@@ -134,7 +127,7 @@ data class ConversationScreen(
                 .filterIsInstance<ConversationViewModel.Event.OpenRoom>()
                 .map { it.roomId }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(it)))
                 }.launchIn(this)
         }
 
@@ -145,7 +138,7 @@ data class ConversationScreen(
                 .onEach {
                     navigator.push(
                         ScreenRegistry.get(
-                            NavScreenProvider.Chat.Lookup.Confirm(args = it, returnToSender = true)
+                            NavScreenProvider.Room.Lookup.Confirm(args = it, returnToSender = true)
                         )
                     )
                 }.launchIn(this)
@@ -195,7 +188,7 @@ data class ConversationScreen(
                 }
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.Chat.Info(
+                        NavScreenProvider.Room.Info(
                             state.roomInfoArgs
                         )
                     )

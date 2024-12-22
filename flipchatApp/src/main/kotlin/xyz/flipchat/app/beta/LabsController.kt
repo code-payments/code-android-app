@@ -20,48 +20,54 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface BetaFlag {
+sealed interface Lab {
     val key: String
     val default: Boolean
     val launched: Boolean
 
-    data object ReplyToMessage : BetaFlag {
+    data object ReplyToMessage : Lab {
         override val key = "pref_reply_enabled"
         override val default: Boolean = true
         override val launched: Boolean = true
     }
 
-    data object FollowerMode : BetaFlag {
+    data object FollowerMode : Lab {
         override val key: String = "pref_follower_mode_enabled"
         override val default: Boolean = true
         override val launched: Boolean = true
     }
 
-    data object StartChatAtUnread : BetaFlag {
+    data object StartChatAtUnread : Lab {
         override val key: String = "pref_start_at_unread_enabled"
         override val default: Boolean = true
         override val launched: Boolean = true
     }
 
+    data object RoomNameChanges : Lab {
+        override val key: String = "pref_room_name_changes_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
-        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread)
-        internal fun byKey(key: Preferences.Key<*>): BetaFlag? {
+        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread, RoomNameChanges)
+        internal fun byKey(key: Preferences.Key<*>): Lab? {
             return entries.firstOrNull { it.key == key.name }
         }
     }
 }
 
 data class BetaFeature(
-    val flag: BetaFlag,
+    val flag: Lab,
     val enabled: Boolean,
 )
 
-private val BetaFlag.preferenceKey
+private val Lab.preferenceKey
     get() = booleanPreferencesKey(key)
 
-class BetaFlagController @Inject constructor(
+class LabsController @Inject constructor(
     @ApplicationContext context: Context,
-) : BetaFlags {
+) : Labs {
     private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val betaFlags = PreferenceDataStoreFactory.create(
@@ -75,12 +81,12 @@ class BetaFlagController @Inject constructor(
 
     init {
         // reset launched flags
-        BetaFlag.entries
+        Lab.entries
             .filter { it.launched }
             .onEach { reset(it) }
     }
 
-    override fun set(flag: BetaFlag, value: Boolean) {
+    override fun set(flag: Lab, value: Boolean) {
         dataScope.launch(Dispatchers.IO) {
             betaFlags.edit { prefs ->
                 prefs[flag.preferenceKey] = value
@@ -88,20 +94,20 @@ class BetaFlagController @Inject constructor(
         }
     }
 
-    override suspend fun get(flag: BetaFlag): Boolean {
+    override suspend fun get(flag: Lab): Boolean {
         return betaFlags.data.map { prefs ->
             if (flag.launched) return@map flag.default
             prefs[flag.preferenceKey] ?: flag.default
         }.firstOrNull() ?: flag.default
     }
 
-    override fun observe(flag: BetaFlag): StateFlow<Boolean> = betaFlags.data.map { prefs ->
+    override fun observe(flag: Lab): StateFlow<Boolean> = betaFlags.data.map { prefs ->
         if (flag.launched) return@map flag.default
         prefs[flag.preferenceKey] ?: flag.default
     }.stateIn(dataScope, started = SharingStarted.Eagerly, flag.default)
 
     override fun observe(): StateFlow<List<BetaFeature>> = betaFlags.data.map { prefs ->
-        BetaFlag.entries.filterNot { it.launched }.map {
+        Lab.entries.filterNot { it.launched }.map {
             val value = if (it.launched) {
                 it.default
             } else {
@@ -113,10 +119,10 @@ class BetaFlagController @Inject constructor(
     }.stateIn(
         dataScope,
         started = SharingStarted.Eagerly,
-        BetaFlag.entries.map { BetaFeature(it, it.default) }
+        Lab.entries.map { BetaFeature(it, it.default) }
     )
 
-    override fun reset(flag: BetaFlag) {
+    override fun reset(flag: Lab) {
         dataScope.launch {
             betaFlags.edit { it.remove(flag.preferenceKey) }
         }

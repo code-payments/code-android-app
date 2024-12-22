@@ -58,8 +58,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.app.R
-import xyz.flipchat.app.beta.BetaFlag
-import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
@@ -90,7 +90,7 @@ class ConversationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
     clipboardManager: ClipboardManager,
-    betaFeatures: BetaFlags,
+    betaFeatures: Labs,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -197,6 +197,8 @@ class ConversationViewModel @Inject constructor(
         data class RemoveUser(val conversationId: ID, val userId: ID) : Event
         data class ReportUser(val userId: ID, val messageId: ID) : Event
         data class MuteUser(val conversationId: ID, val userId: ID) : Event
+        data class BlockUser(val userId: ID) : Event
+        data class UnblockUser(val userId: ID) : Event
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
@@ -220,11 +222,11 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnSelfChanged(id, displayName))
             }.launchIn(viewModelScope)
 
-        betaFeatures.observe(BetaFlag.ReplyToMessage)
+        betaFeatures.observe(Lab.ReplyToMessage)
             .onEach { dispatchEvent(Event.OnReplyEnabled(it)) }
             .launchIn(viewModelScope)
 
-        betaFeatures.observe(BetaFlag.StartChatAtUnread)
+        betaFeatures.observe(Lab.StartChatAtUnread)
             .onEach { dispatchEvent(Event.OnStartAtUnread(it)) }
             .launchIn(viewModelScope)
 
@@ -518,6 +520,38 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.BlockUser>()
+            .map { it.userId }
+            .map { roomController.blockUser(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToBlockUser),
+                            message = resources.getString(R.string.error_description_failedToBlockUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.UnblockUser>()
+            .map { it.userId }
+            .map { roomController.unblockUser(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToUnblockUser),
+                            message = resources.getString(R.string.error_description_failedToUnblockUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.CopyMessage>()
             .map { it.text }
             .onEach {
@@ -687,6 +721,7 @@ class ConversationViewModel @Inject constructor(
                                 },
                                 displayName = it.member?.memberName ?: "Deleted",
                                 isSelf = it.content.isFromSelf,
+                                isBlocked = it.member?.isBlocked == true,
                                 isHost = it.message.senderId == currentState.hostId && !contents.isFromSelf,
                             )
                         )
@@ -711,6 +746,7 @@ class ConversationViewModel @Inject constructor(
                         displayName = member?.memberName ?: "Deleted",
                         isSelf = contents.isFromSelf,
                         isHost = message.senderId == currentState.hostId && !contents.isFromSelf,
+                        isBlocked = member?.isBlocked == true,
                     ),
                     originalMessage = anchor,
                     messageControls = MessageControls(
@@ -777,6 +813,7 @@ class ConversationViewModel @Inject constructor(
                             displayName = member?.memberName ?: "Deleted",
                             isSelf = contents.isFromSelf,
                             isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
+                            isBlocked = member?.isBlocked == true
                         )
                         val anchor = MessageReplyAnchor(message.id, sender, contents)
                         dispatchEvent(Event.ReplyTo(anchor))
@@ -824,6 +861,25 @@ class ConversationViewModel @Inject constructor(
             }
 
             if (!contents.isFromSelf) {
+                if (member?.isBlocked != null) {
+                    if (member.isBlocked) {
+                        add(
+                            MessageControlAction.UnblockUser(member.memberName.orEmpty()) {
+                                dispatchEvent(Event.UnblockUser(member.id))
+                            }
+                        )
+                    } else {
+                        add(
+                            MessageControlAction.BlockUser(member.memberName.orEmpty()) {
+                                confirmUserBlock(
+                                    user = member.memberName,
+                                    userId = message.senderId,
+                                )
+                            }
+                        )
+                    }
+                }
+
                 add(
                     MessageControlAction.ReportUserForMessage(member?.memberName.orEmpty()) {
                         confirmUserReport(
@@ -878,6 +934,25 @@ class ConversationViewModel @Inject constructor(
                 negativeText = "",
                 tertiaryText = resources.getString(R.string.action_cancel),
                 onPositive = { dispatchEvent(Event.MuteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserBlock(user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_blockUserInRoom,
+                    user.orEmpty().ifEmpty { "User" },
+                ),
+                subtitle = resources.getString(R.string.subtitle_blockUserInRoom, user.orEmpty()),
+                positiveText = resources.getString(R.string.action_blockUser, user.orEmpty()),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.BlockUser(userId)) },
                 onNegative = { },
                 type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                 showScrim = true,
@@ -1011,6 +1086,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.RemoveUser,
                 is Event.ReportUser,
                 is Event.MuteUser,
+                is Event.BlockUser,
+                is Event.UnblockUser,
                 is Event.Resumed,
                 is Event.Stopped,
                 is Event.LookupRoom,

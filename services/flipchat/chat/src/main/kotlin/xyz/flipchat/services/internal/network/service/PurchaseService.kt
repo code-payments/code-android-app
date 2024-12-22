@@ -48,14 +48,14 @@ internal class PurchaseService @Inject constructor(
             Result.failure(error)
         }
     }
+}
 
-    sealed class PurchaseAckError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : PurchaseAckError()
-        class Denied : PurchaseAckError()
-        class InvalidReceipt: PurchaseAckError()
-        data class Other(override val cause: Throwable? = null) : PurchaseAckError(cause = cause)
-    }
+sealed class PurchaseAckError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : PurchaseAckError()
+    class Denied : PurchaseAckError()
+    class InvalidReceipt: PurchaseAckError()
+    data class Other(override val cause: Throwable? = null) : PurchaseAckError(cause = cause)
 }

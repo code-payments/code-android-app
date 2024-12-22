@@ -369,41 +369,41 @@ internal class MessagingService @Inject constructor(
             }
         }
     }
+}
 
-    sealed class GetMessagesError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : GetMessagesError()
-        class Denied : GetMessagesError()
-        data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
-    }
+sealed class GetMessagesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : GetMessagesError()
+    class Denied : GetMessagesError()
+    data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
+}
 
-    sealed class AdvancePointerError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : AdvancePointerError()
-        class Denied : AdvancePointerError()
-        data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
-    }
+sealed class AdvancePointerError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : AdvancePointerError()
+    class Denied : AdvancePointerError()
+    data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
+}
 
-    sealed class TypingChangeError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : AdvancePointerError()
-        class Denied : AdvancePointerError()
-        data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
-    }
+sealed class TypingChangeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : AdvancePointerError()
+    class Denied : AdvancePointerError()
+    data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
+}
 
-    sealed class SendMessageError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : GetMessagesError()
-        class Denied : GetMessagesError()
-        class InvalidContentType : GetMessagesError()
-        data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
-    }
+sealed class SendMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : GetMessagesError()
+    class Denied : GetMessagesError()
+    class InvalidContentType : GetMessagesError()
+    data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
 }

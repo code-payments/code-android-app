@@ -170,45 +170,45 @@ internal class AccountService @Inject constructor(
             Result.failure(error)
         }
     }
+}
 
-    sealed class LoginError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        data class InvalidTimestamp(override val message: String) : LoginError(message)
-        data class NotFound(override val message: String) : LoginError(message)
-        data class Denied(override val message: String) : LoginError(message)
-        data class Unrecognized(override val message: String) : LoginError(message)
-        data class Other(override val message: String, override val cause: Throwable? = null) :
-            LoginError(message, cause)
-    }
+sealed class LoginError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    data class InvalidTimestamp(override val message: String) : LoginError(message)
+    data class NotFound(override val message: String) : LoginError(message)
+    data class Denied(override val message: String) : LoginError(message)
+    data class Unrecognized(override val message: String) : LoginError(message)
+    data class Other(override val message: String, override val cause: Throwable? = null) :
+        LoginError(message, cause)
+}
 
-    sealed class RegisterError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        data class InvalidSignature(override val message: String) : RegisterError(message)
-        data class InvalidDisplayName(override val message: String) : RegisterError(message)
-        data class Unrecognized(override val message: String) : RegisterError(message)
-        data class Other(override val message: String, override val cause: Throwable? = null) :
-            RegisterError(message)
-    }
+sealed class RegisterError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    data class InvalidSignature(override val message: String) : RegisterError(message)
+    data class InvalidDisplayName(override val message: String) : RegisterError(message)
+    data class Unrecognized(override val message: String) : RegisterError(message)
+    data class Other(override val message: String, override val cause: Throwable? = null) :
+        RegisterError(message)
+}
 
-    sealed class GetPaymentDestinationError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : GetPaymentDestinationError()
-        class NotFound : GetPaymentDestinationError()
-        data class Other(override val cause: Throwable? = null) : GetPaymentDestinationError()
-    }
+sealed class GetPaymentDestinationError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : GetPaymentDestinationError()
+    class NotFound : GetPaymentDestinationError()
+    data class Other(override val cause: Throwable? = null) : GetPaymentDestinationError()
+}
 
-    sealed class GetUserFlagsError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class Unrecognized : GetUserFlagsError()
-        class Denied : GetUserFlagsError()
-        data class Other(override val cause: Throwable? = null) : GetUserFlagsError()
-    }
+sealed class GetUserFlagsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : GetUserFlagsError()
+    class Denied : GetUserFlagsError()
+    data class Other(override val cause: Throwable? = null) : GetUserFlagsError()
 }

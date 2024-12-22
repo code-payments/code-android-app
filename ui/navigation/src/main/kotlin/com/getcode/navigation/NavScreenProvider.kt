@@ -26,7 +26,7 @@ sealed class NavScreenProvider : ScreenProvider {
     }
 
     data class AppHomeScreen(val deeplink: DeepLink? = null) : NavScreenProvider()
-    sealed class Chat {
+    sealed class Room {
         data object List : NavScreenProvider()
         sealed class Lookup {
             data object Entry : NavScreenProvider()
@@ -36,7 +36,7 @@ sealed class NavScreenProvider : ScreenProvider {
             ) : NavScreenProvider()
         }
 
-        data class Conversation(
+        data class Messages(
             val chatId: ID? = null,
             val intentId: ID? = null
         ) : NavScreenProvider()
@@ -48,6 +48,11 @@ sealed class NavScreenProvider : ScreenProvider {
         data class ChangeCover(
             val id: ID
         ) : NavScreenProvider()
+
+        data class ChangeName(
+            val id: ID,
+            val title: String,
+        ): NavScreenProvider()
     }
 
     data object Balance : NavScreenProvider()

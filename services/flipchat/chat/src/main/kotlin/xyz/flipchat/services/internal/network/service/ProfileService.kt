@@ -52,43 +52,43 @@ internal class ProfileService @Inject constructor(
                     when (it.result) {
                         ProfileService.SetDisplayNameResponse.Result.OK -> Result.success(Unit)
                         ProfileService.SetDisplayNameResponse.Result.INVALID_DISPLAY_NAME -> {
-                            val error = SetDisplayNameError.InvalidDisplayName()
+                            val error = SetUserDisplayNameError.InvalidDisplayName()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                         ProfileService.SetDisplayNameResponse.Result.UNRECOGNIZED -> {
-                            val error = SetDisplayNameError.Unrecognized()
+                            val error = SetUserDisplayNameError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                         else -> {
-                            val error = SetDisplayNameError.Other()
+                            val error = SetUserDisplayNameError.Other()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                     }
                 }.first()
         } catch (e: Exception) {
-            val error = SetDisplayNameError.Other(cause = e)
+            val error = SetUserDisplayNameError.Other(cause = e)
             Result.failure(error)
         }
     }
+}
 
-    internal sealed class GetProfileError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class NotFound : GetProfileError()
-        class Unrecognized : GetProfileError()
-        data class Other(override val cause: Throwable? = null) : GetProfileError(cause = cause)
-    }
+sealed class GetProfileError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class NotFound : GetProfileError()
+    class Unrecognized : GetProfileError()
+    data class Other(override val cause: Throwable? = null) : GetProfileError(cause = cause)
+}
 
-    internal sealed class SetDisplayNameError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : FlipchatServerError(message, cause) {
-        class InvalidDisplayName : SetDisplayNameError()
-        class Unrecognized : SetDisplayNameError()
-        data class Other(override val cause: Throwable? = null) : SetDisplayNameError(cause = cause)
-    }
+sealed class SetUserDisplayNameError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class InvalidDisplayName : SetUserDisplayNameError()
+    class Unrecognized : SetUserDisplayNameError()
+    data class Other(override val cause: Throwable? = null) : SetUserDisplayNameError(cause = cause)
 }

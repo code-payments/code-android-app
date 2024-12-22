@@ -6,6 +6,8 @@ import java.util.UUID
 
 typealias ID = List<Byte>
 
+val NoId: ID = emptyList()
+
 val ID.uuid: UUID?
     get() {
         if (size != 16) return null

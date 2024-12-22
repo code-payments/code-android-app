@@ -19,6 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
@@ -26,6 +30,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
+import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
@@ -46,6 +51,7 @@ internal fun MessageNodeScope.MessageReplyContent(
     shape: Shape = MessageNodeDefaults.DefaultShape,
     options: MessageNodeOptions,
     isFromSelf: Boolean,
+    isFromBlockedMember: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showControls: () -> Unit,
@@ -77,6 +83,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                         date = date,
                         status = status,
                         isFromSelf = isFromSelf,
+                        isFromBlockedMember = isFromBlockedMember,
                         options = options,
                         onLongPress = { showControls() }
                     )
@@ -135,7 +142,7 @@ fun MessageReplyPreview(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(start = CodeTheme.dimens.grid.x1)
+                .padding(horizontal = CodeTheme.dimens.grid.x1)
                 .padding(vertical = CodeTheme.dimens.grid.x1)
                 .weight(1f)
         ) {
@@ -145,8 +152,18 @@ fun MessageReplyPreview(
                 color = colors?.second ?: CodeTheme.colors.tertiary,
                 style = CodeTheme.typography.textSmall
             )
+
+            val messageBody = if (sender.isBlocked) {
+                AnnotatedString.Builder().apply {
+                    pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    append(stringResource(R.string.title_blockedMessage))
+                    pop()
+                }.toAnnotatedString()
+            } else {
+                AnnotatedString(message.localizedText)
+            }
             Text(
-                text = message.localizedText,
+                text = messageBody,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = CodeTheme.colors.textMain,

@@ -106,7 +106,7 @@ internal object ChatTab : ChildNavTab {
                         )
                     }
                 )
-                Navigator(ScreenRegistry.get(NavScreenProvider.Chat.List))
+                Navigator(ScreenRegistry.get(NavScreenProvider.Room.List))
             }
 
             val scrimAlpha by animateFloatAsState(

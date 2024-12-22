@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
-import xyz.flipchat.app.beta.BetaFlag
-import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.data.RoomInfo
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.controllers.ChatsController
@@ -49,7 +49,7 @@ class JoinConfirmationViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val paymentController: PaymentController,
     private val resources: ResourceHelper,
-    betaFlags: BetaFlags,
+    betaFlags: Labs,
 ) : BaseViewModel2<JoinConfirmationViewModel.State, JoinConfirmationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -77,7 +77,7 @@ class JoinConfirmationViewModel @Inject constructor(
     }
 
     init {
-        betaFlags.observe(BetaFlag.FollowerMode)
+        betaFlags.observe(Lab.FollowerMode)
             .onEach { dispatchEvent(Event.OnFollowCapabilityEnabled(it)) }
             .launchIn(viewModelScope)
 

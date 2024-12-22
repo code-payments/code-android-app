@@ -14,6 +14,8 @@ data class RoomInfo(
     val hostName: String? = null,
     val coverCharge: Kin = Kin.fromQuarks(0)
 ) {
+    val customTitle: String = runCatching { Regex("^#\\d+:\\s*(.*)").find(title)?.groupValues?.get(1).orEmpty() }.getOrDefault("")
+
     companion object {
         val DEFAULT_GRADIENT_SAMPLE = Triple(
             Color(0xFFFFBB00),

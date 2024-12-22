@@ -3,6 +3,7 @@ package xyz.flipchat.app.features.chat.info
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.navigation.RoomInfoArgs
 import xyz.flipchat.app.R
@@ -16,38 +17,51 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.app.data.RoomInfo
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatInfoViewModel @Inject constructor(
     private val roomController: RoomController,
     private val resources: ResourceHelper,
-    private val userManager: xyz.flipchat.services.user.UserManager,
-): BaseViewModel2<ChatInfoViewModel.State, ChatInfoViewModel.Event>(
+    private val userManager: UserManager,
+    labs: Labs,
+) : BaseViewModel2<ChatInfoViewModel.State, ChatInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
-){
+) {
 
     data class State(
         val isHost: Boolean = false,
+        val roomNameChangesEnabled: Boolean = false,
         val roomInfo: RoomInfo = RoomInfo(),
         val requestBeingSent: Boolean = false,
     )
 
     sealed interface Event {
-        data class OnHostStatusChanged(val isHost: Boolean): Event
-        data class OnInfoChanged(val args: RoomInfoArgs): Event
-        data class OnRequestInFlight(val sending: Boolean): Event
-        data class OnMembersUpdated(val count: Int): Event
-        data class OnCoverChanged(val cover: Kin): Event
-        data object LeaveRoom: Event
-        data object OnLeaveRoomConfirmed: Event
-        data object OnLeftRoom: Event
+        data class OnRoomNameChangesEnabled(val enabled: Boolean) : Event
+        data class OnHostStatusChanged(val isHost: Boolean) : Event
+        data class OnInfoChanged(val args: RoomInfoArgs) : Event
+        data class OnRequestInFlight(val sending: Boolean) : Event
+        data class OnMembersUpdated(val count: Int) : Event
+        data class OnChangeCover(val roomId: ID) : Event
+        data class OnCoverChanged(val cover: Kin) : Event
+        data class OnChangeName(val id: ID, val title: String) : Event
+        data class OnNameChanged(val name: String): Event
+        data object LeaveRoom : Event
+        data object OnLeaveRoomConfirmed : Event
+        data object OnLeftRoom : Event
     }
 
     init {
+        labs.observe(Lab.RoomNameChanges)
+            .onEach { dispatchEvent(Event.OnRoomNameChangesEnabled(it)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnInfoChanged>()
             .map { it.args.ownerId }
@@ -61,8 +75,9 @@ class ChatInfoViewModel @Inject constructor(
             .mapNotNull { it.args.roomId }
             .flatMapLatest { roomController.observeConversation(it) }
             .mapNotNull { it }
-            .map { it.members.count() to it.conversation.coverCharge }
-            .onEach { (members, cover) ->
+            .map { Triple(it.conversation.title, it.members.count(), it.conversation.coverCharge) }
+            .onEach { (name, members, cover) ->
+                dispatchEvent(Event.OnNameChanged(name))
                 dispatchEvent(Event.OnMembersUpdated(members))
                 dispatchEvent(Event.OnCoverChanged(cover))
             }.launchIn(viewModelScope)
@@ -75,7 +90,10 @@ class ChatInfoViewModel @Inject constructor(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.title_leaveRoom),
                         subtitle = resources.getString(R.string.subtitle_leaveRoom),
-                        positiveText = resources.getString(R.string.action_leaveRoomByName, roomTitle),
+                        positiveText = resources.getString(
+                            R.string.action_leaveRoomByName,
+                            roomTitle
+                        ),
                         negativeText = "",
                         tertiaryText = resources.getString(R.string.action_cancel),
                         onPositive = { dispatchEvent(Event.OnLeaveRoomConfirmed) },
@@ -136,8 +154,12 @@ class ChatInfoViewModel @Inject constructor(
                         )
                     )
                 }
-                Event.OnLeaveRoomConfirmed -> { state -> state }
+
+                is Event.OnChangeCover,
+                Event.OnLeaveRoomConfirmed,
+                is Event.OnChangeName,
                 Event.OnLeftRoom -> { state -> state }
+
                 is Event.OnRequestInFlight -> { state -> state.copy(requestBeingSent = event.sending) }
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }
                 is Event.OnCoverChanged -> { state ->
@@ -147,6 +169,15 @@ class ChatInfoViewModel @Inject constructor(
                         )
                     )
                 }
+
+                is Event.OnNameChanged -> { state ->
+                    state.copy(
+                        roomInfo = state.roomInfo.copy(
+                            title = event.name,
+                        )
+                    )
+                }
+
                 is Event.OnMembersUpdated -> { state ->
                     state.copy(
                         roomInfo = state.roomInfo.copy(
@@ -154,6 +185,8 @@ class ChatInfoViewModel @Inject constructor(
                         )
                     )
                 }
+
+                is Event.OnRoomNameChangesEnabled -> { state -> state.copy(roomNameChangesEnabled = event.enabled) }
             }
         }
     }
