@@ -40,7 +40,8 @@ sealed class ChatItem(open val key: Any) {
         val enableMarkup: Boolean = false,
         val enableReply: Boolean = false,
         val originalMessage: ReplyMessageAnchor? = null,
-    ) : ChatItem(chatMessageId.uuid!!) {
+        override val key: Any = chatMessageId
+    ) : ChatItem(chatMessageId) {
         val relativeDate: String = date.formatDateRelatively()
     }
 

@@ -3,7 +3,6 @@ package com.getcode.ui.components.chat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -16,9 +15,6 @@ import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,8 +30,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -46,9 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,22 +53,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.times
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.Anchor
 import com.getcode.ui.components.R
-import com.getcode.ui.components.SlideToConfirmDefaults
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
@@ -86,13 +74,8 @@ import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
-import com.getcode.ui.utils.toPx
 import com.getcode.util.vibration.LocalVibrator
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 
@@ -204,9 +187,9 @@ data class MessageNodeOptions(
     val markupsToResolve: List<KClass<out Markup>> = listOf(
         Markup.RoomNumber::class,
         Markup.Url::class,
-        Markup.Phone::class
+        Markup.Phone::class,
     ),
-    val onMarkupClicked: ((Markup) -> Unit)? = null,
+    val onMarkupClicked: ((Markup.Interactive) -> Unit)? = null,
     val contentStyle: TextStyle,
 )
 
@@ -214,7 +197,7 @@ private enum class MessageNodeDragAnchors {
     DEFAULT, REPLY
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageNode(
     contents: MessageContent,
@@ -326,6 +309,7 @@ fun MessageNode(
                         DeletedMessage(
                             modifier = Modifier.fillMaxWidth(),
                             isFromSelf = sender.isSelf,
+                            isFromBlockedMember = sender.isBlocked,
                             date = date,
                         )
                     } else {
@@ -367,6 +351,7 @@ fun MessageNode(
                                         date = date,
                                         status = status,
                                         isFromSelf = sender.isSelf,
+                                        isFromBlockedMember = sender.isBlocked,
                                         options = options,
                                         showControls = openMessageControls
                                     )
@@ -405,6 +390,7 @@ fun MessageNode(
                                         date = date,
                                         status = status,
                                         isFromSelf = sender.isSelf,
+                                        isFromBlockedMember = sender.isBlocked,
                                         options = options,
                                         showControls = openMessageControls
                                     )
@@ -423,6 +409,7 @@ fun MessageNode(
                                         date = date,
                                         status = status,
                                         isFromSelf = sender.isSelf,
+                                        isFromBlockedMember = sender.isBlocked,
                                         options = options,
                                         showControls = openMessageControls
                                     )
@@ -450,6 +437,7 @@ fun MessageNode(
                                             date = date,
                                             status = status,
                                             isFromSelf = sender.isSelf,
+                                            isFromBlockedMember = sender.isBlocked,
                                             options = options,
                                             showControls = openMessageControls,
                                             originalMessage = originalMessage,
@@ -464,6 +452,7 @@ fun MessageNode(
                                             date = date,
                                             status = status,
                                             isFromSelf = sender.isSelf,
+                                            isFromBlockedMember = sender.isBlocked,
                                             options = options,
                                             showControls = openMessageControls,
                                         )

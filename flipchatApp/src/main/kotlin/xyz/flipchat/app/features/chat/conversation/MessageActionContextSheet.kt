@@ -40,6 +40,18 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                             action.name
                         )
 
+                        is MessageControlAction.BlockUser -> stringResource(
+                            R.string.action_blockUser,
+                            action.name
+                        )
+
+
+                        is MessageControlAction.UnblockUser -> stringResource(
+                            R.string.action_unblockUser,
+                            action.name
+                        )
+
+
                         is MessageControlAction.ReportUserForMessage -> stringResource(R.string.action_report)
                         is MessageControlAction.MuteUser -> stringResource(
                             R.string.action_muteUser,

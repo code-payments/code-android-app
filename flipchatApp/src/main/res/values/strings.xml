@@ -50,6 +50,13 @@
     <string name="error_title_failedToMuteUser">Something Went Wrong</string>
     <string name="error_description_failedToMuteUser">This user\'s could not be muted. Please check your network connection and try again</string>
 
+    <string name="error_title_failedToBlockUser">Something Went Wrong</string>
+    <string name="error_description_failedToBlockUser">This user could not be block. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToUnblockUser">Something Went Wrong</string>
+    <string name="error_description_failedToUnblockUser">This user could not be unblocked. Please check your network connection and try again</string>
+
+
     <string name="error_title_failedToMuteChat">Something Went Wrong</string>
     <string name="error_description_failedToMuteChat">Please check your network connection and try again</string>
 
@@ -103,6 +110,10 @@
     <string name="action_mute">Mute</string>
     <string name="action_muteUser">Mute %1$s</string>
 
+    <string name="title_blockUserInRoom">Block %1$s?</string>
+    <string name="subtitle_blockUserInRoom">All messages from this user will be hidden</string>
+    <string name="action_block">Block</string>
+
     <string name="title_reportUserForMessage">Report</string>
     <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified</string>
     <string name="action_report">Report</string>
@@ -114,6 +125,9 @@
 
     <string name="action_copyMessage">Copy</string>
     <string name="action_deleteMessage">Delete</string>
+    <string name="action_blockUser">Block User</string>
+    <string name="action_blockUserByName">Block %1$s</string>
+    <string name="action_unblockUser">Unblock %1$s</string>
     <string name="action_removeUser">Remove %1$s</string>
     <string name="action_reportUser">Report %1$s</string>
 

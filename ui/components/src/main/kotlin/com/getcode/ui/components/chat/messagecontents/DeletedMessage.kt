@@ -21,6 +21,7 @@ import kotlinx.datetime.Instant
 internal fun MessageNodeScope.DeletedMessage(
     modifier: Modifier = Modifier,
     isFromSelf: Boolean,
+    isFromBlockedMember: Boolean,
     date: Instant,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
@@ -44,6 +45,7 @@ internal fun MessageNodeScope.DeletedMessage(
                     date = date,
                     status = MessageStatus.Unknown,
                     isFromSelf = isFromSelf,
+                    isFromBlockedMember = isFromBlockedMember,
                     options = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
                 )
             }

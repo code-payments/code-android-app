@@ -17,7 +17,8 @@ class ConversationMemberMapper @Inject constructor(): Mapper<Pair<ID, Member>, C
             imageUri = member.identity?.imageUrl,
             isHost = member.isModerator,
             isMuted = member.isMuted,
-            isFullMember = !member.isSpectator
+            isFullMember = !member.isSpectator,
+            isBlocked = false // local set only right now
         )
     }
 }

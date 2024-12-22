@@ -27,7 +27,9 @@ data class ConversationMember(
     @ColumnInfo(defaultValue = "false")
     val isMuted: Boolean,
     @ColumnInfo(defaultValue = "false")
-    val isFullMember: Boolean
+    val isFullMember: Boolean,
+    @ColumnInfo(defaultValue = "false")
+    val isBlocked: Boolean
 ) {
     @Ignore
     val id: ID = Base58.decode(memberIdBase58).toList()
