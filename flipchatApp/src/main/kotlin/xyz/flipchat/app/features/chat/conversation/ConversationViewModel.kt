@@ -760,13 +760,7 @@ class ConversationViewModel @Inject constructor(
             var unreadSeparatorInserted = false
 
             data.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
-                val beforeDate = before?.relativeDate
-                val afterDate = after?.relativeDate
-
-                // if the date changes between two items, add a date separator
-                if (beforeDate != afterDate) {
-                    return@insertSeparators beforeDate?.let { ChatItem.Date(before.date) }
-                }
+                val separators = mutableListOf<ChatItem.Separator>()
 
                 if (
                     stateFlow.value.startAtUnread &&
@@ -776,11 +770,22 @@ class ConversationViewModel @Inject constructor(
                 ) {
                     unreadSeparatorInserted = true
                     val unreadCount = stateFlow.value.unreadCount ?: return@insertSeparators null
-                    return@insertSeparators ChatItem.UnreadSeparator(unreadCount)
+                    separators.add(ChatItem.UnreadSeparator(unreadCount))
                 }
 
-                // No separator in other cases
-                null
+                val beforeDate = before?.relativeDate
+                val afterDate = after?.relativeDate
+
+                // if the date changes between two items, add a date separator
+                if (beforeDate != afterDate) {
+                    beforeDate?.let { separators.add(ChatItem.Date(before.date)) }
+                }
+
+                if (separators.isNotEmpty()) {
+                    ChatItem.Separators(separators)
+                } else {
+                    null
+                }
             }
         }.cachedIn(viewModelScope)
 

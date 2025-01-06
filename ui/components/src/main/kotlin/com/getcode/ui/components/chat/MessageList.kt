@@ -19,6 +19,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -92,9 +93,10 @@ fun MessageList(
             key = messages.itemKey { item -> item.key },
             contentType = messages.itemContentType { item ->
                 when (item) {
-                    is ChatItem.Date -> "separators"
+                    is ChatItem.Date -> "date"
                     is ChatItem.Message -> "messages"
                     is ChatItem.UnreadSeparator -> "unread_divider"
+                    is ChatItem.Separators -> "separators"
                 }
             }
         ) { index ->
@@ -176,6 +178,31 @@ fun MessageList(
                                 .padding(vertical = CodeTheme.dimens.grid.x2),
                             count = item.count
                         )
+                    }
+                }
+
+                is ChatItem.Separators -> {
+                    item.separators.fastForEach { separator ->
+                        when (separator) {
+                            is ChatItem.Date -> {
+                                DateBubble(
+                                    modifier = Modifier
+                                        .padding(vertical = CodeTheme.dimens.grid.x2),
+                                    date = separator.dateString
+                                )
+                            }
+
+                            is ChatItem.UnreadSeparator -> {
+                                if (separator.count > 0) {
+                                    UnreadSeparator(
+                                        modifier = Modifier
+                                            .fillParentMaxWidth()
+                                            .padding(vertical = CodeTheme.dimens.grid.x2),
+                                        count = separator.count
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -277,7 +304,7 @@ private fun HandleStartAtUnread(
             .collect { loadState ->
                 if (loadState.refresh is LoadState.NotLoading && messages.itemCount > 0) {
                     val separatorIndex = messages.itemSnapshotList
-                        .indexOfFirst { it is ChatItem.UnreadSeparator }
+                        .indexOfFirst { it is ChatItem.UnreadSeparator || (it is ChatItem.Separators && it.separators.any { it is ChatItem.UnreadSeparator }) }
 
                     if (separatorIndex > 0 && !hasSetAtUnread) {
                         val previousItemIndex = separatorIndex - 1

@@ -45,13 +45,18 @@ sealed class ChatItem(open val key: Any) {
         val relativeDate: String = date.formatDateRelatively()
     }
 
-    @Stable
-    data class UnreadSeparator(val count: Int) : ChatItem("unread")
+    sealed interface Separator
 
     @Stable
-    data class Date(val date: Instant) : ChatItem(date) {
+    data class UnreadSeparator(val count: Int) : ChatItem("unread"), Separator
+
+    @Stable
+    data class Date(val date: Instant) : ChatItem(date), Separator {
         val dateString: String = date.formatDateRelatively()
 
         override val key: Any = date.toEpochMilliseconds()
     }
+
+    @Stable
+    data class Separators(val separators: List<Separator>): ChatItem(separators.hashCode())
 }
