@@ -5,10 +5,12 @@ import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
+import com.getcode.model.description
 import com.getcode.model.uuid
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.FormatUtils
+import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +33,7 @@ sealed interface AuthState {
 class UserManager @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val organizerGenerator: OrganizerGenerator,
+    private val mixpanelAPI: MixpanelAPI,
 ) {
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State>
@@ -130,18 +133,23 @@ class UserManager @Inject constructor(
     }
 
     private fun associate() {
-        if (Bugsnag.isStarted() && !BuildConfig.DEBUG) {
-            Bugsnag.setUser(userId?.uuid?.toString(), null, displayName)
-            userFlags?.let { flags ->
-                Bugsnag.addMetadata(
-                    /* section = */ "userflags",
-                    /* value = */ mapOf(
-                        "isStaff" to flags.isStaff,
-                        "isRegistered" to flags.isRegistered,
-                        "createCost" to FormatUtils.formatWholeRoundDown(flags.createCost.toKinValueDouble())
+        if (!BuildConfig.DEBUG) {
+            val distinctId = userId?.uuid?.toString()
+            if (Bugsnag.isStarted()) {
+                Bugsnag.setUser(distinctId, null, displayName)
+                userFlags?.let { flags ->
+                    Bugsnag.addMetadata(
+                        /* section = */ "userflags",
+                        /* value = */ mapOf(
+                            "isStaff" to flags.isStaff,
+                            "isRegistered" to flags.isRegistered,
+                            "createCost" to FormatUtils.formatWholeRoundDown(flags.createCost.toKinValueDouble())
+                        )
                     )
-                )
+                }
             }
+
+            mixpanelAPI.identify(distinctId)
         }
     }
 
