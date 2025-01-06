@@ -213,7 +213,7 @@ class AuthManager @Inject constructor(
                 if (!isSoftLogin) {
                     AccountUtils.addAccount(
                         context = context,
-                        name = displayName.orEmpty(),
+                        name = displayName ?: "Flipchat User",
                         password = userId.base58,
                         token = entropyB64,
                         isUnregistered = false,
