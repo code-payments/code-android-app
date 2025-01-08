@@ -134,13 +134,9 @@ fun RoomCard(
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.grid.x4)
                             .constrain(
-                                mode = ConstraintMode.AutoSize(
-                                    CodeTheme.typography.displaySmall.copy(
-                                        fontSize = 16.sp
-                                    )
-                                ),
+                                mode = ConstraintMode.AutoSize(CodeTheme.typography.displaySmall),
                             text = roomInfo.title,
-                            style = CodeTheme.typography.displaySmall,
+                            style = CodeTheme.typography.displaySmall.copy(textAlign = TextAlign.Center),
                             frameConstraints = Constraints(
                                 maxWidth = with(LocalDensity.current) { maxWidth.roundToPx() },
                                 maxHeight = with(LocalDensity.current) { titleSize.height.roundToPx() },
@@ -148,7 +144,7 @@ fun RoomCard(
                         ) { textSize = it },
                         text = roomInfo.title,
                         style = CodeTheme.typography.displaySmall
-                            .copy(fontSize = textSize, lineHeight = 24.sp)
+                            .copy(fontSize = textSize, lineHeight = 24.sp, textAlign = TextAlign.Center)
                             .withDropShadow(),
                         color = Color.White,
                         maxLines = 3
