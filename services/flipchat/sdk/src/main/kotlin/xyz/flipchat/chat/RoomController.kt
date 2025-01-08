@@ -67,7 +67,7 @@ class RoomController @Inject constructor(
     }
 
     suspend fun getUnreadCount(identifier: ID): Int {
-        return db.conversationDao().getUnreadCount(identifier)
+        return db.conversationDao().getUnreadCount(identifier) ?: 0
     }
 
     suspend fun getChatMembers(identifier: ID) {

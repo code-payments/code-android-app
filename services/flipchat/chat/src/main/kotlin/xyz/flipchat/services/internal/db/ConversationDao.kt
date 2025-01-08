@@ -130,8 +130,8 @@ interface ConversationDao {
     fun clearConversations()
 
     @Query("SELECT unreadCount FROM conversations WHERE idBase58 = :conversationId")
-    suspend fun getUnreadCount(conversationId: String): Int
-    suspend fun getUnreadCount(conversationId: ID): Int {
+    suspend fun getUnreadCount(conversationId: String): Int?
+    suspend fun getUnreadCount(conversationId: ID): Int? {
         return getUnreadCount(conversationId.base58)
     }
 
