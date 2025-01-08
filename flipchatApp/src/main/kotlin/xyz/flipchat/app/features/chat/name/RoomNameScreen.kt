@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -178,6 +179,7 @@ private fun RoomNameScreenContent(
                         borderColor = Color.Transparent
                     ),
                     keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
                         capitalization = KeyboardCapitalization.Sentences
                     ),
                     maxLines = 1,
