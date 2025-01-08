@@ -171,7 +171,7 @@ private fun TopAppBarBase(
         // Calculate the remaining space for the title region
         val leftIconWidth = leftIconPlaceable?.width ?: 0
         val rightContentsWidth = rightContentsPlaceable?.width ?: 0
-        val remainingWidth = constraints.maxWidth - leftIconWidth - rightContentsWidth - contentPadding.calculateLeftPadding(layoutDirection).roundToPx() - contentPadding.calculateRightPadding(layoutDirection).roundToPx()
+        val remainingWidth = constraints.maxWidth - leftIconWidth - rightContentsWidth - contentPadding.calculateLeftPadding(layoutDirection).roundToPx() - (contentPadding.calculateRightPadding(layoutDirection).roundToPx() * 2)
 
         // Measure title region with the remaining space, if provided
         val titleRegionPlaceable = subcompose("titleRegion", titleRegion).firstOrNull()?.measure(

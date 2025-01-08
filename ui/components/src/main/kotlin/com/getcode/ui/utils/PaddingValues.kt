@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 fun PaddingValues.calculateVerticalPadding() = calculateTopPadding() + calculateBottomPadding()
@@ -23,7 +24,11 @@ fun PaddingValues.calculateEndPadding(): Dp {
 @Composable
 fun PaddingValues.calculateHorizontalPadding(): Dp {
     val ldr = LocalLayoutDirection.current
-    return calculateLeftPadding(ldr) + calculateRightPadding(ldr)
+    return calculateHorizontalPadding(ldr)
+}
+
+fun PaddingValues.calculateHorizontalPadding(layoutDirection: LayoutDirection): Dp {
+    return calculateLeftPadding(layoutDirection) + calculateRightPadding(layoutDirection)
 }
 
 @Composable

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
@@ -50,7 +52,10 @@ internal fun ConversationTitle(
         )
         Column {
             Text(
+                modifier = Modifier.fillMaxWidth(),
                 text = state.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = CodeTheme.typography.screenTitle.copy(fontSize = 18.sp)
             )
 

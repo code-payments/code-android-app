@@ -105,14 +105,16 @@ fun ChatNode(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
             ) {
                 Text(
+                    modifier = Modifier.weight(1f),
                     text = title,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = titleTextStyle
                 )
-                Spacer(Modifier.weight(1f))
                 timestamp?.let {
                     val isToday = DateUtils.isToday(it)
                     Text(
