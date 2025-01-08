@@ -131,12 +131,14 @@ fun RoomCard(
 
                 Box(modifier = Modifier.measured { titleSize = it }) {
                     Text(
-                        modifier = Modifier.constrain(
-                            mode = ConstraintMode.AutoSize(
-                                CodeTheme.typography.displaySmall.copy(
-                                    fontSize = 16.sp
-                                )
-                            ),
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.grid.x4)
+                            .constrain(
+                                mode = ConstraintMode.AutoSize(
+                                    CodeTheme.typography.displaySmall.copy(
+                                        fontSize = 16.sp
+                                    )
+                                ),
                             text = roomInfo.title,
                             style = CodeTheme.typography.displaySmall,
                             frameConstraints = Constraints(
