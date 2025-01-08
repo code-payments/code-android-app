@@ -25,7 +25,7 @@ sealed interface FcNotificationType {
         override val name: String = "Misc"
     }
 
-    data class ChatMessage(val id: ID?): FcNotificationType, Notifiable {
+    data class ChatMessage(val id: ID?, val sender: String?): FcNotificationType, Notifiable {
         override val ordinal: Int = 1
         override val name: String = "Chat Messages"
     }
@@ -35,6 +35,8 @@ sealed interface FcNotificationType {
     companion object {
         private const val TYPE = "type"
         private const val CHAT_ID = "chat_id"
+        private const val SENDER = "sender"
+
         fun resolve(value: MutableMap<String, String>): FcNotificationType {
             val type = value[TYPE]
             var notificationType = runCatching { TypeValue.valueOf(type.orEmpty()) }.getOrNull()
@@ -46,7 +48,8 @@ sealed interface FcNotificationType {
             return when (notificationType) {
                 TypeValue.ChatMessage -> {
                     val chatId = value[CHAT_ID]?.decodeBase64()?.toList()
-                    ChatMessage(chatId)
+                    val sender = value[SENDER]
+                    ChatMessage(chatId, sender)
                 }
                 else -> Unknown
             }

@@ -152,6 +152,7 @@ class ConversationViewModel @Inject constructor(
     sealed interface Event {
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
+        data class OnRoomNumberChanged(val roomNumber: Long): Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
@@ -1077,6 +1078,7 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
+                is Event.OnRoomNumberChanged,
                 is Event.OnJoinRoom,
                 is Event.OnAccountCreated,
                 is Event.NeedsAccountCreated,

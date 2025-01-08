@@ -38,7 +38,7 @@ sealed class NavScreenProvider : ScreenProvider {
 
         data class Messages(
             val chatId: ID? = null,
-            val intentId: ID? = null
+            val roomNumber: Long? = null,
         ) : NavScreenProvider()
 
         data class Info(

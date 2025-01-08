@@ -86,7 +86,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         register<NavScreenProvider.Room.Messages> {
             ConversationScreen(
                 chatId = it.chatId,
-                intentId = it.intentId,
+                roomNumber = it.roomNumber,
             )
         }
 

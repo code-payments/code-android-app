@@ -34,7 +34,8 @@ enum class FcTab {
 
 sealed interface DeeplinkType {
     data class Login(val entropy: String) : DeeplinkType
-    data class OpenRoom(val roomId: ID) : DeeplinkType
+    data class OpenRoomById(val roomId: ID) : DeeplinkType
+    data class OpenRoomByNumber(val number: Long) : DeeplinkType
 }
 
 class RouterImpl(
@@ -90,9 +91,14 @@ class RouterImpl(
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
                 is DeeplinkType.Login -> listOf(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
-                is DeeplinkType.OpenRoom ->  listOf(
+                is DeeplinkType.OpenRoomById ->  listOf(
                     ScreenRegistry.get(NavScreenProvider.AppHomeScreen()),
-                    ScreenRegistry.get(NavScreenProvider.Room.Messages(type.roomId))
+                    ScreenRegistry.get(NavScreenProvider.Room.Messages(chatId = type.roomId))
+                )
+
+                is DeeplinkType.OpenRoomByNumber -> listOf(
+                    ScreenRegistry.get(NavScreenProvider.AppHomeScreen()),
+                    ScreenRegistry.get(NavScreenProvider.Room.Messages(roomNumber = type.number))
                 )
             }
         } ?: emptyList()
@@ -123,7 +129,20 @@ class RouterImpl(
                                 deeplink.data.toUri().getQueryParameter("r")
                             }.getOrNull() ?: return null
                             val roomId =  Base58.decode(id).toList()
-                            DeeplinkType.OpenRoom(roomId = roomId)
+                            DeeplinkType.OpenRoomById(roomId = roomId)
+                        }
+
+                        else -> null
+                    }
+                }
+
+                2 -> {
+                    when {
+                        room.contains(deeplink.pathSegments[0]) -> {
+                            val number = runCatching {
+                                deeplink.pathSegments[1].toLongOrNull()
+                            }.getOrNull() ?: return null
+                            DeeplinkType.OpenRoomByNumber(number = number)
                         }
 
                         else -> null

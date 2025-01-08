@@ -31,8 +31,8 @@ internal fun NotificationManagerCompat.buildChatNotification(
     content: String,
     canReply: Boolean,
 ): Pair<Int, NotificationCompat.Builder> {
-    val sender = content.substringBefore(":")
-    val messageBody = content.substringAfter(":")
+    val sender = content.substringBefore(":").trim().ifEmpty { type.sender } ?: "Sender"
+    val messageBody = content.substringAfter(":").trim()
     val person = Person.Builder()
         .setName(sender)
         .build()
@@ -137,7 +137,7 @@ internal fun NotificationManagerCompat.getActiveNotification(notificationId: Int
 internal fun Context.buildContentIntent(type: FcNotificationType): PendingIntent {
     val launchIntent = when (type) {
         is FcNotificationType.ChatMessage -> Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://app.flipchat.xyz/room?r=${type.id?.base58}")
+            data = Uri.parse("https://app.flipchat.xyz/room/${type.id?.base58}")
         }
 
         FcNotificationType.Unknown -> Intent(this, MainActivity::class.java).apply {

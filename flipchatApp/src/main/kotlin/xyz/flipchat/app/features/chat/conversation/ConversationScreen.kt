@@ -78,7 +78,7 @@ import xyz.flipchat.app.features.home.TabbedHomeScreen
 @Parcelize
 data class ConversationScreen(
     val chatId: ID? = null,
-    val intentId: ID? = null
+    val roomNumber: Long? = null
 ) : AppScreen(), Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -91,6 +91,14 @@ data class ConversationScreen(
         val keyboardVisible by keyboardAsState()
         val keyboard = LocalSoftwareKeyboardController.current
         val composeScope = rememberCoroutineScope()
+
+        LaunchedEffect(chatId) {
+            if (chatId != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnChatIdChanged(chatId)
+                )
+            }
+        }
 
         LaunchedEffect(chatId) {
             if (chatId != null) {
