@@ -45,8 +45,8 @@ sealed interface Lab {
 
     data object RoomNameChanges : Lab {
         override val key: String = "pref_room_name_changes_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     companion object {
