@@ -113,7 +113,9 @@ interface ConversationDao {
 
     suspend fun setDisplayName(id: String, displayName: String) {
         val conversation = findConversation(id)?.conversation ?: return
-        upsertConversations(conversation.copy(title = displayName))
+        val roomNumber = conversation.roomNumber
+        val name = "#$roomNumber: $displayName"
+        upsertConversations(conversation.copy(title = name))
     }
 
     suspend fun setDisplayName(id: ID, displayName: String) {
