@@ -79,7 +79,7 @@ class RoomInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
             viewModel.eventFlow
                 .filterIsInstance<ChatInfoViewModel.Event.OnChangeName>()
                 .onEach {
-                    navigator.show(ScreenRegistry.get(NavScreenProvider.Room.ChangeName(it.id, it.title)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.ChangeName(it.id, it.title)))
                 }.launchIn(this)
         }
 
@@ -180,15 +180,9 @@ private fun Actions(
                 buttonState = ButtonState.Filled,
                 text = stringResource(R.string.action_customize),
             ) {
-                val roomNameText = if (state.roomInfo.customTitle.isNotEmpty()) {
-                    context.getString(R.string.action_editRoomName)
-                } else {
-                    context.getString(R.string.action_addRoomName)
-                }
-
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
-                        positiveText = roomNameText,
+                        positiveText = context.getString(R.string.action_changeRoomName),
                         negativeText = context.getString(R.string.action_changeCoverCharge),
                         negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
                         tertiaryText = context.getString(R.string.action_cancel),

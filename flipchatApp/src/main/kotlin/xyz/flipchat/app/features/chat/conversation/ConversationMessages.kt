@@ -33,7 +33,9 @@ import com.getcode.ui.components.chat.MessageListPointerResult
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
 import com.getcode.ui.utils.keyboardAsState
+import com.getcode.ui.utils.scrollToItemWithFullVisibility
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
@@ -119,17 +121,29 @@ internal fun ConversationMessages(
                         composeScope.launch {
                             val itemIndex = messages.itemSnapshotList
                                 .filterIsInstance<ChatItem.Message>()
+                                .indexOfFirst { it.chatMessageId == event.originalMessageId }
+
+                            val currentItemIndex = messages.itemSnapshotList
+                                .filterIsInstance<ChatItem.Message>()
                                 .indexOfFirst { it.chatMessageId == event.messageId }
+
+                            println("target item is @ $itemIndex")
                             if (itemIndex >= 0) {
-                                val currentIndex = lazyListState.firstVisibleItemIndex
-                                val distance = abs(itemIndex - currentIndex)
+                                val distance = abs(itemIndex - currentItemIndex)
 
+                                println("distance from current ($currentItemIndex) is $distance")
                                 if (distance <= 100) {
-                                    lazyListState.animateScrollToItem(itemIndex)
+                                    // Animate smoothly if within 100 items
+                                    lazyListState.animateScrollToItemWithFullVisibility(
+                                        to = itemIndex,
+                                        from = currentItemIndex
+                                    )
                                 } else {
-                                    lazyListState.scrollToItem(itemIndex)
+                                    // Jump directly if too far
+                                    lazyListState.scrollToItemWithFullVisibility(
+                                        index = itemIndex,
+                                    )
                                 }
-
                             }
                         }
                     }

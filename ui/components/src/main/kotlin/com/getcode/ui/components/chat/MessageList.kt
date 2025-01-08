@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,7 +43,7 @@ sealed interface MessageListEvent {
     data class OpenMessageActions(val actions: List<MessageControlAction>) : MessageListEvent
     data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
-    data class ViewOriginalMessage(val messageId: ID) : MessageListEvent
+    data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
 }
 
 data class MessageListPointer(
@@ -165,7 +166,7 @@ fun MessageList(
                         onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) },
                         originalMessage = item.originalMessage,
                         onViewOriginalMessage = {
-                            dispatch(MessageListEvent.ViewOriginalMessage(it))
+                            dispatch(MessageListEvent.ViewOriginalMessage(item.chatMessageId, it))
                         }
                     )
                 }

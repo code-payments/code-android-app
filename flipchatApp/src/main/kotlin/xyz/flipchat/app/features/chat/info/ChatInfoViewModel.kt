@@ -84,15 +84,15 @@ class ChatInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.LeaveRoom>()
-            .map { stateFlow.value.roomInfo.title }
-            .onEach { roomTitle ->
+            .map { stateFlow.value.roomInfo.number }
+            .onEach { roomNumber ->
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.title_leaveRoom),
                         subtitle = resources.getString(R.string.subtitle_leaveRoom),
                         positiveText = resources.getString(
                             R.string.action_leaveRoomByName,
-                            roomTitle
+                            resources.getString(R.string.title_implicitRoomTitle, roomNumber)
                         ),
                         negativeText = "",
                         tertiaryText = resources.getString(R.string.action_cancel),

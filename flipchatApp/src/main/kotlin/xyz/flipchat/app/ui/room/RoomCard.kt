@@ -148,10 +148,10 @@ fun RoomCard(
                         ) { textSize = it },
                         text = roomInfo.title,
                         style = CodeTheme.typography.displaySmall
-                            .copy(fontSize = textSize,)
+                            .copy(fontSize = textSize, lineHeight = 24.sp)
                             .withDropShadow(),
                         color = Color.White,
-                        maxLines = 1
+                        maxLines = 3
                     )
                 }
                 Spacer(Modifier.requiredHeight(geometry.titleBottomPadding))

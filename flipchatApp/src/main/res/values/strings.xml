@@ -194,6 +194,7 @@
     <string name="action_changeCoverCharge">Change Cover Charge</string>
     <string name="action_addRoomName">Add Room Name</string>
     <string name="action_editRoomName">Edit Room Name</string>
+    <string name="action_changeRoomName">Change Room Name</string>
     <string name="action_customize">Customize</string>
     <string name="action_leaveRoom">Leave Room</string>
 

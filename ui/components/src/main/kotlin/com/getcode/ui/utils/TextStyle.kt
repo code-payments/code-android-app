@@ -8,7 +8,7 @@ import androidx.compose.ui.text.TextStyle
 fun TextStyle.withDropShadow(
     color: Color = Color.Black.copy(alpha = 0.5f),
     offset: Offset = Offset(4f, 4f),
-    blurRadius: Float = 8f,
+    blurRadius: Float = 4f,
 ): TextStyle = copy(
     shadow = Shadow(
         color = color,
