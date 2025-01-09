@@ -12,6 +12,7 @@ import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.Kin
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.trace
@@ -32,6 +33,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMes
 import xyz.flipchat.services.domain.model.chat.db.ConversationMemberUpdate
 import xyz.flipchat.services.domain.model.chat.db.ConversationUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
+import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -47,6 +49,7 @@ class ChatsController @Inject constructor(
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
     private val userManager: UserManager,
+    private val resources: ResourceHelper,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
@@ -101,7 +104,12 @@ class ChatsController @Inject constructor(
                                         db.conversationDao().updateCoverCharge(update.roomId, update.amount)
                                     }
                                     is ConversationUpdate.DisplayName -> {
-                                        db.conversationDao().setDisplayName(update.roomId, update.name)
+                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)?.copy(title = update.name)
+                                        if (conversation != null) {
+                                            val newTitle = conversation.titleOrFallback(resources = resources)
+                                            db.conversationDao()
+                                                .setDisplayName(update.roomId, newTitle)
+                                        }
                                     }
                                     is ConversationUpdate.LastActivity -> {
                                         val conversation = db.conversationDao().findConversationRaw(update.roomId)

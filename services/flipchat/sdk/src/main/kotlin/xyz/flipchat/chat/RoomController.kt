@@ -17,6 +17,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
@@ -29,10 +30,10 @@ import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMember
-import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
+import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -46,6 +47,7 @@ class RoomController @Inject constructor(
     private val conversationMessageMapper: ConversationMessageMapper,
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
+    private val resources: ResourceHelper,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
@@ -213,7 +215,11 @@ class RoomController @Inject constructor(
     suspend fun setDisplayName(conversationId: ID, displayName: String): Result<Unit> {
         return chatRepository.setDisplayName(conversationId, displayName)
             .onSuccess {
-                db.conversationDao().setDisplayName(conversationId, displayName)
+                val conversation = db.conversationDao().findConversation(conversationId)?.conversation?.copy(title = displayName)
+                if (conversation != null) {
+                    val title = conversation.titleOrFallback(resources)
+                    db.conversationDao().setDisplayName(conversationId, title)
+                }
             }
     }
 
