@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.chat.info
 
+import android.content.Intent
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
@@ -21,6 +22,7 @@ import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.app.data.RoomInfo
+import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
@@ -51,7 +53,9 @@ class ChatInfoViewModel @Inject constructor(
         data class OnChangeCover(val roomId: ID) : Event
         data class OnCoverChanged(val cover: Kin) : Event
         data class OnChangeName(val id: ID, val title: String) : Event
-        data class OnNameChanged(val name: String): Event
+        data class OnNameChanged(val name: String) : Event
+        data object OnShareRoomClicked : Event
+        data class ShareRoom(val intent: Intent) : Event
         data object LeaveRoom : Event
         data object OnLeaveRoomConfirmed : Event
         data object OnLeftRoom : Event
@@ -134,6 +138,12 @@ class ChatInfoViewModel @Inject constructor(
                     dispatchEvent(Event.OnLeftRoom)
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnShareRoomClicked>()
+            .map { IntentUtils.shareRoom(stateFlow.value.roomInfo.roomNumber) }
+            .onEach { dispatchEvent(Event.ShareRoom(it)) }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -150,6 +160,7 @@ class ChatInfoViewModel @Inject constructor(
                             memberCount = args.memberCount,
                             hostId = args.ownerId,
                             hostName = args.hostName,
+                            roomNumber = args.roomNumber,
                             coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
                         )
                     )
@@ -158,6 +169,8 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.OnChangeCover,
                 Event.OnLeaveRoomConfirmed,
                 is Event.OnChangeName,
+                is Event.OnShareRoomClicked,
+                is Event.ShareRoom,
                 Event.OnLeftRoom -> { state -> state }
 
                 is Event.OnRequestInFlight -> { state -> state.copy(requestBeingSent = event.sending) }

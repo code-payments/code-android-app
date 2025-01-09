@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,6 +44,19 @@ object AppBarDefaults {
     fun Close(modifier: Modifier = Modifier, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Outlined.Close,
+            contentDescription = "",
+            tint = Color.White,
+            modifier = modifier
+                .wrapContentWidth()
+                .size(24.dp)
+                .unboundedClickable { onClick() }
+        )
+    }
+
+    @Composable
+    fun Share(modifier: Modifier = Modifier, onClick: () -> Unit) {
+        Icon(
+            painter = painterResource(R.drawable.ic_remote_send),
             contentDescription = "",
             tint = Color.White,
             modifier = modifier

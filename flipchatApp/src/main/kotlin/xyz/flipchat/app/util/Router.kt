@@ -5,7 +5,9 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.screens.ChildNavTab
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.vendor.Base58
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
@@ -17,13 +19,16 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.app.features.home.tabs.CashTab
 import xyz.flipchat.app.features.home.tabs.ChatTab
 import xyz.flipchat.app.features.home.tabs.SettingsTab
+import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.internal.db.FcAppDatabase
+import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.UserManager
 
 interface Router {
     fun checkTabs()
     val rootTabs: List<ChildNavTab>
     fun getInitialTabIndex(deeplink: DeepLink?): Int
-    fun processDestination(deeplink: DeepLink?): List<Screen>
+    suspend fun processDestination(deeplink: DeepLink?): List<Screen>
     fun processType(deeplink: DeepLink?): DeeplinkType?
     fun tabForIndex(index: Int): FcTab
 }
@@ -35,11 +40,13 @@ enum class FcTab {
 sealed interface DeeplinkType {
     data class Login(val entropy: String) : DeeplinkType
     data class OpenRoomById(val roomId: ID) : DeeplinkType
-    data class OpenRoomByNumber(val number: Long) : DeeplinkType
+    data class OpenRoomByNumber(val number: Long, val messageId: ID? = null) : DeeplinkType
 }
 
 class RouterImpl(
     private val userManager: UserManager,
+    private val chatsController: ChatsController,
+    private val resources: ResourceHelper,
     private val tabIndexResolver: (FcTab) -> Int,
     private val indexTabResolver: (Int) -> FcTab,
 ) : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -51,6 +58,9 @@ class RouterImpl(
         val login = listOf("login")
         val room = listOf("room")
     }
+
+    private val db: FcAppDatabase
+        get() = FcAppDatabase.requireInstance()
 
     override fun tabForIndex(index: Int) = indexTabResolver(index)
 
@@ -86,7 +96,7 @@ class RouterImpl(
         } ?: 0
     }
 
-    override fun processDestination(deeplink: DeepLink?): List<Screen> {
+    override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
         return deeplink?.let {
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
@@ -96,10 +106,40 @@ class RouterImpl(
                     ScreenRegistry.get(NavScreenProvider.Room.Messages(chatId = type.roomId))
                 )
 
-                is DeeplinkType.OpenRoomByNumber -> listOf(
-                    ScreenRegistry.get(NavScreenProvider.AppHomeScreen()),
-                    ScreenRegistry.get(NavScreenProvider.Room.Messages(roomNumber = type.number))
-                )
+                is DeeplinkType.OpenRoomByNumber -> {
+                    val conversation = db.conversationDao().findConversationRaw(type.number)
+                    val screens = mutableListOf(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                    if (conversation != null) {
+                        screens.add(ScreenRegistry.get(NavScreenProvider.Room.Messages(conversation.id)))
+                    } else {
+                        val lookup = chatsController.lookupRoom(type.number).getOrNull()
+                        if (lookup != null) {
+                            val (room, members) = lookup
+                            val moderator = members.firstOrNull { it.isModerator }
+
+                            val args = RoomInfoArgs(
+                                roomId = room.id,
+                                roomNumber = room.roomNumber,
+                                roomTitle = room.titleOrFallback(
+                                    resources,
+                                    includeRoomPrefix = false
+                                ),
+                                memberCount = members.count(),
+                                ownerId = room.ownerId,
+                                hostName = moderator?.identity?.displayName,
+                                coverChargeQuarks = room.coverCharge.quarks,
+                            )
+
+                            screens.add(
+                                ScreenRegistry.get(
+                                    NavScreenProvider.Room.Lookup.Confirm(args = args, returnToSender = true)
+                                )
+                            )
+                        }
+                    }
+
+                    screens
+                }
             }
         } ?: emptyList()
     }
@@ -142,7 +182,12 @@ class RouterImpl(
                             val number = runCatching {
                                 deeplink.pathSegments[1].toLongOrNull()
                             }.getOrNull() ?: return null
-                            DeeplinkType.OpenRoomByNumber(number = number)
+
+                            val messageId = runCatching {
+                                deeplink.data.toUri().getQueryParameter("m")?.let { Base58.decode(it).toList() }
+                            }.getOrNull()
+
+                            DeeplinkType.OpenRoomByNumber(number = number, messageId = messageId)
                         }
 
                         else -> null

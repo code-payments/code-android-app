@@ -8,7 +8,7 @@ import com.getcode.services.model.PrefBool
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-internal interface PrefBoolDao {
+interface PrefBoolDao {
     @Query("SELECT * FROM PrefBool WHERE key = :key")
     suspend fun get(key: String): PrefBool?
     @Query("SELECT * FROM PrefBool WHERE key = :key")

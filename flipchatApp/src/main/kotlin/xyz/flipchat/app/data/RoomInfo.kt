@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.ui.utils.generateComplementaryColorPalette
+import com.getcode.utils.base58
 
 data class RoomInfo(
     val id: ID? = null,
@@ -12,7 +13,8 @@ data class RoomInfo(
     val memberCount: Int = 0,
     val hostId: ID? = null,
     val hostName: String? = null,
-    val coverCharge: Kin = Kin.fromQuarks(0)
+    val roomNumber: Long = 0,
+    val coverCharge: Kin = Kin.fromQuarks(0),
 ) {
     val customTitle: String = runCatching { Regex("^#\\d+:\\s*(.*)").find(title)?.groupValues?.get(1).orEmpty() }.getOrDefault("")
 

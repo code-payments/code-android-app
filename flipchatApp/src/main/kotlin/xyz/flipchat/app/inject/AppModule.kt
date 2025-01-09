@@ -35,6 +35,7 @@ import xyz.flipchat.app.util.AndroidLocale
 import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
+import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.services.billing.BillingClient
 import xyz.flipchat.services.billing.GooglePlayBillingClient
 import xyz.flipchat.services.billing.StubBillingClient
@@ -59,12 +60,14 @@ object AppModule {
     @Provides
     fun providesWifiManager(
         @ApplicationContext context: Context,
-    ): WifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    ): WifiManager =
+        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     @Provides
     fun providesConnectivityManager(
         @ApplicationContext context: Context,
-    ): ConnectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    ): ConnectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     @Provides
     fun providesTelephonyManager(
@@ -96,6 +99,7 @@ object AppModule {
                 Api25Vibrator(vibrator)
             }
         }
+
         else -> Api31Vibrator(context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager)
     }
 
@@ -107,13 +111,14 @@ object AppModule {
         telephonyManager: TelephonyManager,
         wifiManager: WifiManager
     ): NetworkConnectivityListener = when (Build.VERSION.SDK_INT) {
-        in Build.VERSION_CODES.N .. Build.VERSION_CODES.P -> {
+        in Build.VERSION_CODES.N..Build.VERSION_CODES.P -> {
             Api24NetworkObserver(
                 wifiManager,
                 connectivityManager,
                 telephonyManager
             )
         }
+
         else -> Api29NetworkObserver(
             connectivityManager,
             telephonyManager
@@ -128,18 +133,22 @@ object AppModule {
 
     @Provides
     fun providesDeeplinkRouter(
-        userManager: UserManager
+        userManager: UserManager,
+        chatsController: ChatsController,
+        resources: ResourceHelper,
     ): Router = RouterImpl(
-            userManager = userManager,
-            tabIndexResolver = { resolved ->
-                when (resolved) {
-                    FcTab.Chat -> FcTab.Chat.ordinal
-                    FcTab.Cash -> FcTab.Cash.ordinal
-                    FcTab.Settings -> FcTab.Settings.ordinal
-                }
-            },
-            indexTabResolver = { index -> FcTab.entries[index] }
-        )
+        userManager = userManager,
+        chatsController = chatsController,
+        resources = resources,
+        tabIndexResolver = { resolved ->
+            when (resolved) {
+                FcTab.Chat -> FcTab.Chat.ordinal
+                FcTab.Cash -> FcTab.Cash.ordinal
+                FcTab.Settings -> FcTab.Settings.ordinal
+            }
+        },
+        indexTabResolver = { index -> FcTab.entries[index] }
+    )
 
     @Singleton
     @Provides

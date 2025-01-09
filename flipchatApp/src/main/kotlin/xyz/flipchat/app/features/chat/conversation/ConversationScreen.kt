@@ -100,10 +100,10 @@ data class ConversationScreen(
             }
         }
 
-        LaunchedEffect(chatId) {
-            if (chatId != null) {
+        LaunchedEffect(roomNumber) {
+            if (roomNumber != null) {
                 vm.dispatchEvent(
-                    ConversationViewModel.Event.OnChatIdChanged(chatId)
+                    ConversationViewModel.Event.OnRoomNumberChanged(roomNumber)
                 )
             }
         }

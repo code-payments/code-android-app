@@ -64,7 +64,7 @@ import java.io.File
     version = 18,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
-internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
+abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     abstract fun prefIntDao(): PrefIntDao
     abstract fun prefStringDao(): PrefStringDao
     abstract fun prefBoolDao(): PrefBoolDao

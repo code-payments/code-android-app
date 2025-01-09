@@ -221,6 +221,7 @@ class JoinConfirmationViewModel @Inject constructor(
                             memberCount = args.memberCount,
                             hostId = args.ownerId,
                             hostName = args.hostName,
+                            roomNumber = args.roomNumber,
                             coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
                         ),
                     )

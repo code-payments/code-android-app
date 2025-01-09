@@ -17,4 +17,20 @@ object IntentUtils {
         data = Uri.parse("tel:$number")
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
+
+    fun shareRoom(roomNumber: Long): Intent {
+        val shareLink = "https://app.flipchat.xyz/room/$roomNumber"
+
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, shareLink)
+            type = "text/plain"
+        }
+
+        val shareIntent = Intent.createChooser(sendIntent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        return shareIntent
+    }
 }

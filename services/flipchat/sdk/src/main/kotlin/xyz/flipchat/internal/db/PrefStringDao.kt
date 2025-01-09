@@ -8,7 +8,7 @@ import com.getcode.services.model.PrefString
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-internal interface PrefStringDao {
+interface PrefStringDao {
     @Query("SELECT * FROM PrefString WHERE key = :key")
     suspend fun get(key: String): PrefString?
 

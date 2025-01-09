@@ -29,6 +29,7 @@ import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
 import xyz.flipchat.app.ui.room.RoomCard
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -53,6 +54,7 @@ class RoomInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
     override fun Content() {
         val viewModel = getViewModel<ChatInfoViewModel>()
         val navigator = LocalCodeNavigator.current
+        val context = LocalContext.current
 
         LaunchedEffect(info) {
             viewModel.dispatchEvent(ChatInfoViewModel.Event.OnInfoChanged(info))
@@ -77,6 +79,14 @@ class RoomInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.ShareRoom>()
+                .onEach {
+                    context.startActivity(it.intent)
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
                 .filterIsInstance<ChatInfoViewModel.Event.OnChangeName>()
                 .onEach {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.Room.ChangeName(it.id, it.title)))
@@ -89,7 +99,10 @@ class RoomInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
         ) {
             AppBarWithTitle(
                 backButton = true,
-                onBackIconClicked = { navigator.pop() }
+                onBackIconClicked = { navigator.pop() },
+                endContent = {
+                    AppBarDefaults.Share { viewModel.dispatchEvent(ChatInfoViewModel.Event.OnShareRoomClicked) }
+                }
             )
             RoomInfoScreenContent(viewModel)
         }

@@ -210,6 +210,7 @@ private fun Preview_RoomCard() {
                     title = "Room #237",
                     hostName = "Ivy",
                     memberCount = 24,
+                    roomNumber = 0
                 )
             )
         }
