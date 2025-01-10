@@ -68,8 +68,6 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
         val viewModel = getActivityScopedViewModel<HomeViewModel>()
         val router = viewModel.router
 
-        val codeNavigator = LocalCodeNavigator.current
-
         val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
         val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
@@ -93,13 +91,6 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
                 )
             }
         ) { tabNavigator ->
-            LaunchedEffect(deepLink) {
-                if (deepLink != null) {
-                    val screenSet = router.processDestination(deepLink)
-                    tabNavigator.current = router.rootTabs[initialTab]
-                    codeNavigator.replaceAll(screenSet)
-                }
-            }
             Column(
                 modifier = Modifier
                     .statusBarsPadding()

@@ -15,21 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.stack.StackEvent
-import cafe.adriel.voyager.hilt.getViewModel
-import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.navigation.NavScreenProvider
-import xyz.flipchat.app.features.payments.PaymentScaffold
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
-import xyz.flipchat.app.theme.FlipchatTheme
-import xyz.flipchat.app.ui.navigation.AppScreenContent
-import xyz.flipchat.app.ui.navigation.MainRoot
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
@@ -43,6 +36,10 @@ import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import xyz.flipchat.app.features.home.HomeViewModel
+import xyz.flipchat.app.features.payments.PaymentScaffold
+import xyz.flipchat.app.theme.FlipchatTheme
+import xyz.flipchat.app.ui.navigation.AppScreenContent
+import xyz.flipchat.app.ui.navigation.MainRoot
 import xyz.flipchat.app.util.DeeplinkType
 
 @Composable
@@ -92,7 +89,7 @@ fun App(
                         CodeScaffold { innerPaddingModifier ->
                             PaymentScaffold {
                                 Navigator(
-                                    screen = MainRoot,
+                                    screen = MainRoot { deepLink },
                                 ) { navigator ->
                                     LaunchedEffect(navigator.lastItem) {
                                         // update global navigator for platform access to support push/pop from a single
@@ -108,9 +105,11 @@ fun App(
                                     }
 
                                     LaunchedEffect(deepLink) {
-                                        if (deepLink != null) {
-                                            val screenSet = router.processDestination(deepLink)
-                                            codeNavigator.replaceAll(screenSet)
+                                        if (codeNavigator.lastItem !is MainRoot) {
+                                            if (deepLink != null) {
+                                                val screenSet = router.processDestination(deepLink)
+                                                codeNavigator.replaceAll(screenSet)
+                                            }
                                         }
                                     }
 

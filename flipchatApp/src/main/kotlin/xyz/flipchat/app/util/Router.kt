@@ -89,6 +89,7 @@ class RouterImpl(
             when {
                 deeplink.pathSegments.isEmpty() -> tabIndexResolver(FcTab.Chat)
                 chats.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Chat)
+                room.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Chat)
                 cash.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Cash)
                 settings.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Settings)
                 else -> 0

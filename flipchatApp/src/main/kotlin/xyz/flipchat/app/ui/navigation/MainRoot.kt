@@ -33,6 +33,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import xyz.flipchat.app.R
 import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import xyz.flipchat.app.ui.LocalUserManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -45,9 +46,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
+import xyz.flipchat.app.features.home.HomeViewModel
 import xyz.flipchat.services.user.AuthState
 
-internal object MainRoot : Screen {
+internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -58,13 +60,8 @@ internal object MainRoot : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val userManager = LocalUserManager.currentOrThrow
         var showLoading by remember { mutableStateOf(false) }
-
-        //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
-        //authenticated. Currently we will require authentication to see anything, but can be changed in future.
-        var deeplink by remember { mutableStateOf<DeepLink?>(null) }
-        DeepLinkListener {
-            deeplink = it
-        }
+        val homeViewModel = getActivityScopedViewModel<HomeViewModel>()
+        val router = homeViewModel.router
 
         Box(
             modifier = Modifier
@@ -98,6 +95,7 @@ internal object MainRoot : Screen {
             }
         }
 
+
         LaunchedEffect(userManager) {
             userManager.state
                 .map { it.authState }
@@ -111,7 +109,13 @@ internal object MainRoot : Screen {
                         }
                         AuthState.Unregistered,
                         AuthState.LoggedIn -> {
-                            navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
+                            val screens = router.processDestination(deepLink())
+
+                            if (screens.isNotEmpty()) {
+                                navigator.replaceAll(screens)
+                            } else {
+                                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                            }
                         }
                         AuthState.LoggedOut -> {
                             navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
