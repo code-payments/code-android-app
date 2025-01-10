@@ -28,6 +28,7 @@ fun ChatMessage.decryptingUsing(keyPair: Ed25519.KeyPair): ChatMessage {
 
                 is MessageContent.Reaction -> it
                 is MessageContent.Reply -> it
+                is MessageContent.DeletedMessage -> it
             }
         }
     )
