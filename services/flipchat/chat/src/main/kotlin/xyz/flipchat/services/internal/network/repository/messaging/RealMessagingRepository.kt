@@ -106,14 +106,20 @@ internal class RealMessagingRepository @Inject constructor(
                     val data = result.getOrNull() ?: return@stream
                     val messages = data.map { lastMessageMapper.map(userId to it) }
                     val messagesWithContents = messages.map { messageMapper.map(chatId to it) }
-                    val deletions =  messagesWithContents.mapNotNull {
+                    val deletions =  messagesWithContents.filter {
                         MessageContent.fromData(
                             it.type, it.content, it.senderId == userManager.userId
-                        ) as? MessageContent.DeletedMessage
-                    }.map { it.originalMessageId }
+                        ) as? MessageContent.DeletedMessage != null
+                    }
 
-                    onMessagesUpdated(messagesWithContents)
-                    onMessagesDeleted(deletions)
+                    onMessagesUpdated(messagesWithContents.subtract(deletions.toSet()).toList())
+                    onMessagesDeleted(
+                        deletions.map {
+                            MessageContent.fromData(
+                                it.type, it.content, it.senderId == userManager.userId
+                            ) as MessageContent.DeletedMessage
+                        }.map { it.originalMessageId }
+                    )
                 } else {
                     result.exceptionOrNull()?.let {
                         ErrorUtils.handleError(it)

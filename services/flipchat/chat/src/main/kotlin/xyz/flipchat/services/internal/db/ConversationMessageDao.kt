@@ -32,6 +32,7 @@ interface ConversationMessageDao {
         messages.dateMillis AS dateMillis,
         messages.conversationIdBase58 AS conversationIdBase58,
         messages.type AS type,
+        messages.deleted AS deleted,
         messages.content AS content,
         members.memberIdBase58 AS memberIdBase58,
         members.memberName AS memberName

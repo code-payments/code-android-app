@@ -217,19 +217,26 @@ class ChatsController @Inject constructor(
                         conversationMessageMapper.map(conversationId to it)
                     }
 
-                    val deletions = messagesWithContent.mapNotNull {
+                    val deletions = messagesWithContent.filter {
                         MessageContent.fromData(
                             it.type, it.content, it.senderId == userManager.userId
-                        ) as? MessageContent.DeletedMessage
-                    }.map { it.originalMessageId }
+                        ) as? MessageContent.DeletedMessage != null
+                    }
 
+                    val withoutDeletions = messagesWithContent.subtract(deletions.toSet())
+
+                    val deletionIds = deletions.map {
+                        MessageContent.fromData(
+                            it.type, it.content, it.senderId == userManager.userId
+                        ) as MessageContent.DeletedMessage
+                    }.map { it.originalMessageId }
                     withContext(Dispatchers.IO) {
-                        deletions.onEach { messageId ->
+                        deletionIds.onEach { messageId ->
                             db.conversationMessageDao().markDeleted(messageId)
                         }
 
                         db.conversationMessageDao().upsertMessages(
-                            *(messagesWithContent).toTypedArray()
+                            *(withoutDeletions).toTypedArray()
                         )
                     }
 

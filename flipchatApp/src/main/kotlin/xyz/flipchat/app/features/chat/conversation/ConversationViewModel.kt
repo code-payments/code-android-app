@@ -32,6 +32,7 @@ import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
+import com.getcode.utils.base64
 import com.getcode.utils.network.retryable
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
@@ -835,8 +836,9 @@ class ConversationViewModel @Inject constructor(
         contents: MessageContent
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
-            if (stateFlow.value.isHost) {
-                if (betaFeatures.get(Lab.DeleteMessage)) {
+            // delete message
+            if (betaFeatures.get(Lab.DeleteMessage)) {
+                if (stateFlow.value.isHost || contents.isFromSelf) {
                     add(
                         MessageControlAction.Delete {
                             confirmMessageDelete(
@@ -846,7 +848,10 @@ class ConversationViewModel @Inject constructor(
                         }
                     )
                 }
+            }
 
+
+            if (stateFlow.value.isHost) {
                 if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
 //                    add(
 //                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
@@ -1011,7 +1016,7 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 is Event.DeleteMessage -> {
-                    Timber.d("Delete Message => ${event.messageId.base58}")
+                    Timber.d("Delete Message => ${event.messageId.uuid.toString()}")
                 }
 
                 else -> Timber.d("event=${event}")
@@ -1032,11 +1037,11 @@ class ConversationViewModel @Inject constructor(
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
 
-                    val cardTitle = if (conversation.title.startsWith("Room")) {
-                        "#${conversation.roomNumber}"
-                    } else {
-                        conversation.title
-                    }
+//                    val cardTitle = if (conversation.title.startsWith("Room")) {
+//                        "#${conversation.roomNumber}"
+//                    } else {
+//                        conversation.title
+//                    }
 
                     state.copy(
                         conversationId = conversation.id,
@@ -1056,7 +1061,7 @@ class ConversationViewModel @Inject constructor(
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
-                            roomTitle = cardTitle,
+                            roomTitle = conversation.title,
                             ownerId = conversation.ownerId,
                             hostName = host?.memberName,
                             memberCount = members.count(),
