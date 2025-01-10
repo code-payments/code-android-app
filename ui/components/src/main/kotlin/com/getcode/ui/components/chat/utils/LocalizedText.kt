@@ -112,6 +112,7 @@ fun MessageContent.localizedText(
 
         is MessageContent.Reaction -> content.emoji
         is MessageContent.Reply -> content.text
+        is MessageContent.DeletedMessage -> "deleted message"
     }
 }
 
@@ -193,6 +194,7 @@ val MessageContent.localizedText: String
 
             is MessageContent.Reaction -> content.emoji
             is MessageContent.Reply -> content.text
+            is MessageContent.DeletedMessage -> "deleted message"
         }
     }
 

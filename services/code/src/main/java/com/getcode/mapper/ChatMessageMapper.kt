@@ -15,7 +15,7 @@ class ChatMessageMapper @Inject constructor(
 
         val messageId = from.messageId.value.toList()
         val contents = from.contentList.mapNotNull { MessageContent.invoke(it, messageId) }
-        val isFromSelf = contents.firstOrNull { it.isFromSelf } != null
+        val isFromSelf = contents.any { it.isFromSelf }
 
         return ChatMessage(
             id = messageId,

@@ -35,5 +35,6 @@ message SetDisplayNameResponse {
 	enum Result {
 		OK                   = 0;
 		INVALID_DISPLAY_NAME = 1;
+		DENIED               = 2;
 	}
 }

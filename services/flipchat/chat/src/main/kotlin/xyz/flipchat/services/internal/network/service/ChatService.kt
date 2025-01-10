@@ -1,5 +1,6 @@
 package xyz.flipchat.services.internal.network.service
 
+import com.codeinc.flipchat.gen.chat.v1.ChatService.MemberUpdate
 import com.codeinc.flipchat.gen.common.v1.Common
 import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -388,6 +389,44 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun getMemberUpdates(
+        owner: KeyPair,
+        chatId: ID,
+        afterMember: ID?,
+    ): Result<List<MemberUpdate>> {
+        return try {
+            networkOracle.managedRequest(api.getMemberUpdates(owner, chatId, afterMember))
+                .map { response ->
+                    when (response.result) {
+                        ChatServiceRpc.GetMemberUpdatesResponse.Result.OK -> {
+                            Result.success(response.updatesList)
+                        }
+
+                        ChatServiceRpc.GetMemberUpdatesResponse.Result.UNRECOGNIZED -> {
+                            val error = GetMemberUpdateError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        ChatServiceRpc.GetMemberUpdatesResponse.Result.NOT_FOUND -> {
+                            val error = GetMemberUpdateError.NotFound()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = GetMemberUpdateError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = GetMemberUpdateError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     suspend fun removeUser(
         owner: KeyPair,
         chatId: ID,
@@ -691,6 +730,15 @@ sealed class RemoveUserError(
     class Unrecognized : RemoveUserError()
     class Denied : RemoveUserError()
     data class Other(override val cause: Throwable? = null) : RemoveUserError(cause = cause)
+}
+
+sealed class GetMemberUpdateError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : GetMemberUpdateError()
+    class NotFound : GetMemberUpdateError()
+    data class Other(override val cause: Throwable? = null) : GetMemberUpdateError(cause = cause)
 }
 
 sealed class MuteUserError(

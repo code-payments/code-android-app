@@ -2,6 +2,7 @@ package xyz.flipchat.services.internal.network.repository.messaging
 
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.utils.ErrorUtils
@@ -53,7 +54,10 @@ internal class RealMessagingRepository @Inject constructor(
     }
 
     override suspend fun deleteMessage(chatId: ID, messageId: ID): Result<Unit> {
-        return Result.failure(NotImplementedError())
+        // this utilizes send message under the hood
+        val content = OutgoingMessageContent.DeleteRequest(messageId)
+        return sendMessage(chatId, content)
+            .map { Unit }
     }
 
     override suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit> {
@@ -86,8 +90,8 @@ internal class RealMessagingRepository @Inject constructor(
     override fun openMessageStream(
         coroutineScope: CoroutineScope,
         chatId: ID,
-        lastMessageId: suspend () -> ID?,
-        onMessagesUpdated: (List<ConversationMessage>) -> Unit
+        onMessagesUpdated: (List<ConversationMessage>) -> Unit,
+        onMessagesDeleted: (List<ID>) -> Unit
     ) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No ed25519 signature found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
@@ -97,13 +101,19 @@ internal class RealMessagingRepository @Inject constructor(
                 scope = coroutineScope,
                 owner = owner,
                 chatId = chatId,
-                lastMessageId = lastMessageId,
             ) stream@{ result ->
                 if (result.isSuccess) {
                     val data = result.getOrNull() ?: return@stream
                     val messages = data.map { lastMessageMapper.map(userId to it) }
                     val messagesWithContents = messages.map { messageMapper.map(chatId to it) }
+                    val deletions =  messagesWithContents.mapNotNull {
+                        MessageContent.fromData(
+                            it.type, it.content, it.senderId == userManager.userId
+                        ) as? MessageContent.DeletedMessage
+                    }.map { it.originalMessageId }
+
                     onMessagesUpdated(messagesWithContents)
+                    onMessagesDeleted(deletions)
                 } else {
                     result.exceptionOrNull()?.let {
                         ErrorUtils.handleError(it)

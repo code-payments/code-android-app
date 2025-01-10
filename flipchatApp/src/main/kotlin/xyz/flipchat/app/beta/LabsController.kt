@@ -49,8 +49,14 @@ sealed interface Lab {
         override val launched: Boolean = true
     }
 
+    data object DeleteMessage : Lab {
+        override val key: String = "delete_message_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
-        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread, RoomNameChanges)
+        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread, RoomNameChanges, DeleteMessage)
         internal fun byKey(key: Preferences.Key<*>): Lab? {
             return entries.firstOrNull { it.key == key.name }
         }

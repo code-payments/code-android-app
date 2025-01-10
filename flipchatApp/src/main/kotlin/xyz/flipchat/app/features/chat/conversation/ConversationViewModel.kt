@@ -90,7 +90,7 @@ class ConversationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
     clipboardManager: ClipboardManager,
-    betaFeatures: Labs,
+    private val betaFeatures: Labs,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -152,7 +152,7 @@ class ConversationViewModel @Inject constructor(
     sealed interface Event {
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
-        data class OnRoomNumberChanged(val roomNumber: Long): Event
+        data class OnRoomNumberChanged(val roomNumber: Long) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
@@ -790,7 +790,7 @@ class ConversationViewModel @Inject constructor(
             }
         }.cachedIn(viewModelScope)
 
-    private fun buildMessageActions(
+    private suspend fun buildMessageActions(
         message: ConversationMessage,
         member: ConversationMember?,
         contents: MessageContent,
@@ -829,21 +829,24 @@ class ConversationViewModel @Inject constructor(
         } + buildSelfDefenseControls(message, member, contents)
     }
 
-    private fun buildSelfDefenseControls(
+    private suspend fun buildSelfDefenseControls(
         message: ConversationMessage,
         member: ConversationMember?,
         contents: MessageContent
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
             if (stateFlow.value.isHost) {
-//                        add(
-//                            MessageControlAction.Delete {
-//                                confirmMessageDelete(
-//                                    conversationId = message.conversationId,
-//                                    messageId = message.id
-//                                )
-//                            }
-//                        )
+                if (betaFeatures.get(Lab.DeleteMessage)) {
+                    add(
+                        MessageControlAction.Delete {
+                            confirmMessageDelete(
+                                conversationId = message.conversationId,
+                                messageId = message.id
+                            )
+                        }
+                    )
+                }
+
                 if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
 //                    add(
 //                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
@@ -1005,6 +1008,10 @@ class ConversationViewModel @Inject constructor(
                                 "members:$members, " +
                                 "pointers:${event.conversationWithPointers.pointers.count()}"
                     )
+                }
+
+                is Event.DeleteMessage -> {
+                    Timber.d("Delete Message => ${event.messageId.base58}")
                 }
 
                 else -> Timber.d("event=${event}")

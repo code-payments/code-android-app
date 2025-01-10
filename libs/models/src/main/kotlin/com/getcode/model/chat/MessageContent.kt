@@ -303,6 +303,43 @@ sealed interface MessageContent {
         override val content: String = Json.encodeToString(Content(text, originalMessageId))
     }
 
+    @Serializable
+    data class DeletedMessage(
+        val originalMessageId: ID,
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 9
+
+        override fun hashCode(): Int {
+            var result = originalMessageId.hashCode()
+            result += isFromSelf.hashCode()
+            result += kind.hashCode()
+
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as DeletedMessage
+
+            if (originalMessageId != other.originalMessageId) return false
+            if (isFromSelf != other.isFromSelf) return false
+            if (kind != other.kind) return false
+
+            return true
+        }
+
+        @Serializable
+        internal data class Content(
+            val originalMessageId: ID,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(originalMessageId))
+    }
+
     companion object {
         fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
             return when (type) {
@@ -325,6 +362,10 @@ sealed interface MessageContent {
                 8 -> {
                     val data = Json.decodeFromString<Reply.Content>(content)
                     Reply(data.text, data.originalMessageId, isFromSelf)
+                }
+                9 -> {
+                    val data = Json.decodeFromString<DeletedMessage.Content>(content)
+                    DeletedMessage(data.originalMessageId, isFromSelf)
                 }
                 else -> throw IllegalArgumentException()
             }

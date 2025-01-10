@@ -17,6 +17,7 @@ import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
 import xyz.flipchat.services.internal.network.extensions.toIntentId
 import xyz.flipchat.services.internal.network.extensions.toMessageId
+import xyz.flipchat.services.internal.network.extensions.toPagingToken
 import xyz.flipchat.services.internal.network.extensions.toPaymentAmount
 import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.extensions.toUserId
@@ -263,6 +264,29 @@ class ChatApi @Inject constructor(
             .build()
 
         return api::muteUser
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // GetMemberUpdates gets member updates for a given chat
+    fun getMemberUpdates(
+        owner: KeyPair,
+        chatId: ID,
+        afterMember: ID?,
+    ): Flow<ChatServiceRpc.GetMemberUpdatesResponse> {
+        val builder = ChatServiceRpc.GetMemberUpdatesRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+
+        if (afterMember != null) {
+            builder.setPagingToken(afterMember.toPagingToken())
+        }
+
+        builder.apply { setAuth(authenticate(owner)) }
+
+        val request = builder.build()
+
+
+        return api::getMemberUpdates
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

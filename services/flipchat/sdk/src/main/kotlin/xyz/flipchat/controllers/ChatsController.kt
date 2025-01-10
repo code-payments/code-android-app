@@ -12,6 +12,7 @@ import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.Kin
+import com.getcode.model.chat.MessageContent
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
@@ -215,7 +216,18 @@ class ChatsController @Inject constructor(
                     val messagesWithContent = syncedMessages.map {
                         conversationMessageMapper.map(conversationId to it)
                     }
+
+                    val deletions = messagesWithContent.mapNotNull {
+                        MessageContent.fromData(
+                            it.type, it.content, it.senderId == userManager.userId
+                        ) as? MessageContent.DeletedMessage
+                    }.map { it.originalMessageId }
+
                     withContext(Dispatchers.IO) {
+                        deletions.onEach { messageId ->
+                            db.conversationMessageDao().markDeleted(messageId)
+                        }
+
                         db.conversationMessageDao().upsertMessages(
                             *(messagesWithContent).toTypedArray()
                         )

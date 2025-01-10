@@ -54,6 +54,8 @@ message Content {
         LocalizedAnnouncementContent  localized_announcement  = 2;
         ReactionContent               reaction                = 5;
         ReplyContent                  reply                   = 6;
+        TipContent                    tip                     = 7;
+        DeleteMessageContent          deleted                 = 8;
     }
     reserved 3; // ExchangeDataContent
     reserved 4; // NaclBoxEncryptedContent
@@ -82,4 +84,14 @@ message ReplyContent {
     MessageId original_message_id = 1 ;
     // The reply text, which can be handled similarly to TextContent
     string reply_text = 2 ;
+}
+message TipContent {
+    // The message ID of the message this tip is referencing
+    MessageId original_message_id = 1 ;
+    // The amount tipped for the message
+    common.v1.PaymentAmount tip_amount = 2;
+}
+message DeleteMessageContent {
+    // The message ID of the message that was deleted
+    MessageId original_message_id = 1 ;
 }

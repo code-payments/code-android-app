@@ -1,9 +1,7 @@
 package xyz.flipchat.services.internal.protomapping
 
 import com.codeinc.flipchat.gen.messaging.v1.Model
-import com.getcode.model.EncryptedData
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.toPublicKey
 
 operator fun MessageContent.Companion.invoke(
     proto: Model.Content,
@@ -29,6 +27,11 @@ operator fun MessageContent.Companion.invoke(
         Model.Content.TypeCase.REPLY -> MessageContent.Reply(
             text = proto.reply.replyText,
             originalMessageId = proto.reply.originalMessageId.value.toList(),
+            isFromSelf = isFromSelf
+        )
+
+        Model.Content.TypeCase.DELETED -> MessageContent.DeletedMessage(
+            originalMessageId = proto.deleted.originalMessageId.value.toList(),
             isFromSelf = isFromSelf
         )
 

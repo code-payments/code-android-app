@@ -31,9 +31,7 @@ message RegisterRequest {
 	common.v1.PublicKey public_key = 1;
 	// Signature of this message (without the signature), using the provided keypaid.
 	common.v1.Signature signature = 2;
-	// Optional DisplayName of the new user
-	//
-	// If the user already exists, this is not used.
+	// Deprecated: New account creation flow requires using profile service after IAP
 	string display_name = 3 ;
 }
 message RegisterResponse {
@@ -42,6 +40,7 @@ message RegisterResponse {
 		OK                   = 0;
 		INVALID_SIGNATURE    = 1;
 		INVALID_DISPLAY_NAME = 2;
+		DENIED               = 3;
 	}
 	// Error reason contains the reason for the error, if the
 	// result > 1. This allows for server to impose moderation restrictions

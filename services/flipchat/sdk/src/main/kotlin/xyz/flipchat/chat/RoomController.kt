@@ -99,9 +99,13 @@ class RoomController @Inject constructor(
             messagingRepository.openMessageStream(
                 coroutineScope = scope,
                 chatId = identifier,
-                lastMessageId = { db.conversationMessageDao().getNewestMessage(identifier)?.id },
                 onMessagesUpdated = {
                     scope.launch { db.conversationMessageDao().upsertMessages(it) }
+                },
+                onMessagesDeleted = { messages ->
+                    scope.launch {
+                        messages.onEach { db.conversationMessageDao().markDeleted(it) }
+                    }
                 }
             )
         }

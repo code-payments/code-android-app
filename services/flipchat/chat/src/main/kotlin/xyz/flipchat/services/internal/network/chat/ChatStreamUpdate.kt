@@ -1,7 +1,7 @@
 package xyz.flipchat.services.internal.network.chat
 
-import com.codeinc.flipchat.gen.chat.v1.ChatService.StreamChatEventsResponse.MemberUpdate
-import com.codeinc.flipchat.gen.chat.v1.ChatService.StreamChatEventsResponse.MetadataUpdate
+import com.codeinc.flipchat.gen.chat.v1.ChatService.MemberUpdate
+import com.codeinc.flipchat.gen.chat.v1.ChatService.MetadataUpdate
 import com.codeinc.flipchat.gen.chat.v1.isTypingOrNull
 import com.codeinc.flipchat.gen.chat.v1.lastMessageOrNull
 import com.codeinc.flipchat.gen.chat.v1.memberOrNull

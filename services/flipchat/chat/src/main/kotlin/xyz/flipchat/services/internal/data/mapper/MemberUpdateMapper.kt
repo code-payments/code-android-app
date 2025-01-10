@@ -1,6 +1,6 @@
 package xyz.flipchat.services.internal.data.mapper
 
-import com.codeinc.flipchat.gen.chat.v1.ChatService.StreamChatEventsResponse.MemberUpdate as ApiMemberUpdate
+import com.codeinc.flipchat.gen.chat.v1.ChatService.MemberUpdate as ApiMemberUpdate
 import com.getcode.services.mapper.Mapper
 import xyz.flipchat.services.domain.model.chat.StreamMemberUpdate
 import javax.inject.Inject

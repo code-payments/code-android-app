@@ -41,6 +41,12 @@ internal class AccountService @Inject constructor(
                             Result.failure(error)
                         }
 
+                        RegisterResponse.Result.DENIED -> {
+                            val error = RegisterError.Denied(response.errorReason)
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
                         RegisterResponse.Result.UNRECOGNIZED -> {
                             val error = RegisterError.Unrecognized(response.errorReason)
                             Timber.e(t = error)
@@ -190,6 +196,7 @@ sealed class RegisterError(
 ) : FlipchatServerError(message, cause) {
     data class InvalidSignature(override val message: String) : RegisterError(message)
     data class InvalidDisplayName(override val message: String) : RegisterError(message)
+    data class Denied(override val message: String): RegisterError(message)
     data class Unrecognized(override val message: String) : RegisterError(message)
     data class Other(override val message: String, override val cause: Throwable? = null) :
         RegisterError(message)

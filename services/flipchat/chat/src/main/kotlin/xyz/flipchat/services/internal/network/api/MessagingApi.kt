@@ -6,6 +6,7 @@ import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.codeinc.flipchat.gen.messaging.v1.Model.Pointer
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.services.network.core.GrpcApi
@@ -19,6 +20,7 @@ import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
 import xyz.flipchat.services.internal.network.extensions.toMessageId
+import xyz.flipchat.services.internal.network.extensions.toPaymentAmount
 import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.utils.authenticate
 import javax.inject.Inject
@@ -98,6 +100,30 @@ class MessagingApi @Inject constructor(
                         Model.ReplyContent.newBuilder()
                             .setOriginalMessageId(content.messageId.toMessageId())
                             .setReplyText(content.text)
+                    )
+            }
+
+            is OutgoingMessageContent.Reaction -> {
+                Model.Content.newBuilder()
+                    .setReaction(
+                        Model.ReactionContent.newBuilder()
+                            .setOriginalMessageId(content.messageId.toMessageId())
+                            .setEmoji(content.emoji)
+                    )
+            }
+            is OutgoingMessageContent.Tip -> {
+                Model.Content.newBuilder()
+                    .setTip(
+                        Model.TipContent.newBuilder()
+                            .setOriginalMessageId(content.messageId.toMessageId())
+                            .setTipAmount(content.amount.toPaymentAmount()))
+            }
+
+            is OutgoingMessageContent.DeleteRequest -> {
+                Model.Content.newBuilder()
+                    .setDeleted(
+                        Model.DeleteMessageContent.newBuilder()
+                            .setOriginalMessageId(content.messageId.toMessageId())
                     )
             }
         }

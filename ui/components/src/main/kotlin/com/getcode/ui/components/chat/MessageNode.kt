@@ -459,6 +459,8 @@ fun MessageNode(
                                     }
                                 }
                             }
+
+                            is MessageContent.DeletedMessage -> Unit
                         }
                     }
                 }

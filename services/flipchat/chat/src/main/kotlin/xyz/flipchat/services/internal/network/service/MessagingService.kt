@@ -249,7 +249,6 @@ internal class MessagingService @Inject constructor(
         scope: CoroutineScope,
         owner: KeyPair,
         chatId: ID,
-        lastMessageId: suspend () -> ID?,
         onEvent: (Result<List<Model.Message>>) -> Unit
     ): ChatMessageStreamReference {
         trace("Message Opening stream.")
@@ -260,13 +259,12 @@ internal class MessagingService @Inject constructor(
             openMessageStream(
                 owner = owner,
                 chatId = chatId,
-                lastMessageId = lastMessageId,
                 reference = streamReference,
                 onEvent = onEvent
             )
         }
 
-        openMessageStream(owner, chatId, lastMessageId, streamReference, onEvent)
+        openMessageStream(owner, chatId, streamReference, onEvent)
 
         return streamReference
     }
@@ -274,7 +272,6 @@ internal class MessagingService @Inject constructor(
     private fun openMessageStream(
         owner: KeyPair,
         chatId: ID,
-        lastMessageId: suspend () -> ID?,
         reference: ChatMessageStreamReference,
         onEvent: (Result<List<Model.Message>>) -> Unit
     ) {
@@ -331,7 +328,6 @@ internal class MessagingService @Inject constructor(
                             openMessageStream(
                                 owner,
                                 chatId,
-                                lastMessageId,
                                 reference,
                                 onEvent
                             )
@@ -350,11 +346,6 @@ internal class MessagingService @Inject constructor(
                     .setParams(
                         Params.newBuilder()
                             .setChatId(chatId.toChatId())
-                            .apply {
-                                lastMessageId()?.let {
-                                    setLastKnownMessageId(it.toMessageId())
-                                }
-                            }
                             .apply { setAuth(authenticate(owner)) }
                     ).build()
 
