@@ -1,16 +1,22 @@
 package xyz.flipchat.app.features.chat.conversation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.fastForEachIndexed
 import cafe.adriel.voyager.core.screen.Screen
@@ -31,47 +37,63 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                 .navigationBarsPadding()
         ) {
             actions.fastForEachIndexed { index, action ->
-                Text(
-                    text = when (action) {
-                        is MessageControlAction.Copy -> stringResource(R.string.action_copyMessage)
-                        is MessageControlAction.Delete -> stringResource(R.string.action_deleteMessage)
-                        is MessageControlAction.RemoveUser -> stringResource(
-                            R.string.action_removeUser,
-                            action.name
-                        )
-
-                        is MessageControlAction.BlockUser -> stringResource(
-                            R.string.action_blockUser,
-                            action.name
-                        )
-
-
-                        is MessageControlAction.UnblockUser -> stringResource(
-                            R.string.action_unblockUser,
-                            action.name
-                        )
-
-
-                        is MessageControlAction.ReportUserForMessage -> stringResource(R.string.action_report)
-                        is MessageControlAction.MuteUser -> stringResource(
-                            R.string.action_muteUser,
-                            action.name
-                        )
-
-                        is MessageControlAction.Reply -> stringResource(R.string.action_reply)
-                    },
-                    style = CodeTheme.typography.textMedium,
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
                         .clickable {
                             navigator.hide()
                             action.onSelect()
                         }
+                        .fillMaxWidth()
                         .padding(
                             horizontal = CodeTheme.dimens.inset,
-                            vertical = CodeTheme.dimens.grid.x3
+                            vertical = CodeTheme.dimens.grid.x2
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+                ) {
+                    Image(
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
+                        painter = action.painter,
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(
+                            if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
                         )
-                )
+                    )
+                    Text(
+                        text = when (action) {
+                            is MessageControlAction.Copy -> stringResource(R.string.action_copyMessage)
+                            is MessageControlAction.Delete -> stringResource(R.string.action_deleteMessage)
+                            is MessageControlAction.RemoveUser -> stringResource(
+                                R.string.action_removeUser,
+                                action.name
+                            )
+
+                            is MessageControlAction.BlockUser -> stringResource(
+                                R.string.action_blockUser,
+                                action.name
+                            )
+
+
+                            is MessageControlAction.UnblockUser -> stringResource(
+                                R.string.action_unblockUser,
+                                action.name
+                            )
+
+
+                            is MessageControlAction.ReportUserForMessage -> stringResource(R.string.action_report)
+                            is MessageControlAction.MuteUser -> stringResource(
+                                R.string.action_muteUser,
+                                action.name
+                            )
+
+                            is MessageControlAction.Reply -> stringResource(R.string.action_reply)
+                        },
+                        style = CodeTheme.typography.textSmall.copy(
+                            color = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 if (index < actions.lastIndex) {
                     Divider(color = White05)
                 }

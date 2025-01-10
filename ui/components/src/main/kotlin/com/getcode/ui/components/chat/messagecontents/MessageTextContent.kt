@@ -9,6 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.Reply
+import androidx.compose.material.icons.filled.VoiceOverOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -20,8 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -46,18 +59,54 @@ import kotlin.math.max
 
 sealed interface MessageControlAction {
     val onSelect: () -> Unit
+    @get:Composable
+    val painter: Painter
+    val isDestructive: Boolean
 
-    data class Copy(override val onSelect: () -> Unit) : MessageControlAction
-    data class Reply(override val onSelect: () -> Unit) : MessageControlAction
-    data class Delete(override val onSelect: () -> Unit) : MessageControlAction
+    data class Copy(override val onSelect: () -> Unit) : MessageControlAction {
+        override val isDestructive: Boolean = false
+
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.ContentCopy)
+    }
+    data class Reply(override val onSelect: () -> Unit) : MessageControlAction {
+        override val isDestructive: Boolean = false
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Default.Reply)
+    }
+    data class Delete(override val onSelect: () -> Unit) : MessageControlAction {
+        override val isDestructive: Boolean = true
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.Delete)
+    }
     data class RemoveUser(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction
+        MessageControlAction {
+        override val isDestructive: Boolean = true
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.PersonRemove)
+    }
 
-    data class MuteUser(val name: String, override val onSelect: () -> Unit) : MessageControlAction
+    data class MuteUser(val name: String, override val onSelect: () -> Unit) : MessageControlAction {
+        override val isDestructive: Boolean = true
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.VoiceOverOff)
+    }
     data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction
-    data class BlockUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
-    data class UnblockUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
+        MessageControlAction {
+        override val isDestructive: Boolean = true
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.Flag)
+    }
+    data class BlockUser(val name: String, override val onSelect: () -> Unit): MessageControlAction {
+        override val isDestructive: Boolean = true
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.Block)
+    }
+    data class UnblockUser(val name: String, override val onSelect: () -> Unit): MessageControlAction {
+        override val isDestructive: Boolean = false
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.Person)
+    }
 }
 
 data class MessageControls(
