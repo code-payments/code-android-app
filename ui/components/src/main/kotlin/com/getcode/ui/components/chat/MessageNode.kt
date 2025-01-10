@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.getcode.model.ID
+import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
@@ -202,6 +203,7 @@ private enum class MessageNodeDragAnchors {
 fun MessageNode(
     contents: MessageContent,
     isDeleted: Boolean,
+    deletedBy: Deleter?,
     date: Instant,
     sender: Sender,
     status: MessageStatus,
@@ -308,8 +310,8 @@ fun MessageNode(
                     if (isDeleted) {
                         DeletedMessage(
                             modifier = Modifier.fillMaxWidth(),
-                            isFromSelf = sender.isSelf,
-                            isFromBlockedMember = sender.isBlocked,
+                            sender = sender,
+                            deletedBy = deletedBy,
                             date = date,
                         )
                     } else {

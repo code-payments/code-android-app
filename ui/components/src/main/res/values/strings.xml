@@ -9,6 +9,7 @@
     <string name="title_conversationUnreadCountEmpty">0 Unread Messages</string>
     <string name="title_conversationUnreadCountSingle">1 Unread Message</string>
     <string name="title_conversationUnreadCountMany">%d Unread Messages</string>
+
     <plurals name="title_conversationUnreadCount">
         <item quantity="zero">@string/title_conversationUnreadCountEmpty</item>
         <item quantity="one">@string/title_conversationUnreadCountSingle</item>
@@ -17,4 +18,8 @@
         <item quantity="few">@string/title_conversationUnreadCountMany</item>
         <item quantity="other">@string/title_conversationUnreadCountMany</item>
     </plurals>
+
+    <string name="title_messageDeletedByYou">Message deleted by you</string>
+    <string name="title_messageDeletedByHost">Message deleted by host</string>
+    <string name="title_messageWasDeleted">This message was deleted</string>
 </resources>

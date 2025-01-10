@@ -91,7 +91,7 @@ internal class RealMessagingRepository @Inject constructor(
         coroutineScope: CoroutineScope,
         chatId: ID,
         onMessagesUpdated: (List<ConversationMessage>) -> Unit,
-        onMessagesDeleted: (List<ID>) -> Unit
+        onMessagesDeleted: (List<Pair<ID, ID>>) -> Unit
     ) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No ed25519 signature found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
@@ -106,20 +106,14 @@ internal class RealMessagingRepository @Inject constructor(
                     val data = result.getOrNull() ?: return@stream
                     val messages = data.map { lastMessageMapper.map(userId to it) }
                     val messagesWithContents = messages.map { messageMapper.map(chatId to it) }
-                    val deletions =  messagesWithContents.filter {
+                    val deletions = messagesWithContents.mapNotNull {
                         MessageContent.fromData(
                             it.type, it.content, it.senderId == userManager.userId
-                        ) as? MessageContent.DeletedMessage != null
+                        ) as? MessageContent.DeletedMessage
                     }
 
-                    onMessagesUpdated(messagesWithContents.subtract(deletions.toSet()).toList())
-                    onMessagesDeleted(
-                        deletions.map {
-                            MessageContent.fromData(
-                                it.type, it.content, it.senderId == userManager.userId
-                            ) as MessageContent.DeletedMessage
-                        }.map { it.originalMessageId }
-                    )
+                    onMessagesUpdated(messagesWithContents)
+                    onMessagesDeleted(deletions.map { it.originalMessageId to it.messageDeleter })
                 } else {
                     result.exceptionOrNull()?.let {
                         ErrorUtils.handleError(it)

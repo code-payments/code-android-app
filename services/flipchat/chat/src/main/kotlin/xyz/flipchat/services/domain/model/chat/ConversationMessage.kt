@@ -29,11 +29,14 @@ data class ConversationMessage(
     val senderIdBase58: String,
     val dateMillis: Long,
     private val deleted: Boolean?,
+    private val deletedByBase58: String? = null,
     @ColumnInfo(defaultValue = "1")
     val type: Int,
     @ColumnInfo(defaultValue = "")
     val content: String,
 ) {
+    fun getDeletedByBase58(): String? = deletedByBase58
+
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
 
@@ -42,6 +45,9 @@ data class ConversationMessage(
 
     @Ignore
     val senderId: ID = Base58.decode(senderIdBase58).toList()
+
+    @Ignore
+    val deletedBy: ID? = deletedByBase58?.let { Base58.decode(deletedByBase58).toList() }
 
     @Ignore
     val isDeleted: Boolean = deleted == true

@@ -25,9 +25,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
-import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.R
@@ -94,8 +92,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                         modifier = Modifier
                             .widthIn(min = messageContentPlaceable.width.toDp())
                             .noRippleClickable { onOriginalMessageClicked() },
-                        sender = originalMessage.sender,
-                        message = originalMessage.message,
+                        originalMessage = originalMessage,
                         backgroundColor = Color.Black.copy(0.1f)
                     )
                 }.first().measure(
@@ -120,12 +117,11 @@ internal fun MessageNodeScope.MessageReplyContent(
 
 @Composable
 fun MessageReplyPreview(
-    sender: Sender,
-    message: MessageContent,
+    originalMessage: ReplyMessageAnchor,
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
 ) {
-    val colors = generateComplementaryColorPalette(sender.id!!)
+    val colors = generateComplementaryColorPalette(originalMessage.sender.id!!)
     Row(
         modifier = modifier
             .width(IntrinsicSize.Max)
@@ -147,21 +143,37 @@ fun MessageReplyPreview(
                 .weight(1f)
         ) {
             Text(
-                text = sender.displayName.orEmpty()
+                text = originalMessage.sender.displayName.orEmpty()
                     .ifEmpty { "Member" },
                 color = colors?.second ?: CodeTheme.colors.tertiary,
                 style = CodeTheme.typography.textSmall
             )
 
-            val messageBody = if (sender.isBlocked) {
-                AnnotatedString.Builder().apply {
-                    pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                    append(stringResource(R.string.title_blockedMessage))
-                    pop()
-                }.toAnnotatedString()
-            } else {
-                AnnotatedString(message.localizedText)
+            val messageBody = when {
+                originalMessage.isDeleted -> {
+                    val deletionMessage = when {
+                        originalMessage.deletedBy?.isSelf == true -> stringResource(R.string.title_messageDeletedByYou)
+                        originalMessage.deletedBy?.isHost == true -> stringResource(R.string.title_messageDeletedByHost)
+                        else -> stringResource(R.string.title_messageWasDeleted)
+                    }
+                    AnnotatedString.Builder().apply {
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(deletionMessage)
+                        pop()
+                    }.toAnnotatedString()
+                }
+
+                originalMessage.sender.isBlocked -> {
+                    AnnotatedString.Builder().apply {
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(stringResource(R.string.title_blockedMessage))
+                        pop()
+                    }.toAnnotatedString()
+                }
+
+                else -> AnnotatedString(originalMessage.message.localizedText)
             }
+
             Text(
                 text = messageBody,
                 maxLines = 1,

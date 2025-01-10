@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Sender
 import xyz.flipchat.services.domain.model.chat.ConversationMember

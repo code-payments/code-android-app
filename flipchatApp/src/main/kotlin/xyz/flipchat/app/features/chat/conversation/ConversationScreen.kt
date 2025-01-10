@@ -58,6 +58,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.messagecontents.MessageReplyPreview
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.keyboardAsState
@@ -286,8 +287,13 @@ private fun ConversationScreenContent(
                             ) {
                                 MessageReplyPreview(
                                     modifier = Modifier.weight(1f),
-                                    sender = replyingTo.sender,
-                                    message = replyingTo.message
+                                    originalMessage = ReplyMessageAnchor(
+                                        id = replyingTo.id,
+                                        sender = replyingTo.sender,
+                                        message = replyingTo.message,
+                                        isDeleted = false,
+                                        deletedBy = null,
+                                    ),
                                 )
                                 Image(
                                     modifier = Modifier

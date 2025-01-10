@@ -306,12 +306,14 @@ sealed interface MessageContent {
     @Serializable
     data class DeletedMessage(
         val originalMessageId: ID,
+        val messageDeleter: ID,
         override val isFromSelf: Boolean,
     ) : MessageContent {
         override val kind: Int = 9
 
         override fun hashCode(): Int {
             var result = originalMessageId.hashCode()
+            result += messageDeleter.hashCode()
             result += isFromSelf.hashCode()
             result += kind.hashCode()
 
@@ -325,6 +327,7 @@ sealed interface MessageContent {
             other as DeletedMessage
 
             if (originalMessageId != other.originalMessageId) return false
+            if (messageDeleter != other.messageDeleter) return false
             if (isFromSelf != other.isFromSelf) return false
             if (kind != other.kind) return false
 
@@ -334,14 +337,15 @@ sealed interface MessageContent {
         @Serializable
         internal data class Content(
             val originalMessageId: ID,
+            val messageDeleter: ID,
         )
 
         @Transient
-        override val content: String = Json.encodeToString(Content(originalMessageId))
+        override val content: String = Json.encodeToString(Content(originalMessageId, messageDeleter))
     }
 
     companion object {
-        fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
+        fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent? {
             return when (type) {
                 0 -> Localized(content, isFromSelf)
                 1 -> RawText(content, isFromSelf)
@@ -365,9 +369,9 @@ sealed interface MessageContent {
                 }
                 9 -> {
                     val data = Json.decodeFromString<DeletedMessage.Content>(content)
-                    DeletedMessage(data.originalMessageId, isFromSelf)
+                    DeletedMessage(data.originalMessageId, data.messageDeleter, isFromSelf)
                 }
-                else -> throw IllegalArgumentException()
+                else -> null
             }
         }
     }

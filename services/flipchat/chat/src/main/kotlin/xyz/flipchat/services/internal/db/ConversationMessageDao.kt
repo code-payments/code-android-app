@@ -33,6 +33,7 @@ interface ConversationMessageDao {
         messages.conversationIdBase58 AS conversationIdBase58,
         messages.type AS type,
         messages.deleted AS deleted,
+        messages.deletedByBase58 AS deletedByBase58,
         messages.content AS content,
         members.memberIdBase58 AS memberIdBase58,
         members.memberName AS memberName
@@ -78,6 +79,8 @@ interface ConversationMessageDao {
                 messages.conversationIdBase58 AS conversationIdBase58,
                 messages.type AS type,
                 messages.content AS content,
+                messages.deleted AS deleted,
+                messages.deletedByBase58 AS deletedByBase58,
                 members.memberIdBase58 AS memberIdBase58,
                 members.memberName AS memberName
             FROM messages
@@ -92,10 +95,11 @@ interface ConversationMessageDao {
 
     suspend fun getMessageWithContentById(messageId: String, selfId: String?): ConversationMessageWithMemberAndContent? {
         val row = getMessageById(messageId) ?: return null
+        val content = MessageContent.fromData(row.message.type, row.message.content, isFromSelf = row.message.senderIdBase58 == selfId) ?: return null
         return ConversationMessageWithMemberAndContent(
             message = row.message,
             member = row.member,
-            content = MessageContent.fromData(row.message.type, row.message.content, isFromSelf = row.message.senderIdBase58 == selfId),
+            content = content,
         )
     }
 
@@ -111,11 +115,12 @@ interface ConversationMessageDao {
         removeForConversation(conversationId.base58)
     }
 
-    @Query("UPDATE messages SET deleted = 1 WHERE idBase58 = :messageId")
-    suspend fun markDeleted(messageId: String)
+    @Query("UPDATE messages SET deleted = 1, deletedByBase58 = :by WHERE idBase58 = :messageId")
+    suspend fun markDeleted(messageId: String, by: String)
 
-    suspend fun markDeleted(messageId: ID) {
-        markDeleted(messageId.base58)
+    suspend fun markDeleted(messageId: ID, by: ID) {
+        println("markdeleted ${messageId.base58} by ${by.base58}")
+        markDeleted(messageId.base58, by.base58)
     }
 
     @Query("DELETE FROM messages WHERE conversationIdBase58 NOT IN (:chatIds)")

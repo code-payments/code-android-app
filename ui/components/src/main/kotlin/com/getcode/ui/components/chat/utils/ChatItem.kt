@@ -3,6 +3,7 @@ package com.getcode.ui.components.chat.utils
 import androidx.compose.runtime.Stable
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
@@ -21,6 +22,8 @@ data class ReplyMessageAnchor(
     val id: ID,
     val sender: Sender,
     val message: MessageContent,
+    val isDeleted : Boolean = false,
+    val deletedBy: Deleter? = null,
 )
 
 @Stable
@@ -32,6 +35,7 @@ sealed class ChatItem(open val key: Any) {
         val sender: Sender,
         val date: Instant,
         val isDeleted: Boolean = false,
+        val deletedBy: Deleter? = null,
         val status: MessageStatus,
         val showStatus: Boolean = true,
         val showTimestamp: Boolean = true,

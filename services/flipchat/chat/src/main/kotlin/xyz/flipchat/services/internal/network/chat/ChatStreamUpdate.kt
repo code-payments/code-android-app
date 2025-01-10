@@ -53,6 +53,7 @@ data class ChatStreamUpdate(
                 "message update=${lastMessage?.contentList?.mapNotNull {
                     MessageContent.invoke(
                         it,
+                        emptyList(),
                         false
                     )
                 }?.joinToString()}, " +

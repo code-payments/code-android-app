@@ -104,7 +104,7 @@ class RoomController @Inject constructor(
                 },
                 onMessagesDeleted = { messages ->
                     scope.launch {
-                        messages.onEach { db.conversationMessageDao().markDeleted(it) }
+                        messages.onEach { db.conversationMessageDao().markDeleted(it.first, it.second) }
                     }
                 }
             )
@@ -234,7 +234,7 @@ class RoomController @Inject constructor(
         return messagingRepository.deleteMessage(conversationId, messageId)
             .onSuccess {
                 withContext(Dispatchers.IO) {
-                    db.conversationMessageDao().markDeleted(messageId)
+                    db.conversationMessageDao().markDeleted(messageId, userManager.userId!!)
                 }
             }
     }
@@ -321,16 +321,17 @@ private class MessagingPagingSource(
         val pageSize = params.loadSize
         val offset = currentPage * pageSize
 
-        return withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.Default) {
             try {
                 val unmappedMessages =
                     db.conversationMessageDao().getPagedMessages(chatId, pageSize, offset)
 
-                val messages = unmappedMessages.map {
+                val messages = unmappedMessages.mapNotNull {
+                    val content = MessageContent.fromData(it.message.type, it.message.content, isFromSelf = it.message.senderIdBase58 == userId()?.base58) ?: return@mapNotNull null
                     ConversationMessageWithMemberAndContent(
                         message = it.message,
                         member = it.member,
-                        content = MessageContent.fromData(it.message.type, it.message.content, isFromSelf = it.message.senderIdBase58 == userId()?.base58),
+                        content = content,
                     )
                 }
 
@@ -390,7 +391,7 @@ private class MessagesRemoteMediator(
                 descending = true
             )
 
-            val response = repository.getMessages(chatId, query)
+            val response = withContext(Dispatchers.IO) { repository.getMessages(chatId, query) }
             val messages = response.getOrNull().orEmpty()
 
             if (messages.isEmpty()) {

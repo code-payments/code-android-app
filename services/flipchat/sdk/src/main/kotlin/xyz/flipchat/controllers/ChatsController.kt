@@ -69,12 +69,15 @@ class ChatsController @Inject constructor(
     }
 
     suspend fun updateRooms() = coroutineScope {
-        val rooms = db.conversationDao().getConversationIds()
-        rooms.map { roomId ->
-            async { updateRoom(roomId) }
-        }.forEach { it.await() }
+        chatRepository.getChats()
+            .onSuccess { rooms ->
+                // remove rooms no longer apart of
+                db.conversationDao().purgeConversationsNotIn(rooms.map { it.id })
+                rooms.map { room ->
+                    async { updateRoom(room.id) }
+                }.forEach { it.await() }
+            }
     }
-
 
     suspend fun updateRoom(roomId: ID) {
         chatRepository.getChat(ChatIdentifier.Id(roomId))
@@ -217,27 +220,20 @@ class ChatsController @Inject constructor(
                         conversationMessageMapper.map(conversationId to it)
                     }
 
-                    val deletions = messagesWithContent.filter {
+                    val deletions = messagesWithContent.mapNotNull {
                         MessageContent.fromData(
-                            it.type, it.content, it.senderId == userManager.userId
-                        ) as? MessageContent.DeletedMessage != null
+                            it.type, it.content, userManager.isSelf(it.senderId),
+                        ) as? MessageContent.DeletedMessage
                     }
 
-                    val withoutDeletions = messagesWithContent.subtract(deletions.toSet())
-
-                    val deletionIds = deletions.map {
-                        MessageContent.fromData(
-                            it.type, it.content, it.senderId == userManager.userId
-                        ) as MessageContent.DeletedMessage
-                    }.map { it.originalMessageId }
                     withContext(Dispatchers.IO) {
-                        deletionIds.onEach { messageId ->
-                            db.conversationMessageDao().markDeleted(messageId)
-                        }
-
                         db.conversationMessageDao().upsertMessages(
-                            *(withoutDeletions).toTypedArray()
+                            *(messagesWithContent).toTypedArray()
                         )
+
+                        deletions.onEach {
+                            db.conversationMessageDao().markDeleted(it.originalMessageId, it.messageDeleter)
+                        }
                     }
 
                     val nextToken =

@@ -26,6 +26,7 @@ class ChatMessageMapper @Inject constructor(): Mapper<Pair<ID, Model.Message>, C
             contents = message.contentList.mapNotNull {
                 MessageContent.invoke(
                     it,
+                    messageSenderId,
                     isFromSelf
                 )
             },

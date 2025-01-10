@@ -1,10 +1,12 @@
 package xyz.flipchat.services.internal.protomapping
 
 import com.codeinc.flipchat.gen.messaging.v1.Model
+import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 
 operator fun MessageContent.Companion.invoke(
     proto: Model.Content,
+    senderId: ID,
     isFromSelf: Boolean = false,
 ): MessageContent? {
     return when (proto.typeCase) {
@@ -32,6 +34,7 @@ operator fun MessageContent.Companion.invoke(
 
         Model.Content.TypeCase.DELETED -> MessageContent.DeletedMessage(
             originalMessageId = proto.deleted.originalMessageId.value.toList(),
+            messageDeleter = senderId,
             isFromSelf = isFromSelf
         )
 

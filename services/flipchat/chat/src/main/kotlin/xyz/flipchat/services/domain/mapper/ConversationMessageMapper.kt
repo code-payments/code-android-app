@@ -19,7 +19,9 @@ class ConversationMessageMapper @Inject constructor() :
             conversationIdBase58 = conversationId.base58,
             senderIdBase58 = message.senderId.base58,
             dateMillis = message.dateMillis,
-            deleted = false, // TODO:
+            // deletions happen as a by-product of a sent message with delete content type
+            deleted = false,
+            deletedByBase58 = null,
             type = content.kind,
             content = content.content
         )

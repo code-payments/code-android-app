@@ -30,37 +30,11 @@ interface ConversationDao {
     @RewriteQueriesToDropUnusedColumns
     @Query(
         """
-    SELECT c.*,
-           JSON_GROUP_ARRAY(
-               JSON_OBJECT(
-                   'idBase58', cm.conversationIdBase58,
-                   'name', cm.memberName
-               )
-           ) AS members,
-           JSON_OBJECT(
-               'idBase58', lm.idBase58,
-               'dateMillis', lm.dateMillis,
-               'senderIdBase58', lm.senderIdBase58,
-               'type', lm.type,
-               'content', lm.content
-           ) AS lastMessage
-    FROM conversations c
-    LEFT JOIN members cm
-           ON c.idBase58 = cm.conversationIdBase58
-    LEFT JOIN messages lm
-           ON c.idBase58 = lm.conversationIdBase58
-           AND lm.type IN (1, 4, 8)
-           AND lm.dateMillis = (
-               SELECT MAX(dateMillis)
-               FROM messages
-               WHERE conversationIdBase58 = c.idBase58
-                 AND type IN (1, 4, 8)
-           )
-    WHERE c.roomNumber > 0
-    GROUP BY c.idBase58
-    ORDER BY c.lastActivity DESC
-    LIMIT :limit OFFSET :offset
-    """
+            SELECT * FROM conversations
+            WHERE roomNumber > 0
+            ORDER BY lastActivity DESC
+            LIMIT :limit OFFSET :offset
+        """
     )
     suspend fun getPagedConversations(limit: Int, offset: Int): List<ConversationWithMembersAndLastMessage>
 

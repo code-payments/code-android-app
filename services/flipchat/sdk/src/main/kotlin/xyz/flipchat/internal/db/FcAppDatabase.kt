@@ -30,6 +30,7 @@ import xyz.flipchat.services.internal.db.ConversationMemberDao
 import xyz.flipchat.services.internal.db.ConversationMessageDao
 import xyz.flipchat.services.internal.db.ConversationPointerDao
 import java.io.File
+import java.util.concurrent.Executors
 
 @Database(
     entities = [
@@ -60,8 +61,9 @@ import java.io.File
         AutoMigration(from = 15, to = 16),
         // explicit no migration to fallback to reset (from = 16, to = 17)
         AutoMigration(from = 17, to = 18),
+        AutoMigration(from = 18, to = 19),
     ],
-    version = 18,
+    version = 19,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {

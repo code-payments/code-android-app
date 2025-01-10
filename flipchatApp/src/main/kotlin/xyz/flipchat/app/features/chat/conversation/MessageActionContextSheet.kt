@@ -46,7 +46,7 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                         .fillMaxWidth()
                         .padding(
                             horizontal = CodeTheme.dimens.inset,
-                            vertical = CodeTheme.dimens.grid.x2
+                            vertical = CodeTheme.dimens.grid.x3
                         ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
@@ -88,7 +88,7 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
 
                             is MessageControlAction.Reply -> stringResource(R.string.action_reply)
                         },
-                        style = CodeTheme.typography.textSmall.copy(
+                        style = CodeTheme.typography.textMedium.copy(
                             color = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
                         ),
                         modifier = Modifier.weight(1f)

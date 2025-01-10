@@ -23,6 +23,7 @@ class LastMessageMapper @Inject constructor(
             contents = message.contentList.mapNotNull {
                 MessageContent.invoke(
                     it,
+                    messageSenderId,
                     isFromSelf
                 )
             },

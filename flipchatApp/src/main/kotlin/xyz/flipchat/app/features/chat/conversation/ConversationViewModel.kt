@@ -15,6 +15,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
@@ -232,12 +233,12 @@ class ConversationViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnStartAtUnread(it)) }
             .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnChatIdChanged>()
-            .map { it.chatId }
-            .filterNotNull()
-            .onEach { roomController.getChatMembers(it) }
-            .launchIn(viewModelScope)
+//        eventFlow
+//            .filterIsInstance<Event.OnChatIdChanged>()
+//            .map { it.chatId }
+//            .filterNotNull()
+//            .onEach { roomController.getChatMembers(it) }
+//            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnChatIdChanged>()
@@ -281,7 +282,7 @@ class ConversationViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach {
                 val (_, members, _) = it
-                val selfMember = members.firstOrNull { it.id == userManager.userId }
+                val selfMember = members.firstOrNull { userManager.isSelf(it.id) }
                 val chattableState = if (selfMember != null) {
                     val isMuted = selfMember.isMuted
                     val isSpectator = !selfMember.isFullMember
@@ -680,23 +681,6 @@ class ConversationViewModel @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { roomController.messages(it).flow }
         .map { page ->
-            page.map { mwc ->
-                if (mwc.message.isDeleted) {
-                    ConversationMessageIndice(
-                        mwc.message,
-                        mwc.member,
-                        MessageContent.RawText("", mwc.message.senderId == userManager.userId),
-                    )
-                } else {
-                    ConversationMessageIndice(
-                        mwc.message,
-                        mwc.member,
-                        mwc.content
-                    )
-                }
-            }
-        }
-        .map { page ->
             val currentState = stateFlow.value // Cache state upfront
             val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
             val enableReply =
@@ -712,19 +696,27 @@ class ConversationViewModel @Inject constructor(
 
                 val anchor = if (contents is MessageContent.Reply) {
                     val originalMessage = roomController.getMessage(contents.originalMessageId)
-                    originalMessage?.let {
+                    originalMessage?.let { container ->
                         ReplyMessageAnchor(
                             id = contents.originalMessageId,
-                            message = it.content,
+                            message = container.content,
+                            isDeleted = container.message.isDeleted,
+                            deletedBy = container.message.deletedBy?.let { id ->
+                                Deleter(
+                                    id = id,
+                                    isSelf = userManager.isSelf(id),
+                                    isHost = currentState.hostId == message.deletedBy
+                                )
+                            },
                             sender = Sender(
-                                id = it.message.senderId,
-                                profileImage = it.member?.imageUri.takeIf {
+                                id = container.message.senderId,
+                                profileImage = container.member?.imageUri.takeIf {
                                     it.orEmpty().isNotEmpty()
                                 },
-                                displayName = it.member?.memberName ?: "Deleted",
-                                isSelf = it.content.isFromSelf,
-                                isBlocked = it.member?.isBlocked == true,
-                                isHost = it.message.senderId == currentState.hostId && !contents.isFromSelf,
+                                displayName = container.member?.memberName ?: "Deleted",
+                                isSelf = container.content.isFromSelf,
+                                isBlocked = container.member?.isBlocked == true,
+                                isHost = container.message.senderId == currentState.hostId && !contents.isFromSelf,
                             )
                         )
                     }
@@ -738,6 +730,15 @@ class ConversationViewModel @Inject constructor(
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
                     isDeleted = message.isDeleted,
+                    deletedBy = if (message.isDeleted) {
+                        Deleter(
+                            id = message.deletedBy,
+                            isSelf = userManager.isSelf(message.deletedBy),
+                            isHost = currentState.hostId == message.deletedBy
+                        )
+                    } else {
+                        null
+                    },
                     showAsChatBubble = true,
                     enableMarkup = true,
                     enableReply = enableReply,

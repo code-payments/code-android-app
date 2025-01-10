@@ -142,6 +142,7 @@ fun MessageList(
                         contents = item.message,
                         status = item.status,
                         isDeleted = item.isDeleted,
+                        deletedBy = item.deletedBy,
                         sender = item.sender,
                         date = item.date,
                         options = MessageNodeOptions(

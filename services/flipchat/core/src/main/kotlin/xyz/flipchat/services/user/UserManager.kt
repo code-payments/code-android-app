@@ -132,6 +132,8 @@ class UserManager @Inject constructor(
         }
     }
 
+    fun isSelf(id: ID?) = userId == id
+
     private fun associate() {
         if (!BuildConfig.DEBUG) {
             val distinctId = userId?.uuid?.toString()

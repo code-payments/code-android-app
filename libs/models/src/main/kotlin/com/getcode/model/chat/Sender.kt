@@ -10,3 +10,9 @@ data class Sender(
     val isSelf: Boolean = false,
     val isBlocked: Boolean = false,
 )
+
+data class Deleter(
+    val id: ID? = null,
+    val isHost: Boolean = false,
+    val isSelf: Boolean = false,
+)
