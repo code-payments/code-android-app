@@ -22,13 +22,13 @@ sealed class Packaging(
     object Code: Packaging(
         majorVersion = 2,
         minorVersion = 1,
-        patchVersion = 14
+        patchVersion = 14,
     )
 
     object Flipchat: Packaging(
         majorVersion = 1,
         minorVersion = 0,
-        patchVersion = 2
+        patchVersion = 3,
     )
 }
 
