@@ -463,6 +463,7 @@ fun MessageNode(
                             }
 
                             is MessageContent.DeletedMessage -> Unit
+                            is MessageContent.Unknown -> Unit
                         }
                     }
                 }

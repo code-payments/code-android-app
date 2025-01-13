@@ -15,6 +15,14 @@ sealed interface MessageContent {
 
     val content: String
 
+    data class Unknown(
+        override val isFromSelf: Boolean,
+    ): MessageContent {
+        override val kind: Int = -1
+        override val content: String
+            get() = "unknown"
+    }
+
     @Serializable
     data class Localized(
         val value: String,
@@ -371,7 +379,7 @@ sealed interface MessageContent {
                     val data = Json.decodeFromString<DeletedMessage.Content>(content)
                     DeletedMessage(data.originalMessageId, data.messageDeleter, isFromSelf)
                 }
-                else -> null
+                else -> Unknown(isFromSelf)
             }
         }
     }
