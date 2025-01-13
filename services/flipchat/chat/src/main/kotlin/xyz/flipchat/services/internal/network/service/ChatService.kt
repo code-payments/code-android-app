@@ -1,5 +1,6 @@
 package xyz.flipchat.services.internal.network.service
 
+import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.codeinc.flipchat.gen.chat.v1.ChatService.MemberUpdate
 import com.codeinc.flipchat.gen.common.v1.Common
 import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
@@ -529,6 +530,46 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun enableChat(
+        owner: KeyPair,
+        chatId: ID,
+    ): Result<Unit> {
+        return networkOracle.managedApiRequest(
+            call = { api.openChat(owner, chatId) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ChatService.OpenChatResponse.Result.OK -> Result.success(Unit)
+                    ChatService.OpenChatResponse.Result.DENIED -> Result.failure(OpenChatError.Denied())
+                    ChatService.OpenChatResponse.Result.UNRECOGNIZED -> Result.failure(OpenChatError.Unrecognized())
+                    else -> Result.failure(OpenChatError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(OpenChatError.Other(cause = cause))
+            }
+        )
+    }
+
+    suspend fun disableChat(
+        owner: KeyPair,
+        chatId: ID,
+    ): Result<Unit> {
+        return networkOracle.managedApiRequest(
+            call = { api.closeChat(owner, chatId) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ChatService.CloseChatResponse.Result.OK -> Result.success(Unit)
+                    ChatService.CloseChatResponse.Result.DENIED -> Result.failure(CloseChatError.Denied())
+                    ChatService.CloseChatResponse.Result.UNRECOGNIZED -> Result.failure(CloseChatError.Unrecognized())
+                    else -> Result.failure(CloseChatError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(CloseChatError.Other(cause = cause))
+            }
+        )
+    }
+
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
@@ -740,6 +781,25 @@ sealed class GetMemberUpdateError(
     class NotFound : GetMemberUpdateError()
     data class Other(override val cause: Throwable? = null) : GetMemberUpdateError(cause = cause)
 }
+
+sealed class OpenChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Denied : OpenChatError()
+    class Unrecognized : OpenChatError()
+    data class Other(override val cause: Throwable? = null) : OpenChatError(cause = cause)
+}
+
+sealed class CloseChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Denied : CloseChatError()
+    class Unrecognized : CloseChatError()
+    data class Other(override val cause: Throwable? = null) : CloseChatError(cause = cause)
+}
+
 
 sealed class MuteUserError(
     override val message: String? = null,

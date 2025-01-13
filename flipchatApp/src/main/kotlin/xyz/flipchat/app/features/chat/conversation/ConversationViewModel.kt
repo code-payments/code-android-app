@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.chat.conversation
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.provider.CalendarContract.EventDays
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.snapshotFlow
@@ -33,7 +34,6 @@ import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
-import com.getcode.utils.base64
 import com.getcode.utils.network.retryable
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
@@ -119,6 +119,8 @@ class ConversationViewModel @Inject constructor(
         val pointerRefs: Map<Long, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
+        val isRoomOpen: Boolean,
+        val isOpenCloseEnabled: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?,
     ) {
@@ -146,6 +148,8 @@ class ConversationViewModel @Inject constructor(
                 members = null,
                 showTypingIndicator = false,
                 isSelfTyping = false,
+                isRoomOpen = true,
+                isOpenCloseEnabled = false,
                 roomInfoArgs = RoomInfoArgs(),
             )
         }
@@ -170,6 +174,7 @@ class ConversationViewModel @Inject constructor(
         data class MarkDelivered(val messageId: ID) : Event
 
         data class OnReplyEnabled(val enabled: Boolean) : Event
+        data class OnOpenCloseEnabled(val enabled: Boolean) : Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -194,6 +199,10 @@ class ConversationViewModel @Inject constructor(
 
         data object OnTypingStarted : Event
         data object OnTypingStopped : Event
+
+        data object OnOpenStateChangedRequested : Event
+        data class OnOpenRoom(val conversationId: ID) : Event
+        data class OnCloseRoom(val conversationId: ID) : Event
 
         data class CopyMessage(val text: String) : Event
         data class DeleteMessage(val conversationId: ID, val messageId: ID) : Event
@@ -227,6 +236,10 @@ class ConversationViewModel @Inject constructor(
 
         betaFeatures.observe(Lab.ReplyToMessage)
             .onEach { dispatchEvent(Event.OnReplyEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.OpenCloseRoom)
+            .onEach { dispatchEvent(Event.OnOpenCloseEnabled(it)) }
             .launchIn(viewModelScope)
 
         betaFeatures.observe(Lab.StartChatAtUnread)
@@ -281,16 +294,18 @@ class ConversationViewModel @Inject constructor(
             }.filterNotNull()
             .distinctUntilChanged()
             .onEach {
-                val (_, members, _) = it
+                val (conversation, members, _) = it
                 val selfMember = members.firstOrNull { userManager.isSelf(it.id) }
                 val chattableState = if (selfMember != null) {
                     val isMuted = selfMember.isMuted
                     val isSpectator = !selfMember.isFullMember
+                    val isRoomClosed = !conversation.isOpen
+
                     when {
                         isSpectator -> ChattableState.Spectator(
                             Kin.fromQuarks(it.conversation.coverChargeQuarks ?: 0)
                         )
-
+                        isRoomClosed -> ChattableState.DisabledByClosedRoom
                         isMuted -> ChattableState.DisabledByMute
                         else -> ChattableState.Enabled
                     }
@@ -442,16 +457,53 @@ class ConversationViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnUserTypingStarted>()
             .mapNotNull { stateFlow.value.conversationId }
-            .onEach {
-                roomController.onUserStartedTypingIn(it)
-            }.launchIn(viewModelScope)
+            .onEach { roomController.onUserStartedTypingIn(it) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnUserTypingStopped>()
             .mapNotNull { stateFlow.value.conversationId }
-            .onEach {
-                roomController.onUserStoppedTypingIn(it)
-            }.launchIn(viewModelScope)
+            .onEach { roomController.onUserStoppedTypingIn(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnOpenStateChangedRequested>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .map { it to stateFlow.value.isRoomOpen }
+            .onEach { (conversationId, isOpen) ->
+                confirmOpenStateChange(conversationId, isOpen)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnOpenRoom>()
+            .map { it.conversationId }
+            .map { roomController.enableChat(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToReopenRoom),
+                            resources.getString(R.string.error_description_failedToReopenRoom)
+                        )
+                    )
+                },
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnCloseRoom>()
+            .map { it.conversationId }
+            .map { roomController.disableChat(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToCloseRoom),
+                            resources.getString(R.string.error_description_failedToCloseRoom)
+                        )
+                    )
+                },
+            ).launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.DeleteMessage>()
@@ -991,6 +1043,26 @@ class ConversationViewModel @Inject constructor(
         )
     }
 
+    private fun confirmOpenStateChange(conversationId: ID, isRoomOpen: Boolean) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = if (isRoomOpen) resources.getString(R.string.prompt_title_closeRoom) else resources.getString(R.string.prompt_title_reopenRoom),
+                subtitle = if (isRoomOpen) resources.getString(R.string.prompt_description_closeRoom) else resources.getString(R.string.prompt_description_reopenRoom),
+                positiveText = if (isRoomOpen) resources.getString(R.string.action_closeTemporarily) else resources.getString(R.string.action_reopenRoom),
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = {
+                    if (isRoomOpen) {
+                        dispatchEvent(Event.OnCloseRoom(conversationId))
+                    } else {
+                        dispatchEvent(Event.OnOpenRoom(conversationId))
+                    }
+                },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
+
     override fun onCleared() {
         super.onCleared()
         roomController.closeMessageStream()
@@ -1058,6 +1130,7 @@ class ConversationViewModel @Inject constructor(
                             }
                             .toMap(),
                         members = members.count(),
+                        isRoomOpen = conversation.isOpen,
                         hostId = host?.id,
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
@@ -1091,6 +1164,9 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
+                is Event.OnOpenStateChangedRequested,
+                is Event.OnOpenRoom,
+                is Event.OnCloseRoom,
                 is Event.OnRoomNumberChanged,
                 is Event.OnJoinRoom,
                 is Event.OnAccountCreated,
@@ -1134,6 +1210,7 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }
+                is Event.OnOpenCloseEnabled -> { state -> state.copy(isOpenCloseEnabled = event.enabled) }
             }
         }
     }

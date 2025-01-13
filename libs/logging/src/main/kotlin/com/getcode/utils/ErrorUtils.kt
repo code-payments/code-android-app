@@ -36,8 +36,9 @@ object ErrorUtils {
                 throwable.cause ?: throwable
             else throwable
 
+        Timber.e(throwable)
+
         if ((isDisplayErrors && !isSuppressibleError(throwable))) {
-            Timber.e(throwable)
 
             TopBarManager.showMessage(
                 "[Error] ${throwableCause.javaClass.simpleName}",

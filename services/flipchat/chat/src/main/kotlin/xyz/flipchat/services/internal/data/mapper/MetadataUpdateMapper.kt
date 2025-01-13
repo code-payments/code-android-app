@@ -14,6 +14,7 @@ class MetadataUpdateMapper @Inject constructor(): Mapper<ApiMetadataUpdate, Stre
             ChatService.MetadataUpdate.KindCase.DISPLAY_NAME_CHANGED -> StreamMetadataUpdate.DisplayName(from.displayNameChanged.newDisplayName)
             ChatService.MetadataUpdate.KindCase.COVER_CHARGE_CHANGED -> StreamMetadataUpdate.CoverCharge(from.coverChargeChanged.newCoverCharge.quarks.ifZeroOrElse(200) { it / 100_000 })
             ChatService.MetadataUpdate.KindCase.LAST_ACTIVITY_CHANGED -> StreamMetadataUpdate.LastActivity(from.lastActivityChanged.newLastActivity.seconds * 1000L)
+            ChatService.MetadataUpdate.KindCase.OPEN_STATUS_CHANGED -> StreamMetadataUpdate.OpenStatusChanged(from.openStatusChanged.newOpenStatus.isCurrentlyOpen)
             ChatService.MetadataUpdate.KindCase.KIND_NOT_SET -> null
             else -> null
         }

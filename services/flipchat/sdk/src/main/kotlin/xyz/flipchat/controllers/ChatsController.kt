@@ -132,6 +132,15 @@ class ChatsController @Inject constructor(
                                             )
                                         }
                                     }
+
+                                    is ConversationUpdate.OpenStatus -> {
+                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)
+                                        if (conversation != null) {
+                                            db.conversationDao().upsertConversations(
+                                                conversation.copy(isOpen = update.nowOpen)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

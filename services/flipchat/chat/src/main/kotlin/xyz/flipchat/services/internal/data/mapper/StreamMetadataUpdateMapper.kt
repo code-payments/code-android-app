@@ -19,6 +19,7 @@ class StreamMetadataUpdateMapper @Inject constructor(
             is StreamMetadataUpdate.LastActivity -> ConversationUpdate.LastActivity(id, update.timestamp)
             is StreamMetadataUpdate.Refresh -> ConversationUpdate.Refresh(conversationMapper.map(metadataMapper.map(update.metadata)))
             is StreamMetadataUpdate.UnreadCount -> ConversationUpdate.UnreadCount(id, update.numUnread, update.hasMoreUnread)
+            is StreamMetadataUpdate.OpenStatusChanged -> ConversationUpdate.OpenStatus(id, update.nowOpen)
         }
     }
 }

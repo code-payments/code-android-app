@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -61,6 +62,7 @@ fun CodeButton(
         top = CodeTheme.dimens.grid.x2,
         bottom = CodeTheme.dimens.grid.x2,
     ),
+    overrideContentPadding: Boolean = false,
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
@@ -74,6 +76,7 @@ fun CodeButton(
         enabled = enabled,
         buttonState = buttonState,
         contentPadding = contentPadding,
+        overrideContentPadding = overrideContentPadding,
         shape = shape,
         contentColor = textColor,
     ) {
@@ -95,6 +98,7 @@ fun CodeButton(
         top = CodeTheme.dimens.grid.x3,
         bottom = CodeTheme.dimens.grid.x3,
     ),
+    overrideContentPadding: Boolean = false,
     contentColor: Color = Color.Unspecified,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -118,6 +122,8 @@ fun CodeButton(
             mutableStateOf(DpSize.Unspecified)
         }
 
+        val cp = (if (overrideContentPadding) PaddingValues(0.dp) else ButtonDefaults.ContentPadding).plus(contentPadding)
+
         Button(
             onClick = onClick,
             modifier = Modifier
@@ -132,7 +138,7 @@ fun CodeButton(
                 pressedElevation = 0.dp
             ),
             shape = shape,
-            contentPadding = ButtonDefaults.ContentPadding.plus(contentPadding)
+            contentPadding = cp
         ) {
             when {
                 isLoading -> {

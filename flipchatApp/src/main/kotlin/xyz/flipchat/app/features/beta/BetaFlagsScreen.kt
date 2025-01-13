@@ -104,6 +104,7 @@ private val Lab.title: String
         Lab.StartChatAtUnread -> "Open Conversation @ Last Unread"
         Lab.RoomNameChanges -> "Room Name Changes For Hosts"
         Lab.DeleteMessage -> "Delete Message Support"
+        Lab.OpenCloseRoom -> "Open/Close Rooms"
     }
 
 private val Lab.message: String
@@ -113,4 +114,5 @@ private val Lab.message: String
         Lab.StartChatAtUnread -> "When enabled, conversations will resume at the last message you read"
         Lab.RoomNameChanges -> "When enabled, hosts will gain the ability to set a desired name for their room"
         Lab.DeleteMessage -> "When enabled, hosts will gain the ability to delete messages"
+        Lab.OpenCloseRoom -> "When enabled, hosts will gain the ability to temporarily close (and reopen) their rooms"
     }

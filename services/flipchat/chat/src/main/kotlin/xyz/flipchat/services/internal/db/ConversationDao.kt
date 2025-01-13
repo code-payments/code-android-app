@@ -157,6 +157,18 @@ interface ConversationDao {
         updateCoverCharge(conversationId.base58, kin.toKinTruncatingLong())
     }
 
+    @Query("UPDATE conversations SET isOpen = 1 WHERE idBase58 = :conversationId")
+    suspend fun enableChatInRoom(conversationId: String)
+    suspend fun enableChatInRoom(conversationId: ID) {
+        enableChatInRoom(conversationId.base58)
+    }
+
+    @Query("UPDATE conversations SET isOpen = 0 WHERE idBase58 = :conversationId")
+    suspend fun disableChatInRoom(conversationId: String)
+    suspend fun disableChatInRoom(conversationId: ID) {
+        disableChatInRoom(conversationId.base58)
+    }
+
     @Query("UPDATE conversations SET isMuted = 1 WHERE idBase58 = :conversationId")
     suspend fun muteChat(conversationId: String)
     suspend fun muteChat(conversationId: ID) {

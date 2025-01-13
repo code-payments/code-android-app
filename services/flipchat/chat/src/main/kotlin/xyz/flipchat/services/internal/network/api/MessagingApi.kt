@@ -41,7 +41,7 @@ class MessagingApi @Inject constructor(
     ): Flow<MessagingService.GetMessagesResponse> {
         val request = MessagingService.GetMessagesRequest.newBuilder()
             .setChatId(chatId.toChatId())
-            .setQueryOptions(queryOptions.toProto())
+            .setOptions(queryOptions.toProto())
             .apply { setAuth(authenticate(owner)) }
             .build()
 

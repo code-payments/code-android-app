@@ -291,6 +291,38 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // OpenChat opens a chat up for messaging across all members
+    fun openChat(
+        owner: KeyPair,
+        chatId: ID,
+    ): Flow<ChatServiceRpc.OpenChatResponse> {
+        val request = ChatServiceRpc.OpenChatRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+
+        return api::openChat
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // CloseChat closes a chat up for messaging to just the chat owner
+    fun closeChat(
+        owner: KeyPair,
+        chatId: ID,
+    ): Flow<ChatServiceRpc.CloseChatResponse> {
+        val request = ChatServiceRpc.CloseChatRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+
+        return api::closeChat
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
     // StreamChatEvents streams all chat events for the requesting user.
     //
     // Chat events will include any update to a chat, including:

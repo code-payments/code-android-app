@@ -33,6 +33,8 @@ data class Conversation(
     val coverChargeQuarks: Long?,
     @ColumnInfo(defaultValue = "false")
     val hasMoreUnread: Boolean,
+    @ColumnInfo(defaultValue = "true")
+    val isOpen: Boolean,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()

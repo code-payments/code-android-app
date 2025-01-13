@@ -26,17 +26,23 @@ interface ChatRepository {
         identifier: ChatIdentifier,
         paymentId: ID? = null,
     ): Result<RoomWithMembers>
-    suspend fun leaveChat(chatId: ID): Result<Unit>
-    suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit>
-    suspend fun mute(chatId: ID): Result<Unit>
-    suspend fun unmute(chatId: ID): Result<Unit>
-    suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit>
     suspend fun getMemberUpdates(chatId: ID, afterMember: ID? = null): Result<List<StreamMemberUpdate>>
     fun observeTyping(chatId: ID): Flow<Boolean>
     fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatUpdate) -> Unit)
     fun closeEventStream()
 
     val typingChats: StateFlow<List<ID>>
+
+    // User actions
+    suspend fun leaveChat(chatId: ID): Result<Unit>
+
+    // Host controls
+    suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit>
+    suspend fun mute(chatId: ID): Result<Unit>
+    suspend fun unmute(chatId: ID): Result<Unit>
+    suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit>
+    suspend fun enableChat(chatId: ID): Result<Unit>
+    suspend fun disableChat(chatId: ID): Result<Unit>
 
     // Self Defense Room Controls
     suspend fun removeUser(chatId: ID, userId: ID): Result<Unit>

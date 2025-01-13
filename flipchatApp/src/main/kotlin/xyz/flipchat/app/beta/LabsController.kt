@@ -55,8 +55,14 @@ sealed interface Lab {
         override val launched: Boolean = false
     }
 
+    data object OpenCloseRoom : Lab {
+        override val key: String = "open_close_room_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
-        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread, RoomNameChanges, DeleteMessage)
+        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread, RoomNameChanges, DeleteMessage, OpenCloseRoom)
         internal fun byKey(key: Preferences.Key<*>): Lab? {
             return entries.firstOrNull { it.key == key.name }
         }

@@ -20,7 +20,6 @@ import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
 import xyz.flipchat.services.domain.model.chat.StreamMemberUpdate
-import xyz.flipchat.services.domain.model.chat.StreamMetadataUpdate
 import xyz.flipchat.services.domain.model.chat.db.ChatUpdate
 import xyz.flipchat.services.domain.model.chat.db.ConversationMemberUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -164,6 +163,26 @@ internal class RealChatRepository @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             service.setCoverCharge(owner, chatId, amount)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
+    override suspend fun enableChat(chatId: ID): Result<Unit> {
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.enableChat(owner, chatId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
+    override suspend fun disableChat(chatId: ID): Result<Unit> {
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.disableChat(owner, chatId)
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }

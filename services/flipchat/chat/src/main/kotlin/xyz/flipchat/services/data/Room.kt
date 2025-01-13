@@ -32,6 +32,7 @@ data class Room(
     @Serializable(with = KinQuarksSerializer::class)
     val coverCharge: Kin,
     private val lastActive: Long?,
+    val isOpen: Boolean,
 ) {
     val title: String?
         get() {

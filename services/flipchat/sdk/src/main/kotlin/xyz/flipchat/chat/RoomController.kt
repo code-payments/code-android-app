@@ -296,6 +296,24 @@ class RoomController @Inject constructor(
                 }
             }
     }
+
+    suspend fun enableChat(identifier: ID): Result<Unit> {
+        return chatRepository.enableChat(identifier)
+            .onSuccess {
+                withContext(Dispatchers.IO) {
+                    db.conversationDao().enableChatInRoom(identifier)
+                }
+            }
+    }
+
+    suspend fun disableChat(identifier: ID): Result<Unit> {
+        return chatRepository.disableChat(identifier)
+            .onSuccess {
+                withContext(Dispatchers.IO) {
+                    db.conversationDao().disableChatInRoom(identifier)
+                }
+            }
+    }
 }
 
 private class MessagingPagingSource(

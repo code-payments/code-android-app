@@ -25,7 +25,6 @@
     <string name="error_title_failedToChangeCover">Something Went Wrong</string>
     <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again</string>
 
-
     <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
     <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later</string>
 
@@ -56,7 +55,6 @@
     <string name="error_title_failedToUnblockUser">Something Went Wrong</string>
     <string name="error_description_failedToUnblockUser">This user could not be unblocked. Please check your network connection and try again</string>
 
-
     <string name="error_title_failedToMuteChat">Something Went Wrong</string>
     <string name="error_description_failedToMuteChat">Please check your network connection and try again</string>
 
@@ -74,6 +72,12 @@
 
     <string name="error_title_failedToChangeRoomNameOtherReason">Something Went Wrong</string>
     <string name="error_description_failedToChangeRoomNameOtherReason">We were unable to change the room name at this time. Please try again later</string>
+
+    <string name="error_title_failedToReopenRoom">Something Went Wrong</string>
+    <string name="error_description_failedToReopenRoom">You were unable to reopen this room at this time. Please try again later</string>
+
+    <string name="error_title_failedToCloseRoom">Something Went Wrong</string>
+    <string name="error_description_failedToCloseRoom">You were unable to close this room at this time. Please try again later</string>
 
 
     <string name="title_connectYourX">Connect Your X</string>
@@ -164,6 +168,16 @@
     <string name="subtitle_roomNameHint">Enter a name appropriate for all ages</string>
 
     <string name="title_youHaveBeenMuted">You\'ve been muted</string>
+    <string name="title_roomIsClosed">This room is currently closed. Only the host can message until they reopen it.</string>
+    <string name="subtitle_roomIsOpen">Your room is currently open</string>
+    <string name="subtitle_roomIsClosed">Your room is currently closed</string>
+    <string name="action_change">Change</string>
+    <string name="prompt_title_reopenRoom">Reopen Room?</string>
+    <string name="prompt_description_reopenRoom">Room members will be able to send messages again</string>
+    <string name="prompt_title_closeRoom">Close Room Temporarily?</string>
+    <string name="prompt_description_closeRoom">Only you will be able to send messages until you reopen the room</string>
+    <string name="action_closeTemporarily">Close Temporarily</string>
+    <string name="action_reopenRoom">Reopen Room</string>
 
     <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your account. Please keep it private and safe.</string>
     <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to your Flipchat account. Do not share this image with anyone else. Keep it secure and safe.</string>

@@ -50,4 +50,5 @@ sealed interface StreamMetadataUpdate {
     data class DisplayName(val name: String): StreamMetadataUpdate
     data class CoverCharge(val amount: Long): StreamMetadataUpdate
     data class LastActivity(val timestamp: Long): StreamMetadataUpdate
+    data class OpenStatusChanged(val nowOpen: Boolean): StreamMetadataUpdate
 }
