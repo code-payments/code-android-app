@@ -108,7 +108,9 @@ fun App(
                                         if (codeNavigator.lastItem !is MainRoot) {
                                             if (deepLink != null) {
                                                 val screenSet = router.processDestination(deepLink)
-                                                codeNavigator.replaceAll(screenSet)
+                                                if (screenSet.isNotEmpty()) {
+                                                    codeNavigator.replaceAll(screenSet)
+                                                }
                                             }
                                         }
                                     }

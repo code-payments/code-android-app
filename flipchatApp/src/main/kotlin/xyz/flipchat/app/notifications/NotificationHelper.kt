@@ -27,6 +27,7 @@ internal fun NotificationManagerCompat.buildChatNotification(
     context: Context,
     resources: ResourceHelper,
     type: FcNotificationType.ChatMessage,
+    roomNumber: Long?,
     title: String,
     content: String,
     canReply: Boolean,
@@ -92,7 +93,7 @@ internal fun NotificationManagerCompat.buildChatNotification(
             .setColor(FC_Primary.toArgb())
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
-            .setContentIntent(context.buildContentIntent(type))
+            .setContentIntent(context.buildContentIntent(type.copy(roomNumber = roomNumber)))
 
     if (replyAction != null) {
         notificationBuilder.addAction(replyAction)
@@ -134,10 +135,12 @@ internal fun NotificationManagerCompat.getActiveNotification(notificationId: Int
     return null
 }
 
-internal fun Context.buildContentIntent(type: FcNotificationType): PendingIntent {
+internal fun Context.buildContentIntent(
+    type: FcNotificationType
+): PendingIntent {
     val launchIntent = when (type) {
         is FcNotificationType.ChatMessage -> Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://app.flipchat.xyz/room/${type.id?.base58}")
+            data = Uri.parse("https://app.flipchat.xyz/room/${type.roomNumber}")
         }
 
         FcNotificationType.Unknown -> Intent(this, MainActivity::class.java).apply {

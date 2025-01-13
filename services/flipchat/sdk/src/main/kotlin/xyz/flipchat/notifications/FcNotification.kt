@@ -25,7 +25,7 @@ sealed interface FcNotificationType {
         override val name: String = "Misc"
     }
 
-    data class ChatMessage(val id: ID?, val sender: String?): FcNotificationType, Notifiable {
+    data class ChatMessage(val id: ID?, val roomNumber: Long?, val sender: String?): FcNotificationType, Notifiable {
         override val ordinal: Int = 1
         override val name: String = "Chat Messages"
     }
@@ -49,7 +49,7 @@ sealed interface FcNotificationType {
                 TypeValue.ChatMessage -> {
                     val chatId = value[CHAT_ID]?.decodeBase64()?.toList()
                     val sender = value[SENDER]
-                    ChatMessage(chatId, sender)
+                    ChatMessage(chatId, null, sender)
                 }
                 else -> Unknown
             }

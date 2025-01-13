@@ -39,7 +39,6 @@ enum class FcTab {
 
 sealed interface DeeplinkType {
     data class Login(val entropy: String) : DeeplinkType
-    data class OpenRoomById(val roomId: ID) : DeeplinkType
     data class OpenRoomByNumber(val number: Long, val messageId: ID? = null) : DeeplinkType
 }
 
@@ -102,10 +101,6 @@ class RouterImpl(
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
                 is DeeplinkType.Login -> listOf(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
-                is DeeplinkType.OpenRoomById ->  listOf(
-                    ScreenRegistry.get(NavScreenProvider.AppHomeScreen()),
-                    ScreenRegistry.get(NavScreenProvider.Room.Messages(chatId = type.roomId))
-                )
 
                 is DeeplinkType.OpenRoomByNumber -> {
                     val conversation = db.conversationDao().findConversationRaw(type.number)
@@ -163,14 +158,6 @@ class RouterImpl(
                             }
 
                             DeeplinkType.Login(entropy)
-                        }
-
-                        room.contains(deeplink.pathSegments[0]) -> {
-                            val id = runCatching {
-                                deeplink.data.toUri().getQueryParameter("r")
-                            }.getOrNull() ?: return null
-                            val roomId =  Base58.decode(id).toList()
-                            DeeplinkType.OpenRoomById(roomId = roomId)
                         }
 
                         else -> null

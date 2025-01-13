@@ -38,6 +38,7 @@ import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.app.theme.FC_Primary
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.PushController
+import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.notifications.FcNotificationType
 import xyz.flipchat.notifications.parse
 import xyz.flipchat.services.user.AuthState
@@ -76,6 +77,9 @@ class FcNotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var notificationManager: NotificationManagerCompat
 
+    private val db: FcAppDatabase
+        get() = FcAppDatabase.requireInstance()
+
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         authenticateIfNeeded { handleMessage(message) }
@@ -92,44 +96,46 @@ class FcNotificationService : FirebaseMessagingService(),
     }
 
     private fun handleMessage(remoteMessage: RemoteMessage) {
-        trace("handling received message", type = TraceType.Silent)
-        if (remoteMessage.data.isNotEmpty()) {
-            Timber.d("Message data payload: ${remoteMessage.data}")
-            val notification = remoteMessage.parse()
+        launch {
+            trace("handling received message", type = TraceType.Silent)
+            if (remoteMessage.data.isNotEmpty()) {
+                Timber.d("Message data payload: ${remoteMessage.data}")
+                val notification = remoteMessage.parse()
 
-            if (notification != null) {
-                val (type, titleKey, messageContent) = notification
-                if (type.isNotifiable()) {
-                    val title = titleKey.localizedStringByKey(resources) ?: titleKey
-                    val body = messageContent.localizedText(
-                        resources = resources,
-                        currencyUtils = currencyUtils
-                    )
+                if (notification != null) {
+                    val (type, titleKey, messageContent) = notification
+                    if (type.isNotifiable()) {
+                        val title = titleKey.localizedStringByKey(resources) ?: titleKey
+                        val body = messageContent.localizedText(
+                            resources = resources,
+                            currencyUtils = currencyUtils
+                        )
 
-                    val result = buildNotification(type, title, body)
-                    if (result != null) {
-                        notify(result.first, result.second, type)
-                    }
-                }
-
-                when (type) {
-                    is FcNotificationType.ChatMessage -> {
-                        val roomId = type.id
-                        if (roomId != null) {
-                            launch { chatsController.updateRoom(roomId) }
+                        val result = buildNotification(type, title, body)
+                        if (result != null) {
+                            notify(result.first, result.second, type)
                         }
                     }
 
-                    FcNotificationType.Unknown -> Unit
-                }
-            } else {
-                val result = buildNotification(
-                    FcNotificationType.Unknown,
-                    resources.getString(R.string.app_name),
-                    "You have a new message."
-                )
-                if (result != null) {
-                    notify(result.first, result.second, FcNotificationType.Unknown)
+                    when (type) {
+                        is FcNotificationType.ChatMessage -> {
+                            val roomId = type.id
+                            if (roomId != null) {
+                                launch { chatsController.updateRoom(roomId) }
+                            }
+                        }
+
+                        FcNotificationType.Unknown -> Unit
+                    }
+                } else {
+                    val result = buildNotification(
+                        FcNotificationType.Unknown,
+                        resources.getString(R.string.app_name),
+                        "You have a new message."
+                    )
+                    if (result != null) {
+                        notify(result.first, result.second, FcNotificationType.Unknown)
+                    }
                 }
             }
         }
@@ -143,7 +149,7 @@ class FcNotificationService : FirebaseMessagingService(),
         }
     }
 
-    private fun buildNotification(
+    private suspend fun buildNotification(
         type: FcNotificationType,
         title: String,
         content: String,
@@ -162,16 +168,21 @@ class FcNotificationService : FirebaseMessagingService(),
             return null
         }
 
+
         with(notificationManager) {
             val (id, notification) = when (type) {
-                is FcNotificationType.ChatMessage -> buildChatNotification(
-                    applicationContext,
-                    resources,
-                    type,
-                    title,
-                    content,
-                    userManager.authState is AuthState.LoggedIn
-                )
+                is FcNotificationType.ChatMessage -> {
+                    val roomNumber = type.id?.let { db.conversationDao().findConversationRaw(it)?.roomNumber }
+                    buildChatNotification(
+                        applicationContext,
+                        resources,
+                        type,
+                        roomNumber,
+                        title,
+                        content,
+                        userManager.authState is AuthState.LoggedIn
+                    )
+                }
 
                 FcNotificationType.Unknown -> buildMiscNotification(applicationContext, type, title, content)
             }
