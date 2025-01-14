@@ -8,14 +8,12 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import javax.inject.Inject
 
-class RoomConversationMapper @Inject constructor(
-    private val resources: ResourceHelper,
-) : Mapper<Room, Conversation> {
+class RoomConversationMapper @Inject constructor() : Mapper<Room, Conversation> {
     override fun map(from: Room): Conversation {
         return Conversation(
             idBase58 = from.id.base58,
             ownerIdBase58 = from.ownerId.base58,
-            title = from.titleOrFallback(resources),
+            title = from.title.orEmpty(),
             imageUri = from.imageData,
             unreadCount = from.unreadCount,
             hasMoreUnread = from.hasMoreUnread,

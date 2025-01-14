@@ -116,10 +116,7 @@ class RouterImpl(
                             val args = RoomInfoArgs(
                                 roomId = room.id,
                                 roomNumber = room.roomNumber,
-                                roomTitle = room.titleOrFallback(
-                                    resources,
-                                    includeRoomPrefix = false
-                                ),
+                                roomTitle = room.titleOrFallback(resources,),
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,

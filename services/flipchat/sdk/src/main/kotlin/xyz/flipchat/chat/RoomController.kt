@@ -221,8 +221,7 @@ class RoomController @Inject constructor(
             .onSuccess {
                 val conversation = db.conversationDao().findConversation(conversationId)?.conversation?.copy(title = displayName)
                 if (conversation != null) {
-                    val title = conversation.titleOrFallback(resources)
-                    db.conversationDao().setDisplayName(conversationId, title)
+                    db.conversationDao().setDisplayName(conversationId, displayName)
                 }
             }
     }

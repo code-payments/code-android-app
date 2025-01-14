@@ -120,7 +120,7 @@ class LookupRoomViewModel @Inject constructor(
 
                         val confirmJoinArgs = RoomInfoArgs(
                             roomId = it.room.id,
-                            roomTitle = it.room.titleOrFallback(resources, includeRoomPrefix = false),
+                            roomTitle = it.room.titleOrFallback(resources),
                             roomNumber = it.room.roomNumber,
                             memberCount = it.members.count(),
                             ownerId = it.room.ownerId,

@@ -23,6 +23,7 @@ import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.app.data.RoomInfo
 import xyz.flipchat.app.util.IntentUtils
+import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
@@ -79,9 +80,9 @@ class ChatInfoViewModel @Inject constructor(
             .mapNotNull { it.args.roomId }
             .flatMapLatest { roomController.observeConversation(it) }
             .mapNotNull { it }
-            .map { Triple(it.conversation.title, it.members.count(), it.conversation.coverCharge) }
-            .onEach { (name, members, cover) ->
-                dispatchEvent(Event.OnNameChanged(name))
+            .map { Triple(it.conversation, it.members.count(), it.conversation.coverCharge) }
+            .onEach { (conversation, members, cover) ->
+                dispatchEvent(Event.OnNameChanged(conversation.titleOrFallback(resources)))
                 dispatchEvent(Event.OnMembersUpdated(members))
                 dispatchEvent(Event.OnCoverChanged(cover))
             }.launchIn(viewModelScope)

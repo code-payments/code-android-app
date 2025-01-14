@@ -3,6 +3,7 @@ package xyz.flipchat.app.features.chat.list
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.map
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -25,7 +26,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
@@ -35,6 +35,7 @@ import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
 import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
@@ -63,7 +64,7 @@ class ChatListViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnSelfIdChanged(val id: ID?) : Event
-        data class OnLoggedInStateChanged(val loggedIn: Boolean): Event
+        data class OnLoggedInStateChanged(val loggedIn: Boolean) : Event
         data class ShowFullScreenSpinner(
             val showScrim: Boolean = true,
             val showSpinner: Boolean = true
@@ -223,6 +224,17 @@ class ChatListViewModel @Inject constructor(
                     chatsController.chats.flow
                 } else {
                     flowOf(PagingData.empty())
+                }
+            }.map { page ->
+                page.map {
+                    it.copy(
+                        conversation = it.conversation.copy(
+                            title = it.conversation.titleOrFallback(
+                                resources = resources,
+                                includePrefix = true
+                            )
+                        )
+                    )
                 }
             }
             .cachedIn(viewModelScope)

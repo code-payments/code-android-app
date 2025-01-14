@@ -2,7 +2,6 @@ package xyz.flipchat.app.features.chat.conversation
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.provider.CalendarContract.EventDays
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.snapshotFlow
@@ -163,6 +162,7 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnInitialUnreadCountDetermined(val count: Int) : Event
+        data class OnTitlesChanged(val title: String, val roomCardTitle: String): Event
         data class OnUserActivity(val activity: Instant) : Event
         data object SendCash : Event
         data object SendMessage : Event
@@ -319,6 +319,18 @@ class ConversationViewModel @Inject constructor(
 
                 dispatchEvent(Event.OnConversationChanged(it))
             }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnConversationChanged>()
+            .map { it.conversationWithPointers.conversation }
+            .distinctUntilChanged()
+            .map {
+                val title = it.titleOrFallback(resources, includePrefix = true)
+                val roomCardTitle = it.titleOrFallback(resources, includePrefix = false)
+                title to roomCardTitle
+            }.distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnTitlesChanged(it.first, it.second)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -637,10 +649,7 @@ class ConversationViewModel @Inject constructor(
                             val roomInfo = RoomInfoArgs(
                                 roomId = room.id,
                                 roomNumber = room.roomNumber,
-                                roomTitle = room.titleOrFallback(
-                                    resources,
-                                    includeRoomPrefix = false
-                                ),
+                                roomTitle = room.titleOrFallback(resources),
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,
@@ -1105,21 +1114,23 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnInitialUnreadCountDetermined -> { state -> state.copy(unreadCount = event.count) }
 
+                is Event.OnTitlesChanged -> { state ->
+                    state.copy(
+                        title = event.title,
+                        roomInfoArgs = state.roomInfoArgs.copy(
+                            roomTitle = event.roomCardTitle
+                        )
+                    )
+                }
+
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
 
-//                    val cardTitle = if (conversation.title.startsWith("Room")) {
-//                        "#${conversation.roomNumber}"
-//                    } else {
-//                        conversation.title
-//                    }
-
                     state.copy(
                         conversationId = conversation.id,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
-                        title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
                         lastReadMessage = state.lastReadMessage
                             ?: findLastReadMessage(event.conversationWithPointers.pointers),
@@ -1135,7 +1146,6 @@ class ConversationViewModel @Inject constructor(
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
-                            roomTitle = conversation.title,
                             ownerId = conversation.ownerId,
                             hostName = host?.memberName,
                             memberCount = members.count(),
