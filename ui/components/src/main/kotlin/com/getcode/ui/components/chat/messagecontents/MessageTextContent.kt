@@ -58,60 +58,79 @@ import kotlin.math.max
 
 sealed interface MessageControlAction {
     val onSelect: () -> Unit
+
     @get:Composable
     val painter: Painter
     val isDestructive: Boolean
+    val delayUponSelection: Boolean
 
     data class Copy(override val onSelect: () -> Unit) : MessageControlAction {
         override val isDestructive: Boolean = false
+        override val delayUponSelection: Boolean = false
 
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.ContentCopy)
     }
+
     data class Reply(override val onSelect: () -> Unit) : MessageControlAction {
         override val isDestructive: Boolean = false
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Default.Reply)
+        override val delayUponSelection: Boolean = false
     }
 
-    data class Tip(override val onSelect: () -> Unit): MessageControlAction {
+    data class Tip(override val onSelect: () -> Unit) : MessageControlAction {
         override val isDestructive: Boolean = false
         override val painter: Painter
             @Composable get() = painterResource(R.drawable.ic_kin_white_small)
+        override val delayUponSelection: Boolean = true
     }
 
     data class Delete(override val onSelect: () -> Unit) : MessageControlAction {
         override val isDestructive: Boolean = true
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.Delete)
+        override val delayUponSelection: Boolean = false
     }
+
     data class RemoveUser(val name: String, override val onSelect: () -> Unit) :
         MessageControlAction {
         override val isDestructive: Boolean = true
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.PersonRemove)
+        override val delayUponSelection: Boolean = false
     }
 
-    data class MuteUser(val name: String, override val onSelect: () -> Unit) : MessageControlAction {
+    data class MuteUser(val name: String, override val onSelect: () -> Unit) :
+        MessageControlAction {
         override val isDestructive: Boolean = true
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.VoiceOverOff)
+        override val delayUponSelection: Boolean = false
     }
+
     data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit) :
         MessageControlAction {
         override val isDestructive: Boolean = true
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.Flag)
+        override val delayUponSelection: Boolean = false
     }
-    data class BlockUser(val name: String, override val onSelect: () -> Unit): MessageControlAction {
+
+    data class BlockUser(val name: String, override val onSelect: () -> Unit) :
+        MessageControlAction {
         override val isDestructive: Boolean = true
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.Block)
+        override val delayUponSelection: Boolean = false
     }
-    data class UnblockUser(val name: String, override val onSelect: () -> Unit): MessageControlAction {
+
+    data class UnblockUser(val name: String, override val onSelect: () -> Unit) :
+        MessageControlAction {
         override val isDestructive: Boolean = false
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.Person)
+        override val delayUponSelection: Boolean = false
     }
 }
 
@@ -173,9 +192,9 @@ internal fun MessageNodeScope.MessageText(
 @Composable
 private fun rememberAlignmentRule(
     contentTextStyle: TextStyle,
-    minWidth:Int = 0,
+    minWidth: Int = 0,
     maxWidth: Int,
-    message: String,
+    message: AnnotatedString,
     date: Instant
 ): State<AlignmentRule?> {
     val density = LocalDensity.current
@@ -244,19 +263,51 @@ internal fun MessageContent(
     onLongPress: () -> Unit = { },
     onDoubleClick: () -> Unit = { },
 ) {
+    MessageContent(
+        modifier = modifier,
+        minWidth = minWidth,
+        maxWidth = maxWidth,
+        annotatedMessage = AnnotatedString(message),
+        date = date,
+        status = status,
+        isFromSelf = isFromSelf,
+        isFromBlockedMember = isFromBlockedMember,
+        options = options,
+        onLongPress = onLongPress,
+        onDoubleClick = onDoubleClick
+    )
+}
+
+@Composable
+internal fun MessageContent(
+    modifier: Modifier = Modifier,
+    minWidth: Int = 0,
+    maxWidth: Int,
+    annotatedMessage: AnnotatedString,
+    date: Instant,
+    status: MessageStatus,
+    isFromSelf: Boolean,
+    isFromBlockedMember: Boolean,
+    options: MessageNodeOptions,
+    onLongPress: () -> Unit = { },
+    onDoubleClick: () -> Unit = { },
+) {
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = options.contentStyle,
         minWidth = minWidth,
         maxWidth = maxWidth,
-        message = message,
+        message = annotatedMessage,
         date = date,
     )
 
     when (alignmentRule) {
         AlignmentRule.Column -> {
-            Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+            Column(
+                modifier = modifier,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+            ) {
                 MarkupTextHandler(
-                    text = message,
+                    text = annotatedMessage,
                     options = options,
                     onLongPress = onLongPress,
                     isFromBlockedMember = isFromBlockedMember,
@@ -265,7 +316,13 @@ internal fun MessageContent(
                 DateWithStatus(
                     modifier = Modifier
                         .align(Alignment.End)
-                        .pointerInput(Unit) { detectTapGestures {  }},
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = if (!options.isInteractive) null else {
+                                    { onLongPress() }
+                                },
+                            )
+                        },
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
@@ -277,9 +334,10 @@ internal fun MessageContent(
 
         AlignmentRule.ParagraphLastLine -> {
             Column(
-                modifier = modifier.padding(CodeTheme.dimens.grid.x1)) {
+                modifier = modifier.padding(CodeTheme.dimens.grid.x1)
+            ) {
                 MarkupTextHandler(
-                    text = message,
+                    text = annotatedMessage,
                     options = options,
                     onLongPress = onLongPress,
                     isFromBlockedMember = isFromBlockedMember,
@@ -288,7 +346,13 @@ internal fun MessageContent(
                 DateWithStatus(
                     modifier = Modifier
                         .align(Alignment.End)
-                        .pointerInput(Unit) { detectTapGestures {  }},
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = if (!options.isInteractive) null else {
+                                    { onLongPress() }
+                                },
+                            )
+                        },
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
@@ -304,7 +368,7 @@ internal fun MessageContent(
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 MarkupTextHandler(
-                    text = message,
+                    text = annotatedMessage,
                     options = options,
                     onLongPress = onLongPress,
                     isFromBlockedMember = isFromBlockedMember,
@@ -313,7 +377,13 @@ internal fun MessageContent(
                 DateWithStatus(
                     modifier = Modifier
                         .padding(top = CodeTheme.dimens.grid.x1 + 2.dp)
-                        .pointerInput(Unit) { detectTapGestures {  }},
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = if (!options.isInteractive) null else {
+                                    { onLongPress() }
+                                },
+                            )
+                        },
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
@@ -329,7 +399,7 @@ internal fun MessageContent(
 
 @Composable
 private fun MarkupTextHandler(
-    text: String,
+    text: AnnotatedString,
     options: MessageNodeOptions,
     isFromBlockedMember: Boolean,
     modifier: Modifier = Modifier,
@@ -349,12 +419,13 @@ private fun MarkupTextHandler(
             )
 
         }
+
         options.onMarkupClicked != null -> {
             val handler = options.onMarkupClicked
             val markupTextHelper = remember { MarkupTextHelper() }
             val markups = options.markupsToResolve.map { Markup.create(it) }
 
-            val annotatedString = markupTextHelper.annotate(text, markups)
+            val annotatedString = markupTextHelper.annotate(text.text, markups)
 
             val handleTouchedContent = { offset: Int ->
                 annotatedString.getStringAnnotations(
@@ -399,12 +470,15 @@ private fun MarkupTextHandler(
                                 }
                             },
                             onDoubleTap = { _ -> onDoubleClick() },
-                            onLongPress = if (!options.isInteractive) null else { { onLongPress() } },
+                            onLongPress = if (!options.isInteractive) null else {
+                                { onLongPress() }
+                            },
                         )
-                },
+                    },
                 onTextLayout = { layoutResult = it }
             )
         }
+
         else -> {
             Text(modifier = modifier, text = text, style = options.contentStyle)
         }

@@ -46,7 +46,9 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                         .clickable {
                             composeScope.launch {
                                 navigator.hide()
-                                delay(300)
+                                if (action.delayUponSelection) {
+                                    delay(300)
+                                }
                                 action.onSelect()
                             }
                         }

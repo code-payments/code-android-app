@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat.messagecontents
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -92,9 +94,16 @@ internal fun MessageNodeScope.MessageReplyContent(
                     MessageReplyPreview(
                         modifier = Modifier
                             .widthIn(min = messageContentPlaceable.width.toDp())
-                            .noRippleClickable { onOriginalMessageClicked() },
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = if (!options.isInteractive) null else {
+                                        { showControls() }
+                                    },
+                                    onTap = { onOriginalMessageClicked() }
+                                )
+                            },
                         originalMessage = originalMessage,
-                        backgroundColor = Color.Black.copy(0.1f)
+                        backgroundColor = Color.Black.copy(0.1f),
                     )
                 }.first().measure(
                     constraints.copy(minWidth = messageContentPlaceable.width, maxWidth = constraints.maxWidth)
@@ -121,6 +130,7 @@ fun MessageReplyPreview(
     originalMessage: ReplyMessageAnchor,
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
+
 ) {
     val colors = generateComplementaryColorPalette(originalMessage.sender.id!!)
     Row(
@@ -128,7 +138,7 @@ fun MessageReplyPreview(
             .width(IntrinsicSize.Max)
             .height(IntrinsicSize.Min)
             .background(backgroundColor, CodeTheme.shapes.extraSmall)
-            .clip(CodeTheme.shapes.extraSmall)
+            .clip(CodeTheme.shapes.extraSmall),
     ) {
         Box(
             modifier = Modifier
