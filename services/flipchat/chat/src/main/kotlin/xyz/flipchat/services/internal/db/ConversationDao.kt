@@ -43,30 +43,39 @@ interface ConversationDao {
     suspend fun getPagedConversations(limit: Int, offset: Int): List<ConversationWithMembersAndLastMessage> {
         return getPagedConversationsWithMembers(limit, offset)
             .map {
-                val lastMessage = getLastMessage(it.conversation.id)
-                val timestamp = lastMessage?.dateMillis ?: it.conversation.lastActivity
+                val lastMessage = getLatestMessage(it.conversation.id)
                 ConversationWithMembersAndLastMessage(
-                    conversation = it.conversation.copy(lastActivity = timestamp),
+                    conversation = it.conversation,
                     members = it.members,
                     lastMessage = lastMessage
                 )
             }
     }
 
-
-    @Query("""
-    SELECT * 
-    FROM messages 
-    WHERE conversationIdBase58 = :id  AND type IN (1,8)
-    ORDER BY dateMillis DESC 
-    LIMIT 1
-""")
-    suspend fun getLastMessage(id: String): ConversationMessage?
-    suspend fun getLastMessage(id: ID): ConversationMessage? {
-        return getLastMessage(id.base58)
+    @Query(
+        """
+            SELECT * FROM (
+                SELECT * 
+                FROM messages 
+                WHERE conversationIdBase58 = :id AND type IN (1, 8)
+                ORDER BY dateMillis DESC 
+                LIMIT 1
+            ) 
+            UNION ALL 
+            SELECT * FROM (
+                SELECT * 
+                FROM messages 
+                WHERE conversationIdBase58 = :id
+                ORDER BY dateMillis DESC 
+                LIMIT 1
+            ) 
+            LIMIT 1
+        """
+    )
+    suspend fun getLatestMessage(id: String): ConversationMessage?
+    suspend fun getLatestMessage(id: ID): ConversationMessage? {
+        return getLatestMessage(id.base58)
     }
-
-
 
     @RewriteQueriesToDropUnusedColumns
     @Transaction
