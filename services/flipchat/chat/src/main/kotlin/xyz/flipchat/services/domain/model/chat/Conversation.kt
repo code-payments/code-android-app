@@ -71,6 +71,16 @@ data class ConversationWithMembersAndLastPointers(
         }
 }
 
+data class ConversationWithMembers(
+    @Embedded val conversation: Conversation,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "conversationIdBase58"
+    )
+    val members: List<ConversationMember>,
+)
+
+
 data class ConversationWithMembersAndLastMessage(
     @Embedded val conversation: Conversation,
     @Relation(

@@ -12,6 +12,8 @@ import com.getcode.model.Kin
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
 import xyz.flipchat.services.domain.model.chat.Conversation
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembers
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 
@@ -28,92 +30,40 @@ interface ConversationDao {
     suspend fun upsertConversations(vararg conversation: Conversation)
 
     @RewriteQueriesToDropUnusedColumns
-    @Transaction
     @Query(
         """
-    SELECT
-        -- Conversation fields
-        c.idBase58             AS idBase58,
-        c.ownerIdBase58        AS ownerIdBase58,
-        c.title                AS title,
-        c.imageUri             AS imageUri,
-        c.canMute              AS canMute,
-        c.unreadCount          AS unreadCount,
-        c.hasMoreUnread        AS hasMoreUnread,
-        c.isOpen               AS isOpen,
-        c.roomNumber           AS roomNumber,
-        c.lastActivity         AS lastActivity,
-
-        -- Last message fields
-        lm.idBase58            AS lastMessageIdBase58,
-        lm.dateMillis          AS lastMessageDateMillis,
-        lm.senderIdBase58      AS lastMessageSenderIdBase58,
-        lm.type                AS lastMessageType,
-        lm.content             AS lastMessageContent,
-
-        -- Member fields
-        cm.memberIdBase58      AS memberIdBase58,
-        cm.memberName          AS memberName,
-        cm.imageUri            AS imageUri,
-        cm.isHost              AS isHost,
-        cm.isMuted             AS isMuted,
-        cm.isFullMember        AS isFullMember,
-        cm.isBlocked           AS isBlocked
-
-    FROM conversations AS c
-
-    -- Join to fetch all members for each conversation
-    LEFT JOIN members AS cm
-        ON cm.conversationIdBase58 = c.idBase58
-
-    -- Subquery to find the most recent message for each conversation
-    LEFT JOIN (
-        SELECT
-            conversationIdBase58,
-            MAX(dateMillis) AS maxDateMillis
-        FROM
-            messages
-
-        GROUP BY
-            conversationIdBase58
-    ) AS latestMessage
-    ON
-        c.idBase58 = latestMessage.conversationIdBase58
-
-    -- Subquery to find the most recent message for ordering, filtering by specific types
-    LEFT JOIN (
-        SELECT
-            conversationIdBase58,
-            MAX(dateMillis) AS maxDateMillis
-        FROM
-            messages
-        WHERE
-            type IN (1, 8)
-        GROUP BY
-            conversationIdBase58
-    ) AS messageForOrder
-    ON
-        c.idBase58 = messageForOrder.conversationIdBase58
-
-    -- Join to get details for the latest message
-    LEFT JOIN messages AS lm
-    ON
-        latestMessage.conversationIdBase58 = lm.conversationIdBase58
-        AND latestMessage.maxDateMillis = lm.dateMillis
-    WHERE type IN (1,8)
-
-    GROUP BY c.idBase58
-
-    ORDER BY
-        messageForOrder.maxDateMillis DESC
-
-    LIMIT :limit OFFSET :offset
-    """
+            SELECT * FROM conversations
+            WHERE roomNumber > 0
+            ORDER BY lastActivity DESC
+            LIMIT :limit OFFSET :offset
+        """
     )
-    suspend fun getPagedConversations(
-        limit: Int,
-        offset: Int
-    ): List<ConversationWithMembersAndLastMessage>
+    suspend fun getPagedConversationsWithMembers(limit: Int, offset: Int): List<ConversationWithMembers>
+
+    suspend fun getPagedConversations(limit: Int, offset: Int): List<ConversationWithMembersAndLastMessage> {
+        return getPagedConversationsWithMembers(limit, offset)
+            .map {
+                val lastMessage = getLastMessage(it.conversation.id)
+                ConversationWithMembersAndLastMessage(
+                    conversation = it.conversation,
+                    members = it.members,
+                    lastMessage = lastMessage
+                )
+            }
+    }
+
+
+    @Query("""
+    SELECT * 
+    FROM messages 
+    WHERE conversationIdBase58 = :id  AND type IN (1,8)
+    ORDER BY dateMillis DESC 
+    LIMIT 1
+""")
+    suspend fun getLastMessage(id: String): ConversationMessage?
+    suspend fun getLastMessage(id: ID): ConversationMessage? {
+        return getLastMessage(id.base58)
+    }
 
 
 
