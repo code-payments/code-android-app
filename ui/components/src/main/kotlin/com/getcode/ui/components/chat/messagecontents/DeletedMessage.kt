@@ -11,6 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.getcode.model.ID
 import com.getcode.model.chat.Deleter
@@ -50,14 +53,30 @@ internal fun MessageNodeScope.DeletedMessage(
                     // add top padding to accommodate ascents
                     .padding(top = CodeTheme.dimens.grid.x1),
             ) {
-                val message = when {
-                    deletedBy?.isSelf == true -> stringResource(R.string.title_messageDeletedByYou)
-                    deletedBy?.isHost == true -> stringResource(R.string.title_messageDeletedByHost)
-                    else -> stringResource(R.string.title_messageWasDeleted)
+
+                val message = buildAnnotatedString {
+                        when {
+                            deletedBy?.isSelf == true -> {
+                                pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                                append(stringResource(R.string.title_messageDeletedByYou))
+                                pop()
+                            }
+                            deletedBy?.isHost == true -> {
+                                pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                                stringResource(R.string.title_messageDeletedByHost)
+                                pop()
+                            }
+                            else -> {
+                                pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                                stringResource(R.string.title_messageWasDeleted)
+                                pop()
+                            }
+                        }
                 }
+
                 MessageContent(
                     maxWidth = maxWidthPx,
-                    message = message,
+                    annotatedMessage = message,
                     date = date,
                     status = MessageStatus.Unknown,
                     isFromSelf = sender.isSelf,
