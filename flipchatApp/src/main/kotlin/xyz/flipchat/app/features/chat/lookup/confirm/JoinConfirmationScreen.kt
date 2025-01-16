@@ -98,7 +98,7 @@ private fun JoinRoomScreenContent(viewModel: JoinConfirmationViewModel) {
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
                     buttonState = ButtonState.Filled,
-                    text = stringResource(R.string.action_watchRoom),
+                    text = stringResource(R.string.action_joinRoom),
                     enabled = state.canJoin,
                     isLoading = state.following.loading,
                     isSuccess = state.following.success,

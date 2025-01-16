@@ -119,14 +119,7 @@ class JoinConfirmationViewModel @Inject constructor(
                                 )
                             )
                         )
-                    }.onSuccessWithDelay(2.seconds) {
-                        dispatchEvent(
-                            Event.OnFollowingChanged(
-                                following = false,
-                                followed = true
-                            )
-                        )
-                        delay(2.seconds)
+                    }.onSuccess {
                         dispatchEvent(Event.OnBecameMember(it.room.id))
                     }
             }.launchIn(viewModelScope)
