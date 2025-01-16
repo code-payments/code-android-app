@@ -147,6 +147,10 @@ internal fun ConversationMessages(
                             }
                         }
                     }
+
+                    is MessageListEvent.TipMessage -> {
+                        dispatchEvent(ConversationViewModel.Event.OnTipUser(event.message.chatMessageId))
+                    }
                 }
             }
         )

@@ -43,6 +43,7 @@ sealed class ChatItem(open val key: Any) {
         val showAsChatBubble: Boolean = false,
         val enableMarkup: Boolean = false,
         val enableReply: Boolean = false,
+        val enableTipping : Boolean = false,
         val originalMessage: ReplyMessageAnchor? = null,
         override val key: Any = chatMessageId
     ) : ChatItem(chatMessageId) {

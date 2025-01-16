@@ -1,6 +1,5 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +43,7 @@ sealed interface MessageListEvent {
     data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
+    data class TipMessage(val message: ChatItem.Message): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -152,6 +152,7 @@ fun MessageList(
                             isNextGrouped = isNextGrouped,
                             isInteractive = item.messageControls.hasAny,
                             canReplyTo = item.enableReply,
+                            canTip = item.enableTipping,
                             onMarkupClicked = if (item.enableMarkup) { markup: Markup.Interactive ->
                                 dispatch(MessageListEvent.OnMarkupEvent(markup))
                             } else null,
@@ -164,6 +165,7 @@ fun MessageList(
                                 )
                             )
                         },
+                        showTipModal = { dispatch(MessageListEvent.TipMessage(item)) },
                         onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) },
                         originalMessage = item.originalMessage,
                         onViewOriginalMessage = {

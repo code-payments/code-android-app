@@ -53,6 +53,7 @@ internal fun MessageNodeScope.MessageReplyContent(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showControls: () -> Unit,
+    showTipModal: () -> Unit
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 

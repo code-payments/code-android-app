@@ -11,7 +11,6 @@ import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
-import com.getcode.model.Kin
 import com.getcode.model.chat.MessageContent
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType

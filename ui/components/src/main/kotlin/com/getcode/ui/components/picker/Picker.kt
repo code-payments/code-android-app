@@ -1,0 +1,174 @@
+package com.getcode.ui.components.picker
+
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.measured
+import com.getcode.util.vibration.LocalVibrator
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+
+@Composable
+fun <T> rememberPickerState(
+    key: Any? = null,
+    items: List<T>,
+    prefix: String = "",
+    labelForItem: (T) -> String = { item -> item.toString() }
+): PickerState<T> {
+
+    val initialState = PickerState(items, labelForItem, prefix)
+
+    return produceState(initialState, key, items, labelForItem, prefix) {
+        val updated = initialState.copy(items = items, labelForItem = labelForItem, prefix = prefix)
+        updated.selectedItem = value.selectedItem
+
+        value = updated
+    }.value
+}
+
+
+@Immutable
+data class PickerState<T>(
+    val items: List<T>,
+    val labelForItem: (T) -> String = { item -> item.toString() },
+    val prefix: String = "",
+) {
+    var selectedItem by mutableStateOf<T?>(null)
+        internal set
+}
+
+@Composable
+fun <T> Picker(
+    state: PickerState<T>,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    visibleItemsCount: Int = 3,
+    textModifier: Modifier = Modifier,
+    textStyle: TextStyle = LocalTextStyle.current,
+) {
+    val items = remember(state.items) {
+        val labels = state.items.map { state.labelForItem(it) }
+        listOf("") + labels + listOf("")
+    }
+
+    fun getItem(index: Int): String = items[index]
+
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 0)
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    var itemHeight by remember { mutableStateOf(0.dp) }
+
+    val fadingEdgeGradient = remember {
+        Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.5f to Color.Black,
+            1f to Color.Transparent
+        )
+    }
+
+    val vibrator = LocalVibrator.current
+
+    LaunchedEffect(listState, items) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .map { (first, last) ->
+                val index = ((first.toLong() + (last ?: 0)) / 2).toInt()
+                getItem(index)
+            }
+            .distinctUntilChanged()
+            .collect { item ->
+                vibrator.tick()
+                state.selectedItem = state.items.find { state.labelForItem(it) == item }
+            }
+    }
+
+    val textMeasurer = rememberTextMeasurer()
+    val buffer = with (LocalDensity.current) { CodeTheme.dimens.grid.x4.roundToPx() }
+    val itemWidthPixels = remember(items) {
+        items.maxOfOrNull {
+            textMeasurer.measure(text = it, style = textStyle, maxLines = 1).size.width + buffer
+        }
+    }
+
+
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = flingBehavior,
+            userScrollEnabled = enabled,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight * visibleItemsCount)
+                .fadingEdge(fadingEdgeGradient)
+        ) {
+            itemsIndexed(items) { _, item ->
+                Text(
+                    text = item,
+                    maxLines = 1,
+                    style = textStyle,
+                    modifier = Modifier
+                        .measured { itemHeight = it.height }
+                        .then(textModifier)
+                )
+            }
+        }
+        // Fixed prefix
+        if (itemWidthPixels != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+            ) {
+                Text(
+                    text = state.prefix,
+                    style = textStyle.copy(Color.White),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.align(Alignment.Center)
+                        .padding(end = pixelsToDp(itemWidthPixels))
+                )
+            }
+        }
+    }
+
+}
+
+private fun Modifier.fadingEdge(brush: Brush) = this
+    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    .drawWithContent {
+        drawContent()
+        drawRect(brush = brush, blendMode = BlendMode.DstIn)
+    }
+
+@Composable
+private fun pixelsToDp(pixels: Int) = with(LocalDensity.current) { pixels.toDp() }

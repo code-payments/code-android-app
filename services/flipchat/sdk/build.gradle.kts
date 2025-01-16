@@ -62,7 +62,11 @@ dependencies {
     api(project(":services:flipchat:core"))
     api(project(":services:flipchat:chat"))
     api(project(":services:flipchat:payments"))
+    implementation(project(":libs:requests"))
     implementation(project(":ui:resources"))
+
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
 
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)

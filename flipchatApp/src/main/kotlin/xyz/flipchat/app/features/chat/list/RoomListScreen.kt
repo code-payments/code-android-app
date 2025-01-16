@@ -113,7 +113,6 @@ private fun ChatListScreenContent(
     val isLoading = chats.loadState.refresh is LoadState.Loading
     var isInitialLoad by rememberSaveable { mutableStateOf(true) }
     val listState = rememberLazyListState()
-    val composeScope = rememberCoroutineScope()
 
     CodeScaffold { padding ->
         LazyColumn(

@@ -6,6 +6,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.getcode.extensions.formatted
 import com.getcode.libs.requests.R
+import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
@@ -22,6 +23,7 @@ data class BillState(
     val valuation: Valuation?,
     val privatePaymentConfirmation: PrivatePaymentConfirmation?,
     val publicPaymentConfirmation: PublicPaymentConfirmation?,
+    val messageTipPaymentConfirmation: MessageTipPaymentConfirmation?,
     val loginConfirmation: LoginConfirmation?,
     val socialUserPaymentConfirmation: SocialUserPaymentConfirmation?,
     val primaryAction: Action?,
@@ -41,6 +43,7 @@ data class BillState(
             valuation = null,
             privatePaymentConfirmation = null,
             publicPaymentConfirmation = null,
+            messageTipPaymentConfirmation = null,
             loginConfirmation = null,
             socialUserPaymentConfirmation = null,
             primaryAction = null,
@@ -219,6 +222,15 @@ data class PublicPaymentConfirmation(
     val amount: KinAmount,
     val destination: PublicKey,
     val metadata: ExtendedMetadata,
+    override val showScrim: Boolean = true,
+): Confirmation(showScrim, state)
+
+data class MessageTipPaymentConfirmation(
+    override val state: ConfirmationState,
+    val conversationId: ID,
+    val messageId: ID,
+    val balance: String?,
+    val currencyFlag: Int?,
     override val showScrim: Boolean = true,
 ): Confirmation(showScrim, state)
 

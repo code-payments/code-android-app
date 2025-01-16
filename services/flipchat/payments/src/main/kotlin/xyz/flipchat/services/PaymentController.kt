@@ -3,16 +3,23 @@ package xyz.flipchat.services
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.domain.BillController
 import com.getcode.manager.TopBarManager
+import com.getcode.model.Currency
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.models.BillState
 import com.getcode.models.ConfirmationState
+import com.getcode.models.MessageTipPaymentConfirmation
 import com.getcode.models.PublicPaymentConfirmation
+import com.getcode.network.BalanceController
 import com.getcode.network.repository.PaymentError
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.CurrencyUtils
+import com.getcode.utils.Kin
+import com.getcode.utils.flagResId
+import com.getcode.utils.formatAmountString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -45,18 +52,20 @@ sealed interface PaymentEvent {
 val LocalPaymentController = staticCompositionLocalOf<PaymentController?> { null }
 
 @Singleton
-class PaymentController @Inject constructor(
+open class PaymentController @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val resources: ResourceHelper,
     private val billController: BillController,
+    private val balanceController: BalanceController,
+    private val currencyUtils: CurrencyUtils,
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO)
+    protected val scope = CoroutineScope(Dispatchers.IO)
 
     val state = billController.state.map {
         PaymentState(it)
     }.stateIn(scope, started = SharingStarted.Eagerly, initialValue = PaymentState())
 
-    private val _eventFlow: MutableSharedFlow<PaymentEvent> = MutableSharedFlow()
+    protected val _eventFlow: MutableSharedFlow<PaymentEvent> = MutableSharedFlow()
     val eventFlow: SharedFlow<PaymentEvent> = _eventFlow.asSharedFlow()
 
     fun presentPublicPaymentConfirmation(

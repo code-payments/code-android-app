@@ -185,6 +185,7 @@ data class MessageNodeOptions(
     val isNextGrouped: Boolean = false,
     val isInteractive: Boolean = false,
     val canReplyTo: Boolean = false,
+    val canTip: Boolean = false,
     val markupsToResolve: List<KClass<out Markup>> = listOf(
         Markup.RoomNumber::class,
         Markup.Url::class,
@@ -211,6 +212,7 @@ fun MessageNode(
     modifier: Modifier = Modifier,
     options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
     openMessageControls: () -> Unit,
+    showTipModal: () -> Unit,
     onReply: () -> Unit,
     onViewOriginalMessage: (ID) -> Unit,
 ) {
@@ -355,7 +357,8 @@ fun MessageNode(
                                         isFromSelf = sender.isSelf,
                                         isFromBlockedMember = sender.isBlocked,
                                         options = options,
-                                        showControls = openMessageControls
+                                        showControls = openMessageControls,
+                                        showTipModal = showTipModal,
                                     )
                                 }
                             }
@@ -394,7 +397,8 @@ fun MessageNode(
                                         isFromSelf = sender.isSelf,
                                         isFromBlockedMember = sender.isBlocked,
                                         options = options,
-                                        showControls = openMessageControls
+                                        showControls = openMessageControls,
+                                        showTipModal = showTipModal,
                                     )
                                 }
                             }
@@ -413,7 +417,8 @@ fun MessageNode(
                                         isFromSelf = sender.isSelf,
                                         isFromBlockedMember = sender.isBlocked,
                                         options = options,
-                                        showControls = openMessageControls
+                                        showControls = openMessageControls,
+                                        showTipModal = showTipModal,
                                     )
                                 }
                             }
@@ -442,6 +447,7 @@ fun MessageNode(
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
                                             showControls = openMessageControls,
+                                            showTipModal = showTipModal,
                                             originalMessage = originalMessage,
                                             onOriginalMessageClicked = {
                                                 onViewOriginalMessage(originalMessage.id)
@@ -457,6 +463,7 @@ fun MessageNode(
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
                                             showControls = openMessageControls,
+                                            showTipModal = showTipModal,
                                         )
                                     }
                                 }

@@ -196,6 +196,7 @@
     <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
 
     <string name="action_reply">Reply</string>
+    <string name="action_tipUser">Tip User</string>
 
     <string name="title_betaFlags">Labs</string>
 
@@ -216,4 +217,7 @@
     <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
     <string name="prompt_description_deleteAccount">This will permanently delete your Flipchat account</string>
     <string name="action_permanentlyDeleteAccount">Permanently Delete My Account</string>
+
+    <string name="subtitle_balance">Balance: ⬢ %1$s</string>
+    <string name="title_kimAmountWithLogo">⬢ %1$s</string>
 </resources>

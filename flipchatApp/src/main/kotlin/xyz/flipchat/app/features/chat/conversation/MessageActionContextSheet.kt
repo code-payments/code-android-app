@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +25,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 
 internal data class MessageActionContextSheet(val actions: List<MessageControlAction>) : Screen {
@@ -36,12 +39,16 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                 .padding(top = CodeTheme.dimens.inset)
                 .navigationBarsPadding()
         ) {
+            val composeScope = rememberCoroutineScope()
             actions.fastForEachIndexed { index, action ->
                 Row(
                     modifier = Modifier
                         .clickable {
-                            navigator.hide()
-                            action.onSelect()
+                            composeScope.launch {
+                                navigator.hide()
+                                delay(300)
+                                action.onSelect()
+                            }
                         }
                         .fillMaxWidth()
                         .padding(
@@ -68,10 +75,7 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                                 action.name
                             )
 
-                            is MessageControlAction.BlockUser -> stringResource(
-                                R.string.action_blockUser,
-                                action.name
-                            )
+                            is MessageControlAction.BlockUser -> stringResource(R.string.action_blockUser)
 
 
                             is MessageControlAction.UnblockUser -> stringResource(
@@ -87,6 +91,7 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                             )
 
                             is MessageControlAction.Reply -> stringResource(R.string.action_reply)
+                            is MessageControlAction.Tip -> stringResource(R.string.action_tipUser)
                         },
                         style = CodeTheme.typography.textMedium.copy(
                             color = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain

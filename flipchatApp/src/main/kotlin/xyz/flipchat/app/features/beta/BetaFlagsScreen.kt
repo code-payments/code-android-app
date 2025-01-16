@@ -105,6 +105,7 @@ private val Lab.title: String
         Lab.RoomNameChanges -> "Room Name Changes For Hosts"
         Lab.DeleteMessage -> "Delete Message Support"
         Lab.OpenCloseRoom -> "Open/Close Rooms"
+        Lab.Tipping -> "Tipping"
     }
 
 private val Lab.message: String
@@ -115,4 +116,5 @@ private val Lab.message: String
         Lab.RoomNameChanges -> "When enabled, hosts will gain the ability to set a desired name for their room"
         Lab.DeleteMessage -> "When enabled, hosts will gain the ability to delete messages"
         Lab.OpenCloseRoom -> "When enabled, hosts will gain the ability to temporarily close (and reopen) their rooms"
+        Lab.Tipping -> "When enabled, you'll gain the ability to double tap messages to tip the author"
     }

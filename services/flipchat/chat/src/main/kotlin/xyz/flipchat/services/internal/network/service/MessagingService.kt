@@ -58,19 +58,16 @@ internal class MessagingService @Inject constructor(
 
                     GetMessagesResponse.Result.UNRECOGNIZED -> {
                         val error = GetMessagesError.Unrecognized()
-                        Timber.e(t = error)
                         Result.failure(error)
                     }
 
                     GetMessagesResponse.Result.DENIED -> {
                         val error = GetMessagesError.Denied()
-                        Timber.e(t = error)
                         Result.failure(error)
                     }
 
                     else -> {
                         val error = GetMessagesError.Other()
-                        Timber.e(t = error)
                         Result.failure(error)
                     }
                 }
@@ -110,19 +107,16 @@ internal class MessagingService @Inject constructor(
 
                             MessagingService.SendMessageResponse.Result.DENIED -> {
                                 val error = SendMessageError.Denied()
-                                Timber.e(t = error)
                                 Result.failure(error)
                             }
 
                             MessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
                                 val error = SendMessageError.Unrecognized()
-                                Timber.e(t = error)
                                 Result.failure(error)
                             }
 
                             else -> {
                                 val error = SendMessageError.Other()
-                                Timber.e(t = error)
                                 Result.failure(error)
                             }
                         }
@@ -132,7 +126,6 @@ internal class MessagingService @Inject constructor(
 
                     override fun onError(t: Throwable?) {
                         val error = SendMessageError.Other(t)
-                        Timber.e(t = error)
                         cont.resume(Result.failure(error))
                     }
 
@@ -161,19 +154,16 @@ internal class MessagingService @Inject constructor(
 
                         AdvancePointerResponse.Result.UNRECOGNIZED -> {
                             val error = AdvancePointerError.Unrecognized()
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         AdvancePointerResponse.Result.DENIED -> {
                             val error = AdvancePointerError.Denied()
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         else -> {
                             val error = AdvancePointerError.Other()
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
                     }
@@ -209,19 +199,16 @@ internal class MessagingService @Inject constructor(
                             MessagingService.NotifyIsTypingResponse.Result.OK -> Result.success(Unit)
                             MessagingService.NotifyIsTypingResponse.Result.DENIED -> {
                                 val error = TypingChangeError.Denied()
-                                Timber.e(t = error)
                                 Result.failure(error)
                             }
 
                             MessagingService.NotifyIsTypingResponse.Result.UNRECOGNIZED -> {
                                 val error = TypingChangeError.Unrecognized()
-                                Timber.e(t = error)
                                 Result.failure(error)
                             }
 
                             else -> {
                                 val error = TypingChangeError.Other()
-                                Timber.e(t = error)
                                 Result.failure(error)
                             }
                         }
@@ -231,7 +218,6 @@ internal class MessagingService @Inject constructor(
 
                     override fun onError(t: Throwable?) {
                         val error = TypingChangeError.Other(cause = t)
-                        Timber.e(t = error)
                         cont.resume(Result.failure(error))
                     }
 
@@ -240,7 +226,6 @@ internal class MessagingService @Inject constructor(
             )
         } catch (e: Exception) {
             val error = TypingChangeError.Other(cause = e)
-            Timber.e(t = error)
             cont.resume(Result.failure(error))
         }
     }

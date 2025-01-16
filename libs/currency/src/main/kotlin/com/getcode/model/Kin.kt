@@ -64,6 +64,9 @@ data class Kin(val quarks: Long): Value {
     }
 }
 
+inline val Int.kin
+    get() = Kin.fromKin(this)
+
 private fun min(a: Kin, b: Kin): Kin {
     if (a.quarks > b.quarks) {
         return b

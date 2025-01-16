@@ -61,8 +61,23 @@ sealed interface Lab {
         override val launched: Boolean = false
     }
 
+    data object Tipping : Lab {
+        override val key: String = "tipping_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
-        val entries = listOf(ReplyToMessage, FollowerMode, StartChatAtUnread, RoomNameChanges, DeleteMessage, OpenCloseRoom)
+        val entries = listOf(
+            ReplyToMessage,
+            FollowerMode,
+            StartChatAtUnread,
+            RoomNameChanges,
+            DeleteMessage,
+            OpenCloseRoom,
+            Tipping
+        )
+
         internal fun byKey(key: Preferences.Key<*>): Lab? {
             return entries.firstOrNull { it.key == key.name }
         }

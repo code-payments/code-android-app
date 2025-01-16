@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonRemove
-import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material.icons.filled.VoiceOverOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -74,6 +73,13 @@ sealed interface MessageControlAction {
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Default.Reply)
     }
+
+    data class Tip(override val onSelect: () -> Unit): MessageControlAction {
+        override val isDestructive: Boolean = false
+        override val painter: Painter
+            @Composable get() = painterResource(R.drawable.ic_kin_white_small)
+    }
+
     data class Delete(override val onSelect: () -> Unit) : MessageControlAction {
         override val isDestructive: Boolean = true
         override val painter: Painter
@@ -127,6 +133,7 @@ internal fun MessageNodeScope.MessageText(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showControls: () -> Unit,
+    showTipModal: () -> Unit
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -155,7 +162,8 @@ internal fun MessageNodeScope.MessageText(
                     isFromSelf = isFromSelf,
                     isFromBlockedMember = isFromBlockedMember,
                     options = options,
-                    onLongPress = { showControls() }
+                    onLongPress = showControls,
+                    onDoubleClick = showTipModal
                 )
             }
         }
@@ -234,6 +242,7 @@ internal fun MessageContent(
     isFromBlockedMember: Boolean,
     options: MessageNodeOptions,
     onLongPress: () -> Unit = { },
+    onDoubleClick: () -> Unit = { },
 ) {
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = options.contentStyle,
@@ -250,7 +259,8 @@ internal fun MessageContent(
                     text = message,
                     options = options,
                     onLongPress = onLongPress,
-                    isFromBlockedMember = isFromBlockedMember
+                    isFromBlockedMember = isFromBlockedMember,
+                    onDoubleClick = onDoubleClick,
                 )
                 DateWithStatus(
                     modifier = Modifier
@@ -272,7 +282,8 @@ internal fun MessageContent(
                     text = message,
                     options = options,
                     onLongPress = onLongPress,
-                    isFromBlockedMember = isFromBlockedMember
+                    isFromBlockedMember = isFromBlockedMember,
+                    onDoubleClick = onDoubleClick,
                 )
                 DateWithStatus(
                     modifier = Modifier
@@ -296,7 +307,8 @@ internal fun MessageContent(
                     text = message,
                     options = options,
                     onLongPress = onLongPress,
-                    isFromBlockedMember = isFromBlockedMember
+                    isFromBlockedMember = isFromBlockedMember,
+                    onDoubleClick = onDoubleClick,
                 )
                 DateWithStatus(
                     modifier = Modifier
@@ -322,6 +334,7 @@ private fun MarkupTextHandler(
     isFromBlockedMember: Boolean,
     modifier: Modifier = Modifier,
     onLongPress: () -> Unit = { },
+    onDoubleClick: () -> Unit,
 ) {
     when {
         isFromBlockedMember -> {
@@ -376,16 +389,18 @@ private fun MarkupTextHandler(
             Text(
                 text = annotatedString,
                 style = options.contentStyle.copy(color = CodeTheme.colors.textMain),
-                modifier = modifier.pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { offset ->
-                            layoutResult?.let { layoutResult ->
-                                val position = layoutResult.getOffsetForPosition(offset)
-                                handleTouchedContent(position)
-                            }
-                        },
-                        onLongPress = if (!options.isInteractive) null else { { onLongPress() } },
-                    )
+                modifier = modifier
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { offset ->
+                                layoutResult?.let { layoutResult ->
+                                    val position = layoutResult.getOffsetForPosition(offset)
+                                    handleTouchedContent(position)
+                                }
+                            },
+                            onDoubleTap = { _ -> onDoubleClick() },
+                            onLongPress = if (!options.isInteractive) null else { { onLongPress() } },
+                        )
                 },
                 onTextLayout = { layoutResult = it }
             )

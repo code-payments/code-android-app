@@ -20,7 +20,10 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
+import com.getcode.models.ConfirmationState
 import com.getcode.navigation.RoomInfoArgs
+import com.getcode.network.BalanceController
+import com.getcode.network.BalanceDisplay
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
@@ -64,6 +67,7 @@ import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
+import xyz.flipchat.chat.TipController
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
@@ -87,6 +91,7 @@ class ConversationViewModel @Inject constructor(
     private val roomController: RoomController,
     private val chatsController: ChatsController,
     private val paymentController: PaymentController,
+    private val tipController: TipController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
@@ -120,8 +125,9 @@ class ConversationViewModel @Inject constructor(
         val isSelfTyping: Boolean,
         val isRoomOpen: Boolean,
         val isOpenCloseEnabled: Boolean,
+        val isTippingEnabled: Boolean,
         val roomInfoArgs: RoomInfoArgs,
-        val lastReadMessage: UUID?,
+        val lastReadMessage: UUID?
     ) {
         val isHost: Boolean
             get() = selfId != null && hostId != null && selfId == hostId
@@ -149,6 +155,7 @@ class ConversationViewModel @Inject constructor(
                 isSelfTyping = false,
                 isRoomOpen = true,
                 isOpenCloseEnabled = false,
+                isTippingEnabled = false,
                 roomInfoArgs = RoomInfoArgs(),
             )
         }
@@ -175,6 +182,7 @@ class ConversationViewModel @Inject constructor(
 
         data class OnReplyEnabled(val enabled: Boolean) : Event
         data class OnOpenCloseEnabled(val enabled: Boolean) : Event
+        data class OnTippingEnabled(val enabled: Boolean): Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -211,6 +219,8 @@ class ConversationViewModel @Inject constructor(
         data class MuteUser(val conversationId: ID, val userId: ID) : Event
         data class BlockUser(val userId: ID) : Event
         data class UnblockUser(val userId: ID) : Event
+        data class OnTipUser(val messageId: ID): Event
+        data class TipUser(val messageId: ID, val amount: KinAmount): Event
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
@@ -246,12 +256,9 @@ class ConversationViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnStartAtUnread(it)) }
             .launchIn(viewModelScope)
 
-//        eventFlow
-//            .filterIsInstance<Event.OnChatIdChanged>()
-//            .map { it.chatId }
-//            .filterNotNull()
-//            .onEach { roomController.getChatMembers(it) }
-//            .launchIn(viewModelScope)
+        betaFeatures.observe(Lab.Tipping)
+            .onEach { dispatchEvent(Event.OnTippingEnabled(it)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnChatIdChanged>()
@@ -626,6 +633,26 @@ class ConversationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnTipUser>()
+            .map { it.messageId }
+            .map { messageId ->
+                tipController.presentMessageTipConfirmation(
+                    conversationId = stateFlow.value.conversationId.orEmpty(),
+                    messageId = messageId
+                )
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> {
+
+                    }
+                    is PaymentEvent.OnPaymentSuccess -> Unit
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.LookupRoom>()
             .map { it.number }
             .map { roomNumber ->
@@ -746,6 +773,7 @@ class ConversationViewModel @Inject constructor(
             val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
             val enableReply =
                 currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
+
             page.map { indice ->
                 val (message, member, contents) = indice
 
@@ -785,6 +813,8 @@ class ConversationViewModel @Inject constructor(
                     null
                 }
 
+                val tippingEnabled = currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
+
                 ChatItem.Message(
                     chatMessageId = message.id,
                     message = contents,
@@ -804,6 +834,7 @@ class ConversationViewModel @Inject constructor(
                     enableMarkup = true,
                     enableReply = enableReply,
                     showTimestamp = false,
+                    enableTipping = tippingEnabled,
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
@@ -814,7 +845,7 @@ class ConversationViewModel @Inject constructor(
                     ),
                     originalMessage = anchor,
                     messageControls = MessageControls(
-                        actions = buildMessageActions(message, member, contents, enableReply),
+                        actions = buildMessageActions(message, member, contents, enableReply, enableTip = tippingEnabled),
                     ),
                 )
             }
@@ -858,8 +889,17 @@ class ConversationViewModel @Inject constructor(
         member: ConversationMember?,
         contents: MessageContent,
         enableReply: Boolean,
+        enableTip: Boolean,
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
+            if (enableTip) {
+                add(
+                    MessageControlAction.Tip {
+                        dispatchEvent(Event.OnTipUser(message.id))
+                    }
+                )
+            }
+
             add(
                 MessageControlAction.Copy {
                     dispatchEvent(
@@ -1194,6 +1234,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.MuteUser,
                 is Event.BlockUser,
                 is Event.UnblockUser,
+                is Event.TipUser,
+                is Event.OnTipUser,
                 is Event.Resumed,
                 is Event.Stopped,
                 is Event.LookupRoom,
@@ -1221,6 +1263,7 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }
                 is Event.OnOpenCloseEnabled -> { state -> state.copy(isOpenCloseEnabled = event.enabled) }
+                is Event.OnTippingEnabled -> { state -> state.copy(isTippingEnabled = event.enabled) }
             }
         }
     }

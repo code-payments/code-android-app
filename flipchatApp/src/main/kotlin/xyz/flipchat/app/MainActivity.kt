@@ -27,6 +27,8 @@ import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.compose.ext.Rinku
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.ui.LocalLabs
+import xyz.flipchat.chat.LocalTipController
+import xyz.flipchat.chat.TipController
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.billing.BillingClient
@@ -63,6 +65,9 @@ class MainActivity : FragmentActivity() {
     lateinit var paymentController: PaymentController
 
     @Inject
+    lateinit var tipController: TipController
+
+    @Inject
     lateinit var betaFeatures: Labs
 
     @Inject
@@ -82,6 +87,7 @@ class MainActivity : FragmentActivity() {
                 LocalVibrator provides vibrator,
                 LocalUserManager provides userManager,
                 LocalPaymentController provides paymentController,
+                LocalTipController provides tipController,
                 LocalLabs provides betaFeatures,
                 LocalBillingClient provides iapController
             ) {
