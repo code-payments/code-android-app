@@ -13,7 +13,6 @@ import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FixedThreshold
 import androidx.compose.material.SwipeToDismiss
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -43,6 +42,7 @@ import kotlinx.coroutines.flow.filter
 import xyz.flipchat.app.R
 import xyz.flipchat.app.ui.LocalUserManager
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable

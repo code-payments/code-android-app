@@ -30,4 +30,4 @@ class MetadataRoomMapper @Inject constructor(
 }
 
 internal fun Long.ifZeroOrElse(other: Long, block: (Long) -> Long) = takeIf { it > 0 }?.let(block) ?: other
-private fun String?.nullIfEmpty() = if (this?.isEmpty() == true) null else this
+fun String?.nullIfEmpty() = if (this?.isEmpty() == true) null else this

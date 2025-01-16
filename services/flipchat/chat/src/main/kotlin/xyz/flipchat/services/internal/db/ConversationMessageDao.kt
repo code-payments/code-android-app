@@ -70,6 +70,8 @@ interface ConversationMessageDao {
         return getNewestMessage(conversationId.base58)
     }
 
+    @RewriteQueriesToDropUnusedColumns
+    @Transaction
     @Query(
         """
             SELECT 
