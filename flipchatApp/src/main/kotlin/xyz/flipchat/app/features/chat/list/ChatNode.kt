@@ -31,6 +31,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.theme.CodeTheme
@@ -157,21 +160,30 @@ private val ConversationWithMembersAndLastMessage.messagePreview: Pair<Annotated
     @Composable get() {
         val user = LocalUserManager.currentOrThrow
         val contents = messageContentPreview ?: return AnnotatedString("No content") to emptyMap()
-        val messageBody = if (this.lastMessage?.isDeleted == true) {
-            when {
-                user.isSelf(this.lastMessage?.deletedBy) -> {
-                    stringResource(R.string.title_messageDeletedByYou)
+
+        val messageBody = buildAnnotatedString {
+            if (lastMessage?.isDeleted == true) {
+                when {
+                    user.isSelf(lastMessage?.deletedBy) -> {
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(stringResource(R.string.title_messageDeletedByYou))
+                        pop()
+                    }
+                    ownerId == lastMessage?.deletedBy -> {
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(stringResource(R.string.title_messageDeletedByHost))
+                        pop()
+                    }
+                    else -> {
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(stringResource(R.string.title_messageWasDeleted))
+                        pop()
+                    }
                 }
-                this.ownerId == this.lastMessage?.deletedBy -> {
-                    stringResource(R.string.title_messageDeletedByHost)
-                }
-                else -> {
-                    stringResource(R.string.title_messageWasDeleted)
-                }
+            } else {
+                append(contents.localizedText)
             }
-        } else {
-            contents.localizedText
         }
 
-        return AnnotatedString(messageBody) to emptyMap()
+        return messageBody to emptyMap()
     }
