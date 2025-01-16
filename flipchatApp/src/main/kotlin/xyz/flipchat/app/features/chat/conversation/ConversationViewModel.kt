@@ -306,7 +306,7 @@ class ConversationViewModel @Inject constructor(
                 val chattableState = if (selfMember != null) {
                     val isMuted = selfMember.isMuted
                     val isSpectator = !selfMember.isFullMember
-                    val isRoomClosed = !conversation.isOpen
+                    val isRoomClosed = !conversation.isOpen && !selfMember.isHost
 
                     when {
                         isSpectator -> ChattableState.Spectator(
