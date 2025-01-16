@@ -641,12 +641,19 @@ class ConversationViewModel @Inject constructor(
                     messageId = messageId
                 )
             }.flatMapLatest {
-                paymentController.eventFlow.take(1)
+                tipController.eventFlow.take(1)
             }.onEach { event ->
                 when (event) {
                     PaymentEvent.OnPaymentCancelled -> Unit
                     is PaymentEvent.OnPaymentError -> {
-
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToSendTip),
+                                resources.getString(
+                                    R.string.error_description_failedToSendTip,
+                                )
+                            )
+                        )
                     }
                     is PaymentEvent.OnPaymentSuccess -> Unit
                 }
