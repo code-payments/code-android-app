@@ -44,8 +44,9 @@ interface ConversationDao {
         return getPagedConversationsWithMembers(limit, offset)
             .map {
                 val lastMessage = getLastMessage(it.conversation.id)
+                val timestamp = lastMessage?.dateMillis ?: it.conversation.lastActivity
                 ConversationWithMembersAndLastMessage(
-                    conversation = it.conversation,
+                    conversation = it.conversation.copy(lastActivity = timestamp),
                     members = it.members,
                     lastMessage = lastMessage
                 )
