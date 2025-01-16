@@ -20,10 +20,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
-import com.getcode.models.ConfirmationState
 import com.getcode.navigation.RoomInfoArgs
-import com.getcode.network.BalanceController
-import com.getcode.network.BalanceDisplay
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
@@ -306,13 +303,13 @@ class ConversationViewModel @Inject constructor(
                 val chattableState = if (selfMember != null) {
                     val isMuted = selfMember.isMuted
                     val isSpectator = !selfMember.isFullMember
-                    val isRoomClosed = !conversation.isOpen && !selfMember.isHost
+                    val isRoomClosedAsMember = !conversation.isOpen && !selfMember.isHost
 
                     when {
                         isSpectator -> ChattableState.Spectator(
                             Kin.fromQuarks(it.conversation.coverChargeQuarks ?: 0)
                         )
-                        isRoomClosed -> ChattableState.DisabledByClosedRoom
+                        isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
                         isMuted -> ChattableState.DisabledByMute
                         else -> ChattableState.Enabled
                     }

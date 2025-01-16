@@ -34,6 +34,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.withTopBorder
 import com.getcode.util.resources.LocalResources
@@ -109,17 +110,21 @@ fun ConversationChatInput(
             }
 
             is ChattableState.Spectator -> {
-                Column {
+                Column(
+                    modifier = Modifier.addIf(
+                        !state.isRoomOpen && state.isOpenCloseEnabled
+                    ) {
+                        Modifier.background(CodeTheme.colors.secondary)
+                    }.navigationBarsPadding(),
+                ) {
                     if (!state.isRoomOpen && state.isOpenCloseEnabled) {
                         Text(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(CodeTheme.colors.secondary)
                                 .padding(
                                     top = CodeTheme.dimens.grid.x1,
-                                    bottom = CodeTheme.dimens.grid.x3
-                                )
-                                .navigationBarsPadding(),
+                                    bottom = CodeTheme.dimens.grid.x2
+                                ),
                             textAlign = TextAlign.Center,
                             text = stringResource(R.string.title_roomIsClosed),
                             style = CodeTheme.typography.textSmall,
@@ -133,8 +138,7 @@ fun ConversationChatInput(
                             .padding(
                                 start = CodeTheme.dimens.inset,
                                 end = CodeTheme.dimens.inset
-                            )
-                            .navigationBarsPadding(),
+                            ),
                         buttonState = ButtonState.Filled,
                         text = stringResource(
                             R.string.action_joinRoomWithCost,
