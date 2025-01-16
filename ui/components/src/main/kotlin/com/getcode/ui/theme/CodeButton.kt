@@ -82,6 +82,7 @@ fun CodeButton(
         shape = shape,
         contentColor = textColor,
         style = style,
+        sizeKey = text
     ) {
         Text(text = text)
     }
@@ -104,6 +105,7 @@ fun CodeButton(
     overrideContentPadding: Boolean = false,
     contentColor: Color = Color.Unspecified,
     style: TextStyle = CodeTheme.typography.textMedium,
+    sizeKey: Any? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val isEnabled by remember(enabled, isLoading, isSuccess) {
@@ -122,7 +124,7 @@ fun CodeButton(
         LocalIndication provides ripple
     ) {
 
-        var size by remember {
+        var size by remember(sizeKey) {
             mutableStateOf(DpSize.Unspecified)
         }
 
