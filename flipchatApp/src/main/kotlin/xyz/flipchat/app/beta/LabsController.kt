@@ -51,14 +51,14 @@ sealed interface Lab {
 
     data object DeleteMessage : Lab {
         override val key: String = "delete_message_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object OpenCloseRoom : Lab {
         override val key: String = "open_close_room_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object Tipping : Lab {
