@@ -295,7 +295,7 @@ private fun ConversationScreenContent(
                                         message = replyingTo.message,
                                         isDeleted = false,
                                         deletedBy = null,
-                                    ),
+                                    )
                                 )
                                 Image(
                                     modifier = Modifier

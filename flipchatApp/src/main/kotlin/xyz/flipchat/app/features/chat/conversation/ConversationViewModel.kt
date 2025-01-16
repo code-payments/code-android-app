@@ -306,10 +306,10 @@ class ConversationViewModel @Inject constructor(
                     val isRoomClosedAsMember = !conversation.isOpen && !selfMember.isHost
 
                     when {
+                        isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
                         isSpectator -> ChattableState.Spectator(
                             Kin.fromQuarks(it.conversation.coverChargeQuarks ?: 0)
                         )
-                        isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
                         isMuted -> ChattableState.DisabledByMute
                         else -> ChattableState.Enabled
                     }
@@ -836,7 +836,7 @@ class ConversationViewModel @Inject constructor(
                     },
                     showAsChatBubble = true,
                     enableMarkup = true,
-                    enableReply = enableReply,
+                    enableReply = enableReply && !message.isDeleted,
                     showTimestamp = false,
                     enableTipping = tippingEnabled,
                     sender = Sender(
