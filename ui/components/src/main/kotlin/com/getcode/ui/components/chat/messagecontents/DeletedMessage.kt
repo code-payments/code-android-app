@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,7 @@ import kotlinx.datetime.Instant
 internal fun MessageNodeScope.DeletedMessage(
     modifier: Modifier = Modifier,
     sender: Sender,
+    shape: Shape,
     deletedBy: Deleter?,
     date: Instant,
 ) {
@@ -38,7 +40,7 @@ internal fun MessageNodeScope.DeletedMessage(
                 .border(
                     color = CodeTheme.colors.tertiary,
                     width = 1.dp,
-                    shape = MessageNodeDefaults.DefaultShape
+                    shape = shape,
                 )
                 .padding(CodeTheme.dimens.grid.x2)
         ) contents@{

@@ -309,21 +309,28 @@ fun MessageNode(
                 )
 
                 with(scope) {
+                    val shape = when {
+                        isAnnouncement -> MessageNodeDefaults.DefaultShape
+                        else -> MessageNodeDefaults.messageShape(
+                            !sender.isSelf, options.isPreviousGrouped, options.isNextGrouped
+                        )
+                    }
+
                     if (isDeleted) {
-                        DeletedMessage(
+                        ContentFromSender(
                             modifier = Modifier.fillMaxWidth(),
                             sender = sender,
-                            deletedBy = deletedBy,
-                            date = date,
-                        )
-                    } else {
-                        val shape = when {
-                            isAnnouncement -> MessageNodeDefaults.DefaultShape
-                            else -> MessageNodeDefaults.messageShape(
-                                !sender.isSelf, options.isPreviousGrouped, options.isNextGrouped
+                            isFirstInSeries = !options.isPreviousGrouped
+                        ) {
+                            DeletedMessage(
+                                modifier = Modifier.fillMaxWidth(),
+                                sender = sender,
+                                deletedBy = deletedBy,
+                                shape = shape,
+                                date = date,
                             )
                         }
-
+                    } else {
                         when (contents) {
                             is MessageContent.Exchange -> {
                                 val alignment =
