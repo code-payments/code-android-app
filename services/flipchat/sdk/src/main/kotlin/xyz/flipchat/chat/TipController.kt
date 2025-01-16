@@ -19,8 +19,10 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
 
+@Singleton
 class TipController @Inject constructor(
     paymentRepository: PaymentRepository,
     currencyUtils: CurrencyUtils,

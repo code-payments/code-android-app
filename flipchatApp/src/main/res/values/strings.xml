@@ -80,7 +80,7 @@
     <string name="error_description_failedToCloseRoom">You were unable to close this room at this time. Please try again later</string>
 
     <string name="error_title_failedToSendTip">Something Went Wrong</string>
-    <string name="error_description_failedToSendTip">You were unable to close send a tip at this time. Please try again later</string>
+    <string name="error_description_failedToSendTip">You were unable to send a tip at this time. Please try again later</string>
 
 
     <string name="title_connectYourX">Connect Your X</string>
