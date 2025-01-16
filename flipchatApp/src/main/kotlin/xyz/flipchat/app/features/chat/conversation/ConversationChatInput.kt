@@ -141,7 +141,7 @@ fun ConversationChatInput(
                             ),
                         buttonState = ButtonState.Filled,
                         text = stringResource(
-                            R.string.action_joinRoomWithCost,
+                            R.string.action_payToChatInRoom,
                             formatAmountString(
                                 resources = LocalResources.current!!,
                                 currency = Currency.Kin,
@@ -202,11 +202,14 @@ private fun RoomOpenControlBar(
         )
 
         CodeButton(
-            text = stringResource(R.string.action_change),
+            text = stringResource(
+                if (isOpen) R.string.action_close else R.string.action_reopen
+            ),
             shape = CircleShape,
             buttonState = ButtonState.Filled,
             overrideContentPadding = true,
             contentPadding = PaddingValues(horizontal = CodeTheme.dimens.grid.x2),
+            style = CodeTheme.typography.textSmall
         ) {
             onChangeRequest()
         }

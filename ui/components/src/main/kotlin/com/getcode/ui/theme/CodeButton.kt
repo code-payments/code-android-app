@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ fun CodeButton(
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
+    style: TextStyle = CodeTheme.typography.textMedium,
     onClick: () -> Unit,
 ) {
     CodeButton(
@@ -79,6 +81,7 @@ fun CodeButton(
         overrideContentPadding = overrideContentPadding,
         shape = shape,
         contentColor = textColor,
+        style = style,
     ) {
         Text(text = text)
     }
@@ -100,6 +103,7 @@ fun CodeButton(
     ),
     overrideContentPadding: Boolean = false,
     contentColor: Color = Color.Unspecified,
+    style: TextStyle = CodeTheme.typography.textMedium,
     content: @Composable RowScope.() -> Unit,
 ) {
     val isEnabled by remember(enabled, isLoading, isSuccess) {
@@ -160,7 +164,7 @@ fun CodeButton(
                 }
 
                 else -> {
-                    ProvideTextStyle(value = CodeTheme.typography.textMedium) {
+                    ProvideTextStyle(value = style) {
                         content()
                     }
                 }
