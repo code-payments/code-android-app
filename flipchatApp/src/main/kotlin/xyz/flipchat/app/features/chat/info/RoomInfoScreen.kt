@@ -101,7 +101,7 @@ class RoomInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
                 backButton = true,
                 onBackIconClicked = { navigator.pop() },
                 endContent = {
-                    AppBarDefaults.Share { viewModel.dispatchEvent(ChatInfoViewModel.Event.OnShareRoomClicked) }
+                    AppBarDefaults.Leave { viewModel.dispatchEvent(ChatInfoViewModel.Event.LeaveRoom) }
                 }
             )
             RoomInfoScreenContent(viewModel)
@@ -114,11 +114,7 @@ private fun RoomInfoScreenContent(viewModel: ChatInfoViewModel) {
     val state by viewModel.stateFlow.collectAsState()
     CodeScaffold(
         bottomBar = {
-            if (state.roomNameChangesEnabled) {
-                Actions(state = state, dispatch = viewModel::dispatchEvent)
-            } else {
-                LegacyActions(state = state, dispatch = viewModel::dispatchEvent)
-            }
+            Actions(state = state, dispatch = viewModel::dispatchEvent)
         }
     ) { padding ->
         Box(
@@ -132,41 +128,6 @@ private fun RoomInfoScreenContent(viewModel: ChatInfoViewModel) {
                 modifier = Modifier.align(Alignment.Center),
                 roomInfo = state.roomInfo
             )
-        }
-    }
-}
-
-@Composable
-private fun LegacyActions(
-    modifier: Modifier = Modifier,
-    state: ChatInfoViewModel.State,
-    dispatch: (ChatInfoViewModel.Event) -> Unit,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(bottom = CodeTheme.dimens.grid.x2)
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-    ) {
-        if (state.isHost) {
-            CodeButton(
-                modifier = Modifier.fillMaxWidth(),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_changeCoverCharge),
-            ) {
-                dispatch(ChatInfoViewModel.Event.OnChangeCover(state.roomInfo.id!!))
-            }
-        }
-
-        CodeButton(
-            modifier = Modifier.fillMaxWidth(),
-            buttonState = ButtonState.Filled,
-            text = stringResource(R.string.action_leaveRoom),
-            isLoading = state.requestBeingSent,
-        ) {
-            dispatch(ChatInfoViewModel.Event.LeaveRoom)
         }
     }
 }
@@ -187,10 +148,18 @@ private fun Actions(
             .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
     ) {
+        CodeButton(
+            modifier = Modifier.fillMaxWidth(),
+            buttonState = ButtonState.Filled,
+            text = stringResource(R.string.action_shareRoomLink),
+        ) {
+            dispatch(ChatInfoViewModel.Event.OnShareRoomClicked)
+        }
+
         if (state.isHost) {
             CodeButton(
                 modifier = Modifier.fillMaxWidth(),
-                buttonState = ButtonState.Filled,
+                buttonState = ButtonState.Subtle,
                 text = stringResource(R.string.action_customize),
             ) {
                 BottomBarManager.showMessage(
@@ -216,15 +185,6 @@ private fun Actions(
                     )
                 )
             }
-        }
-
-        CodeButton(
-            modifier = Modifier.fillMaxWidth(),
-            buttonState = ButtonState.Subtle,
-            text = stringResource(R.string.action_leaveRoom),
-            isLoading = state.requestBeingSent,
-        ) {
-            dispatch(ChatInfoViewModel.Event.LeaveRoom)
         }
     }
 }

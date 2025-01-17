@@ -25,6 +25,7 @@ import com.getcode.services.model.ExtendedMetadata
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
@@ -70,6 +71,7 @@ import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
 import xyz.flipchat.services.data.JoinChatPaymentMetadata
+import xyz.flipchat.services.data.SendTipMessagePaymentMetadata
 import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMember
@@ -88,7 +90,6 @@ class ConversationViewModel @Inject constructor(
     private val roomController: RoomController,
     private val chatsController: ChatsController,
     private val paymentController: PaymentController,
-    private val tipController: TipController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
@@ -166,7 +167,7 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnInitialUnreadCountDetermined(val count: Int) : Event
-        data class OnTitlesChanged(val title: String, val roomCardTitle: String): Event
+        data class OnTitlesChanged(val title: String, val roomCardTitle: String) : Event
         data class OnUserActivity(val activity: Instant) : Event
         data object SendCash : Event
         data object SendMessage : Event
@@ -179,7 +180,7 @@ class ConversationViewModel @Inject constructor(
 
         data class OnReplyEnabled(val enabled: Boolean) : Event
         data class OnOpenCloseEnabled(val enabled: Boolean) : Event
-        data class OnTippingEnabled(val enabled: Boolean): Event
+        data class OnTippingEnabled(val enabled: Boolean) : Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -216,8 +217,7 @@ class ConversationViewModel @Inject constructor(
         data class MuteUser(val conversationId: ID, val userId: ID) : Event
         data class BlockUser(val userId: ID) : Event
         data class UnblockUser(val userId: ID) : Event
-        data class OnTipUser(val messageId: ID): Event
-        data class TipUser(val messageId: ID, val amount: KinAmount): Event
+        data class OnTipUser(val messageId: ID, val userId: ID) : Event
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
@@ -310,6 +310,7 @@ class ConversationViewModel @Inject constructor(
                         isSpectator -> ChattableState.Spectator(
                             Kin.fromQuarks(it.conversation.coverChargeQuarks ?: 0)
                         )
+
                         isMuted -> ChattableState.DisabledByMute
                         else -> ChattableState.Enabled
                     }
@@ -631,28 +632,73 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnTipUser>()
-            .map { it.messageId }
-            .map { messageId ->
-                tipController.presentMessageTipConfirmation(
-                    conversationId = stateFlow.value.conversationId.orEmpty(),
-                    messageId = messageId
-                )
+            .map { data ->
+                val result = profileController.getPaymentDestinationForUser(data.userId)
+                if (result.isSuccess) {
+                    result.getOrNull()?.let { Result.success(it to data.messageId) }
+                        ?: Result.failure(
+                            Throwable()
+                        )
+                } else {
+                    Result.failure(result.exceptionOrNull() ?: Throwable())
+                }
+            }
+            .mapNotNull {
+                if (it.isSuccess) {
+                    val (paymentDestination, messageId) = it.getOrNull() ?: return@mapNotNull null
+                    val tipPaymentMetadata = SendTipMessagePaymentMetadata(
+                        tipperId = userManager.userId!!,
+                        chatId = stateFlow.value.conversationId!!,
+                        messageId = messageId
+                    )
+
+                    val metadata = ExtendedMetadata.Any(
+                        data = tipPaymentMetadata.erased(),
+                        typeUrl = tipPaymentMetadata.typeUrl
+                    )
+
+                    paymentController.presentMessageTipConfirmation(
+                        destination = paymentDestination,
+                        metadata = metadata
+                    )
+                } else {
+                    return@mapNotNull null
+                }
             }.flatMapLatest {
-                tipController.eventFlow.take(1)
-            }.onEach { event ->
+                paymentController.eventFlow.take(1)
+            }
+            .onEach { event ->
                 when (event) {
                     PaymentEvent.OnPaymentCancelled -> Unit
-                    is PaymentEvent.OnPaymentError -> {
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                resources.getString(R.string.error_title_failedToSendTip),
-                                resources.getString(
-                                    R.string.error_description_failedToSendTip,
+                    is PaymentEvent.OnPaymentError -> Unit
+
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        val metadata = (event.metadata as ExtendedMetadata.Any).data.let {
+                            SendTipMessagePaymentMetadata.unerase(it)
+                        }
+
+                        roomController.sendTip(
+                            conversationId = metadata.chatId,
+                            messageId = metadata.messageId,
+                            amount = event.amount,
+                            paymentIntentId = event.intentId
+                        ).onFailure {
+                            event.acknowledge(false) {
+                                TopBarManager.showMessage(
+                                    TopBarManager.TopBarMessage(
+                                        resources.getString(R.string.error_title_failedToSendTip),
+                                        resources.getString(
+                                            R.string.error_description_failedToSendTip,
+                                        )
+                                    )
                                 )
-                            )
-                        )
+                            }
+                        }.onSuccess {
+                            event.acknowledge(true) {
+
+                            }
+                        }
                     }
-                    is PaymentEvent.OnPaymentSuccess -> Unit
                 }
             }.launchIn(viewModelScope)
 
@@ -817,7 +863,28 @@ class ConversationViewModel @Inject constructor(
                     null
                 }
 
-                val tippingEnabled = currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
+                val tippingEnabled =
+                    currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
+
+                val tips = if (currentState.isTippingEnabled) {
+                    roomController.getTipsForMessage(message.id).map { tip ->
+                        val amount = KinAmount.fromQuarks(tip.amountInQuarks)
+                        val tipper = roomController.getMemberForId(tip.tipperId)
+                        MessageTip(
+                            amount = amount,
+                            tipper = Sender(
+                                id = tip.tipperId,
+                                profileImage = tipper?.imageUri,
+                                displayName = tipper?.memberName,
+                                isHost = tipper?.isHost ?: false,
+                                isSelf = userManager.isSelf(tip.tipperId),
+                                isBlocked = tipper?.isBlocked ?: false,
+                            )
+                        )
+                    }
+                } else {
+                    emptyList()
+                }
 
                 ChatItem.Message(
                     chatMessageId = message.id,
@@ -849,8 +916,15 @@ class ConversationViewModel @Inject constructor(
                     ),
                     originalMessage = anchor,
                     messageControls = MessageControls(
-                        actions = buildMessageActions(message, member, contents, enableReply, enableTip = tippingEnabled),
+                        actions = buildMessageActions(
+                            message,
+                            member,
+                            contents,
+                            enableReply,
+                            enableTip = tippingEnabled
+                        ),
                     ),
+                    tips = tips
                 )
             }
         }
@@ -899,7 +973,7 @@ class ConversationViewModel @Inject constructor(
             if (enableTip) {
                 add(
                     MessageControlAction.Tip {
-                        dispatchEvent(Event.OnTipUser(message.id))
+                        dispatchEvent(Event.OnTipUser(message.id, message.senderId))
                     }
                 )
             }
@@ -1099,9 +1173,15 @@ class ConversationViewModel @Inject constructor(
     private fun confirmOpenStateChange(conversationId: ID, isRoomOpen: Boolean) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = if (isRoomOpen) resources.getString(R.string.prompt_title_closeRoom) else resources.getString(R.string.prompt_title_reopenRoom),
-                subtitle = if (isRoomOpen) resources.getString(R.string.prompt_description_closeRoom) else resources.getString(R.string.prompt_description_reopenRoom),
-                positiveText = if (isRoomOpen) resources.getString(R.string.action_closeTemporarily) else resources.getString(R.string.action_reopenRoom),
+                title = if (isRoomOpen) resources.getString(R.string.prompt_title_closeRoom) else resources.getString(
+                    R.string.prompt_title_reopenRoom
+                ),
+                subtitle = if (isRoomOpen) resources.getString(R.string.prompt_description_closeRoom) else resources.getString(
+                    R.string.prompt_description_reopenRoom
+                ),
+                positiveText = if (isRoomOpen) resources.getString(R.string.action_closeTemporarily) else resources.getString(
+                    R.string.action_reopenRoom
+                ),
                 tertiaryText = resources.getString(R.string.action_cancel),
                 onPositive = {
                     if (isRoomOpen) {
@@ -1238,7 +1318,6 @@ class ConversationViewModel @Inject constructor(
                 is Event.MuteUser,
                 is Event.BlockUser,
                 is Event.UnblockUser,
-                is Event.TipUser,
                 is Event.OnTipUser,
                 is Event.Resumed,
                 is Event.Stopped,

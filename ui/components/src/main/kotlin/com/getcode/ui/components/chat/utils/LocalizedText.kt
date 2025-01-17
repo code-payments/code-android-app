@@ -114,6 +114,7 @@ fun MessageContent.localizedText(
         is MessageContent.Reply -> content.text
         is MessageContent.DeletedMessage -> "deleted message"
         is MessageContent.Unknown -> ""
+        is MessageContent.MessageTip -> "tip"
     }
 }
 
@@ -197,6 +198,7 @@ val MessageContent.localizedText: String
             is MessageContent.Reply -> content.text
             is MessageContent.DeletedMessage -> "deleted message"
             is MessageContent.Unknown -> ""
+            is MessageContent.MessageTip -> "tip"
         }
     }
 

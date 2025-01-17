@@ -227,10 +227,9 @@ data class PublicPaymentConfirmation(
 
 data class MessageTipPaymentConfirmation(
     override val state: ConfirmationState,
-    val conversationId: ID,
-    val messageId: ID,
+    val destination: PublicKey,
+    val metadata: ExtendedMetadata,
     val balance: String?,
-    val currencyFlag: Int?,
     override val showScrim: Boolean = true,
 ): Confirmation(showScrim, state)
 

@@ -72,6 +72,7 @@ import com.getcode.ui.components.chat.messagecontents.EncryptedContent
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageReplyContent
 import com.getcode.ui.components.chat.messagecontents.MessageText
+import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
@@ -211,8 +212,10 @@ fun MessageNode(
     originalMessage: ReplyMessageAnchor?,
     modifier: Modifier = Modifier,
     options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
+    tips: List<MessageTip>,
     openMessageControls: () -> Unit,
-    showTipModal: () -> Unit,
+    showTipSelection: () -> Unit,
+    showTips: () -> Unit,
     onReply: () -> Unit,
     onViewOriginalMessage: (ID) -> Unit,
 ) {
@@ -364,8 +367,10 @@ fun MessageNode(
                                         isFromSelf = sender.isSelf,
                                         isFromBlockedMember = sender.isBlocked,
                                         options = options,
+                                        tips = tips,
+                                        showTips = showTips,
                                         showControls = openMessageControls,
-                                        showTipModal = showTipModal,
+                                        showTipSelection = showTipSelection,
                                     )
                                 }
                             }
@@ -404,8 +409,10 @@ fun MessageNode(
                                         isFromSelf = sender.isSelf,
                                         isFromBlockedMember = sender.isBlocked,
                                         options = options,
+                                        tips = tips,
+                                        showTips = showTips,
                                         showControls = openMessageControls,
-                                        showTipModal = showTipModal,
+                                        showTipSelection = showTipSelection,
                                     )
                                 }
                             }
@@ -424,8 +431,10 @@ fun MessageNode(
                                         isFromSelf = sender.isSelf,
                                         isFromBlockedMember = sender.isBlocked,
                                         options = options,
+                                        tips = tips,
+                                        showTips = showTips,
                                         showControls = openMessageControls,
-                                        showTipModal = showTipModal,
+                                        showTipSelection = showTipSelection,
                                     )
                                 }
                             }
@@ -453,8 +462,10 @@ fun MessageNode(
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
+                                            tips = tips,
+                                            showTips = showTips,
                                             showControls = openMessageControls,
-                                            showTipModal = showTipModal,
+                                            showTipSelection = showTipSelection,
                                             originalMessage = originalMessage,
                                             onOriginalMessageClicked = {
                                                 onViewOriginalMessage(originalMessage.id)
@@ -469,8 +480,10 @@ fun MessageNode(
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
+                                            tips = tips,
+                                            showTips = showTips,
                                             showControls = openMessageControls,
-                                            showTipModal = showTipModal,
+                                            showTipSelection = showTipSelection,
                                         )
                                     }
                                 }
@@ -478,6 +491,7 @@ fun MessageNode(
 
                             is MessageContent.DeletedMessage -> Unit
                             is MessageContent.Unknown -> Unit
+                            is MessageContent.MessageTip -> Unit
                         }
                     }
                 }

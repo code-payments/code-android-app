@@ -19,13 +19,11 @@ import com.getcode.ui.modals.TipConfirmation
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.rememberedClickable
-import xyz.flipchat.chat.LocalTipController
 import xyz.flipchat.services.LocalPaymentController
 
 @Composable
 fun PaymentScaffold(content: @Composable () -> Unit) {
     val payments = LocalPaymentController.current ?: error("CompositionLocal is null")
-    val tips = LocalTipController.current ?: error("CompositionLocal is null")
 
     val state by payments.state.collectAsState()
     Box(modifier = Modifier.fillMaxSize()) {
@@ -117,8 +115,8 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                 ) {
                     MessageTipPaymentConfirmation(
                         confirmation = state.billState.messageTipPaymentConfirmation,
-                        onSend = { amount -> tips.completeMessageTip(amount) },
-                        onCancel = { tips.cancelPayment() }
+                        onSend = { amount -> payments.completeMessageTip(amount) },
+                        onCancel = { payments.cancelPayment() }
                     )
                 }
             }

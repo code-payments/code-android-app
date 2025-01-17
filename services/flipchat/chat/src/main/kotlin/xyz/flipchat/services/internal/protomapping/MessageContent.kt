@@ -3,6 +3,7 @@ package xyz.flipchat.services.internal.protomapping
 import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import xyz.flipchat.services.internal.data.mapper.ifZeroOrElse
 
 operator fun MessageContent.Companion.invoke(
     proto: Model.Content,
@@ -36,6 +37,13 @@ operator fun MessageContent.Companion.invoke(
             originalMessageId = proto.deleted.originalMessageId.value.toList(),
             messageDeleter = senderId,
             isFromSelf = isFromSelf
+        )
+
+        Model.Content.TypeCase.TIP -> MessageContent.MessageTip(
+            originalMessageId = proto.tip.originalMessageId.value.toList(),
+            tipperId = senderId,
+            isFromSelf = isFromSelf,
+            amountInQuarks = proto.tip.tipAmount.quarks / 100_000
         )
 
         Model.Content.TypeCase.TYPE_NOT_SET -> return null

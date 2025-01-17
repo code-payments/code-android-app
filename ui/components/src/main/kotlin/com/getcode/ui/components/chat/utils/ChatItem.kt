@@ -2,6 +2,7 @@ package com.getcode.ui.components.chat.utils
 
 import androidx.compose.runtime.Stable
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
@@ -26,6 +27,8 @@ data class ReplyMessageAnchor(
     val deletedBy: Deleter? = null,
 )
 
+data class MessageTip(val amount: KinAmount, val tipper: Sender)
+
 @Stable
 sealed class ChatItem(open val key: Any) {
     @Stable
@@ -45,6 +48,7 @@ sealed class ChatItem(open val key: Any) {
         val enableReply: Boolean = false,
         val enableTipping : Boolean = false,
         val originalMessage: ReplyMessageAnchor? = null,
+        val tips: List<MessageTip> = emptyList(),
         override val key: Any = chatMessageId
     ) : ChatItem(chatMessageId) {
         val relativeDate: String = date.formatDateRelatively()

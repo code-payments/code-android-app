@@ -30,6 +30,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.combine
@@ -44,6 +45,7 @@ sealed interface MessageListEvent {
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
     data class TipMessage(val message: ChatItem.Message): MessageListEvent
+    data class ShowTipsForMessage(val tips: List<MessageTip>): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -158,6 +160,7 @@ fun MessageList(
                             } else null,
                             contentStyle = contentStyle,
                         ),
+                        tips = item.tips,
                         openMessageControls = {
                             dispatch(
                                 MessageListEvent.OpenMessageActions(
@@ -165,7 +168,8 @@ fun MessageList(
                                 )
                             )
                         },
-                        showTipModal = { dispatch(MessageListEvent.TipMessage(item)) },
+                        showTips = { dispatch(MessageListEvent.ShowTipsForMessage(item.tips)) },
+                        showTipSelection = { dispatch(MessageListEvent.TipMessage(item)) },
                         onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) },
                         originalMessage = item.originalMessage,
                         onViewOriginalMessage = {
@@ -332,6 +336,7 @@ private fun HandleStartAtUnread(
                         hasScrolledToUnread = true
                         onHandled()
                     } else {
+                        hasScrolledToUnread = true
                         onHandled()
                     }
                 }

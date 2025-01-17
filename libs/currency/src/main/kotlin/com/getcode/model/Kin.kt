@@ -77,3 +77,5 @@ private fun min(a: Kin, b: Kin): Kin {
 
 val Kin.description: String
     get() = "K ${toKinTruncating().quarks} ${fractionalQuarks()}"
+
+fun List<Kin>.sum(): Kin = this.fold(0.kin) { acc, kin -> acc + kin }

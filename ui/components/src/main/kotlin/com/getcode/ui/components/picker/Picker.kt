@@ -15,7 +15,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -35,27 +34,26 @@ import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.measured
 import com.getcode.util.vibration.LocalVibrator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun <T> rememberPickerState(
-    key: Any? = null,
     items: List<T>,
     prefix: String = "",
     labelForItem: (T) -> String = { item -> item.toString() }
 ): PickerState<T> {
 
-    val initialState = PickerState(items, labelForItem, prefix)
-
-    return produceState(initialState, key, items, labelForItem, prefix) {
-        val updated = initialState.copy(items = items, labelForItem = labelForItem, prefix = prefix)
-        updated.selectedItem = value.selectedItem
-
-        value = updated
-    }.value
+    return remember(items, prefix) {
+        PickerState(items, labelForItem, prefix)
+    }
 }
-
 
 @Immutable
 data class PickerState<T>(
@@ -98,17 +96,22 @@ fun <T> Picker(
 
     val vibrator = LocalVibrator.current
 
-    LaunchedEffect(listState, items) {
+    LaunchedEffect(items) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .debounce(300.milliseconds)
             .map { (first, last) ->
-                val index = ((first.toLong() + (last ?: 0)) / 2).toInt()
+                println("first=$first, last=$last")
+                val index = ((first + (last ?: first)) / 2).coerceIn(1..items.lastIndex)
                 getItem(index)
             }
             .distinctUntilChanged()
-            .collect { item ->
+            .onEach { item ->
                 vibrator.tick()
-                state.selectedItem = state.items.find { state.labelForItem(it) == item }
-            }
+                withContext(Dispatchers.Main) {
+                    state.selectedItem = state.items.find { state.labelForItem(it) == item }
+                }
+            }.launchIn(this)
+
     }
 
     val textMeasurer = rememberTextMeasurer()
@@ -118,7 +121,6 @@ fun <T> Picker(
             textMeasurer.measure(text = it, style = textStyle, maxLines = 1).size.width + buffer
         }
     }
-
 
     Box(modifier = modifier) {
         LazyColumn(
@@ -155,7 +157,7 @@ fun <T> Picker(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.align(Alignment.Center)
-                        .padding(end = pixelsToDp(itemWidthPixels))
+                        .padding(end = pixelsToDp(itemWidthPixels + buffer))
                 )
             }
         }

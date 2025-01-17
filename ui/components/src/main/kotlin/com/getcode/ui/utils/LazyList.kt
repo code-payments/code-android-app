@@ -4,7 +4,6 @@ package com.getcode.ui.utils
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
@@ -45,13 +44,13 @@ fun LazyListState.isScrolledToTheEnd() =
 fun LazyListState.isScrolledToTheBeginning() =
     (layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: 0) == 0
 
-suspend fun LazyListState.scrollToItemWithFullVisibility(index: Int) {
+suspend fun LazyListState.scrollToItemWithFullVisibility(to: Int) {
     // 1️⃣ Scroll to the item initially
-    scrollToItem(index)
+    scrollToItem(to)
 
     // 2️⃣ Fetch updated layout info
     val layoutInfo = layoutInfo
-    val itemInfo = layoutInfo.visibleItemsInfo.find { it.index == index }
+    val itemInfo = layoutInfo.visibleItemsInfo.find { it.index == to }
 
     if (itemInfo != null) {
         val viewportStart = layoutInfo.viewportStartOffset
@@ -82,59 +81,32 @@ suspend fun LazyListState.scrollToItemWithFullVisibility(index: Int) {
         val fullyVisible = itemStart >= viewportStart && itemEnd <= viewportEnd
         if (!fullyVisible) {
             println("Item is still misaligned, performing final alignment")
-            scrollToItem(index, scrollOffset = 0)
+            scrollToItem(to, scrollOffset = 0)
         }
     } else {
         // 6️⃣ Fallback alignment
         println("Item not found in visibleItemsInfo, performing fallback alignment")
-        scrollToItem(index, scrollOffset = 0)
+        scrollToItem(to, scrollOffset = 0)
     }
 }
 
-suspend fun LazyListState.animateScrollToItemWithFullVisibility(to: Int, from: Int) {
-    println("🔄 Ensuring full visibility for index: $to")
+suspend fun LazyListState.animateScrollToItemWithFullVisibility(to: Int) {
+    val previousItemIndex = to - 1
 
-    val firstIndex = firstVisibleItemIndex
-    val firstOffset = firstVisibleItemScrollOffset
+    // First scroll to bring the item into view
+    animateScrollToItem(previousItemIndex)
 
-    println("📊 FirstVisibleItemIndex: $firstIndex, FirstVisibleItemScrollOffset: $firstOffset")
+    // Dynamically calculate the correct offset
+    val itemInfo = layoutInfo.visibleItemsInfo
+        .find { it.index == previousItemIndex }
 
-    val layoutInfo = layoutInfo
-    val itemInfo = layoutInfo.visibleItemsInfo.find { it.index == to }
+    itemInfo?.let {
+        val viewportEnd = layoutInfo.viewportEndOffset
+        val offsetFromEnd = viewportEnd - (it.offset + it.size)
 
-    // Estimate item height if dynamic size is not available
-    val averageItemHeight = itemInfo?.size ?: 200 // Default to 200px if not found
-
-    // Calculate the true item offset based on reverseLayout
-    val indexDifference = to - firstIndex
-    val estimatedItemStart = firstOffset
-
-    println(
-        "📐 Calculated EstimatedItemStart: $estimatedItemStart (IndexDifference: $indexDifference, AverageItemHeight: $averageItemHeight)"
-    )
-
-    val viewportStart = layoutInfo.viewportStartOffset
-    val viewportEnd = layoutInfo.viewportEndOffset
-
-    println("ViewportStart: $viewportStart, ViewportEnd: $viewportEnd")
-
-    // Determine if adjustment is needed
-    val scrollOffset = when {
-        estimatedItemStart > viewportEnd -> {
-            println("🔼 Item is clipped at the bottom in reverse layout, adjusting by ${estimatedItemStart - viewportEnd}")
-            estimatedItemStart - viewportEnd // Scroll upwards in reverse
-        }
-        estimatedItemStart < viewportStart -> {
-            println("🔽 Item is clipped at the top in reverse layout, adjusting by ${viewportStart - estimatedItemStart}")
-            viewportStart - estimatedItemStart // Scroll downwards in reverse
-        }
-        else -> {
-            println("✅ Item is fully visible in reverse layout, no adjustment needed.")
-            0
+        // Scroll only if the item isn't sufficiently visible
+        if (offsetFromEnd > 0) {
+            animateScrollToItem(previousItemIndex, scrollOffset = it.offset)
         }
     }
-
-    // Perform the final scroll adjustment
-    println("🎯 Performing final scroll with offset: $scrollOffset")
-    animateScrollToItem(to, scrollOffset = scrollOffset)
 }

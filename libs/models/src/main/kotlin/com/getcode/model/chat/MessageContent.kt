@@ -352,6 +352,51 @@ sealed interface MessageContent {
         override val content: String = Json.encodeToString(Content(originalMessageId, messageDeleter))
     }
 
+    @Serializable
+    data class MessageTip(
+        val originalMessageId: ID,
+        val tipperId: ID,
+        val amountInQuarks: Long,
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 10
+
+        override fun hashCode(): Int {
+            var result = originalMessageId.hashCode()
+            result += tipperId.hashCode()
+            result += amountInQuarks.hashCode()
+            result += isFromSelf.hashCode()
+            result += kind.hashCode()
+
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as MessageTip
+
+            if (originalMessageId != other.originalMessageId) return false
+            if (tipperId != other.tipperId) return false
+            if (amountInQuarks != other.amountInQuarks) return false
+            if (isFromSelf != other.isFromSelf) return false
+            if (kind != other.kind) return false
+
+            return true
+        }
+
+        @Serializable
+        internal data class Content(
+            val originalMessageId: ID,
+            val tipperId: ID,
+            val amountInQuarks: Long,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(originalMessageId, tipperId, amountInQuarks))
+    }
+
     companion object {
         fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent? {
             return when (type) {
@@ -378,6 +423,10 @@ sealed interface MessageContent {
                 9 -> {
                     val data = Json.decodeFromString<DeletedMessage.Content>(content)
                     DeletedMessage(data.originalMessageId, data.messageDeleter, isFromSelf)
+                }
+                10 -> {
+                    val data = Json.decodeFromString<MessageTip.Content>(content)
+                    MessageTip(data.originalMessageId, data.tipperId, data.amountInQuarks, isFromSelf)
                 }
                 else -> Unknown(isFromSelf)
             }

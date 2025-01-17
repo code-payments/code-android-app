@@ -43,6 +43,8 @@ sealed interface PaymentEvent {
     data class OnPaymentSuccess(
         val intentId: ID,
         val destination: PublicKey,
+        val metadata: ExtendedMetadata?,
+        val amount: KinAmount,
         val acknowledge: (Boolean, () -> Unit) -> Unit // Caller returns true if they want to proceed as success, false as error
     ) : PaymentEvent
     data object OnPaymentCancelled : PaymentEvent
@@ -104,6 +106,8 @@ open class PaymentController @Inject constructor(
                 _eventFlow.emit(PaymentEvent.OnPaymentSuccess(
                     intentId = it,
                     destination = destination,
+                    metadata = metadata,
+                    amount = amount,
                     acknowledge = { isSuccess, after ->
                         if (isSuccess) {
                             scope.launch {
@@ -150,6 +154,85 @@ open class PaymentController @Inject constructor(
             }
         }
     }
+
+    fun presentMessageTipConfirmation(metadata: ExtendedMetadata, destination: PublicKey) {
+        val rawBalance = balanceController.rawBalance
+        val balance = formatAmountString(
+            resources,
+            Currency.Kin,
+            rawBalance,
+            suffix = resources.getKinSuffix()
+        )
+
+        billController.update {
+            it.copy(
+                messageTipPaymentConfirmation = MessageTipPaymentConfirmation(
+                    state = ConfirmationState.AwaitingConfirmation,
+                    metadata = metadata,
+                    destination = destination,
+                    balance = balance,
+                )
+            )
+        }
+    }
+
+    fun completeMessageTip(amount: KinAmount) =
+        scope.launch {
+            val confirmation = billController.state.value.messageTipPaymentConfirmation ?: return@launch
+            val destination = confirmation.destination
+            val metadata = confirmation.metadata
+
+            billController.update {
+                it.copy(
+                    messageTipPaymentConfirmation = it.messageTipPaymentConfirmation?.copy(state = ConfirmationState.Sending),
+                )
+            }
+
+            runCatching {
+                paymentRepository.payPublicly(amount, destination, metadata)
+            }.onSuccess {
+                _eventFlow.emit(PaymentEvent.OnPaymentSuccess(
+                    intentId = it,
+                    destination = destination,
+                    metadata = metadata,
+                    amount = amount,
+                    acknowledge = { isSuccess, after ->
+                        if (isSuccess) {
+                            scope.launch {
+                                billController.update { billState ->
+                                    val messageTipPaymentConfirmation =
+                                        billState.messageTipPaymentConfirmation ?: return@update billState
+                                    billState.copy(
+                                        messageTipPaymentConfirmation = messageTipPaymentConfirmation.copy(state = ConfirmationState.Sent),
+                                    )
+                                }
+                                delay(1.33.seconds)
+                                cancelPayment(fromUser = false)
+                                after()
+                            }
+                        } else {
+                            billController.reset()
+                            after()
+
+                        }
+                    }
+                ))
+            }.onFailure {
+                when {
+                    it is PaymentError -> {
+                        when (it) {
+                            is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
+                            is PaymentError.OrganizerNotFound -> presentPaymentFailedError()
+                        }
+                    }
+                    else -> presentPaymentFailedError()
+                }
+
+                _eventFlow.emit(PaymentEvent.OnPaymentError(it))
+
+                billController.reset()
+            }
+        }
 
     private fun presentInsufficientFundsError() {
         TopBarManager.showMessage(

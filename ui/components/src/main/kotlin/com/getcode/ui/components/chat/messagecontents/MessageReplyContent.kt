@@ -34,11 +34,11 @@ import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
+import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.generateComplementaryColorPalette
-import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.rememberedLongClickable
 import kotlinx.datetime.Instant
 
@@ -54,8 +54,10 @@ internal fun MessageNodeScope.MessageReplyContent(
     isFromBlockedMember: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
+    tips: List<MessageTip>,
+    showTips: () -> Unit,
     showControls: () -> Unit,
-    showTipModal: () -> Unit
+    showTipSelection: () -> Unit
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -86,7 +88,10 @@ internal fun MessageNodeScope.MessageReplyContent(
                         isFromSelf = isFromSelf,
                         isFromBlockedMember = isFromBlockedMember,
                         options = options,
-                        onLongPress = { showControls() }
+                        tips = tips,
+                        openTipModal = showTips,
+                        onLongPress = showControls,
+                        onDoubleClick = showTipSelection,
                     )
                 }.first().measure(constraints)
 
@@ -99,6 +104,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                                     onLongPress = if (!options.isInteractive) null else {
                                         { showControls() }
                                     },
+                                    onDoubleTap = { showTipSelection() },
                                     onTap = { onOriginalMessageClicked() }
                                 )
                             },

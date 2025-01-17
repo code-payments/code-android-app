@@ -136,12 +136,11 @@ internal fun ConversationMessages(
                                     // Animate smoothly if within 100 items
                                     lazyListState.animateScrollToItemWithFullVisibility(
                                         to = itemIndex,
-                                        from = currentItemIndex
                                     )
                                 } else {
                                     // Jump directly if too far
                                     lazyListState.scrollToItemWithFullVisibility(
-                                        index = itemIndex,
+                                        to = itemIndex,
                                     )
                                 }
                             }
@@ -149,7 +148,20 @@ internal fun ConversationMessages(
                     }
 
                     is MessageListEvent.TipMessage -> {
-                        dispatchEvent(ConversationViewModel.Event.OnTipUser(event.message.chatMessageId))
+                        dispatchEvent(ConversationViewModel.Event.OnTipUser(
+                            event.message.chatMessageId,
+                            event.message.sender.id.orEmpty())
+                        )
+                    }
+
+                    is MessageListEvent.ShowTipsForMessage -> {
+                        composeScope.launch {
+                            if (keyboardVisible) {
+                                ime?.hide()
+                                delay(500)
+                            }
+                            navigator.show(MessageTipsSheet(event.tips))
+                        }
                     }
                 }
             }

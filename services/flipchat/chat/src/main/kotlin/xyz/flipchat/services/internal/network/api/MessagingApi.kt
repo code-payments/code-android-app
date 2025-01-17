@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.flowOn
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
+import xyz.flipchat.services.internal.network.extensions.toIntentId
 import xyz.flipchat.services.internal.network.extensions.toMessageId
 import xyz.flipchat.services.internal.network.extensions.toPaymentAmount
 import xyz.flipchat.services.internal.network.extensions.toProto
@@ -90,6 +91,9 @@ class MessagingApi @Inject constructor(
         content: OutgoingMessageContent,
         observer: StreamObserver<MessagingService.SendMessageResponse>
     ) {
+        val builder = MessagingService.SendMessageRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+
         val contentProto = when (content) {
             is OutgoingMessageContent.Text -> Model.Content.newBuilder()
                 .setText(Model.TextContent.newBuilder().setText(content.text))
@@ -117,6 +121,7 @@ class MessagingApi @Inject constructor(
                         Model.TipContent.newBuilder()
                             .setOriginalMessageId(content.messageId.toMessageId())
                             .setTipAmount(content.amount.toPaymentAmount()))
+
             }
 
             is OutgoingMessageContent.DeleteRequest -> {
@@ -128,11 +133,19 @@ class MessagingApi @Inject constructor(
             }
         }
 
-        val request = MessagingService.SendMessageRequest.newBuilder()
-            .setChatId(chatId.toChatId())
-            .addContent(contentProto)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+        builder.addContent(contentProto)
+
+        when (content) {
+            is OutgoingMessageContent.DeleteRequest -> Unit
+            is OutgoingMessageContent.Reaction -> Unit
+            is OutgoingMessageContent.Reply -> Unit
+            is OutgoingMessageContent.Text -> Unit
+            is OutgoingMessageContent.Tip -> {
+                builder.setPaymentIntent(content.intentId.toIntentId())
+            }
+        }
+
+        val request = builder.apply { setAuth(authenticate(owner)) }.build()
 
         api.sendMessage(request, observer)
     }

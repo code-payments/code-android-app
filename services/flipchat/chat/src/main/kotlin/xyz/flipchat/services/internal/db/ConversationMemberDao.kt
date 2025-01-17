@@ -9,6 +9,7 @@ import androidx.room.Transaction
 import com.getcode.model.ID
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
+import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 
@@ -29,6 +30,12 @@ interface ConversationMemberDao {
 
     fun observeMembersIn(id: ID): Flow<List<ConversationMember>> {
         return observeMembersIn(id.base58)
+    }
+
+    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId")
+    suspend fun getMember(memberId: String): ConversationMember?
+    suspend fun getMember(memberId: ID): ConversationMember? {
+        return getMember(memberId.base58)
     }
 
     @Query("DELETE FROM members WHERE conversationIdBase58 = :conversationId")

@@ -1,13 +1,21 @@
 package com.getcode.ui.components.chat.messagecontents
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -19,15 +27,14 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.VoiceOverOff
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -38,23 +45,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEachIndexed
+import androidx.compose.ui.zIndex
+import com.getcode.extensions.formatted
+import com.getcode.extensions.formattedRaw
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
+import com.getcode.ui.components.chat.UserAvatar
+import com.getcode.ui.components.chat.messagecontents.utils.AlignmentRule
+import com.getcode.ui.components.chat.messagecontents.utils.rememberAlignmentRule
+import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedLongClickable
-import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
-import kotlin.math.max
 
 sealed interface MessageControlAction {
     val onSelect: () -> Unit
@@ -149,10 +161,12 @@ internal fun MessageNodeScope.MessageText(
     options: MessageNodeOptions,
     isFromSelf: Boolean,
     isFromBlockedMember: Boolean,
+    tips: List<MessageTip>,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showControls: () -> Unit,
-    showTipModal: () -> Unit
+    showTipSelection: () -> Unit,
+    showTips: () -> Unit,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -181,70 +195,12 @@ internal fun MessageNodeScope.MessageText(
                     isFromSelf = isFromSelf,
                     isFromBlockedMember = isFromBlockedMember,
                     options = options,
+                    tips = tips,
+                    openTipModal = showTips,
                     onLongPress = showControls,
-                    onDoubleClick = showTipModal
+                    onDoubleClick = showTipSelection
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun rememberAlignmentRule(
-    contentTextStyle: TextStyle,
-    minWidth: Int = 0,
-    maxWidth: Int,
-    message: AnnotatedString,
-    date: Instant
-): State<AlignmentRule?> {
-    val density = LocalDensity.current
-    val dateTextStyle = DateWithStatusDefaults.DateTextStyle
-    val iconSizePx = with(density) { DateWithStatusDefaults.IconWidth.roundToPx() }
-    val spacingPx = with(density) { DateWithStatusDefaults.Spacing.roundToPx() }
-    val contentPaddingPx = with(density) { CodeTheme.dimens.grid.x2.roundToPx() }
-
-    return remember(minWidth, maxWidth, message, date) {
-        mutableStateOf<AlignmentRule?>(null)
-    }.apply {
-        val textMeasurer = rememberTextMeasurer()
-        val dateStatusWidth = remember(message, date) {
-            val result = textMeasurer.measure(
-                text = date.formatDateRelatively(),
-                style = dateTextStyle,
-                maxLines = 1
-            )
-
-            max(minWidth, result.size.width + spacingPx + iconSizePx)
-        }
-
-        val bufferSize by remember(dateStatusWidth) {
-            derivedStateOf {
-                dateStatusWidth + spacingPx + contentPaddingPx * 2
-            }
-        }
-
-        if (value == null) {
-            Text(
-                modifier = Modifier.drawWithContent { },
-                text = message,
-                style = contentTextStyle,
-                onTextLayout = { textLayoutResult ->
-                    val lastLineNum = textLayoutResult.lineCount - 1
-                    val lineStart = textLayoutResult.getLineStart(lastLineNum)
-                    val lineEnd =
-                        textLayoutResult.getLineEnd(lastLineNum, visibleEnd = true)
-                    val lineContent = message.substring(lineStart, lineEnd)
-
-                    val lineContentWidth =
-                        textMeasurer.measure(lineContent, contentTextStyle).size.width
-
-                    value = when {
-                        lineContentWidth + bufferSize > maxWidth -> AlignmentRule.Column
-                        textLayoutResult.lineCount == 1 -> AlignmentRule.SingleLineEnd
-                        else -> AlignmentRule.ParagraphLastLine
-                    }
-                }
-            )
         }
     }
 }
@@ -260,6 +216,8 @@ internal fun MessageContent(
     isFromSelf: Boolean,
     isFromBlockedMember: Boolean,
     options: MessageNodeOptions,
+    tips: List<MessageTip>,
+    openTipModal: () -> Unit,
     onLongPress: () -> Unit = { },
     onDoubleClick: () -> Unit = { },
 ) {
@@ -272,7 +230,9 @@ internal fun MessageContent(
         status = status,
         isFromSelf = isFromSelf,
         isFromBlockedMember = isFromBlockedMember,
+        tips = tips,
         options = options,
+        openTipModal = openTipModal,
         onLongPress = onLongPress,
         onDoubleClick = onDoubleClick
     )
@@ -289,6 +249,8 @@ internal fun MessageContent(
     isFromSelf: Boolean,
     isFromBlockedMember: Boolean,
     options: MessageNodeOptions,
+    tips: List<MessageTip> = emptyList(),
+    openTipModal: () -> Unit = { },
     onLongPress: () -> Unit = { },
     onDoubleClick: () -> Unit = { },
 ) {
@@ -298,6 +260,7 @@ internal fun MessageContent(
         maxWidth = maxWidth,
         message = annotatedMessage,
         date = date,
+        hasTips = tips.isNotEmpty()
     )
 
     when (alignmentRule) {
@@ -313,22 +276,32 @@ internal fun MessageContent(
                     isFromBlockedMember = isFromBlockedMember,
                     onDoubleClick = onDoubleClick,
                 )
-                DateWithStatus(
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = if (!options.isInteractive) null else {
-                                    { onLongPress() }
-                                },
-                            )
-                        },
-                    date = date,
-                    status = status,
-                    isFromSelf = isFromSelf,
-                    showStatus = options.showStatus,
-                    showTimestamp = options.showTimestamp,
-                )
+
+                Row(
+                    modifier = Modifier.width(IntrinsicSize.Max),
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+                ) {
+                    Tips(tips) { openTipModal() }
+                    Spacer(Modifier.weight(1f))
+                    DateWithStatus(
+                        modifier = Modifier
+                            .align(Alignment.Bottom)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = if (!options.isInteractive) null else {
+                                        { onLongPress() }
+                                    },
+                                    onDoubleTap = { onDoubleClick() }
+                                )
+                            },
+                        date = date,
+                        status = status,
+                        isFromSelf = isFromSelf,
+                        showStatus = options.showStatus,
+                        showTimestamp = options.showTimestamp,
+                    )
+                }
+
             }
         }
 
@@ -485,8 +458,65 @@ private fun MarkupTextHandler(
     }
 }
 
-sealed interface AlignmentRule {
-    data object ParagraphLastLine : AlignmentRule
-    data object Column : AlignmentRule
-    data object SingleLineEnd : AlignmentRule
+@Composable
+private fun Tips(
+    tips: List<MessageTip>,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    if (tips.isNotEmpty()) {
+        val didUserTip = tips.any { it.tipper.isSelf }
+        val backgroundColor by animateColorAsState(
+            if (didUserTip) CodeTheme.colors.tertiary
+            else Color.White
+        )
+
+        val contentColor by animateColorAsState(
+            if (didUserTip) CodeTheme.colors.onBackground
+            else CodeTheme.colors.secondary
+        )
+
+        val totalTips = tips.map { it.amount }.sum().formattedRaw()
+
+        Row(
+            modifier = modifier
+                .clip(CircleShape)
+                .clickable { onClick() }
+                .background(backgroundColor, CircleShape)
+                .padding(
+                    horizontal = CodeTheme.dimens.grid.x2,
+                    vertical = CodeTheme.dimens.grid.x1,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+        ) {
+            Text(
+                text = stringResource(R.string.title_kinAmountWithLogo, totalTips),
+                color = contentColor,
+                style = CodeTheme.typography.caption,
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy((-8).dp)
+            ) {
+                val imageModifier = Modifier
+                    .size(CodeTheme.dimens.staticGrid.x4)
+                    .clip(CircleShape)
+                    .border(CodeTheme.dimens.border, contentColor, CircleShape)
+
+                val tippers = remember(tips) { tips.map { it.tipper }.distinct() }
+
+                tippers.take(3).fastForEachIndexed { index, tipper ->
+                    UserAvatar(
+                        modifier = imageModifier
+                            .zIndex((tips.size - index).toFloat()),
+                        data = tipper.profileImage.nullIfEmpty() ?: tipper.id
+                    )
+                }
+            }
+        }
+    }
 }
+
+private fun String?.nullIfEmpty() = if (this?.isEmpty() == true) null else this

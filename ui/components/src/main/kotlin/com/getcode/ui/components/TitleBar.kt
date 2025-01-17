@@ -9,6 +9,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.runtime.Composable
@@ -57,6 +58,19 @@ object AppBarDefaults {
     fun Share(modifier: Modifier = Modifier, onClick: () -> Unit) {
         Icon(
             painter = painterResource(R.drawable.ic_remote_send),
+            contentDescription = "",
+            tint = Color.White,
+            modifier = modifier
+                .wrapContentWidth()
+                .size(24.dp)
+                .unboundedClickable { onClick() }
+        )
+    }
+
+    @Composable
+    fun Leave(modifier: Modifier = Modifier, onClick: () -> Unit) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.Logout,
             contentDescription = "",
             tint = Color.White,
             modifier = modifier

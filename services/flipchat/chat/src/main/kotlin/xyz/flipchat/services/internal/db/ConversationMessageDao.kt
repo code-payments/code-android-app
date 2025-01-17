@@ -110,6 +110,25 @@ interface ConversationMessageDao {
     }
 
 
+    @Query("""
+        SELECT * FROM messages WHERE type = :type ORDER BY dateMillis DESC
+    """)
+    suspend fun getMessagesOfType(type: Int): List<ConversationMessage>
+
+    suspend fun getTips(messageId: ID, selfID: ID?): List<MessageContent.MessageTip> {
+        val rows = getMessagesOfType(type = 10)
+        val tips = rows.mapNotNull { row ->
+            MessageContent.fromData(
+                type = row.type,
+                content = row.content,
+                isFromSelf = row.senderIdBase58 == selfID?.base58
+            ) as? MessageContent.MessageTip
+        }.filter { it.originalMessageId == messageId }
+
+        return tips
+    }
+
+
     @Query("DELETE FROM messages WHERE conversationIdBase58 = :conversationId")
     suspend fun removeForConversation(conversationId: String)
 

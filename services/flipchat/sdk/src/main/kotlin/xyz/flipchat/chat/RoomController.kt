@@ -30,6 +30,7 @@ import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -70,6 +71,14 @@ class RoomController @Inject constructor(
 
     suspend fun getUnreadCount(identifier: ID): Int {
         return db.conversationDao().getUnreadCount(identifier) ?: 0
+    }
+
+    suspend fun getTipsForMessage(identifier: ID): List<MessageContent.MessageTip> {
+        return db.conversationMessageDao().getTips(identifier, userManager.userId)
+    }
+
+    suspend fun getMemberForId(identifier: ID): ConversationMember? {
+        return db.conversationMembersDao().getMember(identifier)
     }
 
     suspend fun getChatMembers(identifier: ID) {
@@ -183,8 +192,8 @@ class RoomController @Inject constructor(
             .map { it.id }
     }
 
-    suspend fun sendTip(conversationId: ID, messageId: ID, amount: KinAmount): Result<ID> {
-        val content = OutgoingMessageContent.Tip(messageId, amount)
+    suspend fun sendTip(conversationId: ID, messageId: ID, amount: KinAmount, paymentIntentId: ID): Result<ID> {
+        val content = OutgoingMessageContent.Tip(messageId, amount, paymentIntentId)
         return messagingRepository.sendMessage(conversationId, content)
             .map { it.id }
     }

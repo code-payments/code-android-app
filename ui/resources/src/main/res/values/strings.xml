@@ -5,4 +5,6 @@
 
     <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
     <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough Kin to complete this payment</string>
+
+    <string name="title_kinAmountWithLogo">⬢ %1$s</string>
 </resources>

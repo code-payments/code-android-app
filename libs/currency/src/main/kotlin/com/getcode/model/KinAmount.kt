@@ -41,3 +41,17 @@ data class KinAmount(
         }
     }
 }
+
+fun List<KinAmount>.sum(): KinAmount {
+    if (this.isEmpty()) return KinAmount.Zero
+
+    val totalKin = this.fold(Kin(0)) { acc, kinAmount -> acc + kinAmount.kin }
+    val totalFiat = this.sumOf { it.fiat }
+    val rate = this.first().rate // Assuming the rate is consistent or using the first item's rate
+
+    return KinAmount(
+        kin = totalKin,
+        fiat = totalFiat,
+        rate = rate
+    )
+}

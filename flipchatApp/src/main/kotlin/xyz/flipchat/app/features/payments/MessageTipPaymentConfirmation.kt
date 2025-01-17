@@ -4,13 +4,16 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
+import com.getcode.extensions.formattedRaw
 import com.getcode.model.Currency
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
@@ -28,6 +31,8 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin
 import com.getcode.utils.formatAmountString
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
 import com.getcode.ui.components.R as uiR
 
@@ -95,6 +100,13 @@ private fun MessageTipConfirmationContent(
     state: ConfirmationState?,
     onApproved: () -> Unit
 ) {
+    LaunchedEffect(pickerState) {
+        snapshotFlow { pickerState.selectedItem }
+            .onEach {
+                println("selected=${pickerState.selectedItem?.formattedRaw()}")
+            }.launchIn(this)
+    }
+
     Picker(
         modifier = Modifier.fillMaxWidth(),
         state = pickerState,
@@ -110,7 +122,7 @@ private fun MessageTipConfirmationContent(
     SlideToConfirm(
         isLoading = isSending,
         isSuccess = state is ConfirmationState.Sent,
-        onConfirm = { onApproved() },
+        onConfirm = onApproved,
         label = stringResource(uiR.string.action_swipeToTip)
     )
 }
