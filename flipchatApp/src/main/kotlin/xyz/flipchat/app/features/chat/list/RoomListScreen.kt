@@ -122,7 +122,7 @@ private fun ChatListScreenContent(
         ) {
             items(
                 count = chats.itemCount,
-                key = chats.itemKey { it.id },
+//                key = chats.itemKey { it.id },
                 contentType = chats.itemContentType { "chat" }
             ) { index ->
                 chats[index]?.let {

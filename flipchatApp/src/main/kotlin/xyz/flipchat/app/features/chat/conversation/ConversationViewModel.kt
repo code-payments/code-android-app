@@ -909,7 +909,7 @@ class ConversationViewModel @Inject constructor(
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
                         displayName = member?.memberName ?: "Deleted",
                         isSelf = contents.isFromSelf,
-                        isHost = member?.isHost ?: false,
+                        isHost = message.senderId == currentState.hostId,
                         isBlocked = member?.isBlocked == true,
                     ),
                     originalMessage = anchor,

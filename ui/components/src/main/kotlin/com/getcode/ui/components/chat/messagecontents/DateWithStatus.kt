@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -46,7 +47,7 @@ internal fun DateWithStatus(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(DateWithStatusDefaults.Spacing),
+        horizontalArrangement = Arrangement.spacedBy(DateWithStatusDefaults.Spacing, Alignment.End),
     ) {
         if (showTimestamp) {
             Text(

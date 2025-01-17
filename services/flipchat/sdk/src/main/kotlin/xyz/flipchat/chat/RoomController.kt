@@ -9,6 +9,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
+import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -197,7 +198,7 @@ class RoomController @Inject constructor(
     }
 
     private val pagingConfig =
-        PagingConfig(pageSize = 25, initialLoadSize = 25, prefetchDistance = 10) // TODO: decrease once this pager stops auto paging
+        PagingConfig(pageSize = 25, initialLoadSize = 25, prefetchDistance = 10)
 
     @OptIn(ExperimentalPagingApi::class)
     fun messages(conversationId: ID): Pager<Int, ConversationMessageWithMemberAndContentAndReplyAndTips> =
@@ -342,13 +343,12 @@ private class MessagingPagingSource(
     private val userId: () -> ID?,
     private val db: FcAppDatabase
 ) : PagingSource<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>() {
-//
-//    @SuppressLint("RestrictedApi")
-//    private val observer =
-//        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
-//            println("ROOM -- PagingSource invalidated")
-//            invalidate()
-//        }
+
+    @SuppressLint("RestrictedApi")
+    private val observer =
+        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
+            invalidate()
+        }
 
     override fun getRefreshKey(state: PagingState<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>): Int? {
         return null
@@ -356,7 +356,7 @@ private class MessagingPagingSource(
 
     @SuppressLint("RestrictedApi")
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageWithMemberAndContentAndReplyAndTips> {
-//        observer.registerIfNecessary(db)
+        observer.registerIfNecessary(db)
         val currentPage = params.key ?: 0
         val pageSize = params.loadSize
         val offset = currentPage * pageSize

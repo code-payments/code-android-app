@@ -65,6 +65,7 @@ import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.debugBounds
 import com.getcode.ui.utils.rememberedLongClickable
 import kotlinx.datetime.Instant
 
@@ -266,7 +267,7 @@ internal fun MessageContent(
     when (alignmentRule) {
         AlignmentRule.Column -> {
             Column(
-                modifier = modifier,
+                modifier = modifier.width(IntrinsicSize.Max),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 MarkupTextHandler(
@@ -278,13 +279,16 @@ internal fun MessageContent(
                 )
 
                 Row(
-                    modifier = Modifier.width(IntrinsicSize.Max),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
-                    Tips(tips) { openTipModal() }
+                    if (tips.isNotEmpty()) {
+                        Tips(tips) { openTipModal() }
+                    }
                     Spacer(Modifier.weight(1f))
                     DateWithStatus(
                         modifier = Modifier
+                            .weight(1f)
                             .align(Alignment.Bottom)
                             .pointerInput(Unit) {
                                 detectTapGestures(
@@ -307,7 +311,7 @@ internal fun MessageContent(
 
         AlignmentRule.ParagraphLastLine -> {
             Column(
-                modifier = modifier.padding(CodeTheme.dimens.grid.x1)
+                modifier = modifier.padding(CodeTheme.dimens.grid.x1),
             ) {
                 MarkupTextHandler(
                     text = annotatedMessage,
@@ -337,7 +341,7 @@ internal fun MessageContent(
 
         AlignmentRule.SingleLineEnd -> {
             Row(
-                modifier = modifier,
+                modifier = modifier.width(IntrinsicSize.Max),
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 MarkupTextHandler(
@@ -347,6 +351,7 @@ internal fun MessageContent(
                     isFromBlockedMember = isFromBlockedMember,
                     onDoubleClick = onDoubleClick,
                 )
+                Spacer(Modifier.weight(1f))
                 DateWithStatus(
                     modifier = Modifier
                         .padding(top = CodeTheme.dimens.grid.x1 + 2.dp)

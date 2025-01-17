@@ -1,5 +1,6 @@
 package xyz.flipchat.services.internal.db
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -54,22 +55,19 @@ interface ConversationDao {
 
     @Query(
         """
-            SELECT * FROM (
-                SELECT * 
-                FROM messages 
-                WHERE conversationIdBase58 = :id AND type IN (1, 8)
-                ORDER BY dateMillis DESC 
-                LIMIT 1
-            ) 
-            UNION ALL 
-            SELECT * FROM (
-                SELECT * 
-                FROM messages 
-                WHERE conversationIdBase58 = :id
-                ORDER BY dateMillis DESC 
-                LIMIT 1
-            ) 
-            LIMIT 1
+        WITH prioritized_messages AS (
+            SELECT *, 
+                   CASE 
+                       WHEN type IN (1, 8) THEN 1
+                       ELSE 2
+                   END AS priority
+            FROM messages
+            WHERE conversationIdBase58 = :id
+        )
+        SELECT *
+        FROM prioritized_messages
+        ORDER BY priority, dateMillis DESC
+        LIMIT 1;
         """
     )
     suspend fun getLatestMessage(id: String): ConversationMessage?

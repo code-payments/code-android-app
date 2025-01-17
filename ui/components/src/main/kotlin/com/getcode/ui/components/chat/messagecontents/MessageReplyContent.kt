@@ -118,13 +118,33 @@ internal fun MessageNodeScope.MessageReplyContent(
                 // Determine the final width based on the longer of the two components
                 val finalWidth = maxOf(messageContentPlaceable.width, replyPreviewPlaceable.width)
 
+                // Remeasure MessageContent with the updated width
+                val remeasuredMessageContentPlaceable = subcompose("MessageContentRemeasured") {
+                    MessageContent(
+                        maxWidth = finalWidth,
+                        minWidth = finalWidth,
+                        message = content,
+                        date = date,
+                        status = status,
+                        isFromSelf = isFromSelf,
+                        isFromBlockedMember = isFromBlockedMember,
+                        options = options,
+                        tips = tips,
+                        openTipModal = showTips,
+                        onLongPress = showControls,
+                        onDoubleClick = showTipSelection,
+                    )
+                }.first().measure(
+                    constraints.copy(minWidth = finalWidth, maxWidth = finalWidth)
+                )
+
                 // Calculate the total height
-                val totalHeight = replyPreviewPlaceable.height + spacing + messageContentPlaceable.height
+                val totalHeight = replyPreviewPlaceable.height + spacing + remeasuredMessageContentPlaceable.height
 
                 // Layout the components
                 layout(finalWidth, totalHeight) {
                     replyPreviewPlaceable.place(0, 0)
-                    messageContentPlaceable.place(0, replyPreviewPlaceable.height + spacing)
+                    remeasuredMessageContentPlaceable.place(0, replyPreviewPlaceable.height + spacing)
                 }
             }
         }
