@@ -160,7 +160,7 @@ private fun Actions(
             CodeButton(
                 modifier = Modifier.fillMaxWidth(),
                 buttonState = ButtonState.Subtle,
-                text = stringResource(R.string.action_customize),
+                text = stringResource(R.string.action_customizeRoom),
             ) {
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(

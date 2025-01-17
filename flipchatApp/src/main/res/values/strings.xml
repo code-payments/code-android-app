@@ -217,6 +217,7 @@
     <string name="action_editRoomName">Edit Room Name</string>
     <string name="action_changeRoomName">Change Room Name</string>
     <string name="action_customize">Customize</string>
+    <string name="action_customizeRoom">Customize Room</string>
     <string name="action_leaveRoom">Leave Room</string>
     <string name="action_shareRoomLink">Share Room Link</string>
 
