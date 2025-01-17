@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.model.ID
 import com.getcode.model.chat.Deleter
@@ -63,12 +64,12 @@ internal fun MessageNodeScope.DeletedMessage(
                             }
                             deletedBy?.isHost == true -> {
                                 pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                                stringResource(R.string.title_messageDeletedByHost)
+                                append(stringResource(R.string.title_messageDeletedByHost))
                                 pop()
                             }
                             else -> {
                                 pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                                stringResource(R.string.title_messageWasDeleted)
+                                append(stringResource(R.string.title_messageWasDeleted))
                                 pop()
                             }
                         }
@@ -81,7 +82,12 @@ internal fun MessageNodeScope.DeletedMessage(
                     status = MessageStatus.Unknown,
                     isFromSelf = sender.isSelf,
                     isFromBlockedMember = sender.isBlocked,
-                    options = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
+                    options = MessageNodeOptions(
+                        contentStyle = MessageNodeDefaults.ContentStyle.copy(
+                            color = CodeTheme.colors.textSecondary,
+                            fontWeight = FontWeight.W400,
+                        )
+                    ),
                 )
             }
         }

@@ -8,7 +8,9 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Sender
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 
@@ -63,8 +65,33 @@ data class ConversationMessageWithMember(
     val member: ConversationMember?
 )
 
+data class ConversationMessageWithMemberAndReplyAndTips(
+    @Embedded val message: ConversationMessage,
+    @Relation(
+        parentColumn = "senderIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = ConversationMember::class,
+    )
+    val member: ConversationMember?,
+    val reply: ConversationMessageWithMemberAndContent?,
+    val tips: List<MessageTipInfo>
+)
+
 data class ConversationMessageWithMemberAndContent(
     @Embedded val message: ConversationMessage,
     val member: ConversationMember?,
     val content: MessageContent
+)
+
+data class ConversationMessageWithMemberAndContentAndReplyAndTips(
+    val message: ConversationMessage,
+    val member: ConversationMember?,
+    val content: MessageContent,
+    val reply: ConversationMessageWithMemberAndContent?,
+    val tips: List<MessageTipInfo>
+)
+
+data class MessageTipInfo(
+    val kinAmount: KinAmount,
+    val tipper: ConversationMember?
 )

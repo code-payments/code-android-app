@@ -1,5 +1,6 @@
 package xyz.flipchat.services.internal.db
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -7,11 +8,15 @@ import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.utils.base58
+import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndReplyAndTips
+import xyz.flipchat.services.domain.model.chat.MessageTipInfo
 
 @Dao
 interface ConversationMessageDao {
@@ -36,7 +41,12 @@ interface ConversationMessageDao {
         messages.deletedByBase58 AS deletedByBase58,
         messages.content AS content,
         members.memberIdBase58 AS memberIdBase58,
-        members.memberName AS memberName
+        members.memberName AS memberName,
+        members.isHost AS isHost,
+        members.imageUri AS imageUri,
+        members.isBlocked AS isBlocked,
+        members.isFullMember AS isFullMember,
+        members.isMuted AS isMuted
     FROM messages
 
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
@@ -48,6 +58,39 @@ interface ConversationMessageDao {
     suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithMember>
     suspend fun getPagedMessages(id: ID, limit: Int, offset: Int): List<ConversationMessageWithMember> {
         return getPagedMessages(id.base58, limit, offset)
+    }
+
+    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId")
+    suspend fun getMemberInternal(memberId: String): ConversationMember?
+    suspend fun getMemberInternal(memberId: ID): ConversationMember? {
+        return getMemberInternal(memberId.base58)
+    }
+
+    suspend fun getPagedMessagesWithRepliesAndTips(id: ID, limit: Int, offset: Int, selfId: ID?): List<ConversationMessageWithMemberAndReplyAndTips> {
+        val messages = getPagedMessages(id.base58, limit, offset)
+
+        return messages.map {
+            val content = MessageContent.fromData(it.message.type, it.message.content, isFromSelf = false)
+            val replyMessage = if (content is MessageContent.Reply) {
+                getMessageWithContentById(content.originalMessageId, selfId)
+            } else {
+                null
+            }
+
+            val tips = getTips(it.message.id, selfId).map { (_, tipperId, amountInQuarks) ->
+                MessageTipInfo(
+                    kinAmount = KinAmount.fromQuarks(amountInQuarks),
+                    tipper = getMemberInternal(tipperId)
+                )
+            }
+
+            ConversationMessageWithMemberAndReplyAndTips(
+                message = it.message,
+                member = it.member,
+                reply = replyMessage,
+                tips = tips
+            )
+        }
     }
 
     @Query("SELECT COUNT(*) FROM messages WHERE conversationIdBase58 = :conversationId")
@@ -140,7 +183,6 @@ interface ConversationMessageDao {
     suspend fun markDeleted(messageId: String, by: String)
 
     suspend fun markDeleted(messageId: ID, by: ID) {
-        println("markdeleted ${messageId.base58} by ${by.base58}")
         markDeleted(messageId.base58, by.base58)
     }
 

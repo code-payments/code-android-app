@@ -8,7 +8,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
-import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
@@ -353,12 +352,6 @@ private class ChatsPagingSource(
     private val db: FcAppDatabase
 ) : PagingSource<Int, ConversationWithMembersAndLastMessage>() {
 
-    @SuppressLint("RestrictedApi")
-    private val observer =
-        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
-            invalidate()
-        }
-
     override fun getRefreshKey(state: PagingState<Int, ConversationWithMembersAndLastMessage>): Int? {
         return state.anchorPosition?.let { anchorPosition ->
             val anchorPage = state.closestPageToPosition(anchorPosition)
@@ -368,7 +361,6 @@ private class ChatsPagingSource(
 
     @SuppressLint("RestrictedApi")
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationWithMembersAndLastMessage> {
-        observer.registerIfNecessary(db)
         val currentPage = params.key ?: 0
         val pageSize = params.loadSize
         val offset = currentPage * pageSize

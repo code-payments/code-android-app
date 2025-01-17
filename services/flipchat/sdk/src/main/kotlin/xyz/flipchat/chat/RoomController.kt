@@ -9,7 +9,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
-import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -17,7 +16,6 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
@@ -30,11 +28,10 @@ import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMember
-import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContentAndReplyAndTips
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
-import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -48,7 +45,6 @@ class RoomController @Inject constructor(
     private val conversationMessageMapper: ConversationMessageMapper,
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
-    private val resources: ResourceHelper,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
@@ -71,14 +67,6 @@ class RoomController @Inject constructor(
 
     suspend fun getUnreadCount(identifier: ID): Int {
         return db.conversationDao().getUnreadCount(identifier) ?: 0
-    }
-
-    suspend fun getTipsForMessage(identifier: ID): List<MessageContent.MessageTip> {
-        return db.conversationMessageDao().getTips(identifier, userManager.userId)
-    }
-
-    suspend fun getMemberForId(identifier: ID): ConversationMember? {
-        return db.conversationMembersDao().getMember(identifier)
     }
 
     suspend fun getChatMembers(identifier: ID) {
@@ -113,7 +101,9 @@ class RoomController @Inject constructor(
                 },
                 onMessagesDeleted = { messages ->
                     scope.launch {
-                        messages.onEach { db.conversationMessageDao().markDeleted(it.first, it.second) }
+                        messages.onEach {
+                            db.conversationMessageDao().markDeleted(it.first, it.second)
+                        }
                     }
                 }
             )
@@ -161,8 +151,11 @@ class RoomController @Inject constructor(
                             db.withTransaction {
                                 db.conversationPointersDao()
                                     .insert(conversationId, messageId.uuid!!, status)
-                                val newest = db.conversationMessageDao().getNewestMessage(conversationId)
-                                if ((messageId.uuid?.timestamp ?: -1) >= (newest?.id?.uuid?.timestamp ?: 0L)) {
+                                val newest =
+                                    db.conversationMessageDao().getNewestMessage(conversationId)
+                                if ((messageId.uuid?.timestamp
+                                        ?: -1) >= (newest?.id?.uuid?.timestamp ?: 0L)
+                                ) {
                                     db.conversationDao().resetUnreadCount(conversationId)
                                 }
                             }
@@ -192,25 +185,32 @@ class RoomController @Inject constructor(
             .map { it.id }
     }
 
-    suspend fun sendTip(conversationId: ID, messageId: ID, amount: KinAmount, paymentIntentId: ID): Result<ID> {
+    suspend fun sendTip(
+        conversationId: ID,
+        messageId: ID,
+        amount: KinAmount,
+        paymentIntentId: ID
+    ): Result<ID> {
         val content = OutgoingMessageContent.Tip(messageId, amount, paymentIntentId)
         return messagingRepository.sendMessage(conversationId, content)
             .map { it.id }
     }
 
-    private val pagingConfig = PagingConfig(pageSize = 100) // TODO: decrease once this pager stops auto paging
+    private val pagingConfig =
+        PagingConfig(pageSize = 25, initialLoadSize = 25, prefetchDistance = 10) // TODO: decrease once this pager stops auto paging
 
     @OptIn(ExperimentalPagingApi::class)
-    fun messages(conversationId: ID): Pager<Int, ConversationMessageWithMemberAndContent> = Pager(
-        config = pagingConfig,
-        remoteMediator = MessagesRemoteMediator(
-            chatId = conversationId,
-            repository = messagingRepository,
-            conversationMessageMapper = conversationMessageMapper
-        )
-    ) {
-        MessagingPagingSource(conversationId, { userManager.userId }, db)
-    }
+    fun messages(conversationId: ID): Pager<Int, ConversationMessageWithMemberAndContentAndReplyAndTips> =
+        Pager(
+            config = pagingConfig,
+            remoteMediator = MessagesRemoteMediator(
+                chatId = conversationId,
+                repository = messagingRepository,
+                conversationMessageMapper = conversationMessageMapper
+            )
+        ) {
+            MessagingPagingSource(conversationId, { userManager.userId }, db)
+        }
 
     val typingChats = chatRepository.typingChats
 
@@ -240,7 +240,8 @@ class RoomController @Inject constructor(
     suspend fun setDisplayName(conversationId: ID, displayName: String): Result<Unit> {
         return chatRepository.setDisplayName(conversationId, displayName)
             .onSuccess {
-                val conversation = db.conversationDao().findConversation(conversationId)?.conversation?.copy(title = displayName)
+                val conversation = db.conversationDao()
+                    .findConversation(conversationId)?.conversation?.copy(title = displayName)
                 if (conversation != null) {
                     db.conversationDao().setDisplayName(conversationId, displayName)
                 }
@@ -340,21 +341,22 @@ private class MessagingPagingSource(
     private val chatId: ID,
     private val userId: () -> ID?,
     private val db: FcAppDatabase
-) : PagingSource<Int, ConversationMessageWithMemberAndContent>() {
+) : PagingSource<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>() {
+//
+//    @SuppressLint("RestrictedApi")
+//    private val observer =
+//        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
+//            println("ROOM -- PagingSource invalidated")
+//            invalidate()
+//        }
 
-    @SuppressLint("RestrictedApi")
-    private val observer =
-        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
-            invalidate()
-        }
-
-    override fun getRefreshKey(state: PagingState<Int, ConversationMessageWithMemberAndContent>): Int? {
+    override fun getRefreshKey(state: PagingState<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>): Int? {
         return null
     }
 
     @SuppressLint("RestrictedApi")
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageWithMemberAndContent> {
-        observer.registerIfNecessary(db)
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageWithMemberAndContentAndReplyAndTips> {
+//        observer.registerIfNecessary(db)
         val currentPage = params.key ?: 0
         val pageSize = params.loadSize
         val offset = currentPage * pageSize
@@ -362,14 +364,22 @@ private class MessagingPagingSource(
         return withContext(Dispatchers.Default) {
             try {
                 val unmappedMessages =
-                    db.conversationMessageDao().getPagedMessages(chatId, pageSize, offset)
+                    db.conversationMessageDao()
+                        .getPagedMessagesWithRepliesAndTips(chatId, pageSize, offset, userId())
 
                 val messages = unmappedMessages.mapNotNull {
-                    val content = MessageContent.fromData(it.message.type, it.message.content, isFromSelf = it.message.senderIdBase58 == userId()?.base58) ?: return@mapNotNull null
-                    ConversationMessageWithMemberAndContent(
+                    val content = MessageContent.fromData(
+                        it.message.type,
+                        it.message.content,
+                        isFromSelf = it.message.senderIdBase58 == userId()?.base58
+                    ) ?: return@mapNotNull null
+
+                    ConversationMessageWithMemberAndContentAndReplyAndTips(
                         message = it.message,
                         member = it.member,
                         content = content,
+                        reply = it.reply,
+                        tips = it.tips
                     )
                 }
 
@@ -393,7 +403,7 @@ private class MessagesRemoteMediator(
     private val chatId: ID,
     private val repository: MessagingRepository,
     private val conversationMessageMapper: ConversationMessageMapper,
-) : RemoteMediator<Int, ConversationMessageWithMemberAndContent>() {
+) : RemoteMediator<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>() {
 
     private val db = FcAppDatabase.requireInstance()
 
@@ -403,7 +413,7 @@ private class MessagesRemoteMediator(
 
     override suspend fun load(
         loadType: LoadType,
-        state: PagingState<Int, ConversationMessageWithMemberAndContent>
+        state: PagingState<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>
     ): MediatorResult {
         return try {
             val loadKey = when (loadType) {

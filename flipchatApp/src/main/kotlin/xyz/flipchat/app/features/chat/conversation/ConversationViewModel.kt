@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.app.R
@@ -78,6 +79,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.extensions.titleOrFallback
+import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import java.util.UUID
@@ -818,6 +820,7 @@ class ConversationViewModel @Inject constructor(
         .filterNotNull()
         .distinctUntilChanged()
         .flatMapLatest { roomController.messages(it).flow }
+        .distinctUntilChanged()
         .map { page ->
             val currentState = stateFlow.value // Cache state upfront
             val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
@@ -825,7 +828,7 @@ class ConversationViewModel @Inject constructor(
                 currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
 
             page.map { indice ->
-                val (message, member, contents) = indice
+                val (message, member, contents, reply, tipInfo) = indice
 
                 val status = findClosestMessageStatus(
                     timestamp = message.id.uuid?.timestamp,
@@ -833,32 +836,29 @@ class ConversationViewModel @Inject constructor(
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
 
-                val anchor = if (contents is MessageContent.Reply) {
-                    val originalMessage = roomController.getMessage(contents.originalMessageId)
-                    originalMessage?.let { container ->
-                        ReplyMessageAnchor(
-                            id = contents.originalMessageId,
-                            message = container.content,
-                            isDeleted = container.message.isDeleted,
-                            deletedBy = container.message.deletedBy?.let { id ->
-                                Deleter(
-                                    id = id,
-                                    isSelf = userManager.isSelf(id),
-                                    isHost = currentState.hostId == message.deletedBy
-                                )
-                            },
-                            sender = Sender(
-                                id = container.message.senderId,
-                                profileImage = container.member?.imageUri.takeIf {
-                                    it.orEmpty().isNotEmpty()
-                                },
-                                displayName = container.member?.memberName ?: "Deleted",
-                                isSelf = container.content.isFromSelf,
-                                isBlocked = container.member?.isBlocked == true,
-                                isHost = container.message.senderId == currentState.hostId && !contents.isFromSelf,
+                val anchor = if (reply != null) {
+                    ReplyMessageAnchor(
+                        id = reply.message.id,
+                        message = reply.content,
+                        isDeleted = reply.message.isDeleted,
+                        deletedBy = reply.message.deletedBy?.let { id ->
+                            Deleter(
+                                id = id,
+                                isSelf = userManager.isSelf(id),
+                                isHost = currentState.hostId == message.deletedBy
                             )
+                        },
+                        sender = Sender(
+                            id = reply.message.senderId,
+                            profileImage = reply.member?.imageUri.takeIf {
+                                it.orEmpty().isNotEmpty()
+                            },
+                            displayName = reply.member?.memberName ?: "Deleted",
+                            isSelf = reply.content.isFromSelf,
+                            isBlocked = reply.member?.isBlocked == true,
+                            isHost = reply.message.senderId == currentState.hostId && !contents.isFromSelf,
                         )
-                    }
+                    )
                 } else {
                     null
                 }
@@ -866,19 +866,17 @@ class ConversationViewModel @Inject constructor(
                 val tippingEnabled =
                     currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
 
-                val tips = if (currentState.isTippingEnabled) {
-                    roomController.getTipsForMessage(message.id).map { tip ->
-                        val amount = KinAmount.fromQuarks(tip.amountInQuarks)
-                        val tipper = roomController.getMemberForId(tip.tipperId)
+                val tips = if (currentState.isTippingEnabled && tipInfo.isNotEmpty()) {
+                    tipInfo.map { (amount, member) ->
                         MessageTip(
                             amount = amount,
                             tipper = Sender(
-                                id = tip.tipperId,
-                                profileImage = tipper?.imageUri,
-                                displayName = tipper?.memberName,
-                                isHost = tipper?.isHost ?: false,
-                                isSelf = userManager.isSelf(tip.tipperId),
-                                isBlocked = tipper?.isBlocked ?: false,
+                                id = member?.id,
+                                profileImage = member?.imageUri.nullIfEmpty(),
+                                displayName = member?.memberName,
+                                isHost = member?.isHost ?: false,
+                                isSelf = userManager.isSelf(member?.id),
+                                isBlocked = member?.isBlocked ?: false,
                             )
                         )
                     }
@@ -911,7 +909,7 @@ class ConversationViewModel @Inject constructor(
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
                         displayName = member?.memberName ?: "Deleted",
                         isSelf = contents.isFromSelf,
-                        isHost = message.senderId == currentState.hostId && !contents.isFromSelf,
+                        isHost = member?.isHost ?: false,
                         isBlocked = member?.isBlocked == true,
                     ),
                     originalMessage = anchor,
