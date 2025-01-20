@@ -128,6 +128,7 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
+    implementation(project(":libs:opengraph"))
     implementation(project(":libs:permissions"))
     implementation(project(":libs:quickresponse"))
     implementation(project(":libs:requests"))

@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat.messagecontents
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,30 +18,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonRemove
-import androidx.compose.material.icons.filled.VoiceOverOff
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -49,8 +40,11 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
-import com.getcode.extensions.formatted
+import coil3.compose.AsyncImage
 import com.getcode.extensions.formattedRaw
+import com.getcode.libs.opengraph.LocalOpenGraphParser
+import com.getcode.libs.opengraph.callback.OpenGraphCallback
+import com.getcode.libs.opengraph.model.OpenGraphResult
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
@@ -65,94 +59,8 @@ import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.debugBounds
 import com.getcode.ui.utils.rememberedLongClickable
 import kotlinx.datetime.Instant
-
-sealed interface MessageControlAction {
-    val onSelect: () -> Unit
-
-    @get:Composable
-    val painter: Painter
-    val isDestructive: Boolean
-    val delayUponSelection: Boolean
-
-    data class Copy(override val onSelect: () -> Unit) : MessageControlAction {
-        override val isDestructive: Boolean = false
-        override val delayUponSelection: Boolean = false
-
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.ContentCopy)
-    }
-
-    data class Reply(override val onSelect: () -> Unit) : MessageControlAction {
-        override val isDestructive: Boolean = false
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Default.Reply)
-        override val delayUponSelection: Boolean = false
-    }
-
-    data class Tip(override val onSelect: () -> Unit) : MessageControlAction {
-        override val isDestructive: Boolean = false
-        override val painter: Painter
-            @Composable get() = painterResource(R.drawable.ic_kin_white_small)
-        override val delayUponSelection: Boolean = true
-    }
-
-    data class Delete(override val onSelect: () -> Unit) : MessageControlAction {
-        override val isDestructive: Boolean = true
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.Delete)
-        override val delayUponSelection: Boolean = false
-    }
-
-    data class RemoveUser(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
-        override val isDestructive: Boolean = true
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.PersonRemove)
-        override val delayUponSelection: Boolean = false
-    }
-
-    data class MuteUser(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
-        override val isDestructive: Boolean = true
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.VoiceOverOff)
-        override val delayUponSelection: Boolean = false
-    }
-
-    data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
-        override val isDestructive: Boolean = true
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.Flag)
-        override val delayUponSelection: Boolean = false
-    }
-
-    data class BlockUser(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
-        override val isDestructive: Boolean = true
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.Block)
-        override val delayUponSelection: Boolean = false
-    }
-
-    data class UnblockUser(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
-        override val isDestructive: Boolean = false
-        override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.Person)
-        override val delayUponSelection: Boolean = false
-    }
-}
-
-data class MessageControls(
-    val actions: List<MessageControlAction> = emptyList()
-) {
-    val hasAny: Boolean
-        get() = actions.isNotEmpty()
-}
 
 @Composable
 internal fun MessageNodeScope.MessageText(
@@ -255,13 +163,32 @@ internal fun MessageContent(
     onLongPress: () -> Unit = { },
     onDoubleClick: () -> Unit = { },
 ) {
+    val openGraphParser = LocalOpenGraphParser.current
+    var linkImageUrl: String? by rememberSaveable(annotatedMessage) { mutableStateOf(null) }
+
+    LaunchedEffect(annotatedMessage) {
+        if (linkImageUrl == null && options.linkImagePreviewEnabled) {
+            val link = Markup.Url().resolve(annotatedMessage.text).firstOrNull()
+            if (link != null) {
+                openGraphParser?.parse(link, object : OpenGraphCallback {
+                    override fun onResponse(result: OpenGraphResult) {
+                        linkImageUrl = result.image
+                    }
+
+                    override fun onError(error: String) = Unit
+                })
+            }
+        }
+    }
+
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = options.contentStyle,
         minWidth = minWidth,
         maxWidth = maxWidth,
         message = annotatedMessage,
         date = date,
-        hasTips = tips.isNotEmpty()
+        hasTips = tips.isNotEmpty(),
+        hasLink = linkImageUrl != null && options.linkImagePreviewEnabled
     )
 
     when (alignmentRule) {
@@ -277,6 +204,15 @@ internal fun MessageContent(
                     isFromBlockedMember = isFromBlockedMember,
                     onDoubleClick = onDoubleClick,
                 )
+
+                if (options.linkImagePreviewEnabled) {
+                    AnimatedVisibility(linkImageUrl != null) {
+                        AsyncImage(
+                            model = linkImageUrl,
+                            contentDescription = null,
+                        )
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -305,7 +241,6 @@ internal fun MessageContent(
                         showTimestamp = options.showTimestamp,
                     )
                 }
-
             }
         }
 
@@ -336,38 +271,54 @@ internal fun MessageContent(
                     showStatus = options.showStatus,
                     showTimestamp = options.showTimestamp,
                 )
+
+                AnimatedVisibility(linkImageUrl != null) {
+                    AsyncImage(
+                        model = linkImageUrl,
+                        contentDescription = null,
+                    )
+                }
             }
         }
 
         AlignmentRule.SingleLineEnd -> {
-            Row(
-                modifier = modifier.width(IntrinsicSize.Max),
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
-            ) {
-                MarkupTextHandler(
-                    text = annotatedMessage,
-                    options = options,
-                    onLongPress = onLongPress,
-                    isFromBlockedMember = isFromBlockedMember,
-                    onDoubleClick = onDoubleClick,
-                )
-                Spacer(Modifier.weight(1f))
-                DateWithStatus(
-                    modifier = Modifier
-                        .padding(top = CodeTheme.dimens.grid.x1 + 2.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = if (!options.isInteractive) null else {
-                                    { onLongPress() }
-                                },
-                            )
-                        },
-                    date = date,
-                    status = status,
-                    isFromSelf = isFromSelf,
-                    showStatus = options.showStatus,
-                    showTimestamp = options.showTimestamp,
-                )
+            Column(modifier = modifier) {
+                Row(
+                    modifier = Modifier.width(IntrinsicSize.Max),
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+                ) {
+                    MarkupTextHandler(
+                        text = annotatedMessage,
+                        options = options,
+                        onLongPress = onLongPress,
+                        isFromBlockedMember = isFromBlockedMember,
+                        onDoubleClick = onDoubleClick,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    DateWithStatus(
+                        modifier = Modifier
+                            .padding(top = CodeTheme.dimens.grid.x1 + 2.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = if (!options.isInteractive) null else {
+                                        { onLongPress() }
+                                    },
+                                )
+                            },
+                        date = date,
+                        status = status,
+                        isFromSelf = isFromSelf,
+                        showStatus = options.showStatus,
+                        showTimestamp = options.showTimestamp,
+                    )
+                }
+
+                AnimatedVisibility(linkImageUrl != null) {
+                    AsyncImage(
+                        model = linkImageUrl,
+                        contentDescription = null,
+                    )
+                }
             }
         }
 

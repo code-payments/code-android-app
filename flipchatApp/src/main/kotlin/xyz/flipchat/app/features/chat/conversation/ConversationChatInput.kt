@@ -202,9 +202,7 @@ private fun RoomOpenControlBar(
         )
 
         CodeButton(
-            text = stringResource(
-                if (isOpen) R.string.action_close else R.string.action_reopen
-            ),
+            text = stringResource(R.string.action_change),
             shape = CircleShape,
             buttonState = ButtonState.Filled,
             overrideContentPadding = true,

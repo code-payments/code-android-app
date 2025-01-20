@@ -187,6 +187,7 @@ data class MessageNodeOptions(
     val isInteractive: Boolean = false,
     val canReplyTo: Boolean = false,
     val canTip: Boolean = false,
+    val linkImagePreviewEnabled: Boolean = false,
     val markupsToResolve: List<KClass<out Markup>> = listOf(
         Markup.RoomNumber::class,
         Markup.Url::class,

@@ -9,6 +9,9 @@ import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
+import com.getcode.libs.opengraph.OpenGraphCacheProvider
+import com.getcode.libs.opengraph.OpenGraphParser
+import com.getcode.libs.opengraph.cache.CacheProvider
 import com.getcode.services.analytics.AnalyticsService
 import com.getcode.services.analytics.AnalyticsServiceNull
 import com.getcode.util.locale.LocaleHelper
@@ -167,4 +170,16 @@ object AppModule {
     } else {
         GooglePlayBillingClient(context, userManager, purchaseRepository)
     }
+
+    @Singleton
+    @Provides
+    fun providesOpenGraphCache(
+        @ApplicationContext context: Context,
+    ): CacheProvider = OpenGraphCacheProvider(context)
+
+    @Singleton
+    @Provides
+    fun providesOpenGraphParser(
+        cache: CacheProvider
+    ): OpenGraphParser = OpenGraphParser(cacheProvider = cache)
 }

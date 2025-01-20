@@ -44,6 +44,7 @@ sealed interface MessageListEvent {
     data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
+    data object UnreadStateHandled: MessageListEvent
     data class TipMessage(val message: ChatItem.Message): MessageListEvent
     data class ShowTipsForMessage(val tips: List<MessageTip>): MessageListEvent
 }
@@ -74,13 +75,14 @@ fun MessageList(
 ) {
     var hasSetAtUnread by rememberSaveable(key = "0") { mutableStateOf(false) }
 
-    HandleMessageReads(listState, messages, hasSetAtUnread) {
-        dispatch(MessageListEvent.AdvancePointer(it))
-    }
-
-    HandleStartAtUnread(listState, messages, hasSetAtUnread) {
-        hasSetAtUnread = true
-    }
+//    HandleMessageReads(listState, messages, hasSetAtUnread) {
+//        dispatch(MessageListEvent.AdvancePointer(it))
+//    }
+//
+//    HandleStartAtUnread(listState, messages, hasSetAtUnread) {
+//        hasSetAtUnread = true
+//        dispatch(MessageListEvent.UnreadStateHandled)
+//    }
 
     LazyColumn(
         modifier = modifier,
@@ -155,6 +157,7 @@ fun MessageList(
                             isInteractive = item.messageControls.hasAny,
                             canReplyTo = item.enableReply,
                             canTip = item.enableTipping,
+                            linkImagePreviewEnabled = item.enableLinkImagePreview,
                             onMarkupClicked = if (item.enableMarkup) { markup: Markup.Interactive ->
                                 dispatch(MessageListEvent.OnMarkupEvent(markup))
                             } else null,

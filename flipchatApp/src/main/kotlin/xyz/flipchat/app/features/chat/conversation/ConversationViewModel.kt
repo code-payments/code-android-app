@@ -115,6 +115,7 @@ class ConversationViewModel @Inject constructor(
         val replyEnabled: Boolean,
         val replyMessage: MessageReplyAnchor?,
         val startAtUnread: Boolean,
+        val unreadStateHandled: Boolean,
         val title: String,
         val imageUri: String?,
         val lastSeen: Instant?,
@@ -126,6 +127,7 @@ class ConversationViewModel @Inject constructor(
         val isRoomOpen: Boolean,
         val isOpenCloseEnabled: Boolean,
         val isTippingEnabled: Boolean,
+        val isLinkImagePreviewsEnabled: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?
     ) {
@@ -140,6 +142,7 @@ class ConversationViewModel @Inject constructor(
                 imageUri = null,
                 conversationId = null,
                 unreadCount = null,
+                unreadStateHandled = false,
                 chattableState = null,
                 lastReadMessage = null,
                 textFieldState = TextFieldState(),
@@ -156,6 +159,7 @@ class ConversationViewModel @Inject constructor(
                 isRoomOpen = true,
                 isOpenCloseEnabled = false,
                 isTippingEnabled = false,
+                isLinkImagePreviewsEnabled = false,
                 roomInfoArgs = RoomInfoArgs(),
             )
         }
@@ -169,6 +173,7 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnInitialUnreadCountDetermined(val count: Int) : Event
+        data object OnUnreadStateHandled: Event
         data class OnTitlesChanged(val title: String, val roomCardTitle: String) : Event
         data class OnUserActivity(val activity: Instant) : Event
         data object SendCash : Event
@@ -183,6 +188,7 @@ class ConversationViewModel @Inject constructor(
         data class OnReplyEnabled(val enabled: Boolean) : Event
         data class OnOpenCloseEnabled(val enabled: Boolean) : Event
         data class OnTippingEnabled(val enabled: Boolean) : Event
+        data class OnLinkImagePreviewsEnabled(val enabled: Boolean) : Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -257,6 +263,10 @@ class ConversationViewModel @Inject constructor(
 
         betaFeatures.observe(Lab.Tipping)
             .onEach { dispatchEvent(Event.OnTippingEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.LinkImages)
+            .onEach { dispatchEvent(Event.OnLinkImagePreviewsEnabled(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -827,6 +837,8 @@ class ConversationViewModel @Inject constructor(
             val enableReply =
                 currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
 
+            val enableLinkImages = currentState.isLinkImagePreviewsEnabled
+
             page.map { indice ->
                 val (message, member, contents, reply, tipInfo) = indice
 
@@ -904,6 +916,7 @@ class ConversationViewModel @Inject constructor(
                     enableReply = enableReply && !message.isDeleted,
                     showTimestamp = false,
                     enableTipping = tippingEnabled,
+                    enableLinkImagePreview = enableLinkImages,
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
@@ -1345,6 +1358,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }
                 is Event.OnOpenCloseEnabled -> { state -> state.copy(isOpenCloseEnabled = event.enabled) }
                 is Event.OnTippingEnabled -> { state -> state.copy(isTippingEnabled = event.enabled) }
+                is Event.OnLinkImagePreviewsEnabled -> { state -> state.copy(isLinkImagePreviewsEnabled = event.enabled) }
+                Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }
             }
         }
     }

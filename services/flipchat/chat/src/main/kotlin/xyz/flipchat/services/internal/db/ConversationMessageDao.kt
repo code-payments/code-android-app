@@ -154,7 +154,19 @@ interface ConversationMessageDao {
 
 
     @Query("""
-        SELECT * FROM messages WHERE type = :type ORDER BY dateMillis DESC
+        SELECT * FROM messages 
+        WHERE type = :type AND conversationIdBase58 = :conversationId 
+        ORDER BY dateMillis DESC
+    """)
+    suspend fun getMessagesOfTypeInConversation(conversationId: String, type: Int): List<ConversationMessage>
+    suspend fun getMessagesOfTypeInConversation(conversationId: ID, type: Int): List<ConversationMessage> {
+        return getMessagesOfTypeInConversation(conversationId.base58, type)
+    }
+
+    @Query("""
+        SELECT * FROM messages 
+        WHERE type = :type
+        ORDER BY dateMillis DESC
     """)
     suspend fun getMessagesOfType(type: Int): List<ConversationMessage>
 

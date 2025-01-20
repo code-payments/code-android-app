@@ -32,7 +32,8 @@ internal fun rememberAlignmentRule(
     maxWidth: Int,
     message: AnnotatedString,
     date: Instant,
-    hasTips: Boolean,
+    hasTips: Boolean = false,
+    hasLink: Boolean = false,
 ): State<AlignmentRule?> {
     val density = LocalDensity.current
     val dateTextStyle = DateWithStatusDefaults.DateTextStyle
@@ -40,7 +41,7 @@ internal fun rememberAlignmentRule(
     val spacingPx = with(density) { DateWithStatusDefaults.Spacing.roundToPx() }
     val contentPaddingPx = with(density) { CodeTheme.dimens.grid.x2.roundToPx() }
 
-    return remember(minWidth, maxWidth, message, date) {
+    return remember(minWidth, maxWidth, message, date, hasLink) {
         mutableStateOf<AlignmentRule?>(null)
     }.apply {
         val textMeasurer = rememberTextMeasurer()
@@ -76,7 +77,7 @@ internal fun rememberAlignmentRule(
                         textMeasurer.measure(lineContent, contentTextStyle).size.width
 
                     value = when {
-                        lineContentWidth + bufferSize > maxWidth || hasTips -> AlignmentRule.Column
+                        lineContentWidth + bufferSize > maxWidth || hasTips || hasLink -> AlignmentRule.Column
                         textLayoutResult.lineCount == 1 -> AlignmentRule.SingleLineEnd
                         else -> AlignmentRule.ParagraphLastLine
                     }

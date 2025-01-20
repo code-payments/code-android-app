@@ -9,6 +9,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import com.getcode.libs.opengraph.LocalOpenGraphParser
+import com.getcode.libs.opengraph.OpenGraphParser
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.exchange.LocalExchange
@@ -68,6 +70,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var iapController: BillingClient
 
+    @Inject
+    lateinit var openGraphParser: OpenGraphParser
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -83,7 +88,8 @@ class MainActivity : FragmentActivity() {
                 LocalUserManager provides userManager,
                 LocalPaymentController provides paymentController,
                 LocalLabs provides betaFeatures,
-                LocalBillingClient provides iapController
+                LocalBillingClient provides iapController,
+                LocalOpenGraphParser provides openGraphParser,
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

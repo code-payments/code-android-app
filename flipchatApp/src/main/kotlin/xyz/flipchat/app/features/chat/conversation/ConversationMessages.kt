@@ -163,6 +163,10 @@ internal fun ConversationMessages(
                             navigator.show(MessageTipsSheet(event.tips))
                         }
                     }
+
+                    is MessageListEvent.UnreadStateHandled -> {
+                        dispatchEvent(ConversationViewModel.Event.OnUnreadStateHandled)
+                    }
                 }
             }
         )
@@ -203,7 +207,7 @@ internal fun ConversationMessages(
         }
     }
 
-    HandleMessageChanges(listState = lazyListState, items = messages) { message ->
-        dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
-    }
+//    HandleMessageChanges(listState = lazyListState, items = messages) { message ->
+//        dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
+//    }
 }

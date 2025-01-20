@@ -31,6 +31,7 @@ include(
         ":libs:messaging",
         ':libs:models',
         ":libs:network:exchange",
+        ':libs:opengraph',
         ':libs:network:connectivity',
         ":libs:permissions",
         ":libs:quickresponse",

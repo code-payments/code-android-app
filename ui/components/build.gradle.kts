@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":libs:models"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
+    implementation(project(":libs:opengraph"))
     implementation(project(":libs:requests"))
     implementation(project(":libs:vibrator"))
     implementation(project(":ui:theme"))

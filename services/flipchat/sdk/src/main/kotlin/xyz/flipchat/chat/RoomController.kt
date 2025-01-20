@@ -207,7 +207,8 @@ class RoomController @Inject constructor(
             remoteMediator = MessagesRemoteMediator(
                 chatId = conversationId,
                 repository = messagingRepository,
-                conversationMessageMapper = conversationMessageMapper
+                conversationMessageMapper = conversationMessageMapper,
+                userManager = userManager,
             )
         ) {
             MessagingPagingSource(conversationId, { userManager.userId }, db)
@@ -403,6 +404,7 @@ private class MessagesRemoteMediator(
     private val chatId: ID,
     private val repository: MessagingRepository,
     private val conversationMessageMapper: ConversationMessageMapper,
+    private val userManager: UserManager,
 ) : RemoteMediator<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>() {
 
     private val db = FcAppDatabase.requireInstance()
@@ -410,6 +412,8 @@ private class MessagesRemoteMediator(
     override suspend fun initialize(): InitializeAction {
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
+
+    private var deletes = mutableListOf<Pair<ID, ID>>()
 
     override suspend fun load(
         loadType: LoadType,
@@ -442,12 +446,25 @@ private class MessagesRemoteMediator(
             val response = withContext(Dispatchers.IO) { repository.getMessages(chatId, query) }
             val messages = response.getOrNull().orEmpty()
 
-            if (messages.isEmpty()) {
+            val conversationMessages =
+                messages.map { conversationMessageMapper.map(chatId to it) }
+
+            if (conversationMessages.isEmpty()) {
+                deletes.onEach { (id, by) -> db.conversationMessageDao().markDeleted(id, by) }
+                deletes.clear()
                 return MediatorResult.Success(true)
             }
 
-            val conversationMessages =
-                messages.map { conversationMessageMapper.map(chatId to it) }
+            conversationMessages.filter { it.type == 9 }
+                .mapNotNull { m ->
+                    MessageContent.fromData(
+                        type = m.type,
+                        content = m.content,
+                        isFromSelf = userManager.isSelf(m.senderId),
+                    ) as? MessageContent.DeletedMessage
+                }.let { results ->
+                    deletes += results.map { it.originalMessageId to it.messageDeleter }
+                }
 
             withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
@@ -456,6 +473,8 @@ private class MessagesRemoteMediator(
 
                 db.conversationMessageDao()
                     .upsertMessages(*conversationMessages.toTypedArray())
+
+                deletes.onEach { (id, by) -> db.conversationMessageDao().markDeleted(id, by) }
             }
 
             MediatorResult.Success(endOfPaginationReached = messages.size < limit)
