@@ -207,7 +207,7 @@ internal fun ConversationMessages(
         }
     }
 
-//    HandleMessageChanges(listState = lazyListState, items = messages) { message ->
-//        dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
-//    }
+    HandleMessageChanges(listState = lazyListState, items = messages) { message ->
+        dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
+    }
 }

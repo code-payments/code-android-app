@@ -75,14 +75,14 @@ fun MessageList(
 ) {
     var hasSetAtUnread by rememberSaveable(key = "0") { mutableStateOf(false) }
 
-//    HandleMessageReads(listState, messages, hasSetAtUnread) {
-//        dispatch(MessageListEvent.AdvancePointer(it))
-//    }
-//
-//    HandleStartAtUnread(listState, messages, hasSetAtUnread) {
-//        hasSetAtUnread = true
-//        dispatch(MessageListEvent.UnreadStateHandled)
-//    }
+    HandleMessageReads(listState, messages, hasSetAtUnread) {
+        dispatch(MessageListEvent.AdvancePointer(it))
+    }
+
+    HandleStartAtUnread(listState, messages, hasSetAtUnread) {
+        hasSetAtUnread = true
+        dispatch(MessageListEvent.UnreadStateHandled)
+    }
 
     LazyColumn(
         modifier = modifier,

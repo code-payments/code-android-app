@@ -221,7 +221,6 @@ internal fun MessageContent(
                     if (tips.isNotEmpty()) {
                         Tips(tips) { openTipModal() }
                     }
-                    Spacer(Modifier.weight(1f))
                     DateWithStatus(
                         modifier = Modifier
                             .weight(1f)
