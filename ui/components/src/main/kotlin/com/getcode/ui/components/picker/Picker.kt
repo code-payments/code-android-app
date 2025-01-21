@@ -100,7 +100,6 @@ fun <T> Picker(
         snapshotFlow { listState.firstVisibleItemIndex to listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .debounce(300.milliseconds)
             .map { (first, last) ->
-                println("first=$first, last=$last")
                 val index = ((first + (last ?: first)) / 2).coerceIn(1..items.lastIndex)
                 getItem(index)
             }
@@ -111,7 +110,6 @@ fun <T> Picker(
                     state.selectedItem = state.items.find { state.labelForItem(it) == item }
                 }
             }.launchIn(this)
-
     }
 
     val textMeasurer = rememberTextMeasurer()

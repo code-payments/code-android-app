@@ -443,7 +443,7 @@ private fun Tips(
                     vertical = CodeTheme.dimens.grid.x1,
                 ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+//            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
         ) {
             Text(
                 text = stringResource(R.string.title_kinAmountWithLogo, totalTips),
@@ -451,25 +451,25 @@ private fun Tips(
                 style = CodeTheme.typography.caption,
             )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy((-8).dp)
-            ) {
-                val imageModifier = Modifier
-                    .size(CodeTheme.dimens.staticGrid.x4)
-                    .clip(CircleShape)
-                    .border(CodeTheme.dimens.border, contentColor, CircleShape)
-
-                val tippers = remember(tips) { tips.map { it.tipper }.distinct() }
-
-                tippers.take(3).fastForEachIndexed { index, tipper ->
-                    UserAvatar(
-                        modifier = imageModifier
-                            .zIndex((tips.size - index).toFloat()),
-                        data = tipper.profileImage.nullIfEmpty() ?: tipper.id
-                    )
-                }
-            }
+//            Row(
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.spacedBy((-8).dp)
+//            ) {
+//                val imageModifier = Modifier
+//                    .size(CodeTheme.dimens.staticGrid.x4)
+//                    .clip(CircleShape)
+//                    .border(CodeTheme.dimens.border, contentColor, CircleShape)
+//
+//                val tippers = remember(tips) { tips.map { it.tipper }.distinct() }
+//
+//                tippers.take(3).fastForEachIndexed { index, tipper ->
+//                    UserAvatar(
+//                        modifier = imageModifier
+//                            .zIndex((tips.size - index).toFloat()),
+//                        data = tipper.profileImage.nullIfEmpty() ?: tipper.id
+//                    )
+//                }
+//            }
         }
     }
 }
