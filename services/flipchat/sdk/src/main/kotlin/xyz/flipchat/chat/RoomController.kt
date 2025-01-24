@@ -3,17 +3,14 @@ package xyz.flipchat.chat
 import android.annotation.SuppressLint
 import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
-import androidx.paging.LoadType
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
@@ -24,6 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import xyz.flipchat.chat.paging.MessagingPagingSource
+import xyz.flipchat.chat.paging.MessagingRemoteMediator
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
@@ -32,7 +31,6 @@ import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
-import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -199,7 +197,7 @@ class RoomController @Inject constructor(
     fun messages(conversationId: ID): Pager<Int, InflatedConversationMessage> =
         Pager(
             config = pagingConfig,
-            remoteMediator = MessagesRemoteMediator(
+            remoteMediator = MessagingRemoteMediator(
                 chatId = conversationId,
                 repository = messagingRepository,
                 conversationMessageMapper = conversationMessageMapper,
@@ -334,118 +332,3 @@ class RoomController @Inject constructor(
     }
 }
 
-private class MessagingPagingSource(
-    private val chatId: ID,
-    private val userId: () -> ID?,
-    private val db: FcAppDatabase
-) : PagingSource<Int, InflatedConversationMessage>() {
-
-    @SuppressLint("RestrictedApi")
-    private val observer =
-        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
-            invalidate()
-        }
-
-    override fun getRefreshKey(state: PagingState<Int, InflatedConversationMessage>): Int? {
-        val anchorPos = state.anchorPosition ?: return null
-        val anchorItem = state.closestItemToPosition(anchorPos) ?: return null
-        // The anchor item *knows* which page it was loaded from:
-        return anchorItem.pageIndex
-    }
-
-    @SuppressLint("RestrictedApi")
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, InflatedConversationMessage> {
-        observer.registerIfNecessary(db)
-        val currentPage = params.key ?: 0
-        val pageSize = params.loadSize
-        val offset = currentPage * pageSize
-
-        return withContext(Dispatchers.Default) {
-            try {
-                val messages =
-                    db.conversationMessageDao()
-                        .getPagedMessagesWithDetails(chatId, pageSize, offset, userId())
-                        .map { it.copy(pageIndex = currentPage) }
-
-                val prevKey = if (currentPage > 0 && messages.isNotEmpty()) currentPage - 1 else null
-                val nextKey = if (messages.size < pageSize) null else currentPage + 1
-
-                LoadResult.Page(
-                    data = messages,
-                    prevKey = prevKey,
-                    nextKey = nextKey,
-                )
-            } catch (e: Exception) {
-                LoadResult.Error(e)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalPagingApi::class)
-private class MessagesRemoteMediator(
-    private val chatId: ID,
-    private val repository: MessagingRepository,
-    private val conversationMessageMapper: ConversationMessageMapper,
-    private val userId: () -> ID?
-) : RemoteMediator<Int, InflatedConversationMessage>() {
-
-    private val db = FcAppDatabase.requireInstance()
-
-    override suspend fun initialize(): InitializeAction {
-        return InitializeAction.SKIP_INITIAL_REFRESH
-    }
-
-    override suspend fun load(
-        loadType: LoadType,
-        state: PagingState<Int, InflatedConversationMessage>
-    ): MediatorResult {
-        return try {
-            val loadKey = when (loadType) {
-                LoadType.REFRESH -> {
-                    null
-                }
-
-                LoadType.PREPEND -> {
-                    return MediatorResult.Success(true)  // Don't load newer messages
-                }
-
-                LoadType.APPEND -> {
-                    // Get the last item from our data
-                    state.lastItemOrNull()?.message?.id
-                }
-            }
-
-            val limit = state.config.pageSize
-
-            val query = QueryOptions(
-                limit = limit,
-                token = loadKey,
-                descending = true
-            )
-
-            val response = withContext(Dispatchers.IO) { repository.getMessages(chatId, query) }
-            val messages = response.getOrNull().orEmpty()
-
-            val conversationMessages =
-                messages.map { conversationMessageMapper.map(chatId to it) }
-
-            if (conversationMessages.isEmpty()) {
-                return MediatorResult.Success(true)
-            }
-
-            withContext(Dispatchers.IO) {
-                if (loadType == LoadType.REFRESH) {
-                    db.conversationMessageDao().clearMessagesForChat(chatId)
-                }
-
-                db.conversationMessageDao()
-                    .upsertMessages(messages = conversationMessages, selfID = userId())
-            }
-
-            MediatorResult.Success(endOfPaginationReached = messages.size < limit)
-        } catch (e: Exception) {
-            MediatorResult.Error(e)
-        }
-    }
-}
