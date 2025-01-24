@@ -23,6 +23,7 @@ class ChatMessageMapper @Inject constructor(): Mapper<Pair<ID, Model.Message>, C
             senderId = messageSenderId,
             isFromSelf = isFromSelf,
             dateMillis = timestamp,
+            wasSentOffStage = message.wasSenderOffStage,
             contents = message.contentList.mapNotNull {
                 MessageContent.invoke(
                     it,

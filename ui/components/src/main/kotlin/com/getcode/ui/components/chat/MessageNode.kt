@@ -493,6 +493,9 @@ fun MessageNode(
                             is MessageContent.DeletedMessage -> Unit
                             is MessageContent.Unknown -> Unit
                             is MessageContent.MessageTip -> Unit
+                            is MessageContent.MessageInReview -> {
+                                // TODO:
+                            }
                         }
                     }
                 }

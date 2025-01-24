@@ -1,6 +1,5 @@
 package xyz.flipchat.services.internal.db
 
-import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -186,12 +185,12 @@ interface ConversationDao {
     }
 
     @Query("UPDATE conversations SET coverChargeQuarks = :quarks WHERE idBase58 = :conversationId")
-    suspend fun updateCoverCharge(conversationId: String, quarks: Long)
-    suspend fun updateCoverCharge(conversationId: ID, quarks: Long) {
-        updateCoverCharge(conversationId.base58, quarks)
+    suspend fun updateMessagingFee(conversationId: String, quarks: Long)
+    suspend fun updateMessagingFee(conversationId: ID, quarks: Long) {
+        updateMessagingFee(conversationId.base58, quarks)
     }
-    suspend fun updateCoverCharge(conversationId: ID, kin: Kin) {
-        updateCoverCharge(conversationId.base58, kin.toKinTruncatingLong())
+    suspend fun updateMessagingFee(conversationId: ID, kin: Kin) {
+        updateMessagingFee(conversationId.base58, kin.toKinTruncatingLong())
     }
 
     @Query("UPDATE conversations SET isOpen = 1 WHERE idBase58 = :conversationId")

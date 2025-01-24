@@ -30,7 +30,8 @@ data class Conversation(
     @ColumnInfo(defaultValue = "true")
     val canMute: Boolean,
     val unreadCount: Int,
-    val coverChargeQuarks: Long?,
+    @ColumnInfo(name = "coverChargeQuarks")
+    val messagingFee: Long?,
     @ColumnInfo(defaultValue = "false")
     val hasMoreUnread: Boolean,
     @ColumnInfo(defaultValue = "true")
@@ -44,7 +45,7 @@ data class Conversation(
 
     @Ignore
     @Serializable(with = KinQuarksSerializer::class)
-    val coverCharge: Kin = coverChargeQuarks?.let { Kin.fromQuarks(coverChargeQuarks) } ?: Kin.fromQuarks(0)
+    val coverCharge: Kin = messagingFee?.let { Kin.fromQuarks(messagingFee) } ?: Kin.fromQuarks(0)
 }
 
 @Serializable
@@ -92,7 +93,7 @@ data class ConversationWithMembersAndLastMessage(
         parentColumn = "idBase58",
         entityColumn = "conversationIdBase58",
         entity = ConversationMessage::class,
-        projection = ["idBase58", "dateMillis", "senderIdBase58", "type", "content", "tipCount"]
+        projection = ["idBase58", "dateMillis", "senderIdBase58", "type", "content", "tipCount", "isApproved", "sentOffStage"]
     )
     val lastMessage: ConversationMessage?
 ) {

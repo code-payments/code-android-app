@@ -1,13 +1,9 @@
 package xyz.flipchat.chat
 
-import android.annotation.SuppressLint
 import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.paging.PagingSource
-import androidx.paging.PagingState
-import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -301,6 +297,7 @@ class RoomController @Inject constructor(
         return Result.success(Unit)
     }
 
+    @Deprecated("Replaced by setMessagingFee")
     suspend fun setCoverCharge(
         conversationId: ID,
         amount: KinAmount
@@ -308,7 +305,19 @@ class RoomController @Inject constructor(
         return chatRepository.setCoverCharge(conversationId, amount)
             .onSuccess {
                 withContext(Dispatchers.IO) {
-                    db.conversationDao().updateCoverCharge(conversationId, amount.kin)
+                    db.conversationDao().updateMessagingFee(conversationId, amount.kin)
+                }
+            }
+    }
+
+    suspend fun setMessagingFee(
+        conversationId: ID,
+        amount: KinAmount
+    ): Result<Unit> {
+        return chatRepository.setMessagingFee(conversationId, amount)
+            .onSuccess {
+                withContext(Dispatchers.IO) {
+                    db.conversationDao().updateMessagingFee(conversationId, amount.kin)
                 }
             }
     }

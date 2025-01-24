@@ -30,7 +30,7 @@ data class Room(
     private val unread: Int,
     private val moreUnread: Boolean,
     @Serializable(with = KinQuarksSerializer::class)
-    val coverCharge: Kin,
+    val messagingFee: Kin,
     private val lastActive: Long?,
     val isOpen: Boolean,
 ) {

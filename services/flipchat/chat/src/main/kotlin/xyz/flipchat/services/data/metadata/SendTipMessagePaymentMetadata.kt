@@ -1,4 +1,4 @@
-package xyz.flipchat.services.data
+package xyz.flipchat.services.data.metadata
 
 import com.codeinc.flipchat.gen.messaging.v1.MessagingService
 import com.getcode.model.ID

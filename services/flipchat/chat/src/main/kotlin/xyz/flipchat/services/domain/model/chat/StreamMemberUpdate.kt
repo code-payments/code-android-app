@@ -42,13 +42,27 @@ sealed interface StreamMemberUpdate {
             return "MUTED:: ${memberId.uuid} by ${mutedBy.uuid}"
         }
     }
+
+    // Member was promoted in the chat via the PromoteUser RPC
+    data class Promoted(val memberId: ID, val by: ID): StreamMemberUpdate {
+        override fun toString(): String {
+            return "PROMOTED:: ${memberId.uuid} by ${by.uuid}"
+        }
+    }
+
+    // Member was demoted in the chat via the DemoteUser RPC
+    data class Demoted(val memberId: ID, val by: ID): StreamMemberUpdate {
+        override fun toString(): String {
+            return "DEMOTED:: ${memberId.uuid} by ${by.uuid}"
+        }
+    }
 }
 
 sealed interface StreamMetadataUpdate {
     data class Refresh(val metadata: ChatService.Metadata): StreamMetadataUpdate
     data class UnreadCount(val numUnread: Int, val hasMoreUnread: Boolean): StreamMetadataUpdate
     data class DisplayName(val name: String): StreamMetadataUpdate
-    data class CoverCharge(val amount: Long): StreamMetadataUpdate
+    data class MessagingFee(val amount: Long): StreamMetadataUpdate
     data class LastActivity(val timestamp: Long): StreamMetadataUpdate
     data class OpenStatusChanged(val nowOpen: Boolean): StreamMetadataUpdate
 }

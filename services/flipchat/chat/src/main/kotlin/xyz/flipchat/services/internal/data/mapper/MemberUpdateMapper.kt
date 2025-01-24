@@ -45,6 +45,20 @@ class MemberUpdateMapper @Inject constructor(
                 )
             }
 
+            ApiMemberUpdate.KindCase.PROMOTED -> {
+                StreamMemberUpdate.Promoted(
+                    memberId = from.promoted.member.value.toList(),
+                    by = from.promoted.promotedBy.value.toList(),
+                )
+            }
+
+            ApiMemberUpdate.KindCase.DEMOTED -> {
+                StreamMemberUpdate.Demoted(
+                    memberId = from.demoted.member.value.toList(),
+                    by = from.demoted.demotedBy.value.toList(),
+                )
+            }
+
             ApiMemberUpdate.KindCase.KIND_NOT_SET -> null
             else -> null
         }

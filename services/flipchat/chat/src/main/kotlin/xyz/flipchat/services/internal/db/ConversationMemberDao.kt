@@ -74,6 +74,18 @@ interface ConversationMemberDao {
         unmuteMember(conversationId.base58, memberId.base58)
     }
 
+    @Query("UPDATE members SET isFullMember = 1 WHERE conversationIdBase58 = :conversationId AND memberIdBase58 = :memberId")
+    suspend fun promoteMember(conversationId: String, memberId: String)
+    suspend fun promoteMember(conversationId: ID, memberId: ID) {
+        promoteMember(conversationId.base58, memberId.base58)
+    }
+
+    @Query("UPDATE members SET isFullMember = 0 WHERE conversationIdBase58 = :conversationId AND memberIdBase58 = :memberId")
+    suspend fun demoteMember(conversationId: String, memberId: String)
+    suspend fun demoteMember(conversationId: ID, memberId: ID) {
+        demoteMember(conversationId.base58, memberId.base58)
+    }
+
     @Query("UPDATE members SET isBlocked = 1 WHERE memberIdBase58 = :memberId")
     suspend fun blockMember(memberId: String)
     suspend fun blockMember(memberId: ID) {

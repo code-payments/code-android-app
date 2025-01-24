@@ -14,7 +14,7 @@ class StreamMetadataUpdateMapper @Inject constructor(
     override fun map(from: Pair<ID, StreamMetadataUpdate>): ConversationUpdate {
         val (id, update) = from
         return when (update) {
-            is StreamMetadataUpdate.CoverCharge -> ConversationUpdate.CoverCharge(id, update.amount)
+            is StreamMetadataUpdate.MessagingFee -> ConversationUpdate.CoverCharge(id, update.amount)
             is StreamMetadataUpdate.DisplayName -> ConversationUpdate.DisplayName(id, update.name)
             is StreamMetadataUpdate.LastActivity -> ConversationUpdate.LastActivity(id, update.timestamp)
             is StreamMetadataUpdate.Refresh -> ConversationUpdate.Refresh(conversationMapper.map(metadataMapper.map(update.metadata)))

@@ -346,6 +346,7 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    @Deprecated("Replaced by setMessagingFee")
     suspend fun setCoverCharge(
         owner: KeyPair,
         chatId: ID,
@@ -385,7 +386,51 @@ internal class ChatService @Inject constructor(
                     }
                 }.first()
         } catch (e: Exception) {
-            val error = CoverChargeError.Other(cause = e)
+            val error = MessagingFeeError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
+    suspend fun setMessagingFee(
+        owner: KeyPair,
+        chatId: ID,
+        amount: KinAmount
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.setMessagingFee(owner, chatId, amount))
+                .map { response ->
+                    when (response.result) {
+                        ChatServiceRpc.SetMessagingFeeResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        ChatServiceRpc.SetMessagingFeeResponse.Result.UNRECOGNIZED -> {
+                            val error = MessagingFeeError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        ChatServiceRpc.SetMessagingFeeResponse.Result.DENIED -> {
+                            val error = MessagingFeeError.Denied()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        ChatServiceRpc.SetMessagingFeeResponse.Result.CANT_SET -> {
+                            val error = MessagingFeeError.CantSet()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = MessagingFeeError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = MessagingFeeError.Other(cause = e)
             Result.failure(error)
         }
     }
@@ -528,6 +573,50 @@ internal class ChatService @Inject constructor(
             val error = MuteUserError.Other(cause = e)
             Result.failure(error)
         }
+    }
+
+    suspend fun promoteUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+        enableSendPermission: Boolean = true,
+    ): Result<Unit> {
+        return networkOracle.managedApiRequest(
+            call = { api.promoteUser(owner, chatId, userId, enableSendPermission) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ChatService.PromoteUserResponse.Result.OK -> Result.success(Unit)
+                    ChatService.PromoteUserResponse.Result.DENIED -> Result.failure(PromoteUserError.Denied())
+                    ChatService.PromoteUserResponse.Result.UNRECOGNIZED -> Result.failure(PromoteUserError.Unrecognized())
+                    else -> Result.failure(PromoteUserError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(PromoteUserError.Other(cause))
+            }
+        )
+    }
+
+    suspend fun demoteUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+        disableSendPermission: Boolean = true,
+    ): Result<Unit> {
+        return networkOracle.managedApiRequest(
+            call = { api.demoteUser(owner, chatId, userId, disableSendPermission) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ChatService.DemoteUserResponse.Result.OK -> Result.success(Unit)
+                    ChatService.DemoteUserResponse.Result.DENIED -> Result.failure(DemoteUserError.Denied())
+                    ChatService.DemoteUserResponse.Result.UNRECOGNIZED -> Result.failure(DemoteUserError.Unrecognized())
+                    else -> Result.failure(DemoteUserError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(DemoteUserError.Other(cause))
+            }
+        )
     }
 
     suspend fun enableChat(
@@ -764,6 +853,16 @@ sealed class CoverChargeError(
     data class Other(override val cause: Throwable? = null) : CoverChargeError(cause = cause)
 }
 
+sealed class MessagingFeeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Unrecognized : MessagingFeeError()
+    class Denied : MessagingFeeError()
+    class CantSet : MessagingFeeError()
+    data class Other(override val cause: Throwable? = null) : MessagingFeeError(cause = cause)
+}
+
 sealed class RemoveUserError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -780,6 +879,24 @@ sealed class GetMemberUpdateError(
     class Unrecognized : GetMemberUpdateError()
     class NotFound : GetMemberUpdateError()
     data class Other(override val cause: Throwable? = null) : GetMemberUpdateError(cause = cause)
+}
+
+sealed class PromoteUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Denied : PromoteUserError()
+    class Unrecognized : PromoteUserError()
+    data class Other(override val cause: Throwable? = null) : PromoteUserError(cause = cause)
+}
+
+sealed class DemoteUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class Denied : DemoteUserError()
+    class Unrecognized : DemoteUserError()
+    data class Other(override val cause: Throwable? = null) : DemoteUserError(cause = cause)
 }
 
 sealed class OpenChatError(

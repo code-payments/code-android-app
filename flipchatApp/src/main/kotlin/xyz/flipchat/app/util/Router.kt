@@ -120,7 +120,7 @@ class RouterImpl(
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,
-                                coverChargeQuarks = room.coverCharge.quarks,
+                                messagingFeeQuarks = room.messagingFee.quarks,
                             )
 
                             screens.add(

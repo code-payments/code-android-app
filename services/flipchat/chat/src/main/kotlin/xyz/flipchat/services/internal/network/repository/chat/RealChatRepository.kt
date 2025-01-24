@@ -157,12 +157,23 @@ internal class RealChatRepository @Inject constructor(
         }
     }
 
+    @Deprecated("Replaced by setMessagingFee")
     override suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit> {
         val owner = userManager.keyPair
             ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.setCoverCharge(owner, chatId, amount)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
+    override suspend fun setMessagingFee(chatId: ID, amount: KinAmount): Result<Unit> {
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.setMessagingFee(owner, chatId, amount)
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }
@@ -194,6 +205,26 @@ internal class RealChatRepository @Inject constructor(
         return withContext(Dispatchers.IO) {
             service.getMemberUpdates(owner, chatId, afterMember)
                 .map { updates -> updates.mapNotNull { memberUpdateMapper.map(it) } }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
+    override suspend fun promoteUser(chatId: ID, userId: ID): Result<Unit> {
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.promoteUser(owner, chatId, userId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
+    override suspend fun demoteUser(chatId: ID, userId: ID): Result<Unit> {
+        val owner = userManager.keyPair
+            ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.demoteUser(owner, chatId, userId)
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }
@@ -288,6 +319,20 @@ internal class RealChatRepository @Inject constructor(
                                     )
                                 }
 
+                                is StreamMemberUpdate.Demoted -> {
+                                    ConversationMemberUpdate.Demoted(
+                                        update.id,
+                                        memberUpdate.memberId,
+                                        memberUpdate.by
+                                    )
+                                }
+                                is StreamMemberUpdate.Promoted -> {
+                                    ConversationMemberUpdate.Promoted(
+                                        update.id,
+                                        memberUpdate.memberId,
+                                        memberUpdate.by
+                                    )
+                                }
                                 null -> null
                             }
                         }

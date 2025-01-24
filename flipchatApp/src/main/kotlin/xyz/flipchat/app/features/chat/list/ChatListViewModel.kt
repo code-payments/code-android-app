@@ -31,9 +31,9 @@ import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
-import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
-import xyz.flipchat.services.data.erased
-import xyz.flipchat.services.data.typeUrl
+import xyz.flipchat.services.data.metadata.StartGroupChatPaymentMetadata
+import xyz.flipchat.services.data.metadata.erased
+import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.AuthState

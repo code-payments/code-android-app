@@ -201,6 +201,8 @@ class ChatApi @Inject constructor(
     }
 
     // SetCoverCharge sets a chat's cover charge
+    //
+    // Deprecated: Use SetMessagingFee instead
     fun setCoverCharge(
         owner: KeyPair,
         chatId: ID,
@@ -213,6 +215,23 @@ class ChatApi @Inject constructor(
             .build()
 
         return api::setCoverCharge
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // SetMessagingFee sets a chat's messaging fee
+    fun setMessagingFee(
+        owner: KeyPair,
+        chatId: ID,
+        amount: KinAmount,
+    ): Flow<ChatServiceRpc.SetMessagingFeeResponse> {
+        val request = ChatServiceRpc.SetMessagingFeeRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setMessagingFee(amount.toPaymentAmount())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::setMessagingFee
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }
@@ -287,6 +306,44 @@ class ChatApi @Inject constructor(
 
 
         return api::getMemberUpdates
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // PromoteUser promotes a user to an elevated permission state
+    fun promoteUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+        enableSendPermission: Boolean = true,
+    ): Flow<ChatServiceRpc.PromoteUserResponse> {
+        val request = ChatServiceRpc.PromoteUserRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setUserId(userId.toUserId())
+            .setEnableSendPermission(enableSendPermission)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::promoteUser
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // DemoteUser demotes a user to a lower permission state
+    fun demoteUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+        disableSendPermission: Boolean = true,
+    ): Flow<ChatServiceRpc.DemoteUserResponse> {
+        val request = ChatServiceRpc.DemoteUserRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setUserId(userId.toUserId())
+            .setDisableSendPermission(disableSendPermission)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::demoteUser
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

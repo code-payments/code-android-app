@@ -1,5 +1,6 @@
 package xyz.flipchat.services.internal.db
 
+import androidx.compose.ui.util.fastDistinctBy
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -8,7 +9,9 @@ import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.uuid
 import com.getcode.utils.base58
+import com.getcode.utils.timestamp
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
@@ -57,6 +60,20 @@ interface ConversationMessageDao {
                 m.id to tipContent
             }
 
+        // first review for a message in the stream wins
+        // so we sort and distinct by the [originalMessageId] and only change [isApproved] if
+        // not previously set
+        val reviews: List<MessageContent.MessageInReview> = messages
+            .mapNotNull { m ->
+                MessageContent.fromData(
+                    type = m.type,
+                    content = m.content,
+                    isFromSelf = m.senderId == selfID,
+                ) as? MessageContent.MessageInReview ?: return@mapNotNull null
+            }.sortedBy { it.originalMessageId.uuid }
+            .fastDistinctBy { it.originalMessageId }
+            .filterNot { hasBeenReviewed(it.originalMessageId) }
+
         deletes.onEach {
             markDeleted(it.originalMessageId, it.messageDeleter)
         }
@@ -67,6 +84,14 @@ interface ConversationMessageDao {
 
         tips.onEach {
             addTip(tipMessageId = it.first, tipContent = it.second)
+        }
+
+        reviews.onEach { review ->
+            if (review.isApproved) {
+                approve(review.originalMessageId)
+            } else {
+                reject(review.originalMessageId)
+            }
         }
     }
 
@@ -82,6 +107,8 @@ interface ConversationMessageDao {
         messages.deleted AS deleted,
         messages.deletedByBase58 AS deletedByBase58,
         messages.inReplyToBase58 AS inReplyToBase58,
+        messages.isApproved AS isApproved,
+        messages.sentOffStage AS sentOffStage,
         messages.content AS content,
         members.memberIdBase58 AS memberIdBase58,
         members.memberName AS memberName,
@@ -214,6 +241,24 @@ interface ConversationMessageDao {
     suspend fun incrementTipCount(messageId: String)
     suspend fun incrementTipCount(messageId: ID) {
         incrementTipCount(messageId.base58)
+    }
+
+    @Query("SELECT isApproved FROM messages WHERE idBase58 = :messageId AND isApproved IS NOT NULL")
+    suspend fun hasBeenReviewed(messageId: String): Boolean
+    suspend fun hasBeenReviewed(messageId: ID): Boolean {
+        return hasBeenReviewed(messageId.base58)
+    }
+
+    @Query("UPDATE messages SET isApproved = 1 WHERE idBase58 = :messageId")
+    suspend fun approve(messageId: String)
+    suspend fun approve(messageId: ID) {
+        approve(messageId.base58)
+    }
+
+    @Query("UPDATE messages SET isApproved = 0 WHERE idBase58 = :messageId")
+    suspend fun reject(messageId: String)
+    suspend fun reject(messageId: ID) {
+        reject(messageId.base58)
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

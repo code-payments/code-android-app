@@ -26,6 +26,9 @@ message Message {
     // Timestamp this message was generated at. This value is also encoded in
     // any time-based UUID message IDs.
     google.protobuf.Timestamp ts = 4;
+    // If sender_id is provided, were they off stage at the time of sending
+    // this message
+    bool was_sender_off_stage = 5;
 }
 message MessageBatch {
     repeated Message messages = 1 ;
@@ -62,6 +65,7 @@ message Content {
         ReplyContent                  reply                   = 6;
         TipContent                    tip                     = 7;
         DeleteMessageContent          deleted                 = 8;
+        ReviewContent                 review                  = 9;
     }
     reserved 3; // ExchangeDataContent
     reserved 4; // NaclBoxEncryptedContent
@@ -100,4 +104,12 @@ message TipContent {
 message DeleteMessageContent {
     // The message ID of the message that was deleted
     MessageId original_message_id = 1 ;
+}
+message ReviewContent {
+    // The message ID of the message that is being reviewed. Currently, only
+    // off stage messages can be reviewed
+    MessageId original_message_id = 1 ;
+    // Whether the message has been approved. In the event of multiple reviews,
+    // the first message in the message log takes priority.
+    bool is_approved = 2;
 }

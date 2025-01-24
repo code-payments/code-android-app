@@ -397,6 +397,47 @@ sealed interface MessageContent {
         override val content: String = Json.encodeToString(Content(originalMessageId, tipperId, amountInQuarks))
     }
 
+    @Serializable
+    data class MessageInReview(
+        val originalMessageId: ID,
+        val isApproved: Boolean,
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 11
+
+        override fun hashCode(): Int {
+            var result = originalMessageId.hashCode()
+            result += isApproved.hashCode()
+            result += isFromSelf.hashCode()
+            result += kind.hashCode()
+
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as MessageInReview
+
+            if (originalMessageId != other.originalMessageId) return false
+            if (isApproved != other.isApproved) return false
+            if (isFromSelf != other.isFromSelf) return false
+            if (kind != other.kind) return false
+
+            return true
+        }
+
+        @Serializable
+        internal data class Content(
+            val originalMessageId: ID,
+            val isApproved: Boolean,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(originalMessageId, isApproved))
+    }
+
     companion object {
         fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
             return when (type) {
@@ -427,6 +468,10 @@ sealed interface MessageContent {
                 10 -> {
                     val data = Json.decodeFromString<MessageTip.Content>(content)
                     MessageTip(data.originalMessageId, data.tipperId, data.amountInQuarks, isFromSelf)
+                }
+                11 -> {
+                    val data = Json.decodeFromString<MessageInReview.Content>(content)
+                    MessageInReview(data.originalMessageId, data.isApproved, isFromSelf)
                 }
                 else -> Unknown(isFromSelf)
             }

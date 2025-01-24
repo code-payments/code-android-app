@@ -162,7 +162,7 @@ class ChatInfoViewModel @Inject constructor(
                             hostId = args.ownerId,
                             hostName = args.hostName,
                             roomNumber = args.roomNumber,
-                            coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
+                            messagingFee = Kin.fromQuarks(args.messagingFeeQuarks)
                         )
                     )
                 }
@@ -179,7 +179,7 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.OnCoverChanged -> { state ->
                     state.copy(
                         roomInfo = state.roomInfo.copy(
-                            coverCharge = event.cover,
+                            messagingFee = event.cover,
                         )
                     )
                 }

@@ -32,6 +32,9 @@ data class ConversationMessage(
     private val deleted: Boolean?,
     private val deletedByBase58: String? = null,
     val inReplyToBase58: String? = null,
+    @ColumnInfo(defaultValue = "false")
+    val sentOffStage: Boolean = false,
+    val isApproved: Boolean? = null,
     @ColumnInfo(defaultValue = "0")
     val tipCount: Int = 0,
     @ColumnInfo(defaultValue = "1")

@@ -125,7 +125,7 @@ class LookupRoomViewModel @Inject constructor(
                             memberCount = it.members.count(),
                             ownerId = it.room.ownerId,
                             hostName = host?.identity?.displayName,
-                            coverChargeQuarks = it.room.coverCharge.quarks
+                            messagingFeeQuarks = it.room.messagingFee.quarks
                         )
                         dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
                     }

@@ -40,7 +40,11 @@ interface ChatRepository {
     suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit>
     suspend fun mute(chatId: ID): Result<Unit>
     suspend fun unmute(chatId: ID): Result<Unit>
+    @Deprecated("Replaced by setMessagingFee")
     suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit>
+    suspend fun setMessagingFee(chatId: ID, amount: KinAmount): Result<Unit>
+    suspend fun promoteUser(chatId: ID, userId: ID): Result<Unit>
+    suspend fun demoteUser(chatId: ID, userId: ID): Result<Unit>
     suspend fun enableChat(chatId: ID): Result<Unit>
     suspend fun disableChat(chatId: ID): Result<Unit>
 

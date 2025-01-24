@@ -24,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -181,7 +180,7 @@ fun RoomCard(
                             formatAmountString(
                                 resources = LocalResources.current!!,
                                 currency = Currency.Kin,
-                                amount = roomInfo.coverCharge.quarks.toDouble(),
+                                amount = roomInfo.messagingFee.quarks.toDouble(),
                                 suffix = stringResource(R.string.core_kin)
                             )
                         ),

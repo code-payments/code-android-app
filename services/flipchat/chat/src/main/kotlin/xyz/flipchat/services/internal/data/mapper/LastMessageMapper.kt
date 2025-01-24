@@ -19,6 +19,7 @@ class LastMessageMapper @Inject constructor(
             id = messageId,
             senderId = messageSenderId,
             isFromSelf = isFromSelf,
+            wasSentOffStage = message.wasSenderOffStage,
             dateMillis = message.ts.seconds * 1_000L,
             contents = message.contentList.mapNotNull {
                 MessageContent.invoke(

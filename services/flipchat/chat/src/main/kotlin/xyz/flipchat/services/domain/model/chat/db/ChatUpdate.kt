@@ -18,6 +18,8 @@ sealed interface ConversationMemberUpdate {
     data class Left(val roomId: ID, val memberId: ID): ConversationMemberUpdate
     data class Removed(val roomId: ID, val memberId: ID, val removedBy: ID): ConversationMemberUpdate
     data class Muted(val roomId: ID, val memberId: ID, val mutedBy: ID): ConversationMemberUpdate
+    data class Promoted(val roomId: ID, val memberId: ID, val by: ID): ConversationMemberUpdate
+    data class Demoted(val roomId: ID, val memberId: ID, val by: ID): ConversationMemberUpdate
 }
 
 sealed interface ConversationUpdate {

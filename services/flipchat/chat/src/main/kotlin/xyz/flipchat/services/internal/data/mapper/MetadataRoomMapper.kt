@@ -22,7 +22,7 @@ class MetadataRoomMapper @Inject constructor(
             moreUnread = from.hasMoreUnread,
             canDisablePush = from.canDisablePush,
             isPushEnabled = from.isPushEnabled,
-            coverCharge = Kin.fromQuarks(from.coverCharge.quarks.ifZeroOrElse(200) { it / 100_000 }),
+            messagingFee = Kin.fromQuarks(from.messagingFee.quarks.ifZeroOrElse(200) { it / 100_000 }),
             lastActive = from.lastActivityOrNull?.seconds?.times(1_000),
             isOpen = from.openStatusOrNull?.isCurrentlyOpen ?: true
         )

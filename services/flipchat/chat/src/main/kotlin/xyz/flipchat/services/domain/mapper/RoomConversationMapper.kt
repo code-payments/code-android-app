@@ -2,9 +2,7 @@ package xyz.flipchat.services.domain.mapper
 
 import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.domain.model.chat.Conversation
-import xyz.flipchat.services.extensions.titleOrFallback
 import com.getcode.services.mapper.Mapper
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import javax.inject.Inject
 
@@ -20,7 +18,7 @@ class RoomConversationMapper @Inject constructor() : Mapper<Room, Conversation> 
             isMuted = from.isMuted,
             canMute = from.canMute,
             roomNumber = from.roomNumber,
-            coverChargeQuarks = from.coverCharge.quarks,
+            messagingFee = from.messagingFee.quarks,
             lastActivity = from.lastActivity?.toEpochMilliseconds(),
             isOpen = from.isOpen
         )

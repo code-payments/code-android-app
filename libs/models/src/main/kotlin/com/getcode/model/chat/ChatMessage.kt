@@ -22,6 +22,7 @@ data class ChatMessage(
     val cursor: Cursor = id,
     val dateMillis: Long,
     val contents: List<MessageContent>,
+    val wasSentOffStage: Boolean = false,
 ) {
     val hasEncryptedContent: Boolean
         get() {

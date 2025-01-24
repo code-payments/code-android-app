@@ -105,7 +105,7 @@ class ChatsController @Inject constructor(
                             event.metadata.onEach { update ->
                                 when (update) {
                                     is ConversationUpdate.CoverCharge -> {
-                                        db.conversationDao().updateCoverCharge(update.roomId, update.amount)
+                                        db.conversationDao().updateMessagingFee(update.roomId, update.amount)
                                     }
                                     is ConversationUpdate.DisplayName -> {
                                         val conversation = db.conversationDao().findConversationRaw(update.roomId)?.copy(title = update.name)
@@ -177,6 +177,19 @@ class ChatsController @Inject constructor(
 
                                     is ConversationMemberUpdate.Removed -> {
                                         db.conversationMembersDao().removeMemberFromConversation(
+                                            memberId = update.memberId,
+                                            conversationId = update.roomId
+                                        )
+                                    }
+
+                                    is ConversationMemberUpdate.Demoted -> {
+                                        db.conversationMembersDao().demoteMember(
+                                            memberId = update.memberId,
+                                            conversationId = update.roomId
+                                        )
+                                    }
+                                    is ConversationMemberUpdate.Promoted -> {
+                                        db.conversationMembersDao().promoteMember(
                                             memberId = update.memberId,
                                             conversationId = update.roomId
                                         )

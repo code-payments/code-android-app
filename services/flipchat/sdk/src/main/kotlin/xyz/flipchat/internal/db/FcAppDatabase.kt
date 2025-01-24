@@ -64,8 +64,9 @@ import java.io.File
         AutoMigration(from = 18, to = 19),
         AutoMigration(from = 19, to = 20),
         AutoMigration(from = 20, to = 21, spec = FcAppDatabase.Migration20To21::class),
+        AutoMigration(from = 21, to = 22, spec = FcAppDatabase.Migration21To22::class),
     ],
-    version = 21,
+    version = 22,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -131,6 +132,13 @@ abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     class Migration20To21 : Migration(20, 21), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM messages")
+        }
+    }
+
+    class Migration21To22 : Migration(21, 22), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM messages")
+            db.execSQL("DELETE FROM members")
         }
     }
 

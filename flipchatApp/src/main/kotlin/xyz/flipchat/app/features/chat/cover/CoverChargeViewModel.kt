@@ -3,9 +3,7 @@ package xyz.flipchat.app.features.chat.cover
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
-import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.Rate
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper

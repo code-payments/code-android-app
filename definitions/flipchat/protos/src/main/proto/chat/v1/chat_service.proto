@@ -44,9 +44,17 @@ service Chat {
     // then a set of alternate suggestions may be provided
     rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
     // SetCoverCharge sets a chat's cover charge
+    //
+    // Deprecated: Use SetMessagingFee instead
     rpc SetCoverCharge(SetCoverChargeRequest) returns (SetCoverChargeResponse);
+    // SetMessagingFee sets a chat's messaging fee
+    rpc SetMessagingFee(SetMessagingFeeRequest) returns (SetMessagingFeeResponse);
     // GetMemberUpdates gets member updates for a given chat
     rpc GetMemberUpdates(GetMemberUpdatesRequest) returns (GetMemberUpdatesResponse);
+    // PromoteUser promotes a user to an elevated permission state
+    rpc PromoteUser(PromoteUserRequest) returns (PromoteUserResponse);
+    // DemoteUser demotes a user to a lower permission state
+    rpc DemoteUser(DemoteUserRequest) returns (DemoteUserResponse);
     // RemoveUser removes a user from a chat
     rpc RemoveUser(RemoveUserRequest) returns (RemoveUserResponse);
     // MuteUser mutes a user in the chat and removes their ability to send messages
@@ -294,6 +302,19 @@ message SetCoverChargeResponse {
         CANT_SET = 2;
     }
 }
+message SetMessagingFeeRequest {
+    common.v1.ChatId chat_id = 1;
+    common.v1.PaymentAmount messaging_fee = 2;
+    common.v1.Auth auth = 3;
+}
+message SetMessagingFeeResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+        CANT_SET = 2;
+    }
+}
 message GetMemberUpdatesRequest {
     common.v1.ChatId chat_id = 1;
     // If not provided, a full refresh is performed. Server may also choose
@@ -310,6 +331,34 @@ message GetMemberUpdatesResponse {
         NOT_FOUND = 1;
     }
     repeated MemberUpdate updates = 2 ;
+}
+message PromoteUserRequest {
+    common.v1.ChatId chat_id = 1;
+    common.v1.UserId user_id = 2;
+    // Enables send permissions when value is true
+    bool enable_send_permission = 3;
+    common.v1.Auth auth = 100;
+}
+message PromoteUserResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+    }
+}
+message DemoteUserRequest {
+    common.v1.ChatId chat_id = 1;
+    common.v1.UserId user_id = 2;
+    // Disables send permissions when value is true
+    bool disable_send_permission = 3;
+    common.v1.Auth auth = 100;
+}
+message DemoteUserResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+    }
 }
 message RemoveUserRequest{
     common.v1.ChatId chat_id = 1;
@@ -395,8 +444,11 @@ message Metadata {
     // This is a super priviledge role, in which there can only be one.
     // This role is displayed as a 'host' currently.
     common.v1.UserId owner = 8;
-    // If present, the cover charge that must be paid to join the chat
-    common.v1.PaymentAmount cover_charge = 9;
+    // If present, the fee that must be paid to send a message as a non-regular
+    // chat member.
+    //
+    // This replaces the legacy cover charge mechanic, which is deprecated
+    common.v1.PaymentAmount messaging_fee = 9;
     // The timestamp of the last activity in this chat
     google.protobuf.Timestamp last_activity = 10;
     // The status as to whether the room is open or closed. This may be
@@ -416,7 +468,7 @@ message MetadataUpdate {
         FullRefresh         full_refresh          = 1;
         UnreadCountChanged  unread_count_changed  = 2;
         DisplayNameChanged  display_name_changed  = 3;
-        CoverChargeChanged  cover_charge_changed  = 4;
+        MessagingFeeChanged messaging_fee_changed  = 4;
         LastActivityChanged last_activity_changed = 5;
         OpenStatusChanged   open_status_changed   = 6;
     }
@@ -436,9 +488,9 @@ message MetadataUpdate {
     message DisplayNameChanged {
         string new_display_name = 1 ;
     }
-    // The chat cover charge has been updated to a new value
-    message CoverChargeChanged {
-        common.v1.PaymentAmount new_cover_charge = 1;
+    // The chat messaging fee has been updated to a new value
+    message MessagingFeeChanged {
+        common.v1.PaymentAmount new_messaging_fee = 1;
     }
     // The last activity timestamp has changed to a newer value
     message LastActivityChanged {
@@ -473,7 +525,8 @@ message Member {
     // messages, even if they paid for the permission.
     bool is_muted = 6;
     // Does the chat member have permission to send messages in the chat? If
-    // not, the user is considered to be a spectator.
+    // not, the user is considered to be a spectator or listener. Otherwise,
+    // they are a speaker.
     bool has_send_permission = 7;
 }
 message MemberIdentity {
@@ -490,6 +543,8 @@ message MemberUpdate {
         Left              left               = 4;
         Removed           removed            = 5;
         Muted             muted              = 6;
+        Promoted          promoted           = 7;
+        Demoted           demoted            = 8;
     }
     common.v1.PagingToken paging_token = 1000;
     // Refreshes the state of the entire chat membership
@@ -517,5 +572,17 @@ message MemberUpdate {
     message Muted {
         common.v1.UserId member = 1;
         common.v1.UserId muted_by = 2;
+    }
+    // Member was promoted in the chat via the PromoteUser RPC
+    message Promoted {
+        common.v1.UserId member = 1;
+        common.v1.UserId promoted_by = 2;
+        bool send_permission_enabled = 3;
+    }
+    // Member was demoted in the chat via the DemoteUser RPC
+    message Demoted {
+        common.v1.UserId member = 1;
+        common.v1.UserId demoted_by = 2;
+        bool send_permission_disabled = 3;
     }
 }

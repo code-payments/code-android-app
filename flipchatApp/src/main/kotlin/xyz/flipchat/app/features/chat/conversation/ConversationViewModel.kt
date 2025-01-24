@@ -69,10 +69,10 @@ import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
-import xyz.flipchat.services.data.JoinChatPaymentMetadata
-import xyz.flipchat.services.data.SendTipMessagePaymentMetadata
-import xyz.flipchat.services.data.erased
-import xyz.flipchat.services.data.typeUrl
+import xyz.flipchat.services.data.metadata.JoinChatPaymentMetadata
+import xyz.flipchat.services.data.metadata.SendTipMessagePaymentMetadata
+import xyz.flipchat.services.data.metadata.erased
+import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
@@ -318,7 +318,7 @@ class ConversationViewModel @Inject constructor(
                     when {
                         isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
                         isSpectator -> ChattableState.Spectator(
-                            Kin.fromQuarks(it.conversation.coverChargeQuarks ?: 0)
+                            Kin.fromQuarks(it.conversation.messagingFee ?: 0)
                         )
 
                         isMuted -> ChattableState.DisabledByMute
@@ -740,7 +740,7 @@ class ConversationViewModel @Inject constructor(
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,
-                                coverChargeQuarks = room.coverCharge.quarks,
+                                messagingFeeQuarks = room.messagingFee.quarks,
                             )
                             dispatchEvent(Event.OpenJoinConfirmation(roomInfo))
                         }
@@ -779,7 +779,7 @@ class ConversationViewModel @Inject constructor(
                     )
 
                     val amount =
-                        KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.coverChargeQuarks)
+                        KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.messagingFeeQuarks)
 
                     paymentController.presentPublicPaymentConfirmation(
                         amount = amount,
@@ -1282,7 +1282,7 @@ class ConversationViewModel @Inject constructor(
                             ownerId = conversation.ownerId,
                             hostName = host?.memberName,
                             memberCount = members.count(),
-                            coverChargeQuarks = conversation.coverCharge.quarks
+                            messagingFeeQuarks = conversation.coverCharge.quarks
                         )
                     )
                 }

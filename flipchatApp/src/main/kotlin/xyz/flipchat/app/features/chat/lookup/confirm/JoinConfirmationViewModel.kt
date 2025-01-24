@@ -7,12 +7,10 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.services.model.ExtendedMetadata
-import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -30,12 +28,11 @@ import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
-import xyz.flipchat.services.data.JoinChatPaymentMetadata
-import xyz.flipchat.services.data.erased
-import xyz.flipchat.services.data.typeUrl
+import xyz.flipchat.services.data.metadata.JoinChatPaymentMetadata
+import xyz.flipchat.services.data.metadata.erased
+import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 data class LoadingSuccessState(
     val loading: Boolean = false,
@@ -130,7 +127,7 @@ class JoinConfirmationViewModel @Inject constructor(
             .mapNotNull {
                 val destination = stateFlow.value.paymentDestination ?: return@mapNotNull null
                 val amount =
-                    KinAmount.fromQuarks(it.coverCharge.quarks)
+                    KinAmount.fromQuarks(it.messagingFee.quarks)
 
                 dispatchEvent(Event.OnJoiningChanged(true))
                 if (userManager.userId == it.hostId) {
@@ -215,7 +212,7 @@ class JoinConfirmationViewModel @Inject constructor(
                             hostId = args.ownerId,
                             hostName = args.hostName,
                             roomNumber = args.roomNumber,
-                            coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
+                            messagingFee = Kin.fromQuarks(args.messagingFeeQuarks)
                         ),
                     )
                 }

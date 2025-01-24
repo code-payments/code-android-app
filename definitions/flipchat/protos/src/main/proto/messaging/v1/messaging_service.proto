@@ -89,6 +89,7 @@ message SendMessageRequest {
     //  - ReplyContent
     //  - TipContent
     //  - DeleteMessageContent
+    //  - ReviewContent
     repeated Content content = 2 ;
     common.v1.Auth auth = 3;
     // Intent ID for message contents that require a payment
@@ -103,6 +104,12 @@ message SendMessageResponse {
     // The chat message that was sent if the RPC was succesful, which includes
     // server-side metadata like the generated message ID and official timestamp
     Message message = 2;
+}
+message SendMessageAsListenerPaymentMetadata {
+    // The chat where the message is being sent
+    common.v1.ChatId chat_id = 1;
+    // The user sending the message
+    common.v1.UserId user_id = 2;
 }
 message SendTipMessagePaymentMetadata {
     // The chat where the message is being tipped
