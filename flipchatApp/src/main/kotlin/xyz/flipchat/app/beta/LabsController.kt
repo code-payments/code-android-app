@@ -63,8 +63,8 @@ sealed interface Lab {
 
     data object Tipping : Lab {
         override val key: String = "tipping_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object LinkImages : Lab {
