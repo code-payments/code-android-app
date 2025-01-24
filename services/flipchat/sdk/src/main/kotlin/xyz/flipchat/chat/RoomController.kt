@@ -193,7 +193,7 @@ class RoomController @Inject constructor(
     }
 
     private val pagingConfig =
-        PagingConfig(pageSize = 25, initialLoadSize = 25, prefetchDistance = 10)
+        PagingConfig(pageSize = 25, initialLoadSize = 25, prefetchDistance = 10, enablePlaceholders = true)
 
     @OptIn(ExperimentalPagingApi::class)
     fun messages(conversationId: ID): Pager<Int, InflatedConversationMessage> =
@@ -367,7 +367,7 @@ private class MessagingPagingSource(
                         .getPagedMessagesWithDetails(chatId, pageSize, offset, userId())
                         .map { it.copy(pageIndex = currentPage) }
 
-                val prevKey = if (currentPage == 0) null else currentPage - 1
+                val prevKey = if (currentPage > 0 && messages.isNotEmpty()) currentPage - 1 else null
                 val nextKey = if (messages.size < pageSize) null else currentPage + 1
 
                 LoadResult.Page(
