@@ -97,7 +97,8 @@ interface ConversationMessageDao {
     LEFT JOIN tips ON messages.idBase58 = tips.messageIdBase58
     WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8)
     GROUP BY messages.idBase58
-    ORDER BY messages.dateMillis DESC
+    -- ID is a base58 encoded v7 UUID which is guaranteed lexigraphically in order --
+    ORDER BY messages.idBase58 DESC
     LIMIT :limit OFFSET :offset
 """)
     suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithMemberAndReply>
@@ -109,24 +110,6 @@ interface ConversationMessageDao {
     suspend fun getMemberInternal(memberId: String): ConversationMember?
     suspend fun getMemberInternal(memberId: ID): ConversationMember? {
         return getMemberInternal(memberId.base58)
-    }
-
-    @Query("""
-        SELECT COUNT(*) AS absoluteIndex
-        FROM messages
-        WHERE conversationIdBase58 = :conversationId 
-          AND type IN (1, 4, 8)
-          AND dateMillis > ( -- DESC SORT BUT REVERSE LIST SO > INSTEAD OF < --
-              SELECT dateMillis
-              FROM messages
-              WHERE idBase58 = :messageId
-                AND conversationIdBase58 = :conversationId
-              LIMIT 1
-            )
-    """)
-    fun getPositionOfMessage(conversationId: String, messageId: String): Int?
-    fun getPositionOfMessage(conversationId: ID, messageId: ID): Int? {
-        return getPositionOfMessage(conversationId.base58, messageId.base58)
     }
 
     suspend fun getPagedMessagesWithDetails(id: ID, limit: Int, offset: Int, selfId: ID?): List<InflatedConversationMessage> {
