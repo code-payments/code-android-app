@@ -104,7 +104,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                                     onLongPress = if (!options.isInteractive) null else {
                                         { showControls() }
                                     },
-                                    onDoubleTap = { showTipSelection() },
+                                    onDoubleTap = { if (options.canTip) showTipSelection() },
                                     onTap = { onOriginalMessageClicked() }
                                 )
                             },

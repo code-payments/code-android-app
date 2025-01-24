@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.app.R
@@ -66,7 +65,6 @@ import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
-import xyz.flipchat.chat.TipController
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
@@ -129,7 +127,7 @@ class ConversationViewModel @Inject constructor(
         val isTippingEnabled: Boolean,
         val isLinkImagePreviewsEnabled: Boolean,
         val roomInfoArgs: RoomInfoArgs,
-        val lastReadMessage: UUID?
+        val lastReadMessage: UUID?,
     ) {
         val isHost: Boolean
             get() = selfId != null && hostId != null && selfId == hostId
@@ -840,7 +838,7 @@ class ConversationViewModel @Inject constructor(
             val enableLinkImages = currentState.isLinkImagePreviewsEnabled
 
             page.map { indice ->
-                val (message, member, contents, reply, tipInfo) = indice
+                val (_, message, member, contents, reply, tipInfo) = indice
 
                 val status = findClosestMessageStatus(
                     timestamp = message.id.uuid?.timestamp,
@@ -851,7 +849,7 @@ class ConversationViewModel @Inject constructor(
                 val anchor = if (reply != null) {
                     ReplyMessageAnchor(
                         id = reply.message.id,
-                        message = reply.content,
+                        message = reply.contentEntity,
                         isDeleted = reply.message.isDeleted,
                         deletedBy = reply.message.deletedBy?.let { id ->
                             Deleter(
@@ -866,7 +864,7 @@ class ConversationViewModel @Inject constructor(
                                 it.orEmpty().isNotEmpty()
                             },
                             displayName = reply.member?.memberName ?: "Deleted",
-                            isSelf = reply.content.isFromSelf,
+                            isSelf = reply.contentEntity.isFromSelf,
                             isBlocked = reply.member?.isBlocked == true,
                             isHost = reply.message.senderId == currentState.hostId && !contents.isFromSelf,
                         )
@@ -879,9 +877,9 @@ class ConversationViewModel @Inject constructor(
                     currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
 
                 val tips = if (currentState.isTippingEnabled && tipInfo.isNotEmpty()) {
-                    tipInfo.map { (amount, member) ->
+                    tipInfo.map { (tip, member) ->
                         MessageTip(
-                            amount = amount,
+                            amount = tip.kin,
                             tipper = Sender(
                                 id = member?.id,
                                 profileImage = member?.imageUri.nullIfEmpty(),

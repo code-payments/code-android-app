@@ -10,7 +10,6 @@ import androidx.room.Relation
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.chat.Sender
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 
@@ -20,7 +19,7 @@ import kotlinx.serialization.Serializable
     indices = [
         Index(value = ["conversationIdBase58"]), // For filtering by conversation ID
         Index(value = ["senderIdBase58"]),       // For joining on sender ID
-        Index(value = ["dateMillis"])           // For ordering by date
+        Index(value = ["dateMillis"]),           // For ordering by date
     ]
 )
 data class ConversationMessage(
@@ -32,6 +31,9 @@ data class ConversationMessage(
     val dateMillis: Long,
     private val deleted: Boolean?,
     private val deletedByBase58: String? = null,
+    val inReplyToBase58: String? = null,
+    @ColumnInfo(defaultValue = "0")
+    val tipCount: Int = 0,
     @ColumnInfo(defaultValue = "1")
     val type: Int,
     @ColumnInfo(defaultValue = "")
@@ -53,19 +55,12 @@ data class ConversationMessage(
 
     @Ignore
     val isDeleted: Boolean = deleted == true
+
+    @Ignore
+    val inReplyTo: ID? = inReplyToBase58?.let { Base58.decode(it).toList() }
 }
 
-data class ConversationMessageWithMember(
-    @Embedded val message: ConversationMessage,
-    @Relation(
-        parentColumn = "senderIdBase58",
-        entityColumn = "memberIdBase58",
-        entity = ConversationMember::class,
-    )
-    val member: ConversationMember?
-)
-
-data class ConversationMessageWithMemberAndReplyAndTips(
+data class ConversationMessageWithMemberAndReply(
     @Embedded val message: ConversationMessage,
     @Relation(
         parentColumn = "senderIdBase58",
@@ -73,17 +68,35 @@ data class ConversationMessageWithMemberAndReplyAndTips(
         entity = ConversationMember::class,
     )
     val member: ConversationMember?,
-    val reply: ConversationMessageWithMemberAndContent?,
+    @Relation(
+        parentColumn = "inReplyToBase58",
+        entityColumn = "idBase58",
+        entity = ConversationMessage::class,
+    )
+    val inReplyTo: ConversationMessageWithMemberAndContent? = null,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "messageIdBase58",
+        entity = ConversationMessageTip::class,
+    )
     val tips: List<MessageTipInfo>
 )
 
 data class ConversationMessageWithMemberAndContent(
     @Embedded val message: ConversationMessage,
+    @Relation(
+        parentColumn = "senderIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = ConversationMember::class,
+    )
     val member: ConversationMember?,
-    val content: MessageContent
-)
+) {
+    @Ignore
+    var contentEntity: MessageContent = MessageContent.Unknown(false)
+}
 
-data class ConversationMessageWithMemberAndContentAndReplyAndTips(
+data class InflatedConversationMessage(
+    val pageIndex: Int = 0, // tracking for [PagingSource] refresh eky
     val message: ConversationMessage,
     val member: ConversationMember?,
     val content: MessageContent,
@@ -92,6 +105,11 @@ data class ConversationMessageWithMemberAndContentAndReplyAndTips(
 )
 
 data class MessageTipInfo(
-    val kinAmount: KinAmount,
+    @Embedded val tip: ConversationMessageTip,
+    @Relation(
+        parentColumn = "tipperIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = ConversationMember::class,
+    )
     val tipper: ConversationMember?
 )

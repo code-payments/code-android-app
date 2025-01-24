@@ -49,7 +49,6 @@ class MemberUpdateMapper @Inject constructor(
             else -> null
         }
 
-        println("stream member update => $result")
         return result
     }
 }

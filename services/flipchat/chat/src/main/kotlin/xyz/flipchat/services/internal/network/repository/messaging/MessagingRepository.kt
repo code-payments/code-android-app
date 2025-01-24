@@ -22,7 +22,6 @@ interface MessagingRepository {
         coroutineScope: CoroutineScope,
         chatId: ID,
         onMessagesUpdated: (List<ConversationMessage>) -> Unit,
-        onMessagesDeleted: (List<Pair<ID, ID>>) -> Unit
     )
 
     fun closeMessageStream()

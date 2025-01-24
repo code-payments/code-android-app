@@ -37,6 +37,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
@@ -219,7 +220,7 @@ internal fun MessageContent(
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
                     if (tips.isNotEmpty()) {
-                        Tips(tips) { openTipModal() }
+                        Tips(tips = tips, isMessageFromSelf = isFromSelf) { openTipModal() }
                     }
                     DateWithStatus(
                         modifier = Modifier
@@ -230,7 +231,7 @@ internal fun MessageContent(
                                     onLongPress = if (!options.isInteractive) null else {
                                         { onLongPress() }
                                     },
-                                    onDoubleTap = { onDoubleClick() }
+                                    onDoubleTap = { if (options.canTip) onDoubleClick() }
                                 )
                             },
                         date = date,
@@ -397,7 +398,7 @@ private fun MarkupTextHandler(
                                     handleTouchedContent(position)
                                 }
                             },
-                            onDoubleTap = { _ -> onDoubleClick() },
+                            onDoubleTap = { _ -> if (options.canTip) onDoubleClick() },
                             onLongPress = if (!options.isInteractive) null else {
                                 { onLongPress() }
                             },
@@ -416,19 +417,26 @@ private fun MarkupTextHandler(
 @Composable
 private fun Tips(
     tips: List<MessageTip>,
+    isMessageFromSelf: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     if (tips.isNotEmpty()) {
         val didUserTip = tips.any { it.tipper.isSelf }
         val backgroundColor by animateColorAsState(
-            if (didUserTip) CodeTheme.colors.tertiary
-            else Color.White
+            when {
+                isMessageFromSelf -> CodeTheme.colors.tertiary
+                didUserTip -> CodeTheme.colors.tertiary
+                else -> Color.White
+            }
         )
 
         val contentColor by animateColorAsState(
-            if (didUserTip) CodeTheme.colors.onBackground
-            else CodeTheme.colors.secondary
+            when {
+                isMessageFromSelf -> CodeTheme.colors.onBackground
+                didUserTip -> CodeTheme.colors.onBackground
+                else -> CodeTheme.colors.secondary
+            }
         )
 
         val totalTips = tips.map { it.amount }.sum().formattedRaw()
@@ -448,7 +456,7 @@ private fun Tips(
             Text(
                 text = stringResource(R.string.title_kinAmountWithLogo, totalTips),
                 color = contentColor,
-                style = CodeTheme.typography.caption,
+                style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.W700),
             )
 
 //            Row(

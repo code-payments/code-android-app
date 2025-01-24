@@ -30,8 +30,8 @@ import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContentAndReplyAndTips
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
+import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
@@ -98,13 +98,8 @@ class RoomController @Inject constructor(
                 coroutineScope = scope,
                 chatId = identifier,
                 onMessagesUpdated = {
-                    scope.launch { db.conversationMessageDao().upsertMessages(it) }
-                },
-                onMessagesDeleted = { messages ->
                     scope.launch {
-                        messages.onEach {
-                            db.conversationMessageDao().markDeleted(it.first, it.second)
-                        }
+                        db.conversationMessageDao().upsertMessages(it, userManager.userId)
                     }
                 }
             )
@@ -201,14 +196,14 @@ class RoomController @Inject constructor(
         PagingConfig(pageSize = 25, initialLoadSize = 25, prefetchDistance = 10)
 
     @OptIn(ExperimentalPagingApi::class)
-    fun messages(conversationId: ID): Pager<Int, ConversationMessageWithMemberAndContentAndReplyAndTips> =
+    fun messages(conversationId: ID): Pager<Int, InflatedConversationMessage> =
         Pager(
             config = pagingConfig,
             remoteMediator = MessagesRemoteMediator(
                 chatId = conversationId,
                 repository = messagingRepository,
                 conversationMessageMapper = conversationMessageMapper,
-                userManager = userManager,
+                userId = { userManager.userId }
             )
         ) {
             MessagingPagingSource(conversationId, { userManager.userId }, db)
@@ -343,7 +338,7 @@ private class MessagingPagingSource(
     private val chatId: ID,
     private val userId: () -> ID?,
     private val db: FcAppDatabase
-) : PagingSource<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>() {
+) : PagingSource<Int, InflatedConversationMessage>() {
 
     @SuppressLint("RestrictedApi")
     private val observer =
@@ -351,12 +346,15 @@ private class MessagingPagingSource(
             invalidate()
         }
 
-    override fun getRefreshKey(state: PagingState<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>): Int? {
-        return null
+    override fun getRefreshKey(state: PagingState<Int, InflatedConversationMessage>): Int? {
+        val anchorPos = state.anchorPosition ?: return null
+        val anchorItem = state.closestItemToPosition(anchorPos) ?: return null
+        // The anchor item *knows* which page it was loaded from:
+        return anchorItem.pageIndex
     }
 
     @SuppressLint("RestrictedApi")
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageWithMemberAndContentAndReplyAndTips> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, InflatedConversationMessage> {
         observer.registerIfNecessary(db)
         val currentPage = params.key ?: 0
         val pageSize = params.loadSize
@@ -364,27 +362,12 @@ private class MessagingPagingSource(
 
         return withContext(Dispatchers.Default) {
             try {
-                val unmappedMessages =
+                val messages =
                     db.conversationMessageDao()
-                        .getPagedMessagesWithRepliesAndTips(chatId, pageSize, offset, userId())
+                        .getPagedMessagesWithDetails(chatId, pageSize, offset, userId())
+                        .map { it.copy(pageIndex = currentPage) }
 
-                val messages = unmappedMessages.mapNotNull {
-                    val content = MessageContent.fromData(
-                        it.message.type,
-                        it.message.content,
-                        isFromSelf = it.message.senderIdBase58 == userId()?.base58
-                    ) ?: return@mapNotNull null
-
-                    ConversationMessageWithMemberAndContentAndReplyAndTips(
-                        message = it.message,
-                        member = it.member,
-                        content = content,
-                        reply = it.reply,
-                        tips = it.tips
-                    )
-                }
-
-                val prevKey = null
+                val prevKey = if (currentPage == 0) null else currentPage - 1
                 val nextKey = if (messages.size < pageSize) null else currentPage + 1
 
                 LoadResult.Page(
@@ -404,8 +387,8 @@ private class MessagesRemoteMediator(
     private val chatId: ID,
     private val repository: MessagingRepository,
     private val conversationMessageMapper: ConversationMessageMapper,
-    private val userManager: UserManager,
-) : RemoteMediator<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>() {
+    private val userId: () -> ID?
+) : RemoteMediator<Int, InflatedConversationMessage>() {
 
     private val db = FcAppDatabase.requireInstance()
 
@@ -413,11 +396,9 @@ private class MessagesRemoteMediator(
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
 
-    private var deletes = mutableListOf<Pair<ID, ID>>()
-
     override suspend fun load(
         loadType: LoadType,
-        state: PagingState<Int, ConversationMessageWithMemberAndContentAndReplyAndTips>
+        state: PagingState<Int, InflatedConversationMessage>
     ): MediatorResult {
         return try {
             val loadKey = when (loadType) {
@@ -450,21 +431,8 @@ private class MessagesRemoteMediator(
                 messages.map { conversationMessageMapper.map(chatId to it) }
 
             if (conversationMessages.isEmpty()) {
-                deletes.onEach { (id, by) -> db.conversationMessageDao().markDeleted(id, by) }
-                deletes.clear()
                 return MediatorResult.Success(true)
             }
-
-            conversationMessages.filter { it.type == 9 }
-                .mapNotNull { m ->
-                    MessageContent.fromData(
-                        type = m.type,
-                        content = m.content,
-                        isFromSelf = userManager.isSelf(m.senderId),
-                    ) as? MessageContent.DeletedMessage
-                }.let { results ->
-                    deletes += results.map { it.originalMessageId to it.messageDeleter }
-                }
 
             withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
@@ -472,9 +440,7 @@ private class MessagesRemoteMediator(
                 }
 
                 db.conversationMessageDao()
-                    .upsertMessages(*conversationMessages.toTypedArray())
-
-                deletes.onEach { (id, by) -> db.conversationMessageDao().markDeleted(id, by) }
+                    .upsertMessages(messages = conversationMessages, selfID = userId())
             }
 
             MediatorResult.Success(endOfPaginationReached = messages.size < limit)

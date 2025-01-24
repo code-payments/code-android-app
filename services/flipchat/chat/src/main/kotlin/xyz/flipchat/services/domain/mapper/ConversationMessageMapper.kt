@@ -23,7 +23,7 @@ class ConversationMessageMapper @Inject constructor() :
             deleted = false,
             deletedByBase58 = null,
             type = content.kind,
-            content = content.content
+            content = content.content,
         )
     }
 }

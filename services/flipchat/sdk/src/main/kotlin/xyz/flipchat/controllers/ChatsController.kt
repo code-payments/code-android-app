@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.data.ChatIdentifier
+import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
@@ -204,7 +205,7 @@ class ChatsController @Inject constructor(
                 db.conversationMessageDao().getNewestMessage(conversationId)
             if (newestInDb?.id == newMessage.id) {
                 withContext(Dispatchers.IO) {
-                    db.conversationMessageDao().upsertMessages(newMessage)
+                    db.conversationMessageDao().upsertMessages(listOf(newMessage), userManager.userId)
                 }
                 return
             }
@@ -236,7 +237,8 @@ class ChatsController @Inject constructor(
 
                     withContext(Dispatchers.IO) {
                         db.conversationMessageDao().upsertMessages(
-                            *(messagesWithContent).toTypedArray()
+                            messagesWithContent,
+                            userManager.userId
                         )
 
                         deletions.onEach {
@@ -255,7 +257,7 @@ class ChatsController @Inject constructor(
                 .onFailure {
                     if (newMessage != null) {
                         withContext(Dispatchers.IO) {
-                            db.conversationMessageDao().upsertMessages(newMessage)
+                            db.conversationMessageDao().upsertMessages(listOf(newMessage), userManager.userId)
                         }
                     }
                     return
@@ -366,6 +368,9 @@ private class ChatsPagingSource(
         }
     }
 
+    fun <T> List<T>.middleOrNull(): T? =
+        if (this.isEmpty()) null else this[this.size / 2]
+
     @SuppressLint("RestrictedApi")
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationWithMembersAndLastMessage> {
         observer.registerIfNecessary(db)
@@ -399,6 +404,8 @@ private class ChatsRemoteMediator(
     override suspend fun initialize(): InitializeAction {
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
+
+    private var lastResult = listOf<Room>()
 
     override suspend fun load(
         loadType: LoadType,
@@ -438,9 +445,12 @@ private class ChatsRemoteMediator(
             val response = repository.getChats(query)
             val rooms = response.getOrNull().orEmpty()
 
-            if (rooms.isEmpty()) {
+            if (rooms.isEmpty() || lastResult.any { it.id == rooms.firstOrNull()?.id.orEmpty() }) {
+                lastResult = emptyList()
                 return MediatorResult.Success(true)
             }
+
+            lastResult = rooms
 
             // Map the rooms to your Room entities
             val conversations = rooms.map { conversationMapper.map(it) }

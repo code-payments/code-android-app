@@ -3,7 +3,6 @@ package xyz.flipchat.internal.db
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
-import androidx.room.DeleteTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -24,13 +23,13 @@ import timber.log.Timber
 import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
 import xyz.flipchat.services.domain.model.chat.ConversationPointerCrossRef
 import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.db.ConversationMemberDao
 import xyz.flipchat.services.internal.db.ConversationMessageDao
 import xyz.flipchat.services.internal.db.ConversationPointerDao
 import java.io.File
-import java.util.concurrent.Executors
 
 @Database(
     entities = [
@@ -42,6 +41,7 @@ import java.util.concurrent.Executors
         ConversationMember::class,
         ConversationPointerCrossRef::class,
         ConversationMessage::class,
+        ConversationMessageTip::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -63,8 +63,9 @@ import java.util.concurrent.Executors
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
         AutoMigration(from = 19, to = 20),
+        AutoMigration(from = 20, to = 21, spec = FcAppDatabase.Migration20To21::class),
     ],
-    version = 20,
+    version = 21,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -123,6 +124,12 @@ abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     class Migration14To15 : Migration(14, 15), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             // drop messages to allow proper use of message ID as the timestamp
+            db.execSQL("DELETE FROM messages")
+        }
+    }
+
+    class Migration20To21 : Migration(20, 21), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM messages")
         }
     }

@@ -47,7 +47,7 @@ class HomeViewModel @Inject constructor(
             .mapNotNull { it.authState }
             .filterIsInstance<AuthState.LoggedIn>()
             .distinctUntilChanged()
-            .onEach { requestAirdrop() }
+            .onEach { onAppOpen() }
             .launchIn(viewModelScope)
     }
 

@@ -398,7 +398,7 @@ sealed interface MessageContent {
     }
 
     companion object {
-        fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent? {
+        fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
             return when (type) {
                 0 -> Localized(content, isFromSelf)
                 1 -> RawText(content, isFromSelf)

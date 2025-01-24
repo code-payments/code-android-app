@@ -99,9 +99,9 @@ fun MessageList(
             contentType = messages.itemContentType { item ->
                 when (item) {
                     is ChatItem.Date -> "date"
-                    is ChatItem.Message -> "messages"
+                    is ChatItem.Message -> "message"
                     is ChatItem.UnreadSeparator -> "unread_divider"
-                    is ChatItem.Separators -> "separators"
+                    is ChatItem.Separators -> "separator"
                 }
             }
         ) { index ->
@@ -134,9 +134,9 @@ fun MessageList(
 
                     val showTimestamp =
                         remember(isPreviousGrouped, isNextGrouped, item.date, next?.date) {
-                            !isPreviousGrouped || !isNextGrouped || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(
-                                60
-                            )
+                            !isPreviousGrouped
+                                    || !isNextGrouped
+                                    || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(60)
                         }
 
                     MessageNode(

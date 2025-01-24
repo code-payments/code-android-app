@@ -13,6 +13,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -127,7 +128,6 @@ internal fun ConversationMessages(
                                 .filterIsInstance<ChatItem.Message>()
                                 .indexOfFirst { it.chatMessageId == event.messageId }
 
-                            println("target item is @ $itemIndex")
                             if (itemIndex >= 0) {
                                 val distance = abs(itemIndex - currentItemIndex)
 

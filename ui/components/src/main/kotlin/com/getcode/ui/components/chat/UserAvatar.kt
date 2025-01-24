@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +13,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.request.crossfade
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
 import java.util.UUID
 
@@ -32,9 +38,17 @@ fun UserAvatar(
         var loadedSize by remember(data) { mutableStateOf(Size.Zero) }
         var isError by rememberSaveable(data) { mutableStateOf(false) }
 
+        val context = LocalContext.current
+        val request = remember(data) {
+            ImageRequest.Builder(context)
+                .crossfade(true)
+                .data(data)
+                .allowHardware(true)
+                .build()
+        }
         AsyncImage(
             modifier = Modifier.matchParentSize(),
-            model = data,
+            model = request,
             contentDescription = null,
             onError = {
                 isError = true
@@ -49,7 +63,7 @@ fun UserAvatar(
         )
 
         if (imgLoading) {
-            Box(modifier = Modifier.matchParentSize())
+            Box(modifier = Modifier.matchParentSize().background(CodeTheme.colors.brandDark))
         }
 
         if (isError) {

@@ -11,6 +11,7 @@ import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.util.formatDateRelatively
+import com.getcode.utils.base58
 import kotlinx.datetime.Instant
 import java.util.UUID
 

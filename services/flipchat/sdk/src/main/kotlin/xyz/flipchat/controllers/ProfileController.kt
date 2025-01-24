@@ -32,7 +32,6 @@ class ProfileController @Inject constructor(
     suspend fun getUserFlags(): Result<UserFlags?> {
         return accountRepository.getUserFlags()
             .onSuccess {
-                println(it)
                 userManager.set(userFlags = it)
             }
     }

@@ -50,21 +50,6 @@ fun App(
     val router = homeViewModel.router
     val context = LocalContext.current
 
-    OnLifecycleEvent { _, event ->
-        when (event) {
-            Lifecycle.Event.ON_RESUME -> {
-                homeViewModel.onAppOpen()
-            }
-
-            Lifecycle.Event.ON_STOP,
-            Lifecycle.Event.ON_DESTROY -> {
-                homeViewModel.closeStream()
-            }
-
-            else -> Unit
-        }
-    }
-
     //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
     //authenticated. Currently we will require authentication to see anything, but can be changed in future.
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }
@@ -134,6 +119,20 @@ fun App(
                                         }
                                     }
 
+                                    OnLifecycleEvent { _, event ->
+                                        when (event) {
+                                            Lifecycle.Event.ON_RESUME -> {
+                                                homeViewModel.onAppOpen()
+                                            }
+
+                                            Lifecycle.Event.ON_STOP,
+                                            Lifecycle.Event.ON_DESTROY -> {
+                                                homeViewModel.closeStream()
+                                            }
+
+                                            else -> Unit
+                                        }
+                                    }
                                 }
                             }
                         }

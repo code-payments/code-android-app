@@ -41,7 +41,7 @@ internal fun rememberAlignmentRule(
     val spacingPx = with(density) { DateWithStatusDefaults.Spacing.roundToPx() }
     val contentPaddingPx = with(density) { CodeTheme.dimens.grid.x2.roundToPx() }
 
-    return remember(minWidth, maxWidth, message, date, hasLink) {
+    return remember(minWidth, maxWidth, message, date, hasLink, hasTips) {
         mutableStateOf<AlignmentRule?>(null)
     }.apply {
         val textMeasurer = rememberTextMeasurer()

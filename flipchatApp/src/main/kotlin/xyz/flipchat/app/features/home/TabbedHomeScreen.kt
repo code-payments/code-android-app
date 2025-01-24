@@ -76,7 +76,6 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
                     router.checkTabs()
-                    viewModel.openStream()
                 }
                 else -> Unit
             }
