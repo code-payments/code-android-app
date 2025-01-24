@@ -979,6 +979,23 @@ class ConversationViewModel @Inject constructor(
         enableTip: Boolean,
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
+            if (enableReply) {
+                add(
+                    MessageControlAction.Reply {
+                        val sender = Sender(
+                            id = message.senderId,
+                            profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                            displayName = member?.memberName ?: "Deleted",
+                            isSelf = contents.isFromSelf,
+                            isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
+                            isBlocked = member?.isBlocked == true
+                        )
+                        val anchor = MessageReplyAnchor(message.id, sender, contents)
+                        dispatchEvent(Event.ReplyTo(anchor))
+                    }
+                )
+            }
+
             if (enableTip) {
                 add(
                     MessageControlAction.Tip {
@@ -999,23 +1016,6 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
             )
-
-            if (enableReply) {
-                add(
-                    MessageControlAction.Reply {
-                        val sender = Sender(
-                            id = message.senderId,
-                            profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                            displayName = member?.memberName ?: "Deleted",
-                            isSelf = contents.isFromSelf,
-                            isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
-                            isBlocked = member?.isBlocked == true
-                        )
-                        val anchor = MessageReplyAnchor(message.id, sender, contents)
-                        dispatchEvent(Event.ReplyTo(anchor))
-                    }
-                )
-            }
         } + buildSelfDefenseControls(message, member, contents)
     }
 

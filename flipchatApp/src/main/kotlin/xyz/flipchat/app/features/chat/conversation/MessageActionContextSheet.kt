@@ -93,7 +93,7 @@ internal data class MessageActionContextSheet(val actions: List<MessageControlAc
                             )
 
                             is MessageControlAction.Reply -> stringResource(R.string.action_reply)
-                            is MessageControlAction.Tip -> stringResource(R.string.action_tipUser)
+                            is MessageControlAction.Tip -> stringResource(R.string.action_giveTip)
                         },
                         style = CodeTheme.typography.textMedium.copy(
                             color = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
