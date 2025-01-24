@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -14,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import com.getcode.models.BillState
+import com.getcode.models.Confirmation
 import com.getcode.theme.Black40
 import com.getcode.ui.modals.TipConfirmation
 import com.getcode.ui.utils.AnimationUtils
@@ -28,36 +31,24 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
     val state by payments.state.collectAsState()
     Box(modifier = Modifier.fillMaxSize()) {
         content()
-        val showScrim by remember(state.billState) {
-            derivedStateOf {
-                val loginConfirmation = state.billState.loginConfirmation
-                val paymentConfirmation = state.billState.privatePaymentConfirmation
-                val socialPaymentConfirmation = state.billState.socialUserPaymentConfirmation
-                val publicPaymentConfirmation = state.billState.publicPaymentConfirmation
-                val messageTipPaymentConfirmation = state.billState.messageTipPaymentConfirmation
+        val scrimDetails by rememberConfirmationDetails(state.billState)
 
-                listOf(
-                    loginConfirmation,
-                    paymentConfirmation,
-                    socialPaymentConfirmation,
-                    publicPaymentConfirmation,
-                    messageTipPaymentConfirmation
-                ).any {
-                    it?.showScrim == true
-                }
-            }
-        }
+        val scrimAlpha by animateFloatAsState(if (scrimDetails.show) 1f else 0f, label = "scrim visibility")
 
-        val scrimAlpha by animateFloatAsState(if (showScrim) 1f else 0f, label = "scrim visibility")
-
-        if (showScrim) {
+        if (scrimDetails.show) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .alpha(scrimAlpha)
                     .background(Black40)
-                    .rememberedClickable(indication = null,
-                        interactionSource = remember { MutableInteractionSource() }) {}
+                    .rememberedClickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        if (scrimDetails.cancellable) {
+                            payments.cancelPayment()
+                        }
+                    }
             )
         }
 
@@ -120,6 +111,31 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                     )
                 }
             }
+        }
+    }
+}
+
+data class ScrimDetails(val show: Boolean, val cancellable: Boolean)
+
+@Composable
+private fun rememberConfirmationDetails(billState: BillState): State<ScrimDetails> {
+    return remember(billState) {
+        derivedStateOf {
+            val loginConfirmation = billState.loginConfirmation
+            val paymentConfirmation = billState.privatePaymentConfirmation
+            val socialPaymentConfirmation = billState.socialUserPaymentConfirmation
+            val publicPaymentConfirmation = billState.publicPaymentConfirmation
+            val messageTipPaymentConfirmation = billState.messageTipPaymentConfirmation
+
+            listOf(
+                loginConfirmation,
+                paymentConfirmation,
+                socialPaymentConfirmation,
+                publicPaymentConfirmation,
+                messageTipPaymentConfirmation
+            ).firstNotNullOfOrNull { it }?.let { conf ->
+                ScrimDetails(conf.showScrim, conf.cancellable)
+            } ?: ScrimDetails(show = false, cancellable = false)
         }
     }
 }

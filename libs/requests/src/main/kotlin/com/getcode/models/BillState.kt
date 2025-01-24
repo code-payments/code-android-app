@@ -199,6 +199,7 @@ data class BillToast(
 sealed class Confirmation(
     open val showScrim: Boolean = false,
     open val state: ConfirmationState,
+    open val cancellable: Boolean = false,
 )
 
 data class PrivatePaymentConfirmation(
@@ -207,6 +208,7 @@ data class PrivatePaymentConfirmation(
     val requestedAmount: KinAmount,
     val localAmount: KinAmount,
     override val showScrim: Boolean = false,
+    override val cancellable: Boolean = false,
 ): Confirmation(showScrim, state)
 
 data class LoginConfirmation(
@@ -214,6 +216,7 @@ data class LoginConfirmation(
     val payload: CodePayload,
     val domain: com.getcode.model.Domain,
     override val showScrim: Boolean = false,
+    override val cancellable: Boolean = false,
 ): Confirmation(showScrim, state)
 
 
@@ -223,6 +226,7 @@ data class PublicPaymentConfirmation(
     val destination: PublicKey,
     val metadata: ExtendedMetadata,
     override val showScrim: Boolean = true,
+    override val cancellable: Boolean = true,
 ): Confirmation(showScrim, state)
 
 data class MessageTipPaymentConfirmation(
@@ -231,6 +235,7 @@ data class MessageTipPaymentConfirmation(
     val metadata: ExtendedMetadata,
     val balance: String?,
     override val showScrim: Boolean = true,
+    override val cancellable: Boolean = true,
 ): Confirmation(showScrim, state)
 
 data class SocialUserPaymentConfirmation(
@@ -240,6 +245,7 @@ data class SocialUserPaymentConfirmation(
     val metadata: SocialUser,
     val isPrivate: Boolean = false,
     override val showScrim: Boolean = false,
+    override val cancellable: Boolean = false,
 ): Confirmation(showScrim, state) {
     val imageUrl: String?
         get() {
