@@ -148,10 +148,18 @@ internal fun ConversationMessages(
                     }
 
                     is MessageListEvent.TipMessage -> {
-                        dispatchEvent(ConversationViewModel.Event.OnTipUser(
-                            event.message.chatMessageId,
-                            event.message.sender.id.orEmpty())
-                        )
+                        composeScope.launch {
+                            if (keyboardVisible) {
+                                ime?.hide()
+                                delay(500)
+                            }
+                            dispatchEvent(
+                                ConversationViewModel.Event.OnTipUser(
+                                    event.message.chatMessageId,
+                                    event.message.sender.id.orEmpty()
+                                )
+                            )
+                        }
                     }
 
                     is MessageListEvent.ShowTipsForMessage -> {

@@ -47,6 +47,7 @@ import com.getcode.libs.opengraph.LocalOpenGraphParser
 import com.getcode.libs.opengraph.callback.OpenGraphCallback
 import com.getcode.libs.opengraph.model.OpenGraphResult
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.chat.Sender
 import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
@@ -425,9 +426,16 @@ private fun Tips(
         val didUserTip = tips.any { it.tipper.isSelf }
         val backgroundColor by animateColorAsState(
             when {
-                isMessageFromSelf -> CodeTheme.colors.tertiary
+                isMessageFromSelf -> CodeTheme.colors.surface
                 didUserTip -> CodeTheme.colors.tertiary
-                else -> Color.White
+                else -> Color.Transparent
+            }
+        )
+
+        val borderColor by animateColorAsState(
+            when {
+                !didUserTip && !isMessageFromSelf -> CodeTheme.colors.tertiary
+                else -> Color.Transparent
             }
         )
 
@@ -435,7 +443,7 @@ private fun Tips(
             when {
                 isMessageFromSelf -> CodeTheme.colors.onBackground
                 didUserTip -> CodeTheme.colors.onBackground
-                else -> CodeTheme.colors.secondary
+                else -> CodeTheme.colors.onBackground
             }
         )
 
@@ -446,6 +454,7 @@ private fun Tips(
                 .clip(CircleShape)
                 .clickable { onClick() }
                 .background(backgroundColor, CircleShape)
+                .border(CodeTheme.dimens.border, borderColor, CircleShape)
                 .padding(
                     horizontal = CodeTheme.dimens.grid.x2,
                     vertical = CodeTheme.dimens.grid.x1,
@@ -459,25 +468,35 @@ private fun Tips(
                 style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.W700),
             )
 
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.spacedBy((-8).dp)
-//            ) {
-//                val imageModifier = Modifier
-//                    .size(CodeTheme.dimens.staticGrid.x4)
-//                    .clip(CircleShape)
-//                    .border(CodeTheme.dimens.border, contentColor, CircleShape)
-//
-//                val tippers = remember(tips) { tips.map { it.tipper }.distinct() }
-//
-//                tippers.take(3).fastForEachIndexed { index, tipper ->
-//                    UserAvatar(
-//                        modifier = imageModifier
-//                            .zIndex((tips.size - index).toFloat()),
-//                        data = tipper.profileImage.nullIfEmpty() ?: tipper.id
-//                    )
-//                }
-//            }
+//            TipperDisplay(tips, contentColor, modifier)
+        }
+    }
+}
+
+@Composable
+private fun TipperDisplay(
+    tips: List<MessageTip>,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy((-8).dp)
+    ) {
+        val imageModifier = Modifier
+            .size(CodeTheme.dimens.staticGrid.x4)
+            .clip(CircleShape)
+            .border(CodeTheme.dimens.border, contentColor, CircleShape)
+
+        val tippers = remember(tips) { tips.map { it.tipper }.distinct() }
+
+        tippers.take(3).fastForEachIndexed { index, tipper ->
+            UserAvatar(
+                modifier = imageModifier
+                    .zIndex((tips.size - index).toFloat()),
+                data = tipper.profileImage.nullIfEmpty() ?: tipper.id
+            )
         }
     }
 }
