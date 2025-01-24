@@ -15,20 +15,30 @@ object Android {
 sealed class Packaging(
     majorVersion: Int,
     minorVersion: Int,
-    patchVersion: Int
+    patchVersion: Int,
+    postFix: String,
 ) {
-    val versionName = "$majorVersion.$minorVersion.$patchVersion"
+    val versionName = "$majorVersion.$minorVersion.$patchVersion".let {
+        if (postFix.isNotEmpty()) {
+            "$it-$postFix"
+        } else {
+            it
+        }
+    }
 
     object Code: Packaging(
         majorVersion = 2,
         minorVersion = 1,
         patchVersion = 14,
+        postFix = ""
     )
 
     object Flipchat: Packaging(
         majorVersion = 1,
         minorVersion = 0,
-        patchVersion = 5,
+        patchVersion = 6,
+        postFix = "SNAPSHOT"
+
     )
 }
 
