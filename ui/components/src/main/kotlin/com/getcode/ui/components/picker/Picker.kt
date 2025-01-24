@@ -20,18 +20,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.fadingEdge
 import com.getcode.ui.utils.measured
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.Dispatchers
@@ -86,26 +82,18 @@ fun <T> Picker(
 
     var itemHeight by remember { mutableStateOf(0.dp) }
 
-    val fadingEdgeGradient = remember {
-        Brush.verticalGradient(
-            0f to Color.Transparent,
-            0.5f to Color.Black,
-            1f to Color.Transparent
-        )
-    }
-
     val vibrator = LocalVibrator.current
 
     LaunchedEffect(items) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .debounce(300.milliseconds)
             .map { (first, last) ->
                 val index = ((first + (last ?: first)) / 2).coerceIn(1..items.lastIndex)
                 getItem(index)
             }
             .distinctUntilChanged()
+            .onEach { vibrator.tick() }
+            .debounce(300.milliseconds)
             .onEach { item ->
-                vibrator.tick()
                 withContext(Dispatchers.Main) {
                     state.selectedItem = state.items.find { state.labelForItem(it) == item }
                 }
@@ -113,7 +101,7 @@ fun <T> Picker(
     }
 
     val textMeasurer = rememberTextMeasurer()
-    val buffer = with (LocalDensity.current) { CodeTheme.dimens.grid.x4.roundToPx() }
+    val buffer = with(LocalDensity.current) { CodeTheme.dimens.grid.x4.roundToPx() }
     val itemWidthPixels = remember(items) {
         items.maxOfOrNull {
             textMeasurer.measure(text = it, style = textStyle, maxLines = 1).size.width + buffer
@@ -129,7 +117,7 @@ fun <T> Picker(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(itemHeight * visibleItemsCount)
-                .fadingEdge(fadingEdgeGradient)
+                .fadingEdge()
         ) {
             itemsIndexed(items) { _, item ->
                 Text(
@@ -154,21 +142,14 @@ fun <T> Picker(
                     style = textStyle.copy(Color.White),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier
+                        .align(Alignment.Center)
                         .padding(end = pixelsToDp(itemWidthPixels + buffer))
                 )
             }
         }
     }
-
 }
-
-private fun Modifier.fadingEdge(brush: Brush) = this
-    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-    .drawWithContent {
-        drawContent()
-        drawRect(brush = brush, blendMode = BlendMode.DstIn)
-    }
 
 @Composable
 private fun pixelsToDp(pixels: Int) = with(LocalDensity.current) { pixels.toDp() }

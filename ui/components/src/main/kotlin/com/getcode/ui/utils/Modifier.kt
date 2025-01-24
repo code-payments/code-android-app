@@ -366,12 +366,18 @@ fun LazyGridState.isVerticallyScrolledToStart(): Boolean {
     return firstItem == null || firstItem.offset.y == 0
 }
 
-fun Modifier.footerShadow() = this.drawWithContent {
-    drawContent()
-    drawRect(
-        brush = Brush.verticalGradient(
-            endY = size.height * 0.12f,
-            colors = listOf(Color(0x10000000), Color.Transparent),
-        ),
-    )
-}
+@Composable
+fun Modifier.fadingEdge(
+    brush: Brush = remember {
+        Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.5f to Color.Black,
+            1f to Color.Transparent
+        )
+    }
+) = this
+    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    .drawWithContent {
+        drawContent()
+        drawRect(brush = brush, blendMode = BlendMode.DstIn)
+    }
