@@ -541,42 +541,12 @@ private fun ContentFromSender(
             if (isFirstInSeries) {
                 Column {
                     Spacer(Modifier.size(CodeTheme.dimens.grid.x4))
-                    Box(
+                    HostableUserAvatar(
                         modifier = Modifier
-                            .padding(top = CodeTheme.dimens.grid.x1)
-                    ) {
-                        UserAvatar(
-                            modifier = Modifier
-                                .size(CodeTheme.dimens.staticGrid.x8)
-                                .clip(CircleShape),
-                            data = sender.profileImage ?: sender.id,
-                            overlay = {
-                                Image(
-                                    modifier = Modifier.padding(5.dp),
-                                    imageVector = Icons.Default.Person,
-                                    colorFilter = ColorFilter.tint(Color.White),
-                                    contentDescription = null,
-                                )
-                            }
-                        )
-
-                        if (sender.isHost) {
-                            Image(
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .offset(
-                                        x = -(CodeTheme.dimens.grid.x1),
-                                        y = -(CodeTheme.dimens.grid.x1)
-                                    )
-                                    .size(CodeTheme.dimens.staticGrid.x4)
-                                    .background(color = Color(0xFFE9C432), shape = CircleShape)
-                                    .padding(4.dp),
-                                painter = painterResource(R.drawable.ic_crown),
-                                contentDescription = null,
-                                colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
-                            )
-                        }
-                    }
+                            .padding(top = CodeTheme.dimens.grid.x1),
+                        imageData = sender.profileImage ?: sender.id,
+                        isHost = sender.isHost
+                    )
                 }
             } else {
                 Spacer(Modifier.size(CodeTheme.dimens.staticGrid.x8))
