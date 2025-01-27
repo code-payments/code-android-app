@@ -30,6 +30,25 @@ internal fun ConversationTitle(
     modifier: Modifier = Modifier,
     state: ConversationViewModel.State,
 ) {
+    val memberCount = remember(state.members) {
+        state.members
+    }
+
+    ConversationTitle(
+        modifier = modifier,
+        imageUri = state.imageUri ?: state.conversationId,
+        title = state.title,
+        memberCount = memberCount,
+    )
+}
+
+@Composable
+internal fun ConversationTitle(
+    modifier: Modifier = Modifier,
+    imageUri: Any?,
+    title: String,
+    memberCount: Int?,
+) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -40,7 +59,7 @@ internal fun ConversationTitle(
                 .padding(start = CodeTheme.dimens.grid.x2)
                 .size(CodeTheme.dimens.staticGrid.x6)
                 .clip(CircleShape),
-            data = state.imageUri ?: state.conversationId,
+            data = imageUri,
             overlay = {
                 Image(
                     modifier = Modifier.padding(5.dp),
@@ -53,16 +72,11 @@ internal fun ConversationTitle(
         Column {
             Text(
                 modifier = Modifier.fillMaxWidth(),
-                text = state.title,
+                text = title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = CodeTheme.typography.screenTitle.copy(fontSize = 18.sp)
             )
-
-            val memberCount = remember(state.members) {
-                state.members
-            }
-
 
             Text(
                 text = if (memberCount != null) {
