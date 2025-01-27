@@ -41,13 +41,12 @@ internal class MessagingPagingSource(
                 val messages =
                     db.conversationMessageDao()
                         .getPagedMessagesWithDetails(chatId, pageSize, offset, userId())
-                        .map { it.copy(pageIndex = currentPage) }
 
                 val prevKey = if (currentPage > 0 && messages.isNotEmpty()) currentPage - 1 else null
                 val nextKey = if (messages.size < pageSize) null else currentPage + 1
 
                 LoadResult.Page(
-                    data = messages,
+                    data = messages.map { if (prevKey == null) it.copy(pageIndex = currentPage) else it },
                     prevKey = prevKey,
                     nextKey = nextKey,
                 )
@@ -57,4 +56,3 @@ internal class MessagingPagingSource(
         }
     }
 }
-
