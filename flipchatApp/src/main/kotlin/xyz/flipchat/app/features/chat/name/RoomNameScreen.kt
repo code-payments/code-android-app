@@ -65,14 +65,19 @@ data class RoomNameScreen(val roomId: ID, val customTitle: String) : Screen, Par
         val navigator = LocalCodeNavigator.current
         val keyboardIsVisible by keyboardAsState()
         val keyboard = LocalSoftwareKeyboardController.current
+        val scope = rememberCoroutineScope()
 
-
-        BackHandler {
-            if (keyboardIsVisible) {
-                keyboard?.hide()
-            } else {
+        val goBack = {
+            scope.launch {
+                if (keyboardIsVisible) {
+                    keyboard?.hide()
+                    delay(500)
+                }
                 navigator.pop()
             }
+        }
+        BackHandler {
+            goBack()
         }
 
         Column(
@@ -82,7 +87,7 @@ data class RoomNameScreen(val roomId: ID, val customTitle: String) : Screen, Par
             AppBarWithTitle(
                 backButton = true,
                 title = stringResource(R.string.action_changeRoomName),
-                onBackIconClicked = { navigator.pop() },
+                onBackIconClicked = { goBack() },
             )
 
             val viewModel = getViewModel<RoomNameScreenViewModel>()

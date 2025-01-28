@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
 import xyz.flipchat.app.data.RoomInfo
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController

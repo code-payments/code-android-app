@@ -36,6 +36,7 @@ import xyz.flipchat.services.domain.model.chat.db.ConversationUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
+import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
 import xyz.flipchat.services.user.UserManager
@@ -108,11 +109,10 @@ class ChatsController @Inject constructor(
                                         db.conversationDao().updateMessagingFee(update.roomId, update.amount)
                                     }
                                     is ConversationUpdate.DisplayName -> {
-                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)?.copy(title = update.name)
+                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)
                                         if (conversation != null) {
-                                            val newTitle = conversation.titleOrFallback(resources = resources)
                                             db.conversationDao()
-                                                .setDisplayName(update.roomId, newTitle)
+                                                .setDisplayName(update.roomId, update.name)
                                         }
                                     }
                                     is ConversationUpdate.LastActivity -> {
