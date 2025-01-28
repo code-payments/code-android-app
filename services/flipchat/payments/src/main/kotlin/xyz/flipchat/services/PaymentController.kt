@@ -206,7 +206,6 @@ open class PaymentController @Inject constructor(
                                         messageTipPaymentConfirmation = messageTipPaymentConfirmation.copy(state = ConfirmationState.Sent),
                                     )
                                 }
-                                delay(1.33.seconds)
                                 cancelPayment(fromUser = false)
                                 after()
                             }
