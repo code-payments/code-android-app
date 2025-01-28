@@ -16,29 +16,19 @@ sealed class Packaging(
     majorVersion: Int,
     minorVersion: Int,
     patchVersion: Int,
-    postFix: String,
 ) {
-    val versionName = "$majorVersion.$minorVersion.$patchVersion".let {
-        if (postFix.isNotEmpty()) {
-            "$it-$postFix"
-        } else {
-            it
-        }
-    }
+    val versionName = "$majorVersion.$minorVersion.$patchVersion"
 
     object Code: Packaging(
         majorVersion = 2,
         minorVersion = 1,
         patchVersion = 14,
-        postFix = ""
     )
 
     object Flipchat: Packaging(
         majorVersion = 1,
         minorVersion = 0,
         patchVersion = 6,
-        postFix = "SNAPSHOT"
-
     )
 }
 
