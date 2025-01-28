@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -18,6 +17,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.outlined.BorderColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -65,33 +66,12 @@ fun ChatNode(
         verticalAlignment = Alignment.CenterVertically
     ) {
         avatar?.let {
-            val imageModifier = Modifier
-                .size(CodeTheme.dimens.staticGrid.x12)
-                .clip(CircleShape)
-
-            Box(
-                modifier = Modifier
-                    .padding(top = CodeTheme.dimens.grid.x1)
-            ) {
-                UserAvatar(modifier = imageModifier, data = it, overlay = avatarIconWhenFallback)
-
-                if (isHost) {
-                    Image(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .offset(
-                                x = -(CodeTheme.dimens.grid.x1),
-                                y = -(CodeTheme.dimens.grid.x1)
-                            )
-                            .size(CodeTheme.dimens.staticGrid.x4)
-                            .background(color = Color(0xFFE9C432), shape = CircleShape)
-                            .padding(4.dp),
-                        painter = painterResource(R.drawable.ic_crown),
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
-                    )
-                }
-            }
+            HostableAvatar(
+                size = CodeTheme.dimens.staticGrid.x12,
+                imageData = it,
+                overlay = avatarIconWhenFallback,
+                isHost = isHost
+            )
         }
 
         Column(

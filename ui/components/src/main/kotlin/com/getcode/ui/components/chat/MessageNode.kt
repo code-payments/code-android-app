@@ -9,7 +9,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
@@ -26,15 +25,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,10 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -54,7 +50,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -65,7 +60,6 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
@@ -287,7 +281,10 @@ fun MessageNode(
 
         Box(
             modifier = Modifier
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    clip = false
+                }
                 .nestedScroll(nestedScrollConnection)
                 .anchoredDraggable(
                     state = replyDragState,
@@ -298,7 +295,6 @@ fun MessageNode(
         ) {
             Box(
                 modifier = Modifier
-                    .padding(horizontal = CodeTheme.dimens.inset)
                     .offset {
                         IntOffset(
                             x = replyDragState.offset.coerceAtMost(maxWidth.toPx() * 0.3f)
@@ -541,15 +537,20 @@ private fun ContentFromSender(
             if (isFirstInSeries) {
                 Column {
                     Spacer(Modifier.size(CodeTheme.dimens.grid.x4))
-                    HostableUserAvatar(
-                        modifier = Modifier
-                            .padding(top = CodeTheme.dimens.grid.x1),
+                    HostableAvatar(
+                        modifier = Modifier.padding(
+                            top = CodeTheme.dimens.grid.x1,
+                            start = CodeTheme.dimens.inset
+                        ),
                         imageData = sender.profileImage ?: sender.id,
                         isHost = sender.isHost
                     )
                 }
             } else {
-                Spacer(Modifier.size(CodeTheme.dimens.staticGrid.x8))
+                Spacer(
+                    modifier = Modifier
+                        .padding(start = CodeTheme.dimens.inset)
+                        .size(CodeTheme.dimens.staticGrid.x8))
             }
         }
         Box(modifier = Modifier.weight(1f)) {
@@ -567,5 +568,6 @@ private fun ContentFromSender(
                 content()
             }
         }
+        Spacer(Modifier.width(CodeTheme.dimens.inset))
     }
 }

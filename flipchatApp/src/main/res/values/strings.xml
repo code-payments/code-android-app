@@ -13,8 +13,13 @@
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
     <string name="subtitle_loadingChats">Loading your chats</string>
     <string name="action_joinRoom">Join Room</string>
+    <string name="action_startListening">Start Listening</string>
     <string name="action_findRoom">Find Room</string>
     <string name="title_chat">Chat</string>
+
+    <string name="title_speakers">Speakers</string>
+    <string name="title_listeners">Listeners</string>
+    <string name="title_listener">Listener</string>
 
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
     <string name="error_description_failedToCreateRoom">You were unable to create a new room at this time. Please try again later</string>
@@ -180,6 +185,8 @@
     <string name="action_close">Close</string>
     <string name="prompt_title_reopenRoom">Reopen Room?</string>
     <string name="prompt_description_reopenRoom">People will be able to send messages again</string>
+    <string name="action_closeFlipchatTemporarily">Close Flipchat Temporarily</string>
+    <string name="action_reopenFlipchat">Reopen Flipchat</string>
     <string name="prompt_title_closeRoom">Close Room Temporarily?</string>
     <string name="prompt_description_closeRoom">Only you will be able to send messages until you reopen the room</string>
     <string name="action_closeTemporarily">Close Temporarily</string>
@@ -218,8 +225,9 @@
     <string name="action_changeRoomName">Change Room Name</string>
     <string name="action_customize">Customize</string>
     <string name="action_customizeRoom">Customize Room</string>
-    <string name="action_leaveRoom">Leave Room</string>
-    <string name="action_shareRoomLink">Share Room Link</string>
+    <string name="action_leaveRoom">Leave Flipchat</string>
+    <string name="action_shareRoomLinkAsHost">Share a Link to Your Flipchat</string>
+    <string name="action_shareRoomLinkAsMember">Share a Link to Their Flipchat</string>
 
     <string name="action_deleteMyAccount">Delete My Account</string>
     <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
@@ -227,4 +235,5 @@
     <string name="action_permanentlyDeleteAccount">Permanently Delete My Account</string>
 
     <string name="subtitle_balance">Balance: ⬢ %1$s</string>
+    <string name="subtitle_you">You</string>
 </resources>

@@ -81,6 +81,19 @@ object AppBarDefaults {
     }
 
     @Composable
+    fun Settings(modifier: Modifier = Modifier, onClick: () -> Unit) {
+        Icon(
+            painter = painterResource(R.drawable.ic_settings_outline),
+            contentDescription = "",
+            tint = Color.White,
+            modifier = modifier
+                .wrapContentWidth()
+                .size(24.dp)
+                .unboundedClickable { onClick() }
+        )
+    }
+
+    @Composable
     fun Overflow(
         modifier: Modifier = Modifier,
         onClick: () -> Unit

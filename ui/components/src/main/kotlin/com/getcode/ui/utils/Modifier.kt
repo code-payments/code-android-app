@@ -251,7 +251,7 @@ fun Modifier.drawWithGradient(
 }
 
 private val gradientSize
-    @Composable get() = CodeTheme.dimens.staticGrid.x8
+    @Composable get() = CodeTheme.dimens.staticGrid.x12
 
 fun Modifier.verticalScrollStateGradient(
     scrollState: LazyListState,

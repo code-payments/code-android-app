@@ -13,7 +13,6 @@ import xyz.flipchat.app.features.beta.BetaFlagsScreen
 import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.RoomInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
-import xyz.flipchat.app.features.chat.lookup.confirm.JoinConfirmationScreen
 import xyz.flipchat.app.features.chat.name.RoomNameScreen
 import xyz.flipchat.app.features.login.register.AccessKeyModalScreen
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
@@ -79,10 +78,6 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             LookupRoomScreen()
         }
 
-        register<NavScreenProvider.Room.Lookup.Confirm> {
-            JoinConfirmationScreen(it.args, it.returnToSender)
-        }
-
         register<NavScreenProvider.Room.Messages> {
             ConversationScreen(
                 chatId = it.chatId,
@@ -91,7 +86,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Room.Info> {
-            RoomInfoScreen(it.args)
+            RoomInfoScreen(it.args, it.returnToSender)
         }
 
         register<NavScreenProvider.Room.ChangeCover> {

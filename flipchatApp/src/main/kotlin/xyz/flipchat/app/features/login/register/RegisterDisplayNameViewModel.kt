@@ -104,6 +104,16 @@ fun <T> Flow<Result<T>>.onResult(onError: (Throwable) -> Unit = { }, onSuccess: 
     }
 }
 
+fun <T, R> Flow<Result<T>>.mapResult(block: (T) -> R): Flow<Result<R>> {
+    return this.map {
+        if (it.isSuccess) {
+            Result.success(block(it.getOrNull()!!))
+        } else {
+            Result.failure(it.exceptionOrNull() ?: Throwable("mapResult failed"))
+        }
+    }
+}
+
 fun <T> Flow<Result<T>>.onError(block: (Throwable) -> Unit): Flow<Result<T>> {
     return this.map {
         it.onFailure(block)

@@ -149,7 +149,7 @@ data class ConversationScreen(
                 .onEach {
                     navigator.push(
                         ScreenRegistry.get(
-                            NavScreenProvider.Room.Lookup.Confirm(args = it, returnToSender = true)
+                            NavScreenProvider.Room.Info(args = it, returnToSender = true)
                         )
                     )
                 }.launchIn(this)

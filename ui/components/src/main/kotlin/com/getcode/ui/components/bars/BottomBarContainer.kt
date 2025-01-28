@@ -34,7 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.util.fastForEach
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.Black40
 import com.getcode.theme.Brand
@@ -43,6 +45,7 @@ import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.rememberedClickable
+import com.getcode.util.resources.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,10 +55,10 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val bottomBarMessage by barMessages.bottomBar.collectAsState()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
-    val onClose: suspend (bottomBarActionType: BottomBarManager.BottomBarActionType?) -> Unit = {
+    val onClose: suspend () -> Unit = {
         bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
         bottomBarVisibleState.targetState = false
-        bottomBarMessage?.onClose?.invoke(it)
+        bottomBarMessage?.onClose?.invoke()
 
         delay(100)
         BottomBarManager.setMessageShown(bottomBarMessageDismissId)
@@ -77,7 +80,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
     LaunchedEffect(bottomBarMessage) {
         bottomBarMessage?.timeoutSeconds?.let {
             delay(it * 1000L)
-            onClose(null)
+            onClose()
         }
     }
 
@@ -95,7 +98,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             if (it.isDismissible) {
-                                scope.launch { onClose(null) }
+                                scope.launch { onClose() }
                             }
                         }
                 )
@@ -107,7 +110,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             .rememberedClickable(indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
-                                scope.launch { onClose(null) }
+                                scope.launch { onClose() }
                             }
                     )
                 }
@@ -127,17 +130,17 @@ fun BottomBarContainer(barMessages: BarMessages) {
             animationSpec = tween(300)
         ),
     ) {
-        val closeWith: (BottomBarManager.BottomBarActionType?) -> Unit = { type ->
-            scope.launch { onClose(type) }
+        val closeWith: () -> Unit = {
+            scope.launch { onClose() }
         }
-        BottomBarView(bottomBarMessage = bottomBarMessage, closeWith, onBackPressed = { closeWith(null)})
+        BottomBarView(bottomBarMessage = bottomBarMessage, closeWith, onBackPressed = { closeWith()})
     }
 }
 
 @Composable
 fun BottomBarView(
     bottomBarMessage: BottomBarManager.BottomBarMessage?,
-    onClose: (bottomBarActionType: BottomBarManager.BottomBarActionType?) -> Unit,
+    onClose: () -> Unit,
     onBackPressed: () -> Unit
 ) {
     bottomBarMessage ?: return
@@ -179,54 +182,31 @@ fun BottomBarView(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
-                CodeButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        bottomBarMessage.onPositive()
-                        onClose(BottomBarManager.BottomBarActionType.Positive)
-                    },
-                    textColor = when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
-                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
-                        BottomBarManager.BottomBarMessageType.THEMED -> Brand
-                    },
-                    buttonState = when (bottomBarMessage.positiveStyle) {
-                        BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
-                        BottomBarManager.BottomBarButtonStyle.Filled10 -> ButtonState.Filled10
-                    },
-                    text = bottomBarMessage.positiveText
-                )
-                if (bottomBarMessage.negativeText.isNotEmpty()) {
+                bottomBarMessage.actions.fastForEach { action ->
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            bottomBarMessage.onNegative()
-                            onClose(BottomBarManager.BottomBarActionType.Negative)
+                            action.onClick()
+                            onClose()
                         },
                         textColor = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
-                            BottomBarManager.BottomBarMessageType.THEMED -> {
-                                when (bottomBarMessage.positiveStyle) {
-                                    BottomBarManager.BottomBarButtonStyle.Filled -> Brand
-                                    BottomBarManager.BottomBarButtonStyle.Filled10 -> White
-                                }
-                            }
+                            BottomBarManager.BottomBarMessageType.THEMED -> Brand
                         },
-                        buttonState = when (bottomBarMessage.negativeStyle) {
+                        buttonState = when (action.style) {
                             BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
                             BottomBarManager.BottomBarButtonStyle.Filled10 -> ButtonState.Filled10
                         },
-                        text = bottomBarMessage.negativeText
+                        text = action.text
                     )
                 }
-                if (bottomBarMessage.tertiaryText != null) {
+                if (bottomBarMessage.showCancel) {
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
                             .rememberedClickable {
-                                bottomBarMessage.onTertiary()
-                                onClose(BottomBarManager.BottomBarActionType.Tertiary)
+                                onClose()
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x3),
                         style = CodeTheme.typography.textMedium,
@@ -237,7 +217,7 @@ fun BottomBarView(
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary
                         },
-                        text = bottomBarMessage.tertiaryText!!
+                        text = stringResource(R.string.action_cancel)
                     )
                 } else {
                     Spacer(Modifier.height(CodeTheme.dimens.inset))

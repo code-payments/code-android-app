@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.view.BaseViewModel2
+import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
-import xyz.flipchat.app.features.chat.lookup.confirm.LoadingSuccessState
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 

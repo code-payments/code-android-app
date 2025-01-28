@@ -42,3 +42,8 @@ abstract class BaseViewModel2<ViewState : Any, Event : Any>(
         _stateFlow.value = _stateFlow.value.update()
     }
 }
+
+data class LoadingSuccessState(
+    val loading: Boolean = false,
+    val success: Boolean = false,
+)

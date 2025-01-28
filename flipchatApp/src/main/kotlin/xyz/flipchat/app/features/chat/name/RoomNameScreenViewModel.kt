@@ -8,13 +8,13 @@ import com.getcode.model.NoId
 import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
+import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
-import xyz.flipchat.app.features.chat.lookup.confirm.LoadingSuccessState
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.services.internal.network.service.SetRoomDisplayNameError
 import javax.inject.Inject

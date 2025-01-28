@@ -75,7 +75,7 @@ class LookupRoomScreen : Screen, NamedScreen, Parcelable {
                 .filterIsInstance<LookupRoomViewModel.Event.OnOpenConfirmation>()
                 .map { it.args }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Lookup.Confirm(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Info(it)))
                 }.launchIn(this)
         }
     }

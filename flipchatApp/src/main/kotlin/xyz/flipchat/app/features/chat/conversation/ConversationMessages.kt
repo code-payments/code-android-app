@@ -37,6 +37,7 @@ import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.scrollToItemWithFullVisibility
+import com.getcode.ui.utils.verticalScrollStateGradient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
@@ -63,7 +64,9 @@ internal fun ConversationMessages(
         modifier = modifier,
     ) {
         MessageList(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScrollStateGradient(lazyListState, color = CodeTheme.colors.background),
             messages = messages,
             listState = lazyListState,
             handleMessagePointers = { (current, previous, next) ->

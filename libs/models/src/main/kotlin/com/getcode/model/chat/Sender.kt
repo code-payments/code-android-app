@@ -16,3 +16,15 @@ data class Deleter(
     val isHost: Boolean = false,
     val isSelf: Boolean = false,
 )
+
+data class MinimalMember(
+    val id: ID? = null,
+    private val profileImageUrl: String? = null,
+    val displayName: String? = null,
+    val isHost: Boolean = false,
+    val isSelf: Boolean = false,
+) {
+    val imageData: Any? = profileImageUrl.nullIfEmpty() ?: id
+}
+
+private fun String?.nullIfEmpty() = if (this?.isEmpty() == true) null else this
