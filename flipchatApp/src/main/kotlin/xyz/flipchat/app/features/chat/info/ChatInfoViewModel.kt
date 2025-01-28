@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
 import xyz.flipchat.app.data.RoomInfo
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController
@@ -82,8 +83,9 @@ class ChatInfoViewModel @Inject constructor(
         data class OnJoiningStateChanged(val joining: Boolean, val joined: Boolean = false) : Event
         data class OnBecameMember(val roomId: ID) : Event
 
-        data object CloseTemporarily : Event
-        data object Reopen : Event
+        data object OnOpenStateChangedRequested : Event
+        data class OnOpenRoom(val conversationId: ID) : Event
+        data class OnCloseRoom(val conversationId: ID) : Event
 
         data object LeaveRoom : Event
         data class OnLeavingStateChanged(val leaving: Boolean, val left: Boolean = false) : Event
@@ -228,10 +230,75 @@ class ChatInfoViewModel @Inject constructor(
             ).launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnOpenStateChangedRequested>()
+            .mapNotNull { stateFlow.value.roomInfo.id }
+            .map { it to stateFlow.value.isOpen }
+            .onEach { (conversationId, isOpen) ->
+                confirmOpenStateChange(conversationId, isOpen)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnOpenRoom>()
+            .map { it.conversationId }
+            .map { roomController.enableChat(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToReopenRoom),
+                            resources.getString(R.string.error_description_failedToReopenRoom)
+                        )
+                    )
+                },
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnCloseRoom>()
+            .map { it.conversationId }
+            .map { roomController.disableChat(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToCloseRoom),
+                            resources.getString(R.string.error_description_failedToCloseRoom)
+                        )
+                    )
+                },
+            ).launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnShareRoomClicked>()
             .map { IntentUtils.shareRoom(stateFlow.value.roomInfo.roomNumber) }
             .onEach { dispatchEvent(Event.ShareRoom(it)) }
             .launchIn(viewModelScope)
+    }
+
+    private fun confirmOpenStateChange(conversationId: ID, isRoomOpen: Boolean) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = if (isRoomOpen) resources.getString(R.string.prompt_title_closeRoom) else resources.getString(
+                    R.string.prompt_title_reopenRoom
+                ),
+                subtitle = if (isRoomOpen) resources.getString(R.string.prompt_description_closeRoom) else resources.getString(
+                    R.string.prompt_description_reopenRoom
+                ),
+                positiveText = if (isRoomOpen) resources.getString(R.string.action_closeTemporarily) else resources.getString(
+                    R.string.action_reopenRoom
+                ),
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = {
+                    if (isRoomOpen) {
+                        dispatchEvent(Event.OnCloseRoom(conversationId))
+                    } else {
+                        dispatchEvent(Event.OnOpenRoom(conversationId))
+                    }
+                },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
     }
 
     companion object {
@@ -261,8 +328,9 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.ShareRoom,
                 is Event.OnListenToClicked,
                 is Event.OnBecameMember,
-                is Event.CloseTemporarily,
-                is Event.Reopen,
+                is Event.OnOpenStateChangedRequested,
+                is Event.OnCloseRoom,
+                is Event.OnOpenRoom,
                 Event.OnLeftRoom -> { state -> state }
 
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }

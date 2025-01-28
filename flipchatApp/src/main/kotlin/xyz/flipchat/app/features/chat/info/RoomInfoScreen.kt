@@ -128,7 +128,7 @@ class RoomInfoScreen(
         val state by viewModel.stateFlow.collectAsState()
 
         val goBack = {
-            if (returnToSender) {
+            if (!returnToSender) {
                 navigator.pop()
             } else {
                 navigator.popUntil { it is TabbedHomeScreen }
@@ -388,7 +388,7 @@ private fun buildBottomBarMessage(
                     BottomBarAction(
                         text = context.getString(R.string.action_closeFlipchatTemporarily),
                         onClick = {
-                            dispatch(ChatInfoViewModel.Event.CloseTemporarily)
+                            dispatch(ChatInfoViewModel.Event.OnOpenStateChangedRequested)
                         }
                     )
                 )
@@ -397,7 +397,7 @@ private fun buildBottomBarMessage(
                     BottomBarAction(
                         text = context.getString(R.string.action_reopenFlipchat),
                         onClick = {
-                            dispatch(ChatInfoViewModel.Event.Reopen)
+                            dispatch(ChatInfoViewModel.Event.OnOpenStateChangedRequested)
                         }
                     )
                 )
