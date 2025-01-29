@@ -62,14 +62,14 @@ class SettingsScreen : Screen, Parcelable {
                 ),
             bottomBar = {
                 LogoutButton {
-//                    composeScope.launch {
-//                        delay(150) // wait for dismiss
-//                        context.getActivity()?.let {
-//                            viewModel.logout(it) {
-//                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-//                            }
-//                        }
-//                    }
+                    composeScope.launch {
+                        delay(150) // wait for dismiss
+                        context.getActivity()?.let {
+                            viewModel.logout(it) {
+                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                            }
+                        }
+                    }
                 }
             }
         ) { padding ->
