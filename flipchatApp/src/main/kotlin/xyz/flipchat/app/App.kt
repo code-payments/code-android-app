@@ -7,6 +7,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.BottomSheetNavigator
@@ -28,6 +30,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
+import com.getcode.ui.components.restrictions.RestrictionType
 import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.getActivity
@@ -38,6 +41,7 @@ import dev.theolm.rinku.compose.ext.DeepLinkListener
 import xyz.flipchat.app.features.home.HomeViewModel
 import xyz.flipchat.app.features.payments.PaymentScaffold
 import xyz.flipchat.app.theme.FlipchatTheme
+import xyz.flipchat.app.ui.LocalUserManager
 import xyz.flipchat.app.ui.navigation.AppScreenContent
 import xyz.flipchat.app.ui.navigation.MainRoot
 import xyz.flipchat.app.util.DeeplinkType
@@ -63,6 +67,9 @@ fun App(
         }
         deepLink = it
     }
+
+    val userManager = LocalUserManager.currentOrThrow
+    val userState by userManager.state.collectAsState()
 
     FlipchatTheme {
         val barManager = rememberBarManager()
@@ -116,6 +123,12 @@ fun App(
                                                     loginRequest = null
                                                 }
                                             )
+                                        }
+                                    }
+
+                                    LaunchedEffect(userState.isTimelockUnlocked) {
+                                        if (userState.isTimelockUnlocked) {
+                                            codeNavigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)))
                                         }
                                     }
 

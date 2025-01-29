@@ -5,12 +5,14 @@ import android.os.Parcelable
 import androidx.compose.ui.graphics.Color
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.getcode.model.ID
+import com.getcode.ui.components.restrictions.RestrictionType
 import dev.theolm.rinku.DeepLink
 import kotlinx.parcelize.Parceler
 import kotlinx.parcelize.Parcelize
 
 sealed class NavScreenProvider : ScreenProvider {
 
+    data class AppRestricted(val restrictionType: RestrictionType): NavScreenProvider()
 
     sealed class Login {
         data class Home(val seed: String? = null) : NavScreenProvider()

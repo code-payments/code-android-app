@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.views
+package com.getcode.ui.components.restrictions
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -18,16 +18,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import com.getcode.R
-import com.getcode.RestrictionType
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
+import com.getcode.ui.components.R
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
+enum class RestrictionType {
+    ACCESS_EXPIRED,
+    FORCE_UPGRADE,
+    TIMELOCK_UNLOCKED
+}
+
 @Composable
-fun HomeRestricted(
+fun ContentRestrictedView(
     restrictionType: RestrictionType,
     onLogoutClick: (Activity) -> Unit = {}
 ) {
@@ -61,7 +64,7 @@ fun HomeRestricted(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brand)
+            .background(CodeTheme.colors.background)
             .padding(horizontal = CodeTheme.dimens.grid.x6)
     ) {
         Column(
@@ -74,7 +77,7 @@ fun HomeRestricted(
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.grid.x5)
                     .padding(bottom = CodeTheme.dimens.grid.x5),
-                color = White,
+                color = CodeTheme.colors.onBackground,
                 text = titleText,
                 style = CodeTheme.typography.textLarge.copy(textAlign = TextAlign.Center)
             )

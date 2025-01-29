@@ -80,6 +80,7 @@ import com.getcode.services.utils.catchSafely
 import com.getcode.services.utils.nonce
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.ui.components.restrictions.RestrictionType
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -171,12 +172,6 @@ sealed interface SessionEvent {
     data object RequestNotificationPermissions : SessionEvent
     data class SendIntent(val intent: Intent) : SessionEvent
     data class OnChatPaidForSuccessfully(val intentId: com.getcode.model.ID, val user: SocialUser): SessionEvent
-}
-
-enum class RestrictionType {
-    ACCESS_EXPIRED,
-    FORCE_UPGRADE,
-    TIMELOCK_UNLOCKED
 }
 
 @SuppressLint("CheckResult")
@@ -1704,8 +1699,8 @@ class SessionController @Inject constructor(
                         cancelRemoteSend(giftCard, amount)
                         cancelSend(style = PresentationStyle.Slide)
                     },
-                    onClose = {
-                        if (it == null) {
+                    onClose = { fromAction ->
+                        if (!fromAction) {
                             cancelSend(style = PresentationStyle.Pop)
                             vibrator.vibrate()
                         }

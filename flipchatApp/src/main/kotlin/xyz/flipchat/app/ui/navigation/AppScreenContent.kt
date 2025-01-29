@@ -22,10 +22,15 @@ import xyz.flipchat.app.features.login.register.PurchaseAccountScreen
 import xyz.flipchat.app.features.login.register.RegisterInfoScreen
 import xyz.flipchat.app.features.login.register.RegisterModalScreen
 import xyz.flipchat.app.features.login.register.RegisterScreen
+import xyz.flipchat.app.features.restricted.AppRestrictedScreen
 
 @Composable
 fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
+        register<NavScreenProvider.AppRestricted> {
+            AppRestrictedScreen(it.restrictionType)
+        }
+
         register<NavScreenProvider.Login.Home> {
             LoginScreen(it.seed)
         }

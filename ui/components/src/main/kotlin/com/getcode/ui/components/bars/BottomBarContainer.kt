@@ -55,10 +55,10 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val bottomBarMessage by barMessages.bottomBar.collectAsState()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
-    val onClose: suspend () -> Unit = {
+    val onClose: suspend (fromAction: Boolean) -> Unit = { fromAction ->
         bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
         bottomBarVisibleState.targetState = false
-        bottomBarMessage?.onClose?.invoke()
+        bottomBarMessage?.onClose?.invoke(fromAction)
 
         delay(100)
         BottomBarManager.setMessageShown(bottomBarMessageDismissId)
@@ -80,7 +80,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
     LaunchedEffect(bottomBarMessage) {
         bottomBarMessage?.timeoutSeconds?.let {
             delay(it * 1000L)
-            onClose()
+            onClose(false)
         }
     }
 
@@ -98,7 +98,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             if (it.isDismissible) {
-                                scope.launch { onClose() }
+                                scope.launch { onClose(false) }
                             }
                         }
                 )
@@ -110,7 +110,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             .rememberedClickable(indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
-                                scope.launch { onClose() }
+                                scope.launch { onClose(false) }
                             }
                     )
                 }
@@ -130,17 +130,17 @@ fun BottomBarContainer(barMessages: BarMessages) {
             animationSpec = tween(300)
         ),
     ) {
-        val closeWith: () -> Unit = {
-            scope.launch { onClose() }
+        val closeWith: (fromAction: Boolean) -> Unit = { fromAction ->
+            scope.launch { onClose(fromAction) }
         }
-        BottomBarView(bottomBarMessage = bottomBarMessage, closeWith, onBackPressed = { closeWith()})
+        BottomBarView(bottomBarMessage = bottomBarMessage, closeWith, onBackPressed = { closeWith(false)})
     }
 }
 
 @Composable
 fun BottomBarView(
     bottomBarMessage: BottomBarManager.BottomBarMessage?,
-    onClose: () -> Unit,
+    onClose: (fromAction: Boolean) -> Unit,
     onBackPressed: () -> Unit
 ) {
     bottomBarMessage ?: return
@@ -187,7 +187,7 @@ fun BottomBarView(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             action.onClick()
-                            onClose()
+                            onClose(true)
                         },
                         textColor = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
@@ -206,7 +206,7 @@ fun BottomBarView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .rememberedClickable {
-                                onClose()
+                                onClose(false)
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x3),
                         style = CodeTheme.typography.textMedium,

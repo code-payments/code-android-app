@@ -71,6 +71,7 @@ class UserManager @Inject constructor(
         val displayName: String? = null,
         val organizer: Organizer? = null,
         val flags: UserFlags? = null,
+        val isTimelockUnlocked: Boolean = false,
         val openRoom: ID? = null,
     )
 
@@ -129,6 +130,16 @@ class UserManager @Inject constructor(
     fun roomClosed() {
         _state.update {
             it.copy(openRoom = null)
+        }
+    }
+
+    fun didDetectUnlockedAccount() {
+        _state.update {
+            if (!it.isTimelockUnlocked) {
+                it.copy(isTimelockUnlocked = true)
+            } else {
+                it
+            }
         }
     }
 

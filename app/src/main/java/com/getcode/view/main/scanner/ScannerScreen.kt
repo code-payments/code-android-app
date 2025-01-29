@@ -46,7 +46,6 @@ import com.getcode.SessionController
 import com.getcode.LocalBiometricsState
 import com.getcode.PresentationStyle
 import com.getcode.R
-import com.getcode.RestrictionType
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.models.DeepLinkRequest
@@ -72,7 +71,8 @@ import com.getcode.ui.modals.ReceivedKinConfirmation
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
-import com.getcode.view.main.scanner.views.HomeRestricted
+import com.getcode.ui.components.restrictions.ContentRestrictedView
+import com.getcode.ui.components.restrictions.RestrictionType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -105,7 +105,7 @@ fun ScanScreen(
         RestrictionType.ACCESS_EXPIRED,
         RestrictionType.FORCE_UPGRADE,
         RestrictionType.TIMELOCK_UNLOCKED -> {
-            HomeRestricted(restrictionType) {
+            ContentRestrictedView(restrictionType) {
                 session.logout(it)
             }
         }

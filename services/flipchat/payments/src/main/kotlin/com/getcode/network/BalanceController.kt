@@ -1,5 +1,6 @@
 package com.getcode.network
 
+import com.codeinc.gen.user.v1.user
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
@@ -171,6 +172,10 @@ open class BalanceController @Inject constructor(
 
             organizer.setAccountInfo(accountInfo)
             userManager.set(organizer = organizer)
+            if (organizer.isUnuseable) {
+                userManager.didDetectUnlockedAccount()
+            }
+            
             balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
             transactionReceiver.receiveFromIncoming(organizer)
             scope.launch {
