@@ -94,6 +94,15 @@ class RoomInfoScreen(
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.OnBecameMember>()
+                .map { it.roomId }
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(it)))
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
                 .filterIsInstance<ChatInfoViewModel.Event.OnChangeCover>()
                 .map { it.roomId }
                 .onEach {
