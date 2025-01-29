@@ -75,7 +75,7 @@ class LookupRoomScreen : Screen, NamedScreen, Parcelable {
                 .filterIsInstance<LookupRoomViewModel.Event.OnOpenConfirmation>()
                 .map { it.args }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Info(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Info(it, returnToSender = true)))
                 }.launchIn(this)
         }
     }
@@ -93,7 +93,7 @@ class LookupRoomScreen : Screen, NamedScreen, Parcelable {
                 modifier = Modifier.weight(1f),
                 state.amountAnimatedModel,
                 prefix = "#",
-                hint = "Enter Room Number",
+                hint = stringResource(R.string.subtitle_enterRoomNumber),
                 onNumberPressed = { viewModel.dispatchEvent(LookupRoomViewModel.Event.OnNumberPressed(it)) },
                 onBackspace = { viewModel.dispatchEvent(LookupRoomViewModel.Event.OnBackspace) },
             )

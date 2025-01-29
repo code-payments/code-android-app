@@ -1,6 +1,5 @@
 package xyz.flipchat.app.features.chat.info
 
-import android.content.Context
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -42,8 +41,6 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator

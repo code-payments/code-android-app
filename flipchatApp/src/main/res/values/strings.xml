@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="subtitle_yourName">Your Name</string>
-    <string name="subtitle_roomName">Room Name</string>
+    <string name="subtitle_roomName">Flipchat Name</string>
 
     <string name="action_nevermind">Nevermind</string>
 
@@ -12,9 +12,9 @@
     <string name="action_payToChat">Send %1$s to Start Chatting</string>
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
     <string name="subtitle_loadingChats">Loading your chats</string>
-    <string name="action_joinRoom">Join Room</string>
+    <string name="action_joinRoom">Join Flipchats</string>
     <string name="action_startListening">Start Listening</string>
-    <string name="action_findRoom">Find Room</string>
+    <string name="action_findRoom">Find a Flipchat</string>
     <string name="title_chat">Chat</string>
 
     <string name="title_speakers">Speakers</string>
@@ -22,10 +22,10 @@
     <string name="title_listener">Listener</string>
 
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
-    <string name="error_description_failedToCreateRoom">You were unable to create a new room at this time. Please try again later</string>
+    <string name="error_description_failedToCreateRoom">You were unable to create a new Flipchat at this time. Please try again later</string>
 
-    <string name="error_title_failedToGetRoom">Room Doesn\’t Exist Yet</string>
-    <string name="error_description_failedToGetRoom">Please try a different room number</string>
+    <string name="error_title_failedToGetRoom">Flipchat Doesn\’t Exist Yet</string>
+    <string name="error_description_failedToGetRoom">Please try a different Flipchat number</string>
 
     <string name="error_title_failedToChangeCover">Something Went Wrong</string>
     <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again</string>
@@ -72,17 +72,17 @@
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
     <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
 
-    <string name="error_title_failedToChangeRoomNameBecauseInappropriate">Inappropriate Room Name</string>
-    <string name="error_description_failedToChangeRoomNameBecauseInappropriate">Room names need to be appropriate for all ages</string>
+    <string name="error_title_failedToChangeRoomNameBecauseInappropriate">Inappropriate Flipchat Name</string>
+    <string name="error_description_failedToChangeRoomNameBecauseInappropriate">Flipchat names need to be appropriate for all ages</string>
 
     <string name="error_title_failedToChangeRoomNameOtherReason">Something Went Wrong</string>
-    <string name="error_description_failedToChangeRoomNameOtherReason">We were unable to change the room name at this time. Please try again later</string>
+    <string name="error_description_failedToChangeRoomNameOtherReason">We were unable to change the Flipchat name at this time. Please try again later</string>
 
     <string name="error_title_failedToReopenRoom">Something Went Wrong</string>
-    <string name="error_description_failedToReopenRoom">You were unable to reopen this room at this time. Please try again later</string>
+    <string name="error_description_failedToReopenRoom">You were unable to reopen this Flipchat at this time. Please try again later</string>
 
     <string name="error_title_failedToCloseRoom">Something Went Wrong</string>
-    <string name="error_description_failedToCloseRoom">You were unable to close this room at this time. Please try again later</string>
+    <string name="error_description_failedToCloseRoom">You were unable to close this Flipchat at this time. Please try again later</string>
 
     <string name="error_title_failedToSendTip">Something Went Wrong</string>
     <string name="error_description_failedToSendTip">You were unable to send a tip at this time. Please try again later</string>
@@ -93,20 +93,20 @@
     <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>
     <string name="action_messageToConnect">Message %1$s to Connect</string>
     <string name="title_cashTab">Balance</string>
-    <string name="title_chatsTab">Rooms</string>
+    <string name="title_chatsTab">Flipchats</string>
     <string name="title_settingsTab">Settings</string>
-    <string name="action_enterRoomNumber">Enter Room Number</string>
-    <string name="action_createNewRoom">Create New Room</string>
-    <string name="title_lookupRoom">Enter Room Number</string>
-    <string name="title_joinRoom">Join Room</string>
+    <string name="action_enterRoomNumber">Enter Flipchat Number</string>
+    <string name="action_createNewRoom">Create a New Flipchat</string>
+    <string name="title_lookupRoom">Enter Flipchat Number</string>
+    <string name="subtitle_enterRoomNumber">Enter Flipchat Number</string>
+    <string name="title_joinRoom">Join Flipchat</string>
     <string name="title_changeCoverCharge">Change Cover Charge</string>
 
     <string name="action_joinRoomByName">Join %1$s</string>
     <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
     <string name="action_payToChatInRoom">Pay to Chat: ⬢ %1$s</string>
-    <string name="action_watchRoom">Watch Room</string>
 
-    <string name="title_leaveRoom">Leave Room?</string>
+    <string name="title_leaveRoom">Leave Flipchat?</string>
     <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
     <string name="action_leaveRoomByName">Leave %1$s</string>
 
@@ -201,17 +201,17 @@
     <string name="title_betaFlags">Labs</string>
 
     <string name="action_notNow">Not Now</string>
-    <string name="title_createAccountToJoinRooms">Create an Account to Join Rooms</string>
+    <string name="title_createAccountToJoinRooms">Create an Account to Join Flipchats</string>
     <string name="action_purchaseAccount">Purchase Your Account</string>
     <string name="title_newAccountsCost">New accounts cost %1$s</string>
     <string name="title_finalizeAccountCreation">Finalize Account Creation</string>
     <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
     <string name="action_changeCoverCharge">Change Cover Charge</string>
-    <string name="action_addRoomName">Add Room Name</string>
-    <string name="action_editRoomName">Edit Room Name</string>
-    <string name="action_changeRoomName">Change Room Name</string>
+    <string name="action_addRoomName">Add Flipchat Name</string>
+    <string name="action_editRoomName">Edit Flipchat Name</string>
+    <string name="action_changeRoomName">Change Flipchat Name</string>
     <string name="action_customize">Customize</string>
-    <string name="action_customizeRoom">Customize Room</string>
+    <string name="action_customizeRoom">Customize Flipchat</string>
     <string name="action_leaveRoom">Leave Flipchat</string>
     <string name="action_shareRoomLinkAsHost">Share a Link to Your Flipchat</string>
     <string name="action_shareRoomLinkAsMember">Share a Link to Their Flipchat</string>
