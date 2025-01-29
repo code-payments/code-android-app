@@ -47,11 +47,13 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.AvatarEndAction
 import com.getcode.ui.components.chat.HostableAvatar
+import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -98,7 +100,7 @@ class RoomInfoScreen(
                 .filterIsInstance<ChatInfoViewModel.Event.OnChangeCover>()
                 .map { it.roomId }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.ChangeCover(it)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.ChangeCover(it)), delay = 100)
                 }.launchIn(this)
         }
 
@@ -149,13 +151,7 @@ class RoomInfoScreen(
                 endContent = {
                     if (state.isMember) {
                         AppBarDefaults.Settings {
-                            BottomBarManager.showMessage(
-                                buildBottomBarMessage(
-                                    context,
-                                    state,
-                                    viewModel::dispatchEvent
-                                )
-                            )
+                            navigator.show(ContextSheet(buildActions(state, viewModel::dispatchEvent)))
                         }
                     }
                 }
@@ -368,108 +364,36 @@ private fun RoomInfoScreenContent(
     }
 }
 
-private fun buildBottomBarMessage(
-    context: Context,
+private fun buildActions(
     state: ChatInfoViewModel.State,
     dispatch: (ChatInfoViewModel.Event) -> Unit,
-): BottomBarManager.BottomBarMessage {
-    val actions = buildList {
+): List<ContextMenuAction> {
+    return buildList {
         if (state.isHost) {
             add(
-                BottomBarAction(
-                    text = context.getString(R.string.action_changeCoverCharge),
-                    onClick = {
-                        dispatch(ChatInfoViewModel.Event.OnChangeCover(state.roomInfo.id!!))
-                    }
-                )
+                RoomControlAction.CoverCharge {
+                    dispatch(ChatInfoViewModel.Event.OnChangeCover(state.roomInfo.id!!))
+                }
             )
             if (state.isOpen) {
                 add(
-                    BottomBarAction(
-                        text = context.getString(R.string.action_closeFlipchatTemporarily),
-                        onClick = {
-                            dispatch(ChatInfoViewModel.Event.OnOpenStateChangedRequested)
-                        }
-                    )
+                    RoomControlAction.CloseRoom {
+                        dispatch(ChatInfoViewModel.Event.OnOpenStateChangedRequested)
+                    }
                 )
             } else {
                 add(
-                    BottomBarAction(
-                        text = context.getString(R.string.action_reopenFlipchat),
-                        onClick = {
-                            dispatch(ChatInfoViewModel.Event.OnOpenStateChangedRequested)
-                        }
-                    )
+                    RoomControlAction.OpenRoom {
+                        dispatch(ChatInfoViewModel.Event.OnOpenStateChangedRequested)
+                    }
                 )
             }
         }
 
         add(
-            BottomBarAction(
-                text = context.getString(R.string.action_leaveRoom),
-                onClick = {
-                    dispatch(ChatInfoViewModel.Event.LeaveRoom)
-                }
-            )
+            RoomControlAction.LeaveRoom {
+                dispatch(ChatInfoViewModel.Event.LeaveRoom)
+            }
         )
     }
-
-    return BottomBarManager.BottomBarMessage(
-        title = "",
-        actions = actions,
-        showCancel = true,
-        type = BottomBarManager.BottomBarMessageType.THEMED,
-        showScrim = true,
-    )
 }
-
-//@Composable
-//private fun Actions(
-//    modifier: Modifier = Modifier,
-//    state: ChatInfoViewModel.State,
-//    dispatch: (ChatInfoViewModel.Event) -> Unit,
-//) {
-//    val context = LocalContext.current
-//    val composeScope = rememberCoroutineScope()
-//    Column(
-//        modifier = modifier
-//            .fillMaxWidth()
-//            .padding(horizontal = CodeTheme.dimens.inset)
-//            .padding(bottom = CodeTheme.dimens.grid.x2)
-//            .navigationBarsPadding(),
-//        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-//    ) {
-//
-//
-//        if (state.isHost) {
-//            CodeButton(
-//                modifier = Modifier.fillMaxWidth(),
-//                buttonState = ButtonState.Subtle,
-//                text = stringResource(R.string.action_customizeRoom),
-//            ) {
-//                BottomBarManager.showMessage(
-//                    BottomBarManager.BottomBarMessage(
-//                        positiveText = context.getString(R.string.action_changeRoomName),
-//                        negativeText = context.getString(R.string.action_changeCoverCharge),
-//                        negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
-//                        tertiaryText = context.getString(R.string.action_cancel),
-//                        onPositive = {
-//                            composeScope.launch {
-//                                delay(300)
-//                                dispatch(ChatInfoViewModel.Event.OnChangeName(state.roomInfo.id!!, state.roomInfo.customTitle))
-//                            }
-//                        },
-//                        onNegative = {
-//                            composeScope.launch {
-//                                delay(300)
-//                                dispatch(ChatInfoViewModel.Event.OnChangeCover(state.roomInfo.id!!))
-//                            }
-//                        },
-//                        type = BottomBarManager.BottomBarMessageType.THEMED,
-//                        showScrim = true,
-//                    )
-//                )
-//            }
-//        }
-//    }
-//}

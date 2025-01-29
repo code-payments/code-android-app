@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
@@ -87,7 +88,7 @@ internal fun ConversationMessages(
                                 ime?.hide()
                                 delay(500)
                             }
-                            navigator.show(MessageActionContextSheet(event.actions))
+                            navigator.show(ContextSheet(event.actions))
                         }
                     }
 

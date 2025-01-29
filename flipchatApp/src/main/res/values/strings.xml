@@ -121,7 +121,6 @@
     <string name="title_muteUserInRoom">Mute %1$s?</string>
     <string name="subtitle_muteUserInRoom">They will no longer be able send messages in this room</string>
     <string name="action_mute">Mute</string>
-    <string name="action_muteUser">Mute %1$s</string>
 
     <string name="title_blockUserInRoom">Block %1$s?</string>
     <string name="subtitle_blockUserInRoom">All messages from this user will be hidden</string>
@@ -129,20 +128,11 @@
 
     <string name="title_reportUserForMessage">Report</string>
     <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified</string>
-    <string name="action_report">Report</string>
 
     <string name="success_title_reportUser">Report Sent</string>
     <string name="success_description_reportUser">Your report was sent successfully</string>
 
     <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
-
-    <string name="action_copyMessage">Copy Message</string>
-    <string name="action_deleteMessage">Delete</string>
-    <string name="action_blockUser">Block User</string>
-    <string name="action_blockUserByName">Block %1$s</string>
-    <string name="action_unblockUser">Unblock %1$s</string>
-    <string name="action_removeUser">Remove %1$s</string>
-    <string name="action_reportUser">Report %1$s</string>
 
     <string name="title_roomCardHostedBy">Hosted by %1$s</string>
     <string name="title_roomCardJoinCost">Cover Charge: ⬢ %1$s</string>
@@ -177,20 +167,20 @@
     <string name="subtitle_roomNameHint">Enter a name appropriate for all ages</string>
 
     <string name="title_youHaveBeenMuted">You\'ve been muted</string>
-    <string name="title_roomIsClosed">The host has temporarily closed this room. Only they can send messages until they reopen it</string>
-    <string name="subtitle_roomIsOpen">Your room is currently open</string>
-    <string name="subtitle_roomIsClosed">Your room is currently closed</string>
+    <string name="title_roomIsClosed">The host has temporarily closed this flipchat. Only they can send messages until they reopen it</string>
+    <string name="subtitle_roomIsOpen">Your flipchat is currently open</string>
+    <string name="subtitle_roomIsClosed">Your flipchat is currently closed</string>
     <string name="action_change">Change</string>
     <string name="action_reopen">Reopen</string>
     <string name="action_close">Close</string>
-    <string name="prompt_title_reopenRoom">Reopen Room?</string>
+    <string name="prompt_title_reopenRoom">Reopen Flipchat?</string>
     <string name="prompt_description_reopenRoom">People will be able to send messages again</string>
     <string name="action_closeFlipchatTemporarily">Close Flipchat Temporarily</string>
     <string name="action_reopenFlipchat">Reopen Flipchat</string>
-    <string name="prompt_title_closeRoom">Close Room Temporarily?</string>
-    <string name="prompt_description_closeRoom">Only you will be able to send messages until you reopen the room</string>
+    <string name="prompt_title_closeRoom">Close Flipchat Temporarily?</string>
+    <string name="prompt_description_closeRoom">Only you will be able to send messages until you reopen the flipchat</string>
     <string name="action_closeTemporarily">Close Temporarily</string>
-    <string name="action_reopenRoom">Reopen Room</string>
+    <string name="action_reopenRoom">Reopen Flipchat</string>
 
     <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your account. Please keep it private and safe.</string>
     <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to your Flipchat account. Do not share this image with anyone else. Keep it secure and safe.</string>
@@ -207,9 +197,6 @@
 
     <string name="prompt_title_logout">Log Out?</string>
     <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
-
-    <string name="action_reply">Reply</string>
-    <string name="action_giveTip">Give Tip</string>
 
     <string name="title_betaFlags">Labs</string>
 
