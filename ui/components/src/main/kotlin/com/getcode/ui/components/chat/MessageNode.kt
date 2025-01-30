@@ -60,6 +60,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.messagecontents.ActionableAnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
@@ -151,6 +152,7 @@ class MessageNodeScope(
         @Composable get() = remember {
             when (contents) {
                 is MessageContent.Announcement -> true
+                is MessageContent.ActionableAnnouncement -> true
                 else -> false
             }
         }
@@ -436,6 +438,13 @@ fun MessageNode(
                                 }
                             }
 
+                            is MessageContent.ActionableAnnouncement -> {
+                                ActionableAnnouncementMessage(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    text = contents.localizedText,
+                                    action = contents.action,
+                                )
+                            }
                             is MessageContent.Announcement -> {
                                 AnnouncementMessage(
                                     modifier = Modifier.fillMaxWidth(),

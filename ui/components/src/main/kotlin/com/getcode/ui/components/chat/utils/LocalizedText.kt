@@ -103,6 +103,14 @@ fun MessageContent.localizedText(
         is MessageContent.Decrypted -> content.data
 
         is MessageContent.RawText -> content.value
+        is MessageContent.ActionableAnnouncement -> {
+            val resId = resources.getIdentifier(
+                content.keyOrText.replace(".", "_"),
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+
+            resId?.let { resources.getString(it) } ?: content.keyOrText
+        }
         is MessageContent.Announcement -> {
             val resId = if (content.isFromSelf) R.string.title_chat_announcement_thanksSent
             else R.string.title_chat_announcement_thanksReceived
@@ -116,6 +124,8 @@ fun MessageContent.localizedText(
         is MessageContent.MessageTip,
         is MessageContent.MessageInReview,
         is MessageContent.Unknown -> ""
+
+
     }
 }
 
@@ -192,9 +202,18 @@ val MessageContent.localizedText: String
             is MessageContent.SodiumBox -> "<! encrypted content !>"
             is MessageContent.Decrypted -> content.data
             is MessageContent.RawText -> content.value
-            is MessageContent.Announcement -> { content.value
-            }
+            is MessageContent.Announcement -> content.value
+            is MessageContent.ActionableAnnouncement -> {
+                with(LocalContext.current) {
+                    val resId = resources.getIdentifier(
+                        content.keyOrText.replace(".", "_"),
+                        "string",
+                        context.packageName
+                    ).let { if (it == 0) null else it }
 
+                    resId?.let { getString(it) } ?: content.keyOrText
+                }
+            }
             is MessageContent.Reaction -> content.emoji
             is MessageContent.Reply -> content.text
             is MessageContent.DeletedMessage,

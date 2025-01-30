@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.chat.conversation
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.snapshotFlow
@@ -64,6 +65,7 @@ import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
+import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
@@ -224,6 +226,9 @@ class ConversationViewModel @Inject constructor(
         data class BlockUser(val userId: ID) : Event
         data class UnblockUser(val userId: ID) : Event
         data class OnTipUser(val messageId: ID, val userId: ID) : Event
+
+        data object OnShareRoomLink: Event
+        data class ShareRoom(val intent: Intent) : Event
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
@@ -820,6 +825,12 @@ class ConversationViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnShareRoomLink>()
+            .map { IntentUtils.shareRoom(stateFlow.value.roomInfoArgs.roomNumber) }
+            .onEach { dispatchEvent(Event.ShareRoom(it)) }
+            .launchIn(viewModelScope)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -1307,6 +1318,8 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
+                is Event.OnShareRoomLink,
+                is Event.ShareRoom,
                 is Event.OnOpenStateChangedRequested,
                 is Event.OnOpenRoom,
                 is Event.OnCloseRoom,

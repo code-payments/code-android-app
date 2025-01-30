@@ -47,7 +47,6 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.manager.BottomBarManager
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -75,7 +74,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import xyz.flipchat.app.R
 import xyz.flipchat.app.features.home.TabbedHomeScreen
 
 @Parcelize
@@ -152,6 +150,14 @@ data class ConversationScreen(
                             NavScreenProvider.Room.Info(args = it, returnToSender = true)
                         )
                     )
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ConversationViewModel.Event.ShareRoom>()
+                .onEach {
+                    context.startActivity(it.intent)
                 }.launchIn(this)
         }
 
@@ -326,6 +332,7 @@ private fun ConversationScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
+            state = state,
             messages = messages,
             focusRequester = focusRequester,
             dispatchEvent = dispatchEvent

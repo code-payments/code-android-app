@@ -2,6 +2,7 @@ package xyz.flipchat.services.internal.protomapping
 
 import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.getcode.model.ID
+import com.getcode.model.chat.AnnouncementAction
 import com.getcode.model.chat.MessageContent
 import xyz.flipchat.services.internal.data.mapper.ifZeroOrElse
 
@@ -14,6 +15,16 @@ operator fun MessageContent.Companion.invoke(
         Model.Content.TypeCase.LOCALIZED_ANNOUNCEMENT -> MessageContent.Announcement(
             isFromSelf = isFromSelf,
             value = proto.localizedAnnouncement.keyOrText
+        )
+
+        Model.Content.TypeCase.ACTIONABLE_ANNOUNCEMENT -> MessageContent.ActionableAnnouncement(
+            isFromSelf = isFromSelf,
+            keyOrText = proto.actionableAnnouncement.keyOrText,
+            action = when (proto.actionableAnnouncement.action.typeCase) {
+                Model.ActionableAnnouncementContent.Action.TypeCase.SHARE_ROOM_LINK -> AnnouncementAction.Share
+                Model.ActionableAnnouncementContent.Action.TypeCase.TYPE_NOT_SET,
+                null -> AnnouncementAction.Unknown
+            }
         )
 
         Model.Content.TypeCase.TEXT -> MessageContent.RawText(

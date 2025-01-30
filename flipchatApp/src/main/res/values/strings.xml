@@ -20,6 +20,7 @@
     <string name="title_speakers">Speakers</string>
     <string name="title_listeners">Listeners</string>
     <string name="title_listener">Listener</string>
+    <string name="subtitle_noneYet">None yet</string>
 
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
     <string name="error_description_failedToCreateRoom">You were unable to create a new Flipchat at this time. Please try again later</string>

@@ -336,6 +336,7 @@ private fun RoomInfoScreenContent(
                     color = CodeTheme.colors.textMain
                 )
             }
+
             items(listeners) { member ->
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -363,6 +364,18 @@ private fun RoomInfoScreenContent(
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            if (listeners.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x2),
+                        text = stringResource(R.string.subtitle_noneYet),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center
                     )
                 }
             }

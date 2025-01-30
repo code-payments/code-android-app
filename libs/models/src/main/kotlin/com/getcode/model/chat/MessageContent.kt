@@ -438,6 +438,47 @@ sealed interface MessageContent {
         override val content: String = Json.encodeToString(Content(originalMessageId, isApproved))
     }
 
+    @Serializable
+    data class ActionableAnnouncement(
+        val keyOrText: String,
+        val action: AnnouncementAction,
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 12
+
+        override fun hashCode(): Int {
+            var result = keyOrText.hashCode()
+            result += action.hashCode()
+            result += isFromSelf.hashCode()
+            result += kind.hashCode()
+
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as ActionableAnnouncement
+
+            if (keyOrText != other.keyOrText) return false
+            if (action != other.action) return false
+            if (isFromSelf != other.isFromSelf) return false
+            if (kind != other.kind) return false
+
+            return true
+        }
+
+        @Serializable
+        internal data class Content(
+            val keyOrText: String,
+            val action: AnnouncementAction,
+        )
+
+        @Transient
+        override val content: String = Json.encodeToString(Content(keyOrText, action))
+    }
+
     companion object {
         fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
             return when (type) {
@@ -472,6 +513,10 @@ sealed interface MessageContent {
                 11 -> {
                     val data = Json.decodeFromString<MessageInReview.Content>(content)
                     MessageInReview(data.originalMessageId, data.isApproved, isFromSelf)
+                }
+                12 -> {
+                    val data = Json.decodeFromString<ActionableAnnouncement.Content>(content)
+                    ActionableAnnouncement(data.keyOrText, data.action, isFromSelf)
                 }
                 else -> Unknown(isFromSelf)
             }

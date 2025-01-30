@@ -1,13 +1,27 @@
 package com.getcode.ui.components.chat.messagecontents
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight.Companion.W500
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.getcode.model.chat.AnnouncementAction
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun AnnouncementMessage(
@@ -26,3 +40,60 @@ internal fun AnnouncementMessage(
         )
     }
 }
+
+@Composable
+internal fun ActionableAnnouncementMessage(
+    modifier: Modifier = Modifier,
+    text: String,
+    action: AnnouncementAction,
+) {
+    val resolver = LocalAnnouncementActionResolver.current
+    val resolvedAction = remember(resolver, action) { resolver(action) }
+
+    BoxWithConstraints(modifier = modifier) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .widthIn(max = maxWidth * 0.78f)
+                .border(
+                    color = CodeTheme.colors.tertiary,
+                    width = 1.dp,
+                    shape = CodeTheme.shapes.medium,
+                )
+                .padding(
+                    horizontal = CodeTheme.dimens.grid.x2,
+                    vertical = CodeTheme.dimens.grid.x4
+                )
+        ) contents@{
+            Column(
+                modifier = Modifier
+                    // add top padding to accommodate ascents
+                    .padding(top = CodeTheme.dimens.grid.x1),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+            ) {
+
+                Text(
+                    text = text,
+                    style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center),
+                    color = CodeTheme.colors.textSecondary,
+
+                )
+
+                if (resolvedAction != null) {
+                    CodeButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = resolvedAction.text,
+                        buttonState = ButtonState.Filled,
+                    ) { resolvedAction.onClick() }
+                }
+            }
+        }
+    }
+}
+
+data class ResolvedAction(
+    val text: String,
+    val onClick: () -> Unit
+)
+
+val LocalAnnouncementActionResolver: ProvidableCompositionLocal<(AnnouncementAction) -> ResolvedAction?> = staticCompositionLocalOf { { null } }

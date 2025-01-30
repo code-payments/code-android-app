@@ -13,6 +13,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,12 +27,15 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.manager.TopBarManager
+import com.getcode.model.chat.AnnouncementAction
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
+import com.getcode.ui.components.chat.messagecontents.LocalAnnouncementActionResolver
+import com.getcode.ui.components.chat.messagecontents.ResolvedAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.components.text.markup.Markup
@@ -49,6 +53,7 @@ import kotlin.math.abs
 @Composable
 internal fun ConversationMessages(
     modifier: Modifier = Modifier,
+    state: ConversationViewModel.State,
     messages: LazyPagingItems<ChatItem>,
     focusRequester: FocusRequester,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
@@ -61,127 +66,146 @@ internal fun ConversationMessages(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
+    fun resolveAnnouncementAction(action: AnnouncementAction): ResolvedAction? {
+        return when (action) {
+            AnnouncementAction.Unknown -> null
+            AnnouncementAction.Share -> ResolvedAction(
+                text = if (state.isHost) {
+                    context.getString(R.string.action_shareRoomLinkAsHost)
+                } else {
+                    context.getString(R.string.action_shareRoomLinkAsMember)
+                },
+                onClick = { dispatchEvent(ConversationViewModel.Event.OnShareRoomLink) }
+            )
+        }
+    }
+
     Box(
         modifier = modifier,
     ) {
-        MessageList(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScrollStateGradient(lazyListState, color = CodeTheme.colors.background),
-            messages = messages,
-            listState = lazyListState,
-            handleMessagePointers = { (current, previous, next) ->
-                MessageListPointerResult(
-                    current.sender.id == previous?.sender?.id,
-                    current.sender.id == next?.sender?.id
-                )
-            },
-            dispatch = { event ->
-                when (event) {
-                    is MessageListEvent.AdvancePointer -> {
-                        dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
-                    }
-
-                    is MessageListEvent.OpenMessageActions -> {
-                        composeScope.launch {
-                            if (keyboardVisible) {
-                                ime?.hide()
-                                delay(500)
-                            }
-                            navigator.show(ContextSheet(event.actions))
+        CompositionLocalProvider(LocalAnnouncementActionResolver provides { resolveAnnouncementAction(it) }) {
+            MessageList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScrollStateGradient(
+                        lazyListState,
+                        color = CodeTheme.colors.background
+                    ),
+                messages = messages,
+                listState = lazyListState,
+                handleMessagePointers = { (current, previous, next) ->
+                    MessageListPointerResult(
+                        current.sender.id == previous?.sender?.id,
+                        current.sender.id == next?.sender?.id
+                    )
+                },
+                dispatch = { event ->
+                    when (event) {
+                        is MessageListEvent.AdvancePointer -> {
+                            dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
                         }
-                    }
 
-                    is MessageListEvent.OnMarkupEvent -> {
-                        when (val markup = event.markup) {
-                            is Markup.RoomNumber -> {
-                                dispatchEvent(ConversationViewModel.Event.LookupRoom(markup.number))
+                        is MessageListEvent.OpenMessageActions -> {
+                            composeScope.launch {
+                                if (keyboardVisible) {
+                                    ime?.hide()
+                                    delay(500)
+                                }
+                                navigator.show(ContextSheet(event.actions))
                             }
+                        }
 
-                            is Markup.Url -> {
-                                runCatching {
-                                    uriHandler.openUri(markup.link)
-                                }.onFailure {
-                                    TopBarManager.showMessage(
-                                        TopBarManager.TopBarMessage(
-                                            title = context.getString(R.string.error_title_failedToOpenLink),
-                                            message = context.getString(R.string.error_description_failedToOpenLink)
+                        is MessageListEvent.OnMarkupEvent -> {
+                            when (val markup = event.markup) {
+                                is Markup.RoomNumber -> {
+                                    dispatchEvent(ConversationViewModel.Event.LookupRoom(markup.number))
+                                }
+
+                                is Markup.Url -> {
+                                    runCatching {
+                                        uriHandler.openUri(markup.link)
+                                    }.onFailure {
+                                        TopBarManager.showMessage(
+                                            TopBarManager.TopBarMessage(
+                                                title = context.getString(R.string.error_title_failedToOpenLink),
+                                                message = context.getString(R.string.error_description_failedToOpenLink)
+                                            )
                                         )
-                                    )
+                                    }
                                 }
-                            }
 
-                            is Markup.Phone -> {
-                                context.dialNumber(markup.phoneNumber)
-                            }
-                        }
-                    }
-
-                    is MessageListEvent.ReplyToMessage -> {
-                        dispatchEvent(ConversationViewModel.Event.ReplyTo(event.message))
-                        focusRequester.requestFocus()
-                    }
-
-                    is MessageListEvent.ViewOriginalMessage -> {
-                        composeScope.launch {
-                            val itemIndex = messages.itemSnapshotList
-                                .filterIsInstance<ChatItem.Message>()
-                                .indexOfFirst { it.chatMessageId == event.originalMessageId }
-
-                            val currentItemIndex = messages.itemSnapshotList
-                                .filterIsInstance<ChatItem.Message>()
-                                .indexOfFirst { it.chatMessageId == event.messageId }
-
-                            if (itemIndex >= 0) {
-                                val distance = abs(itemIndex - currentItemIndex)
-
-                                println("distance from current ($currentItemIndex) is $distance")
-                                if (distance <= 100) {
-                                    // Animate smoothly if within 100 items
-                                    lazyListState.animateScrollToItemWithFullVisibility(
-                                        to = itemIndex,
-                                    )
-                                } else {
-                                    // Jump directly if too far
-                                    lazyListState.scrollToItemWithFullVisibility(
-                                        to = itemIndex,
-                                    )
+                                is Markup.Phone -> {
+                                    context.dialNumber(markup.phoneNumber)
                                 }
                             }
                         }
-                    }
 
-                    is MessageListEvent.TipMessage -> {
-                        composeScope.launch {
-                            if (keyboardVisible) {
-                                ime?.hide()
-                                delay(500)
+                        is MessageListEvent.ReplyToMessage -> {
+                            dispatchEvent(ConversationViewModel.Event.ReplyTo(event.message))
+                            focusRequester.requestFocus()
+                        }
+
+                        is MessageListEvent.ViewOriginalMessage -> {
+                            composeScope.launch {
+                                val itemIndex = messages.itemSnapshotList
+                                    .filterIsInstance<ChatItem.Message>()
+                                    .indexOfFirst { it.chatMessageId == event.originalMessageId }
+
+                                val currentItemIndex = messages.itemSnapshotList
+                                    .filterIsInstance<ChatItem.Message>()
+                                    .indexOfFirst { it.chatMessageId == event.messageId }
+
+                                if (itemIndex >= 0) {
+                                    val distance = abs(itemIndex - currentItemIndex)
+
+                                    println("distance from current ($currentItemIndex) is $distance")
+                                    if (distance <= 100) {
+                                        // Animate smoothly if within 100 items
+                                        lazyListState.animateScrollToItemWithFullVisibility(
+                                            to = itemIndex,
+                                        )
+                                    } else {
+                                        // Jump directly if too far
+                                        lazyListState.scrollToItemWithFullVisibility(
+                                            to = itemIndex,
+                                        )
+                                    }
+                                }
                             }
-                            dispatchEvent(
-                                ConversationViewModel.Event.OnTipUser(
-                                    event.message.chatMessageId,
-                                    event.message.sender.id.orEmpty()
+                        }
+
+                        is MessageListEvent.TipMessage -> {
+                            composeScope.launch {
+                                if (keyboardVisible) {
+                                    ime?.hide()
+                                    delay(500)
+                                }
+                                dispatchEvent(
+                                    ConversationViewModel.Event.OnTipUser(
+                                        event.message.chatMessageId,
+                                        event.message.sender.id.orEmpty()
+                                    )
                                 )
-                            )
-                        }
-                    }
-
-                    is MessageListEvent.ShowTipsForMessage -> {
-                        composeScope.launch {
-                            if (keyboardVisible) {
-                                ime?.hide()
-                                delay(500)
                             }
-                            navigator.show(MessageTipsSheet(event.tips))
                         }
-                    }
 
-                    is MessageListEvent.UnreadStateHandled -> {
-                        dispatchEvent(ConversationViewModel.Event.OnUnreadStateHandled)
+                        is MessageListEvent.ShowTipsForMessage -> {
+                            composeScope.launch {
+                                if (keyboardVisible) {
+                                    ime?.hide()
+                                    delay(500)
+                                }
+                                navigator.show(MessageTipsSheet(event.tips))
+                            }
+                        }
+
+                        is MessageListEvent.UnreadStateHandled -> {
+                            dispatchEvent(ConversationViewModel.Event.OnUnreadStateHandled)
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
 
         val animatedAlpha by animateFloatAsState(
             targetValue = if (lazyListState.canScrollBackward) 1f else 0f,

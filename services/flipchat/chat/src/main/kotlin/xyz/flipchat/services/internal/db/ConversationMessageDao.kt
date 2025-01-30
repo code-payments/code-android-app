@@ -122,7 +122,8 @@ interface ConversationMessageDao {
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
     LEFT JOIN tips ON messages.idBase58 = tips.messageIdBase58
-    WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8)
+    -- RawText, Announcements, Replies, and Actionable Announcements --
+    WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8, 12)
     GROUP BY messages.idBase58
     -- ID is a base58 encoded v7 UUID which is guaranteed lexigraphically in order --
     ORDER BY messages.idBase58 DESC
