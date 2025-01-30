@@ -120,6 +120,7 @@ class ChatInfoViewModel @Inject constructor(
                                             id = m.id,
                                             displayName = m.identity?.displayName.nullIfEmpty(),
                                             profileImageUrl = m.identity?.imageUrl.nullIfEmpty(),
+                                            canSpeak = m.isModerator || !m.isSpectator,
                                             isHost = m.isModerator,
                                             isSelf = userManager.isSelf(m.id),
                                         )
@@ -143,6 +144,7 @@ class ChatInfoViewModel @Inject constructor(
                                             displayName = m.memberName.nullIfEmpty(),
                                             profileImageUrl = m.imageUri,
                                             isHost = m.isHost,
+                                            canSpeak = m.isFullMember,
                                             isSelf = userManager.isSelf(m.id),
                                         )
                                     }
@@ -351,7 +353,7 @@ class ChatInfoViewModel @Inject constructor(
 
                 is Event.OnMembersUpdated -> { state ->
                     val groupedMembers = event.members
-                        .groupBy { it.isHost }
+                        .groupBy { it.canSpeak }
                         .mapKeys {
                             if (it.key) {
                                 MemberType.Speaker

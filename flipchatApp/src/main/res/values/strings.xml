@@ -168,8 +168,8 @@
 
     <string name="title_youHaveBeenMuted">You\'ve been muted</string>
     <string name="title_roomIsClosed">The host has temporarily closed this flipchat. Only they can send messages until they reopen it</string>
-    <string name="subtitle_roomIsOpen">Your flipchat is currently open</string>
-    <string name="subtitle_roomIsClosed">Your flipchat is currently closed</string>
+    <string name="subtitle_roomIsOpen">Your Flipchat is currently open</string>
+    <string name="subtitle_roomIsClosed">Your Flipchat is currently closed</string>
     <string name="action_change">Change</string>
     <string name="action_reopen">Reopen</string>
     <string name="action_close">Close</string>
@@ -214,7 +214,7 @@
     <string name="action_customizeRoom">Customize Flipchat</string>
     <string name="action_leaveRoom">Leave Flipchat</string>
     <string name="action_shareRoomLinkAsHost">Share a Link to Your Flipchat</string>
-    <string name="action_shareRoomLinkAsMember">Share a Link to Their Flipchat</string>
+    <string name="action_shareRoomLinkAsMember">Share a Link to This Flipchat</string>
 
     <string name="action_deleteMyAccount">Delete My Account</string>
     <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>

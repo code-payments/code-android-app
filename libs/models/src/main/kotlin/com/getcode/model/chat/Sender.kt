@@ -23,6 +23,7 @@ data class MinimalMember(
     val displayName: String? = null,
     val isHost: Boolean = false,
     val isSelf: Boolean = false,
+    val canSpeak: Boolean = false,
 ) {
     val imageData: Any? = profileImageUrl.nullIfEmpty() ?: id
 }
