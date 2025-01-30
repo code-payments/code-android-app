@@ -103,7 +103,7 @@ class RoomInfoScreen(
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<ChatInfoViewModel.Event.OnChangeCover>()
+                .filterIsInstance<ChatInfoViewModel.Event.OnChangeMessageFee>()
                 .map { it.roomId }
                 .onEach {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.Room.ChangeCover(it)), delay = 100)
@@ -390,8 +390,8 @@ private fun buildActions(
     return buildList {
         if (state.isHost) {
             add(
-                RoomControlAction.CoverCharge {
-                    dispatch(ChatInfoViewModel.Event.OnChangeCover(state.roomInfo.id!!))
+                RoomControlAction.MessageFee {
+                    dispatch(ChatInfoViewModel.Event.OnChangeMessageFee(state.roomInfo.id!!))
                 }
             )
             if (state.isOpen) {

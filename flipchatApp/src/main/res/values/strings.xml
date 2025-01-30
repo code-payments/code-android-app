@@ -103,6 +103,7 @@
     <string name="subtitle_enterRoomNumber">Enter Flipchat Number</string>
     <string name="title_joinRoom">Join Flipchat</string>
     <string name="title_changeCoverCharge">Change Cover Charge</string>
+    <string name="title_changeMessageFee">Change Listener Message Fee</string>
 
     <string name="action_joinRoomByName">Join %1$s</string>
     <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
@@ -124,6 +125,14 @@
     <string name="title_muteUserInRoom">Mute %1$s?</string>
     <string name="subtitle_muteUserInRoom">They will no longer be able send messages in this room</string>
     <string name="action_mute">Mute</string>
+
+    <string name="title_promoteUserInRoom">Make %1$s a Speaker?</string>
+    <string name="subtitle_promoteUserInRoom">They will be able to message for free</string>
+    <string name="action_promote">Make a Speaker</string>
+
+    <string name="title_demoteUserInRoom">Remove %1$s as a Speaker?</string>
+    <string name="subtitle_demoteUserInRoom">They will no longer be able to message for free</string>
+    <string name="action_demote">Remove as Speaker</string>
 
     <string name="title_blockUserInRoom">Block %1$s?</string>
     <string name="subtitle_blockUserInRoom">All messages from this user will be hidden</string>
@@ -210,6 +219,7 @@
     <string name="title_finalizeAccountCreation">Finalize Account Creation</string>
     <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
     <string name="action_changeCoverCharge">Change Cover Charge</string>
+    <string name="action_changeMessagingFee">Change Listener Message Fee</string>
     <string name="action_addRoomName">Add Flipchat Name</string>
     <string name="action_editRoomName">Edit Flipchat Name</string>
     <string name="action_changeRoomName">Change Flipchat Name</string>

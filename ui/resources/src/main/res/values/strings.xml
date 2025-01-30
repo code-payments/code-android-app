@@ -14,10 +14,12 @@
     <string name="action_copyMessage">Copy Message</string>
     <string name="action_deleteMessage">Delete</string>
     <string name="action_blockUser">Block User</string>
-    <string name="action_blockUserByName">Block %1$s</string>
+    <string name="action_blockUserByName">Block User</string>
     <string name="action_unblockUser">Unblock User</string>
     <string name="action_removeUser">Remove %1$s</string>
     <string name="action_reportUser">Report %1$s</string>
     <string name="action_report">Report</string>
-    <string name="action_muteUser">Mute %1$s</string>
+    <string name="action_muteUser">Mute User</string>
+    <string name="action_promote">Make a Speaker</string>
+    <string name="action_demote">Remove as Speaker</string>
 </resources>

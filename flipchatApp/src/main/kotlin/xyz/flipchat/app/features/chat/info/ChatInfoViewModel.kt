@@ -69,8 +69,8 @@ class ChatInfoViewModel @Inject constructor(
         // endregion state updates
 
         // region action/reaction
-        data class OnChangeCover(val roomId: ID) : Event
-        data class OnCoverChanged(val cover: Kin) : Event
+        data class OnChangeMessageFee(val roomId: ID) : Event
+        data class OnFeeChanged(val cover: Kin) : Event
 
         data class OnChangeName(val id: ID, val title: String) : Event
         data class OnNameChanged(val name: String) : Event
@@ -127,7 +127,7 @@ class ChatInfoViewModel @Inject constructor(
                                     }
                                 )
                             )
-                            dispatchEvent(Event.OnCoverChanged(room.messagingFee))
+                            dispatchEvent(Event.OnFeeChanged(room.messagingFee))
                         }
                 } else {
                     roomController.observeConversation(args.roomId.orEmpty())
@@ -150,7 +150,7 @@ class ChatInfoViewModel @Inject constructor(
                                     }
                                 )
                             )
-                            dispatchEvent(Event.OnCoverChanged(cover))
+                            dispatchEvent(Event.OnFeeChanged(cover))
                         }.launchIn(viewModelScope)
                 }
             }.launchIn(viewModelScope)
@@ -322,7 +322,7 @@ class ChatInfoViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnChangeCover,
+                is Event.OnChangeMessageFee,
                 Event.OnLeaveRoomConfirmed,
                 is Event.OnChangeName,
                 is Event.OnShareRoomClicked,
@@ -335,7 +335,7 @@ class ChatInfoViewModel @Inject constructor(
                 Event.OnLeftRoom -> { state -> state }
 
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }
-                is Event.OnCoverChanged -> { state ->
+                is Event.OnFeeChanged -> { state ->
                     state.copy(
                         roomInfo = state.roomInfo.copy(
                             messagingFee = event.cover,

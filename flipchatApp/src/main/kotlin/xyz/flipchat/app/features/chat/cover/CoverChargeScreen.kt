@@ -40,7 +40,7 @@ data class CoverChargeScreen(val roomId: ID) : Screen, NamedScreen, Parcelable {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_changeCoverCharge)
+        @Composable get() = stringResource(R.string.title_changeMessageFee)
 
 
     @Composable
@@ -66,7 +66,7 @@ data class CoverChargeScreen(val roomId: ID) : Screen, NamedScreen, Parcelable {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<CoverChargeViewModel.Event.OnCoverChangedSuccessfully>()
+                .filterIsInstance<CoverChargeViewModel.Event.OnFeeChangedSuccessfully>()
                 .onEach {
                     navigator.pop()
                 }.launchIn(this)
@@ -106,7 +106,7 @@ private fun ChangeCoverScreenContent(
                 isLoading = state.submitting,
                 isSuccess = state.success,
             ) {
-                viewModel.dispatchEvent(CoverChargeViewModel.Event.OnChangeCover)
+                viewModel.dispatchEvent(CoverChargeViewModel.Event.OnChangeFee)
             }
         }
     }

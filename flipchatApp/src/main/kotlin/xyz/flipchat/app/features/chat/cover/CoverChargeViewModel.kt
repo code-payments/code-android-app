@@ -43,9 +43,9 @@ class CoverChargeViewModel @Inject constructor(
         data object OnBackspace : Event
         data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
         data class OnCoverChanged(val amountAnimatedModel: AmountAnimatedInputUiModel) : Event
-        data object OnChangeCover : Event
-        data class OnChangingCover(val changing: Boolean): Event
-        data object OnCoverChangedSuccessfully : Event
+        data object OnChangeFee : Event
+        data class OnChangingFee(val changing: Boolean): Event
+        data object OnFeeChangedSuccessfully : Event
     }
 
     init {
@@ -85,16 +85,16 @@ class CoverChargeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnChangeCover>()
-            .onEach { dispatchEvent(Event.OnChangingCover(true)) }
+            .filterIsInstance<Event.OnChangeFee>()
+            .onEach { dispatchEvent(Event.OnChangingFee(true)) }
             .mapNotNull {
                 stateFlow.value.roomId ?: return@mapNotNull null
                 stateFlow.value.roomId!! to stateFlow.value.amountAnimatedModel.amountData.amount.toLong()
             }.map { (roomId, value) ->
-                roomController.setCoverCharge(roomId, KinAmount.fromQuarks(value))
+                roomController.setMessagingFee(roomId, KinAmount.fromQuarks(value))
             }.onResult(
                 onError = {
-                    dispatchEvent(Event.OnChangingCover(false))
+                    dispatchEvent(Event.OnChangingFee(false))
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
                             resources.getString(R.string.error_title_failedToChangeCover),
@@ -103,8 +103,8 @@ class CoverChargeViewModel @Inject constructor(
                     )
                 },
                 onSuccess = {
-                    dispatchEvent(Event.OnChangingCover(false))
-                    dispatchEvent(Event.OnCoverChangedSuccessfully)
+                    dispatchEvent(Event.OnChangingFee(false))
+                    dispatchEvent(Event.OnFeeChangedSuccessfully)
                 }
             ).launchIn(viewModelScope)
     }
@@ -112,11 +112,11 @@ class CoverChargeViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnChangingCover -> { state -> state.copy(submitting = event.changing) }
-                Event.OnCoverChangedSuccessfully -> { state -> state.copy(success = true) }
+                is Event.OnChangingFee -> { state -> state.copy(submitting = event.changing) }
+                Event.OnFeeChangedSuccessfully -> { state -> state.copy(success = true) }
                 Event.OnBackspace,
                 is Event.OnEnteredNumberChanged,
-                is Event.OnChangeCover,
+                is Event.OnChangeFee,
                 is Event.OnNumberPressed -> { state -> state }
 
                 is Event.OnCoverChanged -> { state ->
