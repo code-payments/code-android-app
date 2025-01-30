@@ -360,7 +360,7 @@ class ChatInfoViewModel @Inject constructor(
                             } else {
                                 MemberType.Listener
                             }
-                        }
+                        }.mapValues { it.value.sortedByDescending { it.isHost } }
 
                     state.copy(
                         roomInfo = state.roomInfo.copy(
