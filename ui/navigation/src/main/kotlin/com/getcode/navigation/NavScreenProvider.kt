@@ -32,10 +32,6 @@ sealed class NavScreenProvider : ScreenProvider {
         data object List : NavScreenProvider()
         sealed class Lookup {
             data object Entry : NavScreenProvider()
-            data class Confirm(
-                val args: RoomInfoArgs = RoomInfoArgs(),
-                val returnToSender: Boolean = false
-            ) : NavScreenProvider()
         }
 
         data class Messages(

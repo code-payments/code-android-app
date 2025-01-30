@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import com.getcode.models.BillState
-import com.getcode.models.Confirmation
 import com.getcode.theme.Black40
 import com.getcode.ui.modals.TipConfirmation
 import com.getcode.ui.utils.AnimationUtils
@@ -50,28 +49,6 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                         }
                     }
             )
-        }
-
-        // Tip Confirmation container
-        AnimatedContent(
-            modifier = Modifier.align(BottomCenter),
-            targetState = state.billState.socialUserPaymentConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast),
-            label = "tip confirmation",
-        ) {
-            if (it != null) {
-                Box(
-                    contentAlignment = BottomCenter
-                ) {
-                    TipConfirmation(
-                        confirmation = state.billState.socialUserPaymentConfirmation,
-                        onSend = {
-                            payments.completePublicPayment()
-                        },
-                        onCancel = { payments.cancelPayment() }
-                    )
-                }
-            }
         }
 
         // public payments
@@ -121,16 +98,10 @@ data class ScrimDetails(val show: Boolean, val cancellable: Boolean)
 private fun rememberConfirmationDetails(billState: BillState): State<ScrimDetails> {
     return remember(billState) {
         derivedStateOf {
-            val loginConfirmation = billState.loginConfirmation
-            val paymentConfirmation = billState.privatePaymentConfirmation
-            val socialPaymentConfirmation = billState.socialUserPaymentConfirmation
             val publicPaymentConfirmation = billState.publicPaymentConfirmation
             val messageTipPaymentConfirmation = billState.messageTipPaymentConfirmation
 
             listOf(
-                loginConfirmation,
-                paymentConfirmation,
-                socialPaymentConfirmation,
                 publicPaymentConfirmation,
                 messageTipPaymentConfirmation
             ).firstNotNullOfOrNull { it }?.let { conf ->
