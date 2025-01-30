@@ -66,6 +66,7 @@ message Content {
         TipContent                    tip                     = 7;
         DeleteMessageContent          deleted                 = 8;
         ReviewContent                 review                  = 9;
+        ActionableAnnouncementContent actionable_announcement = 10;
     }
     reserved 3; // ExchangeDataContent
     reserved 4; // NaclBoxEncryptedContent
@@ -79,7 +80,26 @@ message TextContent {
 // translated piece of text.
 message LocalizedAnnouncementContent {
     string key_or_text = 1 ;
-    // todo: define arguments
+    // todo: define arguments list
+    reserved 2;
+}
+// ActionableAnnouncementContent is like LocalizedAnnouncementContent, but
+// contains additional metadata for actions
+message ActionableAnnouncementContent {
+    string key_or_text = 1 ;
+    // todo: define arguments list
+    reserved 2;
+    // An action that can be taken by a user
+    Action action = 3;
+    message Action {
+        oneof type {
+            
+            ShareRoomLink share_room_link = 1;
+        }
+        // Displays a button to share a link to a room
+        message ShareRoomLink {
+        }
+    }
 }
 // Emoji reaction to another message
 message ReactionContent {
