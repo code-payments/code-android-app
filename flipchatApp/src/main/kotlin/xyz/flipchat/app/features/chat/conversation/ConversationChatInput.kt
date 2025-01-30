@@ -89,6 +89,7 @@ fun ConversationChatInput(
                 )
             }
 
+            is ChattableState.TemporarilyEnabled,
             is ChattableState.Enabled -> {
                 Column {
                     if (state.isHost && !keyboardVisible && state.isOpenCloseEnabled) {
@@ -103,8 +104,8 @@ fun ConversationChatInput(
                         state = state.textFieldState,
                         sendCashEnabled = false,
                         focusRequester = focusRequester,
-                        onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
-                        onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                        onSendMessage = { dispatchEvent(ConversationViewModel.Event.OnSendMessage) },
+                        onSendCash = { dispatchEvent(ConversationViewModel.Event.OnSendCash) }
                     )
                 }
             }
@@ -141,16 +142,16 @@ fun ConversationChatInput(
                             ),
                         buttonState = ButtonState.Filled,
                         text = stringResource(
-                            R.string.action_payToChatInRoom,
+                            R.string.action_sendMessageInRoom,
                             formatAmountString(
                                 resources = LocalResources.current!!,
                                 currency = Currency.Kin,
-                                amount = chattableState.cover.quarks.toDouble(),
+                                amount = chattableState.messageFee.quarks.toDouble(),
                                 suffix = stringResource(R.string.core_kin)
                             )
                         ),
                     ) {
-                        dispatchEvent(ConversationViewModel.Event.OnJoinRequestedFromSpectating)
+                        dispatchEvent(ConversationViewModel.Event.OnSendMessageForFee)
                     }
                 }
             }

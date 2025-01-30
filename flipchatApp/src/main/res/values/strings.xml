@@ -98,6 +98,7 @@
     <string name="title_settingsTab">Settings</string>
     <string name="action_enterRoomNumber">Enter Flipchat Number</string>
     <string name="action_createNewRoom">Create a New Flipchat</string>
+    <string name="action_createNewRoomWithCost">Create a New Flipchat: ⬢ %1$s</string>
     <string name="title_lookupRoom">Enter Flipchat Number</string>
     <string name="subtitle_enterRoomNumber">Enter Flipchat Number</string>
     <string name="title_joinRoom">Join Flipchat</string>
@@ -106,6 +107,7 @@
     <string name="action_joinRoomByName">Join %1$s</string>
     <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
     <string name="action_payToChatInRoom">Pay to Chat: ⬢ %1$s</string>
+    <string name="action_sendMessageInRoom">Send a Message: ⬢ %1$s</string>
 
     <string name="title_leaveRoom">Leave Flipchat?</string>
     <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>

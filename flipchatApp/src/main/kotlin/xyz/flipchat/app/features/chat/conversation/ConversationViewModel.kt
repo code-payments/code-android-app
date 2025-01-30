@@ -72,6 +72,7 @@ import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
 import xyz.flipchat.services.data.metadata.JoinChatPaymentMetadata
+import xyz.flipchat.services.data.metadata.SendMessageAsListenerPaymentMetadata
 import xyz.flipchat.services.data.metadata.SendTipMessagePaymentMetadata
 import xyz.flipchat.services.data.metadata.erased
 import xyz.flipchat.services.data.metadata.typeUrl
@@ -173,11 +174,13 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnInitialUnreadCountDetermined(val count: Int) : Event
-        data object OnUnreadStateHandled: Event
+        data object OnUnreadStateHandled : Event
         data class OnTitlesChanged(val title: String, val roomCardTitle: String) : Event
         data class OnUserActivity(val activity: Instant) : Event
-        data object SendCash : Event
-        data object SendMessage : Event
+        data object OnSendCash : Event
+        data object OnSendMessage : Event
+        data class SendMessage(val paymentId: ID? = null) : Event
+        data object SendMessageWithFee : Event
         data object RevealIdentity : Event
 
         data class OnAbilityToChatChanged(val state: ChattableState) : Event
@@ -204,6 +207,7 @@ class ConversationViewModel @Inject constructor(
         data class OnStartAtUnread(val enabled: Boolean) : Event
 
         data object OnJoinRequestedFromSpectating : Event
+        data object OnSendMessageForFee : Event
         data object NeedsAccountCreated : Event
         data object OnAccountCreated : Event
         data object OnJoinRoom : Event
@@ -227,7 +231,7 @@ class ConversationViewModel @Inject constructor(
         data class UnblockUser(val userId: ID) : Event
         data class OnTipUser(val messageId: ID, val userId: ID) : Event
 
-        data object OnShareRoomLink: Event
+        data object OnShareRoomLink : Event
         data class ShareRoom(val intent: Intent) : Event
 
         data object OnUserTypingStarted : Event
@@ -382,27 +386,82 @@ class ConversationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.SendMessage>()
-            .map { stateFlow.value }
+            .filterIsInstance<Event.OnSendMessage>()
+            .onEach {
+                if (stateFlow.value.chattableState is ChattableState.Enabled) {
+                    dispatchEvent(Event.SendMessage())
+                } else {
+                    dispatchEvent(Event.SendMessageWithFee)
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SendMessageWithFee>()
+            .map { stateFlow.value.roomInfoArgs }
+            .filter { it.ownerId != null }
+            .map { profileController.getPaymentDestinationForUser(it.ownerId!!) }
             .mapNotNull {
-                val textFieldState = it.textFieldState
+                if (it.isSuccess) {
+                    val paymentDestination = it.getOrNull() ?: return@mapNotNull null
+                    val sendMessageMetadata = SendMessageAsListenerPaymentMetadata(
+                        userId = userManager.userId!!,
+                        chatId = stateFlow.value.conversationId!!
+                    )
+
+                    val metadata = ExtendedMetadata.Any(
+                        data = sendMessageMetadata.erased(),
+                        typeUrl = sendMessageMetadata.typeUrl
+                    )
+
+                    val amount =
+                        KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.messagingFeeQuarks)
+
+                    paymentController.presentPublicPaymentConfirmation(
+                        amount = amount,
+                        destination = paymentDestination,
+                        metadata = metadata,
+                    )
+                } else {
+                    return@mapNotNull null
+                }
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        event.acknowledge(true) {
+                            dispatchEvent(Event.SendMessage(event.intentId))
+                        }
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SendMessage>()
+            .mapNotNull {
+                val paymentId = it.paymentId
+                val state = stateFlow.value
+                val textFieldState = state.textFieldState
                 val text = textFieldState.text.toString().trim()
                 if (text.isEmpty()) return@mapNotNull null
 
                 textFieldState.clearText()
 
-                val replyingTo = it.replyMessage
+                val replyingTo = state.replyMessage
 
                 dispatchEvent(Event.CancelReply)
 
                 if (replyingTo != null) {
                     roomController.sendReply(
-                        it.conversationId!!,
+                        state.conversationId!!,
                         replyingTo.id,
                         text
                     )
                 } else {
-                    roomController.sendMessage(it.conversationId!!, text)
+                    roomController.sendMessage(state.conversationId!!, text, paymentId)
                 }
             }.onResult(
                 onError = {
@@ -414,6 +473,12 @@ class ConversationViewModel @Inject constructor(
                     )
                 },
                 onSuccess = {
+                    // if we are temporarily allowed to speak, reset back to spectator
+                    if (stateFlow.value.chattableState is ChattableState.TemporarilyEnabled) {
+                        val fee = Kin.fromQuarks(stateFlow.value.roomInfoArgs.messagingFeeQuarks)
+                        dispatchEvent(Event.OnAbilityToChatChanged(ChattableState.Spectator(fee)))
+                    }
+
                     trace(
                         tag = "Conversation",
                         message = "message sent successfully",
@@ -1298,6 +1363,10 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
+                Event.OnSendMessageForFee -> { state ->
+                    state.copy(chattableState = ChattableState.TemporarilyEnabled)
+                }
+
                 is Event.OnPointersUpdated -> { state ->
                     state.copy(pointers = event.pointers)
                 }
@@ -1330,7 +1399,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnJoinRequestedFromSpectating,
                 is Event.Error,
                 Event.RevealIdentity,
-                Event.SendCash,
+                Event.OnSendCash,
                 is Event.MarkRead,
                 is Event.MarkDelivered,
                 is Event.DeleteMessage,
@@ -1346,7 +1415,9 @@ class ConversationViewModel @Inject constructor(
                 is Event.LookupRoom,
                 is Event.OpenJoinConfirmation,
                 is Event.OpenRoom,
-                is Event.SendMessage -> { state -> state }
+                is Event.OnSendMessage,
+                is Event.SendMessage,
+                is Event.SendMessageWithFee -> { state -> state }
 
                 is Event.OnUserActivity -> { state ->
                     state.copy(lastSeen = event.activity)
@@ -1369,7 +1440,12 @@ class ConversationViewModel @Inject constructor(
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }
                 is Event.OnOpenCloseEnabled -> { state -> state.copy(isOpenCloseEnabled = event.enabled) }
                 is Event.OnTippingEnabled -> { state -> state.copy(isTippingEnabled = event.enabled) }
-                is Event.OnLinkImagePreviewsEnabled -> { state -> state.copy(isLinkImagePreviewsEnabled = event.enabled) }
+                is Event.OnLinkImagePreviewsEnabled -> { state ->
+                    state.copy(
+                        isLinkImagePreviewsEnabled = event.enabled
+                    )
+                }
+
                 Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }
             }
         }

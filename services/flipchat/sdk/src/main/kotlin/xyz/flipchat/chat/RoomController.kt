@@ -157,8 +157,8 @@ class RoomController @Inject constructor(
         }
     }
 
-    suspend fun sendMessage(conversationId: ID, message: String): Result<ID> {
-        val content = OutgoingMessageContent.Text(message)
+    suspend fun sendMessage(conversationId: ID, message: String, paymentIntentId: ID? = null): Result<ID> {
+        val content = OutgoingMessageContent.Text(message, paymentIntentId)
         return messagingRepository.sendMessage(conversationId, content)
             .map { it.id }
     }

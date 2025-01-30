@@ -139,7 +139,11 @@ class MessagingApi @Inject constructor(
             is OutgoingMessageContent.DeleteRequest -> Unit
             is OutgoingMessageContent.Reaction -> Unit
             is OutgoingMessageContent.Reply -> Unit
-            is OutgoingMessageContent.Text -> Unit
+            is OutgoingMessageContent.Text -> {
+                content.intentId?.let { id ->
+                    builder.setPaymentIntent(id.toIntentId())
+                }
+            }
             is OutgoingMessageContent.Tip -> {
                 builder.setPaymentIntent(content.intentId.toIntentId())
             }
