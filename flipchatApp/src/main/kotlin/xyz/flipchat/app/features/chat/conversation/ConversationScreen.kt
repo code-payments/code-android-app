@@ -142,12 +142,12 @@ data class ConversationScreen(
 
         LaunchedEffect(vm) {
             vm.eventFlow
-                .filterIsInstance<ConversationViewModel.Event.OpenJoinConfirmation>()
+                .filterIsInstance<ConversationViewModel.Event.OpenRoomPreview>()
                 .map { it.roomInfoArgs }
                 .onEach {
                     navigator.push(
                         ScreenRegistry.get(
-                            NavScreenProvider.Room.Info(args = it, returnToSender = true)
+                            NavScreenProvider.Room.Preview(args = it, returnToSender = true)
                         )
                     )
                 }.launchIn(this)

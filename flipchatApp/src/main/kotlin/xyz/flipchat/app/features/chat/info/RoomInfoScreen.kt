@@ -55,8 +55,10 @@ import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient
+import com.getcode.utils.base58
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -69,6 +71,7 @@ import xyz.flipchat.app.features.home.TabbedHomeScreen
 @Parcelize
 class RoomInfoScreen(
     private val info: RoomInfoArgs,
+    private val isPreview: Boolean,
     private val returnToSender: Boolean
 ) : Screen, Parcelable {
 
@@ -82,7 +85,7 @@ class RoomInfoScreen(
         val context = LocalContext.current
 
         LaunchedEffect(info) {
-            viewModel.dispatchEvent(ChatInfoViewModel.Event.OnInfoChanged(info))
+            viewModel.dispatchEvent(ChatInfoViewModel.Event.OnInfoChanged(info, isPreview))
         }
 
         LaunchedEffect(viewModel) {
@@ -315,8 +318,13 @@ private fun RoomInfoScreenContent(
                 )
             }
 
-            items(speakers) { member ->
+            items(speakers, key = { it.id?.base58.orEmpty() }) { member ->
                 Column(
+                    modifier = Modifier.rememberedLongClickable(
+                        enabled = state.isHost && !member.isSelf
+                    ) {
+                        dispatch(ChatInfoViewModel.Event.DemoteRequested(member))
+                    }.animateItem(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
@@ -355,8 +363,13 @@ private fun RoomInfoScreenContent(
                 )
             }
 
-            items(listeners) { member ->
+            items(listeners, key = { it.id?.base58.orEmpty() }) { member ->
                 Column(
+                    modifier = Modifier.rememberedLongClickable(
+                        enabled = state.isHost && !member.isSelf
+                    ) {
+                        dispatch(ChatInfoViewModel.Event.PromoteRequested(member))
+                    }.animateItem(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {

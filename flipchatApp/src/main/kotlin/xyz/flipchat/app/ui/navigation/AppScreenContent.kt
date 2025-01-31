@@ -91,7 +91,11 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Room.Info> {
-            RoomInfoScreen(it.args, it.returnToSender)
+            RoomInfoScreen(it.args, false, it.returnToSender)
+        }
+
+        register<NavScreenProvider.Room.Preview> {
+            RoomInfoScreen(it.args, true, it.returnToSender)
         }
 
         register<NavScreenProvider.Room.ChangeCover> {

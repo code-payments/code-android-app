@@ -125,7 +125,7 @@ class RouterImpl(
 
                             screens.add(
                                 ScreenRegistry.get(
-                                    NavScreenProvider.Room.Info(args = args, returnToSender = true)
+                                    NavScreenProvider.Room.Preview(args = args, returnToSender = true)
                                 )
                             )
                         }

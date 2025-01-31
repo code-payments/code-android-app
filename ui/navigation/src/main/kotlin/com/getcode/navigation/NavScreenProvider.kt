@@ -45,6 +45,11 @@ sealed class NavScreenProvider : ScreenProvider {
             val returnToSender: Boolean = false
         ) : NavScreenProvider()
 
+        data class Preview(
+            val args: RoomInfoArgs = RoomInfoArgs(),
+            val returnToSender: Boolean = false
+        ) : NavScreenProvider()
+
         data class ChangeCover(
             val id: ID
         ) : NavScreenProvider()

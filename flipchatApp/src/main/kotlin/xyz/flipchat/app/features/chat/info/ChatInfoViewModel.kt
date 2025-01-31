@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
 import xyz.flipchat.app.data.RoomInfo
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController
@@ -47,6 +49,7 @@ class ChatInfoViewModel @Inject constructor(
 ) {
 
     data class State(
+        val isPreview: Boolean = false,
         val isHost: Boolean = false,
         val isMember: Boolean = false,
         val paymentDestination: PublicKey? = null,
@@ -64,7 +67,7 @@ class ChatInfoViewModel @Inject constructor(
         data class OnHostStatusChanged(val isHost: Boolean) : Event
         data class OnRoomOpenStateChanged(val isOpen: Boolean) : Event
         data class OnDestinationChanged(val destination: PublicKey) : Event
-        data class OnInfoChanged(val args: RoomInfoArgs) : Event
+        data class OnInfoChanged(val args: RoomInfoArgs, val isPreview: Boolean) : Event
         data class OnMembersUpdated(val members: List<MinimalMember>) : Event
         // endregion state updates
 
@@ -85,6 +88,13 @@ class ChatInfoViewModel @Inject constructor(
         data object OnOpenStateChangedRequested : Event
         data class OnOpenRoom(val conversationId: ID) : Event
         data class OnCloseRoom(val conversationId: ID) : Event
+
+        data class PromoteRequested(val member: MinimalMember) : Event
+        data class PromoteUser(val conversationId: ID, val userId: ID) : Event
+        data class OnUserPromoted(val id: ID) : Event
+        data class DemoteRequested(val member: MinimalMember) : Event
+        data class DemoteUser(val conversationId: ID, val userId: ID) : Event
+        data class OnUserDemoted(val id: ID) : Event
 
         data object LeaveRoom : Event
         data class OnLeavingStateChanged(val leaving: Boolean, val left: Boolean = false) : Event
@@ -274,6 +284,60 @@ class ChatInfoViewModel @Inject constructor(
             .map { IntentUtils.shareRoom(stateFlow.value.roomInfo.roomNumber) }
             .onEach { dispatchEvent(Event.ShareRoom(it)) }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PromoteRequested>()
+            .map { it.member }
+            .onEach {
+                confirmUserPromote(
+                    conversationId = stateFlow.value.roomInfo.id.orEmpty(),
+                    userId = it.id.orEmpty(),
+                    user = it.displayName
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DemoteRequested>()
+            .map { it.member }
+            .onEach {
+                confirmUserDemote(
+                    conversationId = stateFlow.value.roomInfo.id.orEmpty(),
+                    userId = it.id.orEmpty(),
+                    user = it.displayName
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PromoteUser>()
+            .onEach { member ->
+                roomController.promoteUser(member.conversationId, member.userId)
+                    .onFailure {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToPromoteUser),
+                                resources.getString(R.string.error_description_failedToPromoteUser)
+                            )
+                        )
+                    }.onSuccess {
+                        dispatchEvent(Event.OnUserPromoted(member.userId))
+                    }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DemoteUser>()
+            .onEach { member ->
+                roomController.demoteUser(member.conversationId, member.userId)
+                    .onFailure {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToDemoteUser),
+                                resources.getString(R.string.error_description_failedToDemoteUser)
+                            )
+                        )
+                    }.onSuccess {
+                        dispatchEvent(Event.OnUserDemoted(member.userId))
+                    }
+            }.launchIn(viewModelScope)
     }
 
     private fun confirmOpenStateChange(conversationId: ID, isRoomOpen: Boolean) {
@@ -302,13 +366,50 @@ class ChatInfoViewModel @Inject constructor(
         )
     }
 
+    private fun confirmUserPromote(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_promoteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_promoteUserInRoom),
+                positiveText = resources.getString(R.string.action_promote),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.PromoteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserDemote(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_demoteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_demoteUserInRoom),
+                positiveText = resources.getString(R.string.action_demote),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.DemoteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            when (event) {
+            (when (event) {
                 Event.LeaveRoom -> { state -> state }
                 is Event.OnInfoChanged -> { state ->
                     val args = event.args
                     state.copy(
+                        isPreview = event.isPreview,
                         roomInfo = RoomInfo(
                             id = args.roomId,
                             number = args.roomNumber,
@@ -322,6 +423,10 @@ class ChatInfoViewModel @Inject constructor(
                     )
                 }
 
+                is Event.PromoteRequested,
+                is Event.PromoteUser,
+                is Event.DemoteRequested,
+                is Event.DemoteUser,
                 is Event.OnChangeMessageFee,
                 Event.OnLeaveRoomConfirmed,
                 is Event.OnChangeName,
@@ -333,6 +438,52 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.OnCloseRoom,
                 is Event.OnOpenRoom,
                 Event.OnLeftRoom -> { state -> state }
+
+                is Event.OnUserPromoted -> { state ->
+                    val members = state.members.flatMap { it.value }
+                    val updatedMembers = members.map {
+                        if (it.id == event.id) {
+                            it.copy(canSpeak = true)
+                        } else {
+                            it
+                        }
+                    }
+
+                    val groupedMembers = updatedMembers
+                        .groupBy { it.canSpeak }
+                        .mapKeys {
+                            if (it.key) {
+                                MemberType.Speaker
+                            } else {
+                                MemberType.Listener
+                            }
+                        }.mapValues { it.value.sortedByDescending { it.isHost } }
+
+                    state.copy(members = groupedMembers)
+                }
+
+                is Event.OnUserDemoted -> { state ->
+                    val members = state.members.flatMap { it.value }
+                    val updatedMembers = members.map {
+                        if (it.id == event.id) {
+                            it.copy(canSpeak = false)
+                        } else {
+                            it
+                        }
+                    }
+
+                    val groupedMembers = updatedMembers
+                        .groupBy { it.canSpeak }
+                        .mapKeys {
+                            if (it.key) {
+                                MemberType.Speaker
+                            } else {
+                                MemberType.Listener
+                            }
+                        }.mapValues { it.value.sortedByDescending { it.isHost } }
+
+                    state.copy(members = groupedMembers)
+                }
 
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }
                 is Event.OnFeeChanged -> { state ->
@@ -371,7 +522,12 @@ class ChatInfoViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnRoomNameChangesEnabled -> { state -> state.copy(roomNameChangesEnabled = event.enabled) }
+                is Event.OnRoomNameChangesEnabled -> { state ->
+                    state.copy(
+                        roomNameChangesEnabled = event.enabled
+                    )
+                }
+
                 is Event.OnDestinationChanged -> { state -> state.copy(paymentDestination = event.destination) }
                 is Event.OnJoiningStateChanged -> { state ->
                     state.copy(
@@ -384,12 +540,15 @@ class ChatInfoViewModel @Inject constructor(
 
                 is Event.OnLeavingStateChanged -> { state ->
                     state.copy(
-                        leaving = state.joining.copy(loading = event.leaving, success = event.left)
+                        leaving = state.joining.copy(
+                            loading = event.leaving,
+                            success = event.left
+                        )
                     )
                 }
 
                 is Event.OnRoomOpenStateChanged -> { state -> state.copy(isOpen = event.isOpen) }
-            }
+            })
         }
     }
 }

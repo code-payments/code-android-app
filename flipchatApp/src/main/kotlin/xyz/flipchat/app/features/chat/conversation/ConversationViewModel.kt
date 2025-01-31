@@ -240,7 +240,7 @@ class ConversationViewModel @Inject constructor(
         data object OnUserTypingStopped : Event
 
         data class LookupRoom(val number: Long) : Event
-        data class OpenJoinConfirmation(val roomInfoArgs: RoomInfoArgs) : Event
+        data class OpenRoomPreview(val roomInfoArgs: RoomInfoArgs) : Event
         data class OpenRoom(val roomId: ID) : Event
 
         data class Error(
@@ -814,7 +814,7 @@ class ConversationViewModel @Inject constructor(
                                 hostName = moderator?.identity?.displayName,
                                 messagingFeeQuarks = room.messagingFee.quarks,
                             )
-                            dispatchEvent(Event.OpenJoinConfirmation(roomInfo))
+                            dispatchEvent(Event.OpenRoomPreview(roomInfo))
                         }
                     }
             }.launchIn(viewModelScope)
@@ -1509,7 +1509,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.Resumed,
                 is Event.Stopped,
                 is Event.LookupRoom,
-                is Event.OpenJoinConfirmation,
+                is Event.OpenRoomPreview,
                 is Event.OpenRoom,
                 is Event.OnSendMessage,
                 is Event.SendMessage,
