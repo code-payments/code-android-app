@@ -229,7 +229,9 @@ class ConversationViewModel @Inject constructor(
         data class MuteUser(val conversationId: ID, val userId: ID) : Event
         data class BlockUser(val userId: ID) : Event
         data class UnblockUser(val userId: ID) : Event
-        data class OnTipUser(val messageId: ID, val userId: ID) : Event
+        data class TipUser(val messageId: ID, val userId: ID) : Event
+        data class PromoteUser(val conversationId: ID, val userId: ID) : Event
+        data class DemoteUser(val conversationId: ID, val userId: ID) : Event
 
         data object OnShareRoomLink : Event
         data class ShareRoom(val intent: Intent) : Event
@@ -711,7 +713,7 @@ class ConversationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnTipUser>()
+            .filterIsInstance<Event.TipUser>()
             .map { data ->
                 val result = profileController.getPaymentDestinationForUser(data.userId)
                 if (result.isSuccess) {
@@ -896,6 +898,35 @@ class ConversationViewModel @Inject constructor(
             .map { IntentUtils.shareRoom(stateFlow.value.roomInfoArgs.roomNumber) }
             .onEach { dispatchEvent(Event.ShareRoom(it)) }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PromoteUser>()
+            .map { roomController.promoteUser(it.conversationId, it.userId) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToPromoteUser),
+                            resources.getString(R.string.error_description_failedToPromoteUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DemoteUser>()
+            .map { roomController.demoteUser(it.conversationId, it.userId) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToDemoteUser),
+                            resources.getString(R.string.error_description_failedToDemoteUser)
+                        )
+                    )
+                }
+            ).launchIn(viewModelScope)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -916,6 +947,7 @@ class ConversationViewModel @Inject constructor(
             page.map { indice ->
                 val (_, message, member, contents, reply, tipInfo) = indice
 
+                println("member=$member")
                 val status = findClosestMessageStatus(
                     timestamp = message.id.uuid?.timestamp,
                     statusMap = pointerRefs,
@@ -939,6 +971,7 @@ class ConversationViewModel @Inject constructor(
                             profileImage = reply.member?.imageUri.takeIf {
                                 it.orEmpty().isNotEmpty()
                             },
+                            isFullMember = reply.member?.isFullMember == true,
                             displayName = reply.member?.memberName ?: "Deleted",
                             isSelf = reply.contentEntity.isFromSelf,
                             isBlocked = reply.member?.isBlocked == true,
@@ -985,7 +1018,7 @@ class ConversationViewModel @Inject constructor(
                     } else {
                         null
                     },
-                    showAsChatBubble = true,
+                    wasSentAsFullMember = !message.sentOffStage,
                     enableMarkup = true,
                     enableReply = enableReply && !message.isDeleted,
                     showTimestamp = false,
@@ -996,6 +1029,7 @@ class ConversationViewModel @Inject constructor(
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
                         displayName = member?.memberName ?: "Deleted",
                         isSelf = contents.isFromSelf,
+                        isFullMember = member?.isFullMember == true,
                         isHost = message.senderId == currentState.hostId,
                         isBlocked = member?.isBlocked == true,
                     ),
@@ -1047,7 +1081,7 @@ class ConversationViewModel @Inject constructor(
             }
         }.cachedIn(viewModelScope)
 
-    private suspend fun buildMessageActions(
+    private fun buildMessageActions(
         message: ConversationMessage,
         member: ConversationMember?,
         contents: MessageContent,
@@ -1055,6 +1089,32 @@ class ConversationViewModel @Inject constructor(
         enableTip: Boolean,
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
+            if (stateFlow.value.isHost) {
+                if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
+                    if (member.isFullMember) {
+                        add(
+                            MessageControlAction.DemoteUser {
+                                confirmUserDemote(
+                                    conversationId = message.conversationId,
+                                    user = member.memberName,
+                                    userId = message.senderId
+                                )
+                            }
+                        )
+                    } else {
+                        add(
+                            MessageControlAction.PromoteUser {
+                                confirmUserPromote(
+                                    conversationId = message.conversationId,
+                                    user = member.memberName,
+                                    userId = message.senderId
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
             if (enableReply) {
                 add(
                     MessageControlAction.Reply {
@@ -1075,7 +1135,7 @@ class ConversationViewModel @Inject constructor(
             if (enableTip) {
                 add(
                     MessageControlAction.Tip {
-                        dispatchEvent(Event.OnTipUser(message.id, message.senderId))
+                        dispatchEvent(Event.TipUser(message.id, message.senderId))
                     }
                 )
             }
@@ -1095,24 +1155,22 @@ class ConversationViewModel @Inject constructor(
         } + buildSelfDefenseControls(message, member, contents)
     }
 
-    private suspend fun buildSelfDefenseControls(
+    private fun buildSelfDefenseControls(
         message: ConversationMessage,
         member: ConversationMember?,
         contents: MessageContent
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
             // delete message
-            if (betaFeatures.get(Lab.DeleteMessage)) {
-                if (stateFlow.value.isHost || contents.isFromSelf) {
-                    add(
-                        MessageControlAction.Delete {
-                            confirmMessageDelete(
-                                conversationId = message.conversationId,
-                                messageId = message.id
-                            )
-                        }
-                    )
-                }
+            if (stateFlow.value.isHost || contents.isFromSelf) {
+                add(
+                    MessageControlAction.Delete {
+                        confirmMessageDelete(
+                            conversationId = message.conversationId,
+                            messageId = message.id
+                        )
+                    }
+                )
             }
 
 
@@ -1128,7 +1186,7 @@ class ConversationViewModel @Inject constructor(
 //                        }
 //                    )
                     add(
-                        MessageControlAction.MuteUser(member.memberName.orEmpty()) {
+                        MessageControlAction.MuteUser {
                             confirmUserMute(
                                 conversationId = message.conversationId,
                                 user = member.memberName,
@@ -1143,13 +1201,13 @@ class ConversationViewModel @Inject constructor(
                 if (member?.isBlocked != null) {
                     if (member.isBlocked) {
                         add(
-                            MessageControlAction.UnblockUser(member.memberName.orEmpty()) {
+                            MessageControlAction.UnblockUser {
                                 dispatchEvent(Event.UnblockUser(member.id))
                             }
                         )
                     } else {
                         add(
-                            MessageControlAction.BlockUser(member.memberName.orEmpty()) {
+                            MessageControlAction.BlockUser {
                                 confirmUserBlock(
                                     user = member.memberName,
                                     userId = message.senderId,
@@ -1213,6 +1271,42 @@ class ConversationViewModel @Inject constructor(
                 negativeText = "",
                 tertiaryText = resources.getString(R.string.action_cancel),
                 onPositive = { dispatchEvent(Event.MuteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserPromote(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_promoteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_promoteUserInRoom),
+                positiveText = resources.getString(R.string.action_promote),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.PromoteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserDemote(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_demoteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_demoteUserInRoom),
+                positiveText = resources.getString(R.string.action_demote),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.DemoteUser(conversationId, userId)) },
                 onNegative = { },
                 type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                 showScrim = true,
@@ -1409,7 +1503,9 @@ class ConversationViewModel @Inject constructor(
                 is Event.MuteUser,
                 is Event.BlockUser,
                 is Event.UnblockUser,
-                is Event.OnTipUser,
+                is Event.TipUser,
+                is Event.PromoteUser,
+                is Event.DemoteUser,
                 is Event.Resumed,
                 is Event.Stopped,
                 is Event.LookupRoom,

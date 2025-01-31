@@ -29,6 +29,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
@@ -45,6 +46,7 @@ import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.unboundedClickable
+import com.getcode.util.resources.LocalResources
 import kotlinx.parcelize.IgnoredOnParcel
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
@@ -70,6 +72,7 @@ internal object ChatTab : ChildNavTab {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val context = LocalContext.current
+        val resources = LocalResources.currentOrThrow
         val viewModel = getActivityScopedViewModel<ChatListViewModel>()
         val settingsVm = getViewModel<SettingsViewModel>()
         val state by viewModel.stateFlow.collectAsState()
@@ -98,7 +101,12 @@ internal object ChatTab : ChildNavTab {
                                 .background(color = CodeTheme.colors.tertiary, shape = CircleShape)
                                 .padding(CodeTheme.dimens.grid.x1)
                                 .unboundedClickable {
-                                    openChatDirectiveBottomModal(context, viewModel, navigator)
+                                    openChatDirectiveBottomModal(
+                                        resources = resources,
+                                        createCost = state.createRoomCost,
+                                        viewModel = viewModel,
+                                        navigator = navigator
+                                    )
                                 },
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
@@ -145,24 +153,26 @@ private fun LogOutTitle(
 ) {
     val context = LocalContext.current
     AppBarDefaults.Title(
-        modifier = modifier.addIf(!state.isLogOutEnabled) {
-            Modifier.noRippleClickable {
-                onTitleClicked()
+        modifier = modifier
+            .addIf(!state.isLogOutEnabled) {
+                Modifier.noRippleClickable {
+                    onTitleClicked()
+                }
             }
-        }.addIf(state.isLogOutEnabled) {
-            Modifier.unboundedClickable {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = context.getString(R.string.prompt_title_logout),
-                        subtitle = context
-                            .getString(R.string.prompt_description_logout),
-                        positiveText = context.getString(R.string.action_logout),
-                        tertiaryText = context.getString(R.string.action_cancel),
-                        onPositive = onLogout
+            .addIf(state.isLogOutEnabled) {
+                Modifier.unboundedClickable {
+                    BottomBarManager.showMessage(
+                        BottomBarManager.BottomBarMessage(
+                            title = context.getString(R.string.prompt_title_logout),
+                            subtitle = context
+                                .getString(R.string.prompt_description_logout),
+                            positiveText = context.getString(R.string.action_logout),
+                            tertiaryText = context.getString(R.string.action_cancel),
+                            onPositive = onLogout
+                        )
                     )
-                )
-            }
-        },
+                }
+            },
         text = options.title
     )
 }

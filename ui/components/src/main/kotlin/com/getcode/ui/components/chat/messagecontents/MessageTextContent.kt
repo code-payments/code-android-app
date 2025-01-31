@@ -28,8 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -50,6 +55,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
 import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DashEffect
 import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
@@ -61,6 +67,7 @@ import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.dashedBorder
 import com.getcode.ui.utils.rememberedLongClickable
 import kotlinx.datetime.Instant
 
@@ -75,6 +82,7 @@ internal fun MessageNodeScope.MessageText(
     tips: List<MessageTip>,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
+    wasSentAsFullMember:  Boolean,
     showControls: () -> Unit,
     showTipSelection: () -> Unit,
     showTips: () -> Unit,
@@ -85,10 +93,18 @@ internal fun MessageNodeScope.MessageText(
         BoxWithConstraints(
             modifier = Modifier
                 .sizeableWidth()
-                .background(
-                    color = color,
-                    shape = shape,
-                )
+                .addIf(wasSentAsFullMember) {
+                    Modifier.background(color = color, shape = shape)
+                }
+                .addIf(!wasSentAsFullMember) {
+                    Modifier.dashedBorder(
+                        strokeWidth = CodeTheme.dimens.border,
+                        dashWidth = 2.dp,
+                        gapWidth = 2.dp,
+                        dashColor = CodeTheme.colors.tertiary,
+                        shape = shape
+                    )
+                }
                 .addIf(options.isInteractive) {
                     Modifier.rememberedLongClickable {
                         showControls()

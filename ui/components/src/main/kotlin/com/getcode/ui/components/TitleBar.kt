@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.calculateHorizontalPadding
 import com.getcode.ui.utils.unboundedClickable
 
@@ -127,6 +128,7 @@ object AppBarDefaults {
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
+    isInModal: Boolean = false,
     title: String = "",
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     backButton: Boolean = false,
@@ -134,7 +136,8 @@ fun AppBarWithTitle(
     endContent: @Composable () -> Unit = { },
 ) {
     TopAppBarBase(
-        modifier = modifier.statusBarsPadding(),
+        modifier = modifier
+            .addIf(!isInModal) { Modifier.statusBarsPadding() },
         leftIcon = {
             if (backButton) {
                 AppBarDefaults.UpNavigation { onBackIconClicked() }

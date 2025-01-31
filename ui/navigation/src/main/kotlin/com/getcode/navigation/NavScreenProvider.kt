@@ -34,6 +34,7 @@ sealed class NavScreenProvider : ScreenProvider {
             data object Entry : NavScreenProvider()
         }
 
+        data object Create: NavScreenProvider()
         data class Messages(
             val chatId: ID? = null,
             val roomNumber: Long? = null,

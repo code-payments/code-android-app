@@ -75,6 +75,7 @@ class PurchaseAccountScreen : FullScreenModalScreen, Parcelable {
         Column {
             AppBarWithTitle(
                 backButton = false,
+                isInModal = true
             )
             PurchaseAccountScreenContent(getViewModel())
         }

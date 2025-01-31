@@ -110,9 +110,11 @@ class UserManager @Inject constructor(
         }
     }
 
-    fun set(userFlags: UserFlags) {
+    fun set(userFlags: UserFlags?) {
         _state.update {
-            it.copy(flags = userFlags)
+            it.copy(
+                flags = userFlags
+            )
         }
         associate()
     }

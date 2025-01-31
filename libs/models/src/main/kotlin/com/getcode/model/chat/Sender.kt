@@ -8,6 +8,7 @@ data class Sender(
     val displayName: String? = null,
     val isHost: Boolean = false,
     val isSelf: Boolean = false,
+    val isFullMember: Boolean = false,
     val isBlocked: Boolean = false,
 )
 

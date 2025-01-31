@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -181,7 +180,7 @@ internal fun ConversationMessages(
                                     delay(500)
                                 }
                                 dispatchEvent(
-                                    ConversationViewModel.Event.OnTipUser(
+                                    ConversationViewModel.Event.TipUser(
                                         event.message.chatMessageId,
                                         event.message.sender.id.orEmpty()
                                     )

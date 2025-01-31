@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.chat.info
 
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -106,7 +107,10 @@ class RoomInfoScreen(
                 .filterIsInstance<ChatInfoViewModel.Event.OnChangeMessageFee>()
                 .map { it.roomId }
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.ChangeCover(it)), delay = 100)
+                    navigator.push(
+                        ScreenRegistry.get(NavScreenProvider.Room.ChangeCover(it)),
+                        delay = 100
+                    )
                 }.launchIn(this)
         }
 
@@ -157,7 +161,14 @@ class RoomInfoScreen(
                 endContent = {
                     if (state.isMember) {
                         AppBarDefaults.Settings {
-                            navigator.show(ContextSheet(buildActions(state, viewModel::dispatchEvent)))
+                            navigator.show(
+                                ContextSheet(
+                                    buildActions(
+                                        state,
+                                        viewModel::dispatchEvent
+                                    )
+                                )
+                            )
                         }
                     }
                 }
@@ -266,6 +277,13 @@ private fun RoomInfoScreenContent(
                             style = CodeTheme.typography.caption,
                             color = CodeTheme.colors.textSecondary,
                         )
+                        Crossfade(state.isOpen) { open ->
+                            Text(
+                                text = if (open) "" else stringResource(R.string.subtitle_roomInfoRoomIsClosed),
+                                style = CodeTheme.typography.caption,
+                                color = CodeTheme.colors.textSecondary.copy(0.54f),
+                            )
+                        }
                     }
                 }
             }
@@ -371,7 +389,9 @@ private fun RoomInfoScreenContent(
             if (listeners.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
-                        modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = CodeTheme.dimens.grid.x2),
                         text = stringResource(R.string.subtitle_noneYet),
                         style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textSecondary,

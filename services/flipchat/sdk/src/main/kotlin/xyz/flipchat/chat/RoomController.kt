@@ -310,6 +310,30 @@ class RoomController @Inject constructor(
             }
     }
 
+    suspend fun promoteUser(
+        conversationId: ID,
+        userId: ID,
+    ): Result<Unit> {
+        return chatRepository.promoteUser(conversationId, userId)
+            .onSuccess {
+                withContext(Dispatchers.IO) {
+                    db.conversationMembersDao().promoteMember(conversationId, userId)
+                }
+            }
+    }
+
+    suspend fun demoteUser(
+        conversationId: ID,
+        userId: ID,
+    ): Result<Unit> {
+        return chatRepository.demoteUser(conversationId, userId)
+            .onSuccess {
+                withContext(Dispatchers.IO) {
+                    db.conversationMembersDao().demoteMember(conversationId, userId)
+                }
+            }
+    }
+
     suspend fun setMessagingFee(
         conversationId: ID,
         amount: KinAmount

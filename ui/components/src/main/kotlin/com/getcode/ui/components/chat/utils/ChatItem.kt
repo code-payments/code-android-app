@@ -43,8 +43,8 @@ sealed class ChatItem(open val key: Any) {
         val status: MessageStatus,
         val showStatus: Boolean = true,
         val showTimestamp: Boolean = true,
+        val wasSentAsFullMember: Boolean = false,
         val messageControls: MessageControls = MessageControls(),
-        val showAsChatBubble: Boolean = false,
         val enableMarkup: Boolean = false,
         val enableReply: Boolean = false,
         val enableLinkImagePreview: Boolean = false,
@@ -52,7 +52,7 @@ sealed class ChatItem(open val key: Any) {
         val originalMessage: ReplyMessageAnchor? = null,
         val tips: List<MessageTip> = emptyList(),
         override val key: Any = chatMessageId
-    ) : ChatItem(chatMessageId) {
+    ) : ChatItem(key) {
         val relativeDate: String = date.formatDateRelatively()
     }
 

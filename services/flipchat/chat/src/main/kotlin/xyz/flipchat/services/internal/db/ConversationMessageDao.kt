@@ -11,7 +11,6 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.uuid
 import com.getcode.utils.base58
-import com.getcode.utils.timestamp
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
@@ -96,6 +95,7 @@ interface ConversationMessageDao {
     }
 
     @RewriteQueriesToDropUnusedColumns
+    @Transaction
     @Query("""
     SELECT 
         messages.idBase58 AS idBase58,
@@ -121,6 +121,7 @@ interface ConversationMessageDao {
 
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
+                       AND members.conversationIdBase58 = :id
     LEFT JOIN tips ON messages.idBase58 = tips.messageIdBase58
     -- RawText, Announcements, Replies, and Actionable Announcements --
     WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8, 12)
@@ -134,10 +135,10 @@ interface ConversationMessageDao {
         return getPagedMessages(id.base58, limit, offset)
     }
 
-    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId")
-    suspend fun getMemberInternal(memberId: String): ConversationMember?
-    suspend fun getMemberInternal(memberId: ID): ConversationMember? {
-        return getMemberInternal(memberId.base58)
+    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId AND conversationIdBase58 = :conversationId")
+    suspend fun getMemberInternal(conversationId: String, memberId: String): ConversationMember?
+    suspend fun getMemberInternal(conversationId: ID, memberId: ID): ConversationMember? {
+        return getMemberInternal(conversationId.base58, memberId.base58)
     }
 
     suspend fun getPagedMessagesWithDetails(id: ID, limit: Int, offset: Int, selfId: ID?): List<InflatedConversationMessage> {
@@ -145,13 +146,13 @@ interface ConversationMessageDao {
 
         return messages.map {
             val content = MessageContent.fromData(it.message.type, it.message.content, isFromSelf = selfId == it.message.senderId)
-
+            val member = getMemberInternal(id, it.message.senderId)
             val replyContent = it.inReplyTo?.let { rp ->
                 MessageContent.fromData(rp.message.type, rp.message.content, isFromSelf = rp.message.senderId == selfId)
             } ?: MessageContent.Unknown(false)
             InflatedConversationMessage(
                 message = it.message,
-                member = it.member,
+                member = member,
                 content = content,
                 reply = it.inReplyTo?.apply { contentEntity = replyContent },
                 tips = it.tips,
@@ -194,9 +195,10 @@ interface ConversationMessageDao {
     suspend fun getMessageWithContentById(messageId: String, selfId: String?): ConversationMessageWithMemberAndContent? {
         val row = getMessageById(messageId) ?: return null
         val content = MessageContent.fromData(row.message.type, row.message.content, isFromSelf = row.message.senderIdBase58 == selfId) ?: return null
+        val member = getMemberInternal(row.message.conversationId, row.message.senderId)
         return ConversationMessageWithMemberAndContent(
             message = row.message,
-            member = row.member,
+            member = member,
         ).apply {
             contentEntity = content
         }

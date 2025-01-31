@@ -92,10 +92,9 @@ fun ConversationChatInput(
             is ChattableState.TemporarilyEnabled,
             is ChattableState.Enabled -> {
                 Column {
-                    if (state.isHost && !keyboardVisible && state.isOpenCloseEnabled) {
+                    if (state.isHost && !keyboardVisible && state.isOpenCloseEnabled && !state.isRoomOpen) {
                         RoomOpenControlBar(
                             modifier = Modifier.fillMaxWidth(),
-                            isOpen = state.isRoomOpen
                         ) { dispatchEvent(ConversationViewModel.Event.OnOpenStateChangedRequested) }
                     }
 
@@ -184,7 +183,6 @@ fun ConversationChatInput(
 @Composable
 private fun RoomOpenControlBar(
     modifier: Modifier = Modifier,
-    isOpen: Boolean,
     onChangeRequest: () -> Unit,
 ) {
     Row(
@@ -195,15 +193,13 @@ private fun RoomOpenControlBar(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = stringResource(
-                if (isOpen) R.string.subtitle_roomIsOpen else R.string.subtitle_roomIsClosed
-            ),
+            text = stringResource(R.string.subtitle_roomIsClosed),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textMain
         )
 
         CodeButton(
-            text = stringResource(R.string.action_change),
+            text = stringResource(R.string.action_reopen),
             shape = CircleShape,
             buttonState = ButtonState.Filled,
             overrideContentPadding = true,

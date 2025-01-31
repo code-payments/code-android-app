@@ -226,8 +226,9 @@ class AuthManager @Inject constructor(
                 }
 
                 profileController.getUserFlags()
-                    .onSuccess {
-                        userManager.set(authState = if (it?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered)
+                    .onSuccess { flags ->
+                        userManager.set(flags)
+                        userManager.set(authState = if (flags?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered)
                     }.onFailure {
                         taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
                         userManager.set(authState =  AuthState.Unregistered)

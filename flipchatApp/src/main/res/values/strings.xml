@@ -28,8 +28,14 @@
     <string name="error_title_failedToGetRoom">Flipchat Doesn\’t Exist Yet</string>
     <string name="error_description_failedToGetRoom">Please try a different Flipchat number</string>
 
-    <string name="error_title_failedToChangeCover">Something Went Wrong</string>
-    <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again</string>
+    <string name="error_title_failedToPromoteUser">Something Went Wrong</string>
+    <string name="error_description_failedToPromoteUser">This user could not be made a speaker. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToDemoteUser">Something Went Wrong</string>
+    <string name="error_description_failedToDemoteUser">This user could not be removed as a speaker. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToChangeMessageFee">Something Went Wrong</string>
+    <string name="error_description_failedToChangeMessageFee">Your new message fee couldn\’t be saved. Please check your network connection and try again</string>
 
     <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
     <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later</string>
@@ -182,6 +188,8 @@
     <string name="title_roomIsClosed">The host has temporarily closed this flipchat. Only they can send messages until they reopen it</string>
     <string name="subtitle_roomIsOpen">Your Flipchat is currently open</string>
     <string name="subtitle_roomIsClosed">Your Flipchat is currently closed</string>
+    <string name="subtitle_roomInfoRoomIsOpen">This Flipchat is currently open</string>
+    <string name="subtitle_roomInfoRoomIsClosed">This Flipchat is currently closed</string>
     <string name="action_change">Change</string>
     <string name="action_reopen">Reopen</string>
     <string name="action_close">Close</string>

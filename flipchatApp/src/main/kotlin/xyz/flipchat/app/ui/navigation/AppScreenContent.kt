@@ -2,27 +2,27 @@ package xyz.flipchat.app.ui.navigation
 
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import xyz.flipchat.app.features.balance.BalanceScreen
-import xyz.flipchat.app.features.chat.conversation.ConversationScreen
-import xyz.flipchat.app.features.chat.list.RoomListScreen
-import xyz.flipchat.app.features.home.TabbedHomeScreen
-import xyz.flipchat.app.features.login.LoginScreen
-import xyz.flipchat.app.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.features.balance.BalanceScreen
 import xyz.flipchat.app.features.beta.BetaFlagsScreen
+import xyz.flipchat.app.features.chat.conversation.ConversationScreen
 import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.RoomInfoScreen
+import xyz.flipchat.app.features.chat.list.RoomListScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
 import xyz.flipchat.app.features.chat.name.RoomNameScreen
-import xyz.flipchat.app.features.login.register.AccessKeyModalScreen
+import xyz.flipchat.app.features.home.TabbedHomeScreen
+import xyz.flipchat.app.features.login.LoginScreen
 import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
 import xyz.flipchat.app.features.login.accesskey.SeedInputScreen
 import xyz.flipchat.app.features.login.permissions.NotificationPermissionScreen
+import xyz.flipchat.app.features.login.register.AccessKeyModalScreen
 import xyz.flipchat.app.features.login.register.PurchaseAccountScreen
 import xyz.flipchat.app.features.login.register.RegisterInfoScreen
 import xyz.flipchat.app.features.login.register.RegisterModalScreen
 import xyz.flipchat.app.features.login.register.RegisterScreen
 import xyz.flipchat.app.features.restricted.AppRestrictedScreen
+import xyz.flipchat.app.features.settings.SettingsScreen
 
 @Composable
 fun AppScreenContent(content: @Composable () -> Unit) {

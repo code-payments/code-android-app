@@ -97,8 +97,8 @@ class CoverChargeViewModel @Inject constructor(
                     dispatchEvent(Event.OnChangingFee(false))
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
-                            resources.getString(R.string.error_title_failedToChangeCover),
-                            resources.getString(R.string.error_description_failedToChangeCover)
+                            resources.getString(R.string.error_title_failedToChangeMessageFee),
+                            resources.getString(R.string.error_description_failedToChangeMessageFee)
                         )
                     )
                 },

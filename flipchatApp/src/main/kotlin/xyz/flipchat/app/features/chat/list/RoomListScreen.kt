@@ -34,6 +34,7 @@ import androidx.paging.compose.itemKey
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -46,6 +47,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
+import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -100,14 +102,13 @@ class RoomListScreen : AppScreen(), NamedScreen, Parcelable {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChatListScreenContent(
     viewModel: ChatListViewModel,
     openChat: (ID) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
-    val context = LocalContext.current
+    val resources = LocalResources.currentOrThrow
     val state by viewModel.stateFlow.collectAsState()
     val chats = viewModel.chats.collectAsLazyPagingItems()
     val isLoading = chats.loadState.refresh is LoadState.Loading
@@ -174,7 +175,8 @@ private fun ChatListScreenContent(
                             text = stringResource(R.string.action_findRoom)
                         ) {
                             openChatDirectiveBottomModal(
-                                context = context,
+                                resources = resources,
+                                createCost = state.createRoomCost,
                                 viewModel = viewModel,
                                 navigator = navigator
                             )

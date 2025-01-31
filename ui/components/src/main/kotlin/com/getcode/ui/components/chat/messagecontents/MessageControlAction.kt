@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.VoiceOverOff
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -25,7 +26,7 @@ data class MessageControls(
 }
 
 
-sealed interface MessageControlAction: ContextMenuAction {
+sealed interface MessageControlAction : ContextMenuAction {
     data class Copy(override val onSelect: () -> Unit) : MessageControlAction {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = false
@@ -75,15 +76,32 @@ sealed interface MessageControlAction: ContextMenuAction {
         override val delayUponSelection: Boolean = false
     }
 
-    data class MuteUser(val name: String, override val onSelect: () -> Unit) :
+    data class PromoteUser(override val onSelect: () -> Unit) :
+        MessageControlAction {
+        override val title: String
+            @Composable get() = stringResource(R.string.action_promote)
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.RecordVoiceOver)
+        override val delayUponSelection: Boolean = false
+        override val isDestructive: Boolean = false
+    }
+
+    data class DemoteUser(override val onSelect: () -> Unit) :
+        MessageControlAction {
+        override val title: String
+            @Composable get() = stringResource(R.string.action_demote)
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Default.VoiceOverOff)
+        override val delayUponSelection: Boolean = false
+        override val isDestructive: Boolean = false
+    }
+
+    data class MuteUser(override val onSelect: () -> Unit) :
         MessageControlAction {
         override val isDestructive: Boolean = true
 
         override val title: String
-            @Composable get() = stringResource(
-                R.string.action_muteUser,
-                name
-            )
+            @Composable get() = stringResource(R.string.action_muteUser)
 
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.Default.VoiceOverOff)
@@ -101,7 +119,7 @@ sealed interface MessageControlAction: ContextMenuAction {
         override val delayUponSelection: Boolean = false
     }
 
-    data class BlockUser(val name: String, override val onSelect: () -> Unit) :
+    data class BlockUser(override val onSelect: () -> Unit) :
         MessageControlAction {
         override val isDestructive: Boolean = true
         override val title: String
@@ -111,7 +129,7 @@ sealed interface MessageControlAction: ContextMenuAction {
         override val delayUponSelection: Boolean = false
     }
 
-    data class UnblockUser(val name: String, override val onSelect: () -> Unit) :
+    data class UnblockUser(override val onSelect: () -> Unit) :
         MessageControlAction {
         override val isDestructive: Boolean = false
         override val title: String

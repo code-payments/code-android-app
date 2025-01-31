@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -139,6 +140,9 @@ fun MessageList(
                                     || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(60)
                         }
 
+                    val updatedSender by rememberUpdatedState(item.sender)
+                    val updatedActions by rememberUpdatedState(item.messageControls)
+
                     MessageNode(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -147,14 +151,14 @@ fun MessageList(
                         status = item.status,
                         isDeleted = item.isDeleted,
                         deletedBy = item.deletedBy,
-                        sender = item.sender,
+                        sender = updatedSender,
                         date = item.date,
                         options = MessageNodeOptions(
                             showStatus = item.showStatus && showTimestamp,
                             showTimestamp = showTimestamp,
                             isPreviousGrouped = isPreviousGrouped,
                             isNextGrouped = isNextGrouped,
-                            isInteractive = item.messageControls.hasAny,
+                            isInteractive = updatedActions.hasAny,
                             canReplyTo = item.enableReply,
                             canTip = item.enableTipping,
                             linkImagePreviewEnabled = item.enableLinkImagePreview,
@@ -163,12 +167,11 @@ fun MessageList(
                             } else null,
                             contentStyle = contentStyle,
                         ),
+                        wasSentAsFullMember = item.wasSentAsFullMember,
                         tips = item.tips,
                         openMessageControls = {
                             dispatch(
-                                MessageListEvent.OpenMessageActions(
-                                    item.messageControls.actions
-                                )
+                                MessageListEvent.OpenMessageActions(updatedActions.actions)
                             )
                         },
                         showTips = { dispatch(MessageListEvent.ShowTipsForMessage(item.tips)) },

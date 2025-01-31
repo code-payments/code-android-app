@@ -6,7 +6,9 @@ import androidx.paging.cachedIn
 import androidx.paging.map
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.kin
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -60,6 +62,7 @@ class ChatListViewModel @Inject constructor(
         val chatTapCount: Int = 0,
         val isLoggedIn: Boolean = false,
         val isLogOutEnabled: Boolean = false,
+        val createRoomCost: Kin = 0.kin,
     )
 
     sealed interface Event {
@@ -71,6 +74,7 @@ class ChatListViewModel @Inject constructor(
         ) :
             Event
 
+        data class OnCreateCostChanged(val cost: Kin): Event
         data class OnNetworkChanged(val connected: Boolean) : Event
         data object OnOpen : Event
         data object CreateRoomSelected : Event
@@ -89,6 +93,12 @@ class ChatListViewModel @Inject constructor(
             .map { it.userId }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnSelfIdChanged(it)) }
+            .launchIn(viewModelScope)
+
+        userManager.state
+            .mapNotNull { it.flags }
+            .map { it.createCost }
+            .onEach { dispatchEvent(Event.OnCreateCostChanged(it)) }
             .launchIn(viewModelScope)
 
         userManager.state
@@ -245,6 +255,10 @@ class ChatListViewModel @Inject constructor(
             when (event) {
                 is Event.OnNetworkChanged -> { state ->
                     state.copy(networkConnected = event.connected)
+                }
+
+                is Event.OnCreateCostChanged -> { state ->
+                    state.copy(createRoomCost = event.cost)
                 }
 
                 is Event.OnChatsTapped -> { state ->

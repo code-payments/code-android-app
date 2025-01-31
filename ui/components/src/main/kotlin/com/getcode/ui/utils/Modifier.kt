@@ -25,9 +25,14 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -381,3 +386,19 @@ fun Modifier.fadingEdge(
         drawContent()
         drawRect(brush = brush, blendMode = BlendMode.DstIn)
     }
+
+fun Modifier.dashedBorder(
+    strokeWidth: Dp,
+    dashWidth: Dp = strokeWidth,
+    gapWidth: Dp = dashWidth,
+    dashColor: Color,
+    shape: Shape
+) = this.drawBehind {
+    val outline = shape.createOutline(size, layoutDirection, this)
+    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashWidth.toPx(), gapWidth.toPx()), 0f)
+    drawOutline(
+        outline = outline,
+        color = dashColor,
+        style = Stroke(width = strokeWidth.toPx(), pathEffect = pathEffect)
+    )
+}
