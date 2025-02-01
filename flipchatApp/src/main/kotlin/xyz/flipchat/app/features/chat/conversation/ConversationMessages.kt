@@ -87,8 +87,9 @@ internal fun ConversationMessages(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScrollStateGradient(
-                        lazyListState,
-                        color = CodeTheme.colors.background
+                        scrollState = lazyListState,
+                        color = CodeTheme.colors.background,
+                        showAtStartAlways = true
                     ),
                 messages = messages,
                 listState = lazyListState,

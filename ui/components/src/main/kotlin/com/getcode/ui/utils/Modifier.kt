@@ -262,21 +262,23 @@ fun Modifier.verticalScrollStateGradient(
     scrollState: LazyListState,
     color: Color = Color.Unspecified,
     showAtStart: Boolean = true,
+    showAtStartAlways: Boolean = false,
     showAtEnd: Boolean = true,
+    showAtEndAlways: Boolean = false,
     isLongGradient: Boolean = false,
 ): Modifier = composed {
     val backgroundColor = color.takeOrElse { CodeTheme.colors.background }
     val gradientSizePx =
         with(LocalDensity.current) { gradientSize.toPx() } * if (isLongGradient) 1.5f else 1f
     this
-        .addIf(showAtStart && !scrollState.isScrolledToStart()) {
+        .addIf((showAtStart && !scrollState.isScrolledToStart()) || showAtStartAlways) {
             Modifier.drawWithGradient(
                 color = backgroundColor,
                 startY = { gradientSizePx },
                 endY = { 0f },
             )
         }
-        .addIf(showAtEnd && !scrollState.isScrolledToEnd()) {
+        .addIf((showAtEnd && !scrollState.isScrolledToEnd()) || showAtEndAlways) {
             Modifier.drawWithGradient(
                 color = backgroundColor,
                 startY = { size.height - gradientSizePx },
