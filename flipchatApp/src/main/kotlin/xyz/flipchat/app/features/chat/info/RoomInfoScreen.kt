@@ -267,7 +267,7 @@ private fun RoomInfoScreenContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = state.roomInfo.title,
+                            text = state.roomInfo.customTitle.ifEmpty { state.roomInfo.title },
                             style = CodeTheme.typography.screenTitle,
                             color = CodeTheme.colors.textMain,
                         )
