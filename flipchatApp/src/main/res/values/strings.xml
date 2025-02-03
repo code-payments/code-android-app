@@ -105,7 +105,7 @@
     <string name="action_enterRoomNumber">Enter Flipchat Number</string>
     <string name="action_createNewRoom">Create a New Flipchat</string>
     <string name="action_createNewRoomWithCost">Create a New Flipchat: ⬢ %1$s</string>
-    <string name="title_lookupRoom">Enter Flipchat Number</string>
+    <string name="title_lookupRoom">Join a Flipchat</string>
     <string name="subtitle_enterRoomNumber">Enter Flipchat Number</string>
     <string name="title_joinRoom">Join Flipchat</string>
     <string name="title_changeCoverCharge">Change Cover Charge</string>
