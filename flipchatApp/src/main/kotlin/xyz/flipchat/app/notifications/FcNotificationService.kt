@@ -173,6 +173,9 @@ class FcNotificationService : FirebaseMessagingService(),
             val (id, notification) = when (type) {
                 is FcNotificationType.ChatMessage -> {
                     val roomNumber = type.id?.let { db.conversationDao().findConversationRaw(it)?.roomNumber }
+                    val isFullMember = db.conversationMembersDao()
+                        .getMemberIn(memberId = userManager.userId.orEmpty(), type.id.orEmpty())?.isFullMember == true
+
                     buildChatNotification(
                         applicationContext,
                         resources,
@@ -180,7 +183,7 @@ class FcNotificationService : FirebaseMessagingService(),
                         roomNumber,
                         title,
                         content,
-                        userManager.authState is AuthState.LoggedIn
+                        userManager.authState is AuthState.LoggedIn && isFullMember
                     )
                 }
 

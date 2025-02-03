@@ -32,10 +32,10 @@ interface ConversationMemberDao {
         return observeMembersIn(id.base58)
     }
 
-    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId")
-    suspend fun getMember(memberId: String): ConversationMember?
-    suspend fun getMember(memberId: ID): ConversationMember? {
-        return getMember(memberId.base58)
+    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId AND conversationIdBase58 = :conversationId")
+    suspend fun getMemberIn(memberId: String, conversationId: String): ConversationMember?
+    suspend fun getMemberIn(memberId: ID, conversationId: ID): ConversationMember? {
+        return getMemberIn(memberId.base58, conversationId.base58)
     }
 
     @Query("DELETE FROM members WHERE conversationIdBase58 = :conversationId")
