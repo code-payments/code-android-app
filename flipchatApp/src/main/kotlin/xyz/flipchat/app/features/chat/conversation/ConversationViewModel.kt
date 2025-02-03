@@ -33,6 +33,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.SuppressibleException
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.network.retryable
@@ -722,9 +723,7 @@ class ConversationViewModel @Inject constructor(
                 val result = profileController.getPaymentDestinationForUser(data.userId)
                 if (result.isSuccess) {
                     result.getOrNull()?.let { Result.success(it to data.messageId) }
-                        ?: Result.failure(
-                            Throwable()
-                        )
+                        ?: Result.failure(Throwable())
                 } else {
                     Result.failure(result.exceptionOrNull() ?: Throwable())
                 }
@@ -748,6 +747,15 @@ class ConversationViewModel @Inject constructor(
                         metadata = metadata
                     )
                 } else {
+                    ErrorUtils.handleError(it.exceptionOrNull() ?: SuppressibleException("Failed retrieving destination address"))
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToSendTip),
+                            resources.getString(
+                                R.string.error_description_failedToSendTip,
+                            )
+                        )
+                    )
                     return@mapNotNull null
                 }
             }.flatMapLatest {
