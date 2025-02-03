@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ fun ConversationChatInput(
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
     var previousState by remember { mutableStateOf<ChattableState?>(null) }
+    val ime = LocalSoftwareKeyboardController.current
     val keyboardVisible by keyboardAsState()
 
     AnimatedContent(
@@ -103,19 +105,32 @@ fun ConversationChatInput(
                         state = state.textFieldState,
                         sendCashEnabled = false,
                         focusRequester = focusRequester,
-                        onSendMessage = { dispatchEvent(ConversationViewModel.Event.OnSendMessage) },
+                        onSendMessage = {
+                            if (chattableState is ChattableState.TemporarilyEnabled) {
+                                ime?.hide()
+                            }
+                            dispatchEvent(ConversationViewModel.Event.OnSendMessage)
+                        },
                         onSendCash = { dispatchEvent(ConversationViewModel.Event.OnSendCash) }
                     )
+
+                    LaunchedEffect(chattableState) {
+                        if (chattableState is ChattableState.TemporarilyEnabled) {
+                            focusRequester.requestFocus()
+                        }
+                    }
                 }
             }
 
             is ChattableState.Spectator -> {
                 Column(
-                    modifier = Modifier.addIf(
-                        !state.isRoomOpen && state.isOpenCloseEnabled
-                    ) {
-                        Modifier.background(CodeTheme.colors.secondary)
-                    }.navigationBarsPadding(),
+                    modifier = Modifier
+                        .addIf(
+                            !state.isRoomOpen && state.isOpenCloseEnabled
+                        ) {
+                            Modifier.background(CodeTheme.colors.secondary)
+                        }
+                        .navigationBarsPadding(),
                 ) {
                     if (!state.isRoomOpen && state.isOpenCloseEnabled) {
                         Text(
