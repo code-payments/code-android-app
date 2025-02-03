@@ -1,9 +1,13 @@
 package com.getcode.ui.components
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -128,6 +132,7 @@ object AppBarDefaults {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
@@ -140,7 +145,7 @@ fun AppBarWithTitle(
 ) {
     TopAppBarBase(
         modifier = modifier
-            .addIf(!isInModal) { Modifier.statusBarsPadding() },
+            .addIf(!isInModal) { Modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility) },
         leftIcon = {
             if (backButton) {
                 AppBarDefaults.UpNavigation { onBackIconClicked() }
@@ -154,6 +159,7 @@ fun AppBarWithTitle(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
@@ -163,7 +169,7 @@ fun AppBarWithTitle(
     endContent: @Composable () -> Unit = { },
 ) {
     TopAppBarBase(
-        modifier = modifier.statusBarsPadding(),
+        modifier = modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
         leftIcon =  startContent,
         titleRegion = {
             AppBarDefaults.Title(text = title)
@@ -173,6 +179,7 @@ fun AppBarWithTitle(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
@@ -183,7 +190,7 @@ fun AppBarWithTitle(
     rightContents: @Composable () -> Unit = { }
 ) {
     TopAppBarBase(
-        modifier = modifier.statusBarsPadding(),
+        modifier = modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
         leftIcon = leftIcon,
         rightContents = rightContents,
         contentPadding = contentPadding,
