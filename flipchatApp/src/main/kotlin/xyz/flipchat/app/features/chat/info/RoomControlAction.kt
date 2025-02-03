@@ -2,7 +2,7 @@ package xyz.flipchat.app.features.chat.info
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -29,7 +29,7 @@ sealed interface RoomControlAction : ContextMenuAction {
         override val title: String
             @Composable get() = stringResource(R.string.action_closeFlipchatTemporarily)
         override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Filled.Bedtime)
+            @Composable get() = rememberVectorPainter(Icons.Outlined.Bedtime)
     }
 
     data class OpenRoom(override val onSelect: () -> Unit) : RoomControlAction {
