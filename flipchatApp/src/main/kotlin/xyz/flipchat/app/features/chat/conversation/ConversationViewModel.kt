@@ -328,6 +328,8 @@ class ConversationViewModel @Inject constructor(
 
                     when {
                         isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
+                        // remain temp enabled
+                        stateFlow.value.chattableState is ChattableState.TemporarilyEnabled -> ChattableState.TemporarilyEnabled
                         isSpectator -> ChattableState.Spectator(
                             Kin.fromQuarks(it.conversation.messagingFee ?: 0)
                         )
@@ -352,8 +354,8 @@ class ConversationViewModel @Inject constructor(
             .map { it.conversationWithPointers.conversation }
             .distinctUntilChanged()
             .map {
-                val title = it.titleOrFallback(resources, includePrefix = true)
-                val roomCardTitle = it.titleOrFallback(resources, includePrefix = false)
+                val title = it.titleOrFallback(resources)
+                val roomCardTitle = it.titleOrFallback(resources)
                 title to roomCardTitle
             }.distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnTitlesChanged(it.first, it.second)) }
