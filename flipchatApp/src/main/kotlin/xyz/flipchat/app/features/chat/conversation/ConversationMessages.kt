@@ -89,7 +89,8 @@ internal fun ConversationMessages(
                     .verticalScrollStateGradient(
                         scrollState = lazyListState,
                         color = CodeTheme.colors.background,
-                        showAtStartAlways = true
+                        showAtStartAlways = true,
+                        showAtEnd = false
                     ),
                 messages = messages,
                 listState = lazyListState,
