@@ -50,11 +50,13 @@ internal fun ActionableAnnouncementMessage(
     val resolver = LocalAnnouncementActionResolver.current
     val resolvedAction = remember(resolver, action) { resolver(action) }
 
+    val inset = CodeTheme.dimens.inset
+
     BoxWithConstraints(modifier = modifier) {
         BoxWithConstraints(
             modifier = Modifier
                 .align(Alignment.Center)
-                .widthIn(max = maxWidth * 0.78f)
+                .widthIn(max = maxWidth - inset - inset) // max width sans inset on both sides
                 .border(
                     color = CodeTheme.colors.tertiary,
                     width = 1.dp,
