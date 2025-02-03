@@ -27,13 +27,31 @@ import com.getcode.ui.components.contextmenu.ContextMenuAction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class ContextSheet(private val actions: List<ContextMenuAction>) : Screen {
+sealed interface ContextMenuStyle {
+    @get:Composable
+    val color: Color
+
+    data object Default: ContextMenuStyle {
+        override val color: Color
+            @Composable get() = Color(0xFF171921)
+    }
+
+    data object Themed: ContextMenuStyle {
+        override val color: Color
+            @Composable get() = CodeTheme.colors.surfaceVariant
+    }
+}
+
+class ContextSheet(
+    private val actions: List<ContextMenuAction>,
+    private val style: ContextMenuStyle = ContextMenuStyle.Default
+) : Screen {
 
     @Composable
     override fun Content() {
         Column(
             modifier = Modifier
-                .background(Color(0xFF171921))
+                .background(style.color)
                 .padding(top = CodeTheme.dimens.inset)
                 .navigationBarsPadding()
         ) {

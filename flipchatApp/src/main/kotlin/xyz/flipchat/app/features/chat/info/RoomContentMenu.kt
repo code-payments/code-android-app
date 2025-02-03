@@ -42,7 +42,7 @@ sealed interface RoomControlAction : ContextMenuAction {
     }
 
     data class LeaveRoom(override val onSelect: () -> Unit) : RoomControlAction {
-        override val isDestructive: Boolean = true
+        override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = true
         override val title: String
             @Composable get() = stringResource(R.string.action_leaveRoom)

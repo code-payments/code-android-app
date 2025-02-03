@@ -233,7 +233,7 @@
     <string name="action_changeRoomName">Change Flipchat Name</string>
     <string name="action_customize">Customize</string>
     <string name="action_customizeRoom">Customize Flipchat</string>
-    <string name="action_leaveRoom">Leave Flipchat</string>
+    <string name="action_leaveRoom">Leave This Flipchat</string>
     <string name="action_shareRoomLinkAsHost">Share a Link to Your Flipchat</string>
     <string name="action_shareRoomLinkAsMember">Share a Link to This Flipchat</string>
 

@@ -241,7 +241,6 @@ class ChatListViewModel @Inject constructor(
                         conversation = it.conversation.copy(
                             title = it.conversation.titleOrFallback(
                                 resources = resources,
-                                includePrefix = true
                             )
                         )
                     )

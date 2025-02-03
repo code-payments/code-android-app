@@ -2,7 +2,12 @@ package xyz.flipchat.app.features.chat.info
 
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -24,6 +31,7 @@ import androidx.compose.material.icons.outlined.BorderColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,6 +45,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -45,6 +54,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ContextMenuStyle
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -55,6 +65,7 @@ import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.isVerticallyScrolledToStart
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient
@@ -154,14 +165,33 @@ class RoomInfoScreen(
             goBack()
         }
 
+        val listState = rememberLazyGridState()
+
+        val showTitle by remember(listState) {
+            derivedStateOf { listState.firstVisibleItemIndex >= 1 }
+        }
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                backButton = true,
-                onBackIconClicked = { goBack() },
-                endContent = {
+                title = {
+                    AnimatedVisibility(
+                        visible = showTitle,
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = fadeOut() + slideOutVertically { it }
+                    ) {
+                        AppBarDefaults.Title(
+                            text = state.roomInfo.customTitle.ifEmpty { state.roomInfo.title },
+                            style = CodeTheme.typography.screenTitle.copy(fontSize = 18.sp)
+                        )
+                    }
+                },
+                leftIcon = {
+                    AppBarDefaults.UpNavigation { goBack() }
+                },
+                rightContents = {
                     if (state.isMember) {
                         AppBarDefaults.Settings {
                             navigator.show(
@@ -169,20 +199,22 @@ class RoomInfoScreen(
                                     buildActions(
                                         state,
                                         viewModel::dispatchEvent
-                                    )
+                                    ),
+                                    ContextMenuStyle.Themed
                                 )
                             )
                         }
                     }
                 }
             )
-            RoomInfoScreenContent(state, viewModel::dispatchEvent)
+            RoomInfoScreenContent(listState, state, viewModel::dispatchEvent)
         }
     }
 }
 
 @Composable
 private fun RoomInfoScreenContent(
+    listState: LazyGridState,
     state: ChatInfoViewModel.State,
     dispatch: (ChatInfoViewModel.Event) -> Unit
 ) {
@@ -209,8 +241,6 @@ private fun RoomInfoScreenContent(
         val listeners = remember(state.members) {
             state.members.getOrDefault(MemberType.Listener, emptyList())
         }
-
-        val listState = rememberLazyGridState()
 
         LazyVerticalGrid(
             modifier = Modifier
@@ -270,6 +300,7 @@ private fun RoomInfoScreenContent(
                             text = state.roomInfo.customTitle.ifEmpty { state.roomInfo.title },
                             style = CodeTheme.typography.screenTitle,
                             color = CodeTheme.colors.textMain,
+                            textAlign = TextAlign.Center
                         )
                         Text(
                             text = pluralStringResource(
