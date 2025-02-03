@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="title_roomInfoSpeakerCountEmpty">0 Speakers</string>
+    <string name="title_roomInfoSpeakerCountSingle">1 Speaker</string>
+    <string name="title_roomInfoSpeakerCountMany">%d Speakers</string>
+    <plurals name="title_roomInfoSpeakerCount">
+        <item quantity="zero">@string/title_roomInfoSpeakerCountEmpty</item>
+        <item quantity="one">@string/title_roomInfoSpeakerCountSingle</item>
+        <item quantity="two">@string/title_roomInfoSpeakerCountMany</item>
+        <item quantity="many">@string/title_roomInfoSpeakerCountMany</item>
+        <item quantity="few">@string/title_roomInfoSpeakerCountMany</item>
+        <item quantity="other">@string/title_roomInfoSpeakerCountMany</item>
+    </plurals>
+
+    <string name="title_roomInfoListenerCountEmpty">0 Listeners</string>
+    <string name="title_roomInfoListenerCountSingle">1 Listener</string>
+    <string name="title_roomInfoListenerCountMany">%d Listeners</string>
+    <plurals name="title_roomInfoListenerCount">
+        <item quantity="zero">@string/title_roomInfoListenerCountEmpty</item>
+        <item quantity="one">@string/title_roomInfoListenerCountSingle</item>
+        <item quantity="two">@string/title_roomInfoListenerCountMany</item>
+        <item quantity="many">@string/title_roomInfoListenerCountMany</item>
+        <item quantity="few">@string/title_roomInfoListenerCountMany</item>
+        <item quantity="other">@string/title_roomInfoListenerCountMany</item>
+    </plurals>
+
+
+</resources>

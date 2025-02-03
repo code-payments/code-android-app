@@ -121,6 +121,7 @@ class ConversationViewModel @Inject constructor(
         val imageUri: String?,
         val lastSeen: Instant?,
         val members: Int?,
+        val listeners: Int?,
         val pointers: Map<UUID, MessageStatus?>,
         val pointerRefs: Map<Long, MessageStatus>,
         val showTypingIndicator: Boolean,
@@ -155,6 +156,7 @@ class ConversationViewModel @Inject constructor(
                 pointers = emptyMap(),
                 pointerRefs = emptyMap(),
                 members = null,
+                listeners = null,
                 showTypingIndicator = false,
                 isSelfTyping = false,
                 isRoomOpen = true,
@@ -1446,6 +1448,7 @@ class ConversationViewModel @Inject constructor(
                             }
                             .toMap(),
                         members = members.count(),
+                        listeners = members.count { !it.isFullMember },
                         isRoomOpen = conversation.isOpen,
                         hostId = host?.id,
                         roomInfoArgs = RoomInfoArgs(

@@ -302,15 +302,6 @@ private fun RoomInfoScreenContent(
                             color = CodeTheme.colors.textMain,
                             textAlign = TextAlign.Center
                         )
-                        Text(
-                            text = pluralStringResource(
-                                R.plurals.title_roomCardMemberCount,
-                                state.roomInfo.memberCount,
-                                state.roomInfo.memberCount,
-                            ),
-                            style = CodeTheme.typography.caption,
-                            color = CodeTheme.colors.textSecondary,
-                        )
                         Crossfade(state.isOpen) { open ->
                             Text(
                                 text = if (open) "" else stringResource(R.string.subtitle_roomInfoRoomIsClosed),
@@ -343,7 +334,11 @@ private fun RoomInfoScreenContent(
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.title_speakers),
+                    text = pluralStringResource(
+                        R.plurals.title_roomInfoSpeakerCount,
+                        speakers.count(),
+                        speakers.count()
+                    ),
                     style = CodeTheme.typography.screenTitle,
                     color = CodeTheme.colors.textMain
                 )
@@ -388,7 +383,11 @@ private fun RoomInfoScreenContent(
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
-                    text = stringResource(R.string.title_listeners),
+                    text = pluralStringResource(
+                        R.plurals.title_roomInfoListenerCount,
+                        listeners.count(),
+                        listeners.count()
+                    ),
                     style = CodeTheme.typography.screenTitle,
                     color = CodeTheme.colors.textMain
                 )
@@ -426,20 +425,6 @@ private fun RoomInfoScreenContent(
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            if (listeners.isEmpty()) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = CodeTheme.dimens.grid.x2),
-                        text = stringResource(R.string.subtitle_noneYet),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textSecondary,
-                        textAlign = TextAlign.Center
                     )
                 }
             }

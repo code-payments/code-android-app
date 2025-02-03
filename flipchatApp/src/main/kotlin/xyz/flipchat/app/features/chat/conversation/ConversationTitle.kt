@@ -30,15 +30,15 @@ internal fun ConversationTitle(
     modifier: Modifier = Modifier,
     state: ConversationViewModel.State,
 ) {
-    val memberCount = remember(state.members) {
-        state.members
+    val listenerCount = remember(state.members) {
+        state.listeners
     }
 
     ConversationTitle(
         modifier = modifier,
         imageUri = state.imageUri ?: state.conversationId,
         title = state.title,
-        memberCount = memberCount,
+        listenerCount = listenerCount,
     )
 }
 
@@ -47,7 +47,7 @@ internal fun ConversationTitle(
     modifier: Modifier = Modifier,
     imageUri: Any?,
     title: String,
-    memberCount: Int?,
+    listenerCount: Int?,
 ) {
     Row(
         modifier = modifier,
@@ -79,11 +79,11 @@ internal fun ConversationTitle(
             )
 
             Text(
-                text = if (memberCount != null) {
+                text = if (listenerCount != null) {
                     pluralStringResource(
-                        R.plurals.title_conversationMemberCount,
-                        memberCount,
-                        memberCount
+                        R.plurals.title_roomInfoListenerCount,
+                        listenerCount,
+                        listenerCount
                     )
                 } else {
                     ""
