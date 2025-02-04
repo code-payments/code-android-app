@@ -40,6 +40,8 @@ service Chat {
     rpc OpenChat(OpenChatRequest) returns (OpenChatResponse);
     // CloseChat closes a chat up for messaging to just the chat owner
     rpc CloseChat(CloseChatRequest) returns (CloseChatResponse);
+    // CheckDisplayName checks whether a chat display name passes moderation
+    rpc CheckDisplayName(CheckDisplayNameRequest) returns (CheckDisplayNameResponse);
     // SetDisplayName sets a chat's display name. If the display name isn't allowed,
     // then a set of alternate suggestions may be provided
     rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
@@ -183,8 +185,8 @@ message StartChatRequest {
     message StartGroupChatParameters {
         // A set of users (not including self) to initially set in the group chat.
         repeated common.v1.UserId users = 1 ;
-        // Reserved for display_name field
-        reserved 2;
+        // Optional display name for the group chat
+        string display_name = 2 ;
         // Optional payment for creating the group. It's up to server to decide
         // if the user is allowed to create a group without payment.
         common.v1.IntentId payment_intent = 3;
@@ -274,6 +276,16 @@ message CloseChatResponse {
         OK = 0;
         DENIED = 1;
     }
+}
+message CheckDisplayNameRequest {
+    string display_name = 1 ;
+}
+message CheckDisplayNameResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+    }
+    bool is_allowed = 2;
 }
 message SetDisplayNameRequest {
     common.v1.ChatId chat_id = 1;

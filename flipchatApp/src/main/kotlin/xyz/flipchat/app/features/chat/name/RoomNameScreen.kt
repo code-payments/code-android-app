@@ -112,13 +112,18 @@ data class RoomNameScreen(val roomId: ID, val customTitle: String) : Screen, Par
             }
 
             val state by viewModel.stateFlow.collectAsState()
-            RoomNameScreenContent(state, viewModel::dispatchEvent)
+            RoomNameScreenContent(
+                isUpdate = true,
+                state = state,
+                dispatch = viewModel::dispatchEvent
+            )
         }
     }
 }
 
 @Composable
-private fun RoomNameScreenContent(
+internal fun RoomNameScreenContent(
+    isUpdate: Boolean,
     state: RoomNameScreenViewModel.State,
     dispatch: (RoomNameScreenViewModel.Event) -> Unit,
 ) {
@@ -140,12 +145,16 @@ private fun RoomNameScreenContent(
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset),
                     buttonState = ButtonState.Filled,
-                    text = stringResource(R.string.action_save),
+                    text = if (isUpdate) stringResource(R.string.action_save) else stringResource(R.string.action_next),
                     isLoading = state.update.loading,
                     isSuccess = state.update.success
                 ) {
                     keyboard?.hide()
-                    dispatch(RoomNameScreenViewModel.Event.UpdateName)
+                    if (isUpdate) {
+                        dispatch(RoomNameScreenViewModel.Event.UpdateName)
+                    } else {
+                        dispatch(RoomNameScreenViewModel.Event.CreateRoom)
+                    }
                 }
             }
         }

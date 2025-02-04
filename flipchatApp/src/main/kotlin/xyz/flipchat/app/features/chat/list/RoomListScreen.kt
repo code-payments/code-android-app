@@ -41,6 +41,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.AppScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.OnScreenResult
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -48,9 +49,12 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
 import com.getcode.util.resources.LocalResources
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -77,11 +81,18 @@ class RoomListScreen : AppScreen(), NamedScreen, Parcelable {
             }
         )
 
-        LaunchedEffect(result) {
-            result
-                .filter { it == true }
-                .onEach { viewModel.dispatchEvent(ChatListViewModel.Event.OnAccountCreated) }
-                .launchIn(this)
+        OnScreenResult {
+            if (it is List<*>) {
+                val roomId = runCatching { it as? ID }.getOrNull()
+                if (roomId != null) {
+                    delay(400)
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(chatId = roomId)))
+                }
+            } else if (it is Boolean) {
+                if (it) {
+                    viewModel.dispatchEvent(ChatListViewModel.Event.OnAccountCreated)
+                }
+            }
         }
 
         LaunchedEffect(viewModel) {
@@ -89,6 +100,14 @@ class RoomListScreen : AppScreen(), NamedScreen, Parcelable {
                 .filterIsInstance<ChatListViewModel.Event.NeedsAccountCreated>()
                 .onEach {
                     navigator.show(ScreenRegistry.get(NavScreenProvider.CreateAccount.Start))
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatListViewModel.Event.CreateRoom>()
+                .onEach {
+                    navigator.show(ScreenRegistry.get(NavScreenProvider.Room.Create))
                 }.launchIn(this)
         }
 

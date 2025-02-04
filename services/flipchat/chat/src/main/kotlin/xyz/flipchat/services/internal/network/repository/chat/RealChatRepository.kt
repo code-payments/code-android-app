@@ -127,6 +127,13 @@ internal class RealChatRepository @Inject constructor(
         }
     }
 
+    override suspend fun checkDisplayName(displayName: String): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            service.checkDisplayName(displayName)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
     override suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit> {
         val owner = userManager.keyPair
             ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))

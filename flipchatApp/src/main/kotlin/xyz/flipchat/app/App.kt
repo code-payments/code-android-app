@@ -74,12 +74,12 @@ fun App(
     FlipchatTheme {
         val barManager = rememberBarManager()
         AppScreenContent {
-            AppNavHost {
-                val codeNavigator = LocalCodeNavigator.current
+            PaymentScaffold {
                 TipScaffold(tipsEngine = tipsEngine) {
                     ScrimSupport {
-                        CodeScaffold { innerPaddingModifier ->
-                            PaymentScaffold {
+                        AppNavHost {
+                            val codeNavigator = LocalCodeNavigator.current
+                            CodeScaffold { innerPaddingModifier ->
                                 Navigator(
                                     screen = MainRoot { deepLink },
                                 ) { navigator ->
@@ -115,7 +115,13 @@ fun App(
                                                     loginRequest = null
                                                     context.getActivity()?.let {
                                                         homeViewModel.logout(it) {
-                                                            codeNavigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(entropy)))
+                                                            codeNavigator.replaceAll(
+                                                                ScreenRegistry.get(
+                                                                    NavScreenProvider.Login.Home(
+                                                                        entropy
+                                                                    )
+                                                                )
+                                                            )
                                                         }
                                                     }
                                                 },
@@ -128,7 +134,11 @@ fun App(
 
                                     LaunchedEffect(userState.isTimelockUnlocked) {
                                         if (userState.isTimelockUnlocked) {
-                                            codeNavigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)))
+                                            codeNavigator.replaceAll(
+                                                ScreenRegistry.get(
+                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
+                                                )
+                                            )
                                         }
                                     }
 

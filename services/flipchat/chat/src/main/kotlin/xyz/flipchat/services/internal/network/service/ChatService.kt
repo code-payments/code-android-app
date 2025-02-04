@@ -659,6 +659,28 @@ internal class ChatService @Inject constructor(
         )
     }
 
+    suspend fun checkDisplayName(name: String): Result<Unit> {
+        return networkOracle.managedApiRequest(
+            call = { api.checkDisplayName(name) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ChatService.CheckDisplayNameResponse.Result.OK -> {
+                        if (!response.isAllowed) {
+                            return@managedApiRequest Result.failure(CheckDisplayNameError.CantSet())
+                        }
+                        Result.success(Unit)
+                    }
+                    ChatService.CheckDisplayNameResponse.Result.UNRECOGNIZED -> Result.failure(CheckDisplayNameError.Unrecognized())
+                    else -> Result.failure(CheckDisplayNameError.Other())
+                }
+
+            },
+            onOtherError = { cause ->
+                Result.failure(CheckDisplayNameError.Other(cause = cause))
+            }
+        )
+    }
+
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
@@ -915,6 +937,15 @@ sealed class CloseChatError(
     class Denied : CloseChatError()
     class Unrecognized : CloseChatError()
     data class Other(override val cause: Throwable? = null) : CloseChatError(cause = cause)
+}
+
+sealed class CheckDisplayNameError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class CantSet: CheckDisplayNameError()
+    class Unrecognized : CheckDisplayNameError()
+    data class Other(override val cause: Throwable? = null) : CheckDisplayNameError(cause = cause)
 }
 
 

@@ -147,25 +147,27 @@ fun ConversationChatInput(
                         )
                     }
 
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                start = CodeTheme.dimens.inset,
-                                end = CodeTheme.dimens.inset
+                    if (state.isRoomOpen) {
+                        CodeButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = CodeTheme.dimens.inset,
+                                    end = CodeTheme.dimens.inset
+                                ),
+                            buttonState = ButtonState.Filled,
+                            text = stringResource(
+                                R.string.action_sendMessageInRoom,
+                                formatAmountString(
+                                    resources = LocalResources.current!!,
+                                    currency = Currency.Kin,
+                                    amount = chattableState.messageFee.quarks.toDouble(),
+                                    suffix = stringResource(R.string.core_kin)
+                                )
                             ),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(
-                            R.string.action_sendMessageInRoom,
-                            formatAmountString(
-                                resources = LocalResources.current!!,
-                                currency = Currency.Kin,
-                                amount = chattableState.messageFee.quarks.toDouble(),
-                                suffix = stringResource(R.string.core_kin)
-                            )
-                        ),
-                    ) {
-                        dispatchEvent(ConversationViewModel.Event.OnSendMessageForFee)
+                        ) {
+                            dispatchEvent(ConversationViewModel.Event.OnSendMessageForFee)
+                        }
                     }
                 }
             }

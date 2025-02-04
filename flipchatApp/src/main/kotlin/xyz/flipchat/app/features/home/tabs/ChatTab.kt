@@ -28,12 +28,19 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.TabOptions
+import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.core.CodeNavigatorStub
+import com.getcode.navigation.core.NavigationLocator
+import com.getcode.navigation.core.NavigatorStub
+import com.getcode.navigation.core.NavigatorWrapper
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.Black40
@@ -60,6 +67,8 @@ internal object ChatTab : ChildNavTab {
     override val key: ScreenKey = uniqueScreenKey
 
     override val ordinal: Int = 0
+
+    override var childNav: NavigationLocator = NavigatorStub
 
     override val options: TabOptions
         @Composable get() = TabOptions(
@@ -114,7 +123,10 @@ internal object ChatTab : ChildNavTab {
                         )
                     }
                 )
-                Navigator(ScreenRegistry.get(NavScreenProvider.Room.List))
+                Navigator(ScreenRegistry.get(NavScreenProvider.Room.List)) { navigator ->
+                    childNav = NavigatorWrapper(navigator)
+                    SlideTransition(navigator)
+                }
             }
 
             val scrimAlpha by animateFloatAsState(

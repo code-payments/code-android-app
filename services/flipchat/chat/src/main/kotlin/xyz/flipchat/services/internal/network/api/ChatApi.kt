@@ -55,6 +55,10 @@ class ChatApi @Inject constructor(
                             .onEachIndexed { index, user -> setUsers(index, user) }
                     }
 
+                    if (type.title != null) {
+                        groupBuilder.setDisplayName(type.title)
+                    }
+
                     groupBuilder.setPaymentIntent(type.paymentId.toIntentId())
 
                     setGroupChat(groupBuilder)
@@ -376,6 +380,17 @@ class ChatApi @Inject constructor(
 
 
         return api::closeChat
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // CheckDisplayName checks whether a chat display name passes moderation
+    fun checkDisplayName(name: String): Flow<ChatServiceRpc.CheckDisplayNameResponse> {
+        val request = ChatServiceRpc.CheckDisplayNameRequest.newBuilder()
+            .setDisplayName(name)
+            .build()
+
+        return api::checkDisplayName
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

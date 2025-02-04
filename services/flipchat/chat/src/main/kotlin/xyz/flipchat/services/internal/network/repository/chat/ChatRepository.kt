@@ -37,6 +37,7 @@ interface ChatRepository {
     suspend fun leaveChat(chatId: ID): Result<Unit>
 
     // Host controls
+    suspend fun checkDisplayName(displayName: String): Result<Unit>
     suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit>
     suspend fun mute(chatId: ID): Result<Unit>
     suspend fun unmute(chatId: ID): Result<Unit>

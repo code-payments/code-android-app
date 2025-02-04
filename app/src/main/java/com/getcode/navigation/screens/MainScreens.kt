@@ -290,17 +290,3 @@ data class NotificationCollectionScreen(val collectionId: ID) : MainGraph, Modal
         }
     }
 }
-
-@Composable
-fun <T> AppScreen.OnScreenResult(block: (T) -> Unit) {
-    RepeatOnLifecycle(
-        targetState = Lifecycle.State.RESUMED,
-    ) {
-        result
-            .filterNotNull()
-            .mapNotNull { it as? T }
-            .onEach { runCatching { block(it) } }
-            .onEach { result.value = null }
-            .launchIn(this)
-    }
-}

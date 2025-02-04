@@ -4,14 +4,27 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import cafe.adriel.voyager.core.lifecycle.JavaSerializable
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.tab.TabNavigator
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
-    staticCompositionLocalOf { NavigatorNull() }
+    staticCompositionLocalOf { CodeNavigatorStub }
 
-class NavigatorNull : CodeNavigator {
+object NavigatorStub: NavigationLocator {
+    override val lastItem: Screen? = null
+    override fun push(item: Screen, delay: Long) { }
+    override infix fun push(items: List<Screen>) { }
+
+    override fun pop(): Boolean { return false }
+    override fun popAll() { }
+}
+
+object CodeNavigatorStub : CodeNavigator {
     override val lastItem: Screen? = null
     override val lastModalItem: Screen? = null
     override val sheetStackRoot: Screen? = null
@@ -21,6 +34,7 @@ class NavigatorNull : CodeNavigator {
     override val progress: Float = 0f
 
     override var screensNavigator: Navigator? = null
+    override var tabsNavigator: TabNavigator? = null
 
     override fun show(screen: Screen) = Unit
 
@@ -54,11 +68,18 @@ class NavigatorNull : CodeNavigator {
     ) {
         content()
     }
-
 }
 
-interface CodeNavigator {
+interface NavigationLocator {
     val lastItem: Screen?
+    fun push(item: Screen, delay: Long = 0)
+    infix fun push(items: List<Screen>)
+    fun pop(): Boolean
+    fun popAll()
+}
+
+interface CodeNavigator: NavigationLocator {
+    override val lastItem: Screen?
     val lastModalItem: Screen?
     val sheetStackRoot: Screen?
     val lastEvent: StackEvent
@@ -66,13 +87,14 @@ interface CodeNavigator {
     val sheetFullyVisible: Boolean
     val progress: Float
     var screensNavigator: Navigator?
+    var tabsNavigator: TabNavigator?
 
     fun show(screen: Screen)
     fun hide()
     fun <T> hideWithResult(result: T)
-    fun push(item: Screen, delay: Long = 0)
+    override fun push(item: Screen, delay: Long)
 
-    infix fun push(items: List<Screen>)
+    override infix fun push(items: List<Screen>)
 
     infix fun replace(item: Screen)
 
@@ -81,10 +103,10 @@ interface CodeNavigator {
     fun replaceAll(items: List<Screen>, inSheet: Boolean = false)
 
     fun isAtRoot(): Boolean
-    fun pop(): Boolean
+    override fun pop(): Boolean
     fun <T> popWithResult(result: T): Boolean
 
-    fun popAll()
+    override fun popAll()
 
     infix fun popUntil(predicate: (Screen) -> Boolean): Boolean
 
@@ -95,4 +117,28 @@ interface CodeNavigator {
         screen: Screen?,
         content: @Composable () -> Unit
     )
+}
+
+class NavigatorWrapper(
+    private val navigator: Navigator,
+): NavigationLocator {
+
+    override val lastItem: Screen?
+        get() = navigator.lastItemOrNull
+
+    override fun push(item: Screen, delay: Long) {
+        navigator.push(item)
+    }
+
+    override infix fun push(items: List<Screen>) {
+        navigator.push(items)
+    }
+
+    override fun pop(): Boolean {
+        return navigator.pop()
+    }
+
+    override fun popAll() {
+        navigator.popUntilRoot()
+    }
 }

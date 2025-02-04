@@ -353,6 +353,10 @@ class ChatsController @Inject constructor(
             }
     }
 
+    suspend fun checkDisplayNameForRoom(name: String): Result<Unit> {
+        return chatRepository.checkDisplayName(name)
+    }
+
     suspend fun muteRoom(roomId: ID): Result<Unit> {
         return chatRepository.mute(roomId)
             .onSuccess { db.conversationDao().muteChat(roomId) }

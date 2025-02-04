@@ -60,6 +60,7 @@ android {
     buildTypes {
         getByName("release") {
             resValue("string", "applicationId", appNamespace)
+
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

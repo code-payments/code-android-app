@@ -17,46 +17,30 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.TabDisposable
 import cafe.adriel.voyager.navigator.tab.TabNavigator
-import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
-import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.withTopBorder
 import dev.theolm.rinku.DeepLink
-import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
-import xyz.flipchat.app.features.settings.SettingsViewModel
-import xyz.flipchat.app.util.DeeplinkType
-import kotlin.math.log
 
 @Parcelize
 class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parcelable {
@@ -67,11 +51,11 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
     override fun Content() {
         val viewModel = getActivityScopedViewModel<HomeViewModel>()
         val router = viewModel.router
-
         val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
         val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
 
+        val navigator = LocalCodeNavigator.current
         OnLifecycleEvent { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
@@ -90,6 +74,14 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
                 )
             }
         ) { tabNavigator ->
+            DisposableEffect(tabNavigator) {
+                navigator.tabsNavigator = tabNavigator
+
+                onDispose {
+                    navigator.tabsNavigator = null
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .statusBarsPadding()

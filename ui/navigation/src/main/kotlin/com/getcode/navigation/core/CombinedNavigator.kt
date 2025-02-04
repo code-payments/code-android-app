@@ -7,7 +7,9 @@ import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.tab.TabNavigator
 import com.getcode.navigation.screens.AppScreen
+import com.getcode.navigation.screens.ChildNavTab
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -17,6 +19,7 @@ class CombinedNavigator(
     var sheetNavigator: BottomSheetNavigator
 ) : CodeNavigator, CoroutineScope by CoroutineScope(Dispatchers.Main) {
     override var screensNavigator: Navigator? = null
+    override var tabsNavigator: TabNavigator? = null
 
     override val lastItem: Screen?
         get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
@@ -42,6 +45,7 @@ class CombinedNavigator(
 
 
     override fun show(screen: Screen) {
+        println(screensNavigator?.items?.map { it::class.simpleName })
         sheetNavigator.show(screen)
     }
 
@@ -50,13 +54,21 @@ class CombinedNavigator(
     }
 
     override fun <T> hideWithResult(result: T) {
+        if (tabsNavigator != null) {
+            val prev = (tabsNavigator?.current as? ChildNavTab)?.childNav?.lastItem as? AppScreen
+            hide()
+            prev?.onResult(result)
+            return
+        }
+
         with(sheetNavigator) {
+            println(items.map { it::class.simpleName })
             var prev = if (size < 2) null else items[items.size - 2] as? AppScreen
             if (prev == null) {
                 // grab last screen from base
                 prev = screensNavigator?.let {
                     with(it) {
-                        items.lastOrNull() as AppScreen
+                        items.lastOrNull() as? AppScreen
                     }
                 }
             }
@@ -127,13 +139,21 @@ class CombinedNavigator(
                 pop()
             }
         } else {
-            screensNavigator?.let {
-                with(it) {
-                    val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
+            if (tabsNavigator != null) {
+                with (tabsNavigator!!) {
+                    val prev = (current as? ChildNavTab)?.childNav?.lastItem as? AppScreen
                     prev?.onResult(result)
                     pop()
                 }
-            } ?: false
+            } else {
+                screensNavigator?.let {
+                    with(it) {
+                        val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
+                        prev?.onResult(result)
+                        pop()
+                    }
+                } ?: false
+            }
         }
     }
 

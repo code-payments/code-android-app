@@ -88,6 +88,11 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
+sealed interface CreateAccountRequest {
+    data object JoinRoom : CreateAccountRequest
+    data object SendMessage : CreateAccountRequest
+}
+
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
     private val userManager: UserManager,
@@ -133,6 +138,7 @@ class ConversationViewModel @Inject constructor(
         val isLinkImagePreviewsEnabled: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?,
+        val createAccountRequest: CreateAccountRequest? = null,
     ) {
         val isHost: Boolean
             get() = selfId != null && hostId != null && selfId == hostId
@@ -211,9 +217,10 @@ class ConversationViewModel @Inject constructor(
 
         data object OnJoinRequestedFromSpectating : Event
         data object OnSendMessageForFee : Event
-        data object NeedsAccountCreated : Event
+        data class NeedsAccountCreated(val createFor: CreateAccountRequest) : Event
         data object OnAccountCreated : Event
         data object OnJoinRoom : Event
+        data object ResetCreateAccountRequest : Event
 
         data object Resumed : Event
         data object Stopped : Event
@@ -398,7 +405,11 @@ class ConversationViewModel @Inject constructor(
                 if (stateFlow.value.chattableState is ChattableState.Enabled) {
                     dispatchEvent(Event.SendMessage())
                 } else {
-                    dispatchEvent(Event.SendMessageWithFee)
+                    if (userManager.authState is AuthState.LoggedIn) {
+                        dispatchEvent(Event.SendMessageWithFee)
+                    } else {
+                        dispatchEvent(Event.NeedsAccountCreated(CreateAccountRequest.SendMessage))
+                    }
                 }
             }.launchIn(viewModelScope)
 
@@ -510,8 +521,18 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnAccountCreated>()
-            .onEach { delay(400) }
-            .onEach { dispatchEvent(Event.OnJoinRoom) }
+            .mapNotNull { stateFlow.value.createAccountRequest }
+            .onEach {
+                when (it) {
+                    CreateAccountRequest.JoinRoom -> {
+                        delay(400)
+                        dispatchEvent(Event.OnJoinRoom)
+                    }
+                    CreateAccountRequest.SendMessage -> {
+                        dispatchEvent(Event.OnSendMessageForFee)
+                    }
+                }
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -747,7 +768,10 @@ class ConversationViewModel @Inject constructor(
                         metadata = metadata
                     )
                 } else {
-                    ErrorUtils.handleError(it.exceptionOrNull() ?: SuppressibleException("Failed retrieving destination address"))
+                    ErrorUtils.handleError(
+                        it.exceptionOrNull()
+                            ?: SuppressibleException("Failed retrieving destination address")
+                    )
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
                             resources.getString(R.string.error_title_failedToSendTip),
@@ -838,7 +862,7 @@ class ConversationViewModel @Inject constructor(
                 if (it is AuthState.LoggedIn) {
                     dispatchEvent(Event.OnJoinRoom)
                 } else {
-                    dispatchEvent(Event.NeedsAccountCreated)
+                    dispatchEvent(Event.NeedsAccountCreated(CreateAccountRequest.JoinRoom))
                 }
             }
             .launchIn(viewModelScope)
@@ -1527,6 +1551,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnSendMessage,
                 is Event.SendMessage,
                 is Event.SendMessageWithFee -> { state -> state }
+
+                is Event.ResetCreateAccountRequest -> { state -> state.copy(createAccountRequest = null) }
 
                 is Event.OnUserActivity -> { state ->
                     state.copy(lastSeen = event.activity)

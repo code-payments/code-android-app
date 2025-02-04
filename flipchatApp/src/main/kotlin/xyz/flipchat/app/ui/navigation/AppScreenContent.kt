@@ -7,6 +7,7 @@ import xyz.flipchat.app.features.balance.BalanceScreen
 import xyz.flipchat.app.features.beta.BetaFlagsScreen
 import xyz.flipchat.app.features.chat.conversation.ConversationScreen
 import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
+import xyz.flipchat.app.features.chat.create.CreateRoomScreen
 import xyz.flipchat.app.features.chat.info.RoomInfoScreen
 import xyz.flipchat.app.features.chat.list.RoomListScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
@@ -73,6 +74,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.AppHomeScreen> {
             TabbedHomeScreen(it.deeplink)
+        }
+
+        register<NavScreenProvider.Room.Create> {
+            CreateRoomScreen()
         }
 
         register<NavScreenProvider.Room.List> {
