@@ -160,7 +160,7 @@ private fun MeasureScope.placeBadgeOnAvatarPerimeter(
 
     val badgeRadius = widthOrZero(placeable) / 2f
 
-    val distanceBetweenCenters = avatarRadius + badgeRadius - 8.dp.toPx()
+    val distanceBetweenCenters = avatarRadius + badgeRadius - 16.dp.toPx()
 
     val badgeCenterX = centerX + distanceBetweenCenters * cos(angle)
     val badgeCenterY = centerY + distanceBetweenCenters * sin(angle)
