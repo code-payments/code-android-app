@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -65,7 +64,6 @@ import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.isVerticallyScrolledToStart
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient

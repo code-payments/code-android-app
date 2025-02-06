@@ -403,6 +403,23 @@ class ChatInfoViewModel @Inject constructor(
     }
 
     companion object {
+        private fun sortMembers(members: List<MinimalMember>): Map<MemberType, List<MinimalMember>> {
+            return members
+                .groupBy { it.canSpeak }
+                .mapKeys {
+                    if (it.key) {
+                        MemberType.Speaker
+                    } else {
+                        MemberType.Listener
+                    }
+                }
+                .mapValues { (_, members) ->
+                    members.sortedWith(
+                        compareByDescending<MinimalMember> { it.isHost }.thenByDescending { it.isSelf }
+                    )
+                }
+        }
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             (when (event) {
                 Event.LeaveRoom -> { state -> state }
@@ -449,17 +466,7 @@ class ChatInfoViewModel @Inject constructor(
                         }
                     }
 
-                    val groupedMembers = updatedMembers
-                        .groupBy { it.canSpeak }
-                        .mapKeys {
-                            if (it.key) {
-                                MemberType.Speaker
-                            } else {
-                                MemberType.Listener
-                            }
-                        }.mapValues { it.value.sortedByDescending { it.isHost } }
-
-                    state.copy(members = groupedMembers)
+                    state.copy(members = sortMembers(updatedMembers))
                 }
 
                 is Event.OnUserDemoted -> { state ->
@@ -472,17 +479,7 @@ class ChatInfoViewModel @Inject constructor(
                         }
                     }
 
-                    val groupedMembers = updatedMembers
-                        .groupBy { it.canSpeak }
-                        .mapKeys {
-                            if (it.key) {
-                                MemberType.Speaker
-                            } else {
-                                MemberType.Listener
-                            }
-                        }.mapValues { it.value.sortedByDescending { it.isHost } }
-
-                    state.copy(members = groupedMembers)
+                    state.copy(members = sortMembers(updatedMembers))
                 }
 
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }
@@ -503,15 +500,7 @@ class ChatInfoViewModel @Inject constructor(
                 }
 
                 is Event.OnMembersUpdated -> { state ->
-                    val groupedMembers = event.members
-                        .groupBy { it.canSpeak }
-                        .mapKeys {
-                            if (it.key) {
-                                MemberType.Speaker
-                            } else {
-                                MemberType.Listener
-                            }
-                        }.mapValues { it.value.sortedByDescending { it.isHost } }
+                    val groupedMembers = sortMembers(event.members)
 
                     state.copy(
                         roomInfo = state.roomInfo.copy(
