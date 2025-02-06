@@ -123,7 +123,7 @@ fun <T> Picker(
                 Text(
                     text = item,
                     maxLines = 1,
-                    style = textStyle,
+                    style = textStyle.copy(Color.White),
                     modifier = Modifier
                         .measured { itemHeight = it.height }
                         .then(textModifier)
