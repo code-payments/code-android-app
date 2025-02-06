@@ -41,6 +41,7 @@ import com.getcode.ui.utils.withTopBorder
 import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin
 import com.getcode.utils.formatAmountString
+import kotlinx.coroutines.delay
 import xyz.flipchat.app.R
 
 @Composable
@@ -117,6 +118,15 @@ fun ConversationChatInput(
                     LaunchedEffect(chattableState) {
                         if (chattableState is ChattableState.TemporarilyEnabled) {
                             focusRequester.requestFocus()
+                        }
+                    }
+
+                    LaunchedEffect(keyboardVisible) {
+                        delay(300)
+                        if (!keyboardVisible) {
+                            if (chattableState is ChattableState.TemporarilyEnabled) {
+                                dispatchEvent(ConversationViewModel.Event.ResetToSpectator)
+                            }
                         }
                     }
                 }
