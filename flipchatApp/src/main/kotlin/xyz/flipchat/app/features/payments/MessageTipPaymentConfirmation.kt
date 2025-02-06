@@ -30,7 +30,7 @@ import com.getcode.utils.formatAmountString
 import xyz.flipchat.app.R
 import com.getcode.ui.components.R as uiR
 
-private val tipOptions = (1 until 100).map { KinAmount.newInstance(it.kin, Rate.oneToOne) }
+private val tipOptions = (1 .. 100).map { KinAmount.newInstance(it.kin, Rate.oneToOne) }
 
 @Composable
 internal fun MessageTipPaymentConfirmation(
