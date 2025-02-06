@@ -128,6 +128,8 @@ internal fun RoomNameScreenContent(
     dispatch: (RoomNameScreenViewModel.Event) -> Unit,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+
     CodeScaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -155,13 +157,11 @@ internal fun RoomNameScreenContent(
                     } else {
                         dispatch(RoomNameScreenViewModel.Event.CreateRoom)
                     }
+                    focusRequester.freeFocus()
                 }
             }
         }
     ) { padding ->
-
-        val focusRequester = remember { FocusRequester() }
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
