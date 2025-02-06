@@ -114,7 +114,7 @@
     <string name="action_joinRoomByName">Join %1$s</string>
     <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
     <string name="action_payToChatInRoom">Pay to Chat: ⬢ %1$s</string>
-    <string name="action_sendMessageInRoom">Send a Message: ⬢ %1$s</string>
+    <string name="action_sendMessageInRoom">Audience Messages: ⬢ %1$s</string>
 
     <string name="title_leaveRoom">Leave Flipchat?</string>
     <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
