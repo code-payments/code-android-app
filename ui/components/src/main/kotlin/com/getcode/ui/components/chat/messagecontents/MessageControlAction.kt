@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.RecordVoiceOver
@@ -104,7 +105,7 @@ sealed interface MessageControlAction : ContextMenuAction {
             @Composable get() = stringResource(R.string.action_muteUser)
 
         override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Default.VoiceOverOff)
+            @Composable get() = rememberVectorPainter(Icons.Default.MicOff)
 
         override val delayUponSelection: Boolean = false
     }
