@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight.Companion.W500
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.AnnouncementAction
@@ -64,14 +63,12 @@ internal fun ActionableAnnouncementMessage(
                 )
                 .padding(
                     horizontal = CodeTheme.dimens.grid.x2,
-                    vertical = CodeTheme.dimens.grid.x4
+                    vertical = CodeTheme.dimens.grid.x2
                 )
         ) contents@{
             Column(
-                modifier = Modifier
-                    // add top padding to accommodate ascents
-                    .padding(top = CodeTheme.dimens.grid.x1),
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+                modifier = Modifier,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
 
                 Text(
