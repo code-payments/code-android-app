@@ -193,6 +193,7 @@ class ConversationViewModel @Inject constructor(
         data object RevealIdentity : Event
 
         data class OnAbilityToChatChanged(val state: ChattableState) : Event
+        data object ResetToSpectator: Event
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
         data class MarkRead(val messageId: ID) : Event
         data class MarkDelivered(val messageId: ID) : Event
@@ -340,11 +341,11 @@ class ConversationViewModel @Inject constructor(
                         isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
                         // remain temp enabled
                         stateFlow.value.chattableState is ChattableState.TemporarilyEnabled -> ChattableState.TemporarilyEnabled
+                        isMuted -> ChattableState.DisabledByMute
                         isSpectator -> ChattableState.Spectator(
                             Kin.fromQuarks(it.conversation.messagingFee ?: 0)
                         )
 
-                        isMuted -> ChattableState.DisabledByMute
                         else -> ChattableState.Enabled
                     }
                 } else {
@@ -983,7 +984,6 @@ class ConversationViewModel @Inject constructor(
             page.map { indice ->
                 val (_, message, member, contents, reply, tipInfo) = indice
 
-                println("member=$member")
                 val status = findClosestMessageStatus(
                     timestamp = message.id.uuid?.timestamp,
                     statusMap = pointerRefs,
@@ -1563,6 +1563,11 @@ class ConversationViewModel @Inject constructor(
                         selfId = event.id,
                         selfName = event.displayName
                     )
+                }
+
+                is Event.ResetToSpectator -> { state ->
+                    val fee = Kin.fromQuarks(state.roomInfoArgs.messagingFeeQuarks)
+                    state.copy(chattableState = ChattableState.Spectator(fee))
                 }
 
                 is Event.OnAbilityToChatChanged -> { state -> state.copy(chattableState = event.state) }
