@@ -207,13 +207,13 @@ class AuthManager @Inject constructor(
         return ret
             .map { it to profileController.getProfile(it) }
             .map { (id, profileResult) ->
-                id to profileResult.getOrNull()?.displayName
+                id to profileResult.getOrNull()
             }
-            .onSuccess { (userId, displayName) ->
+            .onSuccess { (userId, profile) ->
                 if (!isSoftLogin) {
                     AccountUtils.addAccount(
                         context = context,
-                        name = displayName ?: "Flipchat User",
+                        name = profile?.displayName ?: "Flipchat User",
                         password = userId.base58,
                         token = entropyB64,
                         isUnregistered = false,
@@ -221,9 +221,11 @@ class AuthManager @Inject constructor(
                 }
 
                 userManager.set(userId = userId)
-                if (displayName != null) {
-                    userManager.set(displayName = displayName)
+                if (profile?.displayName != null) {
+                    userManager.set(displayName = profile.displayName)
                 }
+
+                userManager.setSocialProfiles(profile?.socialProfiles.orEmpty())
 
                 profileController.getUserFlags()
                     .onSuccess { flags ->

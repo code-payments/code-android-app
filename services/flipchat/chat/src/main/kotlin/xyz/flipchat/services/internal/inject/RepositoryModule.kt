@@ -12,8 +12,9 @@ import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
 import xyz.flipchat.services.internal.data.mapper.MemberUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.MetadataRoomMapper
 import xyz.flipchat.services.internal.data.mapper.MetadataUpdateMapper
-import xyz.flipchat.services.internal.data.mapper.ProfileMapper
+import xyz.flipchat.services.internal.data.mapper.UserProfileMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
+import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.StreamMetadataUpdateMapper
 import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.repository.accounts.AccountRepository
@@ -99,11 +100,13 @@ internal object RepositoryModule {
     internal fun providesProfileRepository(
         userManager: UserManager,
         service: ProfileService,
-        profileMapper: ProfileMapper,
+        userProfileMapper: UserProfileMapper,
+        socialProfileMapper: SocialProfileMapper,
     ): ProfileRepository = RealProfileRepository(
         userManager = userManager,
         service = service,
-        profileMapper = profileMapper
+        userProfileMapper = userProfileMapper,
+        socialProfileMapper = socialProfileMapper,
     )
 
     @Provides

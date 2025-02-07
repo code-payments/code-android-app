@@ -5,6 +5,7 @@ option java_package = "com.codeinc.flipchat.gen.chat.v1";
 option objc_class_prefix = "FCPBChatV1";
 import "common/v1/common.proto";
 import "messaging/v1/model.proto";
+import "profile/v1/model.proto";
 import "google/protobuf/timestamp.proto";
 
 service Chat {
@@ -546,6 +547,8 @@ message MemberIdentity {
     string display_name = 1 ;
     // If present, the URL of the users profile pic.
     string profile_pic_url = 2 ;
+    // The linked social profiles of the user
+    repeated profile.v1.SocialProfile social_profiles = 3 ;
 }
 message MemberUpdate {
     oneof kind {
@@ -557,6 +560,7 @@ message MemberUpdate {
         Muted             muted              = 6;
         Promoted          promoted           = 7;
         Demoted           demoted            = 8;
+        IdentityChanged   identity_changed   = 9;
     }
     common.v1.PagingToken paging_token = 1000;
     // Refreshes the state of the entire chat membership
@@ -596,5 +600,10 @@ message MemberUpdate {
         common.v1.UserId member = 1;
         common.v1.UserId demoted_by = 2;
         bool send_permission_disabled = 3;
+    }
+    // Member identity has changed
+    message IdentityChanged {
+        common.v1.UserId member = 1;
+        MemberIdentity new_identity = 2;
     }
 }

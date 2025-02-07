@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.profile.v1.Model
 import com.codeinc.flipchat.gen.profile.v1.ProfileService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
+import com.getcode.services.model.profile.SocialAccountLinkRequest
 import com.getcode.services.network.core.NetworkOracle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -73,6 +74,30 @@ internal class ProfileService @Inject constructor(
             Result.failure(error)
         }
     }
+
+    suspend fun linkSocialAccount(
+        owner: KeyPair,
+        request: SocialAccountLinkRequest
+    ): Result<Model.SocialProfile> {
+        return networkOracle.managedApiRequest(
+            call = { api.linkSocialAccount(owner, request) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ProfileService.LinkSocialAccountResponse.Result.OK -> Result.success(response.socialProfile)
+                    ProfileService.LinkSocialAccountResponse.Result.INVALID_LINKING_TOKEN -> Result.failure(LinkSocialAccountError.InvalidLinkingToken())
+                    ProfileService.LinkSocialAccountResponse.Result.EXISTING_LINK -> Result.failure(LinkSocialAccountError.ExistingLink())
+                    ProfileService.LinkSocialAccountResponse.Result.DENIED -> Result.failure(LinkSocialAccountError.Denied())
+                    ProfileService.LinkSocialAccountResponse.Result.UNRECOGNIZED -> Result.failure(LinkSocialAccountError.Unrecognized())
+                    else -> {
+                        Result.failure(LinkSocialAccountError.Other())
+                    }
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(LinkSocialAccountError.Other(cause = cause))
+            }
+        )
+    }
 }
 
 sealed class GetProfileError(
@@ -91,4 +116,15 @@ sealed class SetUserDisplayNameError(
     class InvalidDisplayName : SetUserDisplayNameError()
     class Unrecognized : SetUserDisplayNameError()
     data class Other(override val cause: Throwable? = null) : SetUserDisplayNameError(cause = cause)
+}
+
+sealed class LinkSocialAccountError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class InvalidLinkingToken : LinkSocialAccountError()
+    class ExistingLink : LinkSocialAccountError()
+    class Denied : LinkSocialAccountError()
+    class Unrecognized : LinkSocialAccountError()
+    data class Other(override val cause: Throwable? = null) : LinkSocialAccountError(cause = cause)
 }

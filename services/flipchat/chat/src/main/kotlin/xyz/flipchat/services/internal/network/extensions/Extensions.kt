@@ -2,9 +2,13 @@ package xyz.flipchat.services.internal.network.extensions
 
 import com.codeinc.flipchat.gen.common.v1.Common
 import com.codeinc.flipchat.gen.messaging.v1.Model
+import com.codeinc.flipchat.gen.profile.v1.ProfileService
+import com.codeinc.flipchat.gen.profile.v1.ProfileService.LinkSocialAccountRequest.LinkingToken.XLinkingToken
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.services.model.profile.LinkingToken
+import com.getcode.services.model.profile.SocialAccountLinkRequest
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import xyz.flipchat.services.domain.model.query.PagingToken
@@ -58,4 +62,16 @@ internal fun QueryOptions.toProto(): Common.QueryOptions {
 
 internal fun PagingToken.toPagingToken(): Common.PagingToken {
     return Common.PagingToken.newBuilder().setValue(this.toByteString()).build()
+}
+
+internal fun SocialAccountLinkRequest.linkingToken(): ProfileService.LinkSocialAccountRequest.LinkingToken {
+    val builder = ProfileService.LinkSocialAccountRequest.LinkingToken.newBuilder()
+
+    when (this) {
+        is SocialAccountLinkRequest.X -> builder.setX(
+            XLinkingToken.newBuilder().setAccessToken(token)
+        )
+    }
+
+    return builder.build()
 }

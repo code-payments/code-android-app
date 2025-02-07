@@ -5,6 +5,7 @@ import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
+import com.getcode.model.SocialUser
 import com.getcode.model.description
 import com.getcode.model.uuid
 import com.getcode.services.manager.MnemonicManager
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import xyz.flipchat.services.core.BuildConfig
+import xyz.flipchat.services.user.social.SocialProfile
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -63,6 +65,9 @@ class UserManager @Inject constructor(
     val authState: AuthState
         get() = _state.value.authState
 
+    val socialProfiles: List<SocialProfile>
+        get() = _state.value.linkedSocialProfiles
+
     data class State(
         val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,
@@ -73,6 +78,7 @@ class UserManager @Inject constructor(
         val flags: UserFlags? = null,
         val isTimelockUnlocked: Boolean = false,
         val openRoom: ID? = null,
+        val linkedSocialProfiles: List<SocialProfile> = emptyList()
     )
 
     fun establish(entropy: String) {
@@ -102,6 +108,12 @@ class UserManager @Inject constructor(
             )
         }
         associate()
+    }
+
+    fun setSocialProfiles(socialProfiles: List<SocialProfile>) {
+        _state.update {
+            it.copy(linkedSocialProfiles = socialProfiles)
+        }
     }
 
     fun set(organizer: Organizer) {
@@ -177,7 +189,8 @@ class UserManager @Inject constructor(
                 userId = emptyList(),
                 organizer = null,
                 flags = null,
-                openRoom = null
+                openRoom = null,
+                linkedSocialProfiles = emptyList()
             )
         }
     }

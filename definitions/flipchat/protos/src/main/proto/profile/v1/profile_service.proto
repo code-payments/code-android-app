@@ -9,6 +9,8 @@ import "profile/v1/model.proto";
 service Profile {
 	rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
 	rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
+	// LinkSocialAccount links a social account to a user
+	rpc LinkSocialAccount(LinkSocialAccountRequest) returns (LinkSocialAccountResponse);
 }
 message GetProfileRequest {
 	common.v1.UserId user_id = 1;
@@ -37,4 +39,27 @@ message SetDisplayNameResponse {
 		INVALID_DISPLAY_NAME = 1;
 		DENIED               = 2;
 	}
+}
+message LinkSocialAccountRequest {
+	LinkingToken linking_token = 1;
+	message LinkingToken {
+		oneof type {
+			XLinkingToken x = 1;
+		}
+		message XLinkingToken {
+			// X access token from the OAuth 2.0 flow
+			string access_token = 1;
+		}
+	}
+	common.v1.Auth auth = 10;
+}
+message LinkSocialAccountResponse {
+	Result result = 1;
+	enum Result {
+		OK                    = 0;
+		INVALID_LINKING_TOKEN = 1;
+		EXISTING_LINK         = 2;
+		DENIED                = 3;
+	}
+	SocialProfile social_profile = 2;
 }
