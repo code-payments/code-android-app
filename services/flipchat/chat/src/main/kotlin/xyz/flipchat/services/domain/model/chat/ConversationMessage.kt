@@ -102,7 +102,7 @@ data class ConversationMessageWithMemberAndContent(
 data class InflatedConversationMessage(
     val pageIndex: Int = 0, // tracking for [PagingSource] refresh eky
     val message: ConversationMessage,
-    val member: ConversationMember?,
+    val member: ConversationMemberWithLinkedSocialProfiles?,
     val content: MessageContent,
     val reply: ConversationMessageWithMemberAndContent?,
     val tips: List<MessageTipInfo>

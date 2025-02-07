@@ -194,6 +194,18 @@ class ChatsController @Inject constructor(
                                             conversationId = update.roomId
                                         )
                                     }
+
+                                    is ConversationMemberUpdate.IdentityChanged -> {
+                                        db.conversationMembersDao().updateIdentity(
+                                            update.memberId,
+                                            update.identity
+                                        )
+
+                                        db.conversationMemberSocialDao().upsert(
+                                            update.memberId,
+                                            update.identity.socialProfiles
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -1,6 +1,7 @@
 package xyz.flipchat.services.domain.model.chat.db
 
 import com.getcode.model.ID
+import xyz.flipchat.services.data.MemberIdentity
 import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
@@ -20,6 +21,7 @@ sealed interface ConversationMemberUpdate {
     data class Muted(val roomId: ID, val memberId: ID, val mutedBy: ID): ConversationMemberUpdate
     data class Promoted(val roomId: ID, val memberId: ID, val by: ID): ConversationMemberUpdate
     data class Demoted(val roomId: ID, val memberId: ID, val by: ID): ConversationMemberUpdate
+    data class IdentityChanged(val memberId: ID, val identity: MemberIdentity): ConversationMemberUpdate
 }
 
 sealed interface ConversationUpdate {

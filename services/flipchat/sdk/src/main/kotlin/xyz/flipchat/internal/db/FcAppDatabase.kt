@@ -25,10 +25,12 @@ import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
 import xyz.flipchat.services.domain.model.chat.ConversationPointerCrossRef
+import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
 import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.db.ConversationMemberDao
 import xyz.flipchat.services.internal.db.ConversationMessageDao
 import xyz.flipchat.services.internal.db.ConversationPointerDao
+import xyz.flipchat.services.internal.db.MemberSocialProfileDao
 import java.io.File
 
 @Database(
@@ -42,6 +44,7 @@ import java.io.File
         ConversationPointerCrossRef::class,
         ConversationMessage::class,
         ConversationMessageTip::class,
+        MemberSocialProfile::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -65,8 +68,9 @@ import java.io.File
         AutoMigration(from = 19, to = 20),
         AutoMigration(from = 20, to = 21, spec = FcAppDatabase.Migration20To21::class),
         AutoMigration(from = 21, to = 22, spec = FcAppDatabase.Migration21To22::class),
+        AutoMigration(from = 22, to = 23),
     ],
-    version = 22,
+    version = 23,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -79,6 +83,7 @@ abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     abstract fun conversationPointersDao(): ConversationPointerDao
     abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun conversationMembersDao(): ConversationMemberDao
+    abstract fun conversationMemberSocialDao(): MemberSocialProfileDao
 
     class Migration6To7 : Migration(6, 7), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {

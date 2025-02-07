@@ -9,6 +9,7 @@ import androidx.room.Transaction
 import com.getcode.model.ID
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
+import xyz.flipchat.services.data.MemberIdentity
 import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
@@ -96,6 +97,13 @@ interface ConversationMemberDao {
     suspend fun unblockMember(memberId: String)
     suspend fun unblockMember(memberId: ID) {
         unblockMember(memberId.base58)
+    }
+
+    @Query("UPDATE members SET memberName = :displayName, imageUri = :profileImageUrl WHERE memberIdBase58 = :memberId")
+    suspend fun updateIdentity(memberId: String, displayName: String, profileImageUrl: String?)
+
+    suspend fun updateIdentity(memberId: ID, identity: MemberIdentity) {
+        updateIdentity(memberId.base58, identity.displayName, identity.imageUrl)
     }
 
     @Query("DELETE FROM members")

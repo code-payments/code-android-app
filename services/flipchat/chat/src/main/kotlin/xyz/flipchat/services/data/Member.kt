@@ -3,6 +3,7 @@ package xyz.flipchat.services.data
 import com.getcode.model.ID
 import com.getcode.model.chat.Pointer
 import kotlinx.serialization.Serializable
+import xyz.flipchat.services.user.social.SocialProfile
 
 @Serializable
 data class Member(
@@ -19,4 +20,5 @@ data class Member(
 data class MemberIdentity(
     val displayName: String,
     val imageUrl: String?,
+    val socialProfiles: List<SocialProfile>,
 )

@@ -78,6 +78,7 @@ import xyz.flipchat.services.data.metadata.SendTipMessagePaymentMetadata
 import xyz.flipchat.services.data.metadata.erased
 import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.extensions.titleOrFallback
@@ -1063,7 +1064,7 @@ class ConversationViewModel @Inject constructor(
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = member?.memberName ?: "Deleted",
+                        displayName = member?.displayName ?: "Deleted",
                         isSelf = contents.isFromSelf,
                         isFullMember = member?.isFullMember == true,
                         isHost = message.senderId == currentState.hostId,
@@ -1119,20 +1120,20 @@ class ConversationViewModel @Inject constructor(
 
     private fun buildMessageActions(
         message: ConversationMessage,
-        member: ConversationMember?,
+        member: ConversationMemberWithLinkedSocialProfiles?,
         contents: MessageContent,
         enableReply: Boolean,
         enableTip: Boolean,
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
             if (stateFlow.value.isHost) {
-                if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
+                if (member?.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
                     if (member.isFullMember) {
                         add(
                             MessageControlAction.DemoteUser {
                                 confirmUserDemote(
                                     conversationId = message.conversationId,
-                                    user = member.memberName,
+                                    user = member.displayName,
                                     userId = message.senderId
                                 )
                             }
@@ -1142,7 +1143,7 @@ class ConversationViewModel @Inject constructor(
                             MessageControlAction.PromoteUser {
                                 confirmUserPromote(
                                     conversationId = message.conversationId,
-                                    user = member.memberName,
+                                    user = member.displayName,
                                     userId = message.senderId
                                 )
                             }
@@ -1157,7 +1158,7 @@ class ConversationViewModel @Inject constructor(
                         val sender = Sender(
                             id = message.senderId,
                             profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                            displayName = member?.memberName ?: "Deleted",
+                            displayName = member?.displayName ?: "Deleted",
                             isSelf = contents.isFromSelf,
                             isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
                             isBlocked = member?.isBlocked == true
@@ -1193,7 +1194,7 @@ class ConversationViewModel @Inject constructor(
 
     private fun buildSelfDefenseControls(
         message: ConversationMessage,
-        member: ConversationMember?,
+        member: ConversationMemberWithLinkedSocialProfiles?,
         contents: MessageContent
     ): List<MessageControlAction> {
         return mutableListOf<MessageControlAction>().apply {
@@ -1211,7 +1212,7 @@ class ConversationViewModel @Inject constructor(
 
 
             if (stateFlow.value.isHost) {
-                if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
+                if (member?.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
 //                    add(
 //                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
 //                            confirmUserRemoval(
@@ -1225,7 +1226,7 @@ class ConversationViewModel @Inject constructor(
                         MessageControlAction.MuteUser {
                             confirmUserMute(
                                 conversationId = message.conversationId,
-                                user = member.memberName,
+                                user = member.displayName,
                                 userId = message.senderId,
                             )
                         }
@@ -1245,7 +1246,7 @@ class ConversationViewModel @Inject constructor(
                         add(
                             MessageControlAction.BlockUser {
                                 confirmUserBlock(
-                                    user = member.memberName,
+                                    user = member.displayName,
                                     userId = message.senderId,
                                 )
                             }
@@ -1254,9 +1255,9 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 add(
-                    MessageControlAction.ReportUserForMessage(member?.memberName.orEmpty()) {
+                    MessageControlAction.ReportUserForMessage(member?.displayName.orEmpty()) {
                         confirmUserReport(
-                            user = member?.memberName,
+                            user = member?.displayName,
                             userId = message.senderId,
                             messageId = message.id
                         )

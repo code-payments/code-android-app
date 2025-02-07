@@ -1,12 +1,17 @@
 package xyz.flipchat.services.domain.model.chat
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.Index
+import androidx.room.Relation
 import com.getcode.model.ID
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
+import xyz.flipchat.services.domain.model.profile.XExtraData
 
 @Serializable
 @Entity(
@@ -36,4 +41,49 @@ data class ConversationMember(
 
     @Ignore
     val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+}
+
+data class ConversationMemberWithLinkedSocialProfiles(
+    @Embedded val member: ConversationMember,
+    @Relation(
+        parentColumn = "memberIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = MemberSocialProfile::class,
+    )
+    val profiles: List<MemberSocialProfile>
+) {
+    val id: ID
+        get() = member.id
+
+    val displayName: String?
+        get() {
+            val social = profiles.firstOrNull() ?: return member.memberName
+            return when (social.platformType) {
+                "x" -> {
+                    val metadata = runCatching {
+                        Json.decodeFromString<XExtraData>(social.extraData.orEmpty())
+                    }.getOrNull()
+
+                    metadata?.friendlyName ?: member.memberName
+                }
+                else -> member.memberName
+            }
+        }
+
+    val imageUri: String?
+        get() {
+            return profiles.firstOrNull()?.profileImageUrl ?: return member.imageUri
+        }
+
+    val isBlocked: Boolean
+        get() = member.isBlocked
+
+    val isFullMember: Boolean
+        get() = member.isFullMember
+
+    val isHost: Boolean
+        get() = member.isHost
+
+    val isMuted: Boolean
+        get() = member.isMuted
 }

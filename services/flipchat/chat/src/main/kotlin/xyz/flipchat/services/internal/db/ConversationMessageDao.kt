@@ -11,10 +11,9 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.uuid
 import com.getcode.utils.base58
-import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndReply
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 
@@ -135,9 +134,13 @@ interface ConversationMessageDao {
         return getPagedMessages(id.base58, limit, offset)
     }
 
-    @Query("SELECT * FROM members WHERE memberIdBase58 = :memberId AND conversationIdBase58 = :conversationId")
-    suspend fun getMemberInternal(conversationId: String, memberId: String): ConversationMember?
-    suspend fun getMemberInternal(conversationId: ID, memberId: ID): ConversationMember? {
+    @Query("""
+        SELECT * 
+        FROM members 
+        WHERE members.memberIdBase58 = :memberId AND members.conversationIdBase58 = :conversationId
+    """)
+    suspend fun getMemberInternal(conversationId: String, memberId: String): ConversationMemberWithLinkedSocialProfiles?
+    suspend fun getMemberInternal(conversationId: ID, memberId: ID): ConversationMemberWithLinkedSocialProfiles? {
         return getMemberInternal(conversationId.base58, memberId.base58)
     }
 
@@ -186,28 +189,11 @@ interface ConversationMessageDao {
         """
             SELECT messages.*
             FROM messages
+            LEFT JOIN social_profiles ON messages.senderIdBase58 = social_profiles.memberIdBase58
             WHERE messages.idBase58 = :messageId
             LIMIT 1
         """)
     suspend fun getMessageById(messageId: String): ConversationMessageWithMemberAndReply?
-
-
-    suspend fun getMessageWithContentById(messageId: String, selfId: String?): ConversationMessageWithMemberAndContent? {
-        val row = getMessageById(messageId) ?: return null
-        val content = MessageContent.fromData(row.message.type, row.message.content, isFromSelf = row.message.senderIdBase58 == selfId) ?: return null
-        val member = getMemberInternal(row.message.conversationId, row.message.senderId)
-        return ConversationMessageWithMemberAndContent(
-            message = row.message,
-            member = member,
-        ).apply {
-            contentEntity = content
-        }
-    }
-
-    suspend fun getMessageWithContentById(messageId: ID, selfID: ID?): ConversationMessageWithMemberAndContent? {
-        return getMessageWithContentById(messageId.base58, selfID?.base58)
-    }
-
 
     @Query("""
         SELECT * FROM messages 
