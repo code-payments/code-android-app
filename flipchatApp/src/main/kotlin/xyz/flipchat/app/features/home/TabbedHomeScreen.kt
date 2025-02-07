@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.Lifecycle
@@ -34,7 +35,6 @@ import cafe.adriel.voyager.navigator.tab.TabNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.withTopBorder
 import dev.theolm.rinku.DeepLink
@@ -126,13 +126,14 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
                                     Image(
                                         modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
                                         painter = tab.options.icon!!,
+                                        colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground),
                                         contentDescription = null,
                                     )
 
                                     Text(
                                         text = tab.options.title,
                                         style = CodeTheme.typography.textSmall,
-                                        color = White
+                                        color = CodeTheme.colors.textMain,
                                     )
                                 }
                             }

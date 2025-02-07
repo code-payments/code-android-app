@@ -22,6 +22,7 @@ import xyz.flipchat.app.features.login.register.PurchaseAccountScreen
 import xyz.flipchat.app.features.login.register.RegisterInfoScreen
 import xyz.flipchat.app.features.login.register.RegisterModalScreen
 import xyz.flipchat.app.features.login.register.RegisterScreen
+import xyz.flipchat.app.features.profile.ProfileScreen
 import xyz.flipchat.app.features.restricted.AppRestrictedScreen
 import xyz.flipchat.app.features.settings.SettingsScreen
 
@@ -109,6 +110,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.Room.ChangeName> {
             RoomNameScreen(it.id, it.title)
+        }
+
+        register<NavScreenProvider.Profile> {
+            ProfileScreen()
         }
 
         register<NavScreenProvider.Settings> {

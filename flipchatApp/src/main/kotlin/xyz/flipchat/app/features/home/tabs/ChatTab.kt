@@ -28,16 +28,13 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
-import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.core.CodeNavigatorStub
 import com.getcode.navigation.core.NavigationLocator
 import com.getcode.navigation.core.NavigatorStub
 import com.getcode.navigation.core.NavigatorWrapper
@@ -58,15 +55,12 @@ import kotlinx.parcelize.IgnoredOnParcel
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
-import xyz.flipchat.app.features.home.tabs.ChatTab.options
 import xyz.flipchat.app.features.settings.SettingsViewModel
 
-internal object ChatTab : ChildNavTab {
+internal class ChatTab(override val ordinal: Int) : ChildNavTab {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
-
-    override val ordinal: Int = 0
 
     override var childNav: NavigationLocator = NavigatorStub
 
@@ -154,37 +148,37 @@ internal object ChatTab : ChildNavTab {
             }
         }
     }
-}
 
-@Composable
-private fun LogOutTitle(
-    modifier: Modifier = Modifier,
-    state: ChatListViewModel.State,
-    onTitleClicked: () -> Unit,
-    onLogout: () -> Unit
-) {
-    val context = LocalContext.current
-    AppBarDefaults.Title(
-        modifier = modifier
-            .addIf(!state.isLogOutEnabled) {
-                Modifier.noRippleClickable {
-                    onTitleClicked()
+    @Composable
+    private fun LogOutTitle(
+        modifier: Modifier = Modifier,
+        state: ChatListViewModel.State,
+        onTitleClicked: () -> Unit,
+        onLogout: () -> Unit
+    ) {
+        val context = LocalContext.current
+        AppBarDefaults.Title(
+            modifier = modifier
+                .addIf(!state.isLogOutEnabled) {
+                    Modifier.noRippleClickable {
+                        onTitleClicked()
+                    }
                 }
-            }
-            .addIf(state.isLogOutEnabled) {
-                Modifier.unboundedClickable {
-                    BottomBarManager.showMessage(
-                        BottomBarManager.BottomBarMessage(
-                            title = context.getString(R.string.prompt_title_logout),
-                            subtitle = context
-                                .getString(R.string.prompt_description_logout),
-                            positiveText = context.getString(R.string.action_logout),
-                            tertiaryText = context.getString(R.string.action_cancel),
-                            onPositive = onLogout
+                .addIf(state.isLogOutEnabled) {
+                    Modifier.unboundedClickable {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(R.string.prompt_title_logout),
+                                subtitle = context
+                                    .getString(R.string.prompt_description_logout),
+                                positiveText = context.getString(R.string.action_logout),
+                                tertiaryText = context.getString(R.string.action_cancel),
+                                onPositive = onLogout
+                            )
                         )
-                    )
-                }
-            },
-        text = options.title
-    )
+                    }
+                },
+            text = options.title
+        )
+    }
 }

@@ -16,9 +16,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.home.tabs.CashTab
 import xyz.flipchat.app.features.home.tabs.ChatTab
-import xyz.flipchat.app.features.home.tabs.SettingsTab
+import xyz.flipchat.app.features.home.tabs.ProfileTab
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.extensions.titleOrFallback
@@ -34,7 +36,7 @@ interface Router {
 }
 
 enum class FcTab {
-    Chat, Cash, Settings
+    Chat, Cash, Settings, Profile
 }
 
 sealed interface DeeplinkType {
@@ -43,6 +45,7 @@ sealed interface DeeplinkType {
 }
 
 class RouterImpl(
+    private val labs: Labs,
     private val userManager: UserManager,
     private val chatsController: ChatsController,
     private val resources: ResourceHelper,
@@ -53,6 +56,7 @@ class RouterImpl(
         val chats = listOf("chats")
         val cash = listOf("cash")
         val settings = listOf("settings")
+        val profile = listOf("profile")
 
         val login = listOf("login")
         val room = listOf("room")
@@ -63,21 +67,11 @@ class RouterImpl(
 
     override fun tabForIndex(index: Int) = indexTabResolver(index)
 
-    private val commonTabs = listOf(ChatTab, CashTab)
+    private val commonTabs = listOf(ChatTab(0), CashTab(1), ProfileTab(2))
     private val tabs = MutableStateFlow(commonTabs)
 
     override fun checkTabs() {
-        launch {
-            tabs.value = userManager.state
-                .map { it.flags }
-                .map {
-                    if (it?.isStaff == true) {
-                        commonTabs + SettingsTab
-                    } else {
-                        commonTabs
-                    }
-                }.firstOrNull() ?: commonTabs
-        }
+        // no-op right now
     }
 
     override val rootTabs: List<ChildNavTab>
@@ -91,6 +85,7 @@ class RouterImpl(
                 room.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Chat)
                 cash.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Cash)
                 settings.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Settings)
+                profile.contains(deeplink.pathSegments[0]) -> tabIndexResolver(FcTab.Profile)
                 else -> 0
             }
         } ?: 0

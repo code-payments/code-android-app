@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +30,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SettingsRow
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -60,6 +62,14 @@ class SettingsScreen : Screen, Parcelable {
                 .padding(
                     vertical = CodeTheme.dimens.grid.x2,
                 ),
+            topBar = {
+                AppBarWithTitle(
+                    backButton = true,
+                    onBackIconClicked = {
+                        navigator.pop()
+                    }
+                )
+            },
             bottomBar = {
                 LogoutButton {
                     composeScope.launch {
@@ -113,7 +123,10 @@ private fun LogoutButton(
 ) {
     val context = LocalContext.current
     CodeButton(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .navigationBarsPadding(),
         buttonState = ButtonState.Filled,
         text = stringResource(R.string.action_logout)
     ) {

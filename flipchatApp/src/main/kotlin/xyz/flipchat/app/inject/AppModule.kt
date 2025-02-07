@@ -136,10 +136,12 @@ object AppModule {
 
     @Provides
     fun providesDeeplinkRouter(
+        labs: Labs,
         userManager: UserManager,
         chatsController: ChatsController,
         resources: ResourceHelper,
     ): Router = RouterImpl(
+        labs = labs,
         userManager = userManager,
         chatsController = chatsController,
         resources = resources,
@@ -148,6 +150,7 @@ object AppModule {
                 FcTab.Chat -> FcTab.Chat.ordinal
                 FcTab.Cash -> FcTab.Cash.ordinal
                 FcTab.Settings -> FcTab.Settings.ordinal
+                FcTab.Profile -> FcTab.Profile.ordinal
             }
         },
         indexTabResolver = { index -> FcTab.entries[index] }

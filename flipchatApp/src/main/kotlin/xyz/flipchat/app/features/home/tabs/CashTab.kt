@@ -36,10 +36,9 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.settings.SettingsViewModel
 
-internal object CashTab : ChildNavTab {
-    override val key: ScreenKey = uniqueScreenKey
+internal class CashTab(override val ordinal: Int) : ChildNavTab {
 
-    override val ordinal: Int = 1
+    override val key: ScreenKey = uniqueScreenKey
 
     override var childNav: NavigationLocator = CodeNavigatorStub
 

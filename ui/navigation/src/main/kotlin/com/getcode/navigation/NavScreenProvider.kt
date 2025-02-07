@@ -62,6 +62,7 @@ sealed class NavScreenProvider : ScreenProvider {
 
     data object Balance : NavScreenProvider()
     data object Settings : NavScreenProvider()
+    data object Profile: NavScreenProvider()
 
     data object BetaFlags: NavScreenProvider()
 }
