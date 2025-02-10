@@ -197,8 +197,7 @@ class RoomInfoScreen(
                                     buildActions(
                                         state,
                                         viewModel::dispatchEvent
-                                    ),
-                                    ContextMenuStyle.Themed
+                                    )
                                 )
                             )
                         }

@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasureScope
@@ -59,7 +61,7 @@ fun HostableAvatar(
     }
 ) {
     Layout(
-        modifier = modifier,
+        modifier = modifier.graphicsLayer { clip = false },
         content = {
             UserAvatar(
                 modifier = Modifier
@@ -73,6 +75,7 @@ fun HostableAvatar(
             if (isHost) {
                 Image(
                     modifier = imageModifier
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                         .layoutId("crown")
                         .size(getBadgeSize(size))
                         .background(color = Color(0xFFE9C432), shape = CircleShape)
@@ -88,6 +91,7 @@ fun HostableAvatar(
                     is AvatarEndAction.Icon -> {
                         Image(
                             modifier = imageModifier
+                                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                                 .layoutId("badge")
                                 .size(getBadgeSize(size))
                                 .background(color = endAction.backgroundColor, shape = CircleShape)
@@ -160,13 +164,13 @@ private fun MeasureScope.placeBadgeOnAvatarPerimeter(
 
     val badgeRadius = widthOrZero(placeable) / 2f
 
-    val distanceBetweenCenters = avatarRadius + badgeRadius - 16.dp.toPx()
+    val distanceBetweenCenters = avatarRadius + badgeRadius - (avatarRadius * 0.30f)
 
     val badgeCenterX = centerX + distanceBetweenCenters * cos(angle)
     val badgeCenterY = centerY + distanceBetweenCenters * sin(angle)
 
     val offsetX = badgeCenterX - badgeRadius
-    val offsetY = badgeCenterY - badgeRadius
+    val offsetY = badgeCenterY - badgeRadius + 2.dp.toPx()
 
     return IntOffset(offsetX.roundToInt(), offsetY.roundToInt())
 }

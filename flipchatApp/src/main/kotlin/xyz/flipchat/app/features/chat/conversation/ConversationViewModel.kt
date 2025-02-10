@@ -77,7 +77,6 @@ import xyz.flipchat.services.data.metadata.SendMessageAsListenerPaymentMetadata
 import xyz.flipchat.services.data.metadata.SendTipMessagePaymentMetadata
 import xyz.flipchat.services.data.metadata.erased
 import xyz.flipchat.services.data.metadata.typeUrl
-import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
@@ -1005,13 +1004,13 @@ class ConversationViewModel @Inject constructor(
                         },
                         sender = Sender(
                             id = reply.message.senderId,
-                            profileImage = reply.member?.imageUri.takeIf {
+                            profileImage = reply.personalInfo?.imageUri.takeIf {
                                 it.orEmpty().isNotEmpty()
                             },
                             isFullMember = reply.member?.isFullMember == true,
-                            displayName = reply.member?.memberName ?: "Deleted",
+                            displayName = reply.personalInfo?.memberName.orEmpty().ifEmpty { "Member" },
                             isSelf = reply.contentEntity.isFromSelf,
-                            isBlocked = reply.member?.isBlocked == true,
+                            isBlocked = reply.personalInfo?.isBlocked == true,
                             isHost = reply.message.senderId == currentState.hostId && !contents.isFromSelf,
                         )
                     )
@@ -1023,16 +1022,16 @@ class ConversationViewModel @Inject constructor(
                     currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
 
                 val tips = if (currentState.isTippingEnabled && tipInfo.isNotEmpty()) {
-                    tipInfo.map { (tip, member) ->
+                    tipInfo.map { (tip, member, user) ->
                         MessageTip(
                             amount = tip.kin,
                             tipper = Sender(
                                 id = member?.id,
-                                profileImage = member?.imageUri.nullIfEmpty(),
-                                displayName = member?.memberName,
+                                profileImage = user?.imageUri.nullIfEmpty(),
+                                displayName = user?.memberName,
                                 isHost = member?.isHost ?: false,
                                 isSelf = userManager.isSelf(member?.id),
-                                isBlocked = member?.isBlocked ?: false,
+                                isBlocked = user?.isBlocked ?: false,
                             )
                         )
                     }
@@ -1064,7 +1063,7 @@ class ConversationViewModel @Inject constructor(
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = member?.displayName ?: "Deleted",
+                        displayName = member?.displayName.orEmpty().ifEmpty { "Member" },
                         isSelf = contents.isFromSelf,
                         isFullMember = member?.isFullMember == true,
                         isHost = message.senderId == currentState.hostId,
@@ -1239,7 +1238,7 @@ class ConversationViewModel @Inject constructor(
                     if (member.isBlocked) {
                         add(
                             MessageControlAction.UnblockUser {
-                                dispatchEvent(Event.UnblockUser(member.id))
+                                dispatchEvent(Event.UnblockUser(message.senderId))
                             }
                         )
                     } else {
@@ -1488,7 +1487,7 @@ class ConversationViewModel @Inject constructor(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
                             ownerId = conversation.ownerId,
-                            hostName = host?.memberName,
+                            hostName = host?.displayName,
                             memberCount = members.count(),
                             messagingFeeQuarks = conversation.coverCharge.quarks
                         )

@@ -151,7 +151,7 @@ class ChatInfoViewModel @Inject constructor(
                                     members.map { m ->
                                         MinimalMember(
                                             id = m.id,
-                                            displayName = m.memberName.nullIfEmpty(),
+                                            displayName = m.displayName.nullIfEmpty(),
                                             profileImageUrl = m.imageUri,
                                             isHost = m.isHost,
                                             canSpeak = m.isFullMember,

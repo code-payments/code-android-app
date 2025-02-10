@@ -42,6 +42,7 @@ enum class FcTab {
 sealed interface DeeplinkType {
     data class Login(val entropy: String) : DeeplinkType
     data class OpenRoomByNumber(val number: Long, val messageId: ID? = null) : DeeplinkType
+    data class OpenRoomById(val id: ID, val messageId: ID? = null) : DeeplinkType
 }
 
 class RouterImpl(
@@ -59,7 +60,7 @@ class RouterImpl(
         val profile = listOf("profile")
 
         val login = listOf("login")
-        val room = listOf("room")
+        val room = listOf("room", "id", "number")
     }
 
     private val db: FcAppDatabase
@@ -128,6 +129,38 @@ class RouterImpl(
 
                     screens
                 }
+
+                is DeeplinkType.OpenRoomById -> {
+                    val conversation = db.conversationDao().findConversationRaw(type.id)
+                    val screens = mutableListOf(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                    if (conversation != null) {
+                        screens.add(ScreenRegistry.get(NavScreenProvider.Room.Messages(conversation.id)))
+                    } else {
+                        val lookup = chatsController.lookupRoom(type.id).getOrNull()
+                        if (lookup != null) {
+                            val (room, members) = lookup
+                            val moderator = members.firstOrNull { it.isModerator }
+
+                            val args = RoomInfoArgs(
+                                roomId = room.id,
+                                roomNumber = room.roomNumber,
+                                roomTitle = room.titleOrFallback(resources,),
+                                memberCount = members.count(),
+                                ownerId = room.ownerId,
+                                hostName = moderator?.identity?.displayName,
+                                messagingFeeQuarks = room.messagingFee.quarks,
+                            )
+
+                            screens.add(
+                                ScreenRegistry.get(
+                                    NavScreenProvider.Room.Preview(args = args, returnToSender = true)
+                                )
+                            )
+                        }
+                    }
+
+                    screens
+                }
             }
         } ?: emptyList()
     }
@@ -159,15 +192,32 @@ class RouterImpl(
                 2 -> {
                     when {
                         room.contains(deeplink.pathSegments[0]) -> {
-                            val number = runCatching {
-                                deeplink.pathSegments[1].toLongOrNull()
-                            }.getOrNull() ?: return null
+                            when (val specifier = deeplink.pathSegments[0]) {
+                                "room",
+                                "number" -> {
+                                    val number = runCatching {
+                                        deeplink.pathSegments[1].toLongOrNull()
+                                    }.getOrNull() ?: return null
 
-                            val messageId = runCatching {
-                                deeplink.data.toUri().getQueryParameter("m")?.let { Base58.decode(it).toList() }
-                            }.getOrNull()
+                                    val messageId = runCatching {
+                                        deeplink.data.toUri().getQueryParameter("m")?.let { Base58.decode(it).toList() }
+                                    }.getOrNull()
 
-                            DeeplinkType.OpenRoomByNumber(number = number, messageId = messageId)
+                                    DeeplinkType.OpenRoomByNumber(number = number, messageId = messageId)
+                                }
+                                "id" -> {
+                                    val id = runCatching {
+                                        deeplink.pathSegments[1]
+                                    }.getOrNull()?.let { Base58.decode(it).toList() } ?: return null
+
+                                    val messageId = runCatching {
+                                        deeplink.data.toUri().getQueryParameter("m")?.let { Base58.decode(it).toList() }
+                                    }.getOrNull()
+
+                                    DeeplinkType.OpenRoomById(id = id, messageId = messageId)
+                                }
+                                else -> return null
+                            }
                         }
 
                         else -> null

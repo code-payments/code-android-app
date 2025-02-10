@@ -81,6 +81,7 @@ interface ConversationDao {
         SELECT * FROM conversations AS c
         LEFT JOIN members AS m ON c.idBase58 = m.conversationIdBase58
         LEFT JOIN conversation_pointers AS p ON c.idBase58 = p.conversationIdBase58
+        LEFT JOIN users AS u ON m.memberIdBase58 = u.userIdBase58
         WHERE c.idBase58 = :id
     """
     )

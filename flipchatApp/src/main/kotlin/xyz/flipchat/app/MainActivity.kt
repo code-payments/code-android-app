@@ -11,6 +11,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.libs.opengraph.LocalOpenGraphParser
 import com.getcode.libs.opengraph.OpenGraphParser
+import com.getcode.network.BalanceController
+import com.getcode.network.LocalBalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.exchange.LocalExchange
@@ -73,6 +75,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var openGraphParser: OpenGraphParser
 
+    @Inject
+    lateinit var balanceController: BalanceController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -90,6 +95,7 @@ class MainActivity : FragmentActivity() {
                 LocalLabs provides betaFeatures,
                 LocalBillingClient provides iapController,
                 LocalOpenGraphParser provides openGraphParser,
+                LocalBalanceController provides balanceController,
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

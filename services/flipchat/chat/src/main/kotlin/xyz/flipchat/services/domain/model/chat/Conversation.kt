@@ -48,14 +48,14 @@ data class Conversation(
     val coverCharge: Kin = messagingFee?.let { Kin.fromQuarks(messagingFee) } ?: Kin.fromQuarks(0)
 }
 
-@Serializable
 data class ConversationWithMembersAndLastPointers(
     @Embedded val conversation: Conversation,
     @Relation(
         parentColumn = "idBase58",
-        entityColumn = "conversationIdBase58"
+        entityColumn = "conversationIdBase58",
+        entity = ConversationMember::class
     )
-    val members: List<ConversationMember>,
+    val members: List<ConversationMemberWithLinkedSocialProfiles>,
     @Relation(
         parentColumn = "idBase58",
         entityColumn = "conversationIdBase58",

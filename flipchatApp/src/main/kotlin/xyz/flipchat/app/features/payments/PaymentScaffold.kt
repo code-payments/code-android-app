@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import com.getcode.models.BillState
 import com.getcode.theme.Black40
-import com.getcode.ui.modals.TipConfirmation
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.rememberedClickable
@@ -45,7 +44,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                         interactionSource = remember { MutableInteractionSource() }
                     ) {
                         if (scrimDetails.cancellable) {
-                            payments.cancelPayment()
+                            payments.cancelPayment(fromUser = true)
                         }
                     }
             )
@@ -73,7 +72,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
 
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = state.billState.messageTipPaymentConfirmation?.balance,
+            targetState = state.billState.messageTipPaymentConfirmation?.metadata,
             transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast),
             label = "message tip payments",
         ) {

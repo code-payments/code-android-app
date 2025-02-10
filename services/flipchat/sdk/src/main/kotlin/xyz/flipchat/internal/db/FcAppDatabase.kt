@@ -26,11 +26,13 @@ import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
 import xyz.flipchat.services.domain.model.chat.ConversationPointerCrossRef
 import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
+import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.db.ConversationMemberDao
 import xyz.flipchat.services.internal.db.ConversationMessageDao
 import xyz.flipchat.services.internal.db.ConversationPointerDao
 import xyz.flipchat.services.internal.db.MemberSocialProfileDao
+import xyz.flipchat.services.internal.db.UserDao
 import java.io.File
 
 @Database(
@@ -39,6 +41,7 @@ import java.io.File
         PrefString::class,
         PrefBool::class,
         PrefDouble::class,
+        FlipchatUser::class,
         Conversation::class,
         ConversationMember::class,
         ConversationPointerCrossRef::class,
@@ -68,9 +71,10 @@ import java.io.File
         AutoMigration(from = 19, to = 20),
         AutoMigration(from = 20, to = 21, spec = FcAppDatabase.Migration20To21::class),
         AutoMigration(from = 21, to = 22, spec = FcAppDatabase.Migration21To22::class),
-        AutoMigration(from = 22, to = 23),
+        // explicit no migration to fallback to reset (from = 22, to = 23)
+        AutoMigration(from = 23, to = 24),
     ],
-    version = 23,
+    version = 24,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -83,7 +87,8 @@ abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     abstract fun conversationPointersDao(): ConversationPointerDao
     abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun conversationMembersDao(): ConversationMemberDao
-    abstract fun conversationMemberSocialDao(): MemberSocialProfileDao
+    abstract fun userSocialDao(): MemberSocialProfileDao
+    abstract fun userDao(): UserDao
 
     class Migration6To7 : Migration(6, 7), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {

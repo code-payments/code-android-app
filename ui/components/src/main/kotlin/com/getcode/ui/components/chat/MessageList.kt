@@ -28,16 +28,20 @@ import androidx.paging.compose.itemKey
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.uuid
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
+import com.getcode.utils.timestamp
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID) : MessageListEvent
@@ -45,9 +49,9 @@ sealed interface MessageListEvent {
     data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
-    data object UnreadStateHandled: MessageListEvent
-    data class TipMessage(val message: ChatItem.Message): MessageListEvent
-    data class ShowTipsForMessage(val tips: List<MessageTip>): MessageListEvent
+    data object UnreadStateHandled : MessageListEvent
+    data class TipMessage(val message: ChatItem.Message) : MessageListEvent
+    data class ShowTipsForMessage(val tips: List<MessageTip>) : MessageListEvent
 }
 
 data class MessageListPointer(
@@ -90,7 +94,8 @@ fun MessageList(
         state = listState,
         reverseLayout = true,
         contentPadding = PaddingValues(
-            vertical = CodeTheme.dimens.inset,
+            top = CodeTheme.dimens.inset,
+            bottom = CodeTheme.dimens.grid.x2,
         ),
         verticalArrangement = Arrangement.Top,
     ) {
@@ -128,16 +133,18 @@ fun MessageList(
                     }
                     val spacingAfter = when {
                         index > messages.itemCount -> 0.dp
-                        item.message is MessageContent.Announcement -> CodeTheme.dimens.inset
+                        item.message is MessageContent.Announcement -> CodeTheme.dimens.grid.x2
                         isNextGrouped -> 3.dp
-                        else -> CodeTheme.dimens.grid.x3
+                        else -> CodeTheme.dimens.grid.x2
                     }
 
                     val showTimestamp =
                         remember(isPreviousGrouped, isNextGrouped, item.date, next?.date) {
                             !isPreviousGrouped
                                     || !isNextGrouped
-                                    || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(60)
+                                    || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(
+                                60
+                            )
                         }
 
                     val updatedSender by rememberUpdatedState(item.sender)
@@ -275,12 +282,18 @@ private fun HandleMessageReads(
             }.distinctUntilChanged(),
             snapshotFlow { listState.isScrollInProgress },
             snapshotFlow { listState.firstVisibleItemIndex },
-        ) { loadState, isScrolling, firstVisibleIndex ->
-            Triple(loadState, isScrolling, firstVisibleIndex)
-        }.filter { (loadStateIsNotLoading, isScrolling, _) ->
-            // Wait until scrolling stops, messages are not loading, and we are at the bottom
-            loadStateIsNotLoading && !isScrolling && messages.itemCount > 0 && hasSetAtUnread
-        }.collect { (_, _, firstVisibleIndex) ->
+            snapshotFlow { messages.itemCount },
+        ) { loadState, isScrolling, firstVisibleIndex, itemCount ->
+            Triple(loadState, isScrolling, firstVisibleIndex) to itemCount
+        }.filter { (state, itemCount) ->
+            val (loadStateIsNotLoading, isScrolling, firstVisibleIndex) = state
+            // Ensure we react to new messages while at the bottom
+            loadStateIsNotLoading && !isScrolling && hasSetAtUnread &&
+                    (firstVisibleIndex == 0 || firstVisibleIndex == itemCount - 1) && itemCount > 0
+        }.onEach { (state, _) ->
+
+            val (_, _, firstVisibleIndex) = state
+
             val closestChatMessage =
                 messages[firstVisibleIndex]?.let { it as? ChatItem.Message }
 
@@ -298,7 +311,7 @@ private fun HandleMessageReads(
                     }
                 }
             }
-        }
+        }.launchIn(this)
     }
 }
 

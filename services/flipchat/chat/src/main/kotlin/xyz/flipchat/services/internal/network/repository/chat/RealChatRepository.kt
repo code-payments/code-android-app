@@ -43,11 +43,9 @@ internal class RealChatRepository @Inject constructor(
     private val service: ChatService,
     private val roomMapper: MetadataRoomMapper,
     private val roomWithMembersMapper: RoomWithMembersMapper,
-    private val conversationMapper: RoomConversationMapper,
     private val metadataUpdateMapper: MetadataUpdateMapper,
     private val streamMetadataUpdateMapper: StreamMetadataUpdateMapper,
     private val memberUpdateMapper: MemberUpdateMapper,
-    private val conversationMemberMapper: ConversationMemberMapper,
     private val lastMessageMapper: LastMessageMapper,
     private val messageMapper: ConversationMessageMapper,
 ) : ChatRepository {
@@ -279,31 +277,15 @@ internal class RealChatRepository @Inject constructor(
                         val convoMemberUpdates = memberUpdates.mapNotNull { memberUpdate ->
                             when (memberUpdate) {
                                 is StreamMemberUpdate.Refresh -> {
-                                    val members = memberUpdate.members.map {
-                                        conversationMemberMapper.map(
-                                            Pair(
-                                                update.id,
-                                                it
-                                            )
-                                        )
-                                    }
-                                    ConversationMemberUpdate.FullRefresh(members)
+                                    ConversationMemberUpdate.FullRefresh(update.id, memberUpdate.members)
                                 }
 
                                 is StreamMemberUpdate.IndividualRefresh -> {
-                                    ConversationMemberUpdate.IndividualRefresh(
-                                        conversationMemberMapper.map(
-                                            Pair(update.id, memberUpdate.member)
-                                        )
-                                    )
+                                    ConversationMemberUpdate.IndividualRefresh(update.id, memberUpdate.member)
                                 }
 
                                 is StreamMemberUpdate.Joined -> {
-                                    ConversationMemberUpdate.Joined(
-                                        conversationMemberMapper.map(
-                                            Pair(update.id, memberUpdate.member)
-                                        )
-                                    )
+                                    ConversationMemberUpdate.Joined(update.id, memberUpdate.member)
                                 }
 
                                 is StreamMemberUpdate.Left -> {

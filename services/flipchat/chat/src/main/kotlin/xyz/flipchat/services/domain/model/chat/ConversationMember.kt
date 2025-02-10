@@ -12,6 +12,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
 import xyz.flipchat.services.domain.model.profile.XExtraData
+import xyz.flipchat.services.domain.model.people.FlipchatUser
+import xyz.flipchat.services.domain.model.people.MemberPersonalInfo
 
 @Serializable
 @Entity(
@@ -25,16 +27,12 @@ import xyz.flipchat.services.domain.model.profile.XExtraData
 data class ConversationMember(
     val memberIdBase58: String,
     val conversationIdBase58: String,
-    val memberName: String?,
-    val imageUri: String?,
     @ColumnInfo(defaultValue = "false")
     val isHost: Boolean, // isModerator
     @ColumnInfo(defaultValue = "false")
     val isMuted: Boolean,
     @ColumnInfo(defaultValue = "false")
     val isFullMember: Boolean,
-    @ColumnInfo(defaultValue = "false")
-    val isBlocked: Boolean
 ) {
     @Ignore
     val id: ID = Base58.decode(memberIdBase58).toList()
@@ -44,7 +42,14 @@ data class ConversationMember(
 }
 
 data class ConversationMemberWithLinkedSocialProfiles(
-    @Embedded val member: ConversationMember,
+    @Embedded val member: ConversationMember?,
+    @Relation(
+        parentColumn = "memberIdBase58",
+        entityColumn = "userIdBase58",
+        projection = ["memberName", "imageUri", "isBlocked"],
+        entity = FlipchatUser::class
+    )
+    private val personalInfo: MemberPersonalInfo?,
     @Relation(
         parentColumn = "memberIdBase58",
         entityColumn = "memberIdBase58",
@@ -52,38 +57,39 @@ data class ConversationMemberWithLinkedSocialProfiles(
     )
     val profiles: List<MemberSocialProfile>
 ) {
-    val id: ID
-        get() = member.id
+    val id: ID?
+        get() = member?.id
 
     val displayName: String?
         get() {
-            val social = profiles.firstOrNull() ?: return member.memberName
+            val social = profiles.firstOrNull() ?: return personalInfo?.memberName
             return when (social.platformType) {
                 "x" -> {
                     val metadata = runCatching {
                         Json.decodeFromString<XExtraData>(social.extraData.orEmpty())
                     }.getOrNull()
 
-                    metadata?.friendlyName ?: member.memberName
+                    metadata?.friendlyName ?: personalInfo?.memberName
                 }
-                else -> member.memberName
+
+                else -> personalInfo?.memberName
             }
         }
 
     val imageUri: String?
         get() {
-            return profiles.firstOrNull()?.profileImageUrl ?: return member.imageUri
+            return profiles.firstOrNull()?.profileImageUrl ?: return personalInfo?.imageUri
         }
 
     val isBlocked: Boolean
-        get() = member.isBlocked
+        get() = personalInfo?.isBlocked == true
 
     val isFullMember: Boolean
-        get() = member.isFullMember
+        get() = member?.isFullMember == true
 
     val isHost: Boolean
-        get() = member.isHost
+        get() = member?.isHost == true
 
     val isMuted: Boolean
-        get() = member.isMuted
+        get() = member?.isMuted == true
 }

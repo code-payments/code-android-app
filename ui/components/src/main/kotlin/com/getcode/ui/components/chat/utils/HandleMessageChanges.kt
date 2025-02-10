@@ -38,7 +38,7 @@ fun HandleMessageChanges(
             .filter { it.refresh is LoadState.NotLoading }
             .mapNotNull { items.itemSnapshotList.firstOrNull() }
             .filterIsInstance<ChatItem.Message>()
-            .distinctUntilChangedBy { it.date }
+            .distinctUntilChangedBy { it.chatMessageId }
             .collect { newMessage ->
                 if (newMessage.status.isOutgoing()) {
                     if (newMessage.date.toEpochMilliseconds() > lastMessageSent) {

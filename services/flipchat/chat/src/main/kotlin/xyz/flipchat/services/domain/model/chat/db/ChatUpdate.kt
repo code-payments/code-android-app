@@ -1,9 +1,9 @@
 package xyz.flipchat.services.domain.model.chat.db
 
 import com.getcode.model.ID
+import xyz.flipchat.services.data.Member
 import xyz.flipchat.services.data.MemberIdentity
 import xyz.flipchat.services.domain.model.chat.Conversation
-import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 
 data class ChatUpdate(
@@ -13,9 +13,9 @@ data class ChatUpdate(
 )
 
 sealed interface ConversationMemberUpdate {
-    data class FullRefresh(val members: List<ConversationMember>): ConversationMemberUpdate
-    data class IndividualRefresh(val member: ConversationMember): ConversationMemberUpdate
-    data class Joined(val member: ConversationMember): ConversationMemberUpdate
+    data class FullRefresh(val roomId: ID, val members: List<Member>): ConversationMemberUpdate
+    data class IndividualRefresh(val roomId: ID, val member: Member): ConversationMemberUpdate
+    data class Joined(val roomId: ID, val member: Member): ConversationMemberUpdate
     data class Left(val roomId: ID, val memberId: ID): ConversationMemberUpdate
     data class Removed(val roomId: ID, val memberId: ID, val removedBy: ID): ConversationMemberUpdate
     data class Muted(val roomId: ID, val memberId: ID, val mutedBy: ID): ConversationMemberUpdate
