@@ -42,6 +42,7 @@ import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin
 import com.getcode.utils.formatAmountString
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import xyz.flipchat.app.R
 
 @Composable
@@ -121,14 +122,18 @@ fun ConversationChatInput(
                         }
                     }
 
+                    var wasKeyboardVisible by remember { mutableStateOf(false) }
+
                     LaunchedEffect(keyboardVisible) {
-                        delay(300)
-                        if (!keyboardVisible) {
-                            if (chattableState is ChattableState.TemporarilyEnabled) {
+                        if (wasKeyboardVisible && !keyboardVisible) {
+                            delay(150) // Short delay to prevent accidental blips
+                            if (!keyboardVisible && chattableState is ChattableState.TemporarilyEnabled) {
                                 dispatchEvent(ConversationViewModel.Event.ResetToSpectator)
                             }
                         }
+                        wasKeyboardVisible = keyboardVisible
                     }
+
                 }
             }
 
