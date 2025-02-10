@@ -288,6 +288,10 @@ class ChatsController @Inject constructor(
         return chatRepository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
     }
 
+    suspend fun lookupRoom(id: ID): Result<RoomWithMembers> {
+        return chatRepository.getChat(identifier = ChatIdentifier.Id(id))
+    }
+
 
     suspend fun createDirectMessage(recipient: ID): Result<RoomWithMembers> {
         return chatRepository.startChat(StartChatRequestType.TwoWay(recipient))

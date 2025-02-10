@@ -52,6 +52,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- region rooms -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -79,6 +80,48 @@
 
                 <data android:scheme="https" />
                 <data android:host="app.flipchat.xyz" />
+                <data android:pathPrefix="/id" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="flipchat" />
+                <data android:host="app.flipchat.xyz" />
+                <data android:pathPrefix="/id" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="app.flipchat.xyz" />
+                <data android:pathPrefix="/number" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="flipchat" />
+                <data android:host="app.flipchat.xyz" />
+                <data android:pathPrefix="/number" />
+            </intent-filter>
+            <!-- endregion rooms -->
+
+            <!-- region login -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="app.flipchat.xyz" />
                 <data android:pathPrefix="/login" />
             </intent-filter>
 
@@ -91,7 +134,9 @@
                 <data android:host="app.flipchat.xyz" />
                 <data android:pathPrefix="/login" />
             </intent-filter>
+            <!-- endregion login -->
 
+            <!-- region user -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -111,6 +156,7 @@
                 <data android:host="app.flipchat.xyz" />
                 <data android:pathPrefix="/user" />
             </intent-filter>
+            <!-- endregion user -->
         </activity>
 
         <!--
