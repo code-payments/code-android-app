@@ -49,9 +49,9 @@ sealed interface MessageListEvent {
     data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
-    data object UnreadStateHandled: MessageListEvent
-    data class TipMessage(val message: ChatItem.Message): MessageListEvent
-    data class ShowTipsForMessage(val tips: List<MessageTip>): MessageListEvent
+    data object UnreadStateHandled : MessageListEvent
+    data class TipMessage(val message: ChatItem.Message) : MessageListEvent
+    data class ShowTipsForMessage(val tips: List<MessageTip>) : MessageListEvent
 }
 
 data class MessageListPointer(
@@ -94,7 +94,8 @@ fun MessageList(
         state = listState,
         reverseLayout = true,
         contentPadding = PaddingValues(
-            vertical = CodeTheme.dimens.inset,
+            top = CodeTheme.dimens.inset,
+            bottom = CodeTheme.dimens.grid.x2,
         ),
         verticalArrangement = Arrangement.Top,
     ) {
@@ -132,16 +133,18 @@ fun MessageList(
                     }
                     val spacingAfter = when {
                         index > messages.itemCount -> 0.dp
-                        item.message is MessageContent.Announcement -> CodeTheme.dimens.inset
+                        item.message is MessageContent.Announcement -> CodeTheme.dimens.grid.x2
                         isNextGrouped -> 3.dp
-                        else -> CodeTheme.dimens.grid.x3
+                        else -> CodeTheme.dimens.grid.x2
                     }
 
                     val showTimestamp =
                         remember(isPreviousGrouped, isNextGrouped, item.date, next?.date) {
                             !isPreviousGrouped
                                     || !isNextGrouped
-                                    || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(60)
+                                    || next?.date?.epochSeconds?.div(60) != item.date.epochSeconds.div(
+                                60
+                            )
                         }
 
                     val updatedSender by rememberUpdatedState(item.sender)
