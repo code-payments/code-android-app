@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.payments
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Text
@@ -41,6 +42,11 @@ internal fun PublicPaymentConfirmation(
     val requestedAmount by remember(confirmation?.amount?.kin?.quarks) {
         derivedStateOf { confirmation?.amount }
     }
+
+    BackHandler {
+        onCancel()
+    }
+
 
     Modal(modifier) {
         val amount = requestedAmount

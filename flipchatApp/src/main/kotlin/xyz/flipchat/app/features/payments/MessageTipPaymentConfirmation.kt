@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.payments
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Text
@@ -63,6 +64,10 @@ internal fun MessageTipPaymentConfirmation(
 
     val balanceController = LocalBalanceController.currentOrThrow
     val currentBalance by balanceController.formattedBalance.collectAsState()
+
+    BackHandler {
+        onCancel()
+    }
 
     Modal(modifier) {
         if (state != null) {
