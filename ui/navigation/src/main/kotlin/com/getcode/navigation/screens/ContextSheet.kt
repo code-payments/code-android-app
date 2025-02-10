@@ -44,7 +44,7 @@ sealed interface ContextMenuStyle {
 
 class ContextSheet(
     private val actions: List<ContextMenuAction>,
-    private val style: ContextMenuStyle = ContextMenuStyle.Default
+    private val style: ContextMenuStyle = ContextMenuStyle.Themed
 ) : Screen {
 
     @Composable
