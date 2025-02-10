@@ -114,7 +114,7 @@
     <string name="action_joinRoomByName">Join %1$s</string>
     <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
     <string name="action_payToChatInRoom">Pay to Chat: ⬢ %1$s</string>
-    <string name="action_sendMessageInRoom">Audience Message: ⬢ %1$s</string>
+    <string name="action_sendMessageInRoom">Listener Message: ⬢ %1$s</string>
 
     <string name="title_leaveRoom">Leave Flipchat?</string>
     <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
@@ -227,7 +227,7 @@
     <string name="title_finalizeAccountCreation">Finalize Account Creation</string>
     <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
     <string name="action_changeCoverCharge">Change Cover Charge</string>
-    <string name="action_changeMessagingFee">Change Audience Message Fee</string>
+    <string name="action_changeMessagingFee">Change Listener Message Fee</string>
     <string name="action_addRoomName">Add Flipchat Name</string>
     <string name="action_editRoomName">Edit Flipchat Name</string>
     <string name="action_changeRoomName">Change Flipchat Name</string>
