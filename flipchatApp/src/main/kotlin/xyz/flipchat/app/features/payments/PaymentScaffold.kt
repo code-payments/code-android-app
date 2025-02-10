@@ -73,7 +73,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
 
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = state.billState.messageTipPaymentConfirmation?.balance,
+            targetState = state.billState.messageTipPaymentConfirmation?.metadata,
             transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast),
             label = "message tip payments",
         ) {

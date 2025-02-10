@@ -4,18 +4,21 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.model.Currency
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.model.kin
 import com.getcode.models.ConfirmationState
 import com.getcode.models.MessageTipPaymentConfirmation
+import com.getcode.network.LocalBalanceController
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Modal
 import com.getcode.ui.components.SlideToConfirm
@@ -58,11 +61,14 @@ internal fun MessageTipPaymentConfirmation(
         )
     }
 
+    val balanceController = LocalBalanceController.currentOrThrow
+    val currentBalance by balanceController.formattedBalance.collectAsState()
+
     Modal(modifier) {
         if (state != null) {
             MessageTipConfirmationContent(
                 pickerState = pickerState,
-                balance = confirmation?.balance,
+                balance = currentBalance?.formattedValue,
                 isSending = isSending,
                 state = state,
                 onApproved = {

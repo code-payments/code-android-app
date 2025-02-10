@@ -1,6 +1,6 @@
 package com.getcode.network
 
-import com.codeinc.gen.user.v1.user
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
+import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import java.util.Locale
@@ -243,3 +244,5 @@ open class BalanceController @Inject constructor(
         }
     }
 }
+
+val LocalBalanceController = staticCompositionLocalOf<BalanceController?> { null }
