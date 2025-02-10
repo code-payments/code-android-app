@@ -28,6 +28,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndC
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
+import xyz.flipchat.services.internal.data.mapper.UserMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
 import xyz.flipchat.services.user.UserManager
@@ -37,6 +38,7 @@ class RoomController @Inject constructor(
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
     private val conversationMemberMapper: ConversationMemberMapper,
+    private val userMapper: UserMapper,
     private val conversationMessageMapper: ConversationMessageMapper,
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
@@ -48,16 +50,8 @@ class RoomController @Inject constructor(
         return db.conversationDao().observeConversation(id)
     }
 
-    fun observeMembersIn(id: ID): Flow<List<ConversationMember>> {
-        return db.conversationMembersDao().observeMembersIn(id)
-    }
-
     suspend fun getConversation(identifier: ID): ConversationWithMembersAndLastPointers? {
         return db.conversationDao().findConversation(identifier)
-    }
-
-    suspend fun getMessage(id: ID): ConversationMessageWithMemberAndContent? {
-        return db.conversationMessageDao().getMessageWithContentById(id, userManager.userId)
     }
 
     suspend fun getUnreadCount(identifier: ID): Int {
@@ -69,10 +63,12 @@ class RoomController @Inject constructor(
             .onSuccess {
                 val dbMembers = it.map { m -> conversationMemberMapper.map(identifier to m) }
                 val memberIds = dbMembers.map { member -> member.id.base58 }
+                val users = it.map { m -> userMapper.map(m) }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationMembersDao().purgeMembersNotIn(identifier, memberIds)
                         db.conversationMembersDao().upsertMembers(*dbMembers.toTypedArray())
+                        db.userDao().upsert(*users.toTypedArray())
                     }
                 }
             }
@@ -281,7 +277,7 @@ class RoomController @Inject constructor(
         userId: ID,
     ): Result<Unit> {
         withContext(Dispatchers.IO) {
-            db.conversationMembersDao().blockMember(userId)
+            db.userDao().blockUser(userId)
         }
 
         return Result.success(Unit)
@@ -291,7 +287,7 @@ class RoomController @Inject constructor(
         userId: ID,
     ): Result<Unit> {
         withContext(Dispatchers.IO) {
-            db.conversationMembersDao().unblockMember(userId)
+            db.userDao().unblockUser(userId)
         }
 
         return Result.success(Unit)

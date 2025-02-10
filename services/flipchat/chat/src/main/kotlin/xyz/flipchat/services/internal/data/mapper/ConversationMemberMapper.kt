@@ -13,12 +13,9 @@ class ConversationMemberMapper @Inject constructor(): Mapper<Pair<ID, Member>, C
         return ConversationMember(
             memberIdBase58 = member.id.base58,
             conversationIdBase58 = conversationId.base58,
-            memberName = member.identity?.displayName,
-            imageUri = member.identity?.imageUrl,
             isHost = member.isModerator,
             isMuted = member.isMuted,
             isFullMember = !member.isSpectator,
-            isBlocked = false // local set only right now
         )
     }
 }

@@ -36,6 +36,7 @@ import xyz.flipchat.services.domain.model.chat.db.ConversationUpdate
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
+import xyz.flipchat.services.internal.data.mapper.UserMapper
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -47,6 +48,7 @@ import javax.inject.Singleton
 class ChatsController @Inject constructor(
     private val conversationMapper: RoomConversationMapper,
     private val conversationMemberMapper: ConversationMemberMapper,
+    private val userMapper: UserMapper,
     private val conversationMessageMapper: ConversationMessageMapper,
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
@@ -86,8 +88,11 @@ class ChatsController @Inject constructor(
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao().upsertConversations(conversationMapper.map(room))
-                        members.map { conversationMemberMapper.map(room.id to it) }.onEach {
-                            db.conversationMembersDao().upsertMembers(it)
+                        members.map { conversationMemberMapper.map(room.id to it) }.let {
+                            db.conversationMembersDao().upsertMembers(*it.toTypedArray())
+                        }
+                        members.map { userMapper.map(it) }.let {
+                            db.userDao().upsert(*it.toTypedArray())
                         }
                     }
                 }
@@ -149,16 +154,42 @@ class ChatsController @Inject constructor(
                             event.members.onEach { update ->
                                 when (update) {
                                     is ConversationMemberUpdate.FullRefresh -> {
+                                        val members = update.members.map {
+                                            conversationMemberMapper.map(
+                                                Pair(
+                                                    update.roomId,
+                                                    it
+                                                )
+                                            )
+                                        }
+                                        val users = update.members.map {
+                                            userMapper.map(it)
+                                        }
+
                                         db.conversationMembersDao()
-                                            .upsertMembers(*update.members.toTypedArray())
+                                            .upsertMembers(*members.toTypedArray())
+                                        db.userDao()
+                                            .upsert(*users.toTypedArray())
                                     }
 
                                     is ConversationMemberUpdate.IndividualRefresh -> {
-                                        db.conversationMembersDao().upsertMembers(update.member)
+                                        val member = conversationMemberMapper.map(
+                                            Pair(update.roomId, update.member)
+                                        )
+
+                                        val user = userMapper.map(update.member)
+                                        db.conversationMembersDao().upsertMembers(member)
+                                        db.userDao().upsert(user)
                                     }
 
                                     is ConversationMemberUpdate.Joined -> {
-                                        db.conversationMembersDao().upsertMembers(update.member)
+                                        val member = conversationMemberMapper.map(
+                                            Pair(update.roomId, update.member)
+                                        )
+
+                                        val user = userMapper.map(update.member)
+                                        db.conversationMembersDao().upsertMembers(member)
+                                        db.userDao().upsert(user)
                                     }
 
                                     is ConversationMemberUpdate.Left -> {
@@ -298,11 +329,13 @@ class ChatsController @Inject constructor(
             .onSuccess { result ->
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                val users = result.members.map { userMapper.map(it) }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                        db.userDao().upsert(*users.toTypedArray())
                     }
                 }
             }
@@ -317,11 +350,13 @@ class ChatsController @Inject constructor(
             .onSuccess { result ->
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                val users = result.members.map { userMapper.map(it) }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                        db.userDao().upsert(*users.toTypedArray())
                     }
                 }
             }
@@ -332,11 +367,13 @@ class ChatsController @Inject constructor(
             .onSuccess { result ->
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                val users = result.members.map { userMapper.map(it) }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                        db.userDao().upsert(*users.toTypedArray())
                     }
                 }
             }
@@ -347,11 +384,13 @@ class ChatsController @Inject constructor(
             .onSuccess { result ->
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                val users = result.members.map { userMapper.map(it) }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+                        db.userDao().upsert(*users.toTypedArray())
                     }
                 }
             }

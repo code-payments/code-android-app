@@ -57,11 +57,6 @@ interface ConversationMemberDao {
         purgeMembersNotIn(conversationId.base58, memberIds)
     }
 
-    suspend fun refreshMembers(conversationId: ID, members: List<ConversationMember>) {
-        removeMembersFrom(conversationId)
-        upsertMembers(*members.toTypedArray())
-    }
-
     @Query("UPDATE members SET isMuted = 1 WHERE conversationIdBase58 = :conversationId AND memberIdBase58 = :memberId")
     suspend fun muteMember(conversationId: String, memberId: String)
     suspend fun muteMember(conversationId: ID, memberId: ID) {
@@ -84,18 +79,6 @@ interface ConversationMemberDao {
     suspend fun demoteMember(conversationId: String, memberId: String)
     suspend fun demoteMember(conversationId: ID, memberId: ID) {
         demoteMember(conversationId.base58, memberId.base58)
-    }
-
-    @Query("UPDATE members SET isBlocked = 1 WHERE memberIdBase58 = :memberId")
-    suspend fun blockMember(memberId: String)
-    suspend fun blockMember(memberId: ID) {
-        blockMember(memberId.base58)
-    }
-
-    @Query("UPDATE members SET isBlocked = 0 WHERE memberIdBase58 = :memberId")
-    suspend fun unblockMember(memberId: String)
-    suspend fun unblockMember(memberId: ID) {
-        unblockMember(memberId.base58)
     }
 
     @Query("DELETE FROM members")

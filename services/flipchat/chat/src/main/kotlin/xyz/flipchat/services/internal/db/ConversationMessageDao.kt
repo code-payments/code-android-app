@@ -11,12 +11,17 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.uuid
 import com.getcode.utils.base58
+import com.getcode.vendor.Base58
 import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMemberWithPersonalInfo
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndReply
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
+import xyz.flipchat.services.domain.model.chat.MessageTipInfo
+import xyz.flipchat.services.domain.model.people.FlipchatUser
+import xyz.flipchat.services.domain.model.people.MemberPersonalInfo
 
 @Dao
 interface ConversationMessageDao {
@@ -111,17 +116,18 @@ interface ConversationMessageDao {
         messages.sentOffStage AS sentOffStage,
         messages.content AS content,
         members.memberIdBase58 AS memberIdBase58,
-        members.memberName AS memberName,
         members.isHost AS isHost,
-        members.imageUri AS imageUri,
-        members.isBlocked AS isBlocked,
         members.isFullMember AS isFullMember,
-        members.isMuted AS isMuted
+        members.isMuted AS isMuted,
+        users.memberName AS memberName,
+        users.imageUri AS imageUri,
+        users.isBlocked AS isBlocked
     FROM messages
 
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
                        AND members.conversationIdBase58 = :id
+    LEFT JOIN users ON messages.senderIdBase58 = users.userIdBase58
     LEFT JOIN tips ON messages.idBase58 = tips.messageIdBase58
     -- RawText, Announcements, Replies, and Actionable Announcements --
     WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8, 12)
@@ -141,21 +147,46 @@ interface ConversationMessageDao {
         return getMemberInternal(conversationId.base58, memberId.base58)
     }
 
+    @Query("SELECT * FROM users WHERE userIdBase58 = :memberId")
+    suspend fun getMemberPersonalInfo(memberId: String): FlipchatUser?
+    suspend fun getMemberPersonalInfo(memberId: ID): FlipchatUser? {
+        return getMemberPersonalInfo(memberId.base58)
+    }
+
+    @Query("SELECT * FROM tips WHERE messageIdBase58 = :id")
+    suspend fun getTipsForMessage(id: String): List<MessageTipInfo>
+    suspend fun getTipsForMessage(id: ID): List<MessageTipInfo> {
+        return getTipsForMessage(id.base58)
+    }
+
     suspend fun getPagedMessagesWithDetails(id: ID, limit: Int, offset: Int, selfId: ID?): List<InflatedConversationMessage> {
         val messages = getPagedMessages(id.base58, limit, offset)
 
         return messages.map {
             val content = MessageContent.fromData(it.message.type, it.message.content, isFromSelf = selfId == it.message.senderId)
             val member = getMemberInternal(id, it.message.senderId)
-            val replyContent = it.inReplyTo?.let { rp ->
+            val pii = getMemberPersonalInfo(it.message.senderId)
+            val replyMessage = it.message.inReplyTo?.let { id -> getMessageById(id.base58) }
+            val replyContent = replyMessage?.let { rp ->
                 MessageContent.fromData(rp.message.type, rp.message.content, isFromSelf = rp.message.senderId == selfId)
             } ?: MessageContent.Unknown(false)
+
+            val tips = getTipsForMessage(it.message.id)
             InflatedConversationMessage(
                 message = it.message,
-                member = member,
+                member = ConversationMemberWithPersonalInfo(
+                    member = member,
+                    personalInfo = pii?.let {
+                        MemberPersonalInfo(
+                            memberName = pii.memberName,
+                            imageUri = pii.imageUri,
+                            isBlocked = pii.isBlocked ?: false
+                        )
+                    }
+                ),
                 content = content,
-                reply = it.inReplyTo?.apply { contentEntity = replyContent },
-                tips = it.tips,
+                reply = replyMessage?.apply { contentEntity = replyContent },
+                tips = tips,
             )
         }
     }
@@ -189,25 +220,7 @@ interface ConversationMessageDao {
             WHERE messages.idBase58 = :messageId
             LIMIT 1
         """)
-    suspend fun getMessageById(messageId: String): ConversationMessageWithMemberAndReply?
-
-
-    suspend fun getMessageWithContentById(messageId: String, selfId: String?): ConversationMessageWithMemberAndContent? {
-        val row = getMessageById(messageId) ?: return null
-        val content = MessageContent.fromData(row.message.type, row.message.content, isFromSelf = row.message.senderIdBase58 == selfId) ?: return null
-        val member = getMemberInternal(row.message.conversationId, row.message.senderId)
-        return ConversationMessageWithMemberAndContent(
-            message = row.message,
-            member = member,
-        ).apply {
-            contentEntity = content
-        }
-    }
-
-    suspend fun getMessageWithContentById(messageId: ID, selfID: ID?): ConversationMessageWithMemberAndContent? {
-        return getMessageWithContentById(messageId.base58, selfID?.base58)
-    }
-
+    suspend fun getMessageById(messageId: String): ConversationMessageWithMemberAndContent?
 
     @Query("""
         SELECT * FROM messages 
