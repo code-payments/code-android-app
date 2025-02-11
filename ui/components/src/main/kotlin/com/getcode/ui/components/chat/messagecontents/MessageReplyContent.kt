@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,9 +15,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
@@ -40,7 +46,7 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
 import com.getcode.ui.utils.generateComplementaryColorPalette
-import com.getcode.ui.utils.rememberedLongClickable
+import com.getcode.ui.utils.measured
 import kotlinx.datetime.Instant
 
 @Composable
@@ -58,10 +64,14 @@ internal fun MessageNodeScope.MessageReplyContent(
     status: MessageStatus = MessageStatus.Unknown,
     tips: List<MessageTip>,
     showTips: () -> Unit,
-    showControls: () -> Unit,
-    showTipSelection: () -> Unit
+    onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
+    onLongPress: () -> Unit,
+    onDoubleClick: () -> Unit
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
+    var originalMessagePreviewHeight by remember {
+        mutableStateOf(0.dp)
+    }
 
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
         Box(
@@ -81,11 +91,18 @@ internal fun MessageNodeScope.MessageReplyContent(
                 }
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onLongPress = if (!options.isInteractive) null else {
-                            { showControls() }
+                        onTap = { offset ->
+                            onTap(
+                                PaddingValues(
+                                    vertical = originalMessagePreviewHeight + 2.5.dp
+                                ),
+                                offset
+                            )
                         },
-                        onDoubleTap = { if (options.canTip) showTipSelection() },
-                        onTap = { onOriginalMessageClicked() }
+                        onLongPress = if (!options.isInteractive) null else {
+                            { onLongPress() }
+                        },
+                        onDoubleTap = { if (options.canTip) onDoubleClick() },
                     )
                 }
                 .padding(CodeTheme.dimens.grid.x2)
@@ -110,16 +127,26 @@ internal fun MessageNodeScope.MessageReplyContent(
                 val replyPreviewPlaceable = subcompose("MessageReplyPreview") {
                     MessageReplyPreview(
                         modifier = Modifier
-                            .widthIn(min = messageContentPlaceable.width.toDp()),
+                            .widthIn(min = messageContentPlaceable.width.toDp())
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { onOriginalMessageClicked() }
+                                )
+                            }
+                            .measured { originalMessagePreviewHeight = it.height },
                         originalMessage = originalMessage,
                         backgroundColor = Color.Black.copy(0.1f),
                     )
                 }.first().measure(
-                    constraints.copy(minWidth = messageContentPlaceable.width, maxWidth = constraints.maxWidth)
+                    constraints.copy(
+                        minWidth = messageContentPlaceable.width,
+                        maxWidth = constraints.maxWidth
+                    )
                 )
 
                 // Determine the final width based on the longer of the two components
-                val finalWidth = maxOf(messageContentPlaceable.width, replyPreviewPlaceable.width)
+                val finalWidth =
+                    maxOf(messageContentPlaceable.width, replyPreviewPlaceable.width)
 
                 // Remeasure MessageContent with the updated width
                 val remeasuredMessageContentPlaceable = subcompose("MessageContentRemeasured") {
@@ -140,12 +167,16 @@ internal fun MessageNodeScope.MessageReplyContent(
                 )
 
                 // Calculate the total height
-                val totalHeight = replyPreviewPlaceable.height + spacing + remeasuredMessageContentPlaceable.height
+                val totalHeight =
+                    replyPreviewPlaceable.height + spacing + remeasuredMessageContentPlaceable.height
 
                 // Layout the components
                 layout(finalWidth, totalHeight) {
                     replyPreviewPlaceable.place(0, 0)
-                    remeasuredMessageContentPlaceable.place(0, replyPreviewPlaceable.height + spacing)
+                    remeasuredMessageContentPlaceable.place(
+                        0,
+                        replyPreviewPlaceable.height + spacing
+                    )
                 }
             }
         }
@@ -158,7 +189,7 @@ fun MessageReplyPreview(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
 
-) {
+    ) {
     val colors = generateComplementaryColorPalette(originalMessage.sender.id!!)
     Row(
         modifier = modifier

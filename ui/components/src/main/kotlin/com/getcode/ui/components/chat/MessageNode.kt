@@ -64,6 +64,7 @@ import com.getcode.ui.components.chat.messagecontents.ActionableAnnouncementMess
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
+import com.getcode.ui.components.chat.messagecontents.MarkupTouchHandler
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageReplyContent
 import com.getcode.ui.components.chat.messagecontents.MessageText
@@ -356,20 +357,23 @@ fun MessageNode(
                                     sender = sender,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
-                                    MessageText(
-                                        content = contents.localizedText,
-                                        shape = shape,
-                                        date = date,
-                                        status = status,
-                                        isFromSelf = sender.isSelf,
-                                        isFromBlockedMember = sender.isBlocked,
-                                        options = options,
-                                        wasSentAsFullMember = wasSentAsFullMember,
-                                        tips = tips,
-                                        showTips = showTips,
-                                        onLongPress = openMessageControls,
-                                        onDoubleClick = showTipSelection
-                                    )
+                                    MarkupTouchHandler(options = options) { onTap ->
+                                        MessageText(
+                                            content = contents.localizedText,
+                                            shape = shape,
+                                            date = date,
+                                            status = status,
+                                            isFromSelf = sender.isSelf,
+                                            isFromBlockedMember = sender.isBlocked,
+                                            options = options,
+                                            wasSentAsFullMember = wasSentAsFullMember,
+                                            tips = tips,
+                                            showTips = showTips,
+                                            onTap = onTap,
+                                            onLongPress = openMessageControls,
+                                            onDoubleClick = showTipSelection
+                                        )
+                                    }
                                 }
                             }
 
@@ -399,20 +403,23 @@ fun MessageNode(
                                     sender = sender,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
-                                    MessageText(
-                                        content = contents.data,
-                                        shape = shape,
-                                        date = date,
-                                        status = status,
-                                        isFromSelf = sender.isSelf,
-                                        isFromBlockedMember = sender.isBlocked,
-                                        options = options,
-                                        wasSentAsFullMember = wasSentAsFullMember,
-                                        tips = tips,
-                                        showTips = showTips,
-                                        onLongPress = openMessageControls,
-                                        onDoubleClick = showTipSelection
-                                    )
+                                    MarkupTouchHandler(options = options) { onTap ->
+                                        MessageText(
+                                            content = contents.data,
+                                            shape = shape,
+                                            date = date,
+                                            status = status,
+                                            isFromSelf = sender.isSelf,
+                                            isFromBlockedMember = sender.isBlocked,
+                                            options = options,
+                                            wasSentAsFullMember = wasSentAsFullMember,
+                                            tips = tips,
+                                            showTips = showTips,
+                                            onTap = onTap,
+                                            onLongPress = openMessageControls,
+                                            onDoubleClick = showTipSelection
+                                        )
+                                    }
                                 }
                             }
 
@@ -422,20 +429,23 @@ fun MessageNode(
                                     sender = sender,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
-                                    MessageText(
-                                        content = contents.value,
-                                        shape = shape,
-                                        date = date,
-                                        status = status,
-                                        isFromSelf = sender.isSelf,
-                                        isFromBlockedMember = sender.isBlocked,
-                                        options = options,
-                                        wasSentAsFullMember = wasSentAsFullMember,
-                                        tips = tips,
-                                        showTips = showTips,
-                                        onLongPress = openMessageControls,
-                                        onDoubleClick = showTipSelection
-                                    )
+                                    MarkupTouchHandler(options = options) { onTap ->
+                                        MessageText(
+                                            content = contents.value,
+                                            shape = shape,
+                                            date = date,
+                                            status = status,
+                                            isFromSelf = sender.isSelf,
+                                            isFromBlockedMember = sender.isBlocked,
+                                            options = options,
+                                            wasSentAsFullMember = wasSentAsFullMember,
+                                            tips = tips,
+                                            showTips = showTips,
+                                            onTap = onTap,
+                                            onLongPress = openMessageControls,
+                                            onDoubleClick = showTipSelection
+                                        )
+                                    }
                                 }
                             }
 
@@ -460,40 +470,44 @@ fun MessageNode(
                                     sender = sender,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
-                                    if (originalMessage != null) {
-                                        MessageReplyContent(
-                                            content = contents.text,
-                                            shape = shape,
-                                            date = date,
-                                            status = status,
-                                            isFromSelf = sender.isSelf,
-                                            isFromBlockedMember = sender.isBlocked,
-                                            wasSentAsFullMember = wasSentAsFullMember,
-                                            options = options,
-                                            tips = tips,
-                                            showTips = showTips,
-                                            showControls = openMessageControls,
-                                            showTipSelection = showTipSelection,
-                                            originalMessage = originalMessage,
-                                            onOriginalMessageClicked = {
-                                                onViewOriginalMessage(originalMessage.id)
-                                            }
-                                        )
-                                    } else {
-                                        MessageText(
-                                            content = contents.text,
-                                            shape = shape,
-                                            date = date,
-                                            status = status,
-                                            isFromSelf = sender.isSelf,
-                                            isFromBlockedMember = sender.isBlocked,
-                                            options = options,
-                                            wasSentAsFullMember = wasSentAsFullMember,
-                                            tips = tips,
-                                            showTips = showTips,
-                                            onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection
-                                        )
+                                    MarkupTouchHandler(options = options) { onTap ->
+                                        if (originalMessage != null) {
+                                            MessageReplyContent(
+                                                content = contents.text,
+                                                shape = shape,
+                                                date = date,
+                                                status = status,
+                                                isFromSelf = sender.isSelf,
+                                                isFromBlockedMember = sender.isBlocked,
+                                                wasSentAsFullMember = wasSentAsFullMember,
+                                                options = options,
+                                                tips = tips,
+                                                showTips = showTips,
+                                                onTap = onTap,
+                                                onLongPress = openMessageControls,
+                                                onDoubleClick = showTipSelection,
+                                                originalMessage = originalMessage,
+                                                onOriginalMessageClicked = {
+                                                    onViewOriginalMessage(originalMessage.id)
+                                                }
+                                            )
+                                        } else {
+                                            MessageText(
+                                                content = contents.text,
+                                                shape = shape,
+                                                date = date,
+                                                status = status,
+                                                isFromSelf = sender.isSelf,
+                                                isFromBlockedMember = sender.isBlocked,
+                                                options = options,
+                                                wasSentAsFullMember = wasSentAsFullMember,
+                                                tips = tips,
+                                                showTips = showTips,
+                                                onTap = onTap,
+                                                onLongPress = openMessageControls,
+                                                onDoubleClick = showTipSelection
+                                            )
+                                        }
                                     }
                                 }
                             }

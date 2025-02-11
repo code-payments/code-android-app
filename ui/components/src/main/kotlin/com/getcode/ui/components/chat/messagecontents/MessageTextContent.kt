@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,24 +15,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -53,11 +51,6 @@ import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
 import kotlinx.datetime.Instant
 
-data class MarkupRenderData(
-    val annotatedMessage: AnnotatedString,
-    val layoutResult: TextLayoutResult,
-)
-
 @Composable
 internal fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
@@ -70,87 +63,54 @@ internal fun MessageNodeScope.MessageText(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     wasSentAsFullMember: Boolean,
+    onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
     onLongPress: () -> Unit,
     onDoubleClick: () -> Unit,
     showTips: () -> Unit,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
-    var markupRenderData by remember { mutableStateOf<MarkupRenderData?>(null) }
-
-    val handleTouchedContent = { offset: Int ->
-        markupRenderData?.annotatedMessage?.getStringAnnotations(
-            tag = Markup.RoomNumber.TAG,
-            start = offset,
-            end = offset
-        )?.firstOrNull()?.let { annotation ->
-            options.onMarkupClicked?.invoke(Markup.RoomNumber(annotation.item.toLong()))
-        }
-
-        markupRenderData?.annotatedMessage?.getStringAnnotations(
-            tag = Markup.Url.TAG,
-            start = offset,
-            end = offset
-        )?.firstOrNull()?.let { annotation ->
-            options.onMarkupClicked?.invoke(Markup.Url(annotation.item))
-        }
-
-        markupRenderData?.annotatedMessage?.getStringAnnotations(
-            tag = Markup.Phone.TAG,
-            start = offset,
-            end = offset
-        )?.firstOrNull()?.let { annotation ->
-            options.onMarkupClicked?.invoke(Markup.Phone(annotation.item))
-        }
-    }
-
-    CompositionLocalProvider(LocalMarkupRenderData provides { markupRenderData = it }) {
-        BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .sizeableWidth()
-                    .addIf(wasSentAsFullMember) {
-                        Modifier.background(color = color, shape = shape)
-                    }
-                    .addIf(!wasSentAsFullMember) {
-                        Modifier.dashedBorder(
-                            strokeWidth = CodeTheme.dimens.border,
-                            dashWidth = 2.dp,
-                            gapWidth = 2.dp,
-                            dashColor = CodeTheme.colors.tertiary,
-                            shape = shape
-                        )
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { offset ->
-                                markupRenderData?.layoutResult?.let { layoutResult ->
-                                    val position = layoutResult.getOffsetForPosition(offset)
-                                    handleTouchedContent(position)
-                                }
-                            },
-                            onLongPress = if (!options.isInteractive) null else {
-                                { onLongPress() }
-                            },
-                            onDoubleTap = { if (options.canTip) onDoubleClick() }
-                        )
-                    }
-                    .padding(CodeTheme.dimens.grid.x2)
-            ) contents@{
-                val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
-                Column {
-                    MessageContent(
-                        maxWidth = maxWidthPx,
-                        message = content,
-                        date = date,
-                        status = status,
-                        isFromSelf = isFromSelf,
-                        isFromBlockedMember = isFromBlockedMember,
-                        options = options,
-                        tips = tips,
-                        openTipModal = showTips,
+    BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .sizeableWidth()
+                .addIf(wasSentAsFullMember) {
+                    Modifier.background(color = color, shape = shape)
+                }
+                .addIf(!wasSentAsFullMember) {
+                    Modifier.dashedBorder(
+                        strokeWidth = CodeTheme.dimens.border,
+                        dashWidth = 2.dp,
+                        gapWidth = 2.dp,
+                        dashColor = CodeTheme.colors.tertiary,
+                        shape = shape
                     )
                 }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        // entire bubble of a normal message is the contents of the text
+                        onTap = { offset -> onTap(PaddingValues(), offset) },
+                        onLongPress = if (!options.isInteractive) null else {
+                            { onLongPress() }
+                        },
+                        onDoubleTap = { if (options.canTip) onDoubleClick() }
+                    )
+                }
+                .padding(CodeTheme.dimens.grid.x2)
+        ) contents@{
+            val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
+            Column {
+                MessageContent(
+                    maxWidth = maxWidthPx,
+                    message = content,
+                    date = date,
+                    status = status,
+                    isFromSelf = isFromSelf,
+                    isFromBlockedMember = isFromBlockedMember,
+                    options = options,
+                    tips = tips,
+                    openTipModal = showTips,
+                )
             }
         }
     }
@@ -359,13 +319,13 @@ private fun MarkupTextHandler(
             val markups = options.markupsToResolve.map { Markup.create(it) }
 
             val annotatedString = markupTextHelper.annotate(text.text, markups)
-            val markupHoist = LocalMarkupRenderData.current
+            val markupHoist = LocalTextLayoutResult.current
 
             Text(
                 text = annotatedString,
                 style = options.contentStyle.copy(color = CodeTheme.colors.textMain),
                 modifier = modifier,
-                onTextLayout = { markupHoist(MarkupRenderData(annotatedString, it)) }
+                onTextLayout = { markupHoist(it) }
             )
         }
 
@@ -374,6 +334,3 @@ private fun MarkupTextHandler(
         }
     }
 }
-
-private val LocalMarkupRenderData: ProvidableCompositionLocal<(MarkupRenderData) -> Unit> =
-    staticCompositionLocalOf { {  } }
