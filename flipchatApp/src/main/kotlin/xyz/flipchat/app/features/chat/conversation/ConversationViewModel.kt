@@ -977,7 +977,7 @@ class ConversationViewModel @Inject constructor(
             val currentState = stateFlow.value // Cache state upfront
             val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
             val enableReply =
-                currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled
+                currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled || currentState.chattableState is ChattableState.Spectator
 
             val enableLinkImages = currentState.isLinkImagePreviewsEnabled
 
@@ -1567,14 +1567,18 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.ResetToSpectator -> { state ->
                     val fee = Kin.fromQuarks(state.roomInfoArgs.messagingFeeQuarks)
-                    state.copy(chattableState = ChattableState.Spectator(fee))
+                    state.copy(chattableState = ChattableState.Spectator(fee), replyMessage = null)
                 }
 
                 is Event.OnAbilityToChatChanged -> { state -> state.copy(chattableState = event.state) }
                 is Event.OnReplyEnabled -> { state -> state.copy(replyEnabled = event.enabled) }
                 is Event.OnStartAtUnread -> { state -> state.copy(startAtUnread = event.enabled) }
                 is Event.ReplyTo -> { state ->
-                    state.copy(replyMessage = event.anchor)
+                    val isFullMember = state.chattableState is ChattableState.Enabled
+                    state.copy(
+                        replyMessage = event.anchor,
+                        chattableState = if (isFullMember) ChattableState.Enabled else ChattableState.TemporarilyEnabled
+                    )
                 }
 
                 is Event.CancelReply -> { state -> state.copy(replyMessage = null) }

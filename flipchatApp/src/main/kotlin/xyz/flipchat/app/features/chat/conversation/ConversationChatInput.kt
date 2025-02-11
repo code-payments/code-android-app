@@ -134,6 +134,12 @@ fun ConversationChatInput(
                         wasKeyboardVisible = keyboardVisible
                     }
 
+                    LaunchedEffect(state.replyMessage) {
+                        if (state.replyMessage != null) {
+                            focusRequester.requestFocus()
+                        }
+                    }
+
                 }
             }
 

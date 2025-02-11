@@ -143,7 +143,6 @@ internal fun ConversationMessages(
 
                         is MessageListEvent.ReplyToMessage -> {
                             dispatchEvent(ConversationViewModel.Event.ReplyTo(event.message))
-                            focusRequester.requestFocus()
                         }
 
                         is MessageListEvent.ViewOriginalMessage -> {
