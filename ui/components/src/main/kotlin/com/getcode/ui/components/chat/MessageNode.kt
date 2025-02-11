@@ -136,9 +136,6 @@ object MessageNodeDefaults {
 
     val ContentStyle: TextStyle
         @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
-
-    val SwipeThreshold
-        @Composable get() = 25.dp
 }
 
 class MessageNodeScope(
@@ -370,8 +367,8 @@ fun MessageNode(
                                         wasSentAsFullMember = wasSentAsFullMember,
                                         tips = tips,
                                         showTips = showTips,
-                                        showControls = openMessageControls,
-                                        showTipSelection = showTipSelection,
+                                        onLongPress = openMessageControls,
+                                        onDoubleClick = showTipSelection
                                     )
                                 }
                             }
@@ -413,8 +410,8 @@ fun MessageNode(
                                         wasSentAsFullMember = wasSentAsFullMember,
                                         tips = tips,
                                         showTips = showTips,
-                                        showControls = openMessageControls,
-                                        showTipSelection = showTipSelection,
+                                        onLongPress = openMessageControls,
+                                        onDoubleClick = showTipSelection
                                     )
                                 }
                             }
@@ -436,8 +433,8 @@ fun MessageNode(
                                         wasSentAsFullMember = wasSentAsFullMember,
                                         tips = tips,
                                         showTips = showTips,
-                                        showControls = openMessageControls,
-                                        showTipSelection = showTipSelection,
+                                        onLongPress = openMessageControls,
+                                        onDoubleClick = showTipSelection
                                     )
                                 }
                             }
@@ -471,6 +468,7 @@ fun MessageNode(
                                             status = status,
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
+                                            wasSentAsFullMember = wasSentAsFullMember,
                                             options = options,
                                             tips = tips,
                                             showTips = showTips,
@@ -493,8 +491,8 @@ fun MessageNode(
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
                                             showTips = showTips,
-                                            showControls = openMessageControls,
-                                            showTipSelection = showTipSelection,
+                                            onLongPress = openMessageControls,
+                                            onDoubleClick = showTipSelection
                                         )
                                     }
                                 }

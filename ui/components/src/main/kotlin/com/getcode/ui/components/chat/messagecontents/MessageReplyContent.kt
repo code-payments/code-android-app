@@ -38,6 +38,7 @@ import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.dashedBorder
 import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.ui.utils.rememberedLongClickable
 import kotlinx.datetime.Instant
@@ -52,6 +53,7 @@ internal fun MessageNodeScope.MessageReplyContent(
     options: MessageNodeOptions,
     isFromSelf: Boolean,
     isFromBlockedMember: Boolean,
+    wasSentAsFullMember: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     tips: List<MessageTip>,
@@ -65,14 +67,26 @@ internal fun MessageNodeScope.MessageReplyContent(
         Box(
             modifier = Modifier
                 .sizeableWidth()
-                .background(
-                    color = color,
-                    shape = shape,
-                )
-                .addIf(options.isInteractive) {
-                    Modifier.rememberedLongClickable {
-                        showControls()
-                    }
+                .addIf(wasSentAsFullMember) {
+                    Modifier.background(color = color, shape = shape)
+                }
+                .addIf(!wasSentAsFullMember) {
+                    Modifier.dashedBorder(
+                        strokeWidth = CodeTheme.dimens.border,
+                        dashWidth = 2.dp,
+                        gapWidth = 2.dp,
+                        dashColor = CodeTheme.colors.tertiary,
+                        shape = shape
+                    )
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = if (!options.isInteractive) null else {
+                            { showControls() }
+                        },
+                        onDoubleTap = { if (options.canTip) showTipSelection() },
+                        onTap = { onOriginalMessageClicked() }
+                    )
                 }
                 .padding(CodeTheme.dimens.grid.x2)
         ) {
@@ -90,24 +104,13 @@ internal fun MessageNodeScope.MessageReplyContent(
                         options = options,
                         tips = tips,
                         openTipModal = showTips,
-                        onLongPress = showControls,
-                        onDoubleClick = showTipSelection,
                     )
                 }.first().measure(constraints)
 
                 val replyPreviewPlaceable = subcompose("MessageReplyPreview") {
                     MessageReplyPreview(
                         modifier = Modifier
-                            .widthIn(min = messageContentPlaceable.width.toDp())
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onLongPress = if (!options.isInteractive) null else {
-                                        { showControls() }
-                                    },
-                                    onDoubleTap = { if (options.canTip) showTipSelection() },
-                                    onTap = { onOriginalMessageClicked() }
-                                )
-                            },
+                            .widthIn(min = messageContentPlaceable.width.toDp()),
                         originalMessage = originalMessage,
                         backgroundColor = Color.Black.copy(0.1f),
                     )
@@ -131,8 +134,6 @@ internal fun MessageNodeScope.MessageReplyContent(
                         options = options,
                         tips = tips,
                         openTipModal = showTips,
-                        onLongPress = showControls,
-                        onDoubleClick = showTipSelection,
                     )
                 }.first().measure(
                     constraints.copy(minWidth = finalWidth, maxWidth = finalWidth)
