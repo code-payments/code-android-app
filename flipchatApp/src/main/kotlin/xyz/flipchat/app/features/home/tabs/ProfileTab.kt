@@ -1,7 +1,8 @@
 package xyz.flipchat.app.features.home.tabs
 
+import android.os.Parcelable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
@@ -17,20 +18,23 @@ import com.getcode.navigation.core.NavigatorStub
 import com.getcode.navigation.core.NavigatorWrapper
 import com.getcode.navigation.screens.ChildNavTab
 import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
 
-class ProfileTab(override val ordinal: Int): ChildNavTab {
+@Parcelize
+class ProfileTab(override val ordinal: Int): ChildNavTab, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @IgnoredOnParcel
     override var childNav: NavigationLocator = NavigatorStub
 
     override val options: TabOptions
         @Composable get() = TabOptions(
             index = ordinal.toUShort(),
             title = stringResource(R.string.title_profileTab),
-            icon = rememberVectorPainter(Icons.Default.Person)
+            icon = rememberVectorPainter(Icons.Outlined.Person)
         )
 
     @Composable

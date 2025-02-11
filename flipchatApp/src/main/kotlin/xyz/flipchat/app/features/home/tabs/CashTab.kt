@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.home.tabs
 
+import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,13 +34,18 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.getActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.settings.SettingsViewModel
 
-internal class CashTab(override val ordinal: Int) : ChildNavTab {
+@Parcelize
+internal class CashTab(override val ordinal: Int) : ChildNavTab, Parcelable {
 
+    @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @IgnoredOnParcel
     override var childNav: NavigationLocator = CodeNavigatorStub
 
     override val options: TabOptions

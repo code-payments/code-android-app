@@ -107,6 +107,7 @@ private val Lab.title: String
         Lab.OpenCloseRoom -> "Open/Close Rooms"
         Lab.Tipping -> "Tipping"
         Lab.LinkImages -> "Show Previews for Links"
+        Lab.ConnectX -> "Connect X Account"
     }
 
 private val Lab.message: String
@@ -119,4 +120,5 @@ private val Lab.message: String
         Lab.OpenCloseRoom -> "When enabled, hosts will gain the ability to temporarily close (and reopen) their rooms"
         Lab.Tipping -> "When enabled, you'll gain the ability to double tap messages to tip the author"
         Lab.LinkImages -> "When enabled, links shared in chat will show a preview image for the link"
+        Lab.ConnectX -> "When enabled, you'll gain the ability to connect your X account"
     }

@@ -68,7 +68,9 @@ class RouterImpl(
 
     override fun tabForIndex(index: Int) = indexTabResolver(index)
 
-    private val commonTabs = listOf(ChatTab(0), CashTab(1), ProfileTab(2))
+    private val commonTabs: List<ChildNavTab> =
+        listOf(ChatTab(0), CashTab(1), ProfileTab(2))
+
     private val tabs = MutableStateFlow(commonTabs)
 
     override fun checkTabs() {

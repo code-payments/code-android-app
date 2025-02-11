@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.home.tabs
 
+import android.os.Parcelable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -52,16 +53,19 @@ import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.util.resources.LocalResources
 import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
 import xyz.flipchat.app.features.settings.SettingsViewModel
 
-internal class ChatTab(override val ordinal: Int) : ChildNavTab {
+@Parcelize
+internal class ChatTab(override val ordinal: Int) : ChildNavTab, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @IgnoredOnParcel
     override var childNav: NavigationLocator = NavigatorStub
 
     override val options: TabOptions

@@ -247,4 +247,5 @@
     <string name="subtitle_you">You</string>
 
     <string name="subtitle_updateRequiredDescription">We\'ve made some changes to improve the experience. You\'ll need to update the app to keep using Flipchat.</string>
+    <string name="action_connectYourAccount">Connect Your Account</string>
 </resources>
