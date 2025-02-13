@@ -11,6 +11,8 @@ service Profile {
 	rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
 	// LinkSocialAccount links a social account to a user
 	rpc LinkSocialAccount(LinkSocialAccountRequest) returns (LinkSocialAccountResponse);
+	// UnlinkSocialAccount removes a social account link from a user
+	rpc UnlinkSocialAccount(UnlinkSocialAccountRequest) returns (UnlinkSocialAccountResponse);
 }
 message GetProfileRequest {
 	common.v1.UserId user_id = 1;
@@ -62,4 +64,17 @@ message LinkSocialAccountResponse {
 		DENIED                = 3;
 	}
 	SocialProfile social_profile = 2;
+}
+message UnlinkSocialAccountRequest {
+	oneof social_identifier {
+		string x_user_id = 1 ;
+	}
+	common.v1.Auth auth = 10;
+}
+message UnlinkSocialAccountResponse {
+	Result result = 1;
+	enum Result {
+		OK     = 0;
+		DENIED = 1;
+	}
 }

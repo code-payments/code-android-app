@@ -1,7 +1,9 @@
 package xyz.flipchat.services.internal.network.repository.profile
 
 import com.getcode.model.ID
+import com.getcode.model.social.user.SocialProfile
 import com.getcode.services.model.profile.SocialAccountLinkRequest
+import com.getcode.services.model.profile.SocialAccountUnlinkRequest
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.SuppressibleException
 import xyz.flipchat.services.domain.model.profile.UserProfile
@@ -9,7 +11,6 @@ import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.UserProfileMapper
 import xyz.flipchat.services.internal.network.service.ProfileService
 import xyz.flipchat.services.user.UserManager
-import xyz.flipchat.services.user.social.SocialProfile
 import javax.inject.Inject
 
 internal class RealProfileRepository @Inject constructor(
@@ -35,9 +36,14 @@ internal class RealProfileRepository @Inject constructor(
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.linkSocialAccount(owner, request)
-            .map {
-                socialProfileMapper.map(it) ?: throw SuppressibleException("Failed to map Social Profile from $it")
-            }
+            .map { socialProfileMapper.map(it) }
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun unlinkSocialAccount(request: SocialAccountUnlinkRequest): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return service.unlinkSocialAccount(owner, request)
             .onFailure { ErrorUtils.handleError(it) }
     }
 }
