@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.getcode.model.ID
 import com.getcode.model.uuid
 import xyz.flipchat.services.data.Member
+import xyz.flipchat.services.data.MemberIdentity
 
 sealed interface StreamMemberUpdate {
     // Refreshes the state of the entire chat membership
@@ -54,6 +55,12 @@ sealed interface StreamMemberUpdate {
     data class Demoted(val memberId: ID, val by: ID): StreamMemberUpdate {
         override fun toString(): String {
             return "DEMOTED:: ${memberId.uuid} by ${by.uuid}"
+        }
+    }
+
+    data class IdentityChanged(val memberId: ID, val identity: MemberIdentity): StreamMemberUpdate {
+        override fun toString(): String {
+            return "IDENTITY:: ${memberId.uuid}"
         }
     }
 }

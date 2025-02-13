@@ -15,6 +15,7 @@ import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.chat.paging.MessagingPagingSource
@@ -28,6 +29,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndC
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
+import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.UserMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository

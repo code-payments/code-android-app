@@ -166,8 +166,8 @@ class NotificationCollectionViewModel @Inject constructor(
                     status = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
                     sender = Sender(
                         id = null,
-                        displayName = null,
-                        profileImage = null,
+                        name = null,
+                        profileImageUrl = null,
                         isHost = false,
                         isSelf = contents.isFromSelf,
 

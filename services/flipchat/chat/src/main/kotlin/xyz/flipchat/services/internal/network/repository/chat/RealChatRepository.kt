@@ -322,6 +322,12 @@ internal class RealChatRepository @Inject constructor(
                                         memberUpdate.by
                                     )
                                 }
+                                is StreamMemberUpdate.IdentityChanged -> {
+                                    ConversationMemberUpdate.IdentityChanged(
+                                        memberUpdate.memberId,
+                                        memberUpdate.identity
+                                    )
+                                }
                                 null -> null
                             }
                         }

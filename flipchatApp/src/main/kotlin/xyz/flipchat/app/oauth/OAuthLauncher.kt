@@ -18,16 +18,20 @@ fun rememberLauncherForOAuth(
     onResult: (String?) -> Unit
 ): ManagedActivityResultLauncher<Intent, ActivityResult> {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val error = result.data?.data?.getQueryParameter("error")
+        val errorDesc = result.data?.data?.getQueryParameter("error_description")
+
         when (result.resultCode) {
             Activity.RESULT_OK -> {
                 val data: Intent? = result.data
                 data?.data?.let { uri ->
                     when (provider) {
                         is OAuthProvider.X -> {
-                            println("uri=$uri")
-                            val authCode = uri.getQueryParameter("code")
-                            provider.exchangeAuthCodeForAccessToken(authCode) {
-                                onResult(it)
+                            if (error == null) {
+                                val authCode = uri.getQueryParameter("code")
+                                provider.exchangeAuthCodeForAccessToken(authCode) {
+                                    onResult(it)
+                                }
                             }
                         }
                     }
@@ -35,11 +39,10 @@ fun rememberLauncherForOAuth(
             }
             Activity.RESULT_CANCELED -> {
                 println("OAuth flow canceled")
-                val error = result.data?.data?.getQueryParameter("error")
-                val errorDesc = result.data?.data?.getQueryParameter("error_description")
-                println("Error: $error - $errorDesc")
+                if (error != null) {
+                    println("Error: $error - $errorDesc")
+                }
             }
-
         }
     }
 
@@ -54,6 +57,8 @@ internal class PrivateOauthResultActivity: ComponentActivity() {
     }
 
     private var redirectUri: String = ""
+    private var newIntentReceived = false
+    private var firstPass = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +86,20 @@ internal class PrivateOauthResultActivity: ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (firstPass) {
+            if (!newIntentReceived) {
+                // If user manually returns and no new intent was received, finish the activity
+                println("OAuth result not received, finishing activity")
+                setResult(RESULT_CANCELED)
+                finish()
+            }
+        }
+
+        firstPass = true
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         println("onNewIntent from OAuth => ${intent.data}")
@@ -91,6 +110,7 @@ internal class PrivateOauthResultActivity: ComponentActivity() {
             .sanitizeByFiltering(intent)
 
         println("onNewIntent sanitized intent => ${sanitizedIntent.data}")
+        newIntentReceived = true
         setResult(RESULT_OK, sanitizedIntent)
         finish()
     }

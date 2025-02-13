@@ -80,6 +80,7 @@ import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
+import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.user.AuthState
@@ -103,7 +104,7 @@ class ConversationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
     clipboardManager: ClipboardManager,
-    private val betaFeatures: Labs,
+    betaFeatures: Labs,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -1004,14 +1005,15 @@ class ConversationViewModel @Inject constructor(
                         },
                         sender = Sender(
                             id = reply.message.senderId,
-                            profileImage = reply.personalInfo?.imageUri.takeIf {
+                            profileImageUrl = reply.personalInfo?.imageUri.takeIf {
                                 it.orEmpty().isNotEmpty()
                             },
                             isFullMember = reply.member?.isFullMember == true,
-                            displayName = reply.personalInfo?.memberName.orEmpty().ifEmpty { "Member" },
+                            name = reply.personalInfo?.memberName.orEmpty().ifEmpty { "Member" },
                             isSelf = reply.contentEntity.isFromSelf,
                             isBlocked = reply.personalInfo?.isBlocked == true,
                             isHost = reply.message.senderId == currentState.hostId && !contents.isFromSelf,
+                            socialProfiles = reply.socialProfiles.mapNotNull { it.toLinked() }
                         )
                     )
                 } else {
@@ -1022,16 +1024,17 @@ class ConversationViewModel @Inject constructor(
                     currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
 
                 val tips = if (currentState.isTippingEnabled && tipInfo.isNotEmpty()) {
-                    tipInfo.map { (tip, member, user) ->
+                    tipInfo.map { (tip, member, user, socials) ->
                         MessageTip(
                             amount = tip.kin,
                             tipper = Sender(
                                 id = member?.id,
-                                profileImage = user?.imageUri.nullIfEmpty(),
-                                displayName = user?.memberName,
+                                profileImageUrl = user?.imageUri.nullIfEmpty(),
+                                name = user?.memberName,
                                 isHost = member?.isHost ?: false,
                                 isSelf = userManager.isSelf(member?.id),
                                 isBlocked = user?.isBlocked ?: false,
+                                socialProfiles = socials.mapNotNull { it.toLinked() }
                             )
                         )
                     }
@@ -1062,12 +1065,13 @@ class ConversationViewModel @Inject constructor(
                     enableLinkImagePreview = enableLinkImages,
                     sender = Sender(
                         id = message.senderId,
-                        profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = member?.displayName.orEmpty().ifEmpty { "Member" },
+                        profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                        name = member?.displayName.orEmpty().ifEmpty { "Member" },
                         isSelf = contents.isFromSelf,
                         isFullMember = member?.isFullMember == true,
                         isHost = message.senderId == currentState.hostId,
                         isBlocked = member?.isBlocked == true,
+                        socialProfiles = member?.profiles?.mapNotNull { it.toLinked() }.orEmpty(),
                     ),
                     originalMessage = anchor,
                     messageControls = MessageControls(
@@ -1156,11 +1160,12 @@ class ConversationViewModel @Inject constructor(
                     MessageControlAction.Reply {
                         val sender = Sender(
                             id = message.senderId,
-                            profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                            displayName = member?.displayName ?: "Deleted",
+                            profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                            name = member?.displayName ?: "Member",
                             isSelf = contents.isFromSelf,
                             isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
-                            isBlocked = member?.isBlocked == true
+                            isBlocked = member?.isBlocked == true,
+                            socialProfiles = member?.profiles?.mapNotNull { it.toLinked() }.orEmpty(),
                         )
                         val anchor = MessageReplyAnchor(message.id, sender, contents)
                         dispatchEvent(Event.ReplyTo(anchor))

@@ -8,6 +8,7 @@ import javax.inject.Inject
 
 class MemberUpdateMapper @Inject constructor(
     private val memberMapper: MemberMapper,
+    private val identityMapper: MemberIdentityMapper,
 ) : Mapper<ApiMemberUpdate, StreamMemberUpdate?> {
     override fun map(from: ApiMemberUpdate): StreamMemberUpdate? {
         val result = when (from.kindCase) {
@@ -56,6 +57,13 @@ class MemberUpdateMapper @Inject constructor(
                 StreamMemberUpdate.Demoted(
                     memberId = from.demoted.member.value.toList(),
                     by = from.demoted.demotedBy.value.toList(),
+                )
+            }
+
+            ApiMemberUpdate.KindCase.IDENTITY_CHANGED -> {
+                StreamMemberUpdate.IdentityChanged(
+                    memberId = from.identityChanged.member.value.toList(),
+                    identity = identityMapper.map(from.identityChanged.newIdentity),
                 )
             }
 

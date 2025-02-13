@@ -6,7 +6,10 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.Kin
+import com.getcode.model.chat.LinkedSocialProfile
 import com.getcode.model.chat.MinimalMember
+import com.getcode.model.social.user.SocialProfile
+import com.getcode.model.social.user.XExtraData
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
@@ -19,6 +22,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import xyz.flipchat.app.R
 import xyz.flipchat.app.data.RoomInfo
 import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
@@ -27,6 +32,7 @@ import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.user.UserManager
@@ -128,11 +134,14 @@ class ChatInfoViewModel @Inject constructor(
                                     members.map { m ->
                                         MinimalMember(
                                             id = m.id,
-                                            displayName = m.identity?.displayName.nullIfEmpty(),
+                                            name = m.identity?.displayName.nullIfEmpty(),
                                             profileImageUrl = m.identity?.imageUrl.nullIfEmpty(),
                                             canSpeak = m.isModerator || !m.isSpectator,
                                             isHost = m.isModerator,
                                             isSelf = userManager.isSelf(m.id),
+                                            socialProfiles = m.identity?.socialProfiles?.mapNotNull {
+                                                it.toLinked()
+                                            }.orEmpty()
                                         )
                                     }
                                 )
@@ -151,11 +160,12 @@ class ChatInfoViewModel @Inject constructor(
                                     members.map { m ->
                                         MinimalMember(
                                             id = m.id,
-                                            displayName = m.displayName.nullIfEmpty(),
+                                            name = m.displayName.nullIfEmpty(),
                                             profileImageUrl = m.imageUri,
                                             isHost = m.isHost,
                                             canSpeak = m.isFullMember,
                                             isSelf = userManager.isSelf(m.id),
+                                            socialProfiles = m.profiles.mapNotNull { it.toLinked() }
                                         )
                                     }
                                 )

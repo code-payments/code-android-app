@@ -7,11 +7,11 @@ import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.Relation
 import com.getcode.model.ID
+import com.getcode.model.social.user.XExtraData
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
-import xyz.flipchat.services.domain.model.profile.XExtraData
 import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.domain.model.people.MemberPersonalInfo
 

@@ -56,7 +56,6 @@ class ChatsController @Inject constructor(
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
 
-
     private val pagingConfig = PagingConfig(pageSize = 20)
 
     @OptIn(ExperimentalPagingApi::class)
@@ -91,6 +90,13 @@ class ChatsController @Inject constructor(
                         }
                         members.map { userMapper.map(it) }.let {
                             db.userDao().upsert(*it.toTypedArray())
+                        }
+
+                        members.map {
+                            val socialProfiles = it.identity?.socialProfiles
+                            if (socialProfiles != null) {
+                                db.userSocialDao().upsert(it.id, socialProfiles)
+                            }
                         }
                     }
                 }
@@ -168,6 +174,18 @@ class ChatsController @Inject constructor(
                                             .upsertMembers(*members.toTypedArray())
                                         db.userDao()
                                             .upsert(*users.toTypedArray())
+
+                                        update.members.onEach {
+                                            val member = conversationMemberMapper.map(Pair(update.roomId, it))
+                                            val user = userMapper.map(it)
+                                            val socialProfiles = it.identity?.socialProfiles
+
+                                            db.conversationMembersDao().upsertMembers(member)
+                                            db.userDao().upsert(user)
+                                            if (socialProfiles != null) {
+                                                db.userSocialDao().upsert(it.id, socialProfiles)
+                                            }
+                                        }
                                     }
 
                                     is ConversationMemberUpdate.IndividualRefresh -> {
@@ -178,6 +196,14 @@ class ChatsController @Inject constructor(
                                         val user = userMapper.map(update.member)
                                         db.conversationMembersDao().upsertMembers(member)
                                         db.userDao().upsert(user)
+
+                                        val socialProfiles = update.member.identity?.socialProfiles
+                                        if (socialProfiles != null) {
+                                            db.userSocialDao().upsert(
+                                                member.id,
+                                                socialProfiles
+                                            )
+                                        }
                                     }
 
                                     is ConversationMemberUpdate.Joined -> {
@@ -188,6 +214,14 @@ class ChatsController @Inject constructor(
                                         val user = userMapper.map(update.member)
                                         db.conversationMembersDao().upsertMembers(member)
                                         db.userDao().upsert(user)
+
+                                        val socialProfiles = update.member.identity?.socialProfiles
+                                        if (socialProfiles != null) {
+                                            db.userSocialDao().upsert(
+                                                member.id,
+                                                socialProfiles
+                                            )
+                                        }
                                     }
 
                                     is ConversationMemberUpdate.Left -> {
@@ -340,12 +374,18 @@ class ChatsController @Inject constructor(
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
                 val users = result.members.map { userMapper.map(it) }
+                val socials = result.members.mapNotNull {
+                    val profiles = it.identity?.socialProfiles ?: return@mapNotNull null
+                    it.id to profiles
+                }
+
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
                         db.userDao().upsert(*users.toTypedArray())
+                        db.userSocialDao().upsert(*socials.toTypedArray())
                     }
                 }
             }
@@ -361,12 +401,17 @@ class ChatsController @Inject constructor(
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
                 val users = result.members.map { userMapper.map(it) }
+                val socials = result.members.mapNotNull {
+                    val profiles = it.identity?.socialProfiles ?: return@mapNotNull null
+                    it.id to profiles
+                }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
                         db.userDao().upsert(*users.toTypedArray())
+                        db.userSocialDao().upsert(*socials.toTypedArray())
                     }
                 }
             }
@@ -378,12 +423,17 @@ class ChatsController @Inject constructor(
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
                 val users = result.members.map { userMapper.map(it) }
+                val socials = result.members.mapNotNull {
+                    val profiles = it.identity?.socialProfiles ?: return@mapNotNull null
+                    it.id to profiles
+                }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
                         db.userDao().upsert(*users.toTypedArray())
+                        db.userSocialDao().upsert(*socials.toTypedArray())
                     }
                 }
             }
@@ -395,12 +445,17 @@ class ChatsController @Inject constructor(
                 val members =
                     result.members.map { conversationMemberMapper.map(result.room.id to it) }
                 val users = result.members.map { userMapper.map(it) }
+                val socials = result.members.mapNotNull {
+                    val profiles = it.identity?.socialProfiles ?: return@mapNotNull null
+                    it.id to profiles
+                }
                 db.withTransaction {
                     withContext(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(conversationMapper.map(result.room))
                         db.conversationMembersDao().upsertMembers(*members.toTypedArray())
                         db.userDao().upsert(*users.toTypedArray())
+                        db.userSocialDao().upsert(*socials.toTypedArray())
                     }
                 }
             }

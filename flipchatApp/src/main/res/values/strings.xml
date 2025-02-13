@@ -19,7 +19,7 @@
 
     <string name="title_speakers">Speakers</string>
     <string name="title_listeners">Listeners</string>
-    <string name="title_listener">Listener</string>
+    <string name="subtitle_listener">Listener</string>
     <string name="subtitle_noneYet">None yet</string>
 
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>

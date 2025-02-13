@@ -43,7 +43,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.contextmenu.ContextMenuAction
-import com.getcode.ui.components.user.social.SocialUserTitle
+import com.getcode.ui.components.user.social.SocialUserDisplay
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.getActivity
@@ -192,7 +192,7 @@ private fun ProfileContent(
                 )
             }
         } else {
-            SocialUserTitle(
+            SocialUserDisplay(
                 modifier = Modifier.fillMaxWidth(),
                 profile = state.linkedSocialProfile
             )

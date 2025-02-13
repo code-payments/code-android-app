@@ -53,7 +53,6 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.ContextMenuStyle
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -61,6 +60,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.AvatarEndAction
 import com.getcode.ui.components.chat.HostableAvatar
 import com.getcode.ui.components.contextmenu.ContextMenuAction
+import com.getcode.ui.components.user.social.MemberNameDisplay
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -363,17 +363,7 @@ private fun RoomInfoScreenContent(
                             contentDescription = null,
                         )
                     }
-                    Text(
-                        text = when {
-                            member.isSelf -> stringResource(R.string.subtitle_you)
-                            else -> member.displayName ?: stringResource(R.string.title_listener)
-                        },
-                        style = CodeTheme.typography.caption,
-                        color = CodeTheme.colors.textMain,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    MemberNameDisplay(member)
                 }
             }
 
@@ -412,17 +402,7 @@ private fun RoomInfoScreenContent(
                             contentDescription = null,
                         )
                     }
-                    Text(
-                        text = when {
-                            member.isSelf -> stringResource(R.string.subtitle_you)
-                            else -> member.displayName ?: stringResource(R.string.title_listener)
-                        },
-                        style = CodeTheme.typography.caption,
-                        color = CodeTheme.colors.textMain,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    MemberNameDisplay(member)
                 }
             }
         }

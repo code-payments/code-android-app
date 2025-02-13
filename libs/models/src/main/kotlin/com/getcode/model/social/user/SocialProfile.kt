@@ -1,6 +1,10 @@
 package com.getcode.model.social.user
 
 import android.webkit.MimeTypeMap
+import com.getcode.model.chat.LinkedSocialProfile
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 sealed interface SocialProfile {
     data object Unknown : SocialProfile
@@ -42,4 +46,34 @@ sealed interface SocialProfile {
                 return urlWithoutType.plus(".$extension")
             }
     }
+
+    fun toLinked(): LinkedSocialProfile? {
+        return when (this) {
+            Unknown -> null
+            is X -> {
+                val metadata = XExtraData(
+                    friendlyName = friendlyName,
+                    description = description,
+                    verificationType = verificationType,
+                    followerCount = followerCount
+                )
+                LinkedSocialProfile(
+                    platformType = "x",
+                    username = username,
+                    profileImageUrl = profilePicUrl,
+                    rawMetadata = Json.encodeToString(metadata)
+                )
+            }
+        }
+    }
 }
+
+interface SocialMetadata
+
+@Serializable
+data class XExtraData(
+    val friendlyName: String,
+    val description: String,
+    val verificationType: SocialProfile.X.VerificationType,
+    val followerCount: Int,
+): SocialMetadata

@@ -16,6 +16,7 @@ import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.domain.model.people.MemberPersonalInfo
+import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
 
 @Serializable
 @Entity(
@@ -98,6 +99,8 @@ data class ConversationMessageWithMemberAndContent(
     val personalInfo: MemberPersonalInfo?
 ) {
     @Ignore
+    var socialProfiles: List<MemberSocialProfile> = emptyList()
+    @Ignore
     var contentEntity: MessageContent = MessageContent.Unknown(false)
 }
 
@@ -125,4 +128,11 @@ data class MessageTipInfo(
         entity = FlipchatUser::class
     )
     val personalInfo: MemberPersonalInfo?,
+
+    @Relation(
+        parentColumn = "tipperIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = MemberSocialProfile::class
+    )
+    val socialProfiles: List<MemberSocialProfile>,
 )

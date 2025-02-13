@@ -7,11 +7,11 @@ import androidx.room.Query
 import androidx.room.Transaction
 import com.getcode.model.ID
 import com.getcode.model.social.user.SocialProfile
+import com.getcode.model.social.user.XExtraData
 import com.getcode.utils.base58
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
-import xyz.flipchat.services.domain.model.profile.XExtraData
 
 @Dao
 interface MemberSocialProfileDao {
@@ -21,6 +21,13 @@ interface MemberSocialProfileDao {
     @Transaction
     suspend fun upsert(memberId: ID, profile: SocialProfile) {
         upsert(memberId, listOf(profile))
+    }
+
+    @Transaction
+    suspend fun upsert(vararg item: Pair<ID, List<SocialProfile>>) {
+        item.onEach { (id, profiles) ->
+            upsert(memberId = id, profiles = profiles)
+        }
     }
 
     @Transaction
@@ -48,18 +55,10 @@ interface MemberSocialProfileDao {
             }
         }
 
+        purgeSocialProfilesForMemberNotIn(models.map { it.id }, memberId.base58)
         upsert(*models.toTypedArray())
     }
 
-    @Query("DELETE FROM social_profiles WHERE memberIdBase58 = :memberId")
-    suspend fun deleteForMember(memberId: String)
-    suspend fun deleteForMember(memberId: ID) {
-        deleteForMember(memberId.base58)
-    }
-
-    @Query("DELETE FROM social_profiles WHERE memberIdBase58 = :memberId AND id = :socialProfileId")
-    suspend fun unlinkSocialProfile(memberId: String, socialProfileId: String)
-    suspend fun unlinkSocialProfile(memberId: ID, socialProfileId: String) {
-        unlinkSocialProfile(memberId.base58, socialProfileId)
-    }
+    @Query("DELETE FROM social_profiles WHERE id NOT IN (:profiles) AND memberIdBase58 = :memberId")
+    suspend fun purgeSocialProfilesForMemberNotIn(profiles: List<String>, memberId: String)
 }

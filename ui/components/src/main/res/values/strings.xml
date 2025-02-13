@@ -22,4 +22,6 @@
     <string name="title_messageDeletedByYou">Message deleted by you</string>
     <string name="title_messageDeletedByHost">Message deleted by host</string>
     <string name="title_messageWasDeleted">This message was deleted</string>
+    <string name="subtitle_you">You</string>
+    <string name="subtitle_listener">Listener</string>
 </resources>

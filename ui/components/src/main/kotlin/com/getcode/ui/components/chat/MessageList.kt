@@ -274,6 +274,8 @@ private fun HandleMessageReads(
     hasSetAtUnread: Boolean,
     markAsRead: (ID) -> Unit,
 ) {
+    var lastMarkedMessageId: ID? by remember { mutableStateOf(null) }
+
     LaunchedEffect(listState, messages, hasSetAtUnread) {
         combine(
             snapshotFlow {
@@ -282,37 +284,42 @@ private fun HandleMessageReads(
             }.distinctUntilChanged(),
             snapshotFlow { listState.isScrollInProgress },
             snapshotFlow { listState.firstVisibleItemIndex },
-            snapshotFlow { messages.itemCount },
+            snapshotFlow { messages.itemCount }.distinctUntilChanged() // Avoid rapid duplicate emissions
         ) { loadState, isScrolling, firstVisibleIndex, itemCount ->
             Triple(loadState, isScrolling, firstVisibleIndex) to itemCount
-        }.filter { (state, itemCount) ->
-            val (loadStateIsNotLoading, isScrolling, firstVisibleIndex) = state
-            // Ensure we react to new messages while at the bottom
-            loadStateIsNotLoading && !isScrolling && hasSetAtUnread &&
-                    (firstVisibleIndex == 0 || firstVisibleIndex == itemCount - 1) && itemCount > 0
-        }.onEach { (state, _) ->
+        }
+            .filter { (state, itemCount) ->
+                val (loadStateIsNotLoading, isScrolling, firstVisibleIndex) = state
+                // Ensure we react to new messages only when truly at the bottom
+                loadStateIsNotLoading && !isScrolling && hasSetAtUnread &&
+                        (firstVisibleIndex == itemCount - 1 || firstVisibleIndex == 0) && itemCount > 0
+            }
+            .distinctUntilChanged() // Ensure we don't process the same event multiple times
+            .onEach { (state, _) ->
+                val (_, _, firstVisibleIndex) = state
 
-            val (_, _, firstVisibleIndex) = state
+                val closestChatMessage =
+                    messages[firstVisibleIndex]?.let { it as? ChatItem.Message }
 
-            val closestChatMessage =
-                messages[firstVisibleIndex]?.let { it as? ChatItem.Message }
+                val mostRecentReadMessage =
+                    messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
+                        .filter { it.status == MessageStatus.Read }
+                        .maxByOrNull { it.date }
 
-            val mostRecentReadMessage =
-                messages.itemSnapshotList.filterIsInstance<ChatItem.Message>()
-                    .filter { it.status == MessageStatus.Read }
-                    .maxByOrNull { it.date }
+                val mostRecentReadAt = mostRecentReadMessage?.date
 
-            val mostRecentReadAt = mostRecentReadMessage?.date
-
-            closestChatMessage?.let { message ->
-                if (message.status != MessageStatus.Read) {
-                    if (mostRecentReadAt == null || message.date >= mostRecentReadAt) {
-                        markAsRead(message.chatMessageId)
+                closestChatMessage?.let { message ->
+                    // Prevent duplicate mark-as-read calls for the same message
+                    if (message.status != MessageStatus.Read && message.chatMessageId != lastMarkedMessageId) {
+                        if (mostRecentReadAt == null || message.date >= mostRecentReadAt) {
+                            lastMarkedMessageId = message.chatMessageId
+                            markAsRead(message.chatMessageId)
+                        }
                     }
                 }
-            }
-        }.launchIn(this)
+            }.launchIn(this)
     }
+
 }
 
 @Composable

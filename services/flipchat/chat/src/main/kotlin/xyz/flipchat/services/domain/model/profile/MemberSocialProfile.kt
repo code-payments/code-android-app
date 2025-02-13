@@ -2,8 +2,7 @@ package xyz.flipchat.services.domain.model.profile
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.getcode.model.social.user.SocialProfile
-import kotlinx.serialization.Serializable
+import com.getcode.model.chat.LinkedSocialProfile
 
 @Entity(
     tableName = "social_profiles"
@@ -19,10 +18,16 @@ data class MemberSocialProfile(
     val extraData: String?,
 )
 
-@Serializable
-data class XExtraData(
-    val friendlyName: String,
-    val description: String,
-    val verificationType: SocialProfile.X.VerificationType,
-    val followerCount: Int,
-)
+fun MemberSocialProfile.toLinked(): LinkedSocialProfile? {
+    return when (platformType) {
+        "x" -> {
+            LinkedSocialProfile(
+                platformType = platformType,
+                username = username,
+                profileImageUrl = profileImageUrl,
+                rawMetadata = extraData
+            )
+        }
+        else -> null
+    }
+}
