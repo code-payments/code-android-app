@@ -77,6 +77,9 @@ jobs:
       - name: Setup Mixpanel API Key
         run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
 
+      - name: Setup X (Twitter) OAuth Client ID
+        run: echo X_CLIENT_ID=\"${{ secrets.FLIPCHAT_X_CLIENT_ID }}\" >> ./local.properties
+
       - name: Run tests
         run: bundle exec fastlane android fc_tests
 

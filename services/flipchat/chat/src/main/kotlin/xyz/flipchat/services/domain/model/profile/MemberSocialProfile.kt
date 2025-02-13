@@ -2,8 +2,8 @@ package xyz.flipchat.services.domain.model.profile
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.getcode.model.social.user.SocialProfile
 import kotlinx.serialization.Serializable
-import xyz.flipchat.services.user.social.SocialProfile.X.VerificationType
 
 @Entity(
     tableName = "social_profiles"
@@ -23,6 +23,6 @@ data class MemberSocialProfile(
 data class XExtraData(
     val friendlyName: String,
     val description: String,
-    val verificationType: VerificationType,
+    val verificationType: SocialProfile.X.VerificationType,
     val followerCount: Int,
 )

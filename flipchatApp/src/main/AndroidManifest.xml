@@ -159,6 +159,23 @@
             <!-- endregion user -->
         </activity>
 
+        <activity
+            android:exported="true"
+            android:name=".oauth.PrivateOauthResultActivity"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="flipchat" />
+                <data android:host="app.flipchat.xyz" />
+                <data android:pathPrefix="/oauth" />
+            </intent-filter>
+        </activity>
+
         <!--
              Prompt Google Play services to install the backported photo picker module
              https://developer.android.com/training/data-storage/shared/photopicker#device-availability

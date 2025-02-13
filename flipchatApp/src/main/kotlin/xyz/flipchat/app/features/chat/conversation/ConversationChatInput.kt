@@ -159,7 +159,9 @@ fun ConversationChatInput(
                                 .fillMaxWidth()
                                 .padding(
                                     top = CodeTheme.dimens.grid.x1,
-                                    bottom = CodeTheme.dimens.grid.x2
+                                    bottom = CodeTheme.dimens.grid.x2,
+                                    start = CodeTheme.dimens.inset,
+                                    end = CodeTheme.dimens.inset,
                                 ),
                             textAlign = TextAlign.Center,
                             text = stringResource(R.string.title_roomIsClosed),
@@ -200,7 +202,9 @@ fun ConversationChatInput(
                         .background(CodeTheme.colors.secondary)
                         .padding(
                             top = CodeTheme.dimens.grid.x1,
-                            bottom = CodeTheme.dimens.grid.x3
+                            bottom = CodeTheme.dimens.grid.x3,
+                            start = CodeTheme.dimens.inset,
+                            end = CodeTheme.dimens.inset,
                         )
                         .navigationBarsPadding(),
                     textAlign = TextAlign.Center,

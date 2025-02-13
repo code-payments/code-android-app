@@ -1,9 +1,9 @@
 package xyz.flipchat.services.internal.data.mapper
 
 import com.codeinc.flipchat.gen.profile.v1.Model
+import com.getcode.model.social.user.SocialProfile
 import com.getcode.services.mapper.Mapper
 import xyz.flipchat.services.domain.model.profile.UserProfile
-import xyz.flipchat.services.user.social.SocialProfile
 import javax.inject.Inject
 
 class UserProfileMapper @Inject constructor(

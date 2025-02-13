@@ -1,5 +1,7 @@
 package xyz.flipchat.app.features.profile
 
+import android.app.Activity
+import android.content.Context
 import android.os.Parcelable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,38 +25,70 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.model.social.user.SocialProfile
+import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.UserAvatar
+import com.getcode.ui.components.contextmenu.ContextMenuAction
+import com.getcode.ui.components.user.social.SocialUserTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.utils.getActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
-import xyz.flipchat.services.user.social.SocialProfile
+import xyz.flipchat.app.features.profile.components.ProfileContextAction
+import xyz.flipchat.app.oauth.OAuthProvider
+import xyz.flipchat.app.oauth.rememberLauncherForOAuth
 
 @Parcelize
 class ProfileScreen : Screen, Parcelable {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-
+        val context = LocalContext.current
         val viewModel = getViewModel<ProfileViewModel>()
         val state by viewModel.stateFlow.collectAsState()
+        val composeScope = rememberCoroutineScope()
         Column {
             AppBarWithTitle(
                 endContent = {
                     if (state.isStaff) {
-                        AppBarDefaults.Settings {
-                            navigator.push(ScreenRegistry.get(NavScreenProvider.Settings))
+                        AppBarDefaults.Overflow {
+                            navigator.show(
+                                ContextSheet(
+                                    buildActions(
+                                        state = state,
+                                        dispatchEvent = viewModel::dispatchEvent,
+                                        navigateTo = { navigator.push(it) },
+                                        deleteAccount = {
+                                            confirmAccountDeletion(
+                                                context,
+                                                composeScope
+                                            ) { activity ->
+                                                viewModel.deleteAccount(activity) {
+                                                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                                                }
+                                            }
+                                        }
+                                    )
+                                )
+                            )
                         }
                     }
                 }
@@ -69,12 +104,39 @@ class ProfileScreen : Screen, Parcelable {
     }
 }
 
+
+private fun confirmAccountDeletion(
+    context: Context,
+    composeScope: CoroutineScope,
+    onConfirmed: (Activity) -> Unit
+) {
+    BottomBarManager.showMessage(
+        BottomBarManager.BottomBarMessage(
+            title = context.getString(R.string.prompt_title_deleteAccount),
+            subtitle = context
+                .getString(R.string.prompt_description_deleteAccount),
+            positiveText = context.getString(R.string.action_permanentlyDeleteAccount),
+            tertiaryText = context.getString(R.string.action_cancel),
+            onPositive = {
+                composeScope.launch {
+                    delay(150)
+                    context.getActivity()?.let {
+                        onConfirmed(it)
+                    }
+                }
+            }
+        )
+    )
+}
+
 @Composable
 private fun ProfileContent(
     modifier: Modifier = Modifier,
     state: ProfileViewModel.State,
     dispatchEvent: (ProfileViewModel.Event) -> Unit
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -105,12 +167,17 @@ private fun ProfileContent(
                 color = CodeTheme.colors.textMain
             )
             if (state.canConnectAccount) {
+                val xOAuthLauncher = rememberLauncherForOAuth(OAuthProvider.X) { accessToken ->
+                    println("x access token=$accessToken")
+                    dispatchEvent(ProfileViewModel.Event.LinkXAccount(accessToken))
+                }
+
                 CodeButton(
                     modifier = Modifier.fillMaxWidth()
                         .padding(top = CodeTheme.dimens.grid.x12)
                         .padding(horizontal = CodeTheme.dimens.inset),
                     buttonState = ButtonState.Filled,
-                    onClick = { dispatchEvent(ProfileViewModel.Event.LinkXAccount) },
+                    onClick = { xOAuthLauncher.launch(OAuthProvider.X.launchIntent(context)) },
                     content = {
                         Image(
                             painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
@@ -125,12 +192,76 @@ private fun ProfileContent(
                 )
             }
         } else {
-            when (state.linkedSocialProfile) {
-                SocialProfile.Unknown -> Unit
-                is SocialProfile.X -> {
+            SocialUserTitle(
+                modifier = Modifier.fillMaxWidth(),
+                profile = state.linkedSocialProfile
+            )
 
+            state.username?.let { username ->
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = username,
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            when (state.linkedSocialProfile) {
+                is SocialProfile.Unknown -> Unit
+                is SocialProfile.X -> {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = CodeTheme.dimens.grid.x8),
+                        text = "${state.linkedSocialProfile.followerCountFormatted} Followers",
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth(0.70f)
+                            .padding(top = CodeTheme.dimens.grid.x1),
+                        text = state.linkedSocialProfile.description,
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
         }
     }
 }
+
+private fun buildActions(
+    state: ProfileViewModel.State,
+    navigateTo: (Screen) -> Unit,
+    dispatchEvent: (ProfileViewModel.Event) -> Unit,
+    deleteAccount: () -> Unit,
+): List<ContextMenuAction> {
+    return buildList {
+        if (state.isStaff) {
+            add(
+                ProfileContextAction.Labs {
+                    navigateTo(ScreenRegistry.get(NavScreenProvider.BetaFlags))
+                }
+            )
+        }
+
+        if (state.linkedSocialProfile != null) {
+            add(
+                ProfileContextAction.UnlinkSocialProfile(state.linkedSocialProfile) {
+                    dispatchEvent(ProfileViewModel.Event.UnlinkSocialProfileRequested(state.linkedSocialProfile))
+                }
+            )
+        }
+
+        add(
+            ProfileContextAction.DeleteAccount {
+                deleteAccount()
+            }
+        )
+    }
+}
+

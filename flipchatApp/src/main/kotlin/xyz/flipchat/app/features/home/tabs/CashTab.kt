@@ -57,52 +57,11 @@ internal class CashTab(override val ordinal: Int) : ChildNavTab, Parcelable {
 
     @Composable
     override fun Content() {
-        val viewModel = getViewModel<SettingsViewModel>()
-        val context = LocalContext.current
-        val composeScope = rememberCoroutineScope()
-        val navigator = LocalCodeNavigator.current
         Column {
-            AppBarWithTitle(
-                title = options.title,
-            )
-            CodeScaffold(
-                bottomBar = {
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(bottom = CodeTheme.dimens.grid.x3),
-                        buttonState = ButtonState.Subtle,
-                        text = stringResource(R.string.action_deleteMyAccount)
-                    ) {
-                        BottomBarManager.showMessage(
-                            BottomBarManager.BottomBarMessage(
-                                title = context.getString(R.string.prompt_title_deleteAccount),
-                                subtitle = context
-                                    .getString(R.string.prompt_description_deleteAccount),
-                                positiveText = context.getString(R.string.action_permanentlyDeleteAccount),
-                                tertiaryText = context.getString(R.string.action_cancel),
-                                onPositive = {
-                                    composeScope.launch {
-                                        delay(150)
-                                        context.getActivity()?.let {
-                                            viewModel.deleteAccount(it) {
-                                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                                            }
-                                        }
-                                    }
-                                }
-                            )
-                        )
-                    }
-                },
-            ) { padding ->
-                Box(modifier = Modifier.padding(padding)) {
-                    Navigator(ScreenRegistry.get(NavScreenProvider.Balance)) { navigator ->
-                        childNav = NavigatorWrapper(navigator)
-                        SlideTransition(navigator)
-                    }
-                }
+            AppBarWithTitle(title = options.title)
+            Navigator(ScreenRegistry.get(NavScreenProvider.Balance)) { navigator ->
+                childNav = NavigatorWrapper(navigator)
+                SlideTransition(navigator)
             }
         }
     }

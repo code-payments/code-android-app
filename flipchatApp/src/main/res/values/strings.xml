@@ -94,6 +94,10 @@
     <string name="error_title_failedToSendTip">Something Went Wrong</string>
     <string name="error_description_failedToSendTip">You were unable to send a tip at this time. Please try again later</string>
 
+    <string name="error_title_failedToLinkXAccount">Something Went Wrong</string>
+    <string name="error_description_failedToLinkXAccount">We were unable to link your X account at this time. Please try again later</string>
+    <string name="error_title_failedToUnlinkXAccount">Something Went Wrong</string>
+    <string name="error_description_failedToUnlinkXAccount">We were unable to unlink your X account at this time. Please try again later</string>
 
     <string name="title_connectYourX">Connect Your X</string>
     <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>
@@ -248,4 +252,8 @@
 
     <string name="subtitle_updateRequiredDescription">We\'ve made some changes to improve the experience. You\'ll need to update the app to keep using Flipchat.</string>
     <string name="action_connectYourAccount">Connect Your Account</string>
+
+    <string name="prompt_title_disconnectSocialAccount">Disconnect Your %1$s Account?</string>
+    <string name="prompt_description_disconnectSocialAccount">You will no longer have a profile picture or connected %1$s account</string>
+    <string name="action_disconnectSocialAccount">Disconnect %1$s Account</string>
 </resources>

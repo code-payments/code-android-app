@@ -5,8 +5,7 @@ import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
-import com.getcode.model.SocialUser
-import com.getcode.model.description
+import com.getcode.model.social.user.SocialProfile
 import com.getcode.model.uuid
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.solana.organizer.Organizer
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import xyz.flipchat.services.core.BuildConfig
-import xyz.flipchat.services.user.social.SocialProfile
 import javax.inject.Inject
 import javax.inject.Singleton
 

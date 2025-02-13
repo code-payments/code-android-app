@@ -1,6 +1,6 @@
 package xyz.flipchat.services.domain.model.profile
 
-import xyz.flipchat.services.user.social.SocialProfile
+import com.getcode.model.social.user.SocialProfile
 
 data class UserProfile(
     val displayName: String,

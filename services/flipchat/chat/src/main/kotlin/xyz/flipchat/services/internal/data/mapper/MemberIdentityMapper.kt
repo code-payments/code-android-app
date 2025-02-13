@@ -1,9 +1,9 @@
 package xyz.flipchat.services.internal.data.mapper
 
 import com.codeinc.flipchat.gen.chat.v1.ChatService
+import com.getcode.model.social.user.SocialProfile
 import com.getcode.services.mapper.Mapper
 import xyz.flipchat.services.data.MemberIdentity
-import xyz.flipchat.services.user.social.SocialProfile
 import javax.inject.Inject
 
 class MemberIdentityMapper @Inject constructor(

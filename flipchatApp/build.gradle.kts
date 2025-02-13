@@ -37,6 +37,7 @@ android {
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
         buildConfigField("String", "KADO_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "KADO_API_KEY")}\"")
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+        buildConfigField("String", "X_CLIENT_ID", "\"${tryReadProperty(rootProject.rootDir, "X_CLIENT_ID")}\"")
     }
 
     signingConfigs {
