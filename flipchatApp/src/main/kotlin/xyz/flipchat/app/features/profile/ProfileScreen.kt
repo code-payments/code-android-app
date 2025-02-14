@@ -75,7 +75,12 @@ class ProfileScreen : Screen, Parcelable {
                                     buildActions(
                                         state = state,
                                         dispatchEvent = viewModel::dispatchEvent,
-                                        navigateTo = { navigator.push(it) },
+                                        navigateTo = {
+                                            composeScope.launch {
+                                                delay(200)
+                                                navigator.push(it)
+                                            }
+                                        },
                                         deleteAccount = {
                                             confirmAccountDeletion(
                                                 context,

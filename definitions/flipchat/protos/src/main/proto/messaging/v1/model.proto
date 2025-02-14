@@ -50,11 +50,28 @@ message Pointer {
     // inferred by the type of pointer.
     MessageId value = 2;
 }
+message PointerUpdate {
+    common.v1.UserId member = 1;
+    messaging.v1.Pointer pointer = 2;
+}
+message PointerUpdateBatch {
+    repeated PointerUpdate pointer_updates = 1 ;
+}
 message IsTyping {
     common.v1.UserId user_id = 1;
-    // is_typing indicates whether or not the user is typing.
-    // If false, the user has explicitly stopped typing.
+    // Deprecated: Use typing_state instead
     bool is_typing = 2;
+    TypingState typing_state = 3;
+}
+message IsTypingBatch {
+    repeated IsTyping is_typing_notifications = 1 ;
+}
+enum TypingState {
+    UNKNOWN_TYPING_STATE = 0;
+    STARTED_TYPING       = 1;
+    STILL_TYPING         = 2;
+    STOPPED_TYPING       = 3;
+    TYPING_TIMED_OUT     = 4;
 }
 // Content for a chat message
 message Content {

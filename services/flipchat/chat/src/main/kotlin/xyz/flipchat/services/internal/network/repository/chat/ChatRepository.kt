@@ -27,11 +27,8 @@ interface ChatRepository {
         paymentId: ID? = null,
     ): Result<RoomWithMembers>
     suspend fun getMemberUpdates(chatId: ID, afterMember: ID? = null): Result<List<StreamMemberUpdate>>
-    fun observeTyping(chatId: ID): Flow<Boolean>
     fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatUpdate) -> Unit)
     fun closeEventStream()
-
-    val typingChats: StateFlow<List<ID>>
 
     // User actions
     suspend fun leaveChat(chatId: ID): Result<Unit>

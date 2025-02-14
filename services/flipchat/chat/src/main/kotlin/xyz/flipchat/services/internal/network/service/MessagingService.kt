@@ -25,12 +25,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import timber.log.Timber
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.network.api.MessagingApi
 import com.getcode.utils.FlipchatServerError
+import xyz.flipchat.services.internal.network.chat.MessageStreamUpdate
+import xyz.flipchat.services.internal.network.chat.TypingState
 import xyz.flipchat.services.internal.network.extensions.toChatId
-import xyz.flipchat.services.internal.network.extensions.toMessageId
 import xyz.flipchat.services.internal.network.utils.authenticate
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -174,16 +174,16 @@ internal class MessagingService @Inject constructor(
         }
     }
 
-    suspend fun notifyIsTyping(
+    suspend fun notifyOfTypingState(
         owner: KeyPair,
         chatId: ID,
-        isTyping: Boolean
+        state: TypingState.UserEvent
     ): Result<Unit> = suspendCancellableCoroutine { cont ->
         try {
-            api.notifyIsTyping(
+            api.notifyOfTypingState(
                 owner,
                 chatId,
-                isTyping,
+                state,
                 observer = object : StreamObserver<MessagingService.NotifyIsTypingResponse> {
                     override fun onNext(value: MessagingService.NotifyIsTypingResponse?) {
                         val requestResult = value?.result
@@ -234,7 +234,7 @@ internal class MessagingService @Inject constructor(
         scope: CoroutineScope,
         owner: KeyPair,
         chatId: ID,
-        onEvent: (Result<List<Model.Message>>) -> Unit
+        onEvent: (Result<MessageStreamUpdate>) -> Unit
     ): ChatMessageStreamReference {
         trace("Message Opening stream.")
         val streamReference = ChatMessageStreamReference(scope)
@@ -258,7 +258,7 @@ internal class MessagingService @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         reference: ChatMessageStreamReference,
-        onEvent: (Result<List<Model.Message>>) -> Unit
+        onEvent: (Result<MessageStreamUpdate>) -> Unit
     ) {
         try {
             reference.cancel()
@@ -276,7 +276,27 @@ internal class MessagingService @Inject constructor(
 
                         when (result) {
                             MessagingService.StreamMessagesResponse.TypeCase.MESSAGES -> {
-                                onEvent(Result.success(value.messages.messagesList))
+                                onEvent(
+                                    Result.success(
+                                        MessageStreamUpdate.Messages(value.messages.messagesList)
+                                    )
+                                )
+                            }
+
+                            MessagingService.StreamMessagesResponse.TypeCase.POINTER_UPDATES -> {
+                                onEvent(
+                                    Result.success(
+                                        MessageStreamUpdate.Pointers(value.pointerUpdates.pointerUpdatesList)
+                                    )
+                                )
+                            }
+                            MessagingService.StreamMessagesResponse.TypeCase.IS_TYPING_NOTIFICATIONS -> {
+                                println("typing updates yippee")
+                                onEvent(
+                                    Result.success(
+                                        MessageStreamUpdate.Typing(value.isTypingNotifications.isTypingNotificationsList)
+                                    )
+                                )
                             }
 
                             MessagingService.StreamMessagesResponse.TypeCase.PING -> {

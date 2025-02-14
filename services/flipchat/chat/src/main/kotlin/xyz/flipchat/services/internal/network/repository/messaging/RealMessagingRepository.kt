@@ -2,18 +2,25 @@ package xyz.flipchat.services.internal.network.repository.messaging
 
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
-import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ChatMessageMapper
 import xyz.flipchat.services.internal.data.mapper.LastMessageMapper
+import xyz.flipchat.services.internal.data.mapper.TypingMapper
+import xyz.flipchat.services.internal.network.chat.IsTyping
+import xyz.flipchat.services.internal.network.chat.MessageStreamUpdate
+import xyz.flipchat.services.internal.network.chat.TypingState
 import xyz.flipchat.services.internal.network.service.ChatMessageStreamReference
 import xyz.flipchat.services.internal.network.service.MessagingService
 import xyz.flipchat.services.user.UserManager
@@ -25,8 +32,11 @@ internal class RealMessagingRepository @Inject constructor(
     private val chatMessageMapper: ChatMessageMapper,
     private val lastMessageMapper: LastMessageMapper,
     private val messageMapper: ConversationMessageMapper,
+    private val typingMapper: TypingMapper,
 ): MessagingRepository {
     private var messageStream: ChatMessageStreamReference? = null
+
+    private val typingState = MutableStateFlow<List<IsTyping>>(emptyList())
 
     override suspend fun getMessages(
         chatId: ID,
@@ -69,11 +79,26 @@ internal class RealMessagingRepository @Inject constructor(
         }
     }
 
+    override fun observeTyping(chatId: ID): Flow<Boolean> {
+        return typingState
+            .map { it.filterNot { s -> userManager.isSelf(s.userId) } }
+            .map { it.any { i -> i.currentlyTyping } }
+    }
+
     override suspend fun onStartedTyping(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
-            service.notifyIsTyping(owner, chatId, true)
+            service.notifyOfTypingState(owner, chatId, TypingState.Started)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
+    }
+
+    override suspend fun onStillTyping(chatId: ID): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return withContext(Dispatchers.IO) {
+            service.notifyOfTypingState(owner, chatId, TypingState.Still)
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }
@@ -82,7 +107,7 @@ internal class RealMessagingRepository @Inject constructor(
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
-            service.notifyIsTyping(owner, chatId, false)
+            service.notifyOfTypingState(owner, chatId, TypingState.Stopped)
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }
@@ -102,11 +127,19 @@ internal class RealMessagingRepository @Inject constructor(
                 chatId = chatId,
             ) stream@{ result ->
                 if (result.isSuccess) {
-                    val data = result.getOrNull() ?: return@stream
-                    val messages = data.map { lastMessageMapper.map(userId to it) }
-                    val messagesWithContents = messages.map { messageMapper.map(chatId to it) }
+                    val update = result.getOrNull() ?: return@stream
+                    when (update) {
+                        is MessageStreamUpdate.Messages -> {
+                            val messages = update.data.map { lastMessageMapper.map(userId to it) }
+                            val messagesWithContents = messages.map { messageMapper.map(chatId to it) }
 
-                    onMessagesUpdated(messagesWithContents)
+                            onMessagesUpdated(messagesWithContents)
+                        }
+                        is MessageStreamUpdate.Pointers -> Unit
+                        is MessageStreamUpdate.Typing -> {
+                            typingState.value = update.data.map { typingMapper.map(it) }
+                        }
+                    }
                 } else {
                     result.exceptionOrNull()?.let {
                         ErrorUtils.handleError(it)

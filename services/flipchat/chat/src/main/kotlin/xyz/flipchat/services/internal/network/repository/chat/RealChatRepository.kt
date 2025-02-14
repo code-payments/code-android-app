@@ -50,9 +50,6 @@ internal class RealChatRepository @Inject constructor(
     private val messageMapper: ConversationMessageMapper,
 ) : ChatRepository {
     private var homeStreamReference: ChatHomeStreamReference? = null
-    private val _typingChats = MutableStateFlow<List<ID>>(emptyList())
-    override val typingChats: StateFlow<List<ID>>
-        get() = _typingChats.asStateFlow()
 
     override suspend fun getChats(
         queryOptions: QueryOptions,
@@ -234,10 +231,10 @@ internal class RealChatRepository @Inject constructor(
         }
     }
 
-    override fun observeTyping(chatId: ID): Flow<Boolean> {
-        return typingChats
-            .map { chatId in it }
-    }
+//    override fun observeTyping(chatId: ID): Flow<Boolean> {
+//        return typingChats
+//            .map { chatId in it }
+//    }
 
     override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatUpdate) -> Unit) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
@@ -249,14 +246,14 @@ internal class RealChatRepository @Inject constructor(
                     val updates = data.mapNotNull { ChatStreamUpdate.invoke(it) }
 
                     updates.onEach { update ->
-                        // handle typing state changes
-                        if (update.isTyping != null) {
-                            if (update.isTyping) {
-                                _typingChats.update { it + listOf(update.id).toSet() }
-                            } else {
-                                _typingChats.update { it - listOf(update.id).toSet() }
-                            }
-                        }
+//                        // handle typing state changes
+//                        if (update.isTyping != null) {
+//                            if (update.isTyping) {
+//                                _typingChats.update { it + listOf(update.id).toSet() }
+//                            } else {
+//                                _typingChats.update { it - listOf(update.id).toSet() }
+//                            }
+//                        }
 
                         val memberUpdates = update.memberUpdates.map { memberUpdateMapper.map(it) }
 

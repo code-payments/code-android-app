@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
@@ -84,6 +85,7 @@ import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.user.AuthState
+import xyz.flipchat.services.user.TypingNotificationsConstraints
 import xyz.flipchat.services.user.UserManager
 import java.util.UUID
 import javax.inject.Inject
@@ -93,6 +95,13 @@ sealed interface CreateAccountRequest {
     data object JoinRoom : CreateAccountRequest
     data object SendMessage : CreateAccountRequest
 }
+
+data class TypingConstraints(
+    val enabled: Boolean = false,
+    val canSendAsListener: Boolean = false,
+    val interval: Long = 3_000,
+    val timeout: Long = 5_000
+)
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
@@ -109,8 +118,8 @@ class ConversationViewModel @Inject constructor(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
 ) {
-
-    private var typingJob: Job? = null
+    private var stopTypingJob: Job? = null
+    private var typingStillJob: Job? = null
 
     data class State(
         val selfId: ID?,
@@ -133,13 +142,14 @@ class ConversationViewModel @Inject constructor(
         val pointerRefs: Map<Long, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
+        val typingConstraints: TypingConstraints,
         val isRoomOpen: Boolean,
         val isOpenCloseEnabled: Boolean,
         val isTippingEnabled: Boolean,
         val isLinkImagePreviewsEnabled: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?,
-        val createAccountRequest: CreateAccountRequest? = null,
+        val createAccountRequest: CreateAccountRequest?,
     ) {
         val isHost: Boolean
             get() = selfId != null && hostId != null && selfId == hostId
@@ -167,11 +177,13 @@ class ConversationViewModel @Inject constructor(
                 listeners = null,
                 showTypingIndicator = false,
                 isSelfTyping = false,
+                typingConstraints = TypingConstraints(),
                 isRoomOpen = true,
                 isOpenCloseEnabled = false,
                 isTippingEnabled = false,
                 isLinkImagePreviewsEnabled = false,
                 roomInfoArgs = RoomInfoArgs(),
+                createAccountRequest = null
             )
         }
     }
@@ -227,6 +239,10 @@ class ConversationViewModel @Inject constructor(
         data object Resumed : Event
         data object Stopped : Event
 
+        data class OnTypingConstraintsChanged(
+            val typingFlags: TypingNotificationsConstraints
+        ): Event
+
         data object OnTypingStarted : Event
         data object OnTypingStopped : Event
 
@@ -249,6 +265,7 @@ class ConversationViewModel @Inject constructor(
         data class ShareRoom(val intent: Intent) : Event
 
         data object OnUserTypingStarted : Event
+        data object OnUserTypingStill : Event
         data object OnUserTypingStopped : Event
 
         data class LookupRoom(val number: Long) : Event
@@ -268,6 +285,14 @@ class ConversationViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { (id, displayName) ->
                 dispatchEvent(Event.OnSelfChanged(id, displayName))
+            }.launchIn(viewModelScope)
+
+        userManager.state
+            .mapNotNull { it.flags }
+            .map { it.typingNotifications }
+            .distinctUntilChanged()
+            .onEach {
+                dispatchEvent(Event.OnTypingConstraintsChanged(it))
             }.launchIn(viewModelScope)
 
         betaFeatures.observe(Lab.ReplyToMessage)
@@ -551,6 +576,7 @@ class ConversationViewModel @Inject constructor(
             .flatMapLatest {
                 roomController.observeTyping(it)
             }
+            .distinctUntilChanged()
             .onEach { isOtherUserTyping ->
                 if (isOtherUserTyping) {
                     dispatchEvent(Event.OnTypingStarted)
@@ -560,31 +586,56 @@ class ConversationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         stateFlow
+            .filter {
+                when (it.chattableState) {
+                    ChattableState.Enabled -> it.typingConstraints.enabled
+                    ChattableState.TemporarilyEnabled -> it.typingConstraints.canSendAsListener
+                    else -> false
+                }
+            }
             .map { it.textFieldState }
             .flatMapLatest { ts -> snapshotFlow { ts.text } }
             .distinctUntilChanged()
             .onEach { text ->
-                typingJob?.cancel()
-
                 if (text.isEmpty()) {
+                    // Stop everything when text is cleared
+                    stopTypingJob?.cancel()
+                    typingStillJob?.cancel()
                     dispatchEvent(Event.OnUserTypingStopped)
                 } else {
                     if (!stateFlow.value.isSelfTyping) {
                         dispatchEvent(Event.OnUserTypingStarted)
                     }
 
-                    typingJob = viewModelScope.launch {
-                        delay(1.seconds)
+                    if (typingStillJob?.isActive != true) {
+                        typingStillJob = viewModelScope.launch {
+                            while (isActive) {
+                                delay(stateFlow.value.typingConstraints.interval)
+                                dispatchEvent(Event.OnUserTypingStill)
+                            }
+                        }
+                    }
+
+                    stopTypingJob?.cancel()
+                    stopTypingJob = viewModelScope.launch {
+                        delay(stateFlow.value.typingConstraints.interval + 1.seconds.inWholeMilliseconds)
                         dispatchEvent(Event.OnUserTypingStopped)
+                        typingStillJob?.cancel()
                     }
                 }
-            }
-            .launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
+
 
         eventFlow
             .filterIsInstance<Event.OnUserTypingStarted>()
             .mapNotNull { stateFlow.value.conversationId }
             .onEach { roomController.onUserStartedTypingIn(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStill>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach { roomController.onUserStillTypingIn(it) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -1519,6 +1570,8 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = true)
                 }
 
+                is Event.OnUserTypingStill -> { state -> state }
+
                 is Event.OnUserTypingStopped -> { state ->
                     state.copy(isSelfTyping = false)
                 }
@@ -1596,6 +1649,16 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }
+                is Event.OnTypingConstraintsChanged -> { state ->
+                    state.copy(
+                        typingConstraints = TypingConstraints(
+                            enabled = event.typingFlags.canSendAtAll,
+                            canSendAsListener = event.typingFlags.canSendAsListener,
+                            interval = event.typingFlags.interval,
+                            timeout = event.typingFlags.timeout,
+                        )
+                    )
+                }
             }
         }
     }

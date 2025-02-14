@@ -6,7 +6,6 @@ import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.codeinc.flipchat.gen.messaging.v1.Model.Pointer
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
-import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.services.network.core.GrpcApi
@@ -18,11 +17,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
+import xyz.flipchat.services.internal.network.chat.TypingState
 import xyz.flipchat.services.internal.network.extensions.toChatId
 import xyz.flipchat.services.internal.network.extensions.toIntentId
 import xyz.flipchat.services.internal.network.extensions.toMessageId
 import xyz.flipchat.services.internal.network.extensions.toPaymentAmount
 import xyz.flipchat.services.internal.network.extensions.toProto
+import xyz.flipchat.services.internal.network.extensions.toTypingState
 import xyz.flipchat.services.internal.network.utils.authenticate
 import javax.inject.Inject
 
@@ -154,15 +155,15 @@ class MessagingApi @Inject constructor(
         api.sendMessage(request, observer)
     }
 
-    fun notifyIsTyping(
+    fun notifyOfTypingState(
         owner: KeyPair,
         chatId: ID,
-        isTyping: Boolean,
+        state: TypingState.UserEvent,
         observer: StreamObserver<MessagingService.NotifyIsTypingResponse>
     ) {
         val request = MessagingService.NotifyIsTypingRequest.newBuilder()
             .setChatId(chatId.toChatId())
-            .setIsTyping(isTyping)
+            .setTypingState(state.toTypingState())
             .apply { setAuth(authenticate(owner)) }
             .build()
 

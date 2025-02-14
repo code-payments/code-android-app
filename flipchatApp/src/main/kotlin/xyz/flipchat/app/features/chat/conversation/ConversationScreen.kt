@@ -257,20 +257,23 @@ private fun ConversationScreenContent(
                     },
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
-                AnimatedVisibility(
-                    visible = state.showTypingIndicator,
-                    enter = slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
+                AnimatedContent(
+                    targetState = state.showTypingIndicator,
+                    transitionSpec = {
+                        slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) { it } + scaleIn() + fadeIn() togetherWith fadeOut() + scaleOut() + slideOutVertically { it }
+                    }
+                ) { show ->
+                    if (show) {
+                        TypingIndicator(
+                            modifier = Modifier
+                                .padding(horizontal = CodeTheme.dimens.grid.x2)
                         )
-                    ) { it } + scaleIn() + fadeIn(),
-                    exit = fadeOut() + scaleOut() + slideOutVertically { it }
-                ) {
-                    TypingIndicator(
-                        modifier = Modifier
-                            .padding(horizontal = CodeTheme.dimens.grid.x2)
-                    )
+                    }
                 }
 
                 Column(

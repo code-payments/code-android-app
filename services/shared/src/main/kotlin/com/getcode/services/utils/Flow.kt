@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import kotlin.time.Duration
+
+fun tickerFlow(period: Duration): Flow<Unit> = flow {
+    while (true) {
+        emit(Unit)
+        delay(period)
+    }
+}
 
 fun flowInterval(
     delayMillis: () -> Long,

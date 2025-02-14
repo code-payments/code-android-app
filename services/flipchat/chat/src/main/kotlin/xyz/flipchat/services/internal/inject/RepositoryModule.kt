@@ -16,6 +16,7 @@ import xyz.flipchat.services.internal.data.mapper.UserProfileMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
 import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.StreamMetadataUpdateMapper
+import xyz.flipchat.services.internal.data.mapper.TypingMapper
 import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.repository.accounts.AccountRepository
 import xyz.flipchat.services.internal.network.repository.accounts.RealAccountRepository
@@ -85,13 +86,15 @@ internal object RepositoryModule {
         service: MessagingService,
         messageMapper: ChatMessageMapper,
         lastMessageMapper: LastMessageMapper,
-        messageWithContentMapper: ConversationMessageMapper
+        messageWithContentMapper: ConversationMessageMapper,
+        typingMapper: TypingMapper,
     ): MessagingRepository = RealMessagingRepository(
         userManager = userManager,
         service = service,
         chatMessageMapper = messageMapper,
         lastMessageMapper = lastMessageMapper,
-        messageMapper = messageWithContentMapper
+        messageMapper = messageWithContentMapper,
+        typingMapper = typingMapper,
     )
 
     @Provides

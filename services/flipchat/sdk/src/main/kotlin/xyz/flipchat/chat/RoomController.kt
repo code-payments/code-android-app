@@ -201,12 +201,14 @@ class RoomController @Inject constructor(
             MessagingPagingSource(conversationId, { userManager.userId }, db)
         }
 
-    val typingChats = chatRepository.typingChats
-
-    fun observeTyping(conversationId: ID) = chatRepository.observeTyping(conversationId)
+    fun observeTyping(conversationId: ID) = messagingRepository.observeTyping(conversationId)
 
     suspend fun onUserStartedTypingIn(conversationId: ID) {
         messagingRepository.onStartedTyping(conversationId)
+    }
+
+    suspend fun onUserStillTypingIn(conversationId: ID) {
+        messagingRepository.onStillTyping(conversationId)
     }
 
     suspend fun onUserStoppedTypingIn(conversationId: ID) {

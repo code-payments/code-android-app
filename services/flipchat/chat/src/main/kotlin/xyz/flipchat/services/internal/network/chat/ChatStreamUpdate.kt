@@ -4,10 +4,11 @@ import com.codeinc.flipchat.gen.chat.v1.ChatService.MemberUpdate
 import com.codeinc.flipchat.gen.chat.v1.ChatService.MetadataUpdate
 import com.codeinc.flipchat.gen.chat.v1.isTypingOrNull
 import com.codeinc.flipchat.gen.chat.v1.lastMessageOrNull
-import com.codeinc.flipchat.gen.chat.v1.memberOrNull
 import com.codeinc.flipchat.gen.chat.v1.pointerOrNull
 import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.codeinc.flipchat.gen.messaging.v1.Model.Pointer
+import com.codeinc.flipchat.gen.messaging.v1.memberOrNull
+import com.codeinc.flipchat.gen.messaging.v1.pointerOrNull
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.utils.base58

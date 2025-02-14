@@ -13,6 +13,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import xyz.flipchat.services.domain.model.query.PagingToken
 import xyz.flipchat.services.domain.model.query.QueryOptions
+import xyz.flipchat.services.internal.network.chat.TypingState
 
 internal fun ByteArray.toSignature(): Common.Signature {
     return Common.Signature.newBuilder().setValue(this.toByteString())
@@ -74,4 +75,8 @@ internal fun SocialAccountLinkRequest.linkingToken(): ProfileService.LinkSocialA
     }
 
     return builder.build()
+}
+
+internal fun TypingState.UserEvent.toTypingState(): Model.TypingState {
+    return Model.TypingState.forNumber(ordinal)
 }

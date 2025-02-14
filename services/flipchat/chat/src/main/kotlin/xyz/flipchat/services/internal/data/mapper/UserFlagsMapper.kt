@@ -5,6 +5,7 @@ import com.getcode.model.Kin
 import com.getcode.services.mapper.Mapper
 import xyz.flipchat.services.user.UserFlags
 import xyz.flipchat.services.internal.network.extensions.toPublicKey
+import xyz.flipchat.services.user.TypingNotificationsConstraints
 import javax.inject.Inject
 
 class UserFlagsMapper @Inject constructor(): Mapper<AccountService.UserFlags, UserFlags> {
@@ -13,7 +14,13 @@ class UserFlagsMapper @Inject constructor(): Mapper<AccountService.UserFlags, Us
             isStaff = from.isStaff,
             isRegistered = from.isRegisteredAccount,
             createCost = Kin.fromQuarks(from.startGroupFee.quarks.ifZeroOrElse(200) { it / 100_000 }),
-            feeDestination = from.feeDestination.toPublicKey()
+            feeDestination = from.feeDestination.toPublicKey(),
+            typingNotifications = TypingNotificationsConstraints(
+                canSendAtAll = from.canSendIsTypingNotifications,
+                canSendAsListener = from.canSendIsTypingNotificationsAsListener,
+                interval = from.isTypingNotificationInterval.seconds * 1_000,
+                timeout = from.isTypingNotificationTimeout.seconds * 1_000,
+            )
         )
     }
 }

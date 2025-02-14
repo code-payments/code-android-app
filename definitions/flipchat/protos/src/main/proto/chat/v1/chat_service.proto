@@ -125,12 +125,14 @@ message StreamChatEventsResponse {
         // Relevant update to a chat member's pointer state, where 'relevant' means
         // "relevant to UI updates". For example, when a user has read the latest
         // message.
-        PointerUpdate pointer = 5;
-        message PointerUpdate {
-            common.v1.UserId member = 1;
-            messaging.v1.Pointer pointer = 2;
-        }
+        //
+        // Note: Updates now go through the message stream, but may be rediverted here
+        // in the future
+        messaging.v1.PointerUpdate pointer = 5;
         // IsTyping indicates whether or not someone is typing in the group.
+        //
+        // Note: Updates now go through the message stream, but may be rediverted here
+        // in the future
         messaging.v1.IsTyping is_typing = 6;
     }
 }
