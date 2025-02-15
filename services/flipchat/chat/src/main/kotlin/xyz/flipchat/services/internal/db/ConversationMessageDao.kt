@@ -182,7 +182,7 @@ interface ConversationMessageDao {
                 MessageContent.fromData(rp.message.type, rp.message.content, isFromSelf = rp.message.senderId == selfId)
             } ?: MessageContent.Unknown(false)
 
-            val replyMemberSocials = it.message.inReplyTo?.let { id -> getUserSocialProfiles(id) }.orEmpty()
+            val replyMemberSocials = replyMessage?.member?.id?.let { id -> getUserSocialProfiles(id) }.orEmpty()
 
             val tips = getTipsForMessage(it.message.id)
             InflatedConversationMessage(

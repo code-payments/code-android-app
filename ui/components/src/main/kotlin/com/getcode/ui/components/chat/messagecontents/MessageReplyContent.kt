@@ -43,6 +43,7 @@ import com.getcode.ui.components.chat.MessageNodeScope
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.ui.components.user.social.SenderNameDisplay
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
 import com.getcode.ui.utils.generateComplementaryColorPalette
@@ -211,11 +212,10 @@ fun MessageReplyPreview(
                 .padding(vertical = CodeTheme.dimens.grid.x1)
                 .weight(1f)
         ) {
-            Text(
-                text = originalMessage.sender.displayName.orEmpty()
-                    .ifEmpty { "Member" },
-                color = colors?.second ?: CodeTheme.colors.tertiary,
-                style = CodeTheme.typography.textSmall
+            SenderNameDisplay(
+                sender = originalMessage.sender,
+                textColor = colors?.second ?: CodeTheme.colors.tertiary,
+                textStyle = CodeTheme.typography.textSmall
             )
 
             val messageBody = when {

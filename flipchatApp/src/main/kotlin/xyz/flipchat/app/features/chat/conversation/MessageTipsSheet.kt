@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -33,6 +34,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.MessageTip
+import com.getcode.ui.components.user.social.SenderNameDisplay
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 
 internal data class MessageTipsSheet(val tips: List<MessageTip>) : Screen {
@@ -80,12 +82,13 @@ internal data class MessageTipsSheet(val tips: List<MessageTip>) : Screen {
                                 contentDescription = null,
                             )
                         }
-                        Text(
-                            modifier = Modifier.weight(1f),
-                            text = tipper.displayName.orEmpty(),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.onSurface
+                        SenderNameDisplay(
+                            sender = tipper,
+                            textStyle = CodeTheme.typography.textMedium,
+                            textColor = CodeTheme.colors.onSurface
                         )
+
+                        Spacer(modifier = Modifier.weight(1f))
 
                         Text(
                             text = stringResource(
