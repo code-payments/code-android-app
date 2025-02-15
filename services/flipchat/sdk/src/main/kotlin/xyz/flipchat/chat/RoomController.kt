@@ -15,6 +15,9 @@ import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -202,6 +205,8 @@ class RoomController @Inject constructor(
         }
 
     fun observeTyping(conversationId: ID) = messagingRepository.observeTyping(conversationId)
+        .distinctUntilChanged()
+        .flatMapLatest { userIds -> db.userDao().getUsersFromIds(userIds) }
 
     suspend fun onUserStartedTypingIn(conversationId: ID) {
         messagingRepository.onStartedTyping(conversationId)

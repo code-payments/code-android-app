@@ -10,10 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,6 +30,8 @@ import com.getcode.ui.components.R
 fun SenderNameDisplay(
     sender: Sender,
     modifier: Modifier = Modifier,
+    textStyle: TextStyle = CodeTheme.typography.caption,
+    textColor: Color = CodeTheme.colors.tertiary
 ) {
     val socialProfile = remember(sender.socialProfiles) {
         sender.socialProfiles.firstOrNull()
@@ -38,8 +42,8 @@ fun SenderNameDisplay(
         nameSlot = {
             Text(
                 text = sender.displayName.orEmpty(),
-                style = CodeTheme.typography.caption,
-                color = CodeTheme.colors.tertiary,
+                style = textStyle,
+                color = textColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

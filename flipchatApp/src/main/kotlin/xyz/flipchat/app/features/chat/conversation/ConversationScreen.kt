@@ -258,7 +258,7 @@ private fun ConversationScreenContent(
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
                 AnimatedContent(
-                    targetState = state.showTypingIndicator,
+                    targetState = state.otherUsersTyping.isNotEmpty(),
                     transitionSpec = {
                         slideInVertically(
                             animationSpec = spring(
@@ -271,7 +271,8 @@ private fun ConversationScreenContent(
                     if (show) {
                         TypingIndicator(
                             modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.grid.x2)
+                                .padding(horizontal = CodeTheme.dimens.grid.x2),
+                            userImages = state.otherUsersTyping
                         )
                     }
                 }

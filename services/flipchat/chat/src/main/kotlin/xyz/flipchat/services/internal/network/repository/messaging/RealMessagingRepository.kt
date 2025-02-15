@@ -9,7 +9,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
@@ -79,10 +78,11 @@ internal class RealMessagingRepository @Inject constructor(
         }
     }
 
-    override fun observeTyping(chatId: ID): Flow<Boolean> {
+    override fun observeTyping(chatId: ID): Flow<List<ID>> {
         return typingState
             .map { it.filterNot { s -> userManager.isSelf(s.userId) } }
-            .map { it.any { i -> i.currentlyTyping } }
+            .map { it.filter { i -> i.currentlyTyping } }
+            .map { list -> list.map { it.userId } }
     }
 
     override suspend fun onStartedTyping(chatId: ID): Result<Unit> {

@@ -17,7 +17,7 @@ interface MessagingRepository {
 
     suspend fun sendMessage(chatId: ID, content: OutgoingMessageContent): Result<ChatMessage>
     suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit>
-    fun observeTyping(chatId: ID): Flow<Boolean>
+    fun observeTyping(chatId: ID): Flow<List<ID>>
     suspend fun onStartedTyping(chatId: ID): Result<Unit>
     suspend fun onStillTyping(chatId: ID): Result<Unit>
     suspend fun onStoppedTyping(chatId: ID): Result<Unit>

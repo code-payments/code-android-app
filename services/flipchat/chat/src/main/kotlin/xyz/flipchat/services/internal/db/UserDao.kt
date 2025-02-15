@@ -6,8 +6,10 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.getcode.model.ID
 import com.getcode.utils.base58
+import kotlinx.coroutines.flow.Flow
 import xyz.flipchat.services.data.MemberIdentity
 import xyz.flipchat.services.domain.model.people.FlipchatUser
+import xyz.flipchat.services.domain.model.people.FlipchatUserWithSocialProfiles
 
 @Dao
 interface UserDao {
@@ -31,5 +33,11 @@ interface UserDao {
 
     suspend fun updateIdentity(memberId: ID, identity: MemberIdentity) {
         updateIdentity(memberId.base58, identity.displayName, identity.imageUrl)
+    }
+
+    @Query("SELECT * FROM users WHERE userIdBase58 IN (:userIds)")
+    fun getUsersFrom(userIds: List<String>): Flow<List<FlipchatUserWithSocialProfiles>>
+    fun getUsersFromIds(userIds: List<ID>): Flow<List<FlipchatUserWithSocialProfiles>> {
+        return getUsersFrom(userIds.map { it.base58 })
     }
 }

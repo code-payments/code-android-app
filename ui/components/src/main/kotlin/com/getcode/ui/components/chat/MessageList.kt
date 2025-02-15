@@ -28,6 +28,7 @@ import androidx.paging.compose.itemKey
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
@@ -52,6 +53,7 @@ sealed interface MessageListEvent {
     data object UnreadStateHandled : MessageListEvent
     data class TipMessage(val message: ChatItem.Message) : MessageListEvent
     data class ShowTipsForMessage(val tips: List<MessageTip>) : MessageListEvent
+    data class ViewUserProfile(val userId: ID): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -187,6 +189,9 @@ fun MessageList(
                         originalMessage = item.originalMessage,
                         onViewOriginalMessage = {
                             dispatch(MessageListEvent.ViewOriginalMessage(item.chatMessageId, it))
+                        },
+                        openUserProfile = {
+                            dispatch(MessageListEvent.ViewUserProfile(item.sender.id!!))
                         }
                     )
                 }

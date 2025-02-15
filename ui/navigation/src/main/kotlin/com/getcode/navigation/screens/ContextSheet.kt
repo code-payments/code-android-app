@@ -1,5 +1,6 @@
 package com.getcode.navigation.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -44,20 +48,21 @@ sealed interface ContextMenuStyle {
 
 class ContextSheet(
     private val actions: List<ContextMenuAction>,
-    private val style: ContextMenuStyle = ContextMenuStyle.Themed
+    private val style: ContextMenuStyle = ContextMenuStyle.Themed,
 ) : Screen {
 
     @Composable
     override fun Content() {
-        Column(
+        val navigator = LocalCodeNavigator.current
+        val composeScope = rememberCoroutineScope()
+
+        LazyColumn(
             modifier = Modifier
                 .background(style.color)
                 .padding(top = CodeTheme.dimens.inset)
                 .navigationBarsPadding()
         ) {
-            val navigator = LocalCodeNavigator.current
-            val composeScope = rememberCoroutineScope()
-            actions.fastForEachIndexed { index, action ->
+            itemsIndexed(actions) { index, action ->
                 Row(
                     modifier = Modifier
                         .clickable {

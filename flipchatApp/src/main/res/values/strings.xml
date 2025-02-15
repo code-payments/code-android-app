@@ -256,4 +256,6 @@
     <string name="prompt_title_disconnectSocialAccount">Disconnect Your %1$s Account?</string>
     <string name="prompt_description_disconnectSocialAccount">You will no longer have a profile picture or connected %1$s account</string>
     <string name="action_disconnectSocialAccount">Disconnect %1$s Account</string>
+
+    <string name="action_openProfileOnPlatform">Open Profile on %1$s</string>
 </resources>

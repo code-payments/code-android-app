@@ -37,13 +37,12 @@ class ProfileViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val chatsController: ChatsController,
 ): BaseViewModel2<ProfileViewModel.State, ProfileViewModel.Event>(
-    initialState = State(
-        id = userManager.userId
-    ),
+    initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
         val id: ID? = null,
+        val isSelf: Boolean = false,
         private val name: String = "",
         val linkedSocialProfile: SocialProfile? = null,
         val isStaff: Boolean = false,
@@ -75,7 +74,8 @@ class ProfileViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnUserLoaded(val user: UserProfile): Event
+        data class OnLoadUser(val id: ID): Event
+        data class OnUserLoaded(val isSelf: Boolean, val user: UserProfile): Event
         data class OnStaffEmployed(val enabled: Boolean) : Event
         data class CanConnectSocialChanged(val enabled: Boolean): Event
         data class LinkXAccount(val accessToken: String?): Event
@@ -84,11 +84,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     init {
-        userManager.state
-            .mapNotNull { UserProfile(it.displayName.orEmpty(), it.linkedSocialProfiles) }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnUserLoaded(it)) }
-            .launchIn(viewModelScope)
+//        userManager.state
+//            .mapNotNull { UserProfile(it.displayName.orEmpty(), it.linkedSocialProfiles) }
+//            .distinctUntilChanged()
+//            .onEach { dispatchEvent(Event.OnUserLoaded(it)) }
+//            .launchIn(viewModelScope)
 
         userManager.state
             .mapNotNull { it.flags }
@@ -100,6 +100,24 @@ class ProfileViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(Event.CanConnectSocialChanged(it))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnLoadUser>()
+            .map { it.id }
+            .distinctUntilChanged()
+            .map { id ->
+                if (userManager.isSelf(id)) {
+                    Result.success(true to UserProfile(userManager.displayName.orEmpty(), userManager.socialProfiles))
+                } else {
+                    profileController.getProfile(id)
+                        .map { false to it }
+                }
+            }.onResult(
+                onError = {},
+                onSuccess = { (isSelf, profile) ->
+                    dispatchEvent(Event.OnUserLoaded(isSelf, profile))
+                }
+            ).launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.LinkXAccount>()
@@ -121,17 +139,12 @@ class ProfileViewModel @Inject constructor(
             .map { it.profile }
             .filterNot { it is SocialProfile.Unknown }
             .onEach { profile ->
-                val profileType = when (profile) {
-                    is SocialProfile.X -> "X"
-                    SocialProfile.Unknown -> "Unknown" // filtered out above
-                }
-
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_disconnectSocialAccount, profileType),
+                        title = resources.getString(R.string.prompt_title_disconnectSocialAccount, profile.platformTypeName),
                         subtitle = resources
-                            .getString(R.string.prompt_description_disconnectSocialAccount, profileType),
-                        positiveText = resources.getString(R.string.action_disconnectSocialAccount, profileType),
+                            .getString(R.string.prompt_description_disconnectSocialAccount, profile.platformTypeName),
+                        positiveText = resources.getString(R.string.action_disconnectSocialAccount, profile.platformTypeName),
                         tertiaryText = resources.getString(R.string.action_cancel),
                         onPositive = {
                             dispatchEvent(Event.UnlinkSocialProfile(profile))
@@ -173,9 +186,11 @@ class ProfileViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                is Event.OnLoadUser -> { state -> state.copy(id = event.id) }
                 is Event.OnStaffEmployed -> { state -> state.copy(isStaff = event.enabled) }
                 is Event.OnUserLoaded -> { state ->
                     state.copy(
+                        isSelf = event.isSelf,
                         name = event.user.displayName,
                         linkedSocialProfile = event.user.socialProfiles
                             .firstOrNull()

@@ -112,8 +112,12 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             RoomNameScreen(it.id, it.title)
         }
 
-        register<NavScreenProvider.Profile> {
-            ProfileScreen()
+        register<NavScreenProvider.OwnProfile> {
+            ProfileScreen(isInTab = true)
+        }
+
+        register<NavScreenProvider.UserProfile> {
+            ProfileScreen(it.user, isInTab = false)
         }
 
         register<NavScreenProvider.Settings> {

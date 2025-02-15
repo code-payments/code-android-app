@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Icon
@@ -41,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -74,6 +76,7 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.user.social.SenderNameDisplay
 import com.getcode.ui.components.user.social.SocialUserDisplay
+import com.getcode.ui.utils.noRippleClickable
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.datetime.Instant
 import kotlin.math.roundToInt
@@ -216,6 +219,7 @@ fun MessageNode(
     showTips: () -> Unit,
     onReply: () -> Unit,
     onViewOriginalMessage: (ID) -> Unit,
+    openUserProfile: () -> Unit,
 ) {
     val vibrator = LocalVibrator.current
 
@@ -323,6 +327,7 @@ fun MessageNode(
                         ContentFromSender(
                             modifier = Modifier.fillMaxWidth(),
                             sender = sender,
+                            openUserProfile = openUserProfile,
                             isFirstInSeries = !options.isPreviousGrouped
                         ) {
                             DeletedMessage(
@@ -357,6 +362,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
@@ -403,6 +409,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
@@ -429,6 +436,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
@@ -470,6 +478,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
@@ -555,6 +564,7 @@ private fun ContentFromSender(
     modifier: Modifier = Modifier,
     sender: Sender,
     isFirstInSeries: Boolean,
+    openUserProfile: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Row(
@@ -569,7 +579,7 @@ private fun ContentFromSender(
                         modifier = Modifier.padding(
                             top = CodeTheme.dimens.grid.x1,
                             start = CodeTheme.dimens.inset
-                        ),
+                        ).noRippleClickable { openUserProfile() },
                         imageData = sender.profileImage ?: sender.id,
                         isHost = sender.isHost
                     )

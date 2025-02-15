@@ -7,7 +7,12 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 sealed interface SocialProfile {
-    data object Unknown : SocialProfile
+    val profileUrl: String
+    val platformTypeName: String
+    data object Unknown : SocialProfile {
+        override val profileUrl: String = ""
+        override val platformTypeName: String = "Unknown"
+    }
 
     data class X(
         val id: String,
@@ -25,6 +30,9 @@ sealed interface SocialProfile {
             GOVERNMENT, // 3
             UNKNOWN
         }
+
+        override val profileUrl: String = "https://x.com/$username"
+        override val platformTypeName: String = "X"
 
         val followerCountFormatted: String = when {
             followerCount > 1000 -> {

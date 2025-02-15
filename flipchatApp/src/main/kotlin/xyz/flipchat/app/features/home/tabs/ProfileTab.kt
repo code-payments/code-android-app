@@ -39,7 +39,7 @@ class ProfileTab(override val ordinal: Int): ChildNavTab, Parcelable {
 
     @Composable
     override fun Content() {
-        Navigator(ScreenRegistry.get(NavScreenProvider.Profile)) { navigator ->
+        Navigator(ScreenRegistry.get(NavScreenProvider.OwnProfile)) { navigator ->
             childNav = NavigatorWrapper(navigator)
             SlideTransition(navigator)
         }

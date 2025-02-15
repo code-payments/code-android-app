@@ -3,14 +3,22 @@ package xyz.flipchat.app.features.chat.conversation
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -25,11 +33,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.paging.compose.LazyPagingItems
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.getcode.manager.TopBarManager
 import com.getcode.model.chat.AnnouncementAction
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.HostableAvatar
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
@@ -38,6 +49,7 @@ import com.getcode.ui.components.chat.messagecontents.ResolvedAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.components.user.social.SenderNameDisplay
 import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.scrollToItemWithFullVisibility
@@ -82,7 +94,11 @@ internal fun ConversationMessages(
     Box(
         modifier = modifier,
     ) {
-        CompositionLocalProvider(LocalAnnouncementActionResolver provides { resolveAnnouncementAction(it) }) {
+        CompositionLocalProvider(LocalAnnouncementActionResolver provides {
+            resolveAnnouncementAction(
+                it
+            )
+        }) {
             MessageList(
                 modifier = Modifier
                     .fillMaxSize()
@@ -202,6 +218,16 @@ internal fun ConversationMessages(
                         is MessageListEvent.UnreadStateHandled -> {
                             dispatchEvent(ConversationViewModel.Event.OnUnreadStateHandled)
                         }
+
+                        is MessageListEvent.ViewUserProfile -> {
+                            composeScope.launch {
+                                if (keyboardVisible) {
+                                    ime?.hide()
+                                    delay(500)
+                                }
+                                navigator.push(ScreenRegistry.get(NavScreenProvider.UserProfile(event.userId)))
+                            }
+                        }
                     }
                 }
             )
@@ -221,7 +247,8 @@ internal fun ConversationMessages(
                 .padding(
                     end = CodeTheme.dimens.inset,
                     bottom = CodeTheme.dimens.inset
-                ).align(Alignment.BottomEnd),
+                )
+                .align(Alignment.BottomEnd),
             shape = CircleShape,
             color = CodeTheme.colors.tertiary,
             onClick = {

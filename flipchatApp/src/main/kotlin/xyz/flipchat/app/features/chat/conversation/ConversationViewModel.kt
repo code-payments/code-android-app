@@ -81,6 +81,8 @@ import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
+import xyz.flipchat.services.domain.model.people.FlipchatUser
+import xyz.flipchat.services.domain.model.people.FlipchatUserWithSocialProfiles
 import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
@@ -140,7 +142,7 @@ class ConversationViewModel @Inject constructor(
         val listeners: Int?,
         val pointers: Map<UUID, MessageStatus?>,
         val pointerRefs: Map<Long, MessageStatus>,
-        val showTypingIndicator: Boolean,
+        val otherUsersTyping: List<Any>,
         val isSelfTyping: Boolean,
         val typingConstraints: TypingConstraints,
         val isRoomOpen: Boolean,
@@ -175,7 +177,7 @@ class ConversationViewModel @Inject constructor(
                 pointerRefs = emptyMap(),
                 members = null,
                 listeners = null,
-                showTypingIndicator = false,
+                otherUsersTyping = emptyList(),
                 isSelfTyping = false,
                 typingConstraints = TypingConstraints(),
                 isRoomOpen = true,
@@ -243,8 +245,7 @@ class ConversationViewModel @Inject constructor(
             val typingFlags: TypingNotificationsConstraints
         ): Event
 
-        data object OnTypingStarted : Event
-        data object OnTypingStopped : Event
+        data class OnOtherUsersTyping(val users: List<FlipchatUserWithSocialProfiles>) : Event
 
         data object OnOpenStateChangedRequested : Event
         data class OnOpenRoom(val conversationId: ID) : Event
@@ -573,17 +574,10 @@ class ConversationViewModel @Inject constructor(
             .map { it.conversationId }
             .filterNotNull()
             .distinctUntilChanged()
-            .flatMapLatest {
-                roomController.observeTyping(it)
-            }
+            .flatMapLatest { roomController.observeTyping(it) }
             .distinctUntilChanged()
-            .onEach { isOtherUserTyping ->
-                if (isOtherUserTyping) {
-                    dispatchEvent(Event.OnTypingStarted)
-                } else {
-                    dispatchEvent(Event.OnTypingStopped)
-                }
-            }.launchIn(viewModelScope)
+            .onEach { users -> dispatchEvent(Event.OnOtherUsersTyping(users)) }
+            .launchIn(viewModelScope)
 
         stateFlow
             .filter {
@@ -1558,12 +1552,8 @@ class ConversationViewModel @Inject constructor(
                     state.copy(pointers = event.pointers)
                 }
 
-                is Event.OnTypingStarted -> { state ->
-                    state.copy(showTypingIndicator = true)
-                }
-
-                is Event.OnTypingStopped -> { state ->
-                    state.copy(showTypingIndicator = false)
+                is Event.OnOtherUsersTyping -> { state ->
+                    state.copy(otherUsersTyping = event.users.map { it.imageData })
                 }
 
                 is Event.OnUserTypingStarted -> { state ->
