@@ -62,23 +62,12 @@ data class ConversationMemberWithLinkedSocialProfiles(
 
     val displayName: String?
         get() {
-            val social = profiles.firstOrNull() ?: return personalInfo?.memberName
-            return when (social.platformType) {
-                "x" -> {
-                    val metadata = runCatching {
-                        Json.decodeFromString<XExtraData>(social.extraData.orEmpty())
-                    }.getOrNull()
-
-                    metadata?.friendlyName ?: personalInfo?.memberName
-                }
-
-                else -> personalInfo?.memberName
-            }
+            return personalInfo?.memberName
         }
 
     val imageUri: String?
         get() {
-            return profiles.firstOrNull()?.profileImageUrl ?: return personalInfo?.imageUri
+            return personalInfo?.imageUri
         }
 
     val isBlocked: Boolean

@@ -73,6 +73,18 @@ sealed interface Lab {
         override val launched: Boolean = false
     }
 
+    data object ShowConnectedSocials: Lab {
+        override val key: String = "show_connected_socials_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
+    data object TypingInChat: Lab {
+        override val key: String = "typing_indicator_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     data object ConnectX: Lab {
         override val key: String = "connect_x_enabled"
         override val default: Boolean = false
@@ -88,7 +100,9 @@ sealed interface Lab {
             DeleteMessage,
             OpenCloseRoom,
             Tipping,
-            ConnectX
+            ConnectX,
+            TypingInChat,
+            ShowConnectedSocials
         )
 
         internal fun byKey(key: Preferences.Key<*>): Lab? {

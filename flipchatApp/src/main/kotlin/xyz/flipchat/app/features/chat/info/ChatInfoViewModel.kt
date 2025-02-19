@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import xyz.flipchat.app.R
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.data.RoomInfo
 import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
 import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
@@ -45,6 +47,7 @@ sealed interface MemberType {
 
 @HiltViewModel
 class ChatInfoViewModel @Inject constructor(
+    private val labs: Labs,
     private val roomController: RoomController,
     private val chatsController: ChatsController,
     private val resources: ResourceHelper,
@@ -123,6 +126,7 @@ class ChatInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnInfoChanged>()
             .mapNotNull { it.args }
             .onEach { args ->
+                val showConnectedSocials = labs.get(Lab.ShowConnectedSocials)
                 val exists = roomController.getConversation(args.roomId.orEmpty()) != null
                 if (!exists) {
                     chatsController.lookupRoom(args.roomNumber)
@@ -139,9 +143,13 @@ class ChatInfoViewModel @Inject constructor(
                                             canSpeak = m.isModerator || !m.isSpectator,
                                             isHost = m.isModerator,
                                             isSelf = userManager.isSelf(m.id),
-                                            socialProfiles = m.identity?.socialProfiles?.mapNotNull {
-                                                it.toLinked()
-                                            }.orEmpty()
+                                            socialProfiles = if (showConnectedSocials) {
+                                                m.identity?.socialProfiles?.mapNotNull {
+                                                    it.toLinked()
+                                                }.orEmpty()
+                                            } else {
+                                                emptyList()
+                                            }
                                         )
                                     }
                                 )
@@ -165,7 +173,11 @@ class ChatInfoViewModel @Inject constructor(
                                             isHost = m.isHost,
                                             canSpeak = m.isFullMember,
                                             isSelf = userManager.isSelf(m.id),
-                                            socialProfiles = m.profiles.mapNotNull { it.toLinked() }
+                                            socialProfiles = if (showConnectedSocials) {
+                                                m.profiles.mapNotNull { it.toLinked() }
+                                            } else {
+                                                emptyList()
+                                            }
                                         )
                                     }
                                 )

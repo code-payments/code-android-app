@@ -27,7 +27,7 @@ import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.UserManager
 
 interface Router {
-    fun checkTabs()
+    suspend fun checkTabs()
     val rootTabs: List<ChildNavTab>
     fun getInitialTabIndex(deeplink: DeepLink?): Int
     suspend fun processDestination(deeplink: DeepLink?): List<Screen>
@@ -69,12 +69,18 @@ class RouterImpl(
     override fun tabForIndex(index: Int) = indexTabResolver(index)
 
     private val commonTabs: List<ChildNavTab> =
-        listOf(ChatTab(0), CashTab(1), ProfileTab(2))
+        listOf(ChatTab(0), CashTab(1))
 
     private val tabs = MutableStateFlow(commonTabs)
 
-    override fun checkTabs() {
-        // no-op right now
+    override suspend fun checkTabs() {
+        val updatedTabs = if (userManager.userFlags?.isStaff == true) {
+            commonTabs + listOf(ProfileTab(2))
+        } else {
+            commonTabs
+        }
+
+        tabs.value = updatedTabs
     }
 
     override val rootTabs: List<ChildNavTab>

@@ -46,6 +46,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -149,6 +150,7 @@ class ConversationViewModel @Inject constructor(
         val isOpenCloseEnabled: Boolean,
         val isTippingEnabled: Boolean,
         val isLinkImagePreviewsEnabled: Boolean,
+        val canClickUserAvatars: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?,
         val createAccountRequest: CreateAccountRequest?,
@@ -184,6 +186,7 @@ class ConversationViewModel @Inject constructor(
                 isOpenCloseEnabled = false,
                 isTippingEnabled = false,
                 isLinkImagePreviewsEnabled = false,
+                canClickUserAvatars = false,
                 roomInfoArgs = RoomInfoArgs(),
                 createAccountRequest = null
             )
@@ -217,6 +220,7 @@ class ConversationViewModel @Inject constructor(
         data class OnOpenCloseEnabled(val enabled: Boolean) : Event
         data class OnTippingEnabled(val enabled: Boolean) : Event
         data class OnLinkImagePreviewsEnabled(val enabled: Boolean) : Event
+        data class OnUserProfilesEnabled(val enabled: Boolean): Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -288,13 +292,16 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnSelfChanged(id, displayName))
             }.launchIn(viewModelScope)
 
-        userManager.state
-            .mapNotNull { it.flags }
-            .map { it.typingNotifications }
-            .distinctUntilChanged()
-            .onEach {
-                dispatchEvent(Event.OnTypingConstraintsChanged(it))
-            }.launchIn(viewModelScope)
+        combine(
+            betaFeatures.observe(Lab.TypingInChat),
+            userManager.state
+                .mapNotNull { it.flags }
+                .map { it.typingNotifications }
+                .distinctUntilChanged()
+        ) { flag, typing ->
+            typing.copy(canSendAtAll = typing.canSendAtAll && flag)
+        }.onEach { dispatchEvent(Event.OnTypingConstraintsChanged(it))
+        }.launchIn(viewModelScope)
 
         betaFeatures.observe(Lab.ReplyToMessage)
             .onEach { dispatchEvent(Event.OnReplyEnabled(it)) }
@@ -314,6 +321,10 @@ class ConversationViewModel @Inject constructor(
 
         betaFeatures.observe(Lab.LinkImages)
             .onEach { dispatchEvent(Event.OnLinkImagePreviewsEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.ShowConnectedSocials)
+            .onEach { dispatchEvent(Event.OnUserProfilesEnabled(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -1025,7 +1036,10 @@ class ConversationViewModel @Inject constructor(
             val enableReply =
                 currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled || currentState.chattableState is ChattableState.Spectator
 
+            val showConnectedSocials = betaFeatures.get(Lab.ShowConnectedSocials)
+
             val enableLinkImages = currentState.isLinkImagePreviewsEnabled
+            val canClickUserAvatars = currentState.canClickUserAvatars
 
             page.map { indice ->
                 val (_, message, member, contents, reply, tipInfo) = indice
@@ -1058,7 +1072,11 @@ class ConversationViewModel @Inject constructor(
                             isSelf = reply.contentEntity.isFromSelf,
                             isBlocked = reply.personalInfo?.isBlocked == true,
                             isHost = reply.message.senderId == currentState.hostId && !contents.isFromSelf,
-                            socialProfiles = reply.socialProfiles.mapNotNull { it.toLinked() }
+                            socialProfiles = if (showConnectedSocials) {
+                                reply.socialProfiles.mapNotNull { it.toLinked() }
+                            } else {
+                                emptyList()
+                            }
                         )
                     )
                 } else {
@@ -1079,7 +1097,11 @@ class ConversationViewModel @Inject constructor(
                                 isHost = member?.isHost ?: false,
                                 isSelf = userManager.isSelf(member?.id),
                                 isBlocked = user?.isBlocked ?: false,
-                                socialProfiles = socials.mapNotNull { it.toLinked() }
+                                socialProfiles = if (showConnectedSocials) {
+                                    socials.mapNotNull { it.toLinked() }
+                                } else {
+                                    emptyList()
+                                }
                             )
                         )
                     }
@@ -1108,6 +1130,7 @@ class ConversationViewModel @Inject constructor(
                     showTimestamp = false,
                     enableTipping = tippingEnabled,
                     enableLinkImagePreview = enableLinkImages,
+                    enableAvatarClicks = canClickUserAvatars,
                     sender = Sender(
                         id = message.senderId,
                         profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
@@ -1116,7 +1139,11 @@ class ConversationViewModel @Inject constructor(
                         isFullMember = member?.isFullMember == true,
                         isHost = message.senderId == currentState.hostId,
                         isBlocked = member?.isBlocked == true,
-                        socialProfiles = member?.profiles?.mapNotNull { it.toLinked() }.orEmpty(),
+                        socialProfiles = if (showConnectedSocials) {
+                            member?.profiles?.mapNotNull { it.toLinked() }.orEmpty()
+                        } else {
+                            emptyList()
+                        },
                     ),
                     originalMessage = anchor,
                     messageControls = MessageControls(
@@ -1636,6 +1663,10 @@ class ConversationViewModel @Inject constructor(
                     state.copy(
                         isLinkImagePreviewsEnabled = event.enabled
                     )
+                }
+
+                is Event.OnUserProfilesEnabled -> { state ->
+                    state.copy(canClickUserAvatars = event.enabled)
                 }
 
                 Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }

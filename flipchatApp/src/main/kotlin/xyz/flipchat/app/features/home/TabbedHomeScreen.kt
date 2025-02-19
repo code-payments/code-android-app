@@ -10,6 +10,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.Screen
@@ -23,6 +24,7 @@ import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import dev.theolm.rinku.DeepLink
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
@@ -42,10 +44,13 @@ class TabbedHomeScreen(private val deepLink: @RawValue DeepLink?) : Screen, Parc
         val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
 
         val navigator = LocalCodeNavigator.current
+        val composeScope = rememberCoroutineScope()
         OnLifecycleEvent { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
-                    router.checkTabs()
+                    composeScope.launch {
+                        router.checkTabs()
+                    }
                 }
                 else -> Unit
             }

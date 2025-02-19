@@ -187,6 +187,7 @@ data class MessageNodeOptions(
     val canReplyTo: Boolean = false,
     val canTip: Boolean = false,
     val linkImagePreviewEnabled: Boolean = false,
+    val canViewUserProfiles: Boolean = false,
     val markupsToResolve: List<KClass<out Markup>> = listOf(
         Markup.RoomNumber::class,
         Markup.Url::class,
@@ -327,6 +328,7 @@ fun MessageNode(
                         ContentFromSender(
                             modifier = Modifier.fillMaxWidth(),
                             sender = sender,
+                            canOpenProfile = options.canViewUserProfiles,
                             openUserProfile = openUserProfile,
                             isFirstInSeries = !options.isPreviousGrouped
                         ) {
@@ -362,6 +364,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    canOpenProfile = options.canViewUserProfiles,
                                     openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
@@ -409,6 +412,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    canOpenProfile = options.canViewUserProfiles,
                                     openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
@@ -436,6 +440,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    canOpenProfile = options.canViewUserProfiles,
                                     openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
@@ -478,6 +483,7 @@ fun MessageNode(
                                 ContentFromSender(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
+                                    canOpenProfile = options.canViewUserProfiles,
                                     openUserProfile = openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
@@ -564,6 +570,7 @@ private fun ContentFromSender(
     modifier: Modifier = Modifier,
     sender: Sender,
     isFirstInSeries: Boolean,
+    canOpenProfile: Boolean,
     openUserProfile: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -579,7 +586,7 @@ private fun ContentFromSender(
                         modifier = Modifier.padding(
                             top = CodeTheme.dimens.grid.x1,
                             start = CodeTheme.dimens.inset
-                        ).noRippleClickable { openUserProfile() },
+                        ).noRippleClickable(enabled = canOpenProfile) { openUserProfile() },
                         imageData = sender.profileImage ?: sender.id,
                         isHost = sender.isHost
                     )

@@ -47,6 +47,7 @@ class ProfileViewModel @Inject constructor(
         val linkedSocialProfile: SocialProfile? = null,
         val isStaff: Boolean = false,
         val canConnectAccount: Boolean = false,
+        val showConnectedSocial: Boolean = false,
     ) {
         val displayName: String
             get() = linkedSocialProfile?.let {

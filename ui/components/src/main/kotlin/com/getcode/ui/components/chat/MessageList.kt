@@ -171,6 +171,7 @@ fun MessageList(
                             canReplyTo = item.enableReply,
                             canTip = item.enableTipping,
                             linkImagePreviewEnabled = item.enableLinkImagePreview,
+                            canViewUserProfiles = item.enableAvatarClicks,
                             onMarkupClicked = if (item.enableMarkup) { markup: Markup.Interactive ->
                                 dispatch(MessageListEvent.OnMarkupEvent(markup))
                             } else null,
