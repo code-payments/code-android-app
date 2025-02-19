@@ -80,29 +80,35 @@ class ChatsController @Inject constructor(
     }
 
     suspend fun updateRoom(roomId: ID) {
-        chatRepository.getChat(ChatIdentifier.Id(roomId))
-            .onSuccess { (room, members) ->
-                db.withTransaction {
-                    withContext(Dispatchers.IO) {
-                        db.conversationDao().upsertConversations(conversationMapper.map(room))
-                        members.map { conversationMemberMapper.map(room.id to it) }.let {
-                            db.conversationMembersDao().upsertMembers(*it.toTypedArray())
-                        }
-                        members.map { userMapper.map(it) }.let {
-                            db.userDao().upsert(*it.toTypedArray())
-                        }
+        coroutineScope {
+            launch {
+                chatRepository.getChat(ChatIdentifier.Id(roomId))
+                    .onSuccess { (room, members) ->
+                        db.withTransaction {
+                            withContext(Dispatchers.IO) {
+                                db.conversationDao().upsertConversations(conversationMapper.map(room))
+                                members.map { conversationMemberMapper.map(room.id to it) }.let {
+                                    db.conversationMembersDao().upsertMembers(*it.toTypedArray())
+                                }
+                                members.map { userMapper.map(it) }.let {
+                                    db.userDao().upsert(*it.toTypedArray())
+                                }
 
-                        members.map {
-                            val socialProfiles = it.identity?.socialProfiles
-                            if (socialProfiles != null) {
-                                db.userSocialDao().upsert(it.id, socialProfiles)
+                                members.map {
+                                    val socialProfiles = it.identity?.socialProfiles
+                                    if (socialProfiles != null) {
+                                        db.userSocialDao().upsert(it.id, socialProfiles)
+                                    }
+                                }
                             }
                         }
                     }
-                }
+            }
 
+            launch {
                 syncMessagesFromLast(conversationId = roomId)
             }
+        }
     }
 
     fun openEventStream(coroutineScope: CoroutineScope) {
