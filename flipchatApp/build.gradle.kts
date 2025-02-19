@@ -158,6 +158,9 @@ dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
+
+    implementation(Libs.hilt_worker)
+    
     androidTestImplementation(Libs.hilt)
     androidTestImplementation(Libs.hilt_android_test)
     kaptAndroidTest(Libs.hilt_android_compiler)

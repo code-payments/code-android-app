@@ -236,6 +236,7 @@ class AuthManager @Inject constructor(
                         userManager.set(authState =  AuthState.Unregistered)
                     }
 
+                FlipchatServices.scheduleChatSync(context)
                 savePrefs()
             }
             .onFailure {

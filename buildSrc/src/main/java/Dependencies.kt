@@ -5,9 +5,9 @@ object Android {
     const val codeNamespace = "com.getcode"
     const val flipchatNamespace = "xyz.flipchat"
 
-    const val compileSdkVersion = 34
+    const val compileSdkVersion = 35
     const val minSdkVersion = 24
-    const val targetSdkVersion = 34
+    const val targetSdkVersion = 35
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
 }
@@ -53,6 +53,7 @@ object Versions {
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"
     const val androidx_room = "2.6.1"
+    const val androidx_work = "2.10.0"
     const val sqlcipher = "4.5.1@aar"
 
     const val compose = "2024.10.01"
@@ -181,12 +182,14 @@ object Libs {
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
     const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
     const val androidx_room_paging = "androidx.room:room-paging:${Versions.androidx_room}"
+    const val androidx_work = "androidx.work:work-runtime:${Versions.androidx_work}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
 
     const val coil3 = "io.coil-kt.coil3:coil-compose:${Versions.compose_coil}"
     const val coil3_network = "io.coil-kt.coil3:coil-network-okhttp:${Versions.compose_coil}"
 
     const val hilt = "com.google.dagger:hilt-android:${Versions.hilt}"
+    const val hilt_worker = "androidx.hilt:hilt-work:${Versions.hilt_jetpack}"
     const val hilt_android_compiler = "com.google.dagger:hilt-android-compiler:${Versions.hilt}"
     const val hilt_compiler = "androidx.hilt:hilt-compiler:${Versions.hilt_jetpack}"
     const val hilt_android_test = "com.google.dagger:hilt-android-testing:${Versions.hilt}"

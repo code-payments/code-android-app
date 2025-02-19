@@ -104,7 +104,10 @@ dependencies {
     androidTestImplementation(Libs.junit)
     androidTestImplementation(Libs.androidx_test_runner)
 
+    implementation(Libs.androidx_work)
+
     implementation(Libs.hilt)
+    implementation(Libs.hilt_worker)
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
 
