@@ -48,6 +48,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -151,6 +152,7 @@ class ConversationViewModel @Inject constructor(
         val isTippingEnabled: Boolean,
         val isLinkImagePreviewsEnabled: Boolean,
         val canClickUserAvatars: Boolean,
+        val showConnectedSocials: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?,
         val createAccountRequest: CreateAccountRequest?,
@@ -187,6 +189,7 @@ class ConversationViewModel @Inject constructor(
                 isTippingEnabled = false,
                 isLinkImagePreviewsEnabled = false,
                 canClickUserAvatars = false,
+                showConnectedSocials = false,
                 roomInfoArgs = RoomInfoArgs(),
                 createAccountRequest = null
             )
@@ -221,6 +224,7 @@ class ConversationViewModel @Inject constructor(
         data class OnTippingEnabled(val enabled: Boolean) : Event
         data class OnLinkImagePreviewsEnabled(val enabled: Boolean) : Event
         data class OnUserProfilesEnabled(val enabled: Boolean): Event
+        data class ShowConnectedSocials(val enabled: Boolean): Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -324,7 +328,10 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         betaFeatures.observe(Lab.ShowConnectedSocials)
-            .onEach { dispatchEvent(Event.OnUserProfilesEnabled(it)) }
+            .onEach {
+                dispatchEvent(Event.ShowConnectedSocials(it))
+                dispatchEvent(Event.OnUserProfilesEnabled(it))
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -1025,19 +1032,18 @@ class ConversationViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatItem>> = stateFlow
-        .map { it.conversationId }
-        .filterNotNull()
+        .map { it.conversationId to it.chattableState }
+        .filter { it.first != null } // assuming conversationId can be null
         .distinctUntilChanged()
-        .flatMapLatest { roomController.messages(it).flow }
+        .flatMapLatest { (conversationId, _) -> roomController.messages(conversationId!!).flow }
         .distinctUntilChanged()
         .map { page ->
             val currentState = stateFlow.value // Cache state upfront
             val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
             val enableReply =
-                currentState.replyEnabled && currentState.chattableState is ChattableState.Enabled || currentState.chattableState is ChattableState.Spectator
+                currentState.replyEnabled && currentState.chattableState.canTriggerInput()
 
-            val showConnectedSocials = betaFeatures.get(Lab.ShowConnectedSocials)
-
+            val showConnectedSocials = currentState.showConnectedSocials
             val enableLinkImages = currentState.isLinkImagePreviewsEnabled
             val canClickUserAvatars = currentState.canClickUserAvatars
 
@@ -1667,6 +1673,10 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnUserProfilesEnabled -> { state ->
                     state.copy(canClickUserAvatars = event.enabled)
+                }
+
+                is Event.ShowConnectedSocials -> { state ->
+                    state.copy(showConnectedSocials = event.enabled)
                 }
 
                 Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }

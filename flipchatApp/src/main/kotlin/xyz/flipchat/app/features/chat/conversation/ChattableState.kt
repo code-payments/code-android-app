@@ -1,6 +1,9 @@
 package xyz.flipchat.app.features.chat.conversation
 
 import com.getcode.model.Kin
+import xyz.flipchat.app.features.chat.conversation.ChattableState.Enabled
+import xyz.flipchat.app.features.chat.conversation.ChattableState.Spectator
+import xyz.flipchat.app.features.chat.conversation.ChattableState.TemporarilyEnabled
 
 
 sealed interface ChattableState {
@@ -13,3 +16,5 @@ sealed interface ChattableState {
 
     fun isActiveMember() = this is Active
 }
+
+fun ChattableState?.canTriggerInput() = this == null || this is Spectator || this is Enabled || this is TemporarilyEnabled
