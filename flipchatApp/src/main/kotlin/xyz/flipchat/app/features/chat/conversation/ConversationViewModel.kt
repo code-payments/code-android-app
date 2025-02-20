@@ -1524,6 +1524,10 @@ class ConversationViewModel @Inject constructor(
                     Timber.d("Delete Message => ${event.messageId.uuid.toString()}")
                 }
 
+                is Event.OnOtherUsersTyping -> {
+                    Timber.d("${event.users.count()} other user(s) typing")
+                }
+
                 else -> Timber.d("event=${event}")
             }
 

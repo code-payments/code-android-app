@@ -291,7 +291,6 @@ internal class MessagingService @Inject constructor(
                                 )
                             }
                             MessagingService.StreamMessagesResponse.TypeCase.IS_TYPING_NOTIFICATIONS -> {
-                                println("typing updates yippee")
                                 onEvent(
                                     Result.success(
                                         MessageStreamUpdate.Typing(value.isTypingNotifications.isTypingNotificationsList)

@@ -37,6 +37,32 @@ internal class RealMessagingRepository @Inject constructor(
 
     private val typingState = MutableStateFlow<List<IsTyping>>(emptyList())
 
+    private fun handleTypingUpdates(updates: List<IsTyping>) {
+        // Identify users who have stopped typing
+        val noLongerTyping = updates.filter {
+            it.state == TypingState.Stopped || it.state == TypingState.TimedOut
+        }.toSet()
+
+        // Get current state
+        val currently = typingState.value
+
+        // Remove users who stopped typing from current state first
+        val afterRemovals = currently.filter { current ->
+            noLongerTyping.none { it.userId == current.userId }
+        }.toSet()
+
+        // Process new typing updates (excluding stops/timeouts)
+        val newTypingUpdates = updates.filter {
+            it.state != TypingState.Stopped && it.state != TypingState.TimedOut
+        }.toSet()
+
+        // Combine existing state with new updates, favoring new updates in case of conflicts
+        // Using distinctBy to ensure only one entry per userId, preferring the latest update
+        typingState.value = (afterRemovals + newTypingUpdates)
+            .distinctBy { it.userId }
+            .toList()
+    }
+
     override suspend fun getMessages(
         chatId: ID,
         queryOptions: QueryOptions,
@@ -135,7 +161,8 @@ internal class RealMessagingRepository @Inject constructor(
                         }
                         is MessageStreamUpdate.Pointers -> Unit
                         is MessageStreamUpdate.Typing -> {
-                            typingState.value = update.data.map { typingMapper.map(it) }
+                            println("typing update=${update.data}")
+                            handleTypingUpdates(update.data.map { typingMapper.map(it) })
                         }
                     }
                 } else {
