@@ -126,7 +126,6 @@ internal fun ConversationMessages(
                             composeScope.launch {
                                 if (keyboardVisible) {
                                     ime?.hide()
-                                    delay(500)
                                 }
                                 navigator.show(ContextSheet(event.actions))
                             }
