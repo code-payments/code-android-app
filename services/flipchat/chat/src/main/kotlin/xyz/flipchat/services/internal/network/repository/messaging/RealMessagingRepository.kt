@@ -78,12 +78,10 @@ internal class RealMessagingRepository @Inject constructor(
         }
     }
 
-    override fun observeTyping(chatId: ID): Flow<List<ID>> {
-        return typingState
-            .map { it.filterNot { s -> userManager.isSelf(s.userId) } }
-            .map { it.filter { i -> i.currentlyTyping } }
-            .map { list -> list.map { it.userId } }
-    }
+    override fun observeTyping(chatId: ID): Flow<List<ID>> = typingState
+        .map { it.filterNot { s -> userManager.isSelf(s.userId) } }
+        .map { it.filter { i -> i.currentlyTyping } }
+        .map { list -> list.map { it.userId } }
 
     override suspend fun onStartedTyping(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))

@@ -158,20 +158,34 @@ class RoomController @Inject constructor(
         }
     }
 
-    suspend fun sendMessage(conversationId: ID, message: String, paymentIntentId: ID? = null): Result<ID> {
+    suspend fun sendMessage(
+        conversationId: ID,
+        message: String,
+        paymentIntentId: ID? = null
+    ): Result<ID> {
         val content = OutgoingMessageContent.Text(message, paymentIntentId)
         return messagingRepository.sendMessage(conversationId, content)
             .map { it.id }
     }
 
-    suspend fun sendReply(conversationId: ID, originalMessageId: ID, message: String): Result<ID> {
-        val content = OutgoingMessageContent.Reply(originalMessageId, message)
+    suspend fun sendReply(
+        conversationId: ID,
+        originalMessageId: ID,
+        message: String,
+        paymentIntentId: ID? = null
+    ): Result<ID> {
+        val content = OutgoingMessageContent.Reply(originalMessageId, message, paymentIntentId)
         return messagingRepository.sendMessage(conversationId, content)
             .map { it.id }
     }
 
-    suspend fun sendReaction(conversationId: ID, messageId: ID, emoji: String): Result<ID> {
-        val content = OutgoingMessageContent.Reaction(messageId, emoji)
+    suspend fun sendReaction(
+        conversationId: ID,
+        messageId: ID,
+        emoji: String,
+        paymentIntentId: ID? = null
+    ): Result<ID> {
+        val content = OutgoingMessageContent.Reaction(messageId, emoji, paymentIntentId)
         return messagingRepository.sendMessage(conversationId, content)
             .map { it.id }
     }

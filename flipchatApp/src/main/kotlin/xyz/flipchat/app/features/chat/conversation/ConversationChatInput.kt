@@ -102,12 +102,15 @@ fun ConversationChatInput(
                         ) { dispatchEvent(ConversationViewModel.Event.OnOpenStateChangedRequested) }
                     }
 
+                    var didHitSend by remember(state.textFieldState.text) { mutableStateOf(false) }
+
                     ChatInput(
                         modifier = Modifier.navigationBarsPadding(),
                         state = state.textFieldState,
                         sendCashEnabled = false,
                         focusRequester = focusRequester,
                         onSendMessage = {
+                            didHitSend = true
                             if (chattableState is ChattableState.TemporarilyEnabled) {
                                 ime?.hide()
                             }
@@ -127,8 +130,13 @@ fun ConversationChatInput(
                     LaunchedEffect(keyboardVisible) {
                         if (wasKeyboardVisible && !keyboardVisible) {
                             delay(150) // Short delay to prevent accidental blips
-                            if (!keyboardVisible && chattableState is ChattableState.TemporarilyEnabled) {
+                            if (
+                                !keyboardVisible &&
+                                chattableState is ChattableState.TemporarilyEnabled &&
+                                !didHitSend
+                            ) {
                                 dispatchEvent(ConversationViewModel.Event.ResetToSpectator)
+                                dispatchEvent(ConversationViewModel.Event.CancelReply)
                             }
                         }
                         wasKeyboardVisible = keyboardVisible

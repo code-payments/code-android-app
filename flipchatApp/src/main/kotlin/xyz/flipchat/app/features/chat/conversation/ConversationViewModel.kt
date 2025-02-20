@@ -522,7 +522,8 @@ class ConversationViewModel @Inject constructor(
                     roomController.sendReply(
                         state.conversationId!!,
                         replyingTo.id,
-                        text
+                        text,
+                        paymentId
                     )
                 } else {
                     roomController.sendMessage(state.conversationId!!, text, paymentId)
@@ -1648,7 +1649,7 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.ResetToSpectator -> { state ->
                     val fee = Kin.fromQuarks(state.roomInfoArgs.messagingFeeQuarks)
-                    state.copy(chattableState = ChattableState.Spectator(fee), replyMessage = null)
+                    state.copy(chattableState = ChattableState.Spectator(fee))
                 }
 
                 is Event.OnAbilityToChatChanged -> { state -> state.copy(chattableState = event.state) }

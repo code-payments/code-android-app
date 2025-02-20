@@ -138,8 +138,16 @@ class MessagingApi @Inject constructor(
 
         when (content) {
             is OutgoingMessageContent.DeleteRequest -> Unit
-            is OutgoingMessageContent.Reaction -> Unit
-            is OutgoingMessageContent.Reply -> Unit
+            is OutgoingMessageContent.Reaction -> {
+                content.intentId?.let { id ->
+                    builder.setPaymentIntent(id.toIntentId())
+                }
+            }
+            is OutgoingMessageContent.Reply -> {
+                content.intentId?.let { id ->
+                    builder.setPaymentIntent(id.toIntentId())
+                }
+            }
             is OutgoingMessageContent.Text -> {
                 content.intentId?.let { id ->
                     builder.setPaymentIntent(id.toIntentId())
