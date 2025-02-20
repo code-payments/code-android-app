@@ -63,6 +63,7 @@ class ChatInfoViewModel @Inject constructor(
         val isMember: Boolean = false,
         val paymentDestination: PublicKey? = null,
         val roomNameChangesEnabled: Boolean = false,
+        val canViewUserProfile: Boolean = false,
         val isOpen: Boolean = false,
         val roomInfo: RoomInfo = RoomInfo(),
         val joining: LoadingSuccessState = LoadingSuccessState(),
@@ -73,6 +74,7 @@ class ChatInfoViewModel @Inject constructor(
     sealed interface Event {
         // region state updates
         data class OnRoomNameChangesEnabled(val enabled: Boolean) : Event
+        data class OnUserProfilesEnabled(val enabled: Boolean): Event
         data class OnHostStatusChanged(val isHost: Boolean) : Event
         data class OnRoomOpenStateChanged(val isOpen: Boolean) : Event
         data class OnDestinationChanged(val destination: PublicKey) : Event
@@ -114,6 +116,10 @@ class ChatInfoViewModel @Inject constructor(
     }
 
     init {
+        labs.observe(Lab.ShowConnectedSocials)
+            .map { dispatchEvent(Event.OnUserProfilesEnabled(it)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnInfoChanged>()
             .map { it.args.ownerId }
@@ -126,7 +132,7 @@ class ChatInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnInfoChanged>()
             .mapNotNull { it.args }
             .onEach { args ->
-                val showConnectedSocials = labs.get(Lab.ShowConnectedSocials)
+                val showConnectedSocials = stateFlow.value.canViewUserProfile
                 val exists = roomController.getConversation(args.roomId.orEmpty()) != null
                 if (!exists) {
                     chatsController.lookupRoom(args.roomNumber)
@@ -503,6 +509,8 @@ class ChatInfoViewModel @Inject constructor(
 
                     state.copy(members = sortMembers(updatedMembers))
                 }
+
+                is Event.OnUserProfilesEnabled -> { state -> state.copy(canViewUserProfile = event.enabled) }
 
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }
                 is Event.OnFeeChanged -> { state ->

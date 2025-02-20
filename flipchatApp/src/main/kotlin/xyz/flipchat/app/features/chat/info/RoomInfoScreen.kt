@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -50,6 +52,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.model.chat.MinimalMember
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -64,6 +67,7 @@ import com.getcode.ui.components.user.social.MemberNameDisplay
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient
@@ -215,6 +219,8 @@ private fun RoomInfoScreenContent(
     state: ChatInfoViewModel.State,
     dispatch: (ChatInfoViewModel.Event) -> Unit
 ) {
+    val navigator = LocalCodeNavigator.current
+
     CodeScaffold(
         bottomBar = {
             if (!state.isMember) {
@@ -237,6 +243,10 @@ private fun RoomInfoScreenContent(
 
         val listeners = remember(state.members) {
             state.members.getOrDefault(MemberType.Listener, emptyList())
+        }
+
+        val viewUserProfile = { member: MinimalMember ->
+            navigator.push(ScreenRegistry.get(NavScreenProvider.UserProfile(member.id!!)))
         }
 
         LazyVerticalGrid(
@@ -343,11 +353,19 @@ private fun RoomInfoScreenContent(
 
             items(speakers, key = { it.id?.base58.orEmpty() }) { member ->
                 Column(
-                    modifier = Modifier.rememberedLongClickable(
-                        enabled = state.isHost && !member.isSelf
-                    ) {
-                        dispatch(ChatInfoViewModel.Event.DemoteRequested(member))
-                    }.animateItem(),
+                    modifier = Modifier
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = if (state.isHost && !member.isSelf) { _ ->
+                                    dispatch(ChatInfoViewModel.Event.DemoteRequested(member))
+                                } else null,
+                                onTap = if (state.canViewUserProfile) { _ ->
+                                    viewUserProfile(member)
+                                } else {
+                                    null
+                                }
+                            )
+                        }.animateItem(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
@@ -382,11 +400,19 @@ private fun RoomInfoScreenContent(
 
             items(listeners, key = { it.id?.base58.orEmpty() }) { member ->
                 Column(
-                    modifier = Modifier.rememberedLongClickable(
-                        enabled = state.isHost && !member.isSelf
-                    ) {
-                        dispatch(ChatInfoViewModel.Event.PromoteRequested(member))
-                    }.animateItem(),
+                    modifier = Modifier
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = if (state.isHost && !member.isSelf) { _ ->
+                                    dispatch(ChatInfoViewModel.Event.DemoteRequested(member))
+                                } else null,
+                                onTap = if (state.canViewUserProfile) { _ ->
+                                    viewUserProfile(member)
+                                } else {
+                                    null
+                                }
+                            )
+                        }.animateItem(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
