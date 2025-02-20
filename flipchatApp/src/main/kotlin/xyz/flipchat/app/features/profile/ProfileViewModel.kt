@@ -10,8 +10,10 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -85,11 +87,14 @@ class ProfileViewModel @Inject constructor(
     }
 
     init {
-//        userManager.state
-//            .mapNotNull { UserProfile(it.displayName.orEmpty(), it.linkedSocialProfiles) }
-//            .distinctUntilChanged()
-//            .onEach { dispatchEvent(Event.OnUserLoaded(it)) }
-//            .launchIn(viewModelScope)
+        // handle self user updates (connects/disconnects)
+        stateFlow
+            .filter { it.isSelf }
+            .flatMapLatest { userManager.state }
+            .mapNotNull { UserProfile(it.displayName.orEmpty(), it.linkedSocialProfiles) }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnUserLoaded(true, it)) }
+            .launchIn(viewModelScope)
 
         userManager.state
             .mapNotNull { it.flags }
