@@ -45,7 +45,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
@@ -67,8 +66,6 @@ import com.getcode.ui.components.user.social.MemberNameDisplay
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.noRippleClickable
-import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient
 import com.getcode.utils.base58

@@ -3,7 +3,11 @@ package com.getcode.ui.components.user.social
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -129,6 +133,7 @@ fun SocialUserDisplay(
         modifier = modifier,
         nameSlot = {
             Text(
+                modifier = Modifier.padding(top = 1.dp),
                 text = when (profile) {
                     SocialProfile.Unknown -> ""
                     is SocialProfile.X -> profile.friendlyName
@@ -180,7 +185,7 @@ fun SocialUserDisplay(
     endSlot: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(
             CodeTheme.dimens.grid.x1,
             Alignment.CenterHorizontally
@@ -188,7 +193,11 @@ fun SocialUserDisplay(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         startSlot?.invoke()
-        Box(modifier = Modifier.weight(1f, fill = false)) { nameSlot() }
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .weight(1f, fill = false)
+        ) { nameSlot() }
         endSlot?.invoke()
     }
 }
