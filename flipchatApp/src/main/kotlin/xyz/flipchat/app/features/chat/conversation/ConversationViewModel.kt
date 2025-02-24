@@ -380,10 +380,10 @@ class ConversationViewModel @Inject constructor(
                 val chattableState = if (selfMember != null) {
                     val isMuted = selfMember.isMuted
                     val isSpectator = !selfMember.isFullMember
-                    val isRoomClosedAsMember = !conversation.isOpen && !selfMember.isHost
+                    val isRoomClosed = !conversation.isOpen
 
                     when {
-                        isRoomClosedAsMember -> ChattableState.DisabledByClosedRoom
+                        isRoomClosed -> ChattableState.DisabledByClosedRoom
                         // remain temp enabled
                         stateFlow.value.chattableState is ChattableState.TemporarilyEnabled -> ChattableState.TemporarilyEnabled
                         isMuted -> ChattableState.DisabledByMute
@@ -631,7 +631,7 @@ class ConversationViewModel @Inject constructor(
 
                     stopTypingJob?.cancel()
                     stopTypingJob = viewModelScope.launch {
-                        delay(stateFlow.value.typingConstraints.interval + 1.seconds.inWholeMilliseconds)
+                        delay(stateFlow.value.typingConstraints.timeout)
                         dispatchEvent(Event.OnUserTypingStopped)
                         typingStillJob?.cancel()
                     }

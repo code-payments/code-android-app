@@ -96,12 +96,6 @@ fun ConversationChatInput(
             is ChattableState.TemporarilyEnabled,
             is ChattableState.Enabled -> {
                 Column {
-                    if (state.isHost && !keyboardVisible && state.isOpenCloseEnabled && !state.isRoomOpen) {
-                        RoomOpenControlBar(
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { dispatchEvent(ConversationViewModel.Event.OnOpenStateChangedRequested) }
-                    }
-
                     var didHitSend by remember(state.textFieldState.text) { mutableStateOf(false) }
 
                     ChatInput(
@@ -204,22 +198,37 @@ fun ConversationChatInput(
             }
 
             ChattableState.DisabledByClosedRoom -> {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(CodeTheme.colors.secondary)
-                        .padding(
-                            top = CodeTheme.dimens.grid.x1,
-                            bottom = CodeTheme.dimens.grid.x3,
-                            start = CodeTheme.dimens.inset,
-                            end = CodeTheme.dimens.inset,
-                        )
-                        .navigationBarsPadding(),
-                    textAlign = TextAlign.Center,
-                    text = stringResource(R.string.title_roomIsClosed),
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary
-                )
+                if (state.isHost && !state.isRoomOpen) {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = CodeTheme.dimens.inset,
+                                end = CodeTheme.dimens.inset
+                            ).navigationBarsPadding(),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(R.string.action_reopenRoom),
+                    ) {
+                        dispatchEvent(ConversationViewModel.Event.OnOpenStateChangedRequested)
+                    }
+                } else {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(CodeTheme.colors.secondary)
+                            .padding(
+                                top = CodeTheme.dimens.grid.x1,
+                                bottom = CodeTheme.dimens.grid.x3,
+                                start = CodeTheme.dimens.inset,
+                                end = CodeTheme.dimens.inset,
+                            )
+                            .navigationBarsPadding(),
+                        textAlign = TextAlign.Center,
+                        text = stringResource(R.string.title_roomIsClosed),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary
+                    )
+                }
             }
         }
     }
