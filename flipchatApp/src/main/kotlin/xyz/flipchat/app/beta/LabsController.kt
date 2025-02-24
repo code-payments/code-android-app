@@ -67,26 +67,26 @@ sealed interface Lab {
         override val launched: Boolean = true
     }
 
+    data object ShowConnectedSocials: Lab {
+        override val key: String = "show_connected_socials_enabled"
+        override val default: Boolean = true
+        override val launched: Boolean = true
+    }
+
+    data object ConnectX: Lab {
+        override val key: String = "connect_x_enabled"
+        override val default: Boolean = true
+        override val launched: Boolean = true
+    }
+
     data object LinkImages : Lab {
         override val key: String = "link_image_preview_enabled"
         override val default: Boolean = false
         override val launched: Boolean = false
     }
 
-    data object ShowConnectedSocials: Lab {
-        override val key: String = "show_connected_socials_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-    }
-
     data object TypingInChat: Lab {
         override val key: String = "typing_indicator_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-    }
-
-    data object ConnectX: Lab {
-        override val key: String = "connect_x_enabled"
         override val default: Boolean = false
         override val launched: Boolean = false
     }
