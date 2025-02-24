@@ -106,7 +106,7 @@
     <string name="title_cashTab">Balance</string>
     <string name="title_chatsTab">Flipchats</string>
     <string name="title_settingsTab">Settings</string>
-    <string name="title_profileTab">You</string>
+    <string name="title_profileTab">Profile</string>
     <string name="action_enterRoomNumber">Enter Flipchat Number</string>
     <string name="action_createNewRoom">Create a New Flipchat</string>
     <string name="action_createNewRoomWithCost">Create a New Flipchat: ⬢ %1$s</string>
