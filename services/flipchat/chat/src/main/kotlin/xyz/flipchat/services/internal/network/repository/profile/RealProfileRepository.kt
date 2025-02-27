@@ -5,7 +5,6 @@ import com.getcode.model.social.user.SocialProfile
 import com.getcode.services.model.profile.SocialAccountLinkRequest
 import com.getcode.services.model.profile.SocialAccountUnlinkRequest
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.SuppressibleException
 import xyz.flipchat.services.domain.model.profile.UserProfile
 import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.UserProfileMapper

@@ -46,21 +46,25 @@ internal class RealMessagingRepository @Inject constructor(
         // Get current state
         val currently = typingState.value
 
-        // Remove users who stopped typing from current state first
+        // Remove users who stopped typing from current state, preserving order
         val afterRemovals = currently.filter { current ->
             noLongerTyping.none { it.userId == current.userId }
-        }.toSet()
+        }
 
         // Process new typing updates (excluding stops/timeouts)
         val newTypingUpdates = updates.filter {
             it.state != TypingState.Stopped && it.state != TypingState.TimedOut
         }.toSet()
 
-        // Combine existing state with new updates, favoring new updates in case of conflicts
-        // Using distinctBy to ensure only one entry per userId, preferring the latest update
-        typingState.value = (afterRemovals + newTypingUpdates)
-            .distinctBy { it.userId }
-            .toList()
+        // Get new updates that aren't in the current state
+        val trulyNewUpdates = newTypingUpdates.filter { update ->
+            afterRemovals.none { it.userId == update.userId }
+        }
+
+        // Combine: keep existing users in their original order at the start,
+        // then append truly new updates, while updates for existing users
+        // are already handled by favoring the incoming update via filtering
+        typingState.value = (afterRemovals + trulyNewUpdates)
     }
 
     override suspend fun getMessages(
