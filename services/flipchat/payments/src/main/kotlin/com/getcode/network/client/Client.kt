@@ -47,7 +47,7 @@ class Client @Inject constructor(
     private fun startPollTimerWhenAuthenticated() {
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
-            while(userManager.authState !is AuthState.LoggedIn) {
+            while(true) {
                 delay(1.seconds)
                 if (userManager.authState is AuthState.LoggedIn) {
                     startPollTimer()
