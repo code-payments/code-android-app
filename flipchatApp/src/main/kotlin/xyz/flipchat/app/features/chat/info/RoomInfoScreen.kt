@@ -401,7 +401,7 @@ private fun RoomInfoScreenContent(
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onLongPress = if (state.isHost && !member.isSelf) { _ ->
-                                    dispatch(ChatInfoViewModel.Event.DemoteRequested(member))
+                                    dispatch(ChatInfoViewModel.Event.PromoteRequested(member))
                                 } else null,
                                 onTap = if (state.canViewUserProfile) { _ ->
                                     viewUserProfile(member)
