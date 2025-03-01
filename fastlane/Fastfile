@@ -58,8 +58,8 @@ platform :android do
     end
 
 
-  desc "Build and Deploy a new internal version of Flipchat to the Google Play Store"
-    lane :deploy_fc_internal do
+  desc "Build and Deploy a new version of Flipchat to the Google Play Store"
+    lane :deploy_fc do
       #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
       gradle(
         task: "clean flipchatApp:bundle", #"clean app:bundleRelease",
@@ -89,7 +89,7 @@ platform :android do
       )
 
       upload_to_play_store(
-        track: "internal",
+        track: ENV["PLAYSTORE_TRACK"],
         aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
         skip_upload_apk: true,
         skip_upload_changelogs: true,
