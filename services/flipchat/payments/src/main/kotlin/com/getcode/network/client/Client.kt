@@ -62,7 +62,7 @@ class Client @Inject constructor(
         pollTimer = fixedRateTimer("pollTimer", false, 0, 1000 * 10) {
             scope.launch {
                 val time = System.currentTimeMillis()
-                val isPastThrottle = time - lastPoll > 1000 * 30 || lastPoll == 0L
+                val isPastThrottle = time - lastPoll > 1000 * 10 || lastPoll == 0L
 
                 if (userManager.authState is AuthState.LoggedIn && isPastThrottle) {
                     Timber.tag(TAG).i("Timer Polling")
