@@ -3,6 +3,14 @@ package xyz.flipchat.app.features.profile
 import android.app.Activity
 import android.content.Context
 import android.os.Parcelable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -184,86 +192,128 @@ private fun ProfileContent(
             }
         )
 
-        if (state.linkedSocialProfile == null) {
-            Text(
-                text = state.displayName,
-                style = CodeTheme.typography.textLarge,
-                color = CodeTheme.colors.textMain
-            )
-            if (state.canConnectAccount && state.isSelf) {
-                val xOAuthLauncher = rememberLauncherForOAuth(OAuthProvider.X) { accessToken ->
-                    println("x access token=$accessToken")
-                    dispatchEvent(ProfileViewModel.Event.LinkXAccount(accessToken))
-                }
+        // Crossfade between no-account and linked-account states
+        Crossfade(
+            targetState = state.linkedSocialProfile != null,
+            animationSpec = tween(durationMillis = 300)
+        ) { isLinked ->
+            if (!isLinked) {
+                // No account linked
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = state.displayName,
+                        style = CodeTheme.typography.textLarge,
+                        color = CodeTheme.colors.textMain
+                    )
+                    if (state.canConnectAccount && state.isSelf) {
+                        val xOAuthLauncher = rememberLauncherForOAuth(OAuthProvider.X) { accessToken ->
+                            println("x access token=$accessToken")
+                            dispatchEvent(ProfileViewModel.Event.LinkXAccount(accessToken))
+                        }
 
-                CodeButton(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(top = CodeTheme.dimens.grid.x12)
-                        .padding(horizontal = CodeTheme.dimens.inset),
-                    buttonState = ButtonState.Filled,
-                    onClick = { xOAuthLauncher.launch(OAuthProvider.X.launchIntent(context)) },
-                    content = {
-                        Image(
-                            painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
-                            colorFilter = ColorFilter.tint(Color.Black),
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
-                        Text(
-                            text = stringResource(R.string.action_connectYourAccount),
-                        )
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                        ) {
+                            CodeButton(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = CodeTheme.dimens.grid.x12)
+                                    .padding(horizontal = CodeTheme.dimens.inset),
+                                buttonState = ButtonState.Filled,
+                                onClick = { xOAuthLauncher.launch(OAuthProvider.X.launchIntent(context)) },
+                                content = {
+                                    Image(
+                                        painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
+                                        colorFilter = ColorFilter.tint(Color.Black),
+                                        contentDescription = null
+                                    )
+                                    Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+                                    Text(
+                                        text = stringResource(R.string.action_connectYourAccount),
+                                    )
+                                }
+                            )
+                        }
                     }
-                )
-            }
-        } else {
-            SocialUserDisplay(
-                modifier = Modifier.fillMaxWidth(),
-                profile = state.linkedSocialProfile
-            )
-
-            state.username?.let { username ->
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = username,
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            when (state.linkedSocialProfile) {
-                is SocialProfile.Unknown -> Unit
-                is SocialProfile.X -> {
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = CodeTheme.dimens.grid.x8),
-                        text = "${state.linkedSocialProfile.followerCountFormatted} Followers",
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth(0.70f)
-                            .padding(top = CodeTheme.dimens.grid.x1),
-                        text = state.linkedSocialProfile.description,
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                        textAlign = TextAlign.Center,
-                    )
                 }
-            }
+            } else {
+                // Linked account state
+                state.linkedSocialProfile?.let { linkedProfile ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        SocialUserDisplay(
+                            modifier = Modifier.fillMaxWidth(),
+                            profile = linkedProfile
+                        )
 
-            if (!isInTab) {
-                CodeButton(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(top = CodeTheme.dimens.grid.x12)
-                        .padding(horizontal = CodeTheme.dimens.inset),
-                    buttonState = ButtonState.Filled,
-                    onClick = { uriHandler.openUri(state.linkedSocialProfile.profileUrl) },
-                    text = stringResource(R.string.action_openProfileOnPlatform, state.linkedSocialProfile.platformTypeName)
-                )
+                        state.username?.let { username ->
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                Text(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    text = username,
+                                    style = CodeTheme.typography.textSmall,
+                                    color = CodeTheme.colors.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        when (linkedProfile) {
+                            is SocialProfile.Unknown -> Unit
+                            is SocialProfile.X -> {
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn(),
+                                    exit = fadeOut() + shrinkVertically()
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = CodeTheme.dimens.grid.x8),
+                                            text = "${linkedProfile.followerCountFormatted} Followers",
+                                            style = CodeTheme.typography.textSmall,
+                                            color = CodeTheme.colors.textSecondary,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Text(
+                                            modifier = Modifier
+                                                .fillMaxWidth(0.70f)
+                                                .padding(top = CodeTheme.dimens.grid.x1),
+                                            text = linkedProfile.description,
+                                            style = CodeTheme.typography.textSmall,
+                                            color = CodeTheme.colors.textSecondary,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!isInTab) {
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                            ) {
+                                CodeButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = CodeTheme.dimens.grid.x12)
+                                        .padding(horizontal = CodeTheme.dimens.inset),
+                                    buttonState = ButtonState.Filled,
+                                    onClick = { uriHandler.openUri(linkedProfile.profileUrl) },
+                                    text = stringResource(R.string.action_openProfileOnPlatform, linkedProfile.platformTypeName)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
