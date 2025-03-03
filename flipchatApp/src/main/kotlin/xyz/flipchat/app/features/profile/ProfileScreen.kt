@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
@@ -52,11 +53,13 @@ import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.components.user.social.SocialUserDisplay
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -87,6 +90,11 @@ class ProfileScreen(val userId: ID? = null, val isInTab: Boolean) : Screen, Parc
                 viewModel.dispatchEvent(ProfileViewModel.Event.OnLoadUser(userManager?.userId!!))
             }
         }
+
+        RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+            viewModel.dispatchEvent(ProfileViewModel.Event.CheckUserLink)
+        }
+
         Column {
             AppBarWithTitle(
                 backButton = !isInTab,

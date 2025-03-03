@@ -22,6 +22,12 @@ class ProfileController @Inject constructor(
 
     suspend fun getProfile(userId: ID): Result<UserProfile> {
         return repository.getProfile(userId)
+            .onSuccess {
+                if (userManager.isSelf(userId)) {
+                    userManager.set(it.displayName)
+                    userManager.setSocialProfiles(it.socialProfiles)
+                }
+            }
     }
 
     suspend fun setDisplayName(name: String): Result<Unit> {

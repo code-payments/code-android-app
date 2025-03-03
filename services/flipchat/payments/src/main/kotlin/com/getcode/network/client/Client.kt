@@ -1,18 +1,12 @@
 package com.getcode.network.client
 
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.OnLifecycleEvent
-import com.codeinc.gen.user.v1.user
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.services.analytics.AnalyticsService
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.vendor.Base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

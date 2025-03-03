@@ -77,6 +77,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data object CheckUserLink: Event
         data class OnLoadUser(val id: ID): Event
         data class OnUserLoaded(val isSelf: Boolean, val user: UserProfile): Event
         data class OnStaffEmployed(val enabled: Boolean) : Event
@@ -124,6 +125,12 @@ class ProfileViewModel @Inject constructor(
                     dispatchEvent(Event.OnUserLoaded(isSelf, profile))
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CheckUserLink>()
+            .mapNotNull { stateFlow.value.id }
+            .map { profileController.getProfile(it) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.LinkXAccount>()
@@ -192,6 +199,7 @@ class ProfileViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                is Event.CheckUserLink -> { state -> state }
                 is Event.OnLoadUser -> { state -> state.copy(id = event.id) }
                 is Event.OnStaffEmployed -> { state -> state.copy(isStaff = event.enabled) }
                 is Event.OnUserLoaded -> { state ->
