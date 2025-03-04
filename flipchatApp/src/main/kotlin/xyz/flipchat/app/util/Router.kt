@@ -69,18 +69,12 @@ class RouterImpl(
     override fun tabForIndex(index: Int) = indexTabResolver(index)
 
     private val commonTabs: List<ChildNavTab> =
-        listOf(ChatTab(0), CashTab(1))
+        listOf(ChatTab(0), CashTab(1), ProfileTab(2))
 
     private val tabs = MutableStateFlow(commonTabs)
 
     override suspend fun checkTabs() {
-        val updatedTabs = if (userManager.userFlags?.isStaff == true) {
-            commonTabs + listOf(ProfileTab(2))
-        } else {
-            commonTabs
-        }
-
-        tabs.value = updatedTabs
+        // no-op for now
     }
 
     override val rootTabs: List<ChildNavTab>
