@@ -7,6 +7,7 @@ import androidx.room.Query
 import com.getcode.model.ID
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import xyz.flipchat.services.data.MemberIdentity
 import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.domain.model.people.FlipchatUserWithSocialProfiles
@@ -39,5 +40,8 @@ interface UserDao {
     fun getUsersFrom(userIds: List<String>): Flow<List<FlipchatUserWithSocialProfiles>>
     fun getUsersFromIds(userIds: List<ID>): Flow<List<FlipchatUserWithSocialProfiles>> {
         return getUsersFrom(userIds.map { it.base58 })
+            .map { users ->
+                users.sortedBy { userIds.indexOf(it.user.id) }
+            }
     }
 }
