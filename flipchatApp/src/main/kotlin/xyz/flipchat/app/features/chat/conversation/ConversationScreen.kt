@@ -257,26 +257,6 @@ private fun ConversationScreenContent(
                     },
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
-                AnimatedContent(
-                    targetState = state.otherUsersTyping.isNotEmpty(),
-                    transitionSpec = {
-                        slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) { it } + scaleIn() + fadeIn() togetherWith fadeOut() + scaleOut() + slideOutVertically { it }
-                    }
-                ) { show ->
-                    if (show) {
-                        TypingIndicator(
-                            modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.grid.x2),
-                            userImages = state.otherUsersTyping
-                        )
-                    }
-                }
-
                 Column(
                     modifier = Modifier
                         .addIf(state.chattableState?.isActiveMember() == true) {

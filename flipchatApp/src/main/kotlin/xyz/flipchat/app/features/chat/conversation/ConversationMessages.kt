@@ -1,7 +1,17 @@
 package xyz.flipchat.app.features.chat.conversation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +54,7 @@ import com.getcode.ui.components.chat.HostableAvatar
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
+import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.messagecontents.LocalAnnouncementActionResolver
 import com.getcode.ui.components.chat.messagecontents.ResolvedAction
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -115,6 +126,28 @@ internal fun ConversationMessages(
                         current.sender.id == previous?.sender?.id,
                         current.sender.id == next?.sender?.id
                     )
+                },
+                footer = {
+                    AnimatedContent(
+                        targetState = state.otherUsersTyping.isNotEmpty(),
+                        transitionSpec = {
+                            slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            ) { it } + scaleIn() + fadeIn() togetherWith
+                                    fadeOut() + slideOutVertically { it }
+                        }
+                    ) { show ->
+                        if (show) {
+                            TypingIndicator(
+                                modifier = Modifier
+                                    .padding(horizontal = CodeTheme.dimens.inset),
+                                userImages = state.otherUsersTyping
+                            )
+                        }
+                    }
                 },
                 dispatch = { event ->
                     when (event) {

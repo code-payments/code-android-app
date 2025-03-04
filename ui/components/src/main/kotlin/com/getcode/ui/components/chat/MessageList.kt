@@ -78,6 +78,7 @@ fun MessageList(
         val nextGrouped = next?.chatMessageId == current.chatMessageId
         MessageListPointerResult(prevGrouped, nextGrouped)
     },
+    footer: (@Composable () -> Unit)? = null,
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
     var hasSetAtUnread by rememberSaveable(key = "0") { mutableStateOf(false) }
@@ -97,10 +98,16 @@ fun MessageList(
         reverseLayout = true,
         contentPadding = PaddingValues(
             top = CodeTheme.dimens.inset,
-            bottom = CodeTheme.dimens.grid.x2,
+            bottom = CodeTheme.dimens.grid.x1,
         ),
         verticalArrangement = Arrangement.Top,
     ) {
+        if (footer != null) {
+            item {
+                footer.invoke()
+            }
+        }
+
         items(
             count = messages.itemCount,
             key = messages.itemKey { item -> item.key },
