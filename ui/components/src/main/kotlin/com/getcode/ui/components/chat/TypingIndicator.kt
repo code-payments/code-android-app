@@ -15,7 +15,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -24,7 +23,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -61,7 +62,7 @@ fun TypingIndicator(
         modifier = modifier
             .padding(top = 4.dp)
             .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar Row
@@ -91,24 +92,22 @@ private fun AvatarRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(-overlap)
     ) {
-        items(
+        itemsIndexed(
             items = userImages.take(maxAvatars),
-            key = { it.hashCode() }
-        ) { image ->
-            val index = userImages.take(maxAvatars).indexOf(image)
-
+            key = { _, item -> item.hashCode() }
+        ) { index, image ->
+//            val zIndex = (maxAvatars - index).toFloat()
             UserAvatar(
                 modifier = Modifier
                     .size(avatarSize)
-                    .zIndex(index.toFloat())
                     .clip(CircleShape)
-                    .border(CodeTheme.dimens.border, CodeTheme.colors.dividerVariant, CircleShape)
                     .animateItem(
                         fadeOutSpec = spring(
                             stiffness = Spring.StiffnessMediumLow,
-                            visibilityThreshold = 0.8f
-                        ),
-                    ),
+                            visibilityThreshold = 0.9f
+                        )
+                    )
+                    .zIndex(index.toFloat()),
                 data = image
             ) {
                 Image(
@@ -146,17 +145,27 @@ private fun TypingDots(
 ) {
     Row(
         modifier = modifier
-            .background(color = CodeTheme.colors.brandDark, shape = CodeTheme.shapes.small)
-            .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x3),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterHorizontally),
+            .background(
+                color = CodeTheme.colors.brandDark,
+                shape = CodeTheme.shapes.small.copy(
+                    topStart = CornerSize(3.dp)
+                )
+            )
+            .padding(
+                horizontal = CodeTheme.dimens.grid.x2,
+                vertical = CodeTheme.dimens.grid.x3
+            ),
+        horizontalArrangement = Arrangement.spacedBy(
+            space = CodeTheme.dimens.grid.x1,
+            alignment = Alignment.CenterHorizontally
+        ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val baseColor = CodeTheme.colors.onSurface
-        val alphaValues = remember { arrayOf(1f, 0.60f, 0.20f) }
         var currentIndex by remember { mutableIntStateOf(0) }
 
-        val animatedAlphas = List(3) { index ->
-            val targetAlpha = if (index == currentIndex) 1f else alphaValues[(index - currentIndex + 3) % 3]
+        val animatedAlphas = List(DotCount) { index ->
+            val targetAlpha = if (index == currentIndex) 1f else 0.4f
             animateFloatAsState(
                 targetValue = targetAlpha,
                 animationSpec = tween(durationMillis = StepDuration),
@@ -164,8 +173,8 @@ private fun TypingDots(
             )
         }
 
-        val scales = List(3) { index ->
-            val targetScale = if (index == currentIndex) 1f else 0.8f
+        val animatedScales = List(DotCount) { index ->
+            val targetScale = if (index == currentIndex) 1f else 0.6f
             animateFloatAsState(
                 targetValue = targetScale,
                 animationSpec = tween(durationMillis = StepDuration),
@@ -176,22 +185,35 @@ private fun TypingDots(
         LaunchedEffect(Unit) {
             while (true) {
                 delay(StepDuration.toLong())
-                currentIndex = (currentIndex + 1) % 3
+                currentIndex = when (currentIndex) {
+                    DotCount -> 0
+                    DotCount - 1 -> DotCount
+                    else -> currentIndex + 1
+                }
+
+                // Add extra delay when resetting
+                if (currentIndex == DotCount) {
+                    delay(StepDuration.toLong())
+                }
             }
         }
 
-        animatedAlphas.zip(scales).forEach { (alpha, scale) ->
+        animatedAlphas.zip(animatedScales).forEach { (alpha, scale) ->
             Box(
                 modifier = Modifier
                     .size(CodeTheme.dimens.grid.x2)
                     .scale(scale.value)
-                    .background(color = baseColor.copy(alpha = alpha.value), shape = CircleShape)
+                    .background(
+                        color = baseColor.copy(alpha = alpha.value),
+                        shape = CircleShape
+                    )
             )
         }
     }
 }
 
 private const val MaxAvatars = 3
+private const val DotCount = 3
 private const val StepDuration = 500
 
 @Composable
