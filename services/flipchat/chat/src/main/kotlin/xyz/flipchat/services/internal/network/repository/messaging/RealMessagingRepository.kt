@@ -54,17 +54,21 @@ internal class RealMessagingRepository @Inject constructor(
         // Process new typing updates (excluding stops/timeouts)
         val newTypingUpdates = updates.filter {
             it.state != TypingState.Stopped && it.state != TypingState.TimedOut
-        }.toSet()
+        }
 
-        // Get new updates that aren't in the current state
+        // Update existing users and collect truly new users
+        val updatedList = afterRemovals.map { existing ->
+            // If there's a new update for this user, use it instead
+            newTypingUpdates.find { it.userId == existing.userId } ?: existing
+        }
+
+        // Get users who are completely new (not in current state)
         val trulyNewUpdates = newTypingUpdates.filter { update ->
             afterRemovals.none { it.userId == update.userId }
         }
 
-        // Combine: keep existing users in their original order at the start,
-        // then append truly new updates, while updates for existing users
-        // are already handled by favoring the incoming update via filtering
-        typingState.value = (afterRemovals + trulyNewUpdates)
+        // Combine: updated existing users (in original order) + truly new users
+        typingState.value = updatedList + trulyNewUpdates
     }
 
     override suspend fun getMessages(
@@ -165,7 +169,6 @@ internal class RealMessagingRepository @Inject constructor(
                         }
                         is MessageStreamUpdate.Pointers -> Unit
                         is MessageStreamUpdate.Typing -> {
-                            println("typing update=${update.data}")
                             handleTypingUpdates(update.data.map { typingMapper.map(it) })
                         }
                     }

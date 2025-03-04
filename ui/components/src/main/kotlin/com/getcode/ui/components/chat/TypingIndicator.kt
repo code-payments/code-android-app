@@ -92,7 +92,7 @@ private fun AvatarRow(
         horizontalArrangement = Arrangement.spacedBy(-overlap)
     ) {
         items(
-            items = userImages.take(maxAvatars).reversed(),
+            items = userImages.take(maxAvatars),
             key = { it.hashCode() }
         ) { image ->
             val index = userImages.take(maxAvatars).indexOf(image)
