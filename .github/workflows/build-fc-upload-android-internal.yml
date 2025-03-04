@@ -89,7 +89,7 @@ jobs:
         run: bundle exec fastlane android fc_tests
 
       - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_fc_internal
+        run: bundle exec fastlane android deploy_fc
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
