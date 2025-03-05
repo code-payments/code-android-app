@@ -586,6 +586,7 @@ internal class ChatService @Inject constructor(
             handleResponse = { response ->
                 when (response.result) {
                     ChatService.PromoteUserResponse.Result.OK -> Result.success(Unit)
+                    ChatService.PromoteUserResponse.Result.NOT_REGISTERED -> Result.failure(PromoteUserError.NotRegistered())
                     ChatService.PromoteUserResponse.Result.DENIED -> Result.failure(PromoteUserError.Denied())
                     ChatService.PromoteUserResponse.Result.UNRECOGNIZED -> Result.failure(PromoteUserError.Unrecognized())
                     else -> Result.failure(PromoteUserError.Other())
@@ -909,6 +910,7 @@ sealed class PromoteUserError(
 ) : FlipchatServerError(message, cause) {
     class Denied : PromoteUserError()
     class Unrecognized : PromoteUserError()
+    class NotRegistered: PromoteUserError()
     data class Other(override val cause: Throwable? = null) : PromoteUserError(cause = cause)
 }
 

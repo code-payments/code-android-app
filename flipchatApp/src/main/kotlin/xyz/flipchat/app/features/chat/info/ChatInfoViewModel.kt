@@ -13,6 +13,7 @@ import com.getcode.model.social.user.XExtraData
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.FlipchatServerError
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +38,7 @@ import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
+import xyz.flipchat.services.internal.network.service.PromoteUserError
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
@@ -339,13 +341,22 @@ class ChatInfoViewModel @Inject constructor(
             .filterIsInstance<Event.PromoteUser>()
             .onEach { member ->
                 roomController.promoteUser(member.conversationId, member.userId)
-                    .onFailure {
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                resources.getString(R.string.error_title_failedToPromoteUser),
-                                resources.getString(R.string.error_description_failedToPromoteUser)
+                    .onFailure { error ->
+                        if (error is PromoteUserError.NotRegistered) {
+                            TopBarManager.showMessage(
+                                TopBarManager.TopBarMessage(
+                                    resources.getString(R.string.error_title_failedToPromoteUserNotRegistered),
+                                    resources.getString(R.string.error_description_failedToPromoteUserNotRegistered)
+                                )
                             )
-                        )
+                        } else {
+                            TopBarManager.showMessage(
+                                TopBarManager.TopBarMessage(
+                                    resources.getString(R.string.error_title_failedToPromoteUser),
+                                    resources.getString(R.string.error_description_failedToPromoteUser)
+                                )
+                            )
+                        }
                     }.onSuccess {
                         dispatchEvent(Event.OnUserPromoted(member.userId))
                     }

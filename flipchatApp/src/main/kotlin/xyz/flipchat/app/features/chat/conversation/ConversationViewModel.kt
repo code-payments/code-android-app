@@ -88,6 +88,7 @@ import xyz.flipchat.services.domain.model.people.FlipchatUserWithSocialProfiles
 import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
+import xyz.flipchat.services.internal.network.service.PromoteUserError
 import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.TypingNotificationsConstraints
 import xyz.flipchat.services.user.UserManager
@@ -1005,13 +1006,22 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.PromoteUser>()
             .map { roomController.promoteUser(it.conversationId, it.userId) }
             .onResult(
-                onError = {
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            resources.getString(R.string.error_title_failedToPromoteUser),
-                            resources.getString(R.string.error_description_failedToPromoteUser)
+                onError = { error ->
+                    if (error is PromoteUserError.NotRegistered) {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToPromoteUserNotRegistered),
+                                resources.getString(R.string.error_description_failedToPromoteUserNotRegistered)
+                            )
                         )
-                    )
+                    } else {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToPromoteUser),
+                                resources.getString(R.string.error_description_failedToPromoteUser)
+                            )
+                        )
+                    }
                 }
             )
             .launchIn(viewModelScope)

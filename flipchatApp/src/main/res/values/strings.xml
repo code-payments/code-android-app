@@ -31,6 +31,9 @@
     <string name="error_title_failedToPromoteUser">Something Went Wrong</string>
     <string name="error_description_failedToPromoteUser">This user could not be made a speaker. Please check your network connection and try again</string>
 
+    <string name="error_title_failedToPromoteUserNotRegistered">User Hasn\'t Created Their Account</string>
+    <string name="error_description_failedToPromoteUserNotRegistered">Users need to create an account before becoming a speaker. Please ask the user to create a Flipchat account</string>
+
     <string name="error_title_failedToDemoteUser">Something Went Wrong</string>
     <string name="error_description_failedToDemoteUser">This user could not be removed as a speaker. Please check your network connection and try again</string>
 

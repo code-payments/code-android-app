@@ -10,9 +10,6 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.TopBarManager
-import com.getcode.network.repository.DeniedReason
-import com.getcode.network.repository.ErrorSubmitIntent
-import com.getcode.network.repository.ErrorSubmitIntentException
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.theme.Alert
 import com.getcode.theme.White
