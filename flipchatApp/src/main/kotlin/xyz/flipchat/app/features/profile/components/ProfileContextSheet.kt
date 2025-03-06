@@ -1,6 +1,7 @@
 package xyz.flipchat.app.features.profile.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Science
@@ -50,6 +51,6 @@ sealed interface ProfileContextAction : ContextMenuAction {
         override val title: String
             @Composable get() = stringResource(R.string.action_deleteMyAccount)
         override val painter: Painter
-            @Composable get() = rememberVectorPainter(Icons.Outlined.Delete)
+            @Composable get() = rememberVectorPainter(Icons.Default.Delete)
     }
 }
