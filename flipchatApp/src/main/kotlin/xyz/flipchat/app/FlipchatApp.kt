@@ -4,6 +4,13 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.request.CachePolicy
+import coil3.request.crossfade
 import com.bugsnag.android.Bugsnag
 import com.getcode.crypt.MnemonicCache
 import com.getcode.utils.ErrorUtils
@@ -18,7 +25,7 @@ import xyz.flipchat.app.auth.AuthManager
 import javax.inject.Inject
 
 @HiltAndroidApp
-class FlipchatApp : Application(), Configuration.Provider {
+class FlipchatApp : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject
     lateinit var authManager: AuthManager
@@ -72,5 +79,19 @@ class FlipchatApp : Application(), Configuration.Provider {
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         trace("app onCreate end")
+    }
+
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
+            .crossfade(true)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(context.cacheDir.resolve("image_cache"))
+                    .maxSizePercent(0.2)
+                    .build()
+            }
+            .build()
     }
 }
