@@ -91,6 +91,12 @@ sealed interface Lab {
         override val launched: Boolean = false
     }
 
+    data object EmojiReactions: Lab {
+        override val key: String = "emojis_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
         val entries = listOf(
             ReplyToMessage,
@@ -102,7 +108,8 @@ sealed interface Lab {
             Tipping,
             ConnectX,
             TypingInChat,
-            ShowConnectedSocials
+            ShowConnectedSocials,
+            EmojiReactions
         )
 
         internal fun byKey(key: Preferences.Key<*>): Lab? {
