@@ -5,7 +5,7 @@ import android.os.Parcelable
 import androidx.compose.ui.graphics.Color
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.getcode.model.ID
-import com.getcode.ui.components.restrictions.RestrictionType
+import com.getcode.ui.core.RestrictionType
 import dev.theolm.rinku.DeepLink
 import kotlinx.parcelize.Parceler
 import kotlinx.parcelize.Parcelize

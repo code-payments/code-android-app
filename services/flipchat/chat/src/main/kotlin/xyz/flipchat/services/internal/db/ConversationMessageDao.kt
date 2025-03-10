@@ -14,10 +14,12 @@ import com.getcode.utils.base58
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationMessageReaction
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndReply
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
+import xyz.flipchat.services.domain.model.chat.MessageReactionInfo
 import xyz.flipchat.services.domain.model.chat.MessageTipInfo
 import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.domain.model.people.MemberPersonalInfo
@@ -64,6 +66,17 @@ interface ConversationMessageDao {
                 m.id to tipContent
             }
 
+        val reactions = messages
+            .mapNotNull { m ->
+                val reactionContent = MessageContent.fromData(
+                    type = m.type,
+                    content = m.content,
+                    isFromSelf = m.senderId == selfID,
+                ) as? MessageContent.Reaction ?: return@mapNotNull null
+
+                m.id to reactionContent
+            }
+
         // first review for a message in the stream wins
         // so we sort and distinct by the [originalMessageId] and only change [isApproved] if
         // not previously set
@@ -90,6 +103,10 @@ interface ConversationMessageDao {
             addTip(tipMessageId = it.first, tipContent = it.second)
         }
 
+        reactions.onEach {
+            addReaction(reactionMessageId = it.first, reactionContent = it.second)
+        }
+
         reviews.onEach { review ->
             if (review.isApproved) {
                 approve(review.originalMessageId)
@@ -109,6 +126,7 @@ interface ConversationMessageDao {
         messages.conversationIdBase58 AS conversationIdBase58,
         messages.type AS type,
         messages.tipCount AS tipCount,
+        messages.reactionCount AS reactionCount,
         messages.deleted AS deleted,
         messages.deletedByBase58 AS deletedByBase58,
         messages.inReplyToBase58 AS inReplyToBase58,
@@ -169,6 +187,24 @@ interface ConversationMessageDao {
         return getTipsForMessage(id.base58)
     }
 
+    @Query("SELECT * FROM reactions WHERE messageIdBase58 = :id")
+    suspend fun getReactionsForMessage(id: String): List<MessageReactionInfo>
+    suspend fun getReactionsForMessage(id: ID): List<MessageReactionInfo> {
+        return getReactionsForMessage(id.base58)
+    }
+
+    @Query("SELECT * FROM reactions WHERE idBase58 = :id")
+    suspend fun getReaction(id: String): ConversationMessageReaction?
+    suspend fun getReaction(id: ID): ConversationMessageReaction? {
+        return getReaction(id.base58)
+    }
+
+    @Query("DELETE FROM reactions WHERE idBase58 = :id")
+    suspend fun removeReactionInternal(id: String)
+    suspend fun removeReactionInternal(id: ID) {
+        removeReactionInternal(id.base58)
+    }
+
     suspend fun getPagedMessagesWithDetails(id: ID, limit: Int, offset: Int, selfId: ID?): List<InflatedConversationMessage> {
         val messages = getPagedMessages(id.base58, limit, offset)
 
@@ -185,6 +221,7 @@ interface ConversationMessageDao {
             val replyMemberSocials = replyMessage?.member?.id?.let { id -> getUserSocialProfiles(id) }.orEmpty()
 
             val tips = getTipsForMessage(it.message.id)
+            val reactions = getReactionsForMessage(it.message.id)
             InflatedConversationMessage(
                 message = it.message,
                 member = ConversationMemberWithLinkedSocialProfiles(
@@ -204,6 +241,7 @@ interface ConversationMessageDao {
                     contentEntity = replyContent
                 },
                 tips = tips,
+                reactions = reactions
             )
         }
     }
@@ -277,6 +315,27 @@ interface ConversationMessageDao {
         incrementTipCount(messageId.base58)
     }
 
+    @Query("UPDATE messages SET reactionCount = reactionCount + 1 WHERE idBase58 = :messageId")
+    suspend fun incrementReactionCount(messageId: String)
+    suspend fun incrementReactionCount(messageId: ID) {
+        incrementTipCount(messageId.base58)
+    }
+
+    @Query("UPDATE messages SET reactionCount = reactionCount - 1 WHERE idBase58 = :messageId")
+    suspend fun decrementReactionCount(messageId: String)
+    suspend fun decrementReactionCount(messageId: ID) {
+        decrementReactionCount(messageId.base58)
+    }
+
+    @Transaction
+    suspend fun removeReaction(id: ID) {
+        val reactionRow = getReaction(id)
+        removeReactionInternal(id)
+        if (reactionRow != null) {
+            decrementReactionCount(reactionRow.messageId)
+        }
+    }
+
     @Query("SELECT isApproved FROM messages WHERE idBase58 = :messageId AND isApproved IS NOT NULL")
     suspend fun hasBeenReviewed(messageId: String): Boolean
     suspend fun hasBeenReviewed(messageId: ID): Boolean {
@@ -309,6 +368,22 @@ interface ConversationMessageDao {
         incrementTipCount(tipContent.originalMessageId)
 
         addTip(tip)
+    }
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addReaction(vararg reaction: ConversationMessageReaction)
+
+    suspend fun addReaction(reactionMessageId: ID, reactionContent: MessageContent.Reaction) {
+        val reaction = ConversationMessageReaction(
+            idBase58 = reactionMessageId.base58,
+            messageIdBase58 = reactionContent.originalMessageId.base58,
+            senderIdBase58 = reactionContent.senderId.base58,
+            emoji = reactionContent.emoji
+        )
+
+        incrementReactionCount(reactionContent.originalMessageId)
+
+        addReaction(reaction)
     }
 
     @Query("DELETE FROM messages WHERE conversationIdBase58 NOT IN (:chatIds)")

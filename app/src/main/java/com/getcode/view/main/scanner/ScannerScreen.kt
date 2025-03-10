@@ -72,7 +72,7 @@ import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
 import com.getcode.ui.components.restrictions.ContentRestrictedView
-import com.getcode.ui.components.restrictions.RestrictionType
+import com.getcode.ui.core.RestrictionType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach

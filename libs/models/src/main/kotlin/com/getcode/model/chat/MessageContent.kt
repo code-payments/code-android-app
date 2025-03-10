@@ -233,6 +233,7 @@ sealed interface MessageContent {
     data class Reaction(
         val emoji: String,
         val originalMessageId: ID,
+        val senderId: ID,
         override val isFromSelf: Boolean,
     ) : MessageContent {
         override val kind: Int = 7
@@ -264,10 +265,11 @@ sealed interface MessageContent {
         internal data class Content(
             val emoji: String,
             val originalMessageId: ID,
+            val senderId: ID,
         )
 
         @Transient
-        override val content: String = Json.encodeToString(Content(emoji, originalMessageId))
+        override val content: String = Json.encodeToString(Content(emoji, originalMessageId, senderId))
     }
 
     @Serializable
@@ -496,7 +498,7 @@ sealed interface MessageContent {
                 6 -> Decrypted(content, isFromSelf)
                 7 -> {
                     val data = Json.decodeFromString<Reaction.Content>(content)
-                    Reaction(data.emoji, data.originalMessageId, isFromSelf)
+                    Reaction(data.emoji, data.originalMessageId, data.senderId, isFromSelf)
                 }
                 8 -> {
                     val data = Json.decodeFromString<Reply.Content>(content)

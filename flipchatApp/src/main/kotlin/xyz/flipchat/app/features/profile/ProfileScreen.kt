@@ -56,10 +56,9 @@ import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.UserAvatar
-import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.components.user.social.SocialUserDisplay
+import com.getcode.ui.core.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.RepeatOnLifecycle

@@ -23,6 +23,7 @@ import timber.log.Timber
 import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationMessageReaction
 import xyz.flipchat.services.domain.model.chat.ConversationMessageTip
 import xyz.flipchat.services.domain.model.chat.ConversationPointerCrossRef
 import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
@@ -47,6 +48,7 @@ import java.io.File
         ConversationPointerCrossRef::class,
         ConversationMessage::class,
         ConversationMessageTip::class,
+        ConversationMessageReaction::class,
         MemberSocialProfile::class,
     ],
     autoMigrations = [
@@ -73,8 +75,9 @@ import java.io.File
         AutoMigration(from = 21, to = 22, spec = FcAppDatabase.Migration21To22::class),
         // explicit no migration to fallback to reset (from = 22, to = 23)
         AutoMigration(from = 23, to = 24),
+        AutoMigration(from = 24, to = 25),
     ],
-    version = 24,
+    version = 25,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {

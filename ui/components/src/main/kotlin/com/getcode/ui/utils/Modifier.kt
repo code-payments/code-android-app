@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.getcode.theme.CodeTheme
@@ -144,6 +145,8 @@ fun Modifier.measured(block: (DpSize) -> Unit): Modifier = composed {
     val density = LocalDensity.current
     onPlaced { block(it.size.toDp(density)) }
 }
+
+fun Modifier.measuredIntSize(block: (IntSize) -> Unit): Modifier = onPlaced { block(it.size) }
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun Modifier.swallowClicks(onClick: () -> Unit = { }): Modifier =

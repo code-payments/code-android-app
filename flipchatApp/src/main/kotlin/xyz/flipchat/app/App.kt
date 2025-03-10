@@ -30,7 +30,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
-import com.getcode.ui.components.restrictions.RestrictionType
+import com.getcode.ui.core.RestrictionType
 import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.getActivity

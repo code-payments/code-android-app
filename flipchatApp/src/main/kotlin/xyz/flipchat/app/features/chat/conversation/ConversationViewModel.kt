@@ -23,9 +23,10 @@ import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.services.model.ExtendedMetadata
-import com.getcode.ui.components.chat.messagecontents.MessageControlAction
+import com.getcode.ui.components.chat.messagecontents.MessageContextAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
@@ -48,7 +49,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -83,7 +83,6 @@ import xyz.flipchat.services.data.metadata.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
-import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.domain.model.people.FlipchatUserWithSocialProfiles
 import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
@@ -154,6 +153,7 @@ class ConversationViewModel @Inject constructor(
         val isLinkImagePreviewsEnabled: Boolean,
         val canClickUserAvatars: Boolean,
         val showConnectedSocials: Boolean,
+        val canReactToMessages: Boolean,
         val roomInfoArgs: RoomInfoArgs,
         val lastReadMessage: UUID?,
         val createAccountRequest: CreateAccountRequest?,
@@ -191,6 +191,7 @@ class ConversationViewModel @Inject constructor(
                 isLinkImagePreviewsEnabled = false,
                 canClickUserAvatars = false,
                 showConnectedSocials = false,
+                canReactToMessages = false,
                 roomInfoArgs = RoomInfoArgs(),
                 createAccountRequest = null
             )
@@ -215,7 +216,7 @@ class ConversationViewModel @Inject constructor(
         data object RevealIdentity : Event
 
         data class OnAbilityToChatChanged(val state: ChattableState) : Event
-        data object ResetToSpectator: Event
+        data object ResetToSpectator : Event
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
         data class MarkRead(val messageId: ID) : Event
         data class MarkDelivered(val messageId: ID) : Event
@@ -224,8 +225,9 @@ class ConversationViewModel @Inject constructor(
         data class OnOpenCloseEnabled(val enabled: Boolean) : Event
         data class OnTippingEnabled(val enabled: Boolean) : Event
         data class OnLinkImagePreviewsEnabled(val enabled: Boolean) : Event
-        data class OnUserProfilesEnabled(val enabled: Boolean): Event
-        data class ShowConnectedSocials(val enabled: Boolean): Event
+        data class OnUserProfilesEnabled(val enabled: Boolean) : Event
+        data class ShowConnectedSocials(val enabled: Boolean) : Event
+        data class EnableEmojiReactions(val enabled: Boolean) : Event
         data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
             constructor(chatItem: ChatItem.Message) : this(
                 MessageReplyAnchor(
@@ -237,6 +239,9 @@ class ConversationViewModel @Inject constructor(
         }
 
         data object CancelReply : Event
+
+        data class SendReaction(val messageId: ID, val emoji: String) : Event
+        data class RemoveReaction(val originalMessageId: ID) : Event
 
         data class OnStartAtUnread(val enabled: Boolean) : Event
 
@@ -252,7 +257,7 @@ class ConversationViewModel @Inject constructor(
 
         data class OnTypingConstraintsChanged(
             val typingFlags: TypingNotificationsConstraints
-        ): Event
+        ) : Event
 
         data class OnOtherUsersTyping(val users: List<FlipchatUserWithSocialProfiles>) : Event
 
@@ -333,6 +338,10 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.ShowConnectedSocials(it))
                 dispatchEvent(Event.OnUserProfilesEnabled(it))
             }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.EmojiReactions)
+            .onEach { dispatchEvent(Event.EnableEmojiReactions(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -555,6 +564,70 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.SendReaction>()
+            .map { (messageId, emoji) ->
+                val sentEmojis = roomController.getEmojiReactionsForMessage(messageId)
+                    .filter { userManager.isSelf(it.sender?.id) }
+                    .map { it.reaction.emoji }
+
+                if (!sentEmojis.contains(emoji)) {
+                    roomController.sendReaction(
+                        conversationId = stateFlow.value.conversationId.orEmpty(),
+                        messageId = messageId,
+                        emoji = emoji
+                    )
+                } else {
+                    trace(
+                        tag = "Conversation",
+                        message = "User already sent this emoji; not resending.",
+                        type = TraceType.Silent
+                    )
+                    Result.success(Unit)
+                }
+            }.onResult(
+                onError = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction failed to send",
+                        type = TraceType.Error,
+                        error = it
+                    )
+                },
+                onSuccess = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction sent successfully",
+                        type = TraceType.Silent
+                    )
+                }
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.RemoveReaction>()
+            .map { (messageId) ->
+                roomController.removeReaction(
+                    conversationId = stateFlow.value.conversationId.orEmpty(),
+                    messageId = messageId,
+                )
+            }.onResult(
+                onError = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction failed to be removed",
+                        type = TraceType.Error,
+                        error = it
+                    )
+                },
+                onSuccess = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction removed successfully",
+                        type = TraceType.Silent
+                    )
+                }
+            ).launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.Resumed>()
             .mapNotNull { stateFlow.value.conversationId }
             .distinctUntilChanged()
@@ -576,6 +649,7 @@ class ConversationViewModel @Inject constructor(
                         delay(400)
                         dispatchEvent(Event.OnJoinRoom)
                     }
+
                     CreateAccountRequest.SendMessage -> {
                         dispatchEvent(Event.OnSendMessageForFee)
                     }
@@ -1059,7 +1133,7 @@ class ConversationViewModel @Inject constructor(
             val canClickUserAvatars = currentState.canClickUserAvatars
 
             page.map { indice ->
-                val (_, message, member, contents, reply, tipInfo) = indice
+                val (_, message, member, contents, reply, tipInfo, reactionInfo) = indice
 
                 val status = findClosestMessageStatus(
                     timestamp = message.id.uuid?.timestamp,
@@ -1102,6 +1176,32 @@ class ConversationViewModel @Inject constructor(
 
                 val tippingEnabled =
                     currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
+
+                val emojisEnabled = currentState.canReactToMessages
+
+                val reactions = if (currentState.canReactToMessages && reactionInfo.isNotEmpty()) {
+                    reactionInfo.map { (reaction, member, user, socials) ->
+                        MessageReaction(
+                            messageId = reaction.id,
+                            emoji = reaction.emoji,
+                            sender = Sender(
+                                id = member?.id,
+                                profileImageUrl = user?.imageUri.nullIfEmpty(),
+                                name = user?.memberName,
+                                isHost = member?.isHost ?: false,
+                                isSelf = userManager.isSelf(member?.id),
+                                isBlocked = user?.isBlocked ?: false,
+                                socialProfiles = if (showConnectedSocials) {
+                                    socials.mapNotNull { it.toLinked() }
+                                } else {
+                                    emptyList()
+                                }
+                            )
+                        )
+                    }
+                } else {
+                    emptyList()
+                }
 
                 val tips = if (currentState.isTippingEnabled && tipInfo.isNotEmpty()) {
                     tipInfo.map { (tip, member, user, socials) ->
@@ -1165,14 +1265,16 @@ class ConversationViewModel @Inject constructor(
                     originalMessage = anchor,
                     messageControls = MessageControls(
                         actions = buildMessageActions(
-                            message,
-                            member,
-                            contents,
-                            enableReply,
-                            enableTip = tippingEnabled
+                            message = message,
+                            member = member,
+                            contents = contents,
+                            enableReply = enableReply,
+                            enableTip = tippingEnabled,
+                            enableReactions = emojisEnabled
                         ),
                     ),
-                    tips = tips
+                    tips = tips,
+                    reactions = reactions
                 )
             }
         }
@@ -1216,13 +1318,23 @@ class ConversationViewModel @Inject constructor(
         contents: MessageContent,
         enableReply: Boolean,
         enableTip: Boolean,
-    ): List<MessageControlAction> {
-        return mutableListOf<MessageControlAction>().apply {
+        enableReactions: Boolean,
+    ): List<MessageContextAction> {
+        return mutableListOf<MessageContextAction>().apply {
+            if (enableReactions) {
+                add(
+                    MessageContextAction.Emojis(
+                        onSelect = { emoji ->
+
+                        }
+                    )
+                )
+            }
             if (stateFlow.value.isHost) {
                 if (member?.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
                     if (member.isFullMember) {
                         add(
-                            MessageControlAction.DemoteUser {
+                            MessageContextAction.DemoteUser {
                                 confirmUserDemote(
                                     conversationId = message.conversationId,
                                     user = member.displayName,
@@ -1232,7 +1344,7 @@ class ConversationViewModel @Inject constructor(
                         )
                     } else {
                         add(
-                            MessageControlAction.PromoteUser {
+                            MessageContextAction.PromoteUser {
                                 confirmUserPromote(
                                     conversationId = message.conversationId,
                                     user = member.displayName,
@@ -1246,7 +1358,7 @@ class ConversationViewModel @Inject constructor(
 
             if (enableReply) {
                 add(
-                    MessageControlAction.Reply {
+                    MessageContextAction.Reply {
                         val sender = Sender(
                             id = message.senderId,
                             profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
@@ -1254,7 +1366,8 @@ class ConversationViewModel @Inject constructor(
                             isSelf = contents.isFromSelf,
                             isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
                             isBlocked = member?.isBlocked == true,
-                            socialProfiles = member?.profiles?.mapNotNull { it.toLinked() }.orEmpty(),
+                            socialProfiles = member?.profiles?.mapNotNull { it.toLinked() }
+                                .orEmpty(),
                         )
                         val anchor = MessageReplyAnchor(message.id, sender, contents)
                         dispatchEvent(Event.ReplyTo(anchor))
@@ -1264,14 +1377,14 @@ class ConversationViewModel @Inject constructor(
 
             if (enableTip) {
                 add(
-                    MessageControlAction.Tip {
+                    MessageContextAction.Tip {
                         dispatchEvent(Event.TipUser(message.id, message.senderId))
                     }
                 )
             }
 
             add(
-                MessageControlAction.Copy {
+                MessageContextAction.Copy {
                     dispatchEvent(
                         Event.CopyMessage(
                             contents.localizedText(
@@ -1289,12 +1402,12 @@ class ConversationViewModel @Inject constructor(
         message: ConversationMessage,
         member: ConversationMemberWithLinkedSocialProfiles?,
         contents: MessageContent
-    ): List<MessageControlAction> {
-        return mutableListOf<MessageControlAction>().apply {
+    ): List<MessageContextAction> {
+        return mutableListOf<MessageContextAction>().apply {
             // delete message
             if (stateFlow.value.isHost || contents.isFromSelf) {
                 add(
-                    MessageControlAction.Delete {
+                    MessageContextAction.Delete {
                         confirmMessageDelete(
                             conversationId = message.conversationId,
                             messageId = message.id
@@ -1316,7 +1429,7 @@ class ConversationViewModel @Inject constructor(
 //                        }
 //                    )
                     add(
-                        MessageControlAction.MuteUser {
+                        MessageContextAction.MuteUser {
                             confirmUserMute(
                                 conversationId = message.conversationId,
                                 user = member.displayName,
@@ -1331,13 +1444,13 @@ class ConversationViewModel @Inject constructor(
                 if (member?.isBlocked != null) {
                     if (member.isBlocked) {
                         add(
-                            MessageControlAction.UnblockUser {
+                            MessageContextAction.UnblockUser {
                                 dispatchEvent(Event.UnblockUser(message.senderId))
                             }
                         )
                     } else {
                         add(
-                            MessageControlAction.BlockUser {
+                            MessageContextAction.BlockUser {
                                 confirmUserBlock(
                                     user = member.displayName,
                                     userId = message.senderId,
@@ -1348,7 +1461,7 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 add(
-                    MessageControlAction.ReportUserForMessage(member?.displayName.orEmpty()) {
+                    MessageContextAction.ReportUserForMessage(member?.displayName.orEmpty()) {
                         confirmUserReport(
                             user = member?.displayName,
                             userId = message.senderId,
@@ -1646,7 +1759,9 @@ class ConversationViewModel @Inject constructor(
                 is Event.OpenRoom,
                 is Event.OnSendMessage,
                 is Event.SendMessage,
-                is Event.SendMessageWithFee -> { state -> state }
+                is Event.SendMessageWithFee,
+                is Event.SendReaction,
+                is Event.RemoveReaction, -> { state -> state }
 
                 is Event.ResetCreateAccountRequest -> { state -> state.copy(createAccountRequest = null) }
 
@@ -1692,6 +1807,10 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.ShowConnectedSocials -> { state ->
                     state.copy(showConnectedSocials = event.enabled)
+                }
+
+                is Event.EnableEmojiReactions -> { state ->
+                    state.copy(canReactToMessages = event.enabled)
                 }
 
                 Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }

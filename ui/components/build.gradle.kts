@@ -58,6 +58,8 @@ dependencies {
     implementation(project(":libs:opengraph"))
     implementation(project(":libs:requests"))
     implementation(project(":libs:vibrator"))
+    api(project(":ui:core"))
+    implementation(project(":ui:emojis"))
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))
 
@@ -73,6 +75,7 @@ dependencies {
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_ui)
     implementation(Libs.compose_activities)
+    implementation(project(":ui:navigation"))
     debugApi(Libs.compose_ui_tools)
     api(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_material)

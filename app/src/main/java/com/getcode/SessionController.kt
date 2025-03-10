@@ -80,7 +80,7 @@ import com.getcode.services.utils.catchSafely
 import com.getcode.services.utils.nonce
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
-import com.getcode.ui.components.restrictions.RestrictionType
+import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper

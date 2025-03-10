@@ -70,6 +70,7 @@ import com.getcode.ui.components.chat.messagecontents.MarkupTouchHandler
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageReplyContent
 import com.getcode.ui.components.chat.messagecontents.MessageText
+import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
@@ -214,11 +215,14 @@ fun MessageNode(
     modifier: Modifier = Modifier,
     options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
     tips: List<MessageTip>,
+    reactions: List<MessageReaction>,
     wasSentAsFullMember: Boolean = true,
     openMessageControls: () -> Unit,
     showTipSelection: () -> Unit,
     showTips: () -> Unit,
     onReply: () -> Unit,
+    onAddReaction: (String) -> Unit,
+    onRemoveReaction: (ID) -> Unit,
     onViewOriginalMessage: (ID) -> Unit,
     openUserProfile: () -> Unit,
 ) {
@@ -379,10 +383,13 @@ fun MessageNode(
                                             options = options,
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
+                                            reactions = reactions,
                                             showTips = showTips,
                                             onTap = onTap,
                                             onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection
+                                            onDoubleClick = showTipSelection,
+                                            onAddReaction = onAddReaction,
+                                            onRemoveReaction = onRemoveReaction,
                                         )
                                     }
                                 }
@@ -428,9 +435,12 @@ fun MessageNode(
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
                                             showTips = showTips,
+                                            reactions = reactions,
                                             onTap = onTap,
                                             onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection
+                                            onDoubleClick = showTipSelection,
+                                            onAddReaction = onAddReaction,
+                                            onRemoveReaction = onRemoveReaction,
                                         )
                                     }
                                 }
@@ -456,9 +466,12 @@ fun MessageNode(
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
                                             showTips = showTips,
+                                            reactions = reactions,
                                             onTap = onTap,
                                             onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection
+                                            onDoubleClick = showTipSelection,
+                                            onAddReaction = onAddReaction,
+                                            onRemoveReaction = onRemoveReaction,
                                         )
                                     }
                                 }
@@ -500,13 +513,16 @@ fun MessageNode(
                                                 options = options,
                                                 tips = tips,
                                                 showTips = showTips,
+                                                reactions = reactions,
                                                 onTap = onTap,
                                                 onLongPress = openMessageControls,
                                                 onDoubleClick = showTipSelection,
                                                 originalMessage = originalMessage,
                                                 onOriginalMessageClicked = {
                                                     onViewOriginalMessage(originalMessage.id)
-                                                }
+                                                },
+                                                onAddReaction = onAddReaction,
+                                                onRemoveReaction = onRemoveReaction,
                                             )
                                         } else {
                                             MessageText(
@@ -520,9 +536,12 @@ fun MessageNode(
                                                 wasSentAsFullMember = wasSentAsFullMember,
                                                 tips = tips,
                                                 showTips = showTips,
+                                                reactions = reactions,
                                                 onTap = onTap,
                                                 onLongPress = openMessageControls,
-                                                onDoubleClick = showTipSelection
+                                                onDoubleClick = showTipSelection,
+                                                onAddReaction = onAddReaction,
+                                                onRemoveReaction = onRemoveReaction,
                                             )
                                         }
                                     }

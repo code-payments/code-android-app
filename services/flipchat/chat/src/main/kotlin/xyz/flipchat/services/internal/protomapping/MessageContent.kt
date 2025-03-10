@@ -35,6 +35,7 @@ operator fun MessageContent.Companion.invoke(
         Model.Content.TypeCase.REACTION -> MessageContent.Reaction(
             emoji = proto.reaction.emoji,
             originalMessageId = proto.reaction.originalMessageId.value.toList(),
+            senderId = senderId,
             isFromSelf = isFromSelf
         )
 

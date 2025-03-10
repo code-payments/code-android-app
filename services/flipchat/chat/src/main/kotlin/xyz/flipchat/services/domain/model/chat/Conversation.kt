@@ -93,7 +93,7 @@ data class ConversationWithMembersAndLastMessage(
         parentColumn = "idBase58",
         entityColumn = "conversationIdBase58",
         entity = ConversationMessage::class,
-        projection = ["idBase58", "dateMillis", "senderIdBase58", "type", "content", "tipCount", "isApproved", "sentOffStage"]
+        projection = ["idBase58", "dateMillis", "senderIdBase58", "type", "content", "tipCount", "reactionCount", "isApproved", "sentOffStage"]
     )
     val lastMessage: ConversationMessage?
 ) {

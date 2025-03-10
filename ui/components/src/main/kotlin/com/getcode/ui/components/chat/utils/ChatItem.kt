@@ -30,6 +30,8 @@ data class ReplyMessageAnchor(
 
 data class MessageTip(val amount: KinAmount, val tipper: Sender)
 
+data class MessageReaction(val messageId: ID, val sender: Sender, val emoji: String)
+
 @Stable
 sealed class ChatItem(open val key: Any) {
     @Stable
@@ -52,6 +54,7 @@ sealed class ChatItem(open val key: Any) {
         val enableTipping : Boolean = false,
         val originalMessage: ReplyMessageAnchor? = null,
         val tips: List<MessageTip> = emptyList(),
+        val reactions: List<MessageReaction> = emptyList(),
         override val key: Any = chatMessageId
     ) : ChatItem(key) {
         val relativeDate: String = date.formatDateRelatively()

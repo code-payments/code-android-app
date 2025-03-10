@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import com.getcode.libs.emojis.EmojiUsageController
 import com.getcode.libs.opengraph.LocalOpenGraphParser
 import com.getcode.libs.opengraph.OpenGraphParser
 import com.getcode.network.BalanceController
@@ -16,6 +17,7 @@ import com.getcode.network.LocalBalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.exchange.LocalExchange
+import com.getcode.ui.emojis.LocalEmojiUsageController
 import xyz.flipchat.app.ui.LocalUserManager
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.ResourceHelper
@@ -78,6 +80,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var balanceController: BalanceController
 
+    @Inject
+    lateinit var emojiUsageController: EmojiUsageController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -96,6 +101,7 @@ class MainActivity : FragmentActivity() {
                 LocalBillingClient provides iapController,
                 LocalOpenGraphParser provides openGraphParser,
                 LocalBalanceController provides balanceController,
+                LocalEmojiUsageController provides emojiUsageController
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

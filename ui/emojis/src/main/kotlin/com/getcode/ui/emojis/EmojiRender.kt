@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 
@@ -24,6 +26,11 @@ import com.getcode.theme.CodeTheme
 fun EmojiRender(
     emoji: String,
     modifier: Modifier = Modifier,
+    size: DpSize = DpSize(
+        width = CodeTheme.dimens.grid.x10,
+        height = CodeTheme.dimens.grid.x9,
+    ),
+    textSize: TextUnit = 28.sp,
     showBackground: Boolean = true,
     onClick: () -> Unit
 ) {
@@ -32,10 +39,7 @@ fun EmojiRender(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(
-                width = CodeTheme.dimens.grid.x9,
-                height = CodeTheme.dimens.grid.x8,
-            )
+            .size(size)
             .clip(CircleShape)
             .clickable { onClick() }
             .background(
@@ -53,13 +57,13 @@ fun EmojiRender(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val measuredText = textMeasurer.measure(
                 text = emojiText,
-                style = TextStyle(fontSize = 24.sp)
+                style = TextStyle(fontSize = textSize)
             )
             drawText(
                 textLayoutResult = measuredText,
                 topLeft = Offset(
-                    x = (size.width - measuredText.size.width) / 2,
-                    y = (size.height - measuredText.size.height) / 2
+                    x = (this.size.width - measuredText.size.width) / 2,
+                    y = (this.size.height - measuredText.size.height) / 2
                 ),
                 color = Color.White
             )

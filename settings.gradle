@@ -18,6 +18,7 @@ include(
         ":libs:crypto:solana",
         ":libs:currency",
         ":libs:datetime",
+        ":libs:emojis",
         ":libs:encryption:base58",
         ":libs:encryption:ed25519",
         ":libs:encryption:hmac",
@@ -47,7 +48,9 @@ include(
         ':services:flipchat:sdk',
 
         // common UI
+        ":ui:core",
         ":ui:components",
+        ":ui:emojis",
         ":ui:navigation",
         ":ui:resources",
         ":ui:theme",

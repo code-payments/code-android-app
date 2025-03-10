@@ -31,6 +31,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
+import xyz.flipchat.services.domain.model.chat.MessageReactionInfo
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.UserMapper
@@ -61,6 +62,10 @@ class RoomController @Inject constructor(
 
     suspend fun getUnreadCount(identifier: ID): Int {
         return db.conversationDao().getUnreadCount(identifier) ?: 0
+    }
+
+    suspend fun getEmojiReactionsForMessage(messageId: ID): List<MessageReactionInfo> {
+        return db.conversationMessageDao().getReactionsForMessage(messageId)
     }
 
     suspend fun getChatMembers(identifier: ID) {
@@ -266,6 +271,18 @@ class RoomController @Inject constructor(
             .onSuccess {
                 withContext(Dispatchers.IO) {
                     db.conversationMessageDao().markDeleted(messageId, userManager.userId!!)
+                }
+            }
+    }
+
+    suspend fun removeReaction(
+        conversationId: ID,
+        messageId: ID,
+    ): Result<Unit> {
+        return messagingRepository.deleteMessage(conversationId, messageId)
+            .onSuccess {
+                withContext(Dispatchers.IO) {
+                    db.conversationMessageDao().removeReaction(messageId)
                 }
             }
     }

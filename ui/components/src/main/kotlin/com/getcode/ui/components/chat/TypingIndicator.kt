@@ -96,7 +96,6 @@ private fun AvatarRow(
             items = userImages.take(maxAvatars),
             key = { _, item -> item.hashCode() }
         ) { index, image ->
-//            val zIndex = (maxAvatars - index).toFloat()
             UserAvatar(
                 modifier = Modifier
                     .size(avatarSize)

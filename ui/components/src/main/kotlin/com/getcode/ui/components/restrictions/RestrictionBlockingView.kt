@@ -20,14 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
+import com.getcode.ui.core.RestrictionType
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-
-enum class RestrictionType {
-    ACCESS_EXPIRED,
-    FORCE_UPGRADE,
-    TIMELOCK_UNLOCKED
-}
 
 @Composable
 fun ContentRestrictedView(

@@ -17,18 +17,20 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.getcode.ui.components.R
-import com.getcode.ui.components.contextmenu.ContextMenuAction
+import com.getcode.ui.core.ContextMenuAction
 
 data class MessageControls(
-    val actions: List<MessageControlAction> = emptyList()
+    val actions: List<MessageContextAction> = emptyList()
 ) {
     val hasAny: Boolean
         get() = actions.isNotEmpty()
 }
 
 
-sealed interface MessageControlAction : ContextMenuAction {
-    data class Copy(override val onSelect: () -> Unit) : MessageControlAction {
+sealed interface MessageContextAction : ContextMenuAction {
+    data class Emojis(val onSelect: (String) -> Unit, override val Content: @Composable () -> Unit = { }): MessageContextAction, ContextMenuAction.Custom
+
+    data class Copy(override val onSelect: () -> Unit) : MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = false
 
@@ -39,7 +41,7 @@ sealed interface MessageControlAction : ContextMenuAction {
             @Composable get() = rememberVectorPainter(Icons.Default.ContentCopy)
     }
 
-    data class Reply(override val onSelect: () -> Unit) : MessageControlAction {
+    data class Reply(override val onSelect: () -> Unit) : MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = false
 
@@ -49,7 +51,7 @@ sealed interface MessageControlAction : ContextMenuAction {
             @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Default.Reply)
     }
 
-    data class Tip(override val onSelect: () -> Unit) : MessageControlAction {
+    data class Tip(override val onSelect: () -> Unit) : MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val title: String
             @Composable get() = stringResource(R.string.action_giveTip)
@@ -58,7 +60,7 @@ sealed interface MessageControlAction : ContextMenuAction {
         override val delayUponSelection: Boolean = true
     }
 
-    data class Delete(override val onSelect: () -> Unit) : MessageControlAction {
+    data class Delete(override val onSelect: () -> Unit) : MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
         override val title: String
             @Composable get() = stringResource(R.string.action_deleteMessage)
@@ -68,7 +70,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class RemoveUser(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
         override val title: String
             @Composable get() = stringResource(R.string.action_removeUser, name)
@@ -78,7 +80,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class PromoteUser(override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val title: String
             @Composable get() = stringResource(R.string.action_promote)
         override val painter: Painter
@@ -88,7 +90,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class DemoteUser(override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val title: String
             @Composable get() = stringResource(R.string.action_demote)
         override val painter: Painter
@@ -98,7 +100,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class MuteUser(override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
 
         override val title: String
@@ -111,7 +113,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
         override val title: String
             @Composable get() = stringResource(R.string.action_report)
@@ -121,7 +123,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class BlockUser(override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
         override val title: String
             @Composable get() = stringResource(R.string.action_blockUser)
@@ -131,7 +133,7 @@ sealed interface MessageControlAction : ContextMenuAction {
     }
 
     data class UnblockUser(override val onSelect: () -> Unit) :
-        MessageControlAction {
+        MessageContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val title: String
             @Composable get() = stringResource(R.string.action_unblockUser)

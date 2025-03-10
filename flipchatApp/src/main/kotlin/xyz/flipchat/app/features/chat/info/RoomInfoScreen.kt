@@ -61,8 +61,8 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.AvatarEndAction
 import com.getcode.ui.components.chat.HostableAvatar
-import com.getcode.ui.components.contextmenu.ContextMenuAction
 import com.getcode.ui.components.user.social.MemberNameDisplay
+import com.getcode.ui.core.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold

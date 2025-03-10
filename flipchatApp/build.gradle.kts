@@ -135,6 +135,7 @@ dependencies {
     implementation(project(":libs:quickresponse"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:components"))
+    implementation(project(":ui:emojis"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))

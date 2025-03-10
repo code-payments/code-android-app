@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 
 @Composable
@@ -39,8 +41,8 @@ fun FrequentlyUsedEmojis(
     }
 
     LazyHorizontalGrid(
-        rows = GridCells.Adaptive(CodeTheme.dimens.grid.x8),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        rows = GridCells.Adaptive(CodeTheme.dimens.grid.x10),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .padding(vertical = CodeTheme.dimens.grid.x2)
@@ -50,6 +52,11 @@ fun FrequentlyUsedEmojis(
         items(frequentlyUsedEmojis) { emoji ->
             EmojiRender(
                 emoji = emoji,
+                size = DpSize(
+                    width = CodeTheme.dimens.grid.x9,
+                    height = CodeTheme.dimens.grid.x8
+                ),
+                textSize = 24.sp,
                 onClick = { onSelect(emoji) }
             )
         }

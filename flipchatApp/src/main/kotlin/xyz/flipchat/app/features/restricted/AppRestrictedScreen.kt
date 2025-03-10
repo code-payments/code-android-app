@@ -8,7 +8,7 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.ui.components.restrictions.ContentRestrictedView
-import com.getcode.ui.components.restrictions.RestrictionType
+import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.features.home.HomeViewModel
 

@@ -8,27 +8,19 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,17 +42,18 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.chat.HostableAvatar
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.messagecontents.LocalAnnouncementActionResolver
+import com.getcode.ui.components.chat.messagecontents.MessageContextAction
 import com.getcode.ui.components.chat.messagecontents.ResolvedAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.components.text.markup.Markup
-import com.getcode.ui.components.user.social.SenderNameDisplay
+import com.getcode.ui.emojis.EmojiModal
+import com.getcode.ui.emojis.FrequentlyUsedEmojis
 import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.scrollToItemWithFullVisibility
@@ -160,7 +153,47 @@ internal fun ConversationMessages(
                                 if (keyboardVisible) {
                                     ime?.hide()
                                 }
-                                navigator.show(ContextSheet(event.actions))
+
+                                val actions = event.actions.map {
+                                    if (it is MessageContextAction.Emojis) {
+                                        it.copy(
+                                            Content = {
+                                                FrequentlyUsedEmojis(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    onSelect = { emoji ->
+                                                        navigator.hide()
+                                                        dispatchEvent(
+                                                            ConversationViewModel.Event.SendReaction(
+                                                                event.messageId,
+                                                                emoji
+                                                            )
+                                                        )
+                                                    },
+                                                    onViewAll = {
+                                                        composeScope.launch {
+                                                            navigator.hide()
+                                                            delay(250)
+                                                            navigator.show(
+                                                                EmojiModal { emoji ->
+                                                                    navigator.hide()
+                                                                    dispatchEvent(
+                                                                        ConversationViewModel.Event.SendReaction(
+                                                                            event.messageId,
+                                                                            emoji
+                                                                        )
+                                                                    )
+                                                                }
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        )
+                                    } else {
+                                        it
+                                    }
+                                }
+                                navigator.show(ContextSheet(actions))
                             }
                         }
 
@@ -257,8 +290,30 @@ internal fun ConversationMessages(
                                     ime?.hide()
                                     delay(500)
                                 }
-                                navigator.push(ScreenRegistry.get(NavScreenProvider.UserProfile(event.userId)))
+                                navigator.push(
+                                    ScreenRegistry.get(
+                                        NavScreenProvider.UserProfile(
+                                            event.userId
+                                        )
+                                    )
+                                )
                             }
+                        }
+
+                        is MessageListEvent.AddReaction -> {
+                            dispatchEvent(
+                                ConversationViewModel.Event.SendReaction(
+                                    event.messageId,
+                                    event.emoji
+                                )
+                            )
+                        }
+                        is MessageListEvent.RemoveReaction -> {
+                            dispatchEvent(
+                                ConversationViewModel.Event.RemoveReaction(
+                                    event.originalMessageId,
+                                )
+                            )
                         }
                     }
                 }

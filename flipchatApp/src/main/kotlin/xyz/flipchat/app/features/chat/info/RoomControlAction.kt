@@ -9,12 +9,12 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import com.getcode.ui.components.contextmenu.ContextMenuAction
+import com.getcode.ui.core.ContextMenuAction
 import xyz.flipchat.app.R
 
 
 sealed interface RoomControlAction : ContextMenuAction {
-    data class MessageFee(override val onSelect: () -> Unit) : RoomControlAction {
+    data class MessageFee(override val onSelect: () -> Unit) : RoomControlAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = true
         override val title: String
@@ -23,7 +23,7 @@ sealed interface RoomControlAction : ContextMenuAction {
             @Composable get() = painterResource(R.drawable.ic_kin_white_small)
     }
 
-    data class CloseRoom(override val onSelect: () -> Unit) : RoomControlAction {
+    data class CloseRoom(override val onSelect: () -> Unit) : RoomControlAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = true
         override val title: String
@@ -32,7 +32,7 @@ sealed interface RoomControlAction : ContextMenuAction {
             @Composable get() = rememberVectorPainter(Icons.Outlined.Bedtime)
     }
 
-    data class OpenRoom(override val onSelect: () -> Unit) : RoomControlAction {
+    data class OpenRoom(override val onSelect: () -> Unit) : RoomControlAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = true
         override val title: String
@@ -41,7 +41,7 @@ sealed interface RoomControlAction : ContextMenuAction {
             @Composable get() = rememberVectorPainter(Icons.Outlined.LightMode)
     }
 
-    data class LeaveRoom(override val onSelect: () -> Unit) : RoomControlAction {
+    data class LeaveRoom(override val onSelect: () -> Unit) : RoomControlAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = true
         override val title: String

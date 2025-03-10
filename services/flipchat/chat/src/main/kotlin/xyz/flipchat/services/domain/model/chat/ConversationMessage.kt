@@ -42,6 +42,8 @@ data class ConversationMessage(
     val isApproved: Boolean? = null,
     @ColumnInfo(defaultValue = "0")
     val tipCount: Int = 0,
+    @ColumnInfo(defaultValue = "0")
+    val reactionCount: Int = 0,
     @ColumnInfo(defaultValue = "1")
     val type: Int,
     @ColumnInfo(defaultValue = "")
@@ -110,7 +112,8 @@ data class InflatedConversationMessage(
     val member: ConversationMemberWithLinkedSocialProfiles?,
     val content: MessageContent,
     val reply: ConversationMessageWithMemberAndContent?,
-    val tips: List<MessageTipInfo>
+    val tips: List<MessageTipInfo>,
+    val reactions: List<MessageReactionInfo>
 )
 
 data class MessageTipInfo(
@@ -131,6 +134,30 @@ data class MessageTipInfo(
 
     @Relation(
         parentColumn = "tipperIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = MemberSocialProfile::class
+    )
+    val socialProfiles: List<MemberSocialProfile>,
+)
+
+data class MessageReactionInfo(
+    @Embedded val reaction: ConversationMessageReaction,
+    @Relation(
+        parentColumn = "senderIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = ConversationMember::class,
+    )
+    val sender: ConversationMember?,
+    @Relation(
+        parentColumn = "senderIdBase58",
+        entityColumn = "userIdBase58",
+        projection = ["memberName", "imageUri", "isBlocked"],
+        entity = FlipchatUser::class
+    )
+    val personalInfo: MemberPersonalInfo?,
+
+    @Relation(
+        parentColumn = "senderIdBase58",
         entityColumn = "memberIdBase58",
         entity = MemberSocialProfile::class
     )

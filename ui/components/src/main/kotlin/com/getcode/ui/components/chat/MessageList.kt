@@ -28,15 +28,12 @@ import androidx.paging.compose.itemKey
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
-import com.getcode.model.chat.Sender
-import com.getcode.model.uuid
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.chat.messagecontents.MessageControlAction
+import com.getcode.ui.components.chat.messagecontents.MessageContextAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
-import com.getcode.utils.timestamp
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -46,7 +43,7 @@ import kotlinx.coroutines.flow.onEach
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID) : MessageListEvent
-    data class OpenMessageActions(val actions: List<MessageControlAction>) : MessageListEvent
+    data class OpenMessageActions(val messageId: ID, val actions: List<MessageContextAction>) : MessageListEvent
     data class OnMarkupEvent(val markup: Markup.Interactive) : MessageListEvent
     data class ReplyToMessage(val message: ChatItem.Message) : MessageListEvent
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
@@ -54,6 +51,8 @@ sealed interface MessageListEvent {
     data class TipMessage(val message: ChatItem.Message) : MessageListEvent
     data class ShowTipsForMessage(val tips: List<MessageTip>) : MessageListEvent
     data class ViewUserProfile(val userId: ID): MessageListEvent
+    data class AddReaction(val messageId: ID, val emoji: String): MessageListEvent
+    data class RemoveReaction(val originalMessageId: ID): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -186,9 +185,10 @@ fun MessageList(
                         ),
                         wasSentAsFullMember = item.wasSentAsFullMember,
                         tips = item.tips,
+                        reactions = item.reactions,
                         openMessageControls = {
                             dispatch(
-                                MessageListEvent.OpenMessageActions(updatedActions.actions)
+                                MessageListEvent.OpenMessageActions(item.chatMessageId, updatedActions.actions)
                             )
                         },
                         showTips = { dispatch(MessageListEvent.ShowTipsForMessage(item.tips)) },
@@ -197,6 +197,12 @@ fun MessageList(
                         originalMessage = item.originalMessage,
                         onViewOriginalMessage = {
                             dispatch(MessageListEvent.ViewOriginalMessage(item.chatMessageId, it))
+                        },
+                        onAddReaction = {
+                            dispatch(MessageListEvent.AddReaction(item.chatMessageId, it))
+                        },
+                        onRemoveReaction = {
+                            dispatch(MessageListEvent.RemoveReaction(it))
                         },
                         openUserProfile = {
                             dispatch(MessageListEvent.ViewUserProfile(item.sender.id!!))

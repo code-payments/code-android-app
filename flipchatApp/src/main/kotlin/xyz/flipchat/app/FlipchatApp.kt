@@ -13,6 +13,7 @@ import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.bugsnag.android.Bugsnag
 import com.getcode.crypt.MnemonicCache
+import com.getcode.ui.emojis.EmojiCompatController
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
@@ -71,6 +72,8 @@ class FlipchatApp : Application(), Configuration.Provider, SingletonImageLoader.
         RxJavaPlugins.setErrorHandler {
             ErrorUtils.handleError(it)
         }
+
+        EmojiCompatController.init(this)
 
         Firebase.initialize(this)
         Firebase.crashlytics.setCrashlyticsCollectionEnabled(BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG)

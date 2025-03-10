@@ -33,6 +33,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
@@ -40,6 +41,7 @@ import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
+import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
@@ -65,6 +67,9 @@ internal fun MessageNodeScope.MessageReplyContent(
     status: MessageStatus = MessageStatus.Unknown,
     tips: List<MessageTip>,
     showTips: () -> Unit,
+    reactions: List<MessageReaction>,
+    onAddReaction: (String) -> Unit,
+    onRemoveReaction: (ID) -> Unit,
     onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
     onLongPress: () -> Unit,
     onDoubleClick: () -> Unit
@@ -122,6 +127,9 @@ internal fun MessageNodeScope.MessageReplyContent(
                         options = options,
                         tips = tips,
                         openTipModal = showTips,
+                        reactions = reactions,
+                        onAddReaction = onAddReaction,
+                        onRemoveReaction = onRemoveReaction,
                     )
                 }.first().measure(constraints)
 
@@ -162,6 +170,9 @@ internal fun MessageNodeScope.MessageReplyContent(
                         options = options,
                         tips = tips,
                         openTipModal = showTips,
+                        reactions = reactions,
+                        onAddReaction = onAddReaction,
+                        onRemoveReaction = onRemoveReaction,
                     )
                 }.first().measure(
                     constraints.copy(minWidth = finalWidth, maxWidth = finalWidth)

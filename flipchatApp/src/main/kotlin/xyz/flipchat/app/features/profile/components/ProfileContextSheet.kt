@@ -12,11 +12,11 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import com.getcode.model.social.user.SocialProfile
-import com.getcode.ui.components.contextmenu.ContextMenuAction
+import com.getcode.ui.core.ContextMenuAction
 import xyz.flipchat.app.R
 
 sealed interface ProfileContextAction : ContextMenuAction {
-    data class Labs(override val onSelect: () -> Unit) : ProfileContextAction {
+    data class Labs(override val onSelect: () -> Unit) : ProfileContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = false
         override val delayUponSelection: Boolean = true
         override val title: String
@@ -28,7 +28,7 @@ sealed interface ProfileContextAction : ContextMenuAction {
     data class UnlinkSocialProfile(
         val profile: SocialProfile,
         override val onSelect: () -> Unit
-    ) : ProfileContextAction {
+    ) : ProfileContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
         override val delayUponSelection: Boolean = true
         override val title: String
@@ -45,7 +45,7 @@ sealed interface ProfileContextAction : ContextMenuAction {
 
     data class DeleteAccount(
         override val onSelect: () -> Unit
-    ): ProfileContextAction {
+    ): ProfileContextAction, ContextMenuAction.Single {
         override val isDestructive: Boolean = true
         override val delayUponSelection: Boolean = true
         override val title: String
