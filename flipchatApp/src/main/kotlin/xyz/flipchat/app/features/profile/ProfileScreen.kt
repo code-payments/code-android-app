@@ -105,7 +105,7 @@ class ProfileScreen(val userId: ID? = null, val isInTab: Boolean) : Screen, Parc
                 backButton = !isInTab,
                 onBackIconClicked = { navigator.pop() },
                 endContent = {
-                    if (state.isStaff && state.isSelf && isInTab) {
+                    if (state.isSelf && isInTab) {
                         AppBarDefaults.Overflow {
                             navigator.show(
                                 ContextSheet(
