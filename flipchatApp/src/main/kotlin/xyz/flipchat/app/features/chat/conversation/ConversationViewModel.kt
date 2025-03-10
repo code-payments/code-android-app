@@ -668,6 +668,7 @@ class ConversationViewModel @Inject constructor(
             .map { it.conversationId }
             .filterNotNull()
             .distinctUntilChanged()
+            .filter { stateFlow.value.typingConstraints.enabled }
             .flatMapLatest { roomController.observeTyping(it) }
             .distinctUntilChanged()
             .onEach { users -> dispatchEvent(Event.OnOtherUsersTyping(users)) }
@@ -677,7 +678,7 @@ class ConversationViewModel @Inject constructor(
             .filter {
                 when (it.chattableState) {
                     ChattableState.Enabled -> it.typingConstraints.enabled
-                    ChattableState.TemporarilyEnabled -> it.typingConstraints.canSendAsListener
+                    ChattableState.TemporarilyEnabled -> it.typingConstraints.enabled && it.typingConstraints.canSendAsListener
                     else -> false
                 }
             }
