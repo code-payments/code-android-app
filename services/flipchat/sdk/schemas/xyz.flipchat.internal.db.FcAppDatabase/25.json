@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 25,
-    "identityHash": "d79ecd4c7e2a3cd03480d556f5f3680e",
+    "identityHash": "4a523cd7f879a706edf4011b23e2486c",
     "entities": [
       {
         "tableName": "PrefInt",
@@ -512,7 +512,7 @@
       },
       {
         "tableName": "reactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `messageIdBase58` TEXT NOT NULL, `senderIdBase58` TEXT NOT NULL, `emoji` TEXT NOT NULL, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `messageIdBase58` TEXT NOT NULL, `senderIdBase58` TEXT NOT NULL, `emoji` TEXT NOT NULL, `deleted` INTEGER NOT NULL, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -537,6 +537,12 @@
             "columnName": "emoji",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "deleted",
+            "columnName": "deleted",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -547,13 +553,15 @@
         },
         "indices": [
           {
-            "name": "index_reactions_messageIdBase58",
+            "name": "index_reactions_messageIdBase58_senderIdBase58_emoji",
             "unique": false,
             "columnNames": [
-              "messageIdBase58"
+              "messageIdBase58",
+              "senderIdBase58",
+              "emoji"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_reactions_messageIdBase58` ON `${TABLE_NAME}` (`messageIdBase58`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reactions_messageIdBase58_senderIdBase58_emoji` ON `${TABLE_NAME}` (`messageIdBase58`, `senderIdBase58`, `emoji`)"
           }
         ],
         "foreignKeys": []
@@ -618,7 +626,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd79ecd4c7e2a3cd03480d556f5f3680e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4a523cd7f879a706edf4011b23e2486c')"
     ]
   }
 }

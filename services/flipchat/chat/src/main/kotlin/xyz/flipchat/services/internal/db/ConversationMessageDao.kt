@@ -91,10 +91,6 @@ interface ConversationMessageDao {
             .fastDistinctBy { it.originalMessageId }
             .filterNot { hasBeenReviewed(it.originalMessageId) }
 
-        deletes.onEach {
-            markDeleted(it.originalMessageId, it.messageDeleter)
-        }
-
         replies.onEach { (messageId, inReplyTo) ->
             connectReply(messageId, inReplyTo)
         }
@@ -114,11 +110,18 @@ interface ConversationMessageDao {
                 reject(review.originalMessageId)
             }
         }
+
+        // deletes need to happen last to account for deleted reactions
+        deletes.onEach {
+            markDeleted(it.originalMessageId, it.messageDeleter)
+            removeReaction(it.originalMessageId)
+        }
     }
 
     @RewriteQueriesToDropUnusedColumns
     @Transaction
-    @Query("""
+    @Query(
+        """
     SELECT 
         messages.idBase58 AS idBase58,
         messages.senderIdBase58 AS senderIdBase58,
@@ -147,13 +150,15 @@ interface ConversationMessageDao {
                        AND members.conversationIdBase58 = :id
     LEFT JOIN users ON messages.senderIdBase58 = users.userIdBase58
     LEFT JOIN tips ON messages.idBase58 = tips.messageIdBase58
+    LEFT JOIN reactions ON messages.idBase58 = reactions.messageIdBase58
     -- RawText, Announcements, Replies, and Actionable Announcements --
     WHERE messages.conversationIdBase58 = :id AND type IN (1, 4, 8, 12)
     GROUP BY messages.idBase58
     -- ID is a base58 encoded v7 UUID which is guaranteed lexigraphically in order --
     ORDER BY messages.idBase58 DESC
     LIMIT :limit OFFSET :offset
-""")
+"""
+    )
     suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithMemberAndReply>
     suspend fun getPagedMessages(id: ID, limit: Int, offset: Int): List<ConversationMessageWithMemberAndReply> {
         return getPagedMessages(id.base58, limit, offset)
@@ -187,7 +192,7 @@ interface ConversationMessageDao {
         return getTipsForMessage(id.base58)
     }
 
-    @Query("SELECT * FROM reactions WHERE messageIdBase58 = :id")
+    @Query("SELECT * FROM reactions WHERE messageIdBase58 = :id AND deleted = 0")
     suspend fun getReactionsForMessage(id: String): List<MessageReactionInfo>
     suspend fun getReactionsForMessage(id: ID): List<MessageReactionInfo> {
         return getReactionsForMessage(id.base58)
@@ -199,7 +204,7 @@ interface ConversationMessageDao {
         return getReaction(id.base58)
     }
 
-    @Query("DELETE FROM reactions WHERE idBase58 = :id")
+    @Query("UPDATE reactions SET deleted = 1 WHERE idBase58 = :id")
     suspend fun removeReactionInternal(id: String)
     suspend fun removeReactionInternal(id: ID) {
         removeReactionInternal(id.base58)
@@ -378,7 +383,7 @@ interface ConversationMessageDao {
             idBase58 = reactionMessageId.base58,
             messageIdBase58 = reactionContent.originalMessageId.base58,
             senderIdBase58 = reactionContent.senderId.base58,
-            emoji = reactionContent.emoji
+            emoji = reactionContent.emoji,
         )
 
         incrementReactionCount(reactionContent.originalMessageId)

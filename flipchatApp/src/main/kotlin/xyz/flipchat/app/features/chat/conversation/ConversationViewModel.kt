@@ -11,6 +11,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
 import androidx.paging.map
+import com.getcode.libs.emojis.EmojiUsageController
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
@@ -116,6 +117,7 @@ class ConversationViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
+    private val emojiUsageController: EmojiUsageController,
     clipboardManager: ClipboardManager,
     betaFeatures: Labs,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
@@ -241,7 +243,7 @@ class ConversationViewModel @Inject constructor(
         data object CancelReply : Event
 
         data class SendReaction(val messageId: ID, val emoji: String) : Event
-        data class RemoveReaction(val originalMessageId: ID) : Event
+        data class RemoveReaction(val reactionId: ID) : Event
 
         data class OnStartAtUnread(val enabled: Boolean) : Event
 
@@ -571,6 +573,7 @@ class ConversationViewModel @Inject constructor(
                     .map { it.reaction.emoji }
 
                 if (!sentEmojis.contains(emoji)) {
+                    emojiUsageController.trackUsageOf(emoji)
                     roomController.sendReaction(
                         conversationId = stateFlow.value.conversationId.orEmpty(),
                         messageId = messageId,
@@ -604,10 +607,10 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.RemoveReaction>()
-            .map { (messageId) ->
+            .map { (reactionId) ->
                 roomController.removeReaction(
                     conversationId = stateFlow.value.conversationId.orEmpty(),
-                    messageId = messageId,
+                    reactionId = reactionId,
                 )
             }.onResult(
                 onError = {

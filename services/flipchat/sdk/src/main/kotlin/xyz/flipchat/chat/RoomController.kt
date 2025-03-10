@@ -17,8 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.chat.paging.MessagingPagingSource
@@ -27,13 +25,10 @@ import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageMapper
-import xyz.flipchat.services.domain.model.chat.ConversationMember
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 import xyz.flipchat.services.domain.model.chat.MessageReactionInfo
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
-import xyz.flipchat.services.internal.data.mapper.SocialProfileMapper
 import xyz.flipchat.services.internal.data.mapper.UserMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -277,12 +272,12 @@ class RoomController @Inject constructor(
 
     suspend fun removeReaction(
         conversationId: ID,
-        messageId: ID,
+        reactionId: ID,
     ): Result<Unit> {
-        return messagingRepository.deleteMessage(conversationId, messageId)
+        return messagingRepository.deleteMessage(conversationId, reactionId)
             .onSuccess {
                 withContext(Dispatchers.IO) {
-                    db.conversationMessageDao().removeReaction(messageId)
+                    db.conversationMessageDao().removeReaction(reactionId)
                 }
             }
     }

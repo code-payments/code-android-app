@@ -5,6 +5,8 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import com.getcode.model.ID
+import com.getcode.model.uuid
+import com.getcode.utils.timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
@@ -27,6 +29,8 @@ internal class MessagingRemoteMediator(
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
 
+    private var lastMessageId: ID? = null
+
     override suspend fun load(
         loadType: LoadType,
         state: PagingState<Int, InflatedConversationMessage>
@@ -42,8 +46,7 @@ internal class MessagingRemoteMediator(
                 }
 
                 LoadType.APPEND -> {
-                    // Get the last item from our data
-                    state.lastItemOrNull()?.message?.id
+                    state.lastItemOrNull()?.message?.id ?: lastMessageId
                 }
             }
 
@@ -64,6 +67,8 @@ internal class MessagingRemoteMediator(
             if (conversationMessages.isEmpty()) {
                 return MediatorResult.Success(true)
             }
+
+            lastMessageId = conversationMessages.lastOrNull()?.id
 
             withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {

@@ -61,7 +61,7 @@ interface ConversationDao {
                        ELSE 2
                    END AS priority
             FROM messages
-            WHERE conversationIdBase58 = :id
+            WHERE conversationIdBase58 = :id  AND type NOT IN (7)
         )
         SELECT *
         FROM prioritized_messages

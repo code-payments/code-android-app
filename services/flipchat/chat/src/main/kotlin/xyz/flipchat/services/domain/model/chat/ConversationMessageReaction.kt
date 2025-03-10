@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
 @Entity(
     tableName = "reactions",
     indices = [
-        Index(value = ["messageIdBase58"]),
+        Index(value = ["messageIdBase58", "senderIdBase58", "emoji"]),
     ],
 )
 data class ConversationMessageReaction(
@@ -21,6 +21,7 @@ data class ConversationMessageReaction(
     val messageIdBase58: String,
     val senderIdBase58: String,
     val emoji: String,
+    val deleted: Boolean = false,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()

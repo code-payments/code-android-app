@@ -337,6 +337,7 @@ class ChatsController @Inject constructor(
 
                         deletions.onEach {
                             db.conversationMessageDao().markDeleted(it.originalMessageId, it.messageDeleter)
+                            db.conversationMessageDao().removeReaction(it.originalMessageId)
                         }
                     }
 
