@@ -33,7 +33,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,6 +70,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient
+import com.getcode.util.permissions.notificationPermissionCheck
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -94,8 +97,24 @@ class RoomInfoScreen(
         val navigator = LocalCodeNavigator.current
         val context = LocalContext.current
 
+        var didRequest by remember { mutableStateOf(false) }
+        val notificationPermissionChecker = notificationPermissionCheck {
+            if (didRequest) {
+                viewModel.dispatchEvent(ChatInfoViewModel.Event.OnStartListening)
+            }
+        }
+
         LaunchedEffect(info) {
             viewModel.dispatchEvent(ChatInfoViewModel.Event.OnInfoChanged(info, isPreview))
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.RequestNotificationPermissions>()
+                .onEach {
+                    didRequest = true
+                    notificationPermissionChecker(true)
+                }.launchIn(this)
         }
 
         LaunchedEffect(viewModel) {

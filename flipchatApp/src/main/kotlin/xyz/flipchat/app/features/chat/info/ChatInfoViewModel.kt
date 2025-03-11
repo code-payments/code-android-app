@@ -1,40 +1,39 @@
 package xyz.flipchat.app.features.chat.info
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.Kin
-import com.getcode.model.chat.LinkedSocialProfile
 import com.getcode.model.chat.MinimalMember
-import com.getcode.model.social.user.SocialProfile
-import com.getcode.model.social.user.XExtraData
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.solana.keys.PublicKey
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.FlipchatServerError
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import xyz.flipchat.app.R
 import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.data.RoomInfo
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.notifications.FcNotificationType
 import xyz.flipchat.services.domain.model.profile.toLinked
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
@@ -54,6 +53,8 @@ class ChatInfoViewModel @Inject constructor(
     private val chatsController: ChatsController,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
+    private val permissionChecker: PermissionChecker,
+    private val notificationManager: NotificationManagerCompat,
 ) : BaseViewModel2<ChatInfoViewModel.State, ChatInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -76,7 +77,7 @@ class ChatInfoViewModel @Inject constructor(
     sealed interface Event {
         // region state updates
         data class OnRoomNameChangesEnabled(val enabled: Boolean) : Event
-        data class OnUserProfilesEnabled(val enabled: Boolean): Event
+        data class OnUserProfilesEnabled(val enabled: Boolean) : Event
         data class OnHostStatusChanged(val isHost: Boolean) : Event
         data class OnRoomOpenStateChanged(val isOpen: Boolean) : Event
         data class OnDestinationChanged(val destination: PublicKey) : Event
@@ -95,6 +96,8 @@ class ChatInfoViewModel @Inject constructor(
         data class ShareRoom(val intent: Intent) : Event
 
         data object OnListenToClicked : Event
+        data object OnStartListening : Event
+        data object RequestNotificationPermissions : Event
         data class OnJoiningStateChanged(val joining: Boolean, val joined: Boolean = false) : Event
         data class OnBecameMember(val roomId: ID) : Event
 
@@ -219,6 +222,17 @@ class ChatInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnListenToClicked>()
+            .onEach {
+                if (requestNotificationPermissionsIfNeeded()) {
+                    dispatchEvent(Event.RequestNotificationPermissions)
+                    return@onEach
+                } else {
+                    dispatchEvent(Event.OnStartListening)
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnStartListening>()
             .map { stateFlow.value.roomInfo }
             .onEach { roomInfo ->
                 dispatchEvent(Event.OnJoiningStateChanged(true))
@@ -441,6 +455,26 @@ class ChatInfoViewModel @Inject constructor(
         )
     }
 
+    private fun requestNotificationPermissionsIfNeeded(): Boolean {
+        val isDenied = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            false
+        }
+
+        val channel =
+            notificationManager.getNotificationChannel(FcNotificationType.ChatMessage().name)
+        val isChannelOff = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel?.importance == NotificationManager.IMPORTANCE_NONE
+        } else {
+            false
+        }
+
+        val show = isDenied || isChannelOff
+
+        return show
+    }
+
     companion object {
         private fun sortMembers(members: List<MinimalMember>): Map<MemberType, List<MinimalMember>> {
             return members
@@ -489,10 +523,12 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.OnShareRoomClicked,
                 is Event.ShareRoom,
                 is Event.OnListenToClicked,
+                is Event.OnStartListening,
                 is Event.OnBecameMember,
                 is Event.OnOpenStateChangedRequested,
                 is Event.OnCloseRoom,
                 is Event.OnOpenRoom,
+                is Event.RequestNotificationPermissions,
                 Event.OnLeftRoom -> { state -> state }
 
                 is Event.OnUserPromoted -> { state ->

@@ -8,7 +8,7 @@ import timber.log.Timber
 fun RemoteMessage.parse(): FcNotification? {
     Timber.d("data=$data")
     val type = FcNotificationType.resolve(data)
-    if (type == FcNotificationType.Unknown) {
+    if (type is FcNotificationType.Unknown) {
         ErrorUtils.handleError(Throwable("Unknown notification type"))
         return null
     }

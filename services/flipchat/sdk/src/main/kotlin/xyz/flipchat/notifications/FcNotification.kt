@@ -19,8 +19,9 @@ sealed interface FcNotificationType {
     val ordinal: Int
     val name: String
 
+
     sealed interface Notifiable
-    data object Unknown: FcNotificationType, Notifiable {
+    class Unknown: FcNotificationType, Notifiable {
         override val ordinal: Int = 99
         override val name: String = "Misc"
     }
@@ -28,6 +29,8 @@ sealed interface FcNotificationType {
     data class ChatMessage(val id: ID?, val roomNumber: Long?, val sender: String?): FcNotificationType, Notifiable {
         override val ordinal: Int = 1
         override val name: String = "Chat Messages"
+
+        constructor(): this(null, null, null)
     }
 
     fun isNotifiable() = this is Notifiable
@@ -51,7 +54,7 @@ sealed interface FcNotificationType {
                     val sender = value[SENDER]
                     ChatMessage(chatId, null, sender)
                 }
-                else -> Unknown
+                else -> Unknown()
             }
         }
     }

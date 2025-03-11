@@ -125,16 +125,16 @@ class FcNotificationService : FirebaseMessagingService(),
                             }
                         }
 
-                        FcNotificationType.Unknown -> Unit
+                        is FcNotificationType.Unknown -> Unit
                     }
                 } else {
                     val result = buildNotification(
-                        FcNotificationType.Unknown,
+                        FcNotificationType.Unknown(),
                         resources.getString(R.string.app_name),
                         "You have a new message."
                     )
                     if (result != null) {
-                        notify(result.first, result.second, FcNotificationType.Unknown)
+                        notify(result.first, result.second, FcNotificationType.Unknown())
                     }
                 }
             }
@@ -187,7 +187,7 @@ class FcNotificationService : FirebaseMessagingService(),
                     )
                 }
 
-                FcNotificationType.Unknown -> buildMiscNotification(applicationContext, type, title, content)
+                is FcNotificationType.Unknown -> buildMiscNotification(applicationContext, type, title, content)
             }
 
             return id to notification.build()

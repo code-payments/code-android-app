@@ -15,6 +15,7 @@ import com.getcode.libs.opengraph.cache.CacheProvider
 import com.getcode.services.analytics.AnalyticsService
 import com.getcode.services.analytics.AnalyticsServiceNull
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Api25Vibrator
@@ -35,6 +36,7 @@ import xyz.flipchat.app.BuildConfig
 import xyz.flipchat.app.beta.LabsController
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.util.AndroidLocale
+import xyz.flipchat.app.util.AndroidPermissions
 import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
@@ -76,6 +78,11 @@ object AppModule {
     fun providesTelephonyManager(
         @ApplicationContext context: Context,
     ): TelephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
+    @Provides
+    fun providesPermissionChecker(
+        @ApplicationContext context: Context,
+    ): PermissionChecker = AndroidPermissions(context)
 
     @Provides
     fun providesClipboard(

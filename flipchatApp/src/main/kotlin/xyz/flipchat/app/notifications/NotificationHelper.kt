@@ -143,7 +143,7 @@ internal fun Context.buildContentIntent(
             data = Uri.parse("https://app.flipchat.xyz/room/${type.roomNumber}")
         }
 
-        FcNotificationType.Unknown -> Intent(this, MainActivity::class.java).apply {
+        is FcNotificationType.Unknown -> Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
     }
