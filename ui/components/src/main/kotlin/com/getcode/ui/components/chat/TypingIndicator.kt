@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
@@ -117,24 +116,6 @@ private fun AvatarRow(
                 )
             }
         }
-
-        if (userImages.size > maxAvatars) {
-            item {
-                Text(
-                    modifier = Modifier
-                        .zIndex(-1f)
-                        .size(avatarSize)
-                        .clip(CircleShape)
-                        .background(Color.Transparent, CircleShape)
-                        .wrapContentSize(align = Alignment.CenterEnd)
-                        .padding(end = 5.dp),
-                    text = "+",
-                    color = CodeTheme.colors.textMain,
-                    style = CodeTheme.typography.textMedium,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
     }
 }
 
@@ -211,7 +192,7 @@ private fun TypingDots(
     }
 }
 
-private const val MaxAvatars = 3
+private const val MaxAvatars = 10
 private const val DotCount = 3
 private const val StepDuration = 500
 
