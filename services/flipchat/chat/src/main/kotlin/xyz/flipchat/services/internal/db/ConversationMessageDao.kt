@@ -271,6 +271,13 @@ interface ConversationMessageDao {
         return getNewestMessage(conversationId.base58)
     }
 
+    @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId ORDER BY dateMillis ASC LIMIT 1")
+    suspend fun getOldestMessage(conversationId: String): ConversationMessage?
+
+    suspend fun getOldestMessage(conversationId: ID): ConversationMessage? {
+        return getOldestMessage(conversationId.base58)
+    }
+
     @RewriteQueriesToDropUnusedColumns
     @Transaction
     @Query(

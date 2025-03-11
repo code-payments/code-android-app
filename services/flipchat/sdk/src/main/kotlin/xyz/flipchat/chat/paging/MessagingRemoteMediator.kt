@@ -6,6 +6,7 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import com.getcode.model.ID
 import com.getcode.model.uuid
+import com.getcode.utils.base58
 import com.getcode.utils.timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,8 +30,6 @@ internal class MessagingRemoteMediator(
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
 
-    private var lastMessageId: ID? = null
-
     override suspend fun load(
         loadType: LoadType,
         state: PagingState<Int, InflatedConversationMessage>
@@ -46,9 +45,11 @@ internal class MessagingRemoteMediator(
                 }
 
                 LoadType.APPEND -> {
-                    state.lastItemOrNull()?.message?.id ?: lastMessageId
+                    db.conversationMessageDao().getOldestMessage(chatId)?.id
                 }
             }
+
+            println("loadKey=${loadKey?.base58}")
 
             val limit = state.config.pageSize
 
@@ -67,8 +68,6 @@ internal class MessagingRemoteMediator(
             if (conversationMessages.isEmpty()) {
                 return MediatorResult.Success(true)
             }
-
-            lastMessageId = conversationMessages.lastOrNull()?.id
 
             withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
