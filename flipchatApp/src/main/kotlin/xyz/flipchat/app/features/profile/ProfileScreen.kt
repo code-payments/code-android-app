@@ -234,7 +234,6 @@ private fun ProfileContent(
                     if (state.canConnectAccount && state.isSelf) {
                         val xOAuthLauncher =
                             rememberLauncherForOAuth(OAuthProvider.X) { accessToken ->
-                                println("x access token=$accessToken")
                                 dispatchEvent(ProfileViewModel.Event.LinkXAccount(accessToken))
                             }
 

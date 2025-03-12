@@ -182,7 +182,6 @@ private fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
 private class PurchaseAccountViewModel @Inject constructor(
     private val userManager: UserManager,
     private val authManager: AuthManager,
-    iapController: PurchaseController,
     billingClient: BillingClient,
     resources: ResourceHelper,
 ) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
