@@ -5,12 +5,9 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.Index
-import androidx.room.Junction
 import androidx.room.PrimaryKey
-import androidx.room.Query
 import androidx.room.Relation
 import com.getcode.model.ID
-import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
@@ -163,3 +160,60 @@ data class MessageReactionInfo(
     )
     val socialProfiles: List<MemberSocialProfile>,
 )
+
+fun List<ConversationMessage>.deletedMessages(selfId: ID?): List<MessageContent.DeletedMessage> {
+    return mapNotNull { m ->
+        MessageContent.fromData(
+            type = m.type,
+            content = m.content,
+            isFromSelf = m.senderId == selfId,
+        ) as? MessageContent.DeletedMessage
+    }
+}
+
+fun List<ConversationMessage>.replies(selfId: ID?): List<Pair<ID, ID>> {
+    return mapNotNull { m ->
+        val originalMessageId = (MessageContent.fromData(
+            type = m.type,
+            content = m.content,
+            isFromSelf = m.senderId == selfId,
+        ) as? MessageContent.Reply)?.originalMessageId ?: return@mapNotNull null
+
+        m.id to originalMessageId
+    }
+}
+
+fun List<ConversationMessage>.tips(selfId: ID?): List<Pair<ID, MessageContent.MessageTip>> {
+    return mapNotNull { m ->
+        val tipContent = MessageContent.fromData(
+            type = m.type,
+            content = m.content,
+            isFromSelf = m.senderId == selfId,
+        ) as? MessageContent.MessageTip ?: return@mapNotNull null
+
+        m.id to tipContent
+    }
+}
+
+fun List<ConversationMessage>.reactions(selfId: ID?): List<Pair<ID, MessageContent.Reaction>> {
+    return mapNotNull { m ->
+        val reactionContent = MessageContent.fromData(
+            type = m.type,
+            content = m.content,
+            isFromSelf = m.senderId == selfId,
+        ) as? MessageContent.Reaction ?: return@mapNotNull null
+
+        m.id to reactionContent
+    }
+}
+
+fun List<ConversationMessage>.reviews(selfId: ID?): List<MessageContent.MessageInReview> {
+     return mapNotNull { m ->
+        MessageContent.fromData(
+            type = m.type,
+            content = m.content,
+            isFromSelf = m.senderId == selfId,
+        ) as? MessageContent.MessageInReview ?: return@mapNotNull null
+    }
+}
+

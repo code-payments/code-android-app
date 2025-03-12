@@ -299,7 +299,11 @@ class ChatsController @Inject constructor(
                 db.conversationMessageDao().getNewestMessage(conversationId)
             if (newestInDb?.id == newMessage.id) {
                 withContext(Dispatchers.IO) {
-                    db.conversationMessageDao().upsertMessages(listOf(newMessage), userManager.userId)
+                    db.conversationMessageDao().upsertMessages(
+                        conversationId,
+                        listOf(newMessage),
+                        userManager.userId
+                    )
                 }
                 return
             }
@@ -323,22 +327,12 @@ class ChatsController @Inject constructor(
                         conversationMessageMapper.map(conversationId to it)
                     }
 
-                    val deletions = messagesWithContent.mapNotNull {
-                        MessageContent.fromData(
-                            it.type, it.content, userManager.isSelf(it.senderId),
-                        ) as? MessageContent.DeletedMessage
-                    }
-
                     withContext(Dispatchers.IO) {
                         db.conversationMessageDao().upsertMessages(
+                            conversationId,
                             messagesWithContent,
                             userManager.userId
                         )
-
-                        deletions.onEach {
-                            db.conversationMessageDao().markDeleted(it.originalMessageId, it.messageDeleter)
-                            db.conversationMessageDao().removeReaction(it.originalMessageId)
-                        }
                     }
 
                     val nextToken =
@@ -352,7 +346,11 @@ class ChatsController @Inject constructor(
                 .onFailure {
                     if (newMessage != null) {
                         withContext(Dispatchers.IO) {
-                            db.conversationMessageDao().upsertMessages(listOf(newMessage), userManager.userId)
+                            db.conversationMessageDao().upsertMessages(
+                                conversationId,
+                                listOf(newMessage),
+                                userManager.userId
+                            )
                         }
                     }
                     return

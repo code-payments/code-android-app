@@ -94,7 +94,7 @@ class RoomController @Inject constructor(
                 chatId = identifier,
                 onMessagesUpdated = {
                     scope.launch {
-                        db.conversationMessageDao().upsertMessages(it, userManager.userId)
+                        db.conversationMessageDao().upsertMessages(identifier, it, userManager.userId)
                     }
                 }
             )

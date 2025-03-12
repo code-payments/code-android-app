@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.reflect.KClass
 
 @Serializable
 sealed interface MessageContent {
@@ -482,6 +483,24 @@ sealed interface MessageContent {
     }
 
     companion object {
+        fun getType(clazz: KClass<out MessageContent>): Int {  // Note: using 'out MessageContent' since it's a sealed interface
+            return when (clazz) {
+                Localized::class -> 0
+                RawText::class -> 1
+                Exchange::class -> 2
+                SodiumBox::class -> 3
+                Announcement::class -> 4
+                Decrypted::class -> 6
+                Reaction::class -> 7
+                Reply::class -> 8
+                DeletedMessage::class -> 9
+                MessageTip::class -> 10
+                MessageInReview::class -> 11
+                ActionableAnnouncement::class -> 12
+                else -> -1  // Default to Unknown if type is not recognized
+            }
+        }
+
         fun fromData(type: Int, content: String, isFromSelf: Boolean): MessageContent {
             return when (type) {
                 0 -> Localized(content, isFromSelf)

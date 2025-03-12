@@ -5,9 +5,6 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import com.getcode.model.ID
-import com.getcode.model.uuid
-import com.getcode.utils.base58
-import com.getcode.utils.timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
@@ -49,8 +46,6 @@ internal class MessagingRemoteMediator(
                 }
             }
 
-            println("loadKey=${loadKey?.base58}")
-
             val limit = state.config.pageSize
 
             val query = QueryOptions(
@@ -75,7 +70,11 @@ internal class MessagingRemoteMediator(
                 }
 
                 db.conversationMessageDao()
-                    .upsertMessages(messages = conversationMessages, selfID = userId())
+                    .upsertMessages(
+                        chatId = chatId,
+                        messages = conversationMessages,
+                        selfID = userId()
+                    )
             }
 
             MediatorResult.Success(endOfPaginationReached = messages.size < limit)

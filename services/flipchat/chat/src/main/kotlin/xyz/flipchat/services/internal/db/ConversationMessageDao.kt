@@ -21,6 +21,11 @@ import xyz.flipchat.services.domain.model.chat.ConversationMessageWithMemberAndR
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 import xyz.flipchat.services.domain.model.chat.MessageReactionInfo
 import xyz.flipchat.services.domain.model.chat.MessageTipInfo
+import xyz.flipchat.services.domain.model.chat.deletedMessages
+import xyz.flipchat.services.domain.model.chat.reviews
+import xyz.flipchat.services.domain.model.chat.reactions
+import xyz.flipchat.services.domain.model.chat.replies
+import xyz.flipchat.services.domain.model.chat.tips
 import xyz.flipchat.services.domain.model.people.FlipchatUser
 import xyz.flipchat.services.domain.model.people.MemberPersonalInfo
 import xyz.flipchat.services.domain.model.profile.MemberSocialProfile
@@ -32,62 +37,28 @@ interface ConversationMessageDao {
     suspend fun upsertMessagesInternal(vararg message: ConversationMessage)
 
     @Transaction
-    suspend fun upsertMessages(messages: List<ConversationMessage>, selfID: ID?) {
+    suspend fun upsertMessages(
+        chatId: ID,
+        messages: List<ConversationMessage>,
+        selfID: ID?
+    ) {
         upsertMessagesInternal(*messages.toTypedArray())
 
-        val deletes = messages
-            .mapNotNull { m ->
-                MessageContent.fromData(
-                    type = m.type,
-                    content = m.content,
-                    isFromSelf = m.senderId == selfID,
-                ) as? MessageContent.DeletedMessage
-            }
+        val deletes = messages.deletedMessages(selfID) + getMessagesOfTypeInConversation(
+            conversationId = chatId,
+            type = MessageContent.getType(MessageContent.DeletedMessage::class)
+        ).deletedMessages(selfID)
 
-        val replies = messages
-            .mapNotNull { m ->
-                val originalMessageId = (MessageContent.fromData(
-                    type = m.type,
-                    content = m.content,
-                    isFromSelf = m.senderId == selfID,
-                ) as? MessageContent.Reply)?.originalMessageId ?: return@mapNotNull null
+        val replies = messages.replies(selfID)
+        val tips = messages.tips(selfID)
 
-                m.id to originalMessageId
-            }
-
-        val tips = messages
-            .mapNotNull { m ->
-                val tipContent = MessageContent.fromData(
-                    type = m.type,
-                    content = m.content,
-                    isFromSelf = m.senderId == selfID,
-                ) as? MessageContent.MessageTip ?: return@mapNotNull null
-
-                m.id to tipContent
-            }
-
-        val reactions = messages
-            .mapNotNull { m ->
-                val reactionContent = MessageContent.fromData(
-                    type = m.type,
-                    content = m.content,
-                    isFromSelf = m.senderId == selfID,
-                ) as? MessageContent.Reaction ?: return@mapNotNull null
-
-                m.id to reactionContent
-            }
+        val reactions = messages.reactions(selfID)
 
         // first review for a message in the stream wins
         // so we sort and distinct by the [originalMessageId] and only change [isApproved] if
         // not previously set
-        val reviews: List<MessageContent.MessageInReview> = messages
-            .mapNotNull { m ->
-                MessageContent.fromData(
-                    type = m.type,
-                    content = m.content,
-                    isFromSelf = m.senderId == selfID,
-                ) as? MessageContent.MessageInReview ?: return@mapNotNull null
-            }.sortedBy { it.originalMessageId.uuid }
+        val reviews: List<MessageContent.MessageInReview> = messages.reviews(selfID)
+            .sortedBy { it.originalMessageId.uuid }
             .fastDistinctBy { it.originalMessageId }
             .filterNot { hasBeenReviewed(it.originalMessageId) }
 
@@ -264,16 +235,14 @@ interface ConversationMessageDao {
         return queryMessages(conversationId.base58)
     }
 
-    @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId ORDER BY dateMillis DESC LIMIT 1")
+    @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId ORDER BY idBase58 DESC LIMIT 1")
     suspend fun getNewestMessage(conversationId: String): ConversationMessage?
-
     suspend fun getNewestMessage(conversationId: ID): ConversationMessage? {
         return getNewestMessage(conversationId.base58)
     }
 
-    @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId ORDER BY dateMillis ASC LIMIT 1")
+    @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId ORDER BY idBase58 ASC LIMIT 1")
     suspend fun getOldestMessage(conversationId: String): ConversationMessage?
-
     suspend fun getOldestMessage(conversationId: ID): ConversationMessage? {
         return getOldestMessage(conversationId.base58)
     }
