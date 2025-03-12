@@ -87,8 +87,8 @@ sealed interface Lab {
 
     data object TypingInChat: Lab {
         override val key: String = "typing_indicator_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object EmojiReactions: Lab {
