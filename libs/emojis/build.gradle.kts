@@ -37,6 +37,10 @@ android {
 dependencies {
     implementation(Libs.inject)
     implementation(Libs.hilt)
+    implementation(Libs.kotlinx_serialization_core)
+    implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_datetime)
+    implementation(Libs.androidx_datastore)
 }
 
 private val emojiUrl = "https://unicode.org/Public/emoji/16.0/emoji-test.txt"
