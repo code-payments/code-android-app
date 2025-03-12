@@ -66,6 +66,7 @@ import com.getcode.ui.utils.getActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.profile.components.ProfileContextAction
@@ -77,6 +78,7 @@ import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 @Parcelize
 class ProfileScreen(val userId: ID? = null, val isInTab: Boolean) : Screen, Parcelable {
 
+    @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
@@ -226,124 +228,128 @@ private fun ProfileContent(
         ) {
             // Crossfade for linked vs unlinked content
             Crossfade(
-                targetState = state.linkedSocialProfile != null,
+                targetState = state.linkedSocialProfile,
                 animationSpec = tween(durationMillis = 300)
-            ) { isLinked ->
-                if (!isLinked) {
-                    // Unlinked state
-                    if (state.canConnectAccount && state.isSelf) {
-                        val xOAuthLauncher =
-                            rememberLauncherForOAuth(OAuthProvider.X) { accessToken ->
-                                dispatchEvent(ProfileViewModel.Event.LinkXAccount(accessToken))
-                            }
-
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-                        ) {
-                            CodeButton(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = CodeTheme.dimens.grid.x12)
-                                    .padding(horizontal = CodeTheme.dimens.inset),
-                                buttonState = ButtonState.Filled,
-                                onClick = {
-                                    xOAuthLauncher.launch(
-                                        OAuthProvider.X.launchIntent(
-                                            context
-                                        )
-                                    )
-                                },
-                                content = {
-                                    Image(
-                                        painter = rememberVectorPainter(
-                                            image = ImageVector.vectorResource(
-                                                id = R.drawable.ic_twitter_x
-                                            )
-                                        ),
-                                        colorFilter = ColorFilter.tint(Color.Black),
-                                        contentDescription = null
-                                    )
-                                    Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
-                                    Text(text = stringResource(R.string.action_connectYourAccount))
+            ) { profile ->
+                when (profile) {
+                    SocialProfile.Unknown -> Unit
+                    null -> {
+                        // Unlinked state
+                        if (state.canConnectAccount && state.isSelf) {
+                            val xOAuthLauncher =
+                                rememberLauncherForOAuth(OAuthProvider.X) { accessToken ->
+                                    dispatchEvent(ProfileViewModel.Event.LinkXAccount(accessToken))
                                 }
-                            )
+
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                            ) {
+                                CodeButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = CodeTheme.dimens.grid.x12)
+                                        .padding(horizontal = CodeTheme.dimens.inset),
+                                    buttonState = ButtonState.Filled,
+                                    onClick = {
+                                        xOAuthLauncher.launch(
+                                            OAuthProvider.X.launchIntent(
+                                                context
+                                            )
+                                        )
+                                    },
+                                    content = {
+                                        Image(
+                                            painter = rememberVectorPainter(
+                                                image = ImageVector.vectorResource(
+                                                    id = R.drawable.ic_twitter_x
+                                                )
+                                            ),
+                                            colorFilter = ColorFilter.tint(Color.Black),
+                                            contentDescription = null
+                                        )
+                                        Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+                                        Text(text = stringResource(R.string.action_connectYourAccount))
+                                    }
+                                )
+                            }
                         }
                     }
-                } else {
-                    // Linked state
-                    state.linkedSocialProfile?.let { linkedProfile ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            state.username?.let { username ->
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = fadeIn(),
-                                    exit = fadeOut() + shrinkVertically()
-                                ) {
-                                    Text(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        text = username,
-                                        style = CodeTheme.typography.textSmall,
-                                        color = CodeTheme.colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-
-                            when (linkedProfile) {
-                                is SocialProfile.X -> {
+                    else -> {
+                        // Linked state
+                        state.linkedSocialProfile?.let { linkedProfile ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                state.username?.let { username ->
                                     AnimatedVisibility(
                                         visible = true,
                                         enter = fadeIn(),
                                         exit = fadeOut() + shrinkVertically()
                                     ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(top = CodeTheme.dimens.grid.x8),
-                                                text = "${linkedProfile.followerCountFormatted} Followers",
-                                                style = CodeTheme.typography.textSmall,
-                                                color = CodeTheme.colors.textSecondary,
-                                                textAlign = TextAlign.Center
-                                            )
-                                            Text(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(0.70f)
-                                                    .padding(top = CodeTheme.dimens.grid.x1),
-                                                text = linkedProfile.description,
-                                                style = CodeTheme.typography.textSmall,
-                                                color = CodeTheme.colors.textSecondary,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
+                                        Text(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            text = username,
+                                            style = CodeTheme.typography.textSmall,
+                                            color = CodeTheme.colors.textSecondary,
+                                            textAlign = TextAlign.Center
+                                        )
                                     }
                                 }
 
-                                is SocialProfile.Unknown -> Unit
-                            }
+                                when (linkedProfile) {
+                                    is SocialProfile.X -> {
+                                        AnimatedVisibility(
+                                            visible = true,
+                                            enter = fadeIn(),
+                                            exit = fadeOut() + shrinkVertically()
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(top = CodeTheme.dimens.grid.x8),
+                                                    text = "${linkedProfile.followerCountFormatted} Followers",
+                                                    style = CodeTheme.typography.textSmall,
+                                                    color = CodeTheme.colors.textSecondary,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                Text(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(0.70f)
+                                                        .padding(top = CodeTheme.dimens.grid.x1),
+                                                    text = linkedProfile.description,
+                                                    style = CodeTheme.typography.textSmall,
+                                                    color = CodeTheme.colors.textSecondary,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                    }
 
-                            if (!isInTab) {
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-                                ) {
-                                    CodeButton(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = CodeTheme.dimens.grid.x12)
-                                            .padding(horizontal = CodeTheme.dimens.inset),
-                                        buttonState = ButtonState.Filled,
-                                        onClick = { uriHandler.openUri(linkedProfile.profileUrl) },
-                                        text = stringResource(
-                                            R.string.action_openProfileOnPlatform,
-                                            linkedProfile.platformTypeName
+                                    is SocialProfile.Unknown -> Unit
+                                }
+
+                                if (!isInTab) {
+                                    AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                                    ) {
+                                        CodeButton(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = CodeTheme.dimens.grid.x12)
+                                                .padding(horizontal = CodeTheme.dimens.inset),
+                                            buttonState = ButtonState.Filled,
+                                            onClick = { uriHandler.openUri(linkedProfile.profileUrl) },
+                                            text = stringResource(
+                                                R.string.action_openProfileOnPlatform,
+                                                linkedProfile.platformTypeName
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
