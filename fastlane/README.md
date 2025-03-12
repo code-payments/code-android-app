@@ -15,13 +15,21 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Android
 
-### android test
+### android code_tests
 
 ```sh
-[bundle exec] fastlane android test
+[bundle exec] fastlane android code_tests
 ```
 
-Runs all the tests
+Runs all the tests for Code
+
+### android fc_tests
+
+```sh
+[bundle exec] fastlane android fc_tests
+```
+
+Runs all the tests for Flipchat
 
 ### android deploy_code_internal
 
@@ -31,13 +39,13 @@ Runs all the tests
 
 Build and Deploy a new internal version of Code to the Google Play
 
-### android deploy_fc_internal
+### android deploy_fc
 
 ```sh
-[bundle exec] fastlane android deploy_fc_internal
+[bundle exec] fastlane android deploy_fc
 ```
 
-Build and Deploy a new internal version of Flipchat to the Google Play Store
+Build and Deploy a new version of Flipchat to the Google Play Store
 
 ----
 

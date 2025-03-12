@@ -23,6 +23,7 @@ platform :android do
 
   desc "Runs all the tests for Flipchat"
     lane :fc_tests do
+      gradle(task: "generateEmojiList")
       gradle(task: "flipchatApp:testDebug")
     end
 
@@ -61,6 +62,10 @@ platform :android do
   desc "Build and Deploy a new version of Flipchat to the Google Play Store"
     lane :deploy_fc do
       #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
+      gradle(
+        task: "generateEmojiList"
+      )
+
       gradle(
         task: "clean flipchatApp:bundle", #"clean app:bundleRelease",
         build_type: "release",
