@@ -665,6 +665,7 @@ class ConversationViewModel @Inject constructor(
             .onEach {
                 roomController.closeMessageStream()
                 userManager.roomClosed()
+                roomController.onUserStoppedTypingIn(stateFlow.value.conversationId.orEmpty())
             }.launchIn(viewModelScope)
 
         stateFlow

@@ -51,6 +51,7 @@ fun UserAvatar(
             model = request,
             contentDescription = null,
             onError = {
+                imgLoading = false
                 isError = true
             },
             onLoading = {

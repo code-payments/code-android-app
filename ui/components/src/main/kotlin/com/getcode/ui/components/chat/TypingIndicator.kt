@@ -1,8 +1,13 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -10,14 +15,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
@@ -25,14 +36,17 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.material.Text
+import androidx.compose.material.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,14 +57,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.zIndex
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.ui.components.PriceWithFlagDefaults.Text
 import com.getcode.ui.utils.IDPreviewParameterProvider
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 @Composable
 fun TypingIndicator(
@@ -60,12 +79,15 @@ fun TypingIndicator(
     Row(
         modifier = modifier
             .padding(top = 4.dp)
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-        verticalAlignment = Alignment.CenterVertically
+            .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                clip = false
+            },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Avatar Row
         AvatarRow(
+            modifier = Modifier.weight(1f, fill = false),
             userImages = userImages,
             maxAvatars = MaxAvatars
         )
@@ -83,29 +105,33 @@ private fun AvatarRow(
 ) {
     val avatarSize = CodeTheme.dimens.staticGrid.x8
     val overlap = CodeTheme.dimens.staticGrid.x4
+
     LazyRow(
         modifier = modifier
-            .graphicsLayer { clip = false }
+            .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                clip = false }
             .padding(vertical = 4.dp)
             .animateContentSize(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(-overlap)
+        horizontalArrangement = Arrangement.spacedBy(-overlap, Alignment.Start),
+        contentPadding = PaddingValues(end = CodeTheme.dimens.grid.x2)
     ) {
         itemsIndexed(
-            items = userImages.take(maxAvatars),
+            items = userImages.takeLast(maxAvatars),
             key = { _, item -> item.hashCode() }
         ) { index, image ->
             UserAvatar(
                 modifier = Modifier
                     .size(avatarSize)
+                    .zIndex(userImages.takeLast(maxAvatars).count() - index.toFloat())
                     .clip(CircleShape)
                     .animateItem(
                         fadeOutSpec = spring(
                             stiffness = Spring.StiffnessMediumLow,
-                            visibilityThreshold = 0.9f
+                            visibilityThreshold = 0.5f
                         )
-                    )
-                    .zIndex(index.toFloat()),
+                    ),
                 data = image
             ) {
                 Image(
@@ -199,20 +225,20 @@ private const val StepDuration = 500
 @Composable
 @Preview
 fun PreviewTypingIndicator() {
-    val provider = IDPreviewParameterProvider(4)
+    val provider = IDPreviewParameterProvider(MaxAvatars + 2)
 
     var userCount by remember { mutableIntStateOf(0) }
 
     // Animation logic
     LaunchedEffect(Unit) {
         while (true) {
-            // Ramp up from 0 to 4
-            for (i in 0..4) {
+            // Ramp up from 0 to max
+            for (i in 0..MaxAvatars) {
                 userCount = i
                 delay(2000L) // 2-second delay
             }
-            // Ramp down from 4 to 0
-            for (i in 3 downTo 0) {
+            // Ramp down from max to 0
+            for (i in MaxAvatars downTo 0) {
                 userCount = i
                 delay(2000L) // 2-second delay
             }
@@ -227,7 +253,7 @@ fun PreviewTypingIndicator() {
                 transitionSpec = {
                     slideInVertically(
                         animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            dampingRatio = Spring.DampingRatioLowBouncy,
                             stiffness = Spring.StiffnessLow
                         )
                     ) { it } + scaleIn() + fadeIn() togetherWith fadeOut() + scaleOut() + slideOutVertically { it }
@@ -236,6 +262,7 @@ fun PreviewTypingIndicator() {
                 if (show) {
                     TypingIndicator(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.grid.x2),
                         userImages = users
                     )
@@ -243,4 +270,39 @@ fun PreviewTypingIndicator() {
             }
         }
     }
+}
+
+@Composable
+@Preview
+private fun TestAvatarRow() {
+    var imageList by remember { mutableStateOf(listOf("user1", "user2", "user3")) }
+
+    DesignSystem {
+        Column {
+            AvatarRow(
+                userImages = imageList,
+                maxAvatars = 100
+            )
+            Button(onClick = {
+                imageList = imageList + "user${imageList.size + 1}"
+            }) {
+                Text("Add Avatar")
+            }
+
+            Button(onClick = {
+                imageList = imageList.drop(1)
+            }) {
+                Text("Remove Avatar")
+            }
+        }
+    }
+}
+
+private fun randomColor(): Color {
+    return Color(
+        red = Random.nextFloat(),
+        green = Random.nextFloat(),
+        blue = Random.nextFloat(),
+        alpha = 1f
+    )
 }

@@ -4,13 +4,6 @@ import android.os.Parcelable
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -55,7 +48,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.messagecontents.MessageReplyPreview
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
@@ -172,6 +164,7 @@ data class ConversationScreen(
 
         val goBack = {
             composeScope.launch {
+                vm.dispatchEvent(ConversationViewModel.Event.Stopped)
                 if (keyboardVisible) {
                     keyboard?.hide()
                     delay(500)

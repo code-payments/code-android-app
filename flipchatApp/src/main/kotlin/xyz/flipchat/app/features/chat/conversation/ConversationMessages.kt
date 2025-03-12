@@ -126,7 +126,7 @@ internal fun ConversationMessages(
                         transitionSpec = {
                             slideInVertically(
                                 animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
                                     stiffness = Spring.StiffnessLow
                                 )
                             ) { it } + scaleIn() + fadeIn() togetherWith
