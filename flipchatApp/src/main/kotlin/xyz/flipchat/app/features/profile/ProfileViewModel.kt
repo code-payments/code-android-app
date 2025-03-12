@@ -46,7 +46,7 @@ class ProfileViewModel @Inject constructor(
         val id: ID? = null,
         val isSelf: Boolean = false,
         private val name: String = "",
-        val linkedSocialProfile: SocialProfile? = null,
+        val linkedSocialProfile: SocialProfile? = SocialProfile.Unknown,
         val isStaff: Boolean = false,
         val canConnectAccount: Boolean = false,
         val showConnectedSocial: Boolean = false,
