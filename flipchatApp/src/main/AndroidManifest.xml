@@ -218,7 +218,11 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_launcher_foreground" />
+            android:resource="@drawable/flipchat_logo" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:value="#FF362774" />
 
         <meta-data
             android:name="com.bugsnag.android.API_KEY"

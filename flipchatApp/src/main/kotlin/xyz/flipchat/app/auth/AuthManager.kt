@@ -45,7 +45,6 @@ class AuthManager @Inject constructor(
     private val betaFlags: Labs,
     private val notificationManager: NotificationManagerCompat,
 //    private val balanceController: BalanceController,
-//    private val notificationCollectionHistory: NotificationCollectionHistoryController,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
