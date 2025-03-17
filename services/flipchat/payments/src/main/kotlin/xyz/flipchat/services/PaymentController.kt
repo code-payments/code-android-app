@@ -16,7 +16,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,7 +26,6 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.services.payments.R
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.Duration.Companion.seconds
 
 data class PaymentState(
     val billState: BillState = BillState.Default,

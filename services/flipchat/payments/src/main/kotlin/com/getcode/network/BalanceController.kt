@@ -69,6 +69,11 @@ open class BalanceController @Inject constructor(
         get() = _balanceDisplay
             .stateIn(scope, SharingStarted.Eagerly, BalanceDisplay())
 
+    fun reset() {
+        balanceRepository.clearBalance()
+        _balanceDisplay.value = null
+    }
+
     init {
         userManager.state
             .map { it.authState }

@@ -6,6 +6,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.bugsnag.android.Bugsnag
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.ID
+import com.getcode.network.BalanceController
 import xyz.flipchat.app.util.AccountUtils
 import com.getcode.services.db.Database
 import com.getcode.services.utils.token
@@ -44,7 +45,7 @@ class AuthManager @Inject constructor(
     private val pushController: PushController,
     private val betaFlags: Labs,
     private val notificationManager: NotificationManagerCompat,
-//    private val balanceController: BalanceController,
+    private val balanceController: BalanceController,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -282,6 +283,7 @@ class AuthManager @Inject constructor(
         userManager.clear()
         Database.delete(context)
         betaFlags.reset()
+        balanceController.reset()
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 
