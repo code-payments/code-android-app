@@ -59,10 +59,11 @@ private sealed interface Feedback {
     data class All(override val data: FeedbackData.All) : Feedback
 }
 
+private typealias GroupedTips = List<Pair<Sender, KinAmount>>
 private sealed interface FeedbackData {
-    data class Tips(val tips: List<Pair<Sender, KinAmount>>) : FeedbackData
+    data class Tips(val tips: GroupedTips) : FeedbackData
     data class Senders(val senders: List<Sender>) : FeedbackData
-    data class All(val tips: List<MessageTip>, val reactions: List<MessageReaction>) : FeedbackData {
+    data class All(val tips: List<Pair<Sender, KinAmount>>, val reactions: List<MessageReaction>) : FeedbackData {
         val totalCount: Int
             get() = reactions.count() + tips.count()
     }
@@ -77,9 +78,9 @@ internal data class MessageReactionsSheet(
     override fun Content() {
         val feedback = remember(tips, reactions) {
             val items = mutableListOf<Feedback>()
-
+            var groupedTips: GroupedTips = emptyList()
             if (tips.isNotEmpty()) {
-                val groupedTips = tips.groupBy { it.tipper }
+                groupedTips = tips.groupBy { it.tipper }
                     .mapValues { it.value.map { it.amount }.sum() }
                     .toList().sortedByDescending { it.second.fiat }
                 items.add(Feedback.Tips(FeedbackData.Tips(groupedTips)))
@@ -91,8 +92,8 @@ internal data class MessageReactionsSheet(
                     items.add(Feedback.Emoji(it.key, FeedbackData.Senders(it.value)))
                 }
 
-            if ((tips.isNotEmpty() || reactions.isNotEmpty()) && items.count() > 1) {
-                items.add(0, Feedback.All(FeedbackData.All(tips, reactions)))
+            if ((groupedTips.isNotEmpty() || reactions.isNotEmpty()) && items.count() > 1) {
+                items.add(0, Feedback.All(FeedbackData.All(groupedTips, reactions)))
             }
 
             return@remember items
@@ -107,12 +108,14 @@ internal data class MessageReactionsSheet(
                 .fillMaxWidth()
                 .fillMaxHeight(0.5f)
         ) {
-            TabIndicator(
-                pagerState = pagerState,
-                feedback = feedback,
-            ) {
-                composeScope.launch {
-                    pagerState.animateScrollToPage(it)
+            if (pagerState.pageCount > 1) {
+                TabIndicator(
+                    pagerState = pagerState,
+                    feedback = feedback,
+                ) {
+                    composeScope.launch {
+                        pagerState.animateScrollToPage(it)
+                    }
                 }
             }
             HorizontalPager(
@@ -236,10 +239,11 @@ private fun FeedbackContent(
                                 emoji = i.emoji
                             )
                         }
-                        is MessageTip -> {
+                        is Pair<*, *> -> {
+                            val row = i as Pair<Sender, KinAmount>
                             TipReactionRow(
-                                tipper = i.tipper,
-                                tip = i.amount,
+                                tipper = row.first,
+                                tip = i.second,
                                 imageModifier = imageModifier,
                                 modifier = Modifier.fillParentMaxWidth(),
                             )

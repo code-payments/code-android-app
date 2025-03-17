@@ -101,11 +101,9 @@ internal fun ConversationMessages(
     Box(
         modifier = modifier,
     ) {
-        CompositionLocalProvider(LocalAnnouncementActionResolver provides {
-            resolveAnnouncementAction(
-                it
-            )
-        }) {
+        CompositionLocalProvider(
+            LocalAnnouncementActionResolver provides { resolveAnnouncementAction(it) }
+        ) {
             MessageList(
                 modifier = Modifier
                     .fillMaxSize()

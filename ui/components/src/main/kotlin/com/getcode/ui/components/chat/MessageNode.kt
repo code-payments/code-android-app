@@ -53,7 +53,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.getcode.model.ID
 import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
@@ -64,6 +63,7 @@ import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
 import com.getcode.ui.components.chat.messagecontents.MarkupTouchHandler
+import com.getcode.ui.components.chat.messagecontents.MessageContentActionHandler
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageReplyContent
 import com.getcode.ui.components.chat.messagecontents.MessageText
@@ -212,15 +212,7 @@ fun MessageNode(
     options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
     tips: List<MessageTip>,
     reactions: List<MessageReaction>,
-    wasSentAsFullMember: Boolean = true,
-    openMessageControls: () -> Unit,
-    showTipSelection: () -> Unit,
-    showReactions: () -> Unit,
-    onReply: () -> Unit,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
-    onViewOriginalMessage: (ID) -> Unit,
-    openUserProfile: () -> Unit,
+    actionHandler: MessageContentActionHandler,
 ) {
     val vibrator = LocalVibrator.current
 
@@ -270,7 +262,7 @@ fun MessageNode(
 
         LaunchedEffect(hasReachedThreshold, replyDragState.targetValue) {
             if (hasReachedThreshold && replyDragState.targetValue == MessageNodeDragAnchors.DEFAULT && replyDragState.isAnimationRunning) {
-                onReply()
+                actionHandler.startReply()
                 hasReachedThreshold = false
             }
         }
@@ -329,7 +321,7 @@ fun MessageNode(
                             modifier = Modifier.fillMaxWidth(),
                             sender = sender,
                             canOpenProfile = options.canViewUserProfiles,
-                            openUserProfile = openUserProfile,
+                            openUserProfile = actionHandler::openUserProfile,
                             isFirstInSeries = !options.isPreviousGrouped
                         ) {
                             DeletedMessage(
@@ -365,7 +357,7 @@ fun MessageNode(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
                                     canOpenProfile = options.canViewUserProfiles,
-                                    openUserProfile = openUserProfile,
+                                    openUserProfile = actionHandler::openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
@@ -381,11 +373,7 @@ fun MessageNode(
                                             tips = tips,
                                             reactions = reactions,
                                             onTap = onTap,
-                                            onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection,
-                                            onAddReaction = onAddReaction,
-                                            onRemoveReaction = onRemoveReaction,
-                                            onViewFeedback = showReactions,
+                                            actionHandler = actionHandler,
                                         )
                                     }
                                 }
@@ -416,27 +404,23 @@ fun MessageNode(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
                                     canOpenProfile = options.canViewUserProfiles,
-                                    openUserProfile = openUserProfile,
+                                    openUserProfile = actionHandler::openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
                                         MessageText(
                                             content = contents.data,
                                             shape = shape,
-                                            date = date,
-                                            status = status,
+                                            options = options,
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
-                                            options = options,
-                                            isFullMember = sender.isFullMember,
                                             tips = tips,
                                             reactions = reactions,
+                                            date = date,
+                                            status = status,
+                                            isFullMember = sender.isFullMember,
+                                            actionHandler = actionHandler,
                                             onTap = onTap,
-                                            onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection,
-                                            onAddReaction = onAddReaction,
-                                            onRemoveReaction = onRemoveReaction,
-                                            onViewFeedback = showReactions,
                                         )
                                     }
                                 }
@@ -447,27 +431,23 @@ fun MessageNode(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
                                     canOpenProfile = options.canViewUserProfiles,
-                                    openUserProfile = openUserProfile,
+                                    openUserProfile = actionHandler::openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
                                         MessageText(
                                             content = contents.value,
                                             shape = shape,
-                                            date = date,
-                                            status = status,
+                                            options = options,
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
-                                            options = options,
-                                            isFullMember = sender.isFullMember,
                                             tips = tips,
                                             reactions = reactions,
+                                            date = date,
+                                            status = status,
+                                            isFullMember = sender.isFullMember,
+                                            actionHandler = actionHandler,
                                             onTap = onTap,
-                                            onLongPress = openMessageControls,
-                                            onDoubleClick = showTipSelection,
-                                            onAddReaction = onAddReaction,
-                                            onRemoveReaction = onRemoveReaction,
-                                            onViewFeedback = showReactions,
                                         )
                                     }
                                 }
@@ -493,7 +473,7 @@ fun MessageNode(
                                     modifier = Modifier.fillMaxWidth(),
                                     sender = sender,
                                     canOpenProfile = options.canViewUserProfiles,
-                                    openUserProfile = openUserProfile,
+                                    openUserProfile = actionHandler::openUserProfile,
                                     isFirstInSeries = !options.isPreviousGrouped
                                 ) {
                                     MarkupTouchHandler(options = options) { onTap ->
@@ -508,37 +488,25 @@ fun MessageNode(
                                                 wasSentAsFullMember = sender.isFullMember,
                                                 options = options,
                                                 tips = tips,
-                                                showTips = showReactions,
                                                 reactions = reactions,
-                                                onTap = onTap,
-                                                onLongPress = openMessageControls,
-                                                onDoubleClick = showTipSelection,
                                                 originalMessage = originalMessage,
-                                                onOriginalMessageClicked = {
-                                                    onViewOriginalMessage(originalMessage.id)
-                                                },
-                                                onAddReaction = onAddReaction,
-                                                onRemoveReaction = onRemoveReaction,
-                                                showReactions = showReactions,
+                                                onTap = onTap,
+                                                actionHandler = actionHandler
                                             )
                                         } else {
                                             MessageText(
                                                 content = contents.text,
                                                 shape = shape,
-                                                date = date,
-                                                status = status,
+                                                options = options,
                                                 isFromSelf = sender.isSelf,
                                                 isFromBlockedMember = sender.isBlocked,
-                                                options = options,
-                                                isFullMember = sender.isFullMember,
                                                 tips = tips,
                                                 reactions = reactions,
-                                                onTap = onTap,
-                                                onLongPress = openMessageControls,
-                                                onDoubleClick = showTipSelection,
-                                                onAddReaction = onAddReaction,
-                                                onRemoveReaction = onRemoveReaction,
-                                                onViewFeedback = showReactions,
+                                                date = date,
+                                                status = status,
+                                                isFullMember = sender.isFullMember,
+                                                actionHandler = actionHandler,
+                                                onTap = onTap
                                             )
                                         }
                                     }

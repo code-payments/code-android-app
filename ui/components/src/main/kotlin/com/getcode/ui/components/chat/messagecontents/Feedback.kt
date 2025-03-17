@@ -6,11 +6,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
 import com.getcode.extensions.formattedRaw
-import com.getcode.model.ID
 import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
@@ -48,10 +50,7 @@ internal fun Feedback(
     reactions: List<MessageReaction>,
     isMessageFromSelf: Boolean,
     modifier: Modifier = Modifier,
-    onViewTips: () -> Unit,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
-    onViewReactions: () -> Unit,
+    actionHandler: MessageContentActionHandler,
 ) {
     if (tips.isNotEmpty() || reactions.isNotEmpty()) {
         FlowRow(
@@ -63,7 +62,7 @@ internal fun Feedback(
                 TipCounter(
                     tips = tips,
                     isMessageFromSelf = isMessageFromSelf,
-                    onLongClick = onViewTips
+                    actionHandler = actionHandler,
                 )
             }
 
@@ -74,9 +73,7 @@ internal fun Feedback(
                     emoji = emoji,
                     occurrences = occurrences,
                     isMessageFromSelf = isMessageFromSelf,
-                    onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction,
-                    onViewReactions = onViewReactions,
+                    actionHandler = actionHandler,
                 )
             }
         }
@@ -89,21 +86,21 @@ private fun TipCounter(
     tips: List<MessageTip>,
     isMessageFromSelf: Boolean,
     modifier: Modifier = Modifier,
-    onLongClick: () -> Unit,
+    actionHandler: MessageContentActionHandler,
 ) {
     val didUserTip = tips.any { it.tipper.isSelf }
     val backgroundColor by animateColorAsState(
         when {
             isMessageFromSelf -> CodeTheme.colors.surface
-            didUserTip -> CodeTheme.colors.tertiary
+            didUserTip -> CodeTheme.colors.tertiary.copy(alpha = 0.30f)
             else -> Color.Transparent
         }
     )
 
     val borderColor by animateColorAsState(
         when {
-            !didUserTip && !isMessageFromSelf -> CodeTheme.colors.tertiary
-            else -> Color.Transparent
+            !didUserTip && !isMessageFromSelf -> CodeTheme.colors.dividerVariant
+            else -> CodeTheme.colors.tertiary
         }
     )
 
@@ -120,7 +117,12 @@ private fun TipCounter(
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .rememberedLongClickable { onLongClick() }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { if (!isMessageFromSelf) { actionHandler.giveTip() } },
+                    onLongPress = { actionHandler.viewReactions() },
+                )
+            }
             .background(backgroundColor, CircleShape)
             .border(CodeTheme.dimens.border, borderColor, CircleShape)
             .padding(
@@ -146,23 +148,27 @@ private fun EmojiCounter(
     occurrences: List<MessageReaction>,
     isMessageFromSelf: Boolean,
     modifier: Modifier = Modifier,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
-    onViewReactions: () -> Unit,
+    actionHandler: MessageContentActionHandler,
 ) {
     val selfOccurrence = occurrences.find { it.sender.isSelf }
     val backgroundColor by animateColorAsState(
         when {
-            isMessageFromSelf -> CodeTheme.colors.surface
-            selfOccurrence != null -> CodeTheme.colors.tertiary
+            isMessageFromSelf -> {
+                if (selfOccurrence != null) {
+                    CodeTheme.colors.tertiary.copy(alpha = 0.54f).compositeOver(CodeTheme.colors.surface)
+                } else {
+                    Color.Transparent
+                }
+            }
+            selfOccurrence != null -> CodeTheme.colors.tertiary.copy(alpha = 0.30f)
             else -> Color.Transparent
         }
     )
 
     val borderColor by animateColorAsState(
         when {
-            selfOccurrence == null && !isMessageFromSelf -> CodeTheme.colors.tertiary
-            else -> Color.Transparent
+            selfOccurrence == null -> CodeTheme.colors.dividerVariant
+            else -> CodeTheme.colors.tertiary
         }
     )
 
@@ -180,10 +186,10 @@ private fun EmojiCounter(
         modifier = modifier
             .clip(CircleShape)
             .combinedClickable(
-                onLongClick = { onViewReactions() }
+                onLongClick = { actionHandler.viewReactions() }
             ) {
-                if (selfOccurrence != null) onRemoveReaction(selfOccurrence.messageId)
-                else onAddReaction(emoji)
+                if (selfOccurrence != null) actionHandler.removeReaction(selfOccurrence.messageId)
+                else actionHandler.addReaction(emoji)
             }
             .background(backgroundColor, CircleShape)
             .border(CodeTheme.dimens.border, borderColor, CircleShape)

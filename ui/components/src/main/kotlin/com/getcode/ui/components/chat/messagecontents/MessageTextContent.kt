@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -35,9 +34,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import coil3.compose.AsyncImage
 import com.getcode.libs.opengraph.LocalOpenGraphParser
 import com.getcode.libs.opengraph.callback.OpenGraphCallback
@@ -59,6 +56,28 @@ import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
 import kotlinx.datetime.Instant
 
+interface MessageContentActionHandler {
+    fun openMessageControls()
+    fun giveTip()
+    fun addReaction(emoji: String)
+    fun removeReaction(reactionMessageId: ID)
+    fun viewReactions()
+    fun startReply()
+    fun viewOriginalMessage()
+    fun openUserProfile()
+}
+
+private data object StubActionHandler: MessageContentActionHandler {
+    override fun openMessageControls() = Unit
+    override fun giveTip() = Unit
+    override fun addReaction(emoji: String) = Unit
+    override fun removeReaction(reactionMessageId: ID) = Unit
+    override fun viewReactions() = Unit
+    override fun startReply() = Unit
+    override fun viewOriginalMessage() = Unit
+    override fun openUserProfile() = Unit
+}
+
 @Composable
 internal fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
@@ -72,12 +91,8 @@ internal fun MessageNodeScope.MessageText(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     isFullMember: Boolean,
-    onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
-    onLongPress: () -> Unit,
-    onDoubleClick: () -> Unit,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
-    onViewFeedback: () -> Unit,
+    actionHandler: MessageContentActionHandler,
+    onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -102,9 +117,9 @@ internal fun MessageNodeScope.MessageText(
                         // entire bubble of a normal message is the contents of the text
                         onTap = { offset -> onTap(PaddingValues(), offset) },
                         onLongPress = if (!options.isInteractive) null else {
-                            { onLongPress() }
+                            { actionHandler.openMessageControls() }
                         },
-                        onDoubleTap = { if (options.canTip) onDoubleClick() }
+                        onDoubleTap = { if (options.canTip) actionHandler.giveTip() }
                     )
                 }
                 .padding(CodeTheme.dimens.grid.x2)
@@ -121,9 +136,7 @@ internal fun MessageNodeScope.MessageText(
                     options = options,
                     tips = tips,
                     reactions = reactions,
-                    onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction,
-                    onViewFeedback = onViewFeedback,
+                    actionHandler = actionHandler,
                 )
             }
         }
@@ -143,9 +156,7 @@ internal fun MessageContent(
     options: MessageNodeOptions,
     tips: List<MessageTip>,
     reactions: List<MessageReaction>,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
-    onViewFeedback: () -> Unit,
+    actionHandler: MessageContentActionHandler
 ) {
     MessageContent(
         modifier = modifier,
@@ -159,9 +170,7 @@ internal fun MessageContent(
         tips = tips,
         options = options,
         reactions = reactions,
-        onAddReaction = onAddReaction,
-        onRemoveReaction = onRemoveReaction,
-        onViewFeedback = onViewFeedback
+        actionHandler = actionHandler,
     )
 }
 
@@ -178,9 +187,7 @@ internal fun MessageContent(
     options: MessageNodeOptions,
     tips: List<MessageTip> = emptyList(),
     reactions: List<MessageReaction> = emptyList(),
-    onAddReaction: (String) -> Unit = { },
-    onRemoveReaction: (ID) -> Unit = { },
-    onViewFeedback: () -> Unit =  { },
+    actionHandler: MessageContentActionHandler = StubActionHandler,
 ) {
     val openGraphParser = LocalOpenGraphParser.current
     var linkImageUrl: String? by rememberSaveable(annotatedMessage) { mutableStateOf(null) }
@@ -242,9 +249,7 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     options = options,
-                    onViewFeedback = onViewFeedback,
-                    onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction,
+                    actionHandler = actionHandler
                 )
             }
         }
@@ -365,9 +370,7 @@ private fun ColumnBasedFooter(
     status: MessageStatus,
     options: MessageNodeOptions,
     textWidth: Int,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
-    onViewFeedback: () -> Unit,
+    actionHandler: MessageContentActionHandler,
 ) {
     val x1 = CodeTheme.dimens.grid.x1
     val x2 = CodeTheme.dimens.grid.x2
@@ -379,10 +382,7 @@ private fun ColumnBasedFooter(
                     tips = tips,
                     reactions = reactions,
                     isMessageFromSelf = isFromSelf,
-                    onViewTips = onViewFeedback,
-                    onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction,
-                    onViewReactions = onViewFeedback,
+                    actionHandler = actionHandler,
                 )
             }
         }.firstOrNull()?.measure(constraints)

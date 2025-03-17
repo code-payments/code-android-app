@@ -57,7 +57,6 @@ internal fun MessageNodeScope.MessageReplyContent(
     modifier: Modifier = Modifier,
     content: String,
     originalMessage: ReplyMessageAnchor,
-    onOriginalMessageClicked: () -> Unit,
     shape: Shape = MessageNodeDefaults.DefaultShape,
     options: MessageNodeOptions,
     isFromSelf: Boolean,
@@ -66,14 +65,9 @@ internal fun MessageNodeScope.MessageReplyContent(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     tips: List<MessageTip>,
-    showTips: () -> Unit,
     reactions: List<MessageReaction>,
-    onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit,
     onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
-    onLongPress: () -> Unit,
-    onDoubleClick: () -> Unit,
-    showReactions: () -> Unit,
+    actionHandler: MessageContentActionHandler,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
     var originalMessagePreviewHeight by remember {
@@ -107,9 +101,9 @@ internal fun MessageNodeScope.MessageReplyContent(
                             )
                         },
                         onLongPress = if (!options.isInteractive) null else {
-                            { onLongPress() }
+                            { actionHandler.openMessageControls() }
                         },
-                        onDoubleTap = { if (options.canTip) onDoubleClick() },
+                        onDoubleTap = { if (options.canTip) actionHandler.giveTip() },
                     )
                 }
                 .padding(CodeTheme.dimens.grid.x2)
@@ -128,9 +122,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                         options = options,
                         tips = tips,
                         reactions = reactions,
-                        onAddReaction = onAddReaction,
-                        onRemoveReaction = onRemoveReaction,
-                        onViewFeedback = showReactions,
+                        actionHandler = actionHandler
                     )
                 }.first().measure(constraints)
 
@@ -140,7 +132,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                             .widthIn(min = messageContentPlaceable.width.toDp())
                             .pointerInput(Unit) {
                                 detectTapGestures(
-                                    onTap = { onOriginalMessageClicked() }
+                                    onTap = { actionHandler.viewOriginalMessage() }
                                 )
                             }
                             .measured { originalMessagePreviewHeight = it.height },
@@ -171,9 +163,7 @@ internal fun MessageNodeScope.MessageReplyContent(
                         options = options,
                         tips = tips,
                         reactions = reactions,
-                        onAddReaction = onAddReaction,
-                        onRemoveReaction = onRemoveReaction,
-                        onViewFeedback = showReactions,
+                        actionHandler = actionHandler
                     )
                 }.first().measure(
                     constraints.copy(minWidth = finalWidth, maxWidth = finalWidth)

@@ -1,5 +1,7 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
@@ -29,6 +32,7 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.messagecontents.MessageContentActionHandler
 import com.getcode.ui.components.chat.messagecontents.MessageContextAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.MessageReaction
@@ -159,6 +163,47 @@ fun MessageList(
                     val updatedSender by rememberUpdatedState(item.sender)
                     val updatedActions by rememberUpdatedState(item.messageControls)
 
+                    val actionHandler = remember(item) {
+                        object : MessageContentActionHandler {
+                            override fun openMessageControls() {
+                                dispatch(
+                                    MessageListEvent.OpenMessageActions(item.chatMessageId, updatedActions.actions)
+                                )
+                            }
+
+                            override fun giveTip() {
+                                dispatch(MessageListEvent.TipMessage(item))
+                            }
+
+                            override fun addReaction(emoji: String) {
+                                dispatch(MessageListEvent.AddReaction(item.chatMessageId, emoji))
+                            }
+
+                            override fun removeReaction(reactionMessageId: ID) {
+                                dispatch(MessageListEvent.RemoveReaction(reactionMessageId))
+                            }
+
+                            override fun viewReactions() {
+                                dispatch(MessageListEvent.ShowMessageReactions(item.tips, item.reactions))
+                            }
+
+                            override fun startReply() {
+                                dispatch(MessageListEvent.ReplyToMessage(item))
+                            }
+
+                            override fun viewOriginalMessage() {
+                                item.originalMessage?.id?.let {
+                                    dispatch(MessageListEvent.ViewOriginalMessage(item.chatMessageId, it))
+                                }
+                            }
+
+                            override fun openUserProfile() {
+                                item.sender.id?.let {
+                                    dispatch(MessageListEvent.ViewUserProfile(it))
+                                }
+                            }
+                        }
+                    }
                     MessageNode(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -184,32 +229,10 @@ fun MessageList(
                             } else null,
                             contentStyle = contentStyle,
                         ),
-                        wasSentAsFullMember = item.wasSentAsFullMember,
                         tips = item.tips,
                         reactions = item.reactions,
-                        openMessageControls = {
-                            dispatch(
-                                MessageListEvent.OpenMessageActions(item.chatMessageId, updatedActions.actions)
-                            )
-                        },
-                        showTipSelection = { dispatch(MessageListEvent.TipMessage(item)) },
-                        onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) },
                         originalMessage = item.originalMessage,
-                        onViewOriginalMessage = {
-                            dispatch(MessageListEvent.ViewOriginalMessage(item.chatMessageId, it))
-                        },
-                        onAddReaction = {
-                            dispatch(MessageListEvent.AddReaction(item.chatMessageId, it))
-                        },
-                        onRemoveReaction = {
-                            dispatch(MessageListEvent.RemoveReaction(it))
-                        },
-                        openUserProfile = {
-                            dispatch(MessageListEvent.ViewUserProfile(item.sender.id!!))
-                        },
-                        showReactions = {
-                            dispatch(MessageListEvent.ShowMessageReactions(item.tips, item.reactions))
-                        }
+                        actionHandler = actionHandler,
                     )
                 }
 
