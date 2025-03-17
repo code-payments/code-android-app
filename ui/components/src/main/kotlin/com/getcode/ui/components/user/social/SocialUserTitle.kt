@@ -90,10 +90,7 @@ fun MemberNameDisplay(
         startSlot = null,
         nameSlot = {
             Text(
-                text = when {
-                    member.isSelf -> stringResource(R.string.subtitle_you)
-                    else -> member.displayName ?: stringResource(R.string.subtitle_listener)
-                },
+                member.displayName ?: stringResource(R.string.subtitle_listener),
                 style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textMain,
                 textAlign = TextAlign.Center,
@@ -101,7 +98,7 @@ fun MemberNameDisplay(
                 overflow = TextOverflow.Ellipsis
             )
         },
-        endSlot = if (member.isSelf) null else socialProfile?.let {
+        endSlot = socialProfile?.let {
             {
                 when (it.platformType) {
                     "x" -> {
@@ -163,6 +160,7 @@ fun SocialUserDisplay(
                         profile.verificationType.let { type ->
                             type.checkmark()?.let { asset ->
                                 Image(
+                                    modifier = Modifier.padding(bottom = 4.dp),
                                     painter = rememberVectorPainter(image = asset),
                                     contentDescription = null
                                 )
@@ -192,13 +190,23 @@ fun SocialUserDisplay(
         ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        startSlot?.invoke()
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+        ) {
+            startSlot?.invoke()
+        }
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .weight(1f, fill = false)
         ) { nameSlot() }
-        endSlot?.invoke()
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+        ) {
+            endSlot?.invoke()
+        }
     }
 }
 
