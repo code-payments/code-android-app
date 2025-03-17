@@ -50,7 +50,8 @@ private val outputFile = File(outputDir, "Emojis.kt")
 
 // Define the task to fetch and generate emoji data
 tasks.register("generateEmojiList") {
-    description = "Fetches Unicode emoji list and generates categorized Kotlin source file if needed"
+    description =
+        "Fetches Unicode emoji list and generates categorized Kotlin source file if needed"
     group = "emoji"
 
     outputs.file(outputFile) // Task generates this file
@@ -69,8 +70,10 @@ tasks.register("generateEmojiList") {
             }
 
             val emojiText = emojiFile.readText()
-            val emojiCategories = mutableMapOf<String, MutableMap<String, MutableList<Pair<String, String>>>>()
-            val emojiCategoriesNoSkinTones = mutableMapOf<String, MutableMap<String, MutableList<Pair<String, String>>>>()
+            val emojiCategories =
+                mutableMapOf<String, MutableMap<String, MutableList<MutableMap<String, Any>>>>()
+            val emojiCategoriesNoSkinTones =
+                mutableMapOf<String, MutableMap<String, MutableList<MutableMap<String, Any>>>>()
             var currentGroup = "Uncategorized"
             var currentSubgroup = "Uncategorized"
 
@@ -80,48 +83,71 @@ tasks.register("generateEmojiList") {
                         currentGroup = line.removePrefix("# group:").trim()
                         emojiCategories.getOrPut(currentGroup) { mutableMapOf() }
                         emojiCategoriesNoSkinTones.getOrPut(currentGroup) { mutableMapOf() }
+                        println("Group: $currentGroup")
                     }
+
                     line.startsWith("# subgroup:") -> {
                         currentSubgroup = line.removePrefix("# subgroup:").trim()
                         emojiCategories[currentGroup]?.getOrPut(currentSubgroup) { mutableListOf() }
                         emojiCategoriesNoSkinTones[currentGroup]?.getOrPut(currentSubgroup) { mutableListOf() }
+                        println("Subgroup: $currentSubgroup")
                     }
+
                     line.isNotBlank() && !line.startsWith("#") -> {
                         val parts = line.split(";").map { it.trim() }
-                        if (parts.size > 1) {
+                        println("Line: $line")
+                        println("Parts: $parts")
+                        if (parts.size > 1 && parts[1].contains("fully-qualified")) {
                             val codePoints = parts[0].split(" ").map { it.toInt(16) }
-                            val emoji = codePoints.map { codePoint ->
+                            val unicode = codePoints.map { codePoint ->
                                 if (codePoint <= 0xFFFF) {
                                     codePoint.toChar().toString()
                                 } else {
                                     String(Character.toChars(codePoint))
                                 }
                             }.joinToString("")
-                            val name = line.split("#")[1].trim().split(" ").drop(2).joinToString(" ")
+                            val nameParts = line.split("#")[1].trim().split(" ")
+                            val name = nameParts.drop(2).joinToString(" ")
+                            val keywords = name.split(" ").filter { it.isNotBlank() }
 
-                            val emojiWithName = Pair(emoji, name)
-                            emojiCategories[currentGroup]?.get(currentSubgroup)?.add(emojiWithName)
+                            val emojiEntry = mutableMapOf<String, Any>(
+                                "unicode" to unicode,
+                                "name" to name,
+                                "keywords" to keywords
+                            )
+                            emojiCategories[currentGroup]?.get(currentSubgroup)?.add(emojiEntry)
+                            println("Added fully-qualified emoji: $unicode - $name")
 
                             val hasSkinTone = codePoints.any { it in 0x1F3FB..0x1F3FF }
                             if (!hasSkinTone) {
-                                emojiCategoriesNoSkinTones[currentGroup]?.get(currentSubgroup)?.add(emojiWithName)
+                                emojiCategoriesNoSkinTones[currentGroup]?.get(currentSubgroup)
+                                    ?.add(emojiEntry)
+                                println("Added to no-skin-tones: $unicode - $name")
                             }
+                        } else {
+                            println("Skipped non-fully-qualified: ${parts[0]} - Status: ${parts[1]}")
                         }
                     }
                 }
             }
 
-            // Generate a main EmojiData.kt with category references
+            // Generate a main Emojis.kt with category references and data class definition
             val mainFile = File(outputDir, "Emojis.kt")
             val mainCode = buildString {
                 appendLine("// Generated file - Do not edit manually")
                 appendLine("package com.getcode.libs.emojis.generated")
                 appendLine()
+                appendLine("data class Emoji(")
+                appendLine("    val unicode: String,")
+                appendLine("    val name: String,")
+                appendLine("    val keywords: List<String>")
+                appendLine(")")
+                appendLine()
                 appendLine("object Emojis {")
                 appendLine("    val categorized = mapOf(")
                 emojiCategories.forEach { (group, subgroups) ->
                     appendLine("        \"$group\" to mapOf(")
-                    subgroups.forEach { (subgroup, emojis) ->
+                    subgroups.forEach { (subgroup, _) ->
                         val safeGroupName = group.replace("[^A-Za-z0-9]".toRegex(), "")
                         val safeSubgroupName = subgroup.replace("[^A-Za-z0-9]".toRegex(), "")
                         appendLine("            \"$subgroup\" to ${safeGroupName}${safeSubgroupName}Emojis.categorized,")
@@ -151,22 +177,23 @@ tasks.register("generateEmojiList") {
                 subgroups.forEach { (subgroup, emojis) ->
                     val safeGroupName = group.replace("[^A-Za-z0-9]".toRegex(), "")
                     val safeSubgroupName = subgroup.replace("[^A-Za-z0-9]".toRegex(), "")
-                    val subgroupFile = File(outputDir, "${safeGroupName}${safeSubgroupName}Emojis.kt")
+                    val subgroupFile =
+                        File(outputDir, "${safeGroupName}${safeSubgroupName}Emojis.kt")
                     val subgroupCode = buildString {
                         appendLine("// Generated file - Do not edit manually")
                         appendLine("package com.getcode.libs.emojis.generated")
                         appendLine()
                         appendLine("object ${safeGroupName}${safeSubgroupName}Emojis {")
-                        appendLine("    val categorized = ${if (emojis.isEmpty()) "emptyList<Pair<String, String>>()" else "listOf("}")
+                        appendLine("    val categorized = ${if (emojis.isEmpty()) "emptyList<Emoji>()" else "listOf("}")
                         if (emojis.isNotEmpty()) {
-                            appendLine("        ${emojis.joinToString(",\n        ") { "Pair(\"${it.first}\", \"${it.second}\")" }}")
+                            appendLine("        ${emojis.joinToString(",\n        ") { "Emoji(\"${it["unicode"]}\", \"${it["name"]}\", listOf(${it["keywords"]?.let { k -> (k as List<String>).joinToString { "\"$it\"" } }}))" }}")
                             appendLine("    )")
                         }
                         appendLine()
-                        appendLine("    val categorizedNoSkinTones = ${if (emojiCategoriesNoSkinTones[group]?.get(subgroup)?.isEmpty() != false) "emptyList<Pair<String, String>>()" else "listOf("}")
+                        appendLine("    val categorizedNoSkinTones = ${if (emojiCategoriesNoSkinTones[group]?.get(subgroup)?.isEmpty() != false) "emptyList<Emoji>()" else "listOf("}")
                         val noSkinTones = emojiCategoriesNoSkinTones[group]?.get(subgroup) ?: emptyList()
                         if (noSkinTones.isNotEmpty()) {
-                            appendLine("        ${noSkinTones.joinToString(",\n        ") { "Pair(\"${it.first}\", \"${it.second}\")" }}")
+                            appendLine("        ${noSkinTones.joinToString(",\n        ") { "Emoji(\"${it["unicode"]}\", \"${it["name"]}\", listOf(${it["keywords"]?.let { k -> (k as List<String>).joinToString { "\"$it\"" } }}))" }}")
                             appendLine("    )")
                         }
                         appendLine("}")

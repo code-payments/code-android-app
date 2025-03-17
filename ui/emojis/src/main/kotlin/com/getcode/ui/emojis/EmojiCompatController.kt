@@ -12,6 +12,7 @@ object EmojiCompatController {
         if (!isInitialized) {
             // Use bundled config for simplicity (offline support)
             val config = BundledEmojiCompatConfig(context, Executors.newSingleThreadExecutor())
+                .setReplaceAll(true)
 
             // Alternative: Use downloadable fonts (requires Google Play Services)
             /*
