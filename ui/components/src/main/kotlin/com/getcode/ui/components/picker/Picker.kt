@@ -43,11 +43,17 @@ import kotlin.time.Duration.Companion.milliseconds
 fun <T> rememberPickerState(
     items: List<T>,
     prefix: String = "",
+    initialIndex: Int = 0,
     labelForItem: (T) -> String = { item -> item.toString() }
 ): PickerState<T> {
 
     return remember(items, prefix) {
-        PickerState(items, labelForItem, prefix)
+        PickerState(
+            items = items,
+            initialIndex = initialIndex,
+            labelForItem = labelForItem,
+            prefix = prefix
+        )
     }
 }
 
@@ -55,6 +61,7 @@ fun <T> rememberPickerState(
 data class PickerState<T>(
     val items: List<T>,
     val labelForItem: (T) -> String = { item -> item.toString() },
+    val initialIndex: Int = 0,
     val prefix: String = "",
 ) {
     var selectedItem by mutableStateOf<T?>(null)
@@ -77,7 +84,7 @@ fun <T> Picker(
 
     fun getItem(index: Int): String = items[index]
 
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 0)
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = state.initialIndex)
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
     var itemHeight by remember { mutableStateOf(0.dp) }

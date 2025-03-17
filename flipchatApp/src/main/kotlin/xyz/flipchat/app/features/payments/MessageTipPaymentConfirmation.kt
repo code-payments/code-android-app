@@ -53,7 +53,11 @@ internal fun MessageTipPaymentConfirmation(
 
     val resources = LocalResources.current!!
 
-    val pickerState = rememberPickerState(items = tipOptions, prefix = "⬢") { item ->
+    val pickerState = rememberPickerState(
+        items = tipOptions,
+        prefix = "⬢",
+        initialIndex = tipOptions.indexOfFirst { it.kin == 5.kin }
+    ) { item ->
         formatAmountString(
             resources = resources,
             currency = Currency.Kin,
