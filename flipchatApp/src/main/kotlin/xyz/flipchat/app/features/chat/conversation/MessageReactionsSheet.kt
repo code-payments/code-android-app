@@ -44,6 +44,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.FullWidthScrollableTabRow
 import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.UserAvatar
+import com.getcode.ui.components.chat.messagecontents.SelectedReaction
 import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.tabIndicatorOffset
@@ -72,6 +73,7 @@ private sealed interface FeedbackData {
 internal data class MessageReactionsSheet(
     val tips: List<MessageTip>,
     val reactions: List<MessageReaction>,
+    val startingWith: SelectedReaction,
 ) : Screen {
 
     @Composable
@@ -99,8 +101,20 @@ internal data class MessageReactionsSheet(
             return@remember items
         }
 
+        fun getInitialPage(): Int {
+            return feedback.indexOfFirst {
+                when (it) {
+                    is Feedback.All -> false
+                    is Feedback.Emoji -> {
+                        if (startingWith !is SelectedReaction.Emoji) return@indexOfFirst false
+                        startingWith.unicode == it.emoji
+                    }
+                    is Feedback.Tips -> startingWith is SelectedReaction.Tips
+                }
+            }.takeIf { it >= 0 } ?: 0
+        }
 
-        val pagerState = rememberPagerState { feedback.count() }
+        val pagerState = rememberPagerState(initialPage = getInitialPage()) { feedback.count() }
         val composeScope = rememberCoroutineScope()
 
         Column(

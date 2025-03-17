@@ -277,7 +277,11 @@ internal fun ConversationMessages(
                                     ime?.hide()
                                     delay(500.scaled(animationScale))
                                 }
-                                navigator.show(MessageReactionsSheet(event.tips, event.reactions))
+                                navigator.show(MessageReactionsSheet(
+                                    tips = event.tips,
+                                    reactions = event.reactions,
+                                    startingWith = event.startingWith
+                                ))
                             }
                         }
 

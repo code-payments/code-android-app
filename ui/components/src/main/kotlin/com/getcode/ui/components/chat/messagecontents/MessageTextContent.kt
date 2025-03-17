@@ -56,12 +56,17 @@ import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
 import kotlinx.datetime.Instant
 
+sealed interface SelectedReaction {
+    data class Emoji(val unicode: String): SelectedReaction
+    data object Tips: SelectedReaction
+}
+
 interface MessageContentActionHandler {
     fun openMessageControls()
     fun giveTip()
     fun addReaction(emoji: String)
     fun removeReaction(reactionMessageId: ID)
-    fun viewReactions()
+    fun viewReactions(selected: SelectedReaction)
     fun startReply()
     fun viewOriginalMessage()
     fun openUserProfile()
@@ -72,7 +77,7 @@ private data object StubActionHandler: MessageContentActionHandler {
     override fun giveTip() = Unit
     override fun addReaction(emoji: String) = Unit
     override fun removeReaction(reactionMessageId: ID) = Unit
-    override fun viewReactions() = Unit
+    override fun viewReactions(selected: SelectedReaction) = Unit
     override fun startReply() = Unit
     override fun viewOriginalMessage() = Unit
     override fun openUserProfile() = Unit

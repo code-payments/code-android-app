@@ -120,7 +120,7 @@ private fun TipCounter(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { if (!isMessageFromSelf) { actionHandler.giveTip() } },
-                    onLongPress = { actionHandler.viewReactions() },
+                    onLongPress = { actionHandler.viewReactions(SelectedReaction.Tips) },
                 )
             }
             .background(backgroundColor, CircleShape)
@@ -186,7 +186,7 @@ private fun EmojiCounter(
         modifier = modifier
             .clip(CircleShape)
             .combinedClickable(
-                onLongClick = { actionHandler.viewReactions() }
+                onLongClick = { actionHandler.viewReactions(SelectedReaction.Emoji(emoji)) }
             ) {
                 if (selfOccurrence != null) actionHandler.removeReaction(selfOccurrence.messageId)
                 else actionHandler.addReaction(emoji)

@@ -34,6 +34,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageContentActionHandler
 import com.getcode.ui.components.chat.messagecontents.MessageContextAction
+import com.getcode.ui.components.chat.messagecontents.SelectedReaction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
@@ -57,7 +58,11 @@ sealed interface MessageListEvent {
     data class ViewUserProfile(val userId: ID): MessageListEvent
     data class AddReaction(val messageId: ID, val emoji: String): MessageListEvent
     data class RemoveReaction(val originalMessageId: ID): MessageListEvent
-    data class ShowMessageReactions(val tips: List<MessageTip>, val reactions: List<MessageReaction>) : MessageListEvent
+    data class ShowMessageReactions(
+        val tips: List<MessageTip>,
+        val reactions: List<MessageReaction>,
+        val startingWith: SelectedReaction,
+    ) : MessageListEvent
 }
 
 data class MessageListPointer(
@@ -183,8 +188,8 @@ fun MessageList(
                                 dispatch(MessageListEvent.RemoveReaction(reactionMessageId))
                             }
 
-                            override fun viewReactions() {
-                                dispatch(MessageListEvent.ShowMessageReactions(item.tips, item.reactions))
+                            override fun viewReactions(selected: SelectedReaction) {
+                                dispatch(MessageListEvent.ShowMessageReactions(item.tips, item.reactions, selected))
                             }
 
                             override fun startReply() {
