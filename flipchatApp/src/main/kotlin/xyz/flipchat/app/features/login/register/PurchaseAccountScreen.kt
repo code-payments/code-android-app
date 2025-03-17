@@ -161,6 +161,7 @@ private fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
                     text = stringResource(R.string.title_finalizeAccountCreation),
                     style = CodeTheme.typography.textLarge,
+                    textAlign = TextAlign.Center,
                     color = CodeTheme.colors.textMain
                 )
 
