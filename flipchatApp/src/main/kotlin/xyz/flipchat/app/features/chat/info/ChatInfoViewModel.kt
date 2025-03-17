@@ -488,7 +488,10 @@ class ChatInfoViewModel @Inject constructor(
                 }
                 .mapValues { (_, members) ->
                     members.sortedWith(
-                        compareByDescending<MinimalMember> { it.isHost }.thenByDescending { it.isSelf }
+                        compareByDescending<MinimalMember> { it.isHost }
+                            .thenByDescending { it.isSelf }
+                            .thenByDescending { it.socialProfiles.any { it.isVerifiedOnPlatform } }
+                            .thenByDescending { it.socialProfiles.isNotEmpty() }
                     )
                 }
         }
