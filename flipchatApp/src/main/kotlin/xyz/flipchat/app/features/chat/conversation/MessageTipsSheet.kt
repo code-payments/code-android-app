@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.extensions.formattedRaw
+import com.getcode.model.KinAmount
+import com.getcode.model.chat.Sender
 import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
@@ -41,7 +43,7 @@ internal data class MessageTipsSheet(val tips: List<MessageTip>) : Screen {
 
     @Composable
     override fun Content() {
-        val userTips = remember {
+        val userTips: List<Pair<Sender, KinAmount>> = remember {
             tips.groupBy { it.tipper }
                 .mapValues { it.value.map { it.amount }.sum() }
                 .toList().sortedByDescending { it.second.fiat }

@@ -1,13 +1,8 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -15,9 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
@@ -28,10 +21,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -41,11 +32,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,12 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.zIndex
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -89,7 +74,6 @@ fun TypingIndicator(
         AvatarRow(
             modifier = Modifier.weight(1f, fill = false),
             userImages = userImages,
-            maxAvatars = MaxAvatars
         )
 
         // Typing Dots
@@ -100,7 +84,6 @@ fun TypingIndicator(
 @Composable
 private fun AvatarRow(
     userImages: List<Any>,
-    maxAvatars: Int,
     modifier: Modifier = Modifier
 ) {
     val avatarSize = CodeTheme.dimens.staticGrid.x8
@@ -118,13 +101,13 @@ private fun AvatarRow(
         contentPadding = PaddingValues(end = CodeTheme.dimens.grid.x2)
     ) {
         itemsIndexed(
-            items = userImages.takeLast(maxAvatars),
+            items = userImages.takeLast(MaxAvatars),
             key = { _, item -> item.hashCode() }
         ) { index, image ->
             UserAvatar(
                 modifier = Modifier
                     .size(avatarSize)
-                    .zIndex(userImages.takeLast(maxAvatars).count() - index.toFloat())
+                    .zIndex(userImages.takeLast(MaxAvatars).count() - index.toFloat())
                     .clip(CircleShape)
                     .animateItem(
                         fadeOutSpec = spring(
@@ -281,7 +264,6 @@ private fun TestAvatarRow() {
         Column {
             AvatarRow(
                 userImages = imageList,
-                maxAvatars = 100
             )
             Button(onClick = {
                 imageList = imageList + "user${imageList.size + 1}"

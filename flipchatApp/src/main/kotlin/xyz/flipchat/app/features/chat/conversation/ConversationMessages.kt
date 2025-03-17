@@ -270,13 +270,13 @@ internal fun ConversationMessages(
                             }
                         }
 
-                        is MessageListEvent.ShowTipsForMessage -> {
+                        is MessageListEvent.ShowMessageReactions -> {
                             composeScope.launch {
                                 if (keyboardVisible) {
                                     ime?.hide()
                                     delay(500)
                                 }
-                                navigator.show(MessageTipsSheet(event.tips))
+                                navigator.show(MessageReactionsSheet(event.tips, event.reactions))
                             }
                         }
 

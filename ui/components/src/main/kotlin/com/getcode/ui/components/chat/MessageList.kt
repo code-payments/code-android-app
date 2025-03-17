@@ -31,6 +31,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageContextAction
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
@@ -49,10 +50,10 @@ sealed interface MessageListEvent {
     data class ViewOriginalMessage(val messageId: ID, val originalMessageId: ID) : MessageListEvent
     data object UnreadStateHandled : MessageListEvent
     data class TipMessage(val message: ChatItem.Message) : MessageListEvent
-    data class ShowTipsForMessage(val tips: List<MessageTip>) : MessageListEvent
     data class ViewUserProfile(val userId: ID): MessageListEvent
     data class AddReaction(val messageId: ID, val emoji: String): MessageListEvent
     data class RemoveReaction(val originalMessageId: ID): MessageListEvent
+    data class ShowMessageReactions(val tips: List<MessageTip>, val reactions: List<MessageReaction>) : MessageListEvent
 }
 
 data class MessageListPointer(
@@ -191,7 +192,6 @@ fun MessageList(
                                 MessageListEvent.OpenMessageActions(item.chatMessageId, updatedActions.actions)
                             )
                         },
-                        showTips = { dispatch(MessageListEvent.ShowTipsForMessage(item.tips)) },
                         showTipSelection = { dispatch(MessageListEvent.TipMessage(item)) },
                         onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) },
                         originalMessage = item.originalMessage,
@@ -206,6 +206,9 @@ fun MessageList(
                         },
                         openUserProfile = {
                             dispatch(MessageListEvent.ViewUserProfile(item.sender.id!!))
+                        },
+                        showReactions = {
+                            dispatch(MessageListEvent.ShowMessageReactions(item.tips, item.reactions))
                         }
                     )
                 }

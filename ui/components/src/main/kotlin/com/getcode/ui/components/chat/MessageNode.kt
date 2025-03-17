@@ -27,11 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Icon
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.runtime.Composable
@@ -42,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -76,7 +73,6 @@ import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.user.social.SenderNameDisplay
-import com.getcode.ui.components.user.social.SocialUserDisplay
 import com.getcode.ui.utils.noRippleClickable
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.datetime.Instant
@@ -150,7 +146,7 @@ class MessageNodeScope(
     private val boxScope: BoxWithConstraintsScope
 ) {
     fun Modifier.sizeableWidth() =
-        this.widthIn(max = boxScope.maxWidth * 0.85f)
+        this.widthIn(max = boxScope.maxWidth * 0.60f)
 
     val isAnnouncement: Boolean
         @Composable get() = remember {
@@ -219,7 +215,7 @@ fun MessageNode(
     wasSentAsFullMember: Boolean = true,
     openMessageControls: () -> Unit,
     showTipSelection: () -> Unit,
-    showTips: () -> Unit,
+    showReactions: () -> Unit,
     onReply: () -> Unit,
     onAddReaction: (String) -> Unit,
     onRemoveReaction: (ID) -> Unit,
@@ -384,12 +380,12 @@ fun MessageNode(
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
                                             reactions = reactions,
-                                            showTips = showTips,
                                             onTap = onTap,
                                             onLongPress = openMessageControls,
                                             onDoubleClick = showTipSelection,
                                             onAddReaction = onAddReaction,
                                             onRemoveReaction = onRemoveReaction,
+                                            onViewFeedback = showReactions,
                                         )
                                     }
                                 }
@@ -434,13 +430,13 @@ fun MessageNode(
                                             options = options,
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
-                                            showTips = showTips,
                                             reactions = reactions,
                                             onTap = onTap,
                                             onLongPress = openMessageControls,
                                             onDoubleClick = showTipSelection,
                                             onAddReaction = onAddReaction,
                                             onRemoveReaction = onRemoveReaction,
+                                            onViewFeedback = showReactions,
                                         )
                                     }
                                 }
@@ -465,13 +461,13 @@ fun MessageNode(
                                             options = options,
                                             wasSentAsFullMember = wasSentAsFullMember,
                                             tips = tips,
-                                            showTips = showTips,
                                             reactions = reactions,
                                             onTap = onTap,
                                             onLongPress = openMessageControls,
                                             onDoubleClick = showTipSelection,
                                             onAddReaction = onAddReaction,
                                             onRemoveReaction = onRemoveReaction,
+                                            onViewFeedback = showReactions,
                                         )
                                     }
                                 }
@@ -503,6 +499,7 @@ fun MessageNode(
                                     MarkupTouchHandler(options = options) { onTap ->
                                         if (originalMessage != null) {
                                             MessageReplyContent(
+                                                modifier = Modifier.sizeableWidth(),
                                                 content = contents.text,
                                                 shape = shape,
                                                 date = date,
@@ -512,7 +509,7 @@ fun MessageNode(
                                                 wasSentAsFullMember = wasSentAsFullMember,
                                                 options = options,
                                                 tips = tips,
-                                                showTips = showTips,
+                                                showTips = showReactions,
                                                 reactions = reactions,
                                                 onTap = onTap,
                                                 onLongPress = openMessageControls,
@@ -523,9 +520,11 @@ fun MessageNode(
                                                 },
                                                 onAddReaction = onAddReaction,
                                                 onRemoveReaction = onRemoveReaction,
+                                                showReactions = showReactions,
                                             )
                                         } else {
                                             MessageText(
+                                                modifier = Modifier.sizeableWidth(),
                                                 content = contents.text,
                                                 shape = shape,
                                                 date = date,
@@ -535,13 +534,13 @@ fun MessageNode(
                                                 options = options,
                                                 wasSentAsFullMember = wasSentAsFullMember,
                                                 tips = tips,
-                                                showTips = showTips,
                                                 reactions = reactions,
                                                 onTap = onTap,
                                                 onLongPress = openMessageControls,
                                                 onDoubleClick = showTipSelection,
                                                 onAddReaction = onAddReaction,
                                                 onRemoveReaction = onRemoveReaction,
+                                                onViewFeedback = showReactions,
                                             )
                                         }
                                     }

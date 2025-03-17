@@ -76,9 +76,9 @@ internal fun MessageNodeScope.MessageText(
     onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
     onLongPress: () -> Unit,
     onDoubleClick: () -> Unit,
-    showTips: () -> Unit,
     onAddReaction: (String) -> Unit,
     onRemoveReaction: (ID) -> Unit,
+    onViewFeedback: () -> Unit,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -121,10 +121,10 @@ internal fun MessageNodeScope.MessageText(
                     isFromBlockedMember = isFromBlockedMember,
                     options = options,
                     tips = tips,
-                    openTipModal = showTips,
                     reactions = reactions,
                     onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction
+                    onRemoveReaction = onRemoveReaction,
+                    onViewFeedback = onViewFeedback,
                 )
             }
         }
@@ -143,10 +143,10 @@ internal fun MessageContent(
     isFromBlockedMember: Boolean,
     options: MessageNodeOptions,
     tips: List<MessageTip>,
-    openTipModal: () -> Unit,
     reactions: List<MessageReaction>,
     onAddReaction: (String) -> Unit,
     onRemoveReaction: (ID) -> Unit,
+    onViewFeedback: () -> Unit,
 ) {
     MessageContent(
         modifier = modifier,
@@ -159,10 +159,10 @@ internal fun MessageContent(
         isFromBlockedMember = isFromBlockedMember,
         tips = tips,
         options = options,
-        openTipModal = openTipModal,
         reactions = reactions,
         onAddReaction = onAddReaction,
-        onRemoveReaction = onRemoveReaction
+        onRemoveReaction = onRemoveReaction,
+        onViewFeedback = onViewFeedback
     )
 }
 
@@ -178,10 +178,10 @@ internal fun MessageContent(
     isFromBlockedMember: Boolean,
     options: MessageNodeOptions,
     tips: List<MessageTip> = emptyList(),
-    openTipModal: () -> Unit = { },
     reactions: List<MessageReaction> = emptyList(),
     onAddReaction: (String) -> Unit = { },
     onRemoveReaction: (ID) -> Unit = { },
+    onViewFeedback: () -> Unit =  { },
 ) {
     val openGraphParser = LocalOpenGraphParser.current
     var linkImageUrl: String? by rememberSaveable(annotatedMessage) { mutableStateOf(null) }
@@ -239,9 +239,9 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     options = options,
-                    openTipModal = openTipModal,
+                    onViewFeedback = onViewFeedback,
                     onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction
+                    onRemoveReaction = onRemoveReaction,
                 )
             }
         }
@@ -361,9 +361,9 @@ private fun ColumnBasedFooter(
     date: Instant,
     status: MessageStatus,
     options: MessageNodeOptions,
-    openTipModal: () -> Unit,
     onAddReaction: (String) -> Unit,
     onRemoveReaction: (ID) -> Unit,
+    onViewFeedback: () -> Unit,
 ) {
     val x1 = CodeTheme.dimens.grid.x1
     val x2 = CodeTheme.dimens.grid.x2
@@ -375,9 +375,10 @@ private fun ColumnBasedFooter(
                     tips = tips,
                     reactions = reactions,
                     isMessageFromSelf = isFromSelf,
-                    onViewTips = openTipModal,
+                    onViewTips = onViewFeedback,
                     onAddReaction = onAddReaction,
                     onRemoveReaction = onRemoveReaction,
+                    onViewReactions = onViewFeedback,
                 )
             }
         }.firstOrNull()?.measure(constraints)

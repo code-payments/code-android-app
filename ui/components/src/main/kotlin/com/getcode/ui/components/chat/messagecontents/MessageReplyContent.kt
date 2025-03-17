@@ -72,7 +72,8 @@ internal fun MessageNodeScope.MessageReplyContent(
     onRemoveReaction: (ID) -> Unit,
     onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
     onLongPress: () -> Unit,
-    onDoubleClick: () -> Unit
+    onDoubleClick: () -> Unit,
+    showReactions: () -> Unit,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
     var originalMessagePreviewHeight by remember {
@@ -126,10 +127,10 @@ internal fun MessageNodeScope.MessageReplyContent(
                         isFromBlockedMember = isFromBlockedMember,
                         options = options,
                         tips = tips,
-                        openTipModal = showTips,
                         reactions = reactions,
                         onAddReaction = onAddReaction,
                         onRemoveReaction = onRemoveReaction,
+                        onViewFeedback = showReactions,
                     )
                 }.first().measure(constraints)
 
@@ -169,10 +170,10 @@ internal fun MessageNodeScope.MessageReplyContent(
                         isFromBlockedMember = isFromBlockedMember,
                         options = options,
                         tips = tips,
-                        openTipModal = showTips,
                         reactions = reactions,
                         onAddReaction = onAddReaction,
                         onRemoveReaction = onRemoveReaction,
+                        onViewFeedback = showReactions,
                     )
                 }.first().measure(
                     constraints.copy(minWidth = finalWidth, maxWidth = finalWidth)

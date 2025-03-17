@@ -3,9 +3,11 @@ package com.getcode.ui.components.chat.messagecontents
 import android.annotation.SuppressLint
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -37,6 +39,7 @@ import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.emojis.processEmoji
+import com.getcode.ui.utils.rememberedLongClickable
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -48,6 +51,7 @@ internal fun Feedback(
     onViewTips: () -> Unit,
     onAddReaction: (String) -> Unit,
     onRemoveReaction: (ID) -> Unit,
+    onViewReactions: () -> Unit,
 ) {
     if (tips.isNotEmpty() || reactions.isNotEmpty()) {
         FlowRow(
@@ -59,7 +63,7 @@ internal fun Feedback(
                 TipCounter(
                     tips = tips,
                     isMessageFromSelf = isMessageFromSelf,
-                    onClick = onViewTips
+                    onLongClick = onViewTips
                 )
             }
 
@@ -71,7 +75,8 @@ internal fun Feedback(
                     occurrences = occurrences,
                     isMessageFromSelf = isMessageFromSelf,
                     onAddReaction = onAddReaction,
-                    onRemoveReaction = onRemoveReaction
+                    onRemoveReaction = onRemoveReaction,
+                    onViewReactions = onViewReactions,
                 )
             }
         }
@@ -84,7 +89,7 @@ private fun TipCounter(
     tips: List<MessageTip>,
     isMessageFromSelf: Boolean,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val didUserTip = tips.any { it.tipper.isSelf }
     val backgroundColor by animateColorAsState(
@@ -115,7 +120,7 @@ private fun TipCounter(
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .clickable { onClick() }
+            .rememberedLongClickable { onLongClick() }
             .background(backgroundColor, CircleShape)
             .border(CodeTheme.dimens.border, borderColor, CircleShape)
             .padding(
@@ -134,6 +139,7 @@ private fun TipCounter(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EmojiCounter(
     emoji: String,
@@ -141,7 +147,8 @@ private fun EmojiCounter(
     isMessageFromSelf: Boolean,
     modifier: Modifier = Modifier,
     onAddReaction: (String) -> Unit,
-    onRemoveReaction: (ID) -> Unit
+    onRemoveReaction: (ID) -> Unit,
+    onViewReactions: () -> Unit,
 ) {
     val selfOccurrence = occurrences.find { it.sender.isSelf }
     val backgroundColor by animateColorAsState(
@@ -172,7 +179,9 @@ private fun EmojiCounter(
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .clickable {
+            .combinedClickable(
+                onLongClick = { onViewReactions() }
+            ) {
                 if (selfOccurrence != null) onRemoveReaction(selfOccurrence.messageId)
                 else onAddReaction(emoji)
             }
