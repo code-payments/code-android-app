@@ -25,6 +25,7 @@ fun MemberSocialProfile.toLinked(): LinkedSocialProfile? {
                 platformType = platformType,
                 username = username,
                 profileImageUrl = profileImageUrl,
+                isVerifiedOnPlatform = verified,
                 rawMetadata = extraData
             )
         }

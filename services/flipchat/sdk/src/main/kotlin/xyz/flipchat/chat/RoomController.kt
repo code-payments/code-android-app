@@ -215,7 +215,11 @@ class RoomController @Inject constructor(
                 userId = { userManager.userId }
             )
         ) {
-            MessagingPagingSource(conversationId, { userManager.userId }, db)
+            MessagingPagingSource(
+                chatId = conversationId,
+                userId = { userManager.userId },
+                db = db,
+            )
         }
 
     fun observeTyping(conversationId: ID) = messagingRepository.observeTyping(conversationId)

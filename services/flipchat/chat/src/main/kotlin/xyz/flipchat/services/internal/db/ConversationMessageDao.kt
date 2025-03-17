@@ -346,8 +346,6 @@ interface ConversationMessageDao {
             tipperIdBase58 = tipContent.tipperId.base58
         )
 
-        incrementTipCount(tipContent.originalMessageId)
-
         addTip(tip)
     }
 
@@ -361,8 +359,6 @@ interface ConversationMessageDao {
             senderIdBase58 = reactionContent.senderId.base58,
             emoji = reactionContent.emoji,
         )
-
-        incrementReactionCount(reactionContent.originalMessageId)
 
         addReaction(reaction)
     }

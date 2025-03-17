@@ -49,6 +49,7 @@ interface MemberSocialProfileDao {
                         username = profile.username,
                         profileImageUrl = profile.profilePicUrl,
                         platformType = "x",
+                        verified = profile.verificationType != SocialProfile.X.VerificationType.NONE,
                         extraData = Json.encodeToString(metadata)
                     )
                 }

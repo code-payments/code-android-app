@@ -75,6 +75,7 @@ data class LinkedSocialProfile(
     val platformType: String,
     val username: String,
     val profileImageUrl: String?,
+    val isVerifiedOnPlatform: Boolean,
     val rawMetadata: String?,
 ) {
     inline fun <reified M> metadata(): M? = runCatching {

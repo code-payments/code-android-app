@@ -6,6 +6,7 @@ import androidx.paging.PagingState
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import com.getcode.model.ID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
@@ -13,7 +14,7 @@ import xyz.flipchat.services.domain.model.chat.InflatedConversationMessage
 internal class MessagingPagingSource(
     private val chatId: ID,
     private val userId: () -> ID?,
-    private val db: FcAppDatabase
+    private val db: FcAppDatabase,
 ) : PagingSource<Int, InflatedConversationMessage>() {
 
     @SuppressLint("RestrictedApi")
@@ -38,15 +39,15 @@ internal class MessagingPagingSource(
 
         return withContext(Dispatchers.Default) {
             try {
-                val messages =
-                    db.conversationMessageDao()
+                val messages = db.conversationMessageDao()
                         .getPagedMessagesWithDetails(chatId, pageSize, offset, userId())
+                        .map { it.copy(pageIndex = currentPage) }
 
                 val prevKey = if (currentPage > 0 && messages.isNotEmpty()) currentPage - 1 else null
                 val nextKey = if (messages.size < pageSize) null else currentPage + 1
 
                 LoadResult.Page(
-                    data = messages.map { if (prevKey == null) it.copy(pageIndex = currentPage) else it },
+                    data = messages,
                     prevKey = prevKey,
                     nextKey = nextKey,
                 )

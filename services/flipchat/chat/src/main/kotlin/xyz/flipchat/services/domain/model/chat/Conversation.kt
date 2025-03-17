@@ -119,5 +119,8 @@ data class ConversationWithMembersAndLastMessage(
 
     val messageContentPreview: MessageContent?
         get() = lastMessage?.let { MessageContent.fromData(it.type, it.content, false) }
+
+    @Ignore
+    var pageIndex: Int? = null
 }
 

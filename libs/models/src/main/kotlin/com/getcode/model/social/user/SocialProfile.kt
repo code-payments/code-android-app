@@ -69,6 +69,7 @@ sealed interface SocialProfile {
                     platformType = "x",
                     username = username,
                     profileImageUrl = profilePicUrl,
+                    isVerifiedOnPlatform = verificationType != X.VerificationType.NONE,
                     rawMetadata = Json.encodeToString(metadata)
                 )
             }
