@@ -1231,6 +1231,21 @@ class ConversationViewModel @Inject constructor(
                     emptyList()
                 }
 
+                val sender = Sender(
+                    id = message.senderId,
+                    profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                    name = member?.displayName.orEmpty().ifEmpty { "Member" },
+                    isSelf = contents.isFromSelf,
+                    isFullMember = member?.isFullMember == true,
+                    isHost = message.senderId == currentState.hostId,
+                    isBlocked = member?.isBlocked == true,
+                    socialProfiles = if (showConnectedSocials) {
+                        member?.profiles?.mapNotNull { it.toLinked() }.orEmpty()
+                    } else {
+                        emptyList()
+                    },
+                )
+
                 ChatItem.Message(
                     chatMessageId = message.id,
                     message = contents,
@@ -1253,25 +1268,12 @@ class ConversationViewModel @Inject constructor(
                     enableTipping = tippingEnabled,
                     enableLinkImagePreview = enableLinkImages,
                     enableAvatarClicks = canClickUserAvatars,
-                    sender = Sender(
-                        id = message.senderId,
-                        profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        name = member?.displayName.orEmpty().ifEmpty { "Member" },
-                        isSelf = contents.isFromSelf,
-                        isFullMember = member?.isFullMember == true,
-                        isHost = message.senderId == currentState.hostId,
-                        isBlocked = member?.isBlocked == true,
-                        socialProfiles = if (showConnectedSocials) {
-                            member?.profiles?.mapNotNull { it.toLinked() }.orEmpty()
-                        } else {
-                            emptyList()
-                        },
-                    ),
+                    sender = sender,
                     originalMessage = anchor,
                     messageControls = MessageControls(
                         actions = buildMessageActions(
                             message = message,
-                            member = member,
+                            sender = sender,
                             contents = contents,
                             enableReply = enableReply,
                             enableTip = tippingEnabled,
@@ -1319,7 +1321,7 @@ class ConversationViewModel @Inject constructor(
 
     private fun buildMessageActions(
         message: ConversationMessage,
-        member: ConversationMemberWithLinkedSocialProfiles?,
+        sender: Sender,
         contents: MessageContent,
         enableReply: Boolean,
         enableTip: Boolean,
@@ -1336,13 +1338,13 @@ class ConversationViewModel @Inject constructor(
                 )
             }
             if (stateFlow.value.isHost) {
-                if (member?.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
-                    if (member.isFullMember) {
+                if (sender.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
+                    if (sender.isFullMember) {
                         add(
                             MessageContextAction.DemoteUser {
                                 confirmUserDemote(
                                     conversationId = message.conversationId,
-                                    user = member.displayName,
+                                    user = sender.displayName,
                                     userId = message.senderId
                                 )
                             }
@@ -1352,7 +1354,7 @@ class ConversationViewModel @Inject constructor(
                             MessageContextAction.PromoteUser {
                                 confirmUserPromote(
                                     conversationId = message.conversationId,
-                                    user = member.displayName,
+                                    user = sender.displayName,
                                     userId = message.senderId
                                 )
                             }
@@ -1364,16 +1366,6 @@ class ConversationViewModel @Inject constructor(
             if (enableReply) {
                 add(
                     MessageContextAction.Reply {
-                        val sender = Sender(
-                            id = message.senderId,
-                            profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                            name = member?.displayName ?: "Member",
-                            isSelf = contents.isFromSelf,
-                            isHost = message.senderId == stateFlow.value.hostId && !contents.isFromSelf,
-                            isBlocked = member?.isBlocked == true,
-                            socialProfiles = member?.profiles?.mapNotNull { it.toLinked() }
-                                .orEmpty(),
-                        )
                         val anchor = MessageReplyAnchor(message.id, sender, contents)
                         dispatchEvent(Event.ReplyTo(anchor))
                     }
@@ -1400,12 +1392,12 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
             )
-        } + buildSelfDefenseControls(message, member, contents)
+        } + buildSelfDefenseControls(message, sender, contents)
     }
 
     private fun buildSelfDefenseControls(
         message: ConversationMessage,
-        member: ConversationMemberWithLinkedSocialProfiles?,
+        sender: Sender,
         contents: MessageContent
     ): List<MessageContextAction> {
         return mutableListOf<MessageContextAction>().apply {
@@ -1423,7 +1415,7 @@ class ConversationViewModel @Inject constructor(
 
 
             if (stateFlow.value.isHost) {
-                if (member?.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
+                if (sender.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
 //                    add(
 //                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
 //                            confirmUserRemoval(
@@ -1437,7 +1429,7 @@ class ConversationViewModel @Inject constructor(
                         MessageContextAction.MuteUser {
                             confirmUserMute(
                                 conversationId = message.conversationId,
-                                user = member.displayName,
+                                user = sender.displayName,
                                 userId = message.senderId,
                             )
                         }
@@ -1446,29 +1438,27 @@ class ConversationViewModel @Inject constructor(
             }
 
             if (!contents.isFromSelf) {
-                if (member?.isBlocked != null) {
-                    if (member.isBlocked) {
-                        add(
-                            MessageContextAction.UnblockUser {
-                                dispatchEvent(Event.UnblockUser(message.senderId))
-                            }
-                        )
-                    } else {
-                        add(
-                            MessageContextAction.BlockUser {
-                                confirmUserBlock(
-                                    user = member.displayName,
-                                    userId = message.senderId,
-                                )
-                            }
-                        )
-                    }
+                if (sender.isBlocked) {
+                    add(
+                        MessageContextAction.UnblockUser {
+                            dispatchEvent(Event.UnblockUser(message.senderId))
+                        }
+                    )
+                } else {
+                    add(
+                        MessageContextAction.BlockUser {
+                            confirmUserBlock(
+                                user = sender.displayName,
+                                userId = message.senderId,
+                            )
+                        }
+                    )
                 }
 
                 add(
-                    MessageContextAction.ReportUserForMessage(member?.displayName.orEmpty()) {
+                    MessageContextAction.ReportUserForMessage(sender.displayName.orEmpty()) {
                         confirmUserReport(
-                            user = member?.displayName,
+                            user = sender.displayName,
                             userId = message.senderId,
                             messageId = message.id
                         )
