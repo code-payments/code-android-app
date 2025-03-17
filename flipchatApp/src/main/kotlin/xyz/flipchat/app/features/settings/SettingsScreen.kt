@@ -32,6 +32,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SettingsRow
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -53,6 +55,7 @@ class SettingsScreen : Screen, Parcelable {
         val navigator = LocalCodeNavigator.current
         val context = LocalContext.current
         val composeScope = rememberCoroutineScope()
+        val animationScale by rememberAnimationScale()
 
         val state by viewModel.stateFlow.collectAsState()
 
@@ -73,7 +76,7 @@ class SettingsScreen : Screen, Parcelable {
             bottomBar = {
                 LogoutButton {
                     composeScope.launch {
-                        delay(150) // wait for dismiss
+                        delay(150.scaled(animationScale)) // wait for dismiss
                         context.getActivity()?.let {
                             viewModel.logout(it) {
                                 navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))

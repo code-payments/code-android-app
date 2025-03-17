@@ -52,6 +52,8 @@ import com.getcode.ui.components.chat.messagecontents.ResolvedAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.emojis.EmojiModal
 import com.getcode.ui.emojis.FrequentlyUsedEmojis
 import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
@@ -80,6 +82,7 @@ internal fun ConversationMessages(
     val composeScope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val animationScale by rememberAnimationScale()
 
     fun resolveAnnouncementAction(action: AnnouncementAction): ResolvedAction? {
         return when (action) {
@@ -172,7 +175,7 @@ internal fun ConversationMessages(
                                                     onViewAll = {
                                                         composeScope.launch {
                                                             navigator.hide()
-                                                            delay(250)
+                                                            delay(250.scaled(animationScale))
                                                             navigator.show(
                                                                 EmojiModal { emoji ->
                                                                     navigator.hide()
@@ -259,7 +262,7 @@ internal fun ConversationMessages(
                             composeScope.launch {
                                 if (keyboardVisible) {
                                     ime?.hide()
-                                    delay(500)
+                                    delay(500.scaled(animationScale))
                                 }
                                 dispatchEvent(
                                     ConversationViewModel.Event.TipUser(
@@ -274,7 +277,7 @@ internal fun ConversationMessages(
                             composeScope.launch {
                                 if (keyboardVisible) {
                                     ime?.hide()
-                                    delay(500)
+                                    delay(500.scaled(animationScale))
                                 }
                                 navigator.show(MessageReactionsSheet(event.tips, event.reactions))
                             }
@@ -288,7 +291,7 @@ internal fun ConversationMessages(
                             composeScope.launch {
                                 if (keyboardVisible) {
                                     ime?.hide()
-                                    delay(500)
+                                    delay(500.scaled(animationScale))
                                 }
                                 navigator.push(
                                     ScreenRegistry.get(

@@ -145,7 +145,8 @@ private fun RegisterInfoScreenContent(
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
                     text = stringResource(R.string.title_createAccountToJoinRooms),
                     style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain
+                    color = CodeTheme.colors.textMain,
+                    textAlign = TextAlign.Center,
                 )
 
                 Text(

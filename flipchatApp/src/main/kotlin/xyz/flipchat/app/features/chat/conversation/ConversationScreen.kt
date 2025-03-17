@@ -51,6 +51,8 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.messagecontents.MessageReplyPreview
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.keyboardAsState
@@ -84,6 +86,7 @@ data class ConversationScreen(
         val keyboardVisible by keyboardAsState()
         val keyboard = LocalSoftwareKeyboardController.current
         val composeScope = rememberCoroutineScope()
+        val animationScale by rememberAnimationScale()
 
         LaunchedEffect(chatId) {
             if (chatId != null) {
@@ -167,7 +170,7 @@ data class ConversationScreen(
                 vm.dispatchEvent(ConversationViewModel.Event.Stopped)
                 if (keyboardVisible) {
                     keyboard?.hide()
-                    delay(500)
+                    delay(500.scaled(animationScale))
                 }
                 navigator.popUntil { it is TabbedHomeScreen }
             }
@@ -194,7 +197,7 @@ data class ConversationScreen(
             composeScope.launch {
                 if (keyboardVisible) {
                     keyboard?.hide()
-                    delay(500)
+                    delay(500.scaled(animationScale))
                 }
                 navigator.push(
                     ScreenRegistry.get(

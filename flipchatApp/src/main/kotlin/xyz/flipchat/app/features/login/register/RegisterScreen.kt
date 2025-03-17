@@ -37,6 +37,8 @@ import com.getcode.theme.inputColors
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.components.keyboardAsState
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -78,6 +80,7 @@ internal fun RegisterDisplayNameScreenContent(
     val keyboardVisible by keyboardAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val composeScope = rememberCoroutineScope()
+    val animationScale by rememberAnimationScale()
     var isChecking by remember(state.checkingDisplayName) { mutableStateOf(state.checkingDisplayName) }
 
     val register = {
@@ -85,7 +88,7 @@ internal fun RegisterDisplayNameScreenContent(
             isChecking = true
             if (keyboardVisible) {
                 keyboardController?.hide()
-                delay(500)
+                delay(500.scaled(animationScale))
             }
             viewModel.dispatchEvent(Event.RegisterDisplayName)
         }
@@ -94,7 +97,7 @@ internal fun RegisterDisplayNameScreenContent(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<Event.OnSuccess>()
-            .onEach { delay(400) }
+            .onEach { delay(400.scaled(animationScale)) }
             .onEach { onShowAccessKey() }
             .launchIn(this)
     }

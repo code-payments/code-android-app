@@ -40,6 +40,8 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.components.keyboardAsState
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -66,12 +68,12 @@ data class RoomNameScreen(val roomId: ID, val customTitle: String) : Screen, Par
         val keyboardIsVisible by keyboardAsState()
         val keyboard = LocalSoftwareKeyboardController.current
         val scope = rememberCoroutineScope()
-
+        val animationScale by rememberAnimationScale()
         val goBack = {
             scope.launch {
                 if (keyboardIsVisible) {
                     keyboard?.hide()
-                    delay(500)
+                    delay(500.scaled(animationScale))
                 }
                 navigator.pop()
             }

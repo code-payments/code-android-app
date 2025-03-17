@@ -20,7 +20,9 @@ import com.getcode.network.exchange.LocalExchange
 import com.getcode.ui.emojis.LocalEmojiUsageController
 import xyz.flipchat.app.ui.LocalUserManager
 import com.getcode.util.resources.LocalResources
+import com.getcode.util.resources.LocalSystemSettings
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.SettingsHelper
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.CurrencyUtils
@@ -46,6 +48,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var resources: ResourceHelper
+
+    @Inject
+    lateinit var settingsHelper: SettingsHelper
 
     @Inject
     lateinit var tipsEngine: TipsEngine
@@ -91,6 +96,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             CompositionLocalProvider(
                 LocalResources provides resources,
+                LocalSystemSettings provides settingsHelper,
                 LocalNetworkObserver provides networkObserver,
                 LocalExchange provides ExchangeNull(),
                 LocalCurrencyUtils provides currencyUtils,

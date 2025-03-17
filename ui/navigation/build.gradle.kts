@@ -41,7 +41,6 @@ android {
 dependencies {
     implementation(project(":libs:models"))
     implementation(project(":ui:core"))
-    implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
 
     implementation(Libs.androidx_annotation)

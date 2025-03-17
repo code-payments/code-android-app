@@ -17,7 +17,9 @@ import com.getcode.services.analytics.AnalyticsServiceNull
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.AndroidResources
+import com.getcode.util.resources.AndroidSettingsHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.SettingsHelper
 import com.getcode.util.vibration.Api25Vibrator
 import com.getcode.util.vibration.Api26Vibrator
 import com.getcode.util.vibration.Api31Vibrator
@@ -55,6 +57,11 @@ object AppModule {
     fun providesResourceHelper(
         @ApplicationContext context: Context,
     ): ResourceHelper = AndroidResources(context)
+
+    @Provides
+    fun providesSettingsHelper(
+        @ApplicationContext context: Context,
+    ): SettingsHelper = AndroidSettingsHelper(context)
 
     @Provides
     fun providesLocaleHelper(

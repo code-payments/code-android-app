@@ -49,4 +49,6 @@ android {
 dependencies {
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
+
+    api(project(":ui:resources"))
 }

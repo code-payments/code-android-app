@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.getcode.model.Currency
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.addIf
@@ -121,9 +123,10 @@ fun ConversationChatInput(
 
                     var wasKeyboardVisible by remember { mutableStateOf(false) }
 
+                    val animationScale by rememberAnimationScale()
                     LaunchedEffect(keyboardVisible) {
                         if (wasKeyboardVisible && !keyboardVisible) {
-                            delay(150) // Short delay to prevent accidental blips
+                            delay(150.scaled(animationScale)) // Short delay to prevent accidental blips
                             if (
                                 !keyboardVisible &&
                                 chattableState is ChattableState.TemporarilyEnabled &&

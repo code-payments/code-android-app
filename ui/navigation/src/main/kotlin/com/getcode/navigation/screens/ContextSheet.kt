@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +25,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.core.ContextMenuAction
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -51,6 +54,7 @@ class ContextSheet(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val composeScope = rememberCoroutineScope()
+        val animationScale by rememberAnimationScale()
 
         LazyColumn(
             modifier = Modifier
@@ -67,7 +71,7 @@ class ContextSheet(
                                    composeScope.launch {
                                        navigator.hide()
                                        if (action.delayUponSelection) {
-                                           delay(300)
+                                           delay(300.scaled(animationScale))
                                        }
                                        action.onSelect()
                                    }
