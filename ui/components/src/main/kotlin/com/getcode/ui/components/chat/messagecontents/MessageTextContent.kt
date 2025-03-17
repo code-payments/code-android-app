@@ -18,7 +18,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,8 +33,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import coil3.compose.AsyncImage
 import com.getcode.libs.opengraph.LocalOpenGraphParser
 import com.getcode.libs.opengraph.callback.OpenGraphCallback
@@ -55,10 +57,7 @@ import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
-import com.getcode.ui.utils.measured
-import com.getcode.ui.utils.measuredIntSize
 import kotlinx.datetime.Instant
-import kotlin.math.min
 
 @Composable
 internal fun MessageNodeScope.MessageText(
@@ -72,7 +71,7 @@ internal fun MessageNodeScope.MessageText(
     reactions: List<MessageReaction>,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
-    wasSentAsFullMember: Boolean,
+    isFullMember: Boolean,
     onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit,
     onLongPress: () -> Unit,
     onDoubleClick: () -> Unit,
@@ -86,10 +85,10 @@ internal fun MessageNodeScope.MessageText(
         BoxWithConstraints(
             modifier = Modifier
                 .sizeableWidth()
-                .addIf(wasSentAsFullMember) {
+                .addIf(isFullMember) {
                     Modifier.background(color = color, shape = shape)
                 }
-                .addIf(!wasSentAsFullMember) {
+                .addIf(!isFullMember) {
                     Modifier.dashedBorder(
                         strokeWidth = CodeTheme.dimens.border,
                         dashWidth = 2.dp,
@@ -217,6 +216,9 @@ internal fun MessageContent(
                 modifier = modifier,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
+                val measurer = rememberTextMeasurer()
+                val textWidth = measurer.measure(annotatedMessage, constraints = Constraints(maxWidth = maxWidth)).size.width
+
                 MarkupTextHandler(
                     text = annotatedMessage,
                     options = options,
@@ -236,6 +238,7 @@ internal fun MessageContent(
                     tips = tips,
                     reactions = reactions,
                     isFromSelf = isFromSelf,
+                    textWidth = textWidth,
                     date = date,
                     status = status,
                     options = options,
@@ -282,11 +285,11 @@ internal fun MessageContent(
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
                 ) {
                     MarkupTextHandler(
+                        modifier = Modifier.weight(1f),
                         text = annotatedMessage,
                         options = options,
                         isFromBlockedMember = isFromBlockedMember,
                     )
-                    Spacer(Modifier.weight(1f))
                     DateWithStatus(
                         modifier = Modifier
                             .padding(top = CodeTheme.dimens.grid.x1 + 2.dp),
@@ -361,6 +364,7 @@ private fun ColumnBasedFooter(
     date: Instant,
     status: MessageStatus,
     options: MessageNodeOptions,
+    textWidth: Int,
     onAddReaction: (String) -> Unit,
     onRemoveReaction: (ID) -> Unit,
     onViewFeedback: () -> Unit,
@@ -403,10 +407,15 @@ private fun ColumnBasedFooter(
         val fitsInSameRow = maxContentWidth <= constraints.maxWidth
 
         val layoutWidth = if (fitsInSameRow) {
-            minOf(constraints.maxWidth, maxContentWidth)
+            if (feedbackPlaceable == null) {
+                constraints.maxWidth
+            } else {
+                minOf(constraints.maxWidth, maxContentWidth + textWidth)
+            }
         } else {
             maxOf(feedbackWidth ?: 0, dateWidth)
         }
+
         val layoutHeight = if (fitsInSameRow) {
             feedbackPlaceable?.height ?: dateHeight
         } else {

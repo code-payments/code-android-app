@@ -377,7 +377,7 @@ fun MessageNode(
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
-                                            wasSentAsFullMember = wasSentAsFullMember,
+                                            isFullMember = sender.isFullMember,
                                             tips = tips,
                                             reactions = reactions,
                                             onTap = onTap,
@@ -428,7 +428,7 @@ fun MessageNode(
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
-                                            wasSentAsFullMember = wasSentAsFullMember,
+                                            isFullMember = sender.isFullMember,
                                             tips = tips,
                                             reactions = reactions,
                                             onTap = onTap,
@@ -459,7 +459,7 @@ fun MessageNode(
                                             isFromSelf = sender.isSelf,
                                             isFromBlockedMember = sender.isBlocked,
                                             options = options,
-                                            wasSentAsFullMember = wasSentAsFullMember,
+                                            isFullMember = sender.isFullMember,
                                             tips = tips,
                                             reactions = reactions,
                                             onTap = onTap,
@@ -499,14 +499,13 @@ fun MessageNode(
                                     MarkupTouchHandler(options = options) { onTap ->
                                         if (originalMessage != null) {
                                             MessageReplyContent(
-                                                modifier = Modifier.sizeableWidth(),
                                                 content = contents.text,
                                                 shape = shape,
                                                 date = date,
                                                 status = status,
                                                 isFromSelf = sender.isSelf,
                                                 isFromBlockedMember = sender.isBlocked,
-                                                wasSentAsFullMember = wasSentAsFullMember,
+                                                wasSentAsFullMember = sender.isFullMember,
                                                 options = options,
                                                 tips = tips,
                                                 showTips = showReactions,
@@ -524,7 +523,6 @@ fun MessageNode(
                                             )
                                         } else {
                                             MessageText(
-                                                modifier = Modifier.sizeableWidth(),
                                                 content = contents.text,
                                                 shape = shape,
                                                 date = date,
@@ -532,7 +530,7 @@ fun MessageNode(
                                                 isFromSelf = sender.isSelf,
                                                 isFromBlockedMember = sender.isBlocked,
                                                 options = options,
-                                                wasSentAsFullMember = wasSentAsFullMember,
+                                                isFullMember = sender.isFullMember,
                                                 tips = tips,
                                                 reactions = reactions,
                                                 onTap = onTap,
