@@ -32,7 +32,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.MiddleEllipsisText

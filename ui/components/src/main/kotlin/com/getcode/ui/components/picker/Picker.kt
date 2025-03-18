@@ -27,8 +27,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.utils.fadingEdge
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.fadingEdge
+import com.getcode.ui.core.measured
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce

@@ -41,7 +41,7 @@ import com.getcode.theme.extraLarge
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.R
 import com.getcode.ui.components.TextInput
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 @Composable
 fun ChatInput(

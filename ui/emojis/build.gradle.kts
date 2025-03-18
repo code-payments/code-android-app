@@ -49,7 +49,9 @@ android {
 
 dependencies {
     api(project(":libs:emojis"))
+    implementation(project(":libs:search"))
 
+    implementation(project(":ui:core"))
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))
 

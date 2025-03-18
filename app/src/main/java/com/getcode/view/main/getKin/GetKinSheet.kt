@@ -45,7 +45,6 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.RequestKinModal
-import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Success
@@ -55,8 +54,8 @@ import com.getcode.theme.bolded
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.showSnackbar
-import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.addIf
+import com.getcode.ui.core.rememberedClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach

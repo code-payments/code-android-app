@@ -1,7 +1,6 @@
 package xyz.flipchat.app.features.chat.list
 
 import android.os.Parcelable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,20 +16,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
-import androidx.paging.compose.itemKey
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -47,14 +43,11 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize

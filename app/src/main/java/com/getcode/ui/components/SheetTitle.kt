@@ -19,8 +19,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.utils.unboundedClickable
+import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.unboundedClickable
 
 @Composable
 fun BoxScope.SheetTitleText(modifier: Modifier = Modifier, text: String) {

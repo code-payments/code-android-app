@@ -68,8 +68,8 @@ import com.getcode.ui.core.ContextMenuAction
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.unboundedClickable
-import com.getcode.ui.utils.verticalScrollStateGradient
+import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.util.permissions.notificationPermissionCheck
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.filterIsInstance

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
+import com.getcode.ui.core.addIf
 import kotlin.math.roundToInt
 
 sealed interface ConstraintMode {

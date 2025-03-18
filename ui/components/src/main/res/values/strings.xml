@@ -24,4 +24,6 @@
     <string name="title_messageWasDeleted">This message was deleted</string>
     <string name="subtitle_you">You</string>
     <string name="subtitle_listener">Listener</string>
+
+    <string name="action_search">Search</string>
 </resources>

@@ -1,6 +1,20 @@
+import kotlinx.serialization.Serializable
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath(Libs.kotlinx_serialization_json)
+    }
+}
 
 plugins {
     id(Plugins.android_library)
@@ -44,7 +58,10 @@ dependencies {
 }
 
 private val emojiUrl = "https://unicode.org/Public/emoji/16.0/emoji-test.txt"
+private val emojiKeywordsUrl =
+    "https://raw.githubusercontent.com/unicode-org/cldr-json/refs/heads/main/cldr-json/cldr-annotations-full/annotations/en/annotations.json"
 val emojiFile = File(projectDir, "emoji-test.txt") // Local cache
+val keywordsFile = File(projectDir, "en-keywords.json") // Local cache
 private val outputDir = File(projectDir, "src/main/kotlin/com/getcode/libs/emojis/generated")
 private val outputFile = File(outputDir, "Emojis.kt")
 
@@ -68,6 +85,19 @@ tasks.register("generateEmojiList") {
             } else {
                 println("Using existing emoji-test.txt")
             }
+
+            if (!keywordsFile.exists()) {
+                println("Downloading CLDR annotations from $emojiKeywordsUrl")
+                URL(emojiKeywordsUrl).openStream().use { input ->
+                    Files.copy(input, keywordsFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                }
+            } else {
+                println("Using existing CLDR annotations")
+            }
+
+            val json = Json { ignoreUnknownKeys = true }
+            val cldrData = json.parseToJsonElement(keywordsFile.readText()).jsonObject
+            val cldrAnnotations = cldrData["annotations"]?.jsonObject?.get("annotations")?.jsonObject
 
             val emojiText = emojiFile.readText()
             val emojiCategories =
@@ -112,12 +142,17 @@ tasks.register("generateEmojiList") {
                             }.joinToString("")
                             val nameParts = line.split("#")[1].trim().split(" ")
                             val name = nameParts.drop(2).joinToString(" ")
-                            val keywords = name.split(" ").filter { it.isNotBlank() }
+                            val baseKeywords = name.split(" ").filter { it.isNotBlank() }
 
-                            val emojiEntry = mutableMapOf<String, Any>(
+                            // Use CLDR data
+                            val cldrAnnotation = cldrAnnotations?.get(unicode)?.jsonObject
+                            val cldrKeywords = cldrAnnotation?.get("default")?.jsonArray?.mapNotNull { it.jsonPrimitive.toString().removeSurrounding("\"") }.orEmpty()
+                            val allKeywords = (baseKeywords + cldrKeywords).distinct()
+
+                            val emojiEntry = mutableMapOf(
                                 "unicode" to unicode,
                                 "name" to name,
-                                "keywords" to keywords
+                                "keywords" to allKeywords
                             )
                             emojiCategories[currentGroup]?.get(currentSubgroup)?.add(emojiEntry)
                             println("Added fully-qualified emoji: $unicode - $name")
@@ -139,9 +174,10 @@ tasks.register("generateEmojiList") {
             val nonEmptyCategories = emojiCategories.filter { (_, subgroups) ->
                 subgroups.any { (_, emojis) -> emojis.isNotEmpty() }
             }
-            val nonEmptyCategoriesNoSkinTones = emojiCategoriesNoSkinTones.filter { (_, subgroups) ->
-                subgroups.any { (_, emojis) -> emojis.isNotEmpty() }
-            }
+            val nonEmptyCategoriesNoSkinTones =
+                emojiCategoriesNoSkinTones.filter { (_, subgroups) ->
+                    subgroups.any { (_, emojis) -> emojis.isNotEmpty() }
+                }
 
             // Generate a main Emojis.kt with category references and data class definition
             val mainFile = File(outputDir, "Emojis.kt")
@@ -212,8 +248,16 @@ tasks.register("generateEmojiList") {
                             appendLine("    )")
                         }
                         appendLine()
-                        appendLine("    val categorizedNoSkinTones = ${if (emojiCategoriesNoSkinTones[group]?.get(subgroup)?.isEmpty() != false) "emptyList<Emoji>()" else "listOf("}")
-                        val noSkinTones = emojiCategoriesNoSkinTones[group]?.get(subgroup) ?: emptyList()
+                        appendLine(
+                            "    val categorizedNoSkinTones = ${
+                                if (emojiCategoriesNoSkinTones[group]?.get(
+                                        subgroup
+                                    )?.isEmpty() != false
+                                ) "emptyList<Emoji>()" else "listOf("
+                            }"
+                        )
+                        val noSkinTones =
+                            emojiCategoriesNoSkinTones[group]?.get(subgroup) ?: emptyList()
                         if (noSkinTones.isNotEmpty()) {
                             appendLine("        ${noSkinTones.joinToString(",\n        ") { "Emoji(\"${it["unicode"]}\", \"${it["name"]}\", listOf(${it["keywords"]?.let { k -> (k as List<String>).joinToString { "\"$it\"" } }}))" }}")
                             appendLine("    )")

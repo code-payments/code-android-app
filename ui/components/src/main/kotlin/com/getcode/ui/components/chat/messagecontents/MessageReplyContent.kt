@@ -33,7 +33,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
@@ -46,10 +45,10 @@ import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.user.social.SenderNameDisplay
-import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.dashedBorder
+import com.getcode.ui.core.addIf
+import com.getcode.ui.core.dashedBorder
 import com.getcode.ui.utils.generateComplementaryColorPalette
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.measured
 import kotlinx.datetime.Instant
 
 @Composable

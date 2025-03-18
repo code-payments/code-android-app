@@ -72,7 +72,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.White50
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

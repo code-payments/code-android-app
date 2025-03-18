@@ -20,10 +20,9 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageList
-import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.localized
-import com.getcode.ui.utils.withTopBorder
+import com.getcode.ui.core.withTopBorder
 
 @Composable
 fun ChatScreen(

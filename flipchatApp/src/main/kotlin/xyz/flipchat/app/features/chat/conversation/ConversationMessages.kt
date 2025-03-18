@@ -59,7 +59,7 @@ import com.getcode.ui.emojis.FrequentlyUsedEmojis
 import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.scrollToItemWithFullVisibility
-import com.getcode.ui.utils.verticalScrollStateGradient
+import com.getcode.ui.core.verticalScrollStateGradient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R

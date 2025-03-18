@@ -49,11 +49,10 @@ import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White10
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.utils.verticalScrollStateGradient
+import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.verticalScrollStateGradient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

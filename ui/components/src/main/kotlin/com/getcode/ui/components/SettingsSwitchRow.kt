@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeToggleSwitch
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 @Composable
 fun SettingsSwitchRow(

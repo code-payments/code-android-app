@@ -37,14 +37,13 @@ import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.keyboardAsState
-import com.getcode.ui.utils.withTopBorder
+import com.getcode.ui.core.withTopBorder
 import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin
 import com.getcode.utils.formatAmountString
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
 import xyz.flipchat.app.R
 
 @Composable

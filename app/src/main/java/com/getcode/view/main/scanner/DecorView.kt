@@ -45,7 +45,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 import com.getcode.ui.components.Pill
 import com.getcode.ui.tips.DefinedTips
-import com.getcode.ui.utils.unboundedClickable
+import com.getcode.ui.core.unboundedClickable
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.view.main.scanner.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider

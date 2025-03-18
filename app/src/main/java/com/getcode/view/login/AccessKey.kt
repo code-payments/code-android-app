@@ -56,8 +56,8 @@ import com.getcode.ui.components.Cloudy
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.addIf
+import com.getcode.ui.core.measured
 import com.getcode.util.launchAppSettings
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher

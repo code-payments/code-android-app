@@ -25,9 +25,9 @@ import cafe.adriel.voyager.navigator.tab.TabNavigator
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.SystemNavigationMode
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.rememberSystemNavigationMode
-import com.getcode.ui.utils.withTopBorder
+import com.getcode.ui.core.withTopBorder
 
 @Composable
 internal fun BottomBar(

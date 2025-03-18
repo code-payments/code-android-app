@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.Icon
@@ -23,15 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.calculateHorizontalPadding
-import com.getcode.ui.utils.unboundedClickable
+import com.getcode.ui.core.unboundedClickable
 
 object AppBarDefaults {
     @Composable

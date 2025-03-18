@@ -54,11 +54,11 @@ import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.keyboardAsState
-import com.getcode.ui.utils.noRippleClickable
-import com.getcode.ui.utils.unboundedClickable
-import com.getcode.ui.utils.withTopBorder
+import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.core.withTopBorder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance

@@ -60,7 +60,7 @@ import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.measured
 import com.getcode.util.launchAppSettings
 import com.getcode.view.main.bill.BillManagementOptions
 import com.getcode.view.main.scanner.views.CameraDisabledView

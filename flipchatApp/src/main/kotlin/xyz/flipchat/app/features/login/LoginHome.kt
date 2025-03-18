@@ -35,7 +35,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.utils.noRippleClickable
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.view.LoadingSuccessState
 import xyz.flipchat.app.R
 import xyz.flipchat.app.util.ChromeTabsUtils

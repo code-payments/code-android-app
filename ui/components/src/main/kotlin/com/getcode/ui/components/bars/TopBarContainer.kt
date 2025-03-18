@@ -26,7 +26,7 @@ import com.getcode.manager.TopBarManager.TopBarMessageType.*
 import com.getcode.theme.*
 import com.getcode.ui.components.R
 import com.getcode.ui.components.VerticalDivider
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import java.util.*
 import kotlin.concurrent.timerTask
 

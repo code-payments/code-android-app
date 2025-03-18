@@ -29,7 +29,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,8 +59,8 @@ import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.addIf
+import com.getcode.ui.core.measured
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler

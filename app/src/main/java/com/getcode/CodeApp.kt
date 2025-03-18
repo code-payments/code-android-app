@@ -45,7 +45,7 @@ import com.getcode.ui.utils.getActivity
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.ui.LocalTopBarPadding
 import com.getcode.ui.theme.CodeTheme
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.measured
 import com.getcode.ui.utils.rememberBiometricsState
 import com.getcode.util.BiometricsError
 import com.getcode.view.main.scanner.views.BiometricsBlockingView

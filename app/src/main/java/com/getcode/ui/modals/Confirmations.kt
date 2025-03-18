@@ -26,7 +26,7 @@ import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.theme.Black40
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 @Composable
 fun ConfirmationModals(

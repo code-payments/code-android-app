@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.ui.utils.swallowClicks
+import com.getcode.ui.core.swallowClicks
 
 @Composable
 fun FullScreenProgressSpinner(isLoading: Boolean, modifier: Modifier = Modifier) {

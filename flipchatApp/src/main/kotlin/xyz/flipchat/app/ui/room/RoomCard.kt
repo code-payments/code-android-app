@@ -43,7 +43,7 @@ import com.getcode.theme.dropShadow
 import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.Geometry
 import com.getcode.ui.utils.constrain
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.measured
 import com.getcode.ui.utils.withDropShadow
 import com.getcode.util.resources.LocalResources
 import com.getcode.utils.Kin

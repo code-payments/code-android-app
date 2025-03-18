@@ -65,7 +65,7 @@ import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
 import com.getcode.util.PhoneUtils
 import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest

@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.SystemGreen
 import com.getcode.theme.White
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 
 object CodeToggleSwitchDefaults {
 

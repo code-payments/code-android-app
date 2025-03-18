@@ -63,6 +63,7 @@ import com.getcode.libs.emojis.generated.Emoji
 import com.getcode.libs.emojis.generated.Emojis
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.ui.core.verticalScrollStateGradient
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -115,7 +116,9 @@ fun EmojiGarden(onClick: (String) -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalGrid(
-            modifier = Modifier.navigationBarsPadding(),
+            modifier = Modifier
+                .navigationBarsPadding()
+                .verticalScrollStateGradient(listState, color = CodeTheme.colors.background),
             columns = GridCells.Adaptive(CodeTheme.dimens.grid.x8),
             contentPadding = PaddingValues(
                 top = CodeTheme.dimens.grid.x2,

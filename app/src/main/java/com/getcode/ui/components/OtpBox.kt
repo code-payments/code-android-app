@@ -12,7 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.WindowSizeClass
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 @Composable
 fun OtpBox(

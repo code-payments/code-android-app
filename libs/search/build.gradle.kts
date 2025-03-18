@@ -1,11 +1,12 @@
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
+    id(Plugins.kotlin_kapt)
     id(Plugins.kotlin_serialization)
 }
 
 android {
-    namespace = "${Android.codeNamespace}.ui.core"
+    namespace = "${Android.codeNamespace}.libs.search"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -14,12 +15,9 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
     }
 
-    kotlinOptions {
-        jvmTarget = Versions.java
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.RequiresOptIn"
-        )
+    compileOptions {
+        sourceCompatibility(Versions.java)
+        targetCompatibility(Versions.java)
     }
 
     java {
@@ -28,13 +26,12 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlin {
-        jvmToolchain(17)
+    kotlinOptions {
+        jvmTarget = Versions.java
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.ExperimentalUnsignedTypes",
+            "-opt-in=kotlin.RequiresOptIn"
+        )
     }
 
     buildFeatures {
@@ -47,13 +44,9 @@ android {
 }
 
 dependencies {
+    //Jetpack compose
     implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_animation)
-    implementation(Libs.compose_foundation)
     implementation(Libs.compose_ui)
-    implementation(Libs.compose_activities)
-    implementation(Libs.compose_material)
 
-    api(project(":ui:resources"))
-    implementation(project(":ui:theme"))
+    implementation(Libs.timber)
 }

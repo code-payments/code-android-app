@@ -46,11 +46,11 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.noRippleClickable
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.utils.unboundedClickable
+import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.unboundedClickable
 import com.getcode.util.resources.LocalResources
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize

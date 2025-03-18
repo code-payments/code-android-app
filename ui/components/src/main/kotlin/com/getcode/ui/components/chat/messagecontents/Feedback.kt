@@ -6,12 +6,10 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,7 +39,6 @@ import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.emojis.processEmoji
-import com.getcode.ui.utils.rememberedLongClickable
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

@@ -38,7 +38,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.utils.rememberedLongClickable
+import com.getcode.ui.core.rememberedLongClickable
 import com.getcode.util.shareDownloadLink
 
 @Composable

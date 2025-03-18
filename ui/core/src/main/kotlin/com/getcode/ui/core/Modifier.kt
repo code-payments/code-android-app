@@ -1,4 +1,4 @@
-package com.getcode.ui.utils
+package com.getcode.ui.core
 
 import android.view.MotionEvent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -25,8 +25,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape

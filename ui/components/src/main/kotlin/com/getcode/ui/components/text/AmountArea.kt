@@ -22,7 +22,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.ui.components.ConnectionStatus
 import com.getcode.ui.components.R
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkState
 import com.getcode.utils.network.connectivity.NetworkStateProvider

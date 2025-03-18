@@ -15,7 +15,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import com.getcode.theme.Black40
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 sealed interface ScrimState {
     data object Visible: ScrimState

@@ -44,7 +44,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.util.resources.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

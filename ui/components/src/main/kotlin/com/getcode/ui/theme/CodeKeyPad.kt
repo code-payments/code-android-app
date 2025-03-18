@@ -38,7 +38,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.Transparent
 import com.getcode.theme.White10
 import com.getcode.ui.components.R
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import java.text.DecimalFormatSymbols
 
 

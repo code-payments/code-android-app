@@ -37,6 +37,7 @@ include(
         ":libs:permissions",
         ":libs:quickresponse",
         ":libs:requests",
+        ":libs:search",
         ":libs:vibrator",
 
         // Services definition for app and lib access

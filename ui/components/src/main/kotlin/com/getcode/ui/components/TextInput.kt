@@ -1,7 +1,6 @@
 package com.getcode.ui.components
 
 import android.view.ViewTreeObserver
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,43 +26,33 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.node.Ref
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
-import com.getcode.ui.utils.AutoSizeTextMeasurer
 import com.getcode.ui.utils.ConstraintMode
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.constrain
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.measured
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlin.math.roundToInt
 
 @Composable
 fun TextInput(

@@ -20,7 +20,7 @@ import com.getcode.services.manager.ModalManager
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.utils.addIf
+import com.getcode.ui.core.addIf
 
 fun buildMessageContent(
     message: ModalManager.Message,

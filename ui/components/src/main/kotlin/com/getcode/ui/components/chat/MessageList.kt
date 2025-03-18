@@ -171,7 +171,7 @@ fun MessageList(
                     val updatedTips by rememberUpdatedState(item.tips)
                     val updatedReactions by rememberUpdatedState(item.reactions)
 
-                    val actionHandler = remember(item.tips, item.reactions) {
+                    val actionHandler = remember(item) {
                         object : MessageContentActionHandler {
                             override fun openMessageControls() {
                                 dispatch(

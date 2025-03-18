@@ -61,7 +61,7 @@ import com.getcode.theme.White50
 import com.getcode.theme.inputColors
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.keyboardAsState
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

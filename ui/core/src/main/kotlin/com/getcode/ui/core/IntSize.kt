@@ -1,4 +1,4 @@
-package com.getcode.ui.utils
+package com.getcode.ui.core
 
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize

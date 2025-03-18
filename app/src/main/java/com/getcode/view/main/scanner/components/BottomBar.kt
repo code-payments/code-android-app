@@ -30,7 +30,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.Row
 import com.getcode.ui.utils.heightOrZero
-import com.getcode.ui.utils.unboundedClickable
+import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.widthOrZero
 import com.getcode.view.main.scanner.UiElement
 import com.getcode.SessionState

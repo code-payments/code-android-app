@@ -17,7 +17,7 @@ import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.MiddleEllipsisText
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 
 @Composable
