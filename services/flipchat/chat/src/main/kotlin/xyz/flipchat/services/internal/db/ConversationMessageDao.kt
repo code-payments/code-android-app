@@ -319,11 +319,11 @@ interface ConversationMessageDao {
         JOIN (
             SELECT emoji, MAX(sentAt) AS latestSentAt, COUNT(*) AS count
             FROM reactions
-            WHERE senderIdBase58 = :senderId AND deleted = 0
+            WHERE senderIdBase58 = :senderId
             GROUP BY emoji
         ) grouped 
         ON r.emoji = grouped.emoji AND r.sentAt = grouped.latestSentAt
-        WHERE r.senderIdBase58 = :senderId AND r.deleted = 0 AND grouped.count >= 2
+        WHERE r.senderIdBase58 = :senderId AND grouped.count >= 4
         ORDER BY grouped.count DESC, r.sentAt DESC
         LIMIT 100;
     """)
