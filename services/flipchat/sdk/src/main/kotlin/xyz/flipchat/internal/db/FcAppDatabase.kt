@@ -76,8 +76,9 @@ import java.io.File
         // explicit no migration to fallback to reset (from = 22, to = 23)
         AutoMigration(from = 23, to = 24),
         AutoMigration(from = 24, to = 25),
+        AutoMigration(from = 25, to = 26, spec = FcAppDatabase.Migration25To26::class),
     ],
-    version = 25,
+    version = 26,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -152,6 +153,13 @@ abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM messages")
             db.execSQL("DELETE FROM members")
+        }
+    }
+
+    class Migration25To26 : Migration(25, 26), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM messages")
+            db.execSQL("DELETE FROM reactions")
         }
     }
 

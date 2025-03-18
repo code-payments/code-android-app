@@ -46,21 +46,6 @@ data class ChatStreamUpdate(
             )
         }
     }
-
-    override fun toString(): String {
-        return "ID: ${id.base58}, " +
-                "metadata updates=${metadataUpdates.count()}, " +
-                "member updates=${memberUpdates.count()}, " +
-                "message update=${lastMessage?.contentList?.mapNotNull {
-                    MessageContent.invoke(
-                        it,
-                        emptyList(),
-                        false
-                    )
-                }?.joinToString()}, " +
-                "pointer update=${lastPointer != null}"
-
-    }
 }
 
 data class PointerUpdate(

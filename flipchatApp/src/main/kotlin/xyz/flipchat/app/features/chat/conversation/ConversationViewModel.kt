@@ -117,7 +117,6 @@ class ConversationViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
     private val currencyUtils: CurrencyUtils,
-    private val emojiUsageController: EmojiUsageController,
     clipboardManager: ClipboardManager,
     betaFeatures: Labs,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
@@ -573,7 +572,6 @@ class ConversationViewModel @Inject constructor(
                     .map { it.reaction.emoji }
 
                 if (!sentEmojis.contains(emoji)) {
-                    emojiUsageController.trackUsageOf(emoji)
                     roomController.sendReaction(
                         conversationId = stateFlow.value.conversationId.orEmpty(),
                         messageId = messageId,

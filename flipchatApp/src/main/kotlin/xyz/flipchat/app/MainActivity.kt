@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.libs.emojis.EmojiUsageController
+import com.getcode.libs.emojis.EmojiUsageTracker
 import com.getcode.libs.opengraph.LocalOpenGraphParser
 import com.getcode.libs.opengraph.OpenGraphParser
 import com.getcode.network.BalanceController
@@ -86,7 +87,7 @@ class MainActivity : FragmentActivity() {
     lateinit var balanceController: BalanceController
 
     @Inject
-    lateinit var emojiUsageController: EmojiUsageController
+    lateinit var emojiUsageController: EmojiUsageTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

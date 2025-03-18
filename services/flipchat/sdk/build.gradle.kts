@@ -62,6 +62,7 @@ dependencies {
     api(project(":services:flipchat:core"))
     api(project(":services:flipchat:chat"))
     api(project(":services:flipchat:payments"))
+    implementation(project(":libs:emojis"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:resources"))
 

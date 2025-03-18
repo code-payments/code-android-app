@@ -1,5 +1,6 @@
 package xyz.flipchat.services.domain.model.chat
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.Index
@@ -22,6 +23,8 @@ data class ConversationMessageReaction(
     val senderIdBase58: String,
     val emoji: String,
     val deleted: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val sentAt: Long,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()

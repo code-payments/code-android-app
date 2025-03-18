@@ -310,11 +310,26 @@ interface ConversationMessageDao {
 
     @Transaction
     suspend fun removeReaction(id: ID) {
-        val reactionRow = getReaction(id)
         removeReactionInternal(id)
-        if (reactionRow != null) {
-            decrementReactionCount(reactionRow.messageId)
-        }
+    }
+
+    @Query("""
+        SELECT r.emoji
+        FROM reactions r
+        JOIN (
+            SELECT emoji, MAX(sentAt) AS latestSentAt, COUNT(*) AS count
+            FROM reactions
+            WHERE senderIdBase58 = :senderId AND deleted = 0
+            GROUP BY emoji
+        ) grouped 
+        ON r.emoji = grouped.emoji AND r.sentAt = grouped.latestSentAt
+        WHERE r.senderIdBase58 = :senderId AND r.deleted = 0 AND grouped.count >= 2
+        ORDER BY grouped.count DESC, r.sentAt DESC
+        LIMIT 100;
+    """)
+    suspend fun getFrequentEmojis(senderId: String): List<String>
+    suspend fun getFrequentEmojis(senderId: ID): List<String> {
+        return getFrequentEmojis(senderId.base58)
     }
 
     @Query("SELECT isApproved FROM messages WHERE idBase58 = :messageId AND isApproved IS NOT NULL")
@@ -358,6 +373,7 @@ interface ConversationMessageDao {
             messageIdBase58 = reactionContent.originalMessageId.base58,
             senderIdBase58 = reactionContent.senderId.base58,
             emoji = reactionContent.emoji,
+            sentAt = reactionContent.sentAt
         )
 
         addReaction(reaction)

@@ -9,6 +9,9 @@ import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
+import com.getcode.libs.emojis.EmojiQueryProvider
+import com.getcode.libs.emojis.EmojiUsageController
+import com.getcode.libs.emojis.EmojiUsageTracker
 import com.getcode.libs.opengraph.OpenGraphCacheProvider
 import com.getcode.libs.opengraph.OpenGraphParser
 import com.getcode.libs.opengraph.cache.CacheProvider
@@ -43,6 +46,8 @@ import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
 import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.internal.EmojiQueryProviderImpl
+import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.billing.BillingClient
 import xyz.flipchat.services.billing.GooglePlayBillingClient
 import xyz.flipchat.services.billing.StubBillingClient
@@ -199,4 +204,16 @@ object AppModule {
     fun providesOpenGraphParser(
         cache: CacheProvider
     ): OpenGraphParser = OpenGraphParser(cacheProvider = cache)
+
+    @Singleton
+    @Provides
+    fun provideEmojiQueryProvider(
+        userManager: UserManager,
+    ): EmojiQueryProvider = EmojiQueryProviderImpl(userManager)
+
+    @Singleton
+    @Provides
+    fun providesEmojiUsageController(
+        queryProvider: EmojiQueryProvider
+    ): EmojiUsageTracker = EmojiUsageController(queryProvider)
 }

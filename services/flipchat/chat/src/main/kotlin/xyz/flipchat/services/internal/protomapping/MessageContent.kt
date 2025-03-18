@@ -9,6 +9,7 @@ import xyz.flipchat.services.internal.data.mapper.ifZeroOrElse
 operator fun MessageContent.Companion.invoke(
     proto: Model.Content,
     senderId: ID,
+    date: Long,
     isFromSelf: Boolean = false,
 ): MessageContent? {
     return when (proto.typeCase) {
@@ -36,6 +37,7 @@ operator fun MessageContent.Companion.invoke(
             emoji = proto.reaction.emoji,
             originalMessageId = proto.reaction.originalMessageId.value.toList(),
             senderId = senderId,
+            sentAt = date,
             isFromSelf = isFromSelf
         )
 
