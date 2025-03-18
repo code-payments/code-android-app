@@ -188,6 +188,7 @@ private fun EmojiCounter(
         modifier = modifier
             .clip(CircleShape)
             .handleTapGestures(
+                key = (emoji + countForEmoji),
                 onTap = {
                     if (selfOccurrence != null) actionHandler.removeReaction(selfOccurrence.messageId)
                     else actionHandler.addReaction(emoji)
@@ -236,7 +237,7 @@ private fun Modifier.handleTapGestures(
 
                 if (width == 0f || height == 0f) return@detectTapGestures
 
-                val isInLast75Percent = offset.x >= (width * 0.25f) && offset.y >= (height * 0.25f)
+                val isInLast75Percent = offset.y >= (height * 0.25f)
 
                 if (isInLast75Percent) {
                     onDesiredLongPress()
