@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat.messagecontents
 
+import android.os.Parcelable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -55,9 +56,13 @@ import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.dashedBorder
 import kotlinx.datetime.Instant
+import kotlinx.parcelize.Parcelize
 
-sealed interface SelectedReaction {
+@Parcelize
+sealed interface SelectedReaction: Parcelable {
+    @Parcelize
     data class Emoji(val unicode: String): SelectedReaction
+    @Parcelize
     data object Tips: SelectedReaction
 }
 
@@ -368,6 +373,7 @@ private fun MarkupTextHandler(
 
 @Composable
 private fun ColumnBasedFooter(
+    modifier: Modifier = Modifier,
     tips: List<MessageTip>,
     reactions: List<MessageReaction>,
     isFromSelf: Boolean,
@@ -379,7 +385,7 @@ private fun ColumnBasedFooter(
 ) {
     val x1 = CodeTheme.dimens.grid.x1
     val x2 = CodeTheme.dimens.grid.x2
-    SubcomposeLayout(modifier = Modifier.wrapContentWidth()) { constraints ->
+    SubcomposeLayout(modifier = modifier.wrapContentWidth()) { constraints ->
         // Measure Feedback first if exists
         val feedbackPlaceable = subcompose("Feedback") {
             if (tips.isNotEmpty() || reactions.isNotEmpty()) {

@@ -51,10 +51,10 @@ import com.getcode.ui.components.chat.messagecontents.MessageContextAction
 import com.getcode.ui.components.chat.messagecontents.ResolvedAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
+import com.getcode.ui.components.emojis.EmojiModal
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.scaled
-import com.getcode.ui.emojis.EmojiModal
 import com.getcode.ui.emojis.FrequentlyUsedEmojis
 import com.getcode.ui.utils.animateScrollToItemWithFullVisibility
 import com.getcode.ui.utils.keyboardAsState

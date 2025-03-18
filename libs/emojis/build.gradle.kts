@@ -80,7 +80,11 @@ tasks.register("generateEmojiList") {
             emojiText.lines().forEach { line ->
                 when {
                     line.startsWith("# group:") -> {
-                        currentGroup = line.removePrefix("# group:").trim()
+                        val groupName = line.removePrefix("# group:").trim()
+                        currentGroup = when (groupName) {
+                            "Smileys & Emotion", "People & Body" -> "Smileys & People"
+                            else -> groupName
+                        }
                         emojiCategories.getOrPut(currentGroup) { mutableMapOf() }
                         emojiCategoriesNoSkinTones.getOrPut(currentGroup) { mutableMapOf() }
                         println("Group: $currentGroup")
@@ -131,6 +135,14 @@ tasks.register("generateEmojiList") {
                 }
             }
 
+            // Filter out empty categories
+            val nonEmptyCategories = emojiCategories.filter { (_, subgroups) ->
+                subgroups.any { (_, emojis) -> emojis.isNotEmpty() }
+            }
+            val nonEmptyCategoriesNoSkinTones = emojiCategoriesNoSkinTones.filter { (_, subgroups) ->
+                subgroups.any { (_, emojis) -> emojis.isNotEmpty() }
+            }
+
             // Generate a main Emojis.kt with category references and data class definition
             val mainFile = File(outputDir, "Emojis.kt")
             val mainCode = buildString {
@@ -143,10 +155,19 @@ tasks.register("generateEmojiList") {
                 appendLine("    val keywords: List<String>")
                 appendLine(")")
                 appendLine()
+                appendLine("enum class Category(val displayName: String) {")
+                nonEmptyCategories.keys.forEach { group ->
+                    val enumName = group.replace("[^A-Za-z0-9]".toRegex(), "").uppercase()
+                    appendLine("    $enumName(\"$group\"),")
+                }
+                appendLine("    FREQUENT(\"Frequently Used\"),")
+                appendLine("}")
+                appendLine()
                 appendLine("object Emojis {")
                 appendLine("    val categorized = mapOf(")
-                emojiCategories.forEach { (group, subgroups) ->
-                    appendLine("        \"$group\" to mapOf(")
+                nonEmptyCategories.forEach { (group, subgroups) ->
+                    val enumName = group.replace("[^A-Za-z0-9]".toRegex(), "").uppercase()
+                    appendLine("        Category.$enumName to mapOf(")
                     subgroups.forEach { (subgroup, _) ->
                         val safeGroupName = group.replace("[^A-Za-z0-9]".toRegex(), "")
                         val safeSubgroupName = subgroup.replace("[^A-Za-z0-9]".toRegex(), "")
@@ -157,8 +178,9 @@ tasks.register("generateEmojiList") {
                 appendLine("    )")
                 appendLine()
                 appendLine("    val categorizedNoSkinTones = mapOf(")
-                emojiCategoriesNoSkinTones.forEach { (group, subgroups) ->
-                    appendLine("        \"$group\" to mapOf(")
+                nonEmptyCategoriesNoSkinTones.forEach { (group, subgroups) ->
+                    val enumName = group.replace("[^A-Za-z0-9]".toRegex(), "").uppercase()
+                    appendLine("        Category.$enumName to mapOf(")
                     subgroups.forEach { (subgroup, _) ->
                         val safeGroupName = group.replace("[^A-Za-z0-9]".toRegex(), "")
                         val safeSubgroupName = subgroup.replace("[^A-Za-z0-9]".toRegex(), "")

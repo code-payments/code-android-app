@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat.utils
 
+import android.os.Parcelable
 import androidx.compose.runtime.Stable
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -13,6 +14,7 @@ import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.util.formatDateRelatively
 import com.getcode.utils.base58
 import kotlinx.datetime.Instant
+import kotlinx.parcelize.Parcelize
 import java.util.UUID
 
 data class ChatMessageIndice(
@@ -28,9 +30,11 @@ data class ReplyMessageAnchor(
     val deletedBy: Deleter? = null,
 )
 
-data class MessageTip(val amount: KinAmount, val tipper: Sender)
+@Parcelize
+data class MessageTip(val amount: KinAmount, val tipper: Sender): Parcelable
 
-data class MessageReaction(val messageId: ID, val sender: Sender, val emoji: String)
+@Parcelize
+data class MessageReaction(val messageId: ID, val sender: Sender, val emoji: String): Parcelable
 
 @Stable
 sealed class ChatItem(open val key: Any) {

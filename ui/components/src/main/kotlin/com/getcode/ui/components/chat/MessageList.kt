@@ -168,7 +168,10 @@ fun MessageList(
                     val updatedSender by rememberUpdatedState(item.sender)
                     val updatedActions by rememberUpdatedState(item.messageControls)
 
-                    val actionHandler = remember(item) {
+                    val updatedTips by rememberUpdatedState(item.tips)
+                    val updatedReactions by rememberUpdatedState(item.reactions)
+
+                    val actionHandler = remember(item.tips, item.reactions) {
                         object : MessageContentActionHandler {
                             override fun openMessageControls() {
                                 dispatch(
@@ -189,7 +192,7 @@ fun MessageList(
                             }
 
                             override fun viewReactions(selected: SelectedReaction) {
-                                dispatch(MessageListEvent.ShowMessageReactions(item.tips, item.reactions, selected))
+                                dispatch(MessageListEvent.ShowMessageReactions(updatedTips, updatedReactions, selected))
                             }
 
                             override fun startReply() {

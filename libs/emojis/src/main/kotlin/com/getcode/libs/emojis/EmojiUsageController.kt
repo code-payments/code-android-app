@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -21,7 +23,7 @@ class EmojiUsageController @Inject constructor(
     @ApplicationContext context: Context
 ): EmojiUsageTracker {
     private companion object {
-        val DEFAULT_TOP = listOf("➕", "\uD83D\uDC4D", "\uD83D\uDC4E", "\uD83C\uDF89", "\uD83D\uDE4C", "\uD83D\uDD25")
+        val DEFAULT_TOP = listOf("👍", "👎", "❤️", "🙌", "😂")
         private const val USAGE_COUNT_KEY_PREFIX = "emoji_usage_"
         private const val MAX_EMOJIS = 5
     }
@@ -48,7 +50,7 @@ class EmojiUsageController @Inject constructor(
         }
     }
 
-    override suspend fun mostUsedEmojis(): List<String> {
+    override suspend fun mostUsedEmojis(includeFiller: Boolean): List<String> {
         return withContext(Dispatchers.IO) {
             val preferences = storage.data.firstOrNull() ?: emptyPreferences()
             val emojiUsageMap = mutableMapOf<String, Int>()
@@ -67,6 +69,10 @@ class EmojiUsageController @Inject constructor(
                 .sortedByDescending { it.value }  // Sort by usage count
                 .map { it.key }                   // Get just the emojis
 
+            if (!includeFiller) {
+                return@withContext topEmojis
+            }
+
             // Ensure exactly 5 emojis
             when {
                 topEmojis.size > MAX_EMOJIS -> topEmojis.take(MAX_EMOJIS)
@@ -77,5 +83,9 @@ class EmojiUsageController @Inject constructor(
                 else -> topEmojis
             }
         }
+    }
+
+    override suspend fun hasUsedAny(): Boolean {
+        return storage.data.toList().isNotEmpty()
     }
 }

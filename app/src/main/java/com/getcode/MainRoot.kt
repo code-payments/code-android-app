@@ -1,5 +1,6 @@
 package com.getcode
 
+import android.os.Parcelable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,9 +11,13 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.theme.CodeTheme
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 
-internal data object MainRoot : Screen {
+@Parcelize
+internal data object MainRoot : Screen, Parcelable {
 
+    @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     private fun readResolve(): Any = this

@@ -1,12 +1,15 @@
 package com.getcode.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.floor
 
 interface Value
 
-data class Kin(val quarks: Long): Value {
+@Parcelize
+data class Kin(val quarks: Long): Value, Parcelable {
     init {
         if (quarks < 0) {
             throw IllegalStateException()

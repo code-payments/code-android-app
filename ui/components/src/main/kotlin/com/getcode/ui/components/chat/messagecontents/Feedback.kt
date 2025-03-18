@@ -54,7 +54,7 @@ internal fun Feedback(
 ) {
     if (tips.isNotEmpty() || reactions.isNotEmpty()) {
         FlowRow(
-            modifier = modifier.animateContentSize(),
+            modifier = modifier.padding(top = 5.dp).animateContentSize(),
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
@@ -117,12 +117,17 @@ private fun TipCounter(
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { if (!isMessageFromSelf) { actionHandler.giveTip() } },
-                    onLongPress = { actionHandler.viewReactions(SelectedReaction.Tips) },
-                )
-            }
+            .handleTapGestures(
+                onTap = {
+                    if (!isMessageFromSelf) { actionHandler.giveTip() }
+                },
+                onDesiredLongPress = {
+                    actionHandler.viewReactions(SelectedReaction.Tips)
+                },
+                onMissedLongPress = {
+                    actionHandler.openMessageControls()
+                }
+            )
             .background(backgroundColor, CircleShape)
             .border(CodeTheme.dimens.border, borderColor, CircleShape)
             .padding(
@@ -185,12 +190,18 @@ private fun EmojiCounter(
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .combinedClickable(
-                onLongClick = { actionHandler.viewReactions(SelectedReaction.Emoji(emoji)) }
-            ) {
-                if (selfOccurrence != null) actionHandler.removeReaction(selfOccurrence.messageId)
-                else actionHandler.addReaction(emoji)
-            }
+            .handleTapGestures(
+                onTap = {
+                    if (selfOccurrence != null) actionHandler.removeReaction(selfOccurrence.messageId)
+                    else actionHandler.addReaction(emoji)
+                },
+                onDesiredLongPress = {
+                    actionHandler.viewReactions(SelectedReaction.Emoji(emoji))
+                },
+                onMissedLongPress = {
+                    actionHandler.openMessageControls()
+                }
+            )
             .background(backgroundColor, CircleShape)
             .border(CodeTheme.dimens.border, borderColor, CircleShape)
             .padding(
@@ -209,6 +220,33 @@ private fun EmojiCounter(
             text = "$emojiText $countForEmoji",
             color = contentColor,
             style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.W700),
+        )
+    }
+}
+
+private fun Modifier.handleTapGestures(
+    key: Any = Unit,
+    onTap: () -> Unit,
+    onDesiredLongPress: () -> Unit,
+    onMissedLongPress: () -> Unit,
+): Modifier {
+    return this.pointerInput(key) {
+        detectTapGestures(
+            onTap = { onTap() },
+            onLongPress = { offset ->
+                val width = size.width.toFloat()
+                val height = size.height.toFloat()
+
+                if (width == 0f || height == 0f) return@detectTapGestures
+
+                val isInLast75Percent = offset.x >= (width * 0.25f) && offset.y >= (height * 0.25f)
+
+                if (isInLast75Percent) {
+                    onDesiredLongPress()
+                } else {
+                    onMissedLongPress()
+                }
+            },
         )
     }
 }

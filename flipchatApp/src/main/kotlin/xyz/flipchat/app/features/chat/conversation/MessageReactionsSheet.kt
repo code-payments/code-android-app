@@ -1,6 +1,7 @@
 package xyz.flipchat.app.features.chat.conversation
 
 import android.annotation.SuppressLint
+import android.os.Parcelable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.extensions.formattedRaw
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.Sender
@@ -51,6 +54,8 @@ import com.getcode.ui.components.tabIndicatorOffset
 import com.getcode.ui.components.user.social.SenderNameDisplay
 import com.getcode.ui.emojis.processEmoji
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 
 private sealed interface Feedback {
@@ -70,15 +75,19 @@ private sealed interface FeedbackData {
     }
 }
 
+@Parcelize
 internal data class MessageReactionsSheet(
     val tips: List<MessageTip>,
     val reactions: List<MessageReaction>,
     val startingWith: SelectedReaction,
-) : Screen {
+) : Screen, Parcelable {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
-        val feedback = remember(tips, reactions) {
+        val feedback = remember(tips, reactions, startingWith) {
             val items = mutableListOf<Feedback>()
             var groupedTips: GroupedTips = emptyList()
             if (tips.isNotEmpty()) {

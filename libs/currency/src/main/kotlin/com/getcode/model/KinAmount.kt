@@ -1,18 +1,21 @@
 package com.getcode.model
 
+import android.os.Parcelable
 import com.getcode.model.Kin.Companion.fromKin
 import com.getcode.utils.serializer.KinQuarksSerializer
 import com.getcode.utils.serializer.RateAsStringSerializer
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
 @Serializable
+@Parcelize
 data class KinAmount(
     @Serializable(with = KinQuarksSerializer::class)
     val kin: Kin,
     val fiat: Double,
     @Serializable(with = RateAsStringSerializer::class)
     val rate: Rate
-) {
+): Parcelable {
     fun truncating() = KinAmount(
         kin = kin.toKinTruncating(),
         fiat = fiat,

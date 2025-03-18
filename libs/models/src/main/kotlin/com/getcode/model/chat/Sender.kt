@@ -1,9 +1,12 @@
 package com.getcode.model.chat
 
+import android.os.Parcelable
 import com.getcode.model.ID
 import com.getcode.model.social.user.XExtraData
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.json.Json
 
+@Parcelize
 data class Sender(
     val id: ID? = null,
     private val profileImageUrl: String? = null,
@@ -13,7 +16,7 @@ data class Sender(
     val isFullMember: Boolean = false,
     val isBlocked: Boolean = false,
     val socialProfiles: List<LinkedSocialProfile> = emptyList(),
-) {
+): Parcelable {
     val displayName: String?
         get() {
             val social = socialProfiles.firstOrNull() ?: return name
@@ -71,13 +74,14 @@ data class MinimalMember(
     } ?: profileImageUrl.nullIfEmpty() ?: id
 }
 
+@Parcelize
 data class LinkedSocialProfile(
     val platformType: String,
     val username: String,
     val profileImageUrl: String?,
     val isVerifiedOnPlatform: Boolean,
     val rawMetadata: String?,
-) {
+): Parcelable{
     inline fun <reified M> metadata(): M? = runCatching {
         Json.decodeFromString<M>(rawMetadata.orEmpty())
     }.getOrNull()
