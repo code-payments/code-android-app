@@ -123,7 +123,8 @@ class UserManager @Inject constructor(
     fun set(userFlags: UserFlags?) {
         _state.update {
             it.copy(
-                flags = userFlags
+                flags = userFlags,
+                authState = if (userFlags?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered
             )
         }
         associate()
