@@ -314,18 +314,24 @@ interface ConversationMessageDao {
     }
 
     @Query("""
+        WITH last_100 AS (
+            SELECT emoji, sentAt
+            FROM reactions
+            WHERE senderIdBase58 = :senderId
+            ORDER BY sentAt DESC
+            LIMIT 100
+        )
         SELECT r.emoji
         FROM reactions r
         JOIN (
             SELECT emoji, MAX(sentAt) AS latestSentAt, COUNT(*) AS count
-            FROM reactions
-            WHERE senderIdBase58 = :senderId
+            FROM last_100
             GROUP BY emoji
         ) grouped 
         ON r.emoji = grouped.emoji AND r.sentAt = grouped.latestSentAt
-        WHERE r.senderIdBase58 = :senderId AND grouped.count >= 4
+        WHERE r.senderIdBase58 = :senderId AND grouped.count >= 5
         ORDER BY grouped.count DESC, r.sentAt DESC
-        LIMIT 100;
+        LIMIT 20;
     """)
     suspend fun getFrequentEmojis(senderId: String): List<String>
     suspend fun getFrequentEmojis(senderId: ID): List<String> {
