@@ -320,16 +320,18 @@ interface ConversationMessageDao {
             WHERE senderIdBase58 = :senderId
             ORDER BY sentAt DESC
             LIMIT 100
-        )
-        SELECT r.emoji
-        FROM reactions r
-        JOIN (
+        ),
+        grouped AS (
             SELECT emoji, MAX(sentAt) AS latestSentAt, COUNT(*) AS count
             FROM last_100
             GROUP BY emoji
-        ) grouped 
-        ON r.emoji = grouped.emoji AND r.sentAt = grouped.latestSentAt
+        )
+        SELECT r.emoji
+        FROM reactions r
+        INNER JOIN grouped ON r.emoji = grouped.emoji 
+                           AND r.sentAt = grouped.latestSentAt
         WHERE r.senderIdBase58 = :senderId AND grouped.count >= 5
+        GROUP BY r.emoji, grouped.count
         ORDER BY grouped.count DESC, r.sentAt DESC
         LIMIT 20;
     """)
