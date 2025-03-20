@@ -111,6 +111,7 @@ private val Lab.title: String
         Lab.TypingInChat -> "Typing Indicators"
         Lab.ShowConnectedSocials -> "Show User Social Names and Images"
         Lab.EmojiReactions -> "Emoji Reactions"
+        Lab.RoomDescriptions -> "Room Descriptions"
     }
 
 private val Lab.message: String
@@ -127,4 +128,5 @@ private val Lab.message: String
         Lab.TypingInChat -> "When enabled, you'll gain the ability to see when other uses are typing and let them know when you are"
         Lab.ShowConnectedSocials -> "When enabled, users connected social accounts will show in chat as their name and avatar. You additionally will be able to click avatars to view user profiles"
         Lab.EmojiReactions -> "When enabled, you'll gain the ability to send emoji reactions to messages in chat"
+        Lab.RoomDescriptions -> "When enabled, hosts will gain the ability to set a description for their room"
     }

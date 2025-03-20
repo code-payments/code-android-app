@@ -97,6 +97,12 @@ sealed interface Lab {
         override val launched: Boolean = false
     }
 
+    data object RoomDescriptions: Lab {
+        override val key: String = "room_descriptions_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+    }
+
     companion object {
         val entries = listOf(
             ReplyToMessage,
@@ -109,7 +115,8 @@ sealed interface Lab {
             ConnectX,
             TypingInChat,
             ShowConnectedSocials,
-            EmojiReactions
+            EmojiReactions,
+            RoomDescriptions
         )
 
         internal fun byKey(key: Preferences.Key<*>): Lab? {
