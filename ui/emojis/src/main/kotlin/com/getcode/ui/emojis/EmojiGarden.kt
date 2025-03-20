@@ -127,6 +127,8 @@ fun EmojiGarden(onClick: (String) -> Unit) {
                 bottom = CodeTheme.dimens.grid.x10
             ),
             state = listState,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
             if (frequentEmojis.isNotEmpty()) {
                 item(
@@ -185,6 +187,7 @@ fun EmojiGarden(onClick: (String) -> Unit) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = CodeTheme.dimens.inset)
+                .navigationBarsPadding()
                 .padding(bottom = CodeTheme.dimens.inset)
                 .fillMaxWidth(),
             categories = categoryOptions,
