@@ -34,7 +34,7 @@ data class ReplyMessageAnchor(
 data class MessageTip(val amount: KinAmount, val tipper: Sender): Parcelable
 
 @Parcelize
-data class MessageReaction(val messageId: ID, val sender: Sender, val emoji: String): Parcelable
+data class MessageReaction(val messageId: ID, val sender: Sender, val emoji: String, val sentAt: Long): Parcelable
 
 @Stable
 sealed class ChatItem(open val key: Any) {

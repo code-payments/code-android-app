@@ -1187,6 +1187,7 @@ class ConversationViewModel @Inject constructor(
                         MessageReaction(
                             messageId = reaction.id,
                             emoji = reaction.emoji,
+                            sentAt = reaction.sentAt,
                             sender = Sender(
                                 id = member?.id,
                                 profileImageUrl = user?.imageUri.nullIfEmpty(),

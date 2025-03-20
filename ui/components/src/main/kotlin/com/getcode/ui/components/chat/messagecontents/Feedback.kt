@@ -63,7 +63,9 @@ internal fun Feedback(
                 )
             }
 
-            val rxns = reactions.groupBy { it.emoji }
+            val rxns = reactions
+                .sortedBy { it.sentAt }
+                .groupBy { it.emoji }
 
             rxns.onEach { (emoji, occurrences) ->
                 EmojiCounter(
@@ -143,7 +145,6 @@ private fun TipCounter(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EmojiCounter(
     emoji: String,
