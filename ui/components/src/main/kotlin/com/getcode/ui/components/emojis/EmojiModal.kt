@@ -43,6 +43,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.libs.emojis.generated.Emojis
+import com.getcode.navigation.modal.ModalScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.AppBarDefaults
@@ -59,18 +60,16 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class EmojiModal(private val onSelected: (String) -> Unit) : Screen, Parcelable {
+class EmojiModal(private val onSelected: (String) -> Unit) : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
-    override fun Content() {
+    override fun ModalContent() {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
+                .fillMaxWidth(),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
