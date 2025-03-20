@@ -18,7 +18,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
 import com.getcode.extensions.formattedRaw
+import com.getcode.model.NoId
+import com.getcode.model.RandomId
+import com.getcode.model.chat.Sender
 import com.getcode.model.sum
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
@@ -39,6 +44,7 @@ import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.emojis.processEmoji
+import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -153,7 +159,9 @@ private fun EmojiCounter(
     modifier: Modifier = Modifier,
     actionHandler: MessageContentActionHandler,
 ) {
-    val selfOccurrence = occurrences.find { it.sender.isSelf }
+    var localOccurrences by remember(occurrences) { mutableStateOf(occurrences) }
+
+    val selfOccurrence = localOccurrences.find { it.sender.isSelf }
     val backgroundColor by animateColorAsState(
         when {
             isMessageFromSelf -> {
@@ -183,7 +191,7 @@ private fun EmojiCounter(
         }
     )
 
-    val countForEmoji = occurrences.count()
+    val countForEmoji = localOccurrences.count()
 
     Row(
         modifier = modifier
@@ -191,8 +199,18 @@ private fun EmojiCounter(
             .handleTapGestures(
                 key = (emoji + countForEmoji),
                 onTap = {
-                    if (selfOccurrence != null) actionHandler.removeReaction(selfOccurrence.messageId)
-                    else actionHandler.addReaction(emoji)
+                    if (selfOccurrence != null) {
+                        localOccurrences -= selfOccurrence
+                        actionHandler.removeReaction(selfOccurrence.messageId)
+                    } else {
+                        localOccurrences += MessageReaction(
+                            messageId = RandomId,
+                            sender = Sender(id = RandomId, isSelf = true),
+                            emoji = emoji,
+                            sentAt = Clock.System.now().toEpochMilliseconds()
+                        )
+                        actionHandler.addReaction(emoji)
+                    }
                 },
                 onDesiredLongPress = {
                     actionHandler.viewReactions(SelectedReaction.Emoji(emoji))

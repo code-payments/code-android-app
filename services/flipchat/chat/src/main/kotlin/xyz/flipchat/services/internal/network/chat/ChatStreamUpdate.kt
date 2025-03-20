@@ -10,9 +10,6 @@ import com.codeinc.flipchat.gen.messaging.v1.Model.Pointer
 import com.codeinc.flipchat.gen.messaging.v1.memberOrNull
 import com.codeinc.flipchat.gen.messaging.v1.pointerOrNull
 import com.getcode.model.ID
-import com.getcode.model.chat.MessageContent
-import com.getcode.utils.base58
-import xyz.flipchat.services.internal.protomapping.invoke
 import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
 
 data class ChatStreamUpdate(
