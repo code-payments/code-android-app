@@ -12,6 +12,7 @@ class RoomConversationMapper @Inject constructor() : Mapper<Room, Conversation> 
             idBase58 = from.id.base58,
             ownerIdBase58 = from.ownerId.base58,
             title = from.title.orEmpty(),
+            description = from.description,
             imageUri = from.imageData,
             unreadCount = from.unreadCount,
             hasMoreUnread = from.hasMoreUnread,

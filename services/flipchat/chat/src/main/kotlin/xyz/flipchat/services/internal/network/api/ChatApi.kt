@@ -174,6 +174,23 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // SetDescription sets a chat's description
+    fun setDescription(
+        owner: KeyPair,
+        chatId: ID,
+        description: String,
+    ): Flow<ChatServiceRpc.SetDescriptionResponse> {
+        val request = ChatServiceRpc.SetDescriptionRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setDescription(description)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::setDescription
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
     // MuteChat mutes a chat and disables push notifications
     fun muteChat(
         owner: KeyPair,

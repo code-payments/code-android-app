@@ -150,6 +150,14 @@ class ChatsController @Inject constructor(
                                             )
                                         }
                                     }
+
+                                    is ConversationUpdate.Description -> {
+                                        val conversation = db.conversationDao().findConversationRaw(update.roomId)
+                                        if (conversation != null) {
+                                            db.conversationDao()
+                                                .setDescription(update.roomId, update.description)
+                                        }
+                                    }
                                 }
                             }
                         }

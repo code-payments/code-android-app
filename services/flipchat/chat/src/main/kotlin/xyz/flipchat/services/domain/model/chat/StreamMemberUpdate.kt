@@ -72,4 +72,5 @@ sealed interface StreamMetadataUpdate {
     data class MessagingFee(val amount: Long): StreamMetadataUpdate
     data class LastActivity(val timestamp: Long): StreamMetadataUpdate
     data class OpenStatusChanged(val nowOpen: Boolean): StreamMetadataUpdate
+    data class Description(val description: String): StreamMetadataUpdate
 }

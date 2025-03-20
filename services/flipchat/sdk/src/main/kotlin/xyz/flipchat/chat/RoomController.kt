@@ -262,6 +262,17 @@ class RoomController @Inject constructor(
             }
     }
 
+    suspend fun setDescription(conversationId: ID, description: String): Result<Unit> {
+        return chatRepository.setDescription(conversationId, description)
+            .onSuccess {
+                val conversation = db.conversationDao()
+                    .findConversation(conversationId)?.conversation?.copy(description = description)
+                if (conversation != null) {
+                    db.conversationDao().setDescription(conversationId, description)
+                }
+            }
+    }
+
     suspend fun deleteMessage(
         conversationId: ID,
         messageId: ID,

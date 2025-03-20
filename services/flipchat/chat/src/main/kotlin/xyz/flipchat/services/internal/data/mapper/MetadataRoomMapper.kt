@@ -16,6 +16,7 @@ class MetadataRoomMapper @Inject constructor(
             id = from.chatId.value.toByteArray().toList(),
             ownerId = from.owner.value.toByteArray().toList(),
             _title = from.displayName.nullIfEmpty(),
+            description = from.description.nullIfEmpty(),
             roomNumber = from.roomNumber,
             type = ChatType.entries[from.type.ordinal],
             unread = from.numUnread,
@@ -24,7 +25,7 @@ class MetadataRoomMapper @Inject constructor(
             isPushEnabled = from.isPushEnabled,
             messagingFee = Kin.fromQuarks(from.messagingFee.quarks.ifZeroOrElse(200) { it / 100_000 }),
             lastActive = from.lastActivityOrNull?.seconds?.times(1_000),
-            isOpen = from.openStatusOrNull?.isCurrentlyOpen ?: true
+            isOpen = from.openStatusOrNull?.isCurrentlyOpen ?: true,
         )
     }
 }

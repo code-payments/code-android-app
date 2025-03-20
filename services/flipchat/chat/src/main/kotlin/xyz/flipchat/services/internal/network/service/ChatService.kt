@@ -278,6 +278,45 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun setDescription(
+        owner: KeyPair,
+        chatId: ID,
+        description: String,
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.setDescription(owner, chatId, description))
+                .map { response ->
+                    when (response.result) {
+                        ChatServiceRpc.SetDescriptionResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        ChatServiceRpc.SetDescriptionResponse.Result.DENIED -> {
+                            val error = SetRoomDescriptionError.Denied()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        ChatServiceRpc.SetDescriptionResponse.Result.CANT_SET -> {
+                            val error =
+                                SetRoomDescriptionError.CantSet()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = SetRoomDescriptionError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = SetRoomDescriptionError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     suspend fun muteChat(owner: KeyPair, chatId: ID): Result<Unit> {
         return try {
             networkOracle.managedRequest(api.muteChat(owner, chatId))
@@ -855,6 +894,15 @@ sealed class SetRoomDisplayNameError(
 
     class Denied : SetRoomDisplayNameError()
     data class Other(override val cause: Throwable? = null) : SetRoomDisplayNameError(cause = cause)
+}
+
+sealed class SetRoomDescriptionError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : FlipchatServerError(message, cause) {
+    class CantSet : SetRoomDescriptionError()
+    class Denied : SetRoomDescriptionError()
+    data class Other(override val cause: Throwable? = null) : SetRoomDescriptionError(cause = cause)
 }
 
 sealed class GetChatError(

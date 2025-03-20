@@ -36,6 +36,7 @@ interface ChatRepository {
     // Host controls
     suspend fun checkDisplayName(displayName: String): Result<Unit>
     suspend fun setDisplayName(chatId: ID, displayName: String): Result<Unit>
+    suspend fun setDescription(chatId: ID, description: String): Result<Unit>
     suspend fun mute(chatId: ID): Result<Unit>
     suspend fun unmute(chatId: ID): Result<Unit>
     @Deprecated("Replaced by setMessagingFee")

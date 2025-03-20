@@ -77,8 +77,9 @@ import java.io.File
         AutoMigration(from = 23, to = 24),
         AutoMigration(from = 24, to = 25),
         AutoMigration(from = 25, to = 26, spec = FcAppDatabase.Migration25To26::class),
+        AutoMigration(from = 26, to = 27),
     ],
-    version = 26,
+    version = 27,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {

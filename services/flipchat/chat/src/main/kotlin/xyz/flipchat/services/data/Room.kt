@@ -23,6 +23,7 @@ data class Room(
     val id: ID,
     val type: ChatType,
     private val _title: String?,
+    val description: String?,
     val ownerId: ID,
     val roomNumber: Long,
     private val canDisablePush: Boolean,

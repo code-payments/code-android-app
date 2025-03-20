@@ -31,6 +31,7 @@ sealed interface ConversationUpdate {
     data class CoverCharge(val roomId: ID, val amount: Long): ConversationUpdate
     data class LastActivity(val roomId: ID, val timestamp: Long): ConversationUpdate
     data class OpenStatus(val roomId: ID, val nowOpen: Boolean): ConversationUpdate
+    data class Description(val roomId: ID, val description: String): ConversationUpdate
 }
 
 

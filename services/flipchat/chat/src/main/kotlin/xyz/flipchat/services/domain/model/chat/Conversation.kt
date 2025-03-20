@@ -22,6 +22,7 @@ data class Conversation(
     val idBase58: String,
     val ownerIdBase58: String?,
     val title: String,
+    val description: String?,
     @ColumnInfo(defaultValue = "0")
     val roomNumber: Long,
     val imageUri: String?,

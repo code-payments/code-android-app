@@ -161,6 +161,15 @@ interface ConversationDao {
         setDisplayName(id.base58, displayName)
     }
 
+    suspend fun setDescription(id: String, description: String) {
+        val conversation = findConversation(id)?.conversation ?: return
+        upsertConversations(conversation.copy(description = description))
+    }
+
+    suspend fun setDescription(id: ID, description: String) {
+        setDescription(id.base58, description)
+    }
+
     @Query("DELETE FROM conversations WHERE idBase58 NOT IN (:chatIds)")
     suspend fun purgeConversationsNotInByString(chatIds: List<String>)
     suspend fun purgeConversationsNotIn(chatIds: List<ID>) {
