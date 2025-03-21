@@ -2,6 +2,9 @@ package xyz.flipchat.app.features.chat.description
 
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,6 +34,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -55,7 +63,8 @@ import xyz.flipchat.app.R
 import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
-data class RoomDescriptionScreen(val roomId: ID, val existingDescription: String) : Screen, Parcelable {
+data class RoomDescriptionScreen(val roomId: ID, val existingDescription: String) : Screen,
+    Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -140,7 +149,7 @@ private fun RoomDescriptionScreenContent(
                     .padding(bottom = CodeTheme.dimens.grid.x3),
             ) {
                 CodeButton(
-                    enabled = state.canCheck || state.previousRoomDescription.isNotEmpty(), // allow resets
+                    enabled = state.canCheck || (state.previousRoomDescription.isNotEmpty() && state.isLimitValid), // allow resets
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset),
@@ -169,23 +178,70 @@ private fun RoomDescriptionScreenContent(
                     .padding(horizontal = CodeTheme.dimens.inset),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
-                TextInput(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    state = state.textFieldState,
-                    colors = inputColors(backgroundColor = Color.Transparent),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        capitalization = KeyboardCapitalization.Sentences
-                    ),
-                    contentPadding = PaddingValues(CodeTheme.dimens.grid.x3),
-                    textFieldAlignment = Alignment.TopStart,
-                    minHeight = 120.dp,
-                    maxLines = 6,
-                    isError = state.textFieldState.text.length > state.maxLimit,
-                    placeholder = stringResource(R.string.subtitle_roomDescription),
-                )
+                        .wrapContentHeight(),
+                ) {
+                    TextInput(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .align(Alignment.Center),
+                        state = state.textFieldState,
+                        colors = inputColors(
+                            backgroundColor = Color.Transparent,
+                            errorBorderColor = CodeTheme.colors.errorText,
+                        ),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            capitalization = KeyboardCapitalization.Sentences
+                        ),
+                        contentPadding = PaddingValues(CodeTheme.dimens.grid.x3),
+                        textFieldAlignment = Alignment.TopStart,
+                        minHeight = 120.dp,
+                        maxLines = 6,
+                        isError = state.textFieldState.text.length > state.maxLimit,
+                        placeholder = stringResource(R.string.subtitle_roomDescription),
+                    )
+
+                    Crossfade(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(
+                                bottom = CodeTheme.dimens.border,
+                                end = CodeTheme.dimens.border,
+                            ),
+                        targetState = state.isApproachingLengthOrOver
+                    ) { show ->
+                        if (show) {
+                            val textColor by animateColorAsState(
+                                if (state.textFieldState.text.length > state.maxLimit) {
+                                    CodeTheme.colors.errorText
+                                } else {
+                                    CodeTheme.colors.textSecondary
+                                }
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .background(
+                                        color = CodeTheme.colors.brandDark.copy(0.54f),
+                                        shape = CodeTheme.shapes.small.copy(
+                                            topEnd = ZeroCornerSize,
+                                            bottomStart = ZeroCornerSize,
+                                        )
+                                    )
+                                    .padding(5.dp),
+                                textAlign = TextAlign.Center,
+                                text = "${state.textFieldState.text.length}/${state.maxLimit}",
+                                style = CodeTheme.typography.caption,
+                                color = textColor,
+                            )
+                        } else {
+                            Text("")
+                        }
+                    }
+                }
             }
         }
 

@@ -271,6 +271,7 @@ fun inputColors(
     backgroundColor: Color = White05,
     placeholderColor: Color = White50,
     cursorColor: Color = Color.White,
+    errorBorderColor: Color = CodeTheme.colors.error,
 ) = TextFieldDefaults.outlinedTextFieldColors(
     textColor = textColor,
     disabledTextColor = disabledTextColor,
@@ -279,4 +280,5 @@ fun inputColors(
     focusedBorderColor = borderColor,
     unfocusedBorderColor = unfocusedBorderColor,
     cursorColor = cursorColor,
+    errorBorderColor = errorBorderColor
 )

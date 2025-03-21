@@ -47,8 +47,14 @@ internal class RoomDescriptionScreenViewModel @Inject constructor(
         val update: LoadingSuccessState = LoadingSuccessState(),
         val textFieldState: TextFieldState = TextFieldState(""),
     ) {
+        val isApproachingLengthOrOver: Boolean
+            get() =  textFieldState.text.length >= 150
+
+        val isLimitValid: Boolean
+            get() = textFieldState.text.length <= 160
+
         val canCheck: Boolean
-            get() = textFieldState.text.isNotEmpty() && textFieldState.text.length <= 160
+            get() = textFieldState.text.isNotEmpty() && isLimitValid
     }
 
     sealed interface Event {
