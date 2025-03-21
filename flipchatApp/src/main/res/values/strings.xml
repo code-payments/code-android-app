@@ -2,6 +2,7 @@
 <resources>
     <string name="subtitle_yourName">Your Name</string>
     <string name="subtitle_roomName">Flipchat Name</string>
+    <string name="subtitle_roomDescription">Give people an idea what your Flipchat is about</string>
 
     <string name="action_nevermind">Nevermind</string>
 
@@ -87,6 +88,9 @@
 
     <string name="error_title_failedToChangeRoomNameOtherReason">Something Went Wrong</string>
     <string name="error_description_failedToChangeRoomNameOtherReason">We were unable to change the Flipchat name at this time. Please try again later</string>
+
+    <string name="error_title_failedToChangeRoomDescription">Something Went Wrong</string>
+    <string name="error_description_failedToChangeRoomDescription">We were unable to change the Flipchat description at this time. Please try again later</string>
 
     <string name="error_title_failedToReopenRoom">Something Went Wrong</string>
     <string name="error_description_failedToReopenRoom">You were unable to reopen this Flipchat at this time. Please try again later</string>
@@ -239,6 +243,7 @@
     <string name="action_addRoomName">Add Flipchat Name</string>
     <string name="action_editRoomName">Edit Flipchat Name</string>
     <string name="action_changeRoomName">Change Flipchat Name</string>
+    <string name="action_changeRoomDescription">Change Flipchat Description</string>
     <string name="action_customize">Customize</string>
     <string name="action_customizeRoom">Customize Flipchat</string>
     <string name="action_leaveRoom">Leave This Flipchat</string>

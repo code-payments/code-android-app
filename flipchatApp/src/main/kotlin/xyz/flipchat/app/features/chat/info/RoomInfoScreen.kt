@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,9 +44,11 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight.Companion.W500
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -53,6 +56,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.manager.TopBarManager
 import com.getcode.model.chat.MinimalMember
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
@@ -63,8 +67,13 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.AvatarEndAction
 import com.getcode.ui.components.chat.HostableAvatar
+import com.getcode.ui.components.chat.messagecontents.LocalTextLayoutResult
+import com.getcode.ui.components.chat.messagecontents.MarkupTouchHandler
+import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.components.user.social.MemberNameDisplay
 import com.getcode.ui.core.ContextMenuAction
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -72,6 +81,7 @@ import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.util.permissions.notificationPermissionCheck
 import com.getcode.utils.base58
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -79,7 +89,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
 import xyz.flipchat.app.features.home.TabbedHomeScreen
+import xyz.flipchat.app.util.dialNumber
 
 @Parcelize
 class RoomInfoScreen(
@@ -157,6 +169,7 @@ class RoomInfoScreen(
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<ChatInfoViewModel.Event.OnChangeName>()
+                .onEach { delay(200) }
                 .onEach {
                     navigator.push(
                         ScreenRegistry.get(
@@ -164,6 +177,44 @@ class RoomInfoScreen(
                                 it.id,
                                 it.title
                             )
+                        )
+                    )
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.OnChangeDescription>()
+                .onEach { delay(200) }
+                .onEach {
+                    navigator.push(
+                        ScreenRegistry.get(
+                            NavScreenProvider.Room.ChangeDescription(
+                                it.id,
+                                it.description
+                            )
+                        )
+                    )
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.OpenRoom>()
+                .map { it.roomId }
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Room.Messages(it)))
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.OpenRoomPreview>()
+                .map { it.roomInfoArgs }
+                .onEach {
+                    navigator.push(
+                        ScreenRegistry.get(
+                            NavScreenProvider.Room.Preview(args = it, returnToSender = true)
                         )
                     )
                 }.launchIn(this)
@@ -224,6 +275,7 @@ class RoomInfoScreen(
                     }
                 }
             )
+
             RoomInfoScreenContent(listState, state, viewModel::dispatchEvent)
         }
     }
@@ -236,6 +288,8 @@ private fun RoomInfoScreenContent(
     dispatch: (ChatInfoViewModel.Event) -> Unit
 ) {
     val navigator = LocalCodeNavigator.current
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
     CodeScaffold(
         bottomBar = {
@@ -284,40 +338,50 @@ private fun RoomInfoScreenContent(
             item(span = { GridItemSpan(maxLineSpan) }) {
                 // header
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .unboundedClickable(
-                            enabled = state.isHost
-                        ) {
-                            dispatch(
-                                ChatInfoViewModel.Event.OnChangeName(
-                                    state.roomInfo.id!!,
-                                    state.roomInfo.customTitle
-                                )
-                            )
-                        },
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
-                    HostableAvatar(
-                        size = CodeTheme.dimens.grid.x20,
-                        imageData = state.roomInfo.imageUrl ?: state.roomInfo.id,
-                        overlay = {
-                            Image(
-                                modifier = Modifier.size(CodeTheme.dimens.grid.x12),
-                                painter = painterResource(R.drawable.ic_fc_chats),
-                                colorFilter = ColorFilter.tint(Color.White),
-                                contentDescription = null,
-                            )
-                        },
-                        endAction = AvatarEndAction.Icon(
-                            icon = rememberVectorPainter(Icons.Outlined.BorderColor),
-                            contentColor = Color.White,
-                            backgroundColor = CodeTheme.colors.indicator
-                        ).takeIf { state.isHost },
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .noRippleClickable(
+                                enabled = state.isHost
+                            ) {
+                                if (state.roomDescriptionChangesEnabled) {
+                                    navigator.show(ContextSheet(buildTextActions(state, dispatch)))
+                                } else {
+                                    dispatch(
+                                        ChatInfoViewModel.Event.OnChangeName(
+                                            state.roomInfo.id!!,
+                                            state.roomInfo.customTitle
+                                        )
+                                    )
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        HostableAvatar(
+                            size = CodeTheme.dimens.grid.x20,
+                            imageData = state.roomInfo.imageUrl ?: state.roomInfo.id,
+                            overlay = {
+                                Image(
+                                    modifier = Modifier.size(CodeTheme.dimens.grid.x12),
+                                    painter = painterResource(R.drawable.ic_fc_chats),
+                                    colorFilter = ColorFilter.tint(Color.White),
+                                    contentDescription = null,
+                                )
+                            },
+                            endAction = AvatarEndAction.Icon(
+                                icon = rememberVectorPainter(Icons.Outlined.BorderColor),
+                                contentColor = Color.White,
+                                backgroundColor = CodeTheme.colors.indicator
+                            ).takeIf { state.isHost },
+                        )
+                    }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
                         Text(
                             text = state.roomInfo.customTitle.ifEmpty { state.roomInfo.title },
@@ -325,12 +389,16 @@ private fun RoomInfoScreenContent(
                             color = CodeTheme.colors.textMain,
                             textAlign = TextAlign.Center
                         )
-                        Crossfade(state.isOpen) { open ->
-                            Text(
-                                text = if (open) "" else stringResource(R.string.subtitle_roomInfoRoomIsClosed),
-                                style = CodeTheme.typography.caption,
-                                color = CodeTheme.colors.textSecondary.copy(0.54f),
-                            )
+                        if (!state.roomDescriptionChangesEnabled) {
+                            Crossfade(state.isOpen) { open ->
+                                Text(
+                                    text = if (open) "" else stringResource(R.string.subtitle_roomInfoRoomIsClosed),
+                                    style = CodeTheme.typography.caption,
+                                    color = CodeTheme.colors.textSecondary.copy(0.54f),
+                                )
+                            }
+                        } else {
+                            InteractiveDescription(state, dispatch)
                         }
                     }
                 }
@@ -446,6 +514,82 @@ private fun RoomInfoScreenContent(
                     }
                     MemberNameDisplay(member)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InteractiveDescription(
+    state: ChatInfoViewModel.State,
+    dispatch: (ChatInfoViewModel.Event) -> Unit
+) {
+    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    Crossfade(state.roomInfo.description) { text ->
+        MarkupTouchHandler(
+            onMarkupClicked = { markup ->
+                when (markup) {
+                    is Markup.Phone -> context.dialNumber(markup.phoneNumber)
+                    is Markup.RoomNumber -> dispatch(ChatInfoViewModel.Event.LookupRoom(markup.number))
+                    is Markup.Url -> {
+                        runCatching {
+                            uriHandler.openUri(markup.link)
+                        }.onFailure {
+                            TopBarManager.showMessage(
+                                TopBarManager.TopBarMessage(
+                                    title = context.getString(R.string.error_title_failedToOpenLink),
+                                    message = context.getString(R.string.error_description_failedToOpenLink)
+                                )
+                            )
+                        }
+                    }
+                }
+
+            }
+        ) { onTap ->
+            val markupTextHelper = remember { MarkupTextHelper() }
+            val markups = state.descriptionMarkups.map { Markup.create(it) }
+
+            val annotatedString = markupTextHelper.annotate(text, markups)
+            val markupHoist = LocalTextLayoutResult.current
+
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { offset -> onTap(PaddingValues(), offset) },
+                        )
+                    },
+                text = annotatedString,
+                style = CodeTheme.typography.textSmall.copy(fontWeight = W500),
+                textAlign = TextAlign.Center,
+                color = CodeTheme.colors.textSecondary.copy(0.54f),
+                onTextLayout = { markupHoist(it) }
+            )
+        }
+    }
+}
+
+private fun buildTextActions(
+    state: ChatInfoViewModel.State,
+    dispatch: (ChatInfoViewModel.Event) -> Unit,
+): List<ContextMenuAction> {
+    return buildList {
+        if (state.isHost) {
+            add(
+                RoomControlAction.ChangeName {
+                    dispatch(ChatInfoViewModel.Event.OnChangeName(state.roomInfo.id!!, state.roomInfo.customTitle))
+                }
+            )
+
+            if (state.roomDescriptionChangesEnabled) {
+                add(
+                    RoomControlAction.ChangeDescription {
+                        dispatch(ChatInfoViewModel.Event.OnChangeDescription(state.roomInfo.id!!, state.roomInfo.description))
+                    }
+                )
             }
         }
     }

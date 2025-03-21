@@ -9,6 +9,7 @@ data class RoomInfo(
     val id: ID? = null,
     val number: Long = 0,
     val title: String = "",
+    val description: String = "",
     val imageUrl: String? = null,
     val memberCount: Int = 0,
     val hostId: ID? = null,

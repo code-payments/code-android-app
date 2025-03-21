@@ -3,7 +3,9 @@ package xyz.flipchat.app.features.chat.info
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Title
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -48,5 +50,23 @@ sealed interface RoomControlAction : ContextMenuAction {
             @Composable get() = stringResource(R.string.action_leaveRoom)
         override val painter: Painter
             @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Outlined.Logout)
+    }
+
+    data class ChangeName(override val onSelect: () -> Unit) : RoomControlAction, ContextMenuAction.Single {
+        override val isDestructive: Boolean = false
+        override val delayUponSelection: Boolean = true
+        override val title: String
+            @Composable get() = stringResource(R.string.action_changeRoomName)
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Outlined.Title)
+    }
+
+    data class ChangeDescription(override val onSelect: () -> Unit) : RoomControlAction, ContextMenuAction.Single {
+        override val isDestructive: Boolean = false
+        override val delayUponSelection: Boolean = true
+        override val title: String
+            @Composable get() = stringResource(R.string.action_changeRoomDescription)
+        override val painter: Painter
+            @Composable get() = rememberVectorPainter(Icons.Outlined.Description)
     }
 }

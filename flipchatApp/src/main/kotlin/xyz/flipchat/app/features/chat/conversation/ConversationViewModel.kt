@@ -989,6 +989,7 @@ class ConversationViewModel @Inject constructor(
                                 roomId = room.id,
                                 roomNumber = room.roomNumber,
                                 roomTitle = room.titleOrFallback(resources),
+                                roomDescription = room.description,
                                 memberCount = members.count(),
                                 ownerId = room.ownerId,
                                 hostName = moderator?.identity?.displayName,
@@ -1690,6 +1691,7 @@ class ConversationViewModel @Inject constructor(
                         hostId = host?.id,
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
+                            roomDescription = conversation.description,
                             roomNumber = conversation.roomNumber,
                             ownerId = conversation.ownerId,
                             hostName = host?.displayName,

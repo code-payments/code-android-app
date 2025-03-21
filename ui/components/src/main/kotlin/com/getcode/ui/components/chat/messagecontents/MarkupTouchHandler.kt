@@ -22,6 +22,14 @@ internal fun MarkupTouchHandler(
     options: MessageNodeOptions,
     content: @Composable (onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit) -> Unit,
 ) {
+    MarkupTouchHandler(onMarkupClicked = options.onMarkupClicked, content = content)
+}
+
+@Composable
+fun MarkupTouchHandler(
+    onMarkupClicked: ((Markup.Interactive) -> Unit)? = null,
+    content: @Composable (onTap: (contentPadding: PaddingValues, touchOffset: Offset) -> Unit) -> Unit,
+) {
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
     val handleTouchedContent = { offset: Int ->
@@ -30,7 +38,7 @@ internal fun MarkupTouchHandler(
             start = offset,
             end = offset
         )?.firstOrNull()?.let { annotation ->
-            options.onMarkupClicked?.invoke(Markup.RoomNumber(annotation.item.toLong()))
+            onMarkupClicked?.invoke(Markup.RoomNumber(annotation.item.toLong()))
         }
 
         layoutResult?.layoutInput?.text?.getStringAnnotations(
@@ -38,7 +46,7 @@ internal fun MarkupTouchHandler(
             start = offset,
             end = offset
         )?.firstOrNull()?.let { annotation ->
-            options.onMarkupClicked?.invoke(Markup.Url(annotation.item))
+            onMarkupClicked?.invoke(Markup.Url(annotation.item))
         }
 
         layoutResult?.layoutInput?.text?.getStringAnnotations(
@@ -46,7 +54,7 @@ internal fun MarkupTouchHandler(
             start = offset,
             end = offset
         )?.firstOrNull()?.let { annotation ->
-            options.onMarkupClicked?.invoke(Markup.Phone(annotation.item))
+            onMarkupClicked?.invoke(Markup.Phone(annotation.item))
         }
     }
 
@@ -65,5 +73,5 @@ internal fun MarkupTouchHandler(
     }
 }
 
-internal val LocalTextLayoutResult: ProvidableCompositionLocal<(TextLayoutResult) -> Unit> =
+val LocalTextLayoutResult: ProvidableCompositionLocal<(TextLayoutResult) -> Unit> =
     staticCompositionLocalOf { { } }

@@ -13,6 +13,7 @@ import com.getcode.model.Kin
 import com.getcode.model.chat.MinimalMember
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.solana.keys.PublicKey
+import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -29,6 +30,7 @@ import xyz.flipchat.app.R
 import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.data.RoomInfo
+import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController
@@ -40,6 +42,7 @@ import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
 import xyz.flipchat.services.internal.network.service.PromoteUserError
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
+import kotlin.reflect.KClass
 
 sealed interface MemberType {
     data object Speaker : MemberType
@@ -66,9 +69,15 @@ class ChatInfoViewModel @Inject constructor(
         val isMember: Boolean = false,
         val paymentDestination: PublicKey? = null,
         val roomNameChangesEnabled: Boolean = false,
+        val roomDescriptionChangesEnabled: Boolean = false,
         val canViewUserProfile: Boolean = false,
-        val isOpen: Boolean = false,
+        val isOpen: Boolean = true,
         val roomInfo: RoomInfo = RoomInfo(),
+        val descriptionMarkups: List<KClass<out Markup>> = listOf(
+            Markup.RoomNumber::class,
+            Markup.Url::class,
+            Markup.Phone::class,
+        ),
         val joining: LoadingSuccessState = LoadingSuccessState(),
         val leaving: LoadingSuccessState = LoadingSuccessState(),
         val members: Map<MemberType, List<MinimalMember>> = emptyMap()
@@ -77,6 +86,7 @@ class ChatInfoViewModel @Inject constructor(
     sealed interface Event {
         // region state updates
         data class OnRoomNameChangesEnabled(val enabled: Boolean) : Event
+        data class OnRoomDescriptionChangesEnabled(val enabled: Boolean) : Event
         data class OnUserProfilesEnabled(val enabled: Boolean) : Event
         data class OnHostStatusChanged(val isHost: Boolean) : Event
         data class OnRoomOpenStateChanged(val isOpen: Boolean) : Event
@@ -90,7 +100,9 @@ class ChatInfoViewModel @Inject constructor(
         data class OnFeeChanged(val cover: Kin) : Event
 
         data class OnChangeName(val id: ID, val title: String) : Event
+        data class OnChangeDescription(val id: ID, val description: String) : Event
         data class OnNameChanged(val name: String) : Event
+        data class OnDescriptionChanged(val description: String) : Event
 
         data object OnShareRoomClicked : Event
         data class ShareRoom(val intent: Intent) : Event
@@ -117,12 +129,20 @@ class ChatInfoViewModel @Inject constructor(
         data object OnLeaveRoomConfirmed : Event
         // endregion action/reaction
 
+        data class LookupRoom(val number: Long) : Event
+        data class OpenRoomPreview(val roomInfoArgs: RoomInfoArgs) : Event
+        data class OpenRoom(val roomId: ID) : Event
+
         data object OnLeftRoom : Event
     }
 
     init {
         labs.observe(Lab.ShowConnectedSocials)
             .map { dispatchEvent(Event.OnUserProfilesEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        labs.observe(Lab.RoomDescriptions)
+            .map { dispatchEvent(Event.OnRoomDescriptionChangesEnabled(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -144,6 +164,7 @@ class ChatInfoViewModel @Inject constructor(
                         .onSuccess { (room, members) ->
                             dispatchEvent(Event.OnRoomOpenStateChanged(room.isOpen))
                             dispatchEvent(Event.OnNameChanged(room.titleOrFallback(resources)))
+                            dispatchEvent(Event.OnDescriptionChanged(room.description.orEmpty()))
                             dispatchEvent(
                                 Event.OnMembersUpdated(
                                     members.map { m ->
@@ -174,6 +195,7 @@ class ChatInfoViewModel @Inject constructor(
                         .onEach { (conversation, members, cover) ->
                             dispatchEvent(Event.OnRoomOpenStateChanged(conversation.isOpen))
                             dispatchEvent(Event.OnNameChanged(conversation.titleOrFallback(resources)))
+                            dispatchEvent(Event.OnDescriptionChanged(conversation.description.orEmpty()))
                             dispatchEvent(
                                 Event.OnMembersUpdated(
                                     members.map { m ->
@@ -391,6 +413,42 @@ class ChatInfoViewModel @Inject constructor(
                         dispatchEvent(Event.OnUserDemoted(member.userId))
                     }
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LookupRoom>()
+            .map { it.number }
+            .map { roomNumber ->
+                chatsController.lookupRoom(roomNumber)
+                    .onFailure {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToGetRoom),
+                                resources.getString(
+                                    R.string.error_description_failedToGetRoom,
+                                    roomNumber
+                                )
+                            )
+                        )
+                    }.onSuccess { (room, members) ->
+                        val moderator = members.firstOrNull { it.isModerator }
+                        val isMember = members.any { it.isSelf }
+                        if (isMember) {
+                            dispatchEvent(Event.OpenRoom(room.id))
+                        } else {
+                            val roomInfo = RoomInfoArgs(
+                                roomId = room.id,
+                                roomNumber = room.roomNumber,
+                                roomTitle = room.titleOrFallback(resources),
+                                roomDescription = room.description,
+                                memberCount = members.count(),
+                                ownerId = room.ownerId,
+                                hostName = moderator?.identity?.displayName,
+                                messagingFeeQuarks = room.messagingFee.quarks,
+                            )
+                            dispatchEvent(Event.OpenRoomPreview(roomInfo))
+                        }
+                    }
+            }.launchIn(viewModelScope)
     }
 
     private fun confirmOpenStateChange(conversationId: ID, isRoomOpen: Boolean) {
@@ -507,6 +565,7 @@ class ChatInfoViewModel @Inject constructor(
                             id = args.roomId,
                             number = args.roomNumber,
                             title = args.roomTitle.orEmpty(),
+                            description = args.roomDescription.orEmpty(),
                             memberCount = args.memberCount,
                             hostId = args.ownerId,
                             hostName = args.hostName,
@@ -523,6 +582,7 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.OnChangeMessageFee,
                 Event.OnLeaveRoomConfirmed,
                 is Event.OnChangeName,
+                is Event.OnChangeDescription,
                 is Event.OnShareRoomClicked,
                 is Event.ShareRoom,
                 is Event.OnListenToClicked,
@@ -531,6 +591,9 @@ class ChatInfoViewModel @Inject constructor(
                 is Event.OnOpenStateChangedRequested,
                 is Event.OnCloseRoom,
                 is Event.OnOpenRoom,
+                is Event.LookupRoom,
+                is Event.OpenRoom,
+                is Event.OpenRoomPreview,
                 is Event.RequestNotificationPermissions,
                 Event.OnLeftRoom -> { state -> state }
 
@@ -617,6 +680,17 @@ class ChatInfoViewModel @Inject constructor(
                 }
 
                 is Event.OnRoomOpenStateChanged -> { state -> state.copy(isOpen = event.isOpen) }
+                is Event.OnDescriptionChanged -> { state ->
+                    state.copy(
+                        roomInfo = state.roomInfo.copy(
+                            description = event.description,
+                        )
+                    )
+                }
+
+                is Event.OnRoomDescriptionChangesEnabled -> { state ->
+                    state.copy(roomDescriptionChangesEnabled = event.enabled)
+                }
             })
         }
     }

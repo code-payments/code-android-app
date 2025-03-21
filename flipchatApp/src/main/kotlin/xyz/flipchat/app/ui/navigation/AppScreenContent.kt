@@ -8,6 +8,7 @@ import xyz.flipchat.app.features.beta.BetaFlagsScreen
 import xyz.flipchat.app.features.chat.conversation.ConversationScreen
 import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.create.CreateRoomScreen
+import xyz.flipchat.app.features.chat.description.RoomDescriptionScreen
 import xyz.flipchat.app.features.chat.info.RoomInfoScreen
 import xyz.flipchat.app.features.chat.list.RoomListScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
@@ -110,6 +111,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.Room.ChangeName> {
             RoomNameScreen(it.id, it.title)
+        }
+
+        register<NavScreenProvider.Room.ChangeDescription> {
+            RoomDescriptionScreen(it.id, it.description)
         }
 
         register<NavScreenProvider.OwnProfile> {

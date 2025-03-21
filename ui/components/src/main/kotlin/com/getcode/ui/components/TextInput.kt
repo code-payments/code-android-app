@@ -7,10 +7,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -69,6 +72,7 @@ fun TextInput(
     style: TextStyle = CodeTheme.typography.textMedium,
     placeholderStyle: TextStyle = CodeTheme.typography.textMedium,
     shape: Shape = CodeTheme.shapes.extraSmall,
+    textFieldAlignment: Alignment = Alignment.CenterStart,
     colors: TextFieldColors = inputColors(),
     enabled: Boolean = true,
     isError: Boolean = false,
@@ -132,6 +136,7 @@ fun TextInput(
                     leadingIcon = leadingIcon,
                     trailingIcon = trailingIcon,
                     contentPadding = contentPadding,
+                    textFieldAlignment = textFieldAlignment,
                     shape = shape,
                     innerTextField = it
                 )
@@ -166,11 +171,13 @@ private fun DecoratorBox(
     leadingIcon: (@Composable () -> Unit)?,
     trailingIcon: (@Composable () -> Unit)?,
     shape: Shape,
+    textFieldAlignment: Alignment = Alignment.CenterStart,
     innerTextField: @Composable () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .border(
                 width = CodeTheme.dimens.border,
                 color = borderColor,
@@ -183,10 +190,11 @@ private fun DecoratorBox(
         Box(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxHeight()
                 .addIf(leadingIcon != null) {
                     Modifier.padding(start = CodeTheme.dimens.staticGrid.x2)
                 },
-            contentAlignment = Alignment.CenterStart
+            contentAlignment = textFieldAlignment
         ) {
             Box(modifier = Modifier.padding(contentPadding)) {
                 innerTextField()

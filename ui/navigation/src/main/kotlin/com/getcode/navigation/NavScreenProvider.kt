@@ -58,6 +58,11 @@ sealed class NavScreenProvider : ScreenProvider {
             val id: ID,
             val title: String,
         ): NavScreenProvider()
+
+        data class ChangeDescription(
+            val id: ID,
+            val description: String,
+        ): NavScreenProvider()
     }
 
     data object Balance : NavScreenProvider()
@@ -81,6 +86,7 @@ data class RoomInfoArgs(
     val roomId: ID? = null,
     val roomNumber: Long = 0,
     val roomTitle: String? = null,
+    val roomDescription: String? = null,
     val memberCount: Int = 0,
     val ownerId: ID? = null,
     val hostName: String? = null,
