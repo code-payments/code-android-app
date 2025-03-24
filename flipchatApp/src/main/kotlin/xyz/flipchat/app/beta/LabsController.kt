@@ -93,8 +93,8 @@ sealed interface Lab {
 
     data object EmojiReactions: Lab {
         override val key: String = "emojis_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
     }
 
     data object RoomDescriptions: Lab {

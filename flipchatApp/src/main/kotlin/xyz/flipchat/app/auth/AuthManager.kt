@@ -109,7 +109,6 @@ class AuthManager @Inject constructor(
     suspend fun register(displayName: String): Result<ID> {
         val entropyB64 = userManager.entropy ?: setupAsNew()
         if (entropyB64.isEmpty()) {
-            taggedTrace("provided entropy was empty", type = TraceType.Error)
             userManager.clear()
             return Result.failure(Throwable("Provided entropy was empty"))
         }
@@ -175,7 +174,6 @@ class AuthManager @Inject constructor(
         taggedTrace("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
-            taggedTrace("provided entropy was empty", type = TraceType.Error)
             userManager.clear()
             return Result.failure(Throwable("Provided entropy was empty"))
         }
