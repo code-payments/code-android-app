@@ -1,6 +1,6 @@
 package com.getcode.network.repository
 
-import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.CodeAnalyticsService
 import com.getcode.ed25519.Ed25519
 import com.getcode.services.model.CodePayload
 import com.getcode.model.IntentMetadata
@@ -21,7 +21,7 @@ import javax.inject.Inject
 
 class SendTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
-    private val analyticsManager: AnalyticsService,
+    private val analytics: CodeAnalyticsService,
     private val client: Client,
 ) {
     private lateinit var amount: KinAmount
@@ -66,14 +66,14 @@ class SendTransactionRepository @Inject constructor(
                 )
 
                 if (!isValid) {
-                    analyticsManager.transfer(
+                    analytics.transfer(
                         amount = amount,
                         successful = false
                     )
 
                     Flowable.error(SendTransactionException.DestinationSignatureInvalidException())
                 } else {
-                    analyticsManager.transfer(
+                    analytics.transfer(
                         amount = amount,
                         successful = true
                     )
@@ -83,7 +83,7 @@ class SendTransactionRepository @Inject constructor(
                 }
             }
             .doOnError {
-                analyticsManager.transfer(
+                analytics.transfer(
                     amount = amount,
                     successful = false
                 )

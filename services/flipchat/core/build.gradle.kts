@@ -56,6 +56,8 @@ dependencies {
     api(project(":services:shared"))
     implementation(project(":ui:resources"))
 
+    api(project(":libs:analytics"))
+
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)

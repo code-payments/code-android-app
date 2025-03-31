@@ -3,7 +3,7 @@ package com.getcode.network.client
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.CodeAnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
@@ -43,7 +43,7 @@ class Client @Inject constructor(
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
     internal val accountService: AccountService,
-    internal val analyticsManager: AnalyticsService,
+    internal val analytics: CodeAnalyticsService,
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,

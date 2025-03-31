@@ -550,7 +550,7 @@ fun Client.fetchPrivacyUpgrades(): Completable {
                         intent
                     )
                         .doOnSuccess {
-                            analyticsManager.upgradePrivacy(
+                            analytics.upgradePrivacy(
                                 successful = true,
                                 intentId = intent.id,
                                 actionCount = intent.actions.size
@@ -558,7 +558,7 @@ fun Client.fetchPrivacyUpgrades(): Completable {
                             Timber.i("Privacy Upgrade - success")
                         }
                         .doOnError {
-                            analyticsManager.upgradePrivacy(
+                            analytics.upgradePrivacy(
                                 successful = false,
                                 intentId = intent.id,
                                 actionCount = intent.actions.size

@@ -1,6 +1,6 @@
 package com.getcode.network
 
-import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.CodeAnalyticsService
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentType
 import com.getcode.network.repository.TransactionRepository
@@ -13,7 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class PrivacyMigration @Inject constructor(
     internal val transactionRepository: TransactionRepository,
-    private val analyticsManager: AnalyticsService,
+    private val analyticsManager: CodeAnalyticsService,
 ) {
 
     fun migrateToPrivacy(

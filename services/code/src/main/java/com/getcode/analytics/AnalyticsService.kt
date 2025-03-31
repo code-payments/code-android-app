@@ -1,32 +1,34 @@
 package com.getcode.analytics
 
+import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.services.model.AppSetting
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.solana.keys.PublicKey
 
-interface AnalyticsService {
-    fun onAppStart()
-    fun onAppStarted()
+interface CodeAnalyticsService : AnalyticsService {
     fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int)
     fun logout()
     fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?)
     fun billTimeoutReached(
         kin: Kin,
         currencyCode: CurrencyCode,
-        animation: AnalyticsManager.BillPresentationStyle
+        animation: CodeAnalyticsManager.BillPresentationStyle
     )
+
     fun billShown(
         kin: Kin,
         currencyCode: CurrencyCode,
-        animation: AnalyticsManager.BillPresentationStyle
+        animation: CodeAnalyticsManager.BillPresentationStyle
     )
+
     fun billHidden(
         kin: Kin,
         currencyCode: CurrencyCode,
-        animation: AnalyticsManager.BillPresentationStyle
+        animation: CodeAnalyticsManager.BillPresentationStyle
     )
+
     fun transfer(amount: KinAmount, successful: Boolean)
     fun transferForRequest(amount: KinAmount, successful: Boolean)
     fun transferForTip(amount: KinAmount, successful: Boolean)
@@ -48,59 +50,8 @@ interface AnalyticsService {
     fun tipCardLinked()
 
     fun backgroundSwapInitiated()
-    fun unintentionalLogout()
 
     fun appSettingToggled(setting: AppSetting, value: Boolean)
 
     fun photoScanned(successful: Boolean, timeToScanInMillis: Long)
-
-    fun action(action: Action, source: ActionSource? = null)
-}
-
-class AnalyticsServiceNull : AnalyticsService {
-    override fun onAppStart() = Unit
-    override fun onAppStarted() = Unit
-    override fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int) = Unit
-    override fun logout() = Unit
-    override fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?) = Unit
-    override fun billTimeoutReached(
-        kin: Kin,
-        currencyCode: CurrencyCode,
-        animation: AnalyticsManager.BillPresentationStyle
-    ) = Unit
-    override fun billShown(
-        kin: Kin,
-        currencyCode: CurrencyCode,
-        animation: AnalyticsManager.BillPresentationStyle
-    ) = Unit
-    override fun billHidden(
-        kin: Kin,
-        currencyCode: CurrencyCode,
-        animation: AnalyticsManager.BillPresentationStyle
-    ) = Unit
-    override fun transfer(amount: KinAmount, successful: Boolean) = Unit
-    override fun transferForRequest(amount: KinAmount, successful: Boolean) = Unit
-    override fun transferForTip(amount: KinAmount, successful: Boolean) = Unit
-    override fun withdrawal(amount: KinAmount, successful: Boolean) = Unit
-
-    override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) = Unit
-    override fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean) = Unit
-    override fun recomputed(fxIn: Double, fxOut: Double) = Unit
-    override fun grabStart() = Unit
-    override fun grab(kin: Kin, currencyCode: CurrencyCode) = Unit
-    override fun requestShown(amount: KinAmount) = Unit
-    override fun requestHidden(amount: KinAmount) = Unit
-    override fun cashLinkGrabStart() = Unit
-    override fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode) = Unit
-    override fun migration(amount: Kin) = Unit
-    override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) = Unit
-    override fun onBillReceived() = Unit
-    override fun tipCardShown(username: String) = Unit
-    override fun tipCardLinked() = Unit
-    override fun backgroundSwapInitiated() = Unit
-    override fun unintentionalLogout() = Unit
-    override fun appSettingToggled(setting: AppSetting, value: Boolean) = Unit
-    override fun photoScanned(successful: Boolean, timeToScanInMillis: Long) = Unit
-
-    override fun action(action: Action, source: ActionSource?) = Unit
 }

@@ -1,6 +1,6 @@
 package com.getcode.network.repository
 
-import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.CodeAnalyticsService
 import com.getcode.services.model.AppSetting
 import com.getcode.services.model.PrefsBool
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +20,7 @@ data class AppSettings(
 }
 class AppSettingsRepository @Inject constructor(
     private val prefRepository: PrefRepository,
-    private val analytics: AnalyticsService,
+    private val analytics: CodeAnalyticsService,
 ) {
 
     fun observe(): Flow<AppSettings> = AppSettings.Defaults.let { defaults ->

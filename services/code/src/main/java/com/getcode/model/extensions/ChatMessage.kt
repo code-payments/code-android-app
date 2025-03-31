@@ -12,11 +12,6 @@ fun ChatMessage.decryptingUsing(keyPair: Ed25519.KeyPair): ChatMessage {
         dateMillis = dateMillis,
         contents = contents.map {
             when (it) {
-                is MessageContent.Exchange,
-                is MessageContent.Localized,
-                is MessageContent.Decrypted,
-                is MessageContent.RawText,
-                is MessageContent.Announcement -> it // passthrough
                 is MessageContent.SodiumBox -> {
                     val decrypted = it.data.decryptMessageUsingNaClBox(keyPair = keyPair)
                     if (decrypted != null) {
@@ -26,10 +21,18 @@ fun ChatMessage.decryptingUsing(keyPair: Ed25519.KeyPair): ChatMessage {
                     }
                 }
 
-                is MessageContent.Reaction -> it
-                is MessageContent.Reply -> it
-                is MessageContent.DeletedMessage -> it
-                is MessageContent.Unknown -> it
+                is MessageContent.Exchange,
+                is MessageContent.Localized,
+                is MessageContent.Decrypted,
+                is MessageContent.RawText,
+                is MessageContent.Announcement,
+                is MessageContent.Reaction,
+                is MessageContent.Reply,
+                is MessageContent.DeletedMessage,
+                is MessageContent.Unknown,
+                is MessageContent.ActionableAnnouncement,
+                is MessageContent.MessageInReview,
+                is MessageContent.MessageTip -> it // passthrough
             }
         }
     )

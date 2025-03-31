@@ -2,8 +2,8 @@ rootProject.name = "Code"
 
 include(
         // apps
-        ":app",
-        ":flipchatApp",
+        ":apps:codeApp",
+        ":apps:flipchatApp",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",
@@ -14,6 +14,8 @@ include(
         ":definitions:flipchat:protos",
 
         // Internal libs
+        ":libs:analytics",
+        ":libs:biometrics",
         ":libs:crypto:kin",
         ":libs:crypto:solana",
         ":libs:currency",
@@ -49,6 +51,8 @@ include(
         ':services:flipchat:sdk',
 
         // common UI
+        ":ui:analytics",
+        ":ui:biometrics",
         ":ui:core",
         ":ui:components",
         ":ui:emojis",

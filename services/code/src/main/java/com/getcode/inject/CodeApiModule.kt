@@ -2,8 +2,8 @@ package com.getcode.inject
 
 import android.content.Context
 import com.getcode.CodeServicesConfig
-import com.getcode.analytics.AnalyticsService
-import com.getcode.analytics.AnalyticsServiceNull
+import com.getcode.analytics.CodeAnalyticsManager
+import com.getcode.analytics.CodeAnalyticsService
 import com.getcode.annotations.CodeManagedChannel
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.network.BalanceController
@@ -86,7 +86,7 @@ internal object CodeApiModule {
         accountRepository: AccountRepository,
         accountService: AccountService,
         balanceController: BalanceController,
-        analytics: AnalyticsService,
+        analytics: CodeAnalyticsService,
         prefRepository: PrefRepository,
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
@@ -165,7 +165,7 @@ internal object CodeApiModule {
     @Provides
     fun providePrivacyMigration(
         transactionRepository: TransactionRepository,
-        analytics: AnalyticsService,
+        analytics: CodeAnalyticsService,
     ): PrivacyMigration {
         return PrivacyMigration(
             transactionRepository,
@@ -186,5 +186,5 @@ internal object CodeApiModule {
     @Provides
     fun providesAnalyticsService(
         mixpanelAPI: MixpanelAPI
-    ): AnalyticsService = AnalyticsServiceNull()
+    ): CodeAnalyticsService = CodeAnalyticsManager(mixpanelAPI)
 }

@@ -10,18 +10,18 @@ import com.getcode.model.toPublicKey
 import com.getcode.network.client.Client
 import com.getcode.network.client.pollIntentMetadata
 import com.getcode.network.client.transfer
-import com.getcode.services.analytics.AnalyticsService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.Organizer
 import com.getcode.services.utils.nonce
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.rx3.asFlowable
+import xyz.flipchat.services.analytics.FlipchatAnalyticsService
 import javax.inject.Inject
 
 
 class SendTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
-    private val analyticsManager: AnalyticsService,
+    private val analytics: FlipchatAnalyticsService,
     private val client: Client,
 ) {
     private lateinit var amount: KinAmount

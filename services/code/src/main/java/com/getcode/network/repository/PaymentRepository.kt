@@ -1,7 +1,7 @@
 package com.getcode.network.repository
 
 import android.annotation.SuppressLint
-import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.CodeAnalyticsService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.services.model.CodePayload
@@ -39,7 +39,7 @@ class PaymentRepository @Inject constructor(
     private val exchange: Exchange,
     private val messagingRepository: MessagingRepository,
     private val client: Client,
-    private val analytics: AnalyticsService,
+    private val analytics: CodeAnalyticsService,
     private val balanceController: BalanceController,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
