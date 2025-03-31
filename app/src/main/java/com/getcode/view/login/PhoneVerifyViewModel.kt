@@ -4,22 +4,20 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.R
 import com.getcode.analytics.Action
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.navigation.screens.PhoneConfirmationScreen
-import com.getcode.network.repository.ErrorSubmitIntent
+import com.getcode.network.repository.OtpVerificationResult
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.makeE164
-import com.getcode.view.*
+import com.getcode.services.utils.makeE164
+import com.getcode.view.BaseViewModel
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -178,30 +176,25 @@ class PhoneVerifyViewModel @Inject constructor(
             .doOnComplete { setIsLoading(false) }
             .map { res ->
                 val message = when (res) {
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
+                    OtpVerificationResult.Error.InvalidPhoneNumber,
+                    OtpVerificationResult.Error.UnsupportedPhoneType -> getUnsupportedPhoneError()
 
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.INVALID_PHONE_NUMBER,
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_PHONE_TYPE -> {
-                        getUnsupportedPhoneError()
-                    }
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_COUNTRY -> {
-                        getUnsupportedCountryError()
-                    }
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNRECOGNIZED,
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_DEVICE -> {
-                        getUnsupportedDeviceError()
-                    }
-                    else -> getGenericError()
+                    OtpVerificationResult.Error.UnsupportedCountry -> getUnsupportedCountryError()
+                    OtpVerificationResult.Error.UnsupportedDevice -> getUnsupportedDeviceError()
+
+                    is OtpVerificationResult.Error -> getGenericError()
+
+                    OtpVerificationResult.Success -> null
                 }
 
                 if (message != null) {
                     TopBarManager.showMessage(message)
                 }
 
-                val success = res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
+                val success = res == OtpVerificationResult.Success
 
                 if (!success) {
-                    ErrorUtils.handleError(PhoneVerifyException(reason = res.name))
+                    ErrorUtils.handleError(PhoneVerifyException(reason = res::class.java.simpleName))
                 }
 
                 success

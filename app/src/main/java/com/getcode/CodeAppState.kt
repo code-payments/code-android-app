@@ -6,15 +6,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import com.getcode.manager.BottomBarManager
-import com.getcode.manager.ModalManager
-import com.getcode.manager.TopBarManager
+import com.getcode.services.manager.ModalManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.ui.components.bars.BarManager
+import com.getcode.ui.components.bars.BarMessages
+import com.getcode.ui.components.bars.rememberBarManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -26,10 +27,11 @@ import kotlinx.coroutines.launch
 fun rememberCodeAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     navigator: CodeNavigator = LocalCodeNavigator.current,
+    barManager: BarManager = rememberBarManager(),
     coroutineScope: CoroutineScope = rememberCoroutineScope()
 ) =
-    remember(scaffoldState, navigator , coroutineScope) {
-        CodeAppState(scaffoldState, navigator, coroutineScope)
+    remember(scaffoldState, navigator , barManager, coroutineScope) {
+        CodeAppState(scaffoldState, navigator, barManager, coroutineScope)
     }
 
 /**
@@ -39,21 +41,12 @@ fun rememberCodeAppState(
 class CodeAppState(
     val scaffoldState: ScaffoldState,
     var navigator: CodeNavigator,
+    private val barManager: BarManager,
     coroutineScope: CoroutineScope
 ) {
     init {
         coroutineScope.launch {
-            TopBarManager.messages.collect { currentMessages ->
-                topBarMessage.value = currentMessages.firstOrNull()
-            }
-        }
-        coroutineScope.launch {
-            BottomBarManager.messages.collect { currentMessages ->
-                bottomBarMessage.value = currentMessages.firstOrNull()
-            }
-        }
-        coroutineScope.launch {
-            ModalManager.messages.collect { currentMessages ->
+            com.getcode.services.manager.ModalManager.messages.collect { currentMessages ->
                 modalMessage.value = currentMessages.firstOrNull()
             }
         }
@@ -88,9 +81,10 @@ class CodeAppState(
             )
         }
 
-    val topBarMessage = MutableStateFlow<TopBarManager.TopBarMessage?>(null)
-    val bottomBarMessage = MutableStateFlow<BottomBarManager.BottomBarMessage?>(null)
-    val modalMessage = MutableStateFlow<ModalManager.Message?>(null)
+    val barMessages: BarMessages
+        get() = barManager.barMessages
+
+    val modalMessage = MutableStateFlow<com.getcode.services.manager.ModalManager.Message?>(null)
 
     fun upPress() {
         if (navigator.pop().not()) {

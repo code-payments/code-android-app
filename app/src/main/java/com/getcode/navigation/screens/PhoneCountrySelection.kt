@@ -21,9 +21,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
 import com.getcode.util.PhoneUtils
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.view.login.PhoneVerifyUiModel
 import com.getcode.view.login.PhoneVerifyViewModel
 
@@ -81,7 +80,7 @@ private fun PhoneCountrySelection(
                 )
             }
             Divider(
-                color = White05,
+                color = CodeTheme.colors.dividerVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subtitle_yourName">Your Name</string>
+    <string name="subtitle_roomName">Flipchat Name</string>
+    <string name="subtitle_roomDescription">Give people an idea what your Flipchat is about</string>
+
+    <string name="action_nevermind">Nevermind</string>
+
+    <string name="action_getStarted">Get Started</string>
+
+    <string name="login_description_byTapping">By tapping any button above you</string>
+
+    <string name="action_payToChat">Send %1$s to Start Chatting</string>
+    <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
+    <string name="subtitle_loadingChats">Loading your chats</string>
+    <string name="action_joinRoom">Join Flipchats</string>
+    <string name="action_startListening">Start Listening</string>
+    <string name="action_findRoom">Find a Flipchat</string>
+    <string name="title_chat">Chat</string>
+
+    <string name="title_speakers">Speakers</string>
+    <string name="title_listeners">Listeners</string>
+    <string name="subtitle_listener">Listener</string>
+    <string name="subtitle_noneYet">None yet</string>
+
+    <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
+    <string name="error_description_failedToCreateRoom">You were unable to create a new Flipchat at this time. Please try again later</string>
+
+    <string name="error_title_failedToGetRoom">Flipchat Doesn\’t Exist Yet</string>
+    <string name="error_description_failedToGetRoom">Please try a different Flipchat number</string>
+
+    <string name="error_title_failedToPromoteUser">Something Went Wrong</string>
+    <string name="error_description_failedToPromoteUser">This user could not be made a speaker. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToPromoteUserNotRegistered">User Hasn\'t Created Their Account</string>
+    <string name="error_description_failedToPromoteUserNotRegistered">Users need to create an account before becoming a speaker. Please ask the user to create a Flipchat account</string>
+
+    <string name="error_title_failedToDemoteUser">Something Went Wrong</string>
+    <string name="error_description_failedToDemoteUser">This user could not be removed as a speaker. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToChangeMessageFee">Something Went Wrong</string>
+    <string name="error_description_failedToChangeMessageFee">Your new message fee couldn\’t be saved. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
+    <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later</string>
+
+    <string name="error_title_failedToFollowRoom">Something Went Wrong</string>
+    <string name="error_description_failedToFollowRoom">You were unable to follow %1$s at this time. Please try again later</string>
+
+    <string name="error_title_failedToLookupPaymentDestination">Something Went Wrong</string>
+    <string name="error_description_failedToLookupPaymentDestination">You were unable to get payment information at this time. Please try again later</string>
+
+    <string name="error_title_failedToLeaveRoom">Something Went Wrong</string>
+    <string name="error_description_failedToLeaveRoom">You were unable to leave the room at this time. Please try again later</string>
+
+    <string name="error_title_failedToDeleteMessage">Something Went Wrong</string>
+    <string name="error_description_failedToDeleteMessage">This message could not be deleted. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToRemoveUser">Something Went Wrong</string>
+    <string name="error_description_failedToRemoveUser">This user could not be removed. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToReportUserForMessage">Something Went Wrong</string>
+    <string name="error_description_failedToReportUserForMessage">This user\'s message could not be reported. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToMuteUser">Something Went Wrong</string>
+    <string name="error_description_failedToMuteUser">This user\'s could not be muted. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToBlockUser">Something Went Wrong</string>
+    <string name="error_description_failedToBlockUser">This user could not be block. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToUnblockUser">Something Went Wrong</string>
+    <string name="error_description_failedToUnblockUser">This user could not be unblocked. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToMuteChat">Something Went Wrong</string>
+    <string name="error_description_failedToMuteChat">Please check your network connection and try again</string>
+
+    <string name="error_title_failedToUnmuteChat">Something Went Wrong</string>
+    <string name="error_description_failedToUnmuteChat">Please check your network connection and try again</string>
+
+    <string name="error_title_failedToOpenLink">Something Went Wrong</string>
+    <string name="error_description_failedToOpenLink">We were unable to open this link. Please try again</string>
+
+    <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
+    <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
+
+    <string name="error_title_failedToChangeRoomNameBecauseInappropriate">Inappropriate Flipchat Name</string>
+    <string name="error_description_failedToChangeRoomNameBecauseInappropriate">Flipchat names need to be appropriate for all ages</string>
+
+    <string name="error_title_failedToChangeRoomNameOtherReason">Something Went Wrong</string>
+    <string name="error_description_failedToChangeRoomNameOtherReason">We were unable to change the Flipchat name at this time. Please try again later</string>
+
+    <string name="error_title_failedToChangeRoomDescription">Something Went Wrong</string>
+    <string name="error_description_failedToChangeRoomDescription">We were unable to change the Flipchat description at this time. Please try again later</string>
+
+    <string name="error_title_failedToReopenRoom">Something Went Wrong</string>
+    <string name="error_description_failedToReopenRoom">You were unable to reopen this Flipchat at this time. Please try again later</string>
+
+    <string name="error_title_failedToCloseRoom">Something Went Wrong</string>
+    <string name="error_description_failedToCloseRoom">You were unable to close this Flipchat at this time. Please try again later</string>
+
+    <string name="error_title_failedToSendTip">Something Went Wrong</string>
+    <string name="error_description_failedToSendTip">You were unable to send a tip at this time. Please try again later</string>
+
+    <string name="error_title_failedToLinkXAccount">Something Went Wrong</string>
+    <string name="error_description_failedToLinkXAccount">We were unable to link your X account at this time. Please try again later</string>
+    <string name="error_title_failedToUnlinkXAccount">Something Went Wrong</string>
+    <string name="error_description_failedToUnlinkXAccount">We were unable to unlink your X account at this time. Please try again later</string>
+
+    <string name="title_connectYourX">Connect Your X</string>
+    <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>
+    <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>
+    <string name="action_messageToConnect">Message %1$s to Connect</string>
+    <string name="title_cashTab">Balance</string>
+    <string name="title_chatsTab">Flipchats</string>
+    <string name="title_settingsTab">Settings</string>
+    <string name="title_profileTab">Profile</string>
+    <string name="action_enterRoomNumber">Enter Flipchat Number</string>
+    <string name="action_createNewRoom">Create a New Flipchat</string>
+    <string name="action_createNewRoomWithCost">Create a New Flipchat: ⬢ %1$s</string>
+    <string name="title_lookupRoom">Join a Flipchat</string>
+    <string name="subtitle_enterRoomNumber">Enter Flipchat Number</string>
+    <string name="title_joinRoom">Join Flipchat</string>
+    <string name="title_changeCoverCharge">Change Cover Charge</string>
+    <string name="title_changeMessageFee">Change Listener Message Fee</string>
+
+    <string name="action_joinRoomByName">Join %1$s</string>
+    <string name="action_joinRoomWithCost">Join Room: ⬢ %1$s</string>
+    <string name="action_payToChatInRoom">Pay to Chat: ⬢ %1$s</string>
+    <string name="action_sendMessageInRoom">Listener Message: ⬢ %1$s</string>
+
+    <string name="title_leaveRoom">Leave Flipchat?</string>
+    <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
+    <string name="action_leaveRoomByName">Leave %1$s</string>
+
+    <string name="title_deleteMessage">Delete Message?</string>
+    <string name="subtitle_deleteMessage">Their messages will be deleted for everyone</string>
+    <string name="action_delete">Delete</string>
+
+    <string name="title_removeUserFromRoom">Remove %1$s?</string>
+    <string name="subtitle_removeUserFromRoom">They will be able to rejoin after waiting an hour, but will have to pay the cover charge again</string>
+    <string name="action_remove">Remove</string>
+
+    <string name="title_muteUserInRoom">Mute %1$s?</string>
+    <string name="subtitle_muteUserInRoom">They will no longer be able send messages in this room</string>
+    <string name="action_mute">Mute</string>
+
+    <string name="title_promoteUserInRoom">Make %1$s a Speaker?</string>
+    <string name="subtitle_promoteUserInRoom">They will be able to message for free</string>
+    <string name="action_promote">Make a Speaker</string>
+
+    <string name="title_demoteUserInRoom">Remove %1$s as a Speaker?</string>
+    <string name="subtitle_demoteUserInRoom">They will no longer be able to message for free</string>
+    <string name="action_demote">Remove as Speaker</string>
+
+    <string name="title_blockUserInRoom">Block %1$s?</string>
+    <string name="subtitle_blockUserInRoom">All messages from this user will be hidden</string>
+    <string name="action_block">Block</string>
+
+    <string name="title_reportUserForMessage">Report</string>
+    <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified</string>
+
+    <string name="success_title_reportUser">Report Sent</string>
+    <string name="success_description_reportUser">Your report was sent successfully</string>
+
+    <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
+
+    <string name="title_roomCardHostedBy">Hosted by %1$s</string>
+    <string name="title_roomCardJoinCost">Cover Charge: ⬢ %1$s</string>
+
+    <string name="title_roomCardMemberCountEmpty">0 People Inside</string>
+    <string name="title_roomCardMemberCountSingle">1 Person Inside</string>
+    <string name="title_roomCardMemberCountMany">%d People Inside</string>
+    <plurals name="title_roomCardMemberCount">
+        <item quantity="zero">@string/title_roomCardMemberCountEmpty</item>
+        <item quantity="one">@string/title_roomCardMemberCountSingle</item>
+        <item quantity="two">@string/title_roomCardMemberCountMany</item>
+        <item quantity="many">@string/title_roomCardMemberCountMany</item>
+        <item quantity="few">@string/title_roomCardMemberCountMany</item>
+        <item quantity="other">@string/title_roomCardMemberCountMany</item>
+    </plurals>
+
+    <string name="title_conversationMemberCountEmpty">0 people here</string>
+    <string name="title_conversationMemberCountSingle">1 person here</string>
+    <string name="title_conversationMemberCountMany">%d people here</string>
+    <plurals name="title_conversationMemberCount">
+        <item quantity="zero">@string/title_conversationMemberCountEmpty</item>
+        <item quantity="one">@string/title_conversationMemberCountSingle</item>
+        <item quantity="two">@string/title_conversationMemberCountMany</item>
+        <item quantity="many">@string/title_conversationMemberCountMany</item>
+        <item quantity="few">@string/title_conversationMemberCountMany</item>
+        <item quantity="other">@string/title_conversationMemberCountMany</item>
+    </plurals>
+
+    <string name="action_save">Save</string>
+    <string name="action_saveChanges">Save Changes</string>
+    <string name="subtitle_displayNameHint">This is how you\’ll show up in chats</string>
+    <string name="subtitle_roomNameHint">Enter a name appropriate for all ages</string>
+
+    <string name="title_youHaveBeenMuted">You\'ve been muted</string>
+    <string name="title_roomIsClosed">The host has temporarily closed this flipchat. Only they can send messages until they reopen it</string>
+    <string name="subtitle_roomIsOpen">Your Flipchat is currently open</string>
+    <string name="subtitle_roomIsClosed">Your Flipchat is currently closed</string>
+    <string name="subtitle_roomInfoRoomIsOpen">This Flipchat is currently open</string>
+    <string name="subtitle_roomInfoRoomIsClosed">This Flipchat is currently closed</string>
+    <string name="action_change">Change</string>
+    <string name="action_reopen">Reopen</string>
+    <string name="action_close">Close</string>
+    <string name="prompt_title_reopenRoom">Reopen Flipchat?</string>
+    <string name="prompt_description_reopenRoom">People will be able to send messages again</string>
+    <string name="action_closeFlipchatTemporarily">Close Flipchat Temporarily</string>
+    <string name="action_reopenFlipchat">Reopen Flipchat</string>
+    <string name="prompt_title_closeRoom">Close Flipchat Temporarily?</string>
+    <string name="prompt_description_closeRoom">Only you will be able to send messages until you reopen the flipchat</string>
+    <string name="action_closeTemporarily">Close Temporarily</string>
+    <string name="action_reopenRoom">Reopen Flipchat</string>
+
+    <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your account. Please keep it private and safe.</string>
+    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to your Flipchat account. Do not share this image with anyone else. Keep it secure and safe.</string>
+    <string name="error_description_failedToSave">Please allow Flipchat access to Photos in Settings in order to save your Access Key</string>
+
+    <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Flipchat</string>
+    <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Flipchat</string>
+    <string name="prompt_title_notFlipchatAccount">Not a Flipchat Account</string>
+    <string name="prompt_description_notFlipchatAccount">Only accounts created through Flipchat are currently supported</string>
+    <string name="action_createNewFlipchatAccount">Create a New Flipchat Account</string>
+    <string name="action_tryDifferentFlipchatAccount">Try a Different Flipchat Account</string>
+
+    <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Flipchat. Alternatively you can log in manually by entering the 12 words in the Flipchat Log In screen.</string>
+
+    <string name="prompt_title_logout">Log Out?</string>
+    <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
+
+    <string name="title_betaFlags">Labs</string>
+
+    <string name="action_notNow">Not Now</string>
+    <string name="title_createAccountToJoinRooms">Create an Account to Join Flipchats</string>
+    <string name="action_purchaseAccount">Purchase Your Account</string>
+    <string name="title_newAccountsCost">New accounts cost %1$s</string>
+    <string name="title_finalizeAccountCreation">Finalize Account Creation</string>
+    <string name="subtitle_finalizeAccountCreation">Accounts on Flipchat must be purchased for %1$s to reduce spam</string>
+    <string name="action_changeCoverCharge">Change Cover Charge</string>
+    <string name="action_changeMessagingFee">Change Listener Message Fee</string>
+    <string name="action_addRoomName">Add Flipchat Name</string>
+    <string name="action_editRoomName">Edit Flipchat Name</string>
+    <string name="action_changeRoomName">Change Flipchat Name</string>
+    <string name="action_changeRoomDescription">Change Flipchat Description</string>
+    <string name="action_customize">Customize</string>
+    <string name="action_customizeRoom">Customize Flipchat</string>
+    <string name="action_leaveRoom">Leave This Flipchat</string>
+    <string name="action_shareRoomLinkAsHost">Share a Link to Your Flipchat</string>
+    <string name="action_shareRoomLinkAsMember">Share a Link to This Flipchat</string>
+
+    <string name="action_deleteMyAccount">Delete My Account</string>
+    <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
+    <string name="prompt_description_deleteAccount">This will permanently delete your Flipchat account</string>
+    <string name="action_permanentlyDeleteAccount">Permanently Delete My Account</string>
+
+    <string name="subtitle_balance">Balance: ⬢ %1$s</string>
+    <string name="subtitle_you">You</string>
+
+    <string name="subtitle_updateRequiredDescription">We\'ve made some changes to improve the experience. You\'ll need to update the app to keep using Flipchat.</string>
+    <string name="action_connectYourAccount">Connect Your Account</string>
+
+    <string name="prompt_title_disconnectSocialAccount">Disconnect Your %1$s Account?</string>
+    <string name="prompt_description_disconnectSocialAccount">You will no longer have a profile picture or connected %1$s account</string>
+    <string name="action_disconnectSocialAccount">Disconnect %1$s Account</string>
+
+    <string name="action_openProfileOnPlatform">Open Profile on %1$s</string>
+</resources>

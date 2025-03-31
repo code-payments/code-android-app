@@ -11,10 +11,9 @@ env:
   JAVA_VERSION: 17
 
 jobs:
-  unit-tests:
-    name: Unit tests
+  code-tests:
+    name: Run Code Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
     steps:
       - uses: actions/checkout@master
 
@@ -38,7 +37,7 @@ jobs:
           fileName: google-services.json
           fileDir: ./app/src
           encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          
+
       - name: Setup BugSnag API Key
         run: echo BUGSNAG_API_KEY=\"${{ secrets.BUGSNAG_API_KEY }}\" > ./local.properties
 
@@ -54,5 +53,50 @@ jobs:
       - name: Setup Mixpanel API Key
         run: echo MIXPANEL_API_KEY=\"${{ secrets.MIXPANEL_API_KEY }}\" >> ./local.properties
 
-      - name: Run tests
-        run: bundle exec fastlane android test
+      - name: Run Code tests
+        run: bundle exec fastlane android code_tests
+
+  fc-tests:
+    name: Run Flipchat Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Setup Java env
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+      - name: Setup Ruby env
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7.2
+          bundler-cache: true
+
+      - name: Decode Google Services JSON file
+        uses: timheuer/base64-to-file@v1
+        id: google_services_json_file
+        with:
+          fileName: google-services.json
+          fileDir: ./flipchatApp/src
+          encodedString: ${{ secrets.FLIPCHAT_GOOGLE_SERVICES_JSON }}
+
+      - name: Setup BugSnag API Key
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCHAT_BUGSNAG_API_KEY }}\" > ./local.properties
+
+      - name: Setup Fingerprint API Key
+        run: echo FINGERPRINT_API_KEY=${{ secrets.FINGERPRINT_API_KEY }} >> ./local.properties
+
+      - name: Setup Google Cloud Project Number
+        run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
+
+      - name: Setup Kado API Key
+        run: echo KADO_API_KEY=\"${{ secrets.KADO_API_KEY }}\" >> ./local.properties
+
+      - name: Setup Mixpanel API Key
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
+
+      - name: Run Code tests
+        run: bundle exec fastlane android fc_tests

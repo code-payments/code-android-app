@@ -6,10 +6,10 @@ export NOTIFY_ERRORS=true
 export DEBUG_MINIFY=true
 export DEBUG_CRASHLYTICS_UPLOAD=true
 
-./gradlew assembleDebug
+./gradlew :flipchatApp:assembleDebug
 
-outputDir="$(pwd)/app/build/outputs/apk/debug"
-mv "${outputDir}/app-debug.apk" "${outputDir}/app-${date}-debug.apk"
+outputDir="$(pwd)/flipchatApp/build/outputs/apk/debug"
+mv "${outputDir}/flipchatApp-debug.apk" "${outputDir}/flipchatApp-${date}-debug.apk"
 
 unset NOTIFY_ERRORS
 unset DEBUG_MINIFY

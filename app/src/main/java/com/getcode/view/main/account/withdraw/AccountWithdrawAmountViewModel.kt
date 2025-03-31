@@ -11,12 +11,9 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
+import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountUiModel
 import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
 import com.getcode.view.main.giveKin.CurrencyUiModel
@@ -42,9 +39,9 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
     transactionRepository: TransactionRepository,
-    localeHelper: LocaleHelper,
-    currencyUtils: CurrencyUtils,
-    networkObserver: NetworkConnectivityListener,
+    localeHelper: com.getcode.util.locale.LocaleHelper,
+    currencyUtils: com.getcode.utils.CurrencyUtils,
+    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
     resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,

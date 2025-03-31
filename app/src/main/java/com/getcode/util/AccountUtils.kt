@@ -86,7 +86,10 @@ object AccountUtils {
         val am: AccountManager = AccountManager.get(context)
         val account = am.getAccountsByType(ACCOUNT_TYPE).firstOrNull()
         if (account == null) {
-            trace("no associated account found", type = TraceType.Error)
+            trace(
+                "no associated account found",
+                type = TraceType.Error
+            )
             cont.resume(null)
             return@suspendCancellableCoroutine
         }
@@ -103,7 +106,11 @@ object AccountUtils {
 
                     cont.resume(authToken.orEmpty() to account)
                 } catch (e: AuthenticatorException) {
-                    trace(message = "failed to read account", error = e, type = TraceType.Error)
+                    trace(
+                        message = "failed to read account",
+                        error = e,
+                        type = TraceType.Error
+                    )
                     cont.resume(null)
                 }
             }, handler

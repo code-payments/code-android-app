@@ -59,16 +59,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
 import com.getcode.util.PhoneUtils
 import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
 import com.google.android.gms.auth.api.identity.Identity
 import kotlinx.coroutines.delay
@@ -200,7 +199,7 @@ private fun PhoneEntry(
         modifier = modifier
             .border(
                 width = CodeTheme.dimens.border,
-                color = BrandLight,
+                color = CodeTheme.colors.brandLight,
                 shape = CodeTheme.shapes.extraSmall
             )
             .background(White05)
@@ -247,7 +246,7 @@ private fun PhoneEntry(
         }
         Spacer(
             modifier = Modifier
-                .background(BrandLight)
+                .background(CodeTheme.colors.brandLight)
                 .width(1.dp)
                 .fillMaxHeight()
         )

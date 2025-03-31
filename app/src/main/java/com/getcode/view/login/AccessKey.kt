@@ -30,7 +30,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
@@ -44,7 +43,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.LocalTopBarPadding
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
@@ -52,19 +50,19 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.ui.components.ButtonState
+import com.getcode.ui.LocalTopBarPadding
+import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.components.Cloudy
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.PermissionResult
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.SelectionContainer
-import com.getcode.ui.components.getPermissionLauncher
-import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.addIf
+import com.getcode.ui.core.measured
 import com.getcode.util.launchAppSettings
+import com.getcode.util.permissions.PermissionResult
+import com.getcode.util.permissions.getPermissionLauncher
+import com.getcode.util.permissions.rememberPermissionHandler
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Preview
 @Composable
 fun AccessKey(
@@ -98,7 +96,7 @@ fun AccessKey(
     }
 
     val launcher = getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
-    val permissionChecker = rememberPermissionChecker()
+    val permissionChecker = rememberPermissionHandler()
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
         viewModel.onSubmit(navigator, true)

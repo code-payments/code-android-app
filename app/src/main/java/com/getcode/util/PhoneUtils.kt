@@ -2,13 +2,10 @@ package com.getcode.util
 
 import android.content.Context
 import android.telephony.PhoneNumberUtils
-import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.staticCompositionLocalOf
-import com.getcode.App
+import com.getcode.utils.CurrencyUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.michaelrocks.libphonenumber.android.NumberParseException
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
-import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton

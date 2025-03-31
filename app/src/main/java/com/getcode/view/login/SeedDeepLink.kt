@@ -16,18 +16,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.AppHomeScreen
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
-import com.getcode.network.repository.decodeBase64
-import com.getcode.network.repository.encodeBase64
-import com.getcode.vendor.Base58
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.utils.decodeBase64
+import com.getcode.utils.encodeBase64
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 
 @Preview
@@ -42,7 +42,7 @@ fun SeedDeepLink(
     val authState by SessionManager.authState.collectAsState()
 
     fun navigateMain() {
-        navigator.replaceAll(ScanScreen())
+        navigator.replaceAll(AppHomeScreen())
     }
     fun navigateLogin() = navigator.replace(LoginScreen())
 
@@ -53,7 +53,8 @@ fun SeedDeepLink(
             navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
         }
     }
-    val notificationPermissionCheck = notificationPermissionCheck { onNotificationResult(it) }
+    val notificationPermissionCheck =
+        com.getcode.util.permissions.notificationPermissionCheck { onNotificationResult(it) }
 
     fun onError() {
         TopBarManager.showMessage(

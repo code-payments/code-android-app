@@ -3,26 +3,27 @@ package com.getcode.view.login
 import android.annotation.SuppressLint
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import com.codeinc.gen.phone.v1.PhoneVerificationService
-import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.AccessKeyScreen
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.PhoneNumberScreen
+import com.getcode.network.repository.CheckVerificationResult
 import com.getcode.network.repository.IdentityRepository
+import com.getcode.network.repository.LinkAccountResult
+import com.getcode.network.repository.OtpVerificationResult
 import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.encodeBase64
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.encodeBase64
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -66,7 +67,7 @@ class PhoneConfirmViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
 ) : BaseViewModel(resources) {
 
     companion object {
@@ -194,12 +195,14 @@ class PhoneConfirmViewModel @Inject constructor(
                 .doOnTerminate { setIsResending(false) }
                 .doOnComplete { setIsResending(false) }
                 .observeOn(AndroidSchedulers.mainThread())
-                .map { res ->
-                    when (res) {
-                        PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
-                        else -> getGenericError()
-                    }?.let { message -> TopBarManager.showMessage(message) }
-                    res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
+                .map { result ->
+                    when (result) {
+                       is OtpVerificationResult.Error -> {
+                            TopBarManager.showMessage(getGenericError())
+                            false
+                        }
+                        OtpVerificationResult.Success -> true
+                    }
                 }
                 .subscribe({  startTimer() }, ErrorUtils::handleError)
         }
@@ -217,17 +220,19 @@ class PhoneConfirmViewModel @Inject constructor(
             phoneRepository.checkVerificationCode(phoneNumber, otpInput)
                 .map { res ->
                     when (res) {
-                        PhoneVerificationService.CheckVerificationCodeResponse.Result.OK -> null
-                        PhoneVerificationService.CheckVerificationCodeResponse.Result.INVALID_CODE ->
-                            getInvalidCodeError()
+                        CheckVerificationResult.Error.InvalidCode -> {
+                            TopBarManager.showMessage(getInvalidCodeError())
+                        }
+                        CheckVerificationResult.Error.NoVerification -> {
+                            TopBarManager.showMessage(getTimeoutError())
+                        }
+                        is CheckVerificationResult.Error -> {
+                            TopBarManager.showMessage(getGenericError())
+                        }
+                        CheckVerificationResult.Success -> Unit
+                    }
 
-                        PhoneVerificationService.CheckVerificationCodeResponse.Result.NO_VERIFICATION ->
-                            getTimeoutError()
-
-                        else ->
-                            getGenericError()
-                    }?.let { message -> TopBarManager.showMessage(message) }
-                    res == PhoneVerificationService.CheckVerificationCodeResponse.Result.OK
+                    res == CheckVerificationResult.Success
                 }.firstOrError()
                 .doOnSuccess { isSuccess -> if (isSuccess) onOtpValidated() else onOtpError() }
         }
@@ -241,14 +246,11 @@ class PhoneConfirmViewModel @Inject constructor(
         return identityRepository.linkAccount(keyPair, phoneValue, code)
             .map { res ->
                 when (res) {
-                    IdentityService.LinkAccountResponse.Result.OK -> null
-                    IdentityService.LinkAccountResponse.Result.INVALID_TOKEN ->
-                        getInvalidCodeError()
-
-                    else ->
-                        getGenericError()
-                }?.let { message -> TopBarManager.showMessage(message) }
-                res == IdentityService.LinkAccountResponse.Result.OK
+                    LinkAccountResult.Error.InvalidCode -> TopBarManager.showMessage(getInvalidCodeError())
+                    is LinkAccountResult.Error -> getGenericError()
+                    LinkAccountResult.Success -> Unit
+                }
+                res == LinkAccountResult.Success
             }
     }
 

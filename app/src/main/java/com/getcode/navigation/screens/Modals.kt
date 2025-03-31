@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.LocalBetaFlags
-import com.getcode.MainRoot
 import com.getcode.TopLevelViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -33,14 +32,11 @@ import com.getcode.ui.components.SheetTitle
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.keyboardAsState
-import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.navigation.modal.ModalHeightMetric
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-sealed interface ModalHeightMetric {
-    data class Weight(val weight: Float) : ModalHeightMetric
-    data object WrapContent : ModalHeightMetric
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -121,7 +117,7 @@ internal fun NamedScreen.ModalContainer(
             modifier = Modifier
                 .windowInsetsPadding(WindowInsets.navigationBars)
         ) {
-            val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
+            val tlvm = getActivityScopedViewModel<TopLevelViewModel>()
             val state by tlvm.state.collectAsState()
             CompositionLocalProvider(
                 LocalOverscrollConfiguration provides null,
@@ -132,6 +128,3 @@ internal fun NamedScreen.ModalContainer(
         }
     }
 }
-
-internal interface ModalContent
-internal sealed interface ModalRoot : ModalContent

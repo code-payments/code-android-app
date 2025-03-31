@@ -3,7 +3,6 @@ package com.getcode
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,13 +16,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -35,19 +32,20 @@ import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.transitions.SheetSlideTransition
-import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.AuthCheck
 import com.getcode.ui.components.bars.BottomBarContainer
-import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.ModalContainer
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.TitleBar
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.modals.ConfirmationModals
 import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.getActivityScopedViewModel
-import com.getcode.ui.utils.measured
+import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.ui.LocalTopBarPadding
+import com.getcode.ui.theme.CodeTheme
+import com.getcode.ui.core.measured
 import com.getcode.ui.utils.rememberBiometricsState
 import com.getcode.util.BiometricsError
 import com.getcode.view.main.scanner.views.BiometricsBlockingView
@@ -56,7 +54,7 @@ import dev.bmcreations.tipkit.engines.TipsEngine
 
 @Composable
 fun CodeApp(tipsEngine: TipsEngine) {
-    val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
+    val tlvm = getActivityScopedViewModel<TopLevelViewModel>()
     val state by tlvm.state.collectAsState()
     val activity = LocalContext.current.getActivity()
     val biometricsState = rememberBiometricsState(
@@ -100,9 +98,10 @@ fun CodeApp(tipsEngine: TipsEngine) {
 
                             val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
                             if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
-                                TitleBar(
+                                AppBarWithTitle(
                                     modifier = Modifier.measured { topBarHeight = it.height },
                                     title = appState.currentTitle,
+                                    titleAlignment = Alignment.CenterHorizontally,
                                     backButton = isVisibleBackButton,
                                     onBackIconClicked = appState::upPress
                                 )
@@ -156,8 +155,8 @@ fun CodeApp(tipsEngine: TipsEngine) {
             }
         }
         BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
-        TopBarContainer(appState)
-        BottomBarContainer(appState)
+        TopBarContainer(appState.barMessages)
+        BottomBarContainer(appState.barMessages)
         ConfirmationModals(Modifier.fillMaxSize())
     }
 }
@@ -181,7 +180,8 @@ private fun AppNavHost(content: @Composable () -> Unit) {
                 }
             }
 
-        }
+        },
+        onHide = com.getcode.services.manager.ModalManager::clear
     ) { sheetNav ->
         combinedNavigator =
             combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)
@@ -205,20 +205,4 @@ private fun CrossfadeTransition(
         content = content,
         transition = { fadeIn() togetherWith fadeOut() }
     )
-}
-
-internal data object MainRoot : Screen {
-
-    override val key: ScreenKey = uniqueScreenKey
-
-    private fun readResolve(): Any = this
-
-    @Composable
-    override fun Content() {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(CodeTheme.colors.background)
-        )
-    }
 }

@@ -5,20 +5,20 @@ import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Reference
+import com.getcode.model.chat.Sender
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
-import com.getcode.network.ConversationController
 import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
-import com.getcode.network.repository.base58
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ChatMessageIndice
 import com.getcode.util.formatDateRelatively
 import com.getcode.util.toInstantFromMillis
+import com.getcode.utils.base58
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +41,6 @@ import javax.inject.Inject
 @HiltViewModel
 class NotificationCollectionViewModel @Inject constructor(
     historyController: NotificationCollectionHistoryController,
-    conversationController: ConversationController,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<NotificationCollectionViewModel.State, NotificationCollectionViewModel.Event>(
     initialState = State(
@@ -160,30 +159,26 @@ class NotificationCollectionViewModel @Inject constructor(
         }
         .mapLatest { page ->
             page.map { (message, contents) ->
-                val content =
-                    if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
-                        val hasMessaged = conversationController.hasInteracted(message.id)
-                        contents.copy(hasInteracted = hasMessaged)
-                    } else {
-                        contents
-                    }
-
                 ChatItem.Message(
                     chatMessageId = message.id,
-                    message = content,
+                    message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
-                    status = if (message.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
-                    isFromSelf = message.isFromSelf
+                    status = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
+                    sender = Sender(
+                        id = null,
+                        name = null,
+                        profileImageUrl = null,
+                        isHost = false,
+                        isSelf = contents.isFromSelf,
+
+                    )
                 )
             }
         }
         .mapLatest { page ->
             page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
-                val beforeDate = before?.date?.formatDateRelatively()
-                val afterDate = after?.date?.formatDateRelatively()
-
-                if (beforeDate != afterDate) {
-                    beforeDate?.let { ChatItem.Date(it) }
+                if (before?.date != after?.date) {
+                    before?.date?.let { ChatItem.Date(it) }
                 } else {
                     null
                 }

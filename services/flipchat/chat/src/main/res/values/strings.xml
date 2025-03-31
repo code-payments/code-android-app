@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_implicitRoomTitle">Room #%1$s</string>
+    <string name="title_implicitRoomTitleWithoutPrefix">#%1$s</string>
+    <string name="title_explicitRoomTitle">#%1$s: %2$s</string>
+</resources>

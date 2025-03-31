@@ -20,20 +20,18 @@ plugins {
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
 
 android {
-    namespace = Android.namespace
+    // static namespace
+    namespace = Android.codeNamespace
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        applicationId = Android.namespace
         versionCode = versioning.getVersionCode()
-        versionName = Packaging.versionName
-
+        versionName = Packaging.Code.versionName
+        applicationId = Android.codeNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-
-        resValue("string", "applicationId", Android.namespace)
 
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
         buildConfigField("String", "KADO_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "KADO_API_KEY")}\"")
@@ -60,12 +58,14 @@ android {
 
     buildTypes {
         getByName("release") {
+            resValue("string", "applicationId", Android.codeNamespace)
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
+            resValue("string", "applicationId", "${Android.codeNamespace}.dev")
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanLenient() ?: false
@@ -100,8 +100,6 @@ android {
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlin.RequiresOptIn"
         )
     }
@@ -115,12 +113,24 @@ android {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
-    implementation(project(":api"))
-    implementation(project(":crypto:ed25519"))
-    implementation(project(":crypto:kin"))
-    implementation(project(":common:components"))
-    implementation(project(":common:resources"))
-    implementation(project(":common:theme"))
+    // libs (not included with services)
+    implementation(project(":libs:locale"))
+    implementation(project(":libs:vibrator"))
+    implementation(project(":libs:messaging"))
+    implementation(project(":libs:permissions"))
+    implementation(project(":libs:quickresponse"))
+    implementation(project(":libs:requests"))
+
+    // code services
+    implementation(project(":services:code"))
+
+    // ui components
+    implementation(project(":ui:components"))
+    implementation(project(":ui:navigation"))
+    implementation(project(":ui:resources"))
+    implementation(project(":ui:theme"))
+
+    // tipkit
     implementation(project(":vendor:tipkit:tipkit-m2"))
 
     coreLibraryDesugaring(Libs.android_desugaring)
@@ -128,7 +138,6 @@ dependencies {
     //standard libraries
     implementation(Libs.kotlinx_collections_immutable)
     implementation(Libs.kotlinx_serialization_json)
-    implementation(Libs.kotlinx_datetime)
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)
@@ -138,7 +147,7 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
-    implementation("androidx.webkit:webkit:1.11.0")
+    implementation("androidx.webkit:webkit:1.12.1")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
     androidTestImplementation(Libs.hilt)
@@ -152,8 +161,6 @@ dependencies {
     //Jetpack compose
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
-    debugImplementation(Libs.compose_ui_tools)
-    implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_accompanist)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
@@ -163,10 +170,6 @@ dependencies {
     implementation(Libs.compose_livedata)
     implementation(Libs.compose_navigation)
     implementation(Libs.compose_paging)
-    implementation(Libs.compose_voyager_navigation)
-    implementation(Libs.compose_voyager_navigation_transitions)
-    implementation(Libs.compose_voyager_navigation_bottomsheet)
-    implementation(Libs.compose_voyager_navigation_hilt)
     implementation(Libs.compose_webview)
 
     implementation(Libs.androidx_biometrics)
@@ -185,9 +188,6 @@ dependencies {
     implementation(Libs.androidx_browser)
     implementation(Libs.androidx_constraint_layout_compose)
 
-    implementation(Libs.rxjava)
-    implementation(Libs.rxandroid)
-
     implementation(Libs.slf4j)
     implementation(Libs.grpc_android)
 
@@ -199,14 +199,11 @@ dependencies {
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)
     implementation(Libs.mp_android_chart)
-    implementation(Libs.zxing)
     implementation(Libs.mixpanel)
 
     implementation(Libs.retrofit)
     implementation(Libs.retrofit_converter)
     implementation(Libs.okhttp_logging_interceptor)
-
-    implementation(Libs.cloudy)
 
     androidTestImplementation(Libs.androidx_test_runner)
     androidTestImplementation(Libs.androidx_junit)

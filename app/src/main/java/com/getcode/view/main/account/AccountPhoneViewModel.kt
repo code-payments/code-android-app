@@ -1,12 +1,12 @@
 package com.getcode.view.main.account
 
-import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.manager.SessionManager
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
+import com.getcode.network.repository.UnlinkAccountResult
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.makeE164
+import com.getcode.services.utils.makeE164
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,9 +45,10 @@ class AccountPhoneViewModel @Inject constructor(
             ?.filter { it.isDigit() }?.makeE164()  ?: return
 
         identityRepository.unlinkAccount(keyPair, phoneNumber).subscribe { result ->
-            if (result == IdentityService.UnlinkAccountResponse.Result.OK)
+            if (result is UnlinkAccountResult.Success) {
                 phoneRepository.phoneLinked.value = false
-            uiFlow.value = AccountPhoneUiModel(false, null)
+                uiFlow.value = AccountPhoneUiModel(false, null)
+            }
         }
     }
 }

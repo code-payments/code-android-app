@@ -2,7 +2,6 @@ package com.getcode.util
 
 import android.content.ComponentName
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsClient

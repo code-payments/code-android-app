@@ -18,18 +18,17 @@ import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.services.utils.installationId
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
+import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.installationId
 import com.getcode.utils.trace
 import com.getcode.view.MainActivity
 import com.google.firebase.Firebase
@@ -77,9 +76,6 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var notificationHistory: NotificationCollectionHistoryController
 
     @Inject
-    lateinit var chatHistory: ChatHistoryController
-
-    @Inject
     lateinit var tipController: TipController
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -106,14 +102,16 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 val (type, titleKey, messageContent) = notification
                 if (type.isNotifiable()) {
                     val title = titleKey.localizedStringByKey(resources) ?: titleKey
-                    val body = messageContent.localizedText(title, resources, currencyUtils)
+                    val body = messageContent.localizedText(
+                        resources = resources,
+                        currencyUtils = currencyUtils
+                    )
                     notify(type, title, body)
                 }
 
                 when (type) {
                     NotificationType.ChatMessage -> {
                         launch { notificationHistory.fetch() }
-                        launch { chatHistory.fetch() }
                         launch { balanceController.fetchBalanceSuspend() }
                     }
 

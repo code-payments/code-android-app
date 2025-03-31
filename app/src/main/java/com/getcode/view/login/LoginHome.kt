@@ -23,18 +23,15 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import com.getcode.util.ChromeTabsUtils
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.ImageWithBackground
-
-
+import com.getcode.util.ChromeTabsUtils
 
 @Composable
 fun LoginHome(
@@ -109,7 +106,7 @@ fun LoginHome(
                 append(" ")
                 append(stringResource(R.string.login_description_agreeToOur))
                 append(" ")
-                pushStringAnnotation(tag = "tos", annotation = "https://app.getcode.com/tos")
+                pushStringAnnotation(tag = "tos", annotation = stringResource(R.string.app_privacy_policy))
                 withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
                     append(stringResource(R.string.title_termsOfService))
                 }
@@ -119,7 +116,7 @@ fun LoginHome(
                 append(" ")
                 pushStringAnnotation(
                     tag = "policy",
-                    annotation = "https://app.getcode.com/privacy-policy"
+                    annotation = stringResource(R.string.app_privacy_policy)
                 )
                 withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
                     append(stringResource(R.string.title_privacyPolicy))
@@ -158,16 +155,5 @@ fun LoginHome(
         focusManager.clearFocus()
         analytics.onAppStarted()
 
-    }
-}
-
-@Preview
-@Composable
-private fun Preview_Login() {
-    CodeTheme {
-        LoginHome(
-            createAccount = {  },
-            login = {}
-        )
     }
 }

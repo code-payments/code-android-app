@@ -130,7 +130,7 @@ object TipDefaults {
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
                 ) {
-                    Divider(color = BrandLight)
+                    Divider(color = CodeTheme.colors.brandLight)
                     tip.actions().onEach {
                         Text(
                             modifier = Modifier

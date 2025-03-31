@@ -6,31 +6,31 @@ import com.bugsnag.android.Bugsnag
 import com.getcode.BuildConfig
 import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.db.Database
+import com.getcode.db.CodeAppDatabase
 import com.getcode.db.InMemoryDao
 import com.getcode.model.AirdropType
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
+import com.getcode.services.model.PrefsBool
+import com.getcode.services.model.PrefsString
 import com.getcode.model.description
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.PushRepository
-import com.getcode.network.repository.encodeBase64
-import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
+import com.getcode.services.db.Database
+import com.getcode.services.utils.installationId
+import com.getcode.services.utils.makeE164
+import com.getcode.services.utils.token
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.installationId
-import com.getcode.utils.makeE164
+import com.getcode.utils.encodeBase64
+import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
-import com.getcode.utils.token
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
@@ -60,10 +60,9 @@ class AuthManager @Inject constructor(
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val notificationCollectionHistory: NotificationCollectionHistoryController,
-    private val chatHistory: ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
@@ -104,8 +103,9 @@ class AuthManager @Inject constructor(
         return Single.create {
             softLoginDisabled = true
 
-            if (!Database.isOpen()) {
-                Database.init(context, entropyB64)
+            if (!CodeAppDatabase.isOpen()) {
+                CodeAppDatabase.init(context, entropyB64)
+                Database.register(CodeAppDatabase.requireInstance())
             }
 
             val originalSessionState = SessionManager.authState.value
@@ -137,8 +137,9 @@ class AuthManager @Inject constructor(
         return Single.create {
             if (!isSoftLogin) softLoginDisabled = true
 
-            if (!Database.isOpen()) {
-                Database.init(context, entropyB64)
+            if (!CodeAppDatabase.isOpen()) {
+                CodeAppDatabase.init(context, entropyB64)
+                Database.register(CodeAppDatabase.requireInstance())
             }
 
             val originalSessionState = SessionManager.authState.value
@@ -291,7 +292,6 @@ class AuthManager @Inject constructor(
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { notificationCollectionHistory.fetch() }
-                launch { chatHistory.fetch() }
             }
     }
 
@@ -312,7 +312,7 @@ class AuthManager @Inject constructor(
         Database.close()
         notificationCollectionHistory.reset()
         inMemoryDao.clear()
-        Database.delete(context)
+        launch { Database.delete(context) }
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

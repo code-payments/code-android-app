@@ -2,9 +2,9 @@ package com.getcode.view.main.account
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
+import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.media.MediaScanner
-import com.getcode.manager.MnemonicManager
-import com.getcode.navigation.core.CodeNavigator
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.login.BaseAccessKeyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +23,8 @@ class AccountAccessKeyViewModel @Inject constructor(
     resources: ResourceHelper,
     mnemonicManager: MnemonicManager,
     mediaScanner: MediaScanner,
-) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
+    qrCodeGenerator: QRCodeGenerator,
+) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, qrCodeGenerator) {
     @SuppressLint("CheckResult")
     fun onSubmit() {
         Completable.create {

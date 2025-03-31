@@ -46,7 +46,6 @@ import com.getcode.SessionController
 import com.getcode.LocalBiometricsState
 import com.getcode.PresentationStyle
 import com.getcode.R
-import com.getcode.RestrictionType
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.models.DeepLinkRequest
@@ -54,27 +53,26 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
-import com.getcode.navigation.screens.ChatListModal
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.PermissionResult
-import com.getcode.ui.components.getPermissionLauncher
-import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.ui.utils.measured
+import com.getcode.ui.core.measured
 import com.getcode.util.launchAppSettings
-import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.bill.BillManagementOptions
 import com.getcode.view.main.scanner.views.CameraDisabledView
 import com.getcode.view.main.scanner.camera.CodeScanner
 import com.getcode.view.main.bill.HomeBill
 import com.getcode.view.main.scanner.views.CameraPermissionsMissingView
 import com.getcode.ui.modals.ReceivedKinConfirmation
-import com.getcode.view.main.scanner.views.HomeRestricted
+import com.getcode.util.permissions.PermissionResult
+import com.getcode.util.permissions.getPermissionLauncher
+import com.getcode.util.permissions.rememberPermissionHandler
+import com.getcode.ui.components.restrictions.ContentRestrictedView
+import com.getcode.ui.core.RestrictionType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -91,7 +89,6 @@ enum class UiElement {
     BALANCE,
     SHARE_DOWNLOAD,
     TIP_CARD,
-    CHAT,
     GALLERY
 }
 
@@ -108,7 +105,7 @@ fun ScanScreen(
         RestrictionType.ACCESS_EXPIRED,
         RestrictionType.FORCE_UPGRADE,
         RestrictionType.TIMELOCK_UNLOCKED -> {
-            HomeRestricted(restrictionType) {
+            ContentRestrictedView(restrictionType) {
                 session.logout(it)
             }
         }
@@ -121,7 +118,8 @@ fun ScanScreen(
                 request = request,
             )
 
-            val notificationPermissionChecker = notificationPermissionCheck { }
+            val notificationPermissionChecker =
+                com.getcode.util.permissions.notificationPermissionCheck { }
             val context = LocalContext.current
             LaunchedEffect(session) {
                 session.eventFlow
@@ -231,7 +229,6 @@ private fun ScannerContent(
                     }
                 }
 
-                UiElement.CHAT -> navigator.show(ChatListModal)
                 UiElement.GALLERY -> {
                     pickPhoto.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -348,7 +345,7 @@ private fun BillContainer(
 
     val cameraPermissionLauncher = getPermissionLauncher(Manifest.permission.CAMERA, onPermissionResult)
 
-    val permissionChecker = rememberPermissionChecker()
+    val permissionChecker = rememberPermissionHandler()
 
     val checkPermission = { shouldRequest: Boolean ->
         permissionChecker.request(

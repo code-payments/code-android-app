@@ -1,6 +1,6 @@
 package com.getcode.models
 
-import com.getcode.model.AppSetting
+import com.getcode.services.model.AppSetting
 
 data class SettingItem(
     val type: AppSetting,

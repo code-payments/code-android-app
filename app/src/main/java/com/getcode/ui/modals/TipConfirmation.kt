@@ -21,24 +21,25 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.error
-import com.getcode.R
 import com.getcode.model.TwitterUser
 import com.getcode.models.ConfirmationState
 import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White10
 import com.getcode.theme.bolded
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.Modal
+import com.getcode.ui.components.PriceWithFlag
+import com.getcode.ui.components.R
 import com.getcode.ui.components.SlideToConfirm
+import com.getcode.ui.components.SlideToConfirmDefaults
 import com.getcode.ui.components.TwitterUsernameDisplay
-import com.getcode.view.main.scanner.components.PriceWithFlag
 
 @Composable
-internal fun TipConfirmation(
+fun TipConfirmation(
     modifier: Modifier = Modifier,
     confirmation: SocialUserPaymentConfirmation?,
+    trackColor: Color = SlideToConfirmDefaults.ThemedColor,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -79,7 +80,7 @@ internal fun TipConfirmation(
 
         Divider(
             modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x8),
-            color = White10,
+            color = CodeTheme.colors.divider,
         )
 
         val amount by remember(confirmation?.amount) {
@@ -103,6 +104,7 @@ internal fun TipConfirmation(
         SlideToConfirm(
             isLoading = isSending,
             isSuccess = state is ConfirmationState.Sent,
+            trackColor = trackColor,
             onConfirm = { onSend() },
             label = stringResource(R.string.action_swipeToTip)
         )

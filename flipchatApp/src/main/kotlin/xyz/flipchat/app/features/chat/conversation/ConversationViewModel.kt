@@ -1,0 +1,1852 @@
+package xyz.flipchat.app.features.chat.conversation
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.insertSeparators
+import androidx.paging.map
+import com.getcode.libs.emojis.EmojiUsageController
+import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
+import com.getcode.model.ID
+import com.getcode.model.Kin
+import com.getcode.model.KinAmount
+import com.getcode.model.chat.Deleter
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.MessageStatus
+import com.getcode.model.chat.Sender
+import com.getcode.model.uuid
+import com.getcode.navigation.RoomInfoArgs
+import com.getcode.services.model.ExtendedMetadata
+import com.getcode.ui.components.chat.messagecontents.MessageContextAction
+import com.getcode.ui.components.chat.messagecontents.MessageControls
+import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.MessageReaction
+import com.getcode.ui.components.chat.utils.MessageTip
+import com.getcode.ui.components.chat.utils.ReplyMessageAnchor
+import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.toInstantFromMillis
+import com.getcode.utils.CurrencyUtils
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.SuppressibleException
+import com.getcode.utils.TraceType
+import com.getcode.utils.base58
+import com.getcode.utils.network.retryable
+import com.getcode.utils.timestamp
+import com.getcode.utils.trace
+import com.getcode.view.BaseViewModel2
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import timber.log.Timber
+import xyz.flipchat.app.R
+import xyz.flipchat.app.beta.Lab
+import xyz.flipchat.app.beta.Labs
+import xyz.flipchat.app.features.login.register.onError
+import xyz.flipchat.app.features.login.register.onResult
+import xyz.flipchat.app.util.IntentUtils
+import xyz.flipchat.chat.RoomController
+import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.controllers.ProfileController
+import xyz.flipchat.services.PaymentController
+import xyz.flipchat.services.PaymentEvent
+import xyz.flipchat.services.data.metadata.JoinChatPaymentMetadata
+import xyz.flipchat.services.data.metadata.SendMessageAsListenerPaymentMetadata
+import xyz.flipchat.services.data.metadata.SendTipMessagePaymentMetadata
+import xyz.flipchat.services.data.metadata.erased
+import xyz.flipchat.services.data.metadata.typeUrl
+import xyz.flipchat.services.domain.model.chat.ConversationMemberWithLinkedSocialProfiles
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
+import xyz.flipchat.services.domain.model.people.FlipchatUserWithSocialProfiles
+import xyz.flipchat.services.domain.model.profile.toLinked
+import xyz.flipchat.services.extensions.titleOrFallback
+import xyz.flipchat.services.internal.data.mapper.nullIfEmpty
+import xyz.flipchat.services.internal.network.service.PromoteUserError
+import xyz.flipchat.services.user.AuthState
+import xyz.flipchat.services.user.TypingNotificationsConstraints
+import xyz.flipchat.services.user.UserManager
+import java.util.UUID
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
+
+sealed interface CreateAccountRequest {
+    data object JoinRoom : CreateAccountRequest
+    data object SendMessage : CreateAccountRequest
+}
+
+data class TypingConstraints(
+    val enabled: Boolean = false,
+    val canSendAsListener: Boolean = false,
+    val interval: Long = 3_000,
+    val timeout: Long = 5_000
+)
+
+@HiltViewModel
+class ConversationViewModel @Inject constructor(
+    private val userManager: UserManager,
+    private val roomController: RoomController,
+    private val chatsController: ChatsController,
+    private val paymentController: PaymentController,
+    private val profileController: ProfileController,
+    private val resources: ResourceHelper,
+    private val currencyUtils: CurrencyUtils,
+    clipboardManager: ClipboardManager,
+    betaFeatures: Labs,
+) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
+    initialState = State.Default,
+    updateStateForEvent = updateStateForEvent
+) {
+    private var stopTypingJob: Job? = null
+    private var typingStillJob: Job? = null
+
+    data class State(
+        val selfId: ID?,
+        val selfName: String?,
+        val hostId: ID?,
+        val conversationId: ID?,
+        val unreadCount: Int?,
+        val chattableState: ChattableState?,
+        val textFieldState: TextFieldState,
+        val replyEnabled: Boolean,
+        val replyMessage: MessageReplyAnchor?,
+        val startAtUnread: Boolean,
+        val unreadStateHandled: Boolean,
+        val title: String,
+        val imageUri: String?,
+        val lastSeen: Instant?,
+        val members: Int?,
+        val listeners: Int?,
+        val pointers: Map<UUID, MessageStatus?>,
+        val pointerRefs: Map<Long, MessageStatus>,
+        val otherUsersTyping: List<Any>,
+        val isSelfTyping: Boolean,
+        val typingConstraints: TypingConstraints,
+        val isRoomOpen: Boolean,
+        val isOpenCloseEnabled: Boolean,
+        val isTippingEnabled: Boolean,
+        val isLinkImagePreviewsEnabled: Boolean,
+        val canClickUserAvatars: Boolean,
+        val showConnectedSocials: Boolean,
+        val canReactToMessages: Boolean,
+        val roomInfoArgs: RoomInfoArgs,
+        val lastReadMessage: UUID?,
+        val createAccountRequest: CreateAccountRequest?,
+    ) {
+        val isHost: Boolean
+            get() = selfId != null && hostId != null && selfId == hostId
+
+        companion object {
+            val Default = State(
+                selfId = null,
+                selfName = null,
+                hostId = null,
+                imageUri = null,
+                conversationId = null,
+                unreadCount = null,
+                unreadStateHandled = false,
+                chattableState = null,
+                lastReadMessage = null,
+                textFieldState = TextFieldState(),
+                replyEnabled = false,
+                startAtUnread = false,
+                replyMessage = null,
+                title = "",
+                lastSeen = null,
+                pointers = emptyMap(),
+                pointerRefs = emptyMap(),
+                members = null,
+                listeners = null,
+                otherUsersTyping = emptyList(),
+                isSelfTyping = false,
+                typingConstraints = TypingConstraints(),
+                isRoomOpen = true,
+                isOpenCloseEnabled = false,
+                isTippingEnabled = false,
+                isLinkImagePreviewsEnabled = false,
+                canClickUserAvatars = false,
+                showConnectedSocials = false,
+                canReactToMessages = false,
+                roomInfoArgs = RoomInfoArgs(),
+                createAccountRequest = null
+            )
+        }
+    }
+
+    sealed interface Event {
+        data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
+        data class OnChatIdChanged(val chatId: ID?) : Event
+        data class OnRoomNumberChanged(val roomNumber: Long) : Event
+        data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
+            Event
+
+        data class OnInitialUnreadCountDetermined(val count: Int) : Event
+        data object OnUnreadStateHandled : Event
+        data class OnTitlesChanged(val title: String, val roomCardTitle: String) : Event
+        data class OnUserActivity(val activity: Instant) : Event
+        data object OnSendCash : Event
+        data object OnSendMessage : Event
+        data class SendMessage(val paymentId: ID? = null) : Event
+        data object SendMessageWithFee : Event
+        data object RevealIdentity : Event
+
+        data class OnAbilityToChatChanged(val state: ChattableState) : Event
+        data object ResetToSpectator : Event
+        data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
+        data class MarkRead(val messageId: ID) : Event
+        data class MarkDelivered(val messageId: ID) : Event
+
+        data class OnReplyEnabled(val enabled: Boolean) : Event
+        data class OnOpenCloseEnabled(val enabled: Boolean) : Event
+        data class OnTippingEnabled(val enabled: Boolean) : Event
+        data class OnLinkImagePreviewsEnabled(val enabled: Boolean) : Event
+        data class OnUserProfilesEnabled(val enabled: Boolean) : Event
+        data class ShowConnectedSocials(val enabled: Boolean) : Event
+        data class EnableEmojiReactions(val enabled: Boolean) : Event
+        data class ReplyTo(val anchor: MessageReplyAnchor) : Event {
+            constructor(chatItem: ChatItem.Message) : this(
+                MessageReplyAnchor(
+                    chatItem.chatMessageId,
+                    chatItem.sender,
+                    chatItem.message
+                )
+            )
+        }
+
+        data object CancelReply : Event
+
+        data class SendReaction(val messageId: ID, val emoji: String) : Event
+        data class RemoveReaction(val reactionId: ID) : Event
+
+        data class OnStartAtUnread(val enabled: Boolean) : Event
+
+        data object OnJoinRequestedFromSpectating : Event
+        data object OnSendMessageForFee : Event
+        data class NeedsAccountCreated(val createFor: CreateAccountRequest) : Event
+        data object OnAccountCreated : Event
+        data object OnJoinRoom : Event
+        data object ResetCreateAccountRequest : Event
+
+        data object Resumed : Event
+        data object Stopped : Event
+
+        data class OnTypingConstraintsChanged(
+            val typingFlags: TypingNotificationsConstraints
+        ) : Event
+
+        data class OnOtherUsersTyping(val users: List<FlipchatUserWithSocialProfiles>) : Event
+
+        data object OnOpenStateChangedRequested : Event
+        data class OnOpenRoom(val conversationId: ID) : Event
+        data class OnCloseRoom(val conversationId: ID) : Event
+
+        data class CopyMessage(val text: String) : Event
+        data class DeleteMessage(val conversationId: ID, val messageId: ID) : Event
+        data class RemoveUser(val conversationId: ID, val userId: ID) : Event
+        data class ReportUser(val userId: ID, val messageId: ID) : Event
+        data class MuteUser(val conversationId: ID, val userId: ID) : Event
+        data class BlockUser(val userId: ID) : Event
+        data class UnblockUser(val userId: ID) : Event
+        data class TipUser(val messageId: ID, val userId: ID) : Event
+        data class PromoteUser(val conversationId: ID, val userId: ID) : Event
+        data class DemoteUser(val conversationId: ID, val userId: ID) : Event
+
+        data object OnShareRoomLink : Event
+        data class ShareRoom(val intent: Intent) : Event
+
+        data object OnUserTypingStarted : Event
+        data object OnUserTypingStill : Event
+        data object OnUserTypingStopped : Event
+
+        data class LookupRoom(val number: Long) : Event
+        data class OpenRoomPreview(val roomInfoArgs: RoomInfoArgs) : Event
+        data class OpenRoom(val roomId: ID) : Event
+
+        data class Error(
+            val fatal: Boolean,
+            val message: String = "",
+            val show: Boolean = true
+        ) : Event
+    }
+
+    init {
+        userManager.state
+            .map { it.userId to it.displayName }
+            .distinctUntilChanged()
+            .onEach { (id, displayName) ->
+                dispatchEvent(Event.OnSelfChanged(id, displayName))
+            }.launchIn(viewModelScope)
+
+        combine(
+            betaFeatures.observe(Lab.TypingInChat),
+            userManager.state
+                .mapNotNull { it.flags }
+                .map { it.typingNotifications }
+                .distinctUntilChanged()
+        ) { flag, typing ->
+            typing.copy(canSendAtAll = typing.canSendAtAll && flag)
+        }.onEach { dispatchEvent(Event.OnTypingConstraintsChanged(it))
+        }.launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.ReplyToMessage)
+            .onEach { dispatchEvent(Event.OnReplyEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.OpenCloseRoom)
+            .onEach { dispatchEvent(Event.OnOpenCloseEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.StartChatAtUnread)
+            .onEach { dispatchEvent(Event.OnStartAtUnread(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.Tipping)
+            .onEach { dispatchEvent(Event.OnTippingEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.LinkImages)
+            .onEach { dispatchEvent(Event.OnLinkImagePreviewsEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.ShowConnectedSocials)
+            .onEach {
+                dispatchEvent(Event.ShowConnectedSocials(it))
+                dispatchEvent(Event.OnUserProfilesEnabled(it))
+            }
+            .launchIn(viewModelScope)
+
+        betaFeatures.observe(Lab.EmojiReactions)
+            .onEach { dispatchEvent(Event.EnableEmojiReactions(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
+            .map { roomController.getUnreadCount(it) }
+            .onEach { dispatchEvent(Event.OnInitialUnreadCountDetermined(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
+            .mapNotNull {
+                retryable(
+                    maxRetries = 5,
+                    delayDuration = 3.seconds,
+                ) { roomController.getConversation(it) }
+            }.onEach { dispatchEvent(Event.OnConversationChanged(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
+            .onEach {
+                runCatching {
+                    roomController.openMessageStream(viewModelScope, it)
+                }.onFailure {
+                    it.printStackTrace()
+                    ErrorUtils.handleError(it)
+                }
+            }.launchIn(viewModelScope)
+
+        stateFlow
+            .mapNotNull { it.conversationId }
+            .distinctUntilChanged()
+            .flatMapLatest {
+                roomController.observeConversation(it)
+            }.filterNotNull()
+            .distinctUntilChanged()
+            .onEach {
+                val (conversation, members, _) = it
+                val selfMember = members.firstOrNull { userManager.isSelf(it.id) }
+                val chattableState = if (selfMember != null) {
+                    val isMuted = selfMember.isMuted
+                    val isSpectator = !selfMember.isFullMember
+                    val isRoomClosed = !conversation.isOpen
+
+                    when {
+                        isRoomClosed -> ChattableState.DisabledByClosedRoom
+                        // remain temp enabled
+                        stateFlow.value.chattableState is ChattableState.TemporarilyEnabled -> ChattableState.TemporarilyEnabled
+                        isMuted -> ChattableState.DisabledByMute
+                        isSpectator -> ChattableState.Spectator(
+                            Kin.fromQuarks(it.conversation.messagingFee ?: 0)
+                        )
+
+                        else -> ChattableState.Enabled
+                    }
+                } else {
+                    ChattableState.Enabled
+                }
+
+                if (stateFlow.value.chattableState != chattableState) {
+                    dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
+                }
+
+                dispatchEvent(Event.OnConversationChanged(it))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnConversationChanged>()
+            .map { it.conversationWithPointers.conversation }
+            .distinctUntilChanged()
+            .map {
+                val title = it.titleOrFallback(resources)
+                val roomCardTitle = it.titleOrFallback(resources)
+                title to roomCardTitle
+            }.distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnTitlesChanged(it.first, it.second)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.MarkRead>()
+            .onEach { delay(300) }
+            .map { it.messageId }
+            .filter { stateFlow.value.conversationId != null }
+            .map { it to stateFlow.value.conversationId!! }
+            .onEach { (messageId, conversationId) ->
+                roomController.advancePointer(
+                    conversationId,
+                    messageId,
+                    MessageStatus.Read
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.MarkDelivered>()
+            .onEach { delay(300) }
+            .map { it.messageId }
+            .filter { stateFlow.value.conversationId != null }
+            .map { it to stateFlow.value.conversationId!! }
+            .onEach { (messageId, conversationId) ->
+                roomController.advancePointer(
+                    conversationId,
+                    messageId,
+                    MessageStatus.Delivered
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnSendMessage>()
+            .onEach {
+                if (stateFlow.value.chattableState is ChattableState.Enabled) {
+                    dispatchEvent(Event.SendMessage())
+                } else {
+                    if (userManager.authState is AuthState.LoggedIn) {
+                        dispatchEvent(Event.SendMessageWithFee)
+                    } else {
+                        dispatchEvent(Event.NeedsAccountCreated(CreateAccountRequest.SendMessage))
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SendMessageWithFee>()
+            .map { stateFlow.value.roomInfoArgs }
+            .filter { it.ownerId != null }
+            .map { profileController.getPaymentDestinationForUser(it.ownerId!!) }
+            .mapNotNull {
+                if (it.isSuccess) {
+                    val paymentDestination = it.getOrNull() ?: return@mapNotNull null
+                    val sendMessageMetadata = SendMessageAsListenerPaymentMetadata(
+                        userId = userManager.userId!!,
+                        chatId = stateFlow.value.conversationId!!
+                    )
+
+                    val metadata = ExtendedMetadata.Any(
+                        data = sendMessageMetadata.erased(),
+                        typeUrl = sendMessageMetadata.typeUrl
+                    )
+
+                    val amount =
+                        KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.messagingFeeQuarks)
+
+                    paymentController.presentPublicPaymentConfirmation(
+                        amount = amount,
+                        destination = paymentDestination,
+                        metadata = metadata,
+                    )
+                } else {
+                    return@mapNotNull null
+                }
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        event.acknowledge(true) {
+                            dispatchEvent(Event.SendMessage(event.intentId))
+                        }
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SendMessage>()
+            .mapNotNull {
+                val paymentId = it.paymentId
+                val state = stateFlow.value
+                val textFieldState = state.textFieldState
+                val text = textFieldState.text.toString().trim()
+                if (text.isEmpty()) return@mapNotNull null
+
+                textFieldState.clearText()
+
+                val replyingTo = state.replyMessage
+
+                dispatchEvent(Event.CancelReply)
+
+                if (replyingTo != null) {
+                    roomController.sendReply(
+                        state.conversationId!!,
+                        replyingTo.id,
+                        text,
+                        paymentId
+                    )
+                } else {
+                    roomController.sendMessage(state.conversationId!!, text, paymentId)
+                }
+            }.onResult(
+                onError = {
+                    trace(
+                        tag = "Conversation",
+                        message = "message failed to send",
+                        type = TraceType.Error,
+                        error = it
+                    )
+                },
+                onSuccess = {
+                    // if we are temporarily allowed to speak, reset back to spectator
+                    if (stateFlow.value.chattableState is ChattableState.TemporarilyEnabled) {
+                        val fee = Kin.fromQuarks(stateFlow.value.roomInfoArgs.messagingFeeQuarks)
+                        dispatchEvent(Event.OnAbilityToChatChanged(ChattableState.Spectator(fee)))
+                    }
+
+                    trace(
+                        tag = "Conversation",
+                        message = "message sent successfully",
+                        type = TraceType.Silent
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SendReaction>()
+            .map { (messageId, emoji) ->
+                val sentEmojis = roomController.getEmojiReactionsForMessage(messageId)
+                    .filter { userManager.isSelf(it.sender?.id) }
+                    .map { it.reaction.emoji }
+
+                if (!sentEmojis.contains(emoji)) {
+                    roomController.sendReaction(
+                        conversationId = stateFlow.value.conversationId.orEmpty(),
+                        messageId = messageId,
+                        emoji = emoji
+                    )
+                } else {
+                    trace(
+                        tag = "Conversation",
+                        message = "User already sent this emoji; not resending.",
+                        type = TraceType.Silent
+                    )
+                    Result.success(Unit)
+                }
+            }.onResult(
+                onError = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction failed to send",
+                        type = TraceType.Error,
+                        error = it
+                    )
+                },
+                onSuccess = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction sent successfully",
+                        type = TraceType.Silent
+                    )
+                }
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.RemoveReaction>()
+            .map { (reactionId) ->
+                roomController.removeReaction(
+                    conversationId = stateFlow.value.conversationId.orEmpty(),
+                    reactionId = reactionId,
+                )
+            }.onResult(
+                onError = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction failed to be removed",
+                        type = TraceType.Error,
+                        error = it
+                    )
+                },
+                onSuccess = {
+                    trace(
+                        tag = "Conversation",
+                        message = "reaction removed successfully",
+                        type = TraceType.Silent
+                    )
+                }
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.Resumed>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .distinctUntilChanged()
+            .onEach {
+                runCatching {
+                    roomController.openMessageStream(viewModelScope, it)
+                }.onFailure {
+                    ErrorUtils.handleError(it)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnAccountCreated>()
+            .mapNotNull { stateFlow.value.createAccountRequest }
+            .onEach {
+                when (it) {
+                    CreateAccountRequest.JoinRoom -> {
+                        delay(400)
+                        dispatchEvent(Event.OnJoinRoom)
+                    }
+
+                    CreateAccountRequest.SendMessage -> {
+                        dispatchEvent(Event.OnSendMessageForFee)
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.Stopped>()
+            .onEach {
+                roomController.closeMessageStream()
+                userManager.roomClosed()
+                roomController.onUserStoppedTypingIn(stateFlow.value.conversationId.orEmpty())
+            }.launchIn(viewModelScope)
+
+        stateFlow
+            .map { it.conversationId }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .filter { stateFlow.value.typingConstraints.enabled }
+            .flatMapLatest { roomController.observeTyping(it) }
+            .distinctUntilChanged()
+            .onEach { users -> dispatchEvent(Event.OnOtherUsersTyping(users)) }
+            .launchIn(viewModelScope)
+
+        stateFlow
+            .filter {
+                when (it.chattableState) {
+                    ChattableState.Enabled -> it.typingConstraints.enabled
+                    ChattableState.TemporarilyEnabled -> it.typingConstraints.enabled && it.typingConstraints.canSendAsListener
+                    else -> false
+                }
+            }
+            .map { it.textFieldState }
+            .flatMapLatest { ts -> snapshotFlow { ts.text } }
+            .distinctUntilChanged()
+            .onEach { text ->
+                if (text.isEmpty()) {
+                    // Stop everything when text is cleared
+                    stopTypingJob?.cancel()
+                    typingStillJob?.cancel()
+                    dispatchEvent(Event.OnUserTypingStopped)
+                } else {
+                    if (!stateFlow.value.isSelfTyping) {
+                        dispatchEvent(Event.OnUserTypingStarted)
+                    }
+
+                    if (typingStillJob?.isActive != true) {
+                        typingStillJob = viewModelScope.launch {
+                            while (isActive) {
+                                delay(stateFlow.value.typingConstraints.interval)
+                                dispatchEvent(Event.OnUserTypingStill)
+                            }
+                        }
+                    }
+
+                    stopTypingJob?.cancel()
+                    stopTypingJob = viewModelScope.launch {
+                        delay(stateFlow.value.typingConstraints.timeout)
+                        dispatchEvent(Event.OnUserTypingStopped)
+                        typingStillJob?.cancel()
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStarted>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach { roomController.onUserStartedTypingIn(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStill>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach { roomController.onUserStillTypingIn(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStopped>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach { roomController.onUserStoppedTypingIn(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnOpenStateChangedRequested>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .map { it to stateFlow.value.isRoomOpen }
+            .onEach { (conversationId, isOpen) ->
+                confirmOpenStateChange(conversationId, isOpen)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnOpenRoom>()
+            .map { it.conversationId }
+            .map { roomController.enableChat(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToReopenRoom),
+                            resources.getString(R.string.error_description_failedToReopenRoom)
+                        )
+                    )
+                },
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnCloseRoom>()
+            .map { it.conversationId }
+            .map { roomController.disableChat(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToCloseRoom),
+                            resources.getString(R.string.error_description_failedToCloseRoom)
+                        )
+                    )
+                },
+            ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DeleteMessage>()
+            .map { (conversationId, messageId) ->
+                roomController.deleteMessage(conversationId, messageId)
+            }.onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        title = resources.getString(R.string.error_title_failedToDeleteMessage),
+                        message = resources.getString(R.string.error_description_failedToDeleteMessage)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.RemoveUser>()
+            .map { (conversationId, userId) ->
+                roomController.removeUser(conversationId, userId)
+            }.onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        title = resources.getString(R.string.error_title_failedToRemoveUser),
+                        message = resources.getString(R.string.error_description_failedToRemoveUser)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ReportUser>()
+            .map { (userId, messageId) ->
+                roomController.reportUserForMessage(userId, messageId)
+            }.onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToReportUserForMessage),
+                            message = resources.getString(R.string.error_description_failedToReportUserForMessage)
+                        )
+                    )
+                },
+                onSuccess = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.success_title_reportUser),
+                            message = resources.getString(R.string.success_description_reportUser),
+                            type = TopBarManager.TopBarMessageType.SUCCESS
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.MuteUser>()
+            .map { (chatId, userId) ->
+                roomController.muteUser(chatId, userId)
+            }.onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToMuteUser),
+                            message = resources.getString(R.string.error_description_failedToMuteUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.BlockUser>()
+            .map { it.userId }
+            .map { roomController.blockUser(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToBlockUser),
+                            message = resources.getString(R.string.error_description_failedToBlockUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.UnblockUser>()
+            .map { it.userId }
+            .map { roomController.unblockUser(it) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToUnblockUser),
+                            message = resources.getString(R.string.error_description_failedToUnblockUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CopyMessage>()
+            .map { it.text }
+            .onEach {
+                clipboardManager.setPrimaryClip(ClipData.newPlainText("", it))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.TipUser>()
+            .map { data ->
+                val result = profileController.getPaymentDestinationForUser(data.userId)
+                if (result.isSuccess) {
+                    result.getOrNull()?.let { Result.success(it to data.messageId) }
+                        ?: Result.failure(Throwable())
+                } else {
+                    Result.failure(result.exceptionOrNull() ?: Throwable())
+                }
+            }
+            .mapNotNull {
+                if (it.isSuccess) {
+                    val (paymentDestination, messageId) = it.getOrNull() ?: return@mapNotNull null
+                    val tipPaymentMetadata = SendTipMessagePaymentMetadata(
+                        tipperId = userManager.userId!!,
+                        chatId = stateFlow.value.conversationId!!,
+                        messageId = messageId
+                    )
+
+                    val metadata = ExtendedMetadata.Any(
+                        data = tipPaymentMetadata.erased(),
+                        typeUrl = tipPaymentMetadata.typeUrl
+                    )
+
+                    paymentController.presentMessageTipConfirmation(
+                        destination = paymentDestination,
+                        metadata = metadata
+                    )
+                } else {
+                    ErrorUtils.handleError(
+                        it.exceptionOrNull()
+                            ?: SuppressibleException("Failed retrieving destination address")
+                    )
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToSendTip),
+                            resources.getString(
+                                R.string.error_description_failedToSendTip,
+                            )
+                        )
+                    )
+                    return@mapNotNull null
+                }
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }
+            .onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        val metadata = (event.metadata as ExtendedMetadata.Any).data.let {
+                            SendTipMessagePaymentMetadata.unerase(it)
+                        }
+
+                        roomController.sendTip(
+                            conversationId = metadata.chatId,
+                            messageId = metadata.messageId,
+                            amount = event.amount,
+                            paymentIntentId = event.intentId
+                        ).onFailure {
+                            event.acknowledge(false) {
+                                TopBarManager.showMessage(
+                                    TopBarManager.TopBarMessage(
+                                        resources.getString(R.string.error_title_failedToSendTip),
+                                        resources.getString(
+                                            R.string.error_description_failedToSendTip,
+                                        )
+                                    )
+                                )
+                            }
+                        }.onSuccess {
+                            event.acknowledge(true) {
+
+                            }
+                        }
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LookupRoom>()
+            .map { it.number }
+            .map { roomNumber ->
+                chatsController.lookupRoom(roomNumber)
+                    .onFailure {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToGetRoom),
+                                resources.getString(
+                                    R.string.error_description_failedToGetRoom,
+                                    roomNumber
+                                )
+                            )
+                        )
+                    }.onSuccess { (room, members) ->
+                        val moderator = members.firstOrNull { it.isModerator }
+                        val isMember = members.any { it.isSelf }
+                        if (isMember) {
+                            dispatchEvent(Event.OpenRoom(room.id))
+                        } else {
+                            val roomInfo = RoomInfoArgs(
+                                roomId = room.id,
+                                roomNumber = room.roomNumber,
+                                roomTitle = room.titleOrFallback(resources),
+                                roomDescription = room.description,
+                                memberCount = members.count(),
+                                ownerId = room.ownerId,
+                                hostName = moderator?.identity?.displayName,
+                                messagingFeeQuarks = room.messagingFee.quarks,
+                            )
+                            dispatchEvent(Event.OpenRoomPreview(roomInfo))
+                        }
+                    }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnJoinRequestedFromSpectating>()
+            .map { userManager.authState }
+            .onEach {
+                if (it is AuthState.LoggedIn) {
+                    dispatchEvent(Event.OnJoinRoom)
+                } else {
+                    dispatchEvent(Event.NeedsAccountCreated(CreateAccountRequest.JoinRoom))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnJoinRoom>()
+            .filter { stateFlow.value.chattableState is ChattableState.Spectator }
+            .map { stateFlow.value.roomInfoArgs }
+            .filter { it.ownerId != null }
+            .map { profileController.getPaymentDestinationForUser(it.ownerId!!) }
+            .mapNotNull {
+                if (it.isSuccess) {
+                    val paymentDestination = it.getOrNull() ?: return@mapNotNull null
+                    val joinChatMetadata = JoinChatPaymentMetadata(
+                        userId = userManager.userId!!,
+                        chatId = stateFlow.value.conversationId!!
+                    )
+
+                    val metadata = ExtendedMetadata.Any(
+                        data = joinChatMetadata.erased(),
+                        typeUrl = joinChatMetadata.typeUrl
+                    )
+
+                    val amount =
+                        KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.messagingFeeQuarks)
+
+                    paymentController.presentPublicPaymentConfirmation(
+                        amount = amount,
+                        destination = paymentDestination,
+                        metadata = metadata,
+                    )
+                } else {
+                    return@mapNotNull null
+                }
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        val roomId = stateFlow.value.conversationId.orEmpty()
+                        chatsController.joinRoomAsFullMember(roomId, event.intentId)
+                            .onFailure {
+                                event.acknowledge(false) {
+                                    TopBarManager.showMessage(
+                                        TopBarManager.TopBarMessage(
+                                            resources.getString(R.string.error_title_failedToJoinRoom),
+                                            resources.getString(
+                                                R.string.error_description_failedToJoinRoom,
+                                                stateFlow.value.roomInfoArgs.roomTitle.orEmpty()
+                                            )
+                                        )
+                                    )
+                                }
+                            }
+                            .onSuccess {
+                                event.acknowledge(true) {
+
+                                }
+                            }
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnShareRoomLink>()
+            .map { IntentUtils.shareRoom(stateFlow.value.roomInfoArgs.roomNumber) }
+            .onEach { dispatchEvent(Event.ShareRoom(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PromoteUser>()
+            .map { roomController.promoteUser(it.conversationId, it.userId) }
+            .onResult(
+                onError = { error ->
+                    if (error is PromoteUserError.NotRegistered) {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToPromoteUserNotRegistered),
+                                resources.getString(R.string.error_description_failedToPromoteUserNotRegistered)
+                            )
+                        )
+                    } else {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToPromoteUser),
+                                resources.getString(R.string.error_description_failedToPromoteUser)
+                            )
+                        )
+                    }
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DemoteUser>()
+            .map { roomController.demoteUser(it.conversationId, it.userId) }
+            .onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToDemoteUser),
+                            resources.getString(R.string.error_description_failedToDemoteUser)
+                        )
+                    )
+                }
+            ).launchIn(viewModelScope)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val messages: Flow<PagingData<ChatItem>> = stateFlow
+        .map { it.conversationId to it.chattableState }
+        .filter { it.first != null } // assuming conversationId can be null
+        .distinctUntilChanged()
+        .flatMapLatest { (conversationId, _) -> roomController.messages(conversationId!!).flow }
+        .distinctUntilChanged()
+        .map { page ->
+            val currentState = stateFlow.value // Cache state upfront
+            val pointerRefs = currentState.pointerRefs // cache expensive pointer ref map upfront
+            val enableReply =
+                currentState.replyEnabled && currentState.chattableState.canTriggerInput()
+
+            val showConnectedSocials = currentState.showConnectedSocials
+            val enableLinkImages = currentState.isLinkImagePreviewsEnabled
+            val canClickUserAvatars = currentState.canClickUserAvatars
+
+            page.map { indice ->
+                val (_, message, member, contents, reply, tipInfo, reactionInfo) = indice
+
+                val status = findClosestMessageStatus(
+                    timestamp = message.id.uuid?.timestamp,
+                    statusMap = pointerRefs,
+                    fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
+                )
+
+                val anchor = if (reply != null) {
+                    ReplyMessageAnchor(
+                        id = reply.message.id,
+                        message = reply.contentEntity,
+                        isDeleted = reply.message.isDeleted,
+                        deletedBy = reply.message.deletedBy?.let { id ->
+                            Deleter(
+                                id = id,
+                                isSelf = userManager.isSelf(id),
+                                isHost = currentState.hostId == message.deletedBy
+                            )
+                        },
+                        sender = Sender(
+                            id = reply.message.senderId,
+                            profileImageUrl = reply.personalInfo?.imageUri.takeIf {
+                                it.orEmpty().isNotEmpty()
+                            },
+                            isFullMember = reply.member?.isFullMember == true,
+                            name = reply.personalInfo?.memberName.orEmpty().ifEmpty { "Member" },
+                            isSelf = reply.contentEntity.isFromSelf,
+                            isBlocked = reply.personalInfo?.isBlocked == true,
+                            isHost = reply.message.senderId == currentState.hostId && !contents.isFromSelf,
+                            socialProfiles = if (showConnectedSocials) {
+                                reply.socialProfiles.mapNotNull { it.toLinked() }
+                            } else {
+                                emptyList()
+                            }
+                        )
+                    )
+                } else {
+                    null
+                }
+
+                val tippingEnabled =
+                    currentState.isTippingEnabled && !userManager.isSelf(message.senderId)
+
+                val emojisEnabled = currentState.canReactToMessages
+
+                val reactions = if (currentState.canReactToMessages && reactionInfo.isNotEmpty()) {
+                    reactionInfo.map { (reaction, member, user, socials) ->
+                        MessageReaction(
+                            messageId = reaction.id,
+                            emoji = reaction.emoji,
+                            sentAt = reaction.sentAt,
+                            sender = Sender(
+                                id = member?.id,
+                                profileImageUrl = user?.imageUri.nullIfEmpty(),
+                                name = user?.memberName,
+                                isHost = member?.isHost ?: false,
+                                isSelf = userManager.isSelf(member?.id),
+                                isBlocked = user?.isBlocked ?: false,
+                                socialProfiles = if (showConnectedSocials) {
+                                    socials.mapNotNull { it.toLinked() }
+                                } else {
+                                    emptyList()
+                                }
+                            )
+                        )
+                    }
+                } else {
+                    emptyList()
+                }
+
+                val tips = if (currentState.isTippingEnabled && tipInfo.isNotEmpty()) {
+                    tipInfo.map { (tip, member, user, socials) ->
+                        MessageTip(
+                            amount = tip.kin,
+                            tipper = Sender(
+                                id = member?.id,
+                                profileImageUrl = user?.imageUri.nullIfEmpty(),
+                                name = user?.memberName,
+                                isHost = member?.isHost ?: false,
+                                isSelf = userManager.isSelf(member?.id),
+                                isBlocked = user?.isBlocked ?: false,
+                                socialProfiles = if (showConnectedSocials) {
+                                    socials.mapNotNull { it.toLinked() }
+                                } else {
+                                    emptyList()
+                                }
+                            )
+                        )
+                    }
+                } else {
+                    emptyList()
+                }
+
+                val sender = Sender(
+                    id = message.senderId,
+                    profileImageUrl = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                    name = member?.displayName.orEmpty().ifEmpty { "Member" },
+                    isSelf = contents.isFromSelf,
+                    isFullMember = member?.isFullMember == true,
+                    isHost = message.senderId == currentState.hostId,
+                    isBlocked = member?.isBlocked == true,
+                    socialProfiles = if (showConnectedSocials) {
+                        member?.profiles?.mapNotNull { it.toLinked() }.orEmpty()
+                    } else {
+                        emptyList()
+                    },
+                )
+
+                ChatItem.Message(
+                    chatMessageId = message.id,
+                    message = contents,
+                    date = message.dateMillis.toInstantFromMillis(),
+                    status = status,
+                    isDeleted = message.isDeleted,
+                    deletedBy = if (message.isDeleted) {
+                        Deleter(
+                            id = message.deletedBy,
+                            isSelf = userManager.isSelf(message.deletedBy),
+                            isHost = currentState.hostId == message.deletedBy
+                        )
+                    } else {
+                        null
+                    },
+                    wasSentAsFullMember = !message.sentOffStage,
+                    enableMarkup = true,
+                    enableReply = enableReply && !message.isDeleted,
+                    showTimestamp = false,
+                    enableTipping = tippingEnabled,
+                    enableLinkImagePreview = enableLinkImages,
+                    enableAvatarClicks = canClickUserAvatars,
+                    sender = sender,
+                    originalMessage = anchor,
+                    messageControls = MessageControls(
+                        actions = buildMessageActions(
+                            message = message,
+                            sender = sender,
+                            contents = contents,
+                            enableReply = enableReply,
+                            enableTip = tippingEnabled,
+                            enableReactions = emojisEnabled
+                        ),
+                    ),
+                    tips = tips,
+                    reactions = reactions
+                )
+            }
+        }
+        .flowOn(Dispatchers.Default)
+        .mapLatest { data ->
+            var unreadSeparatorInserted = false
+
+            data.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
+                val separators = mutableListOf<ChatItem.Separator>()
+
+                if (
+                    stateFlow.value.startAtUnread &&
+                    !unreadSeparatorInserted &&
+                    after?.chatMessageId?.uuid == stateFlow.value.lastReadMessage &&
+                    before?.sender?.isSelf == false
+                ) {
+                    unreadSeparatorInserted = true
+                    val unreadCount = stateFlow.value.unreadCount ?: return@insertSeparators null
+                    separators.add(ChatItem.UnreadSeparator(unreadCount))
+                }
+
+                val beforeDate = before?.relativeDate
+                val afterDate = after?.relativeDate
+
+                // if the date changes between two items, add a date separator
+                if (beforeDate != afterDate) {
+                    beforeDate?.let { separators.add(ChatItem.Date(before.date)) }
+                }
+
+                if (separators.isNotEmpty()) {
+                    ChatItem.Separators(separators)
+                } else {
+                    null
+                }
+            }
+        }.cachedIn(viewModelScope)
+
+    private fun buildMessageActions(
+        message: ConversationMessage,
+        sender: Sender,
+        contents: MessageContent,
+        enableReply: Boolean,
+        enableTip: Boolean,
+        enableReactions: Boolean,
+    ): List<MessageContextAction> {
+        return mutableListOf<MessageContextAction>().apply {
+            if (enableReactions) {
+                add(
+                    MessageContextAction.Emojis(
+                        onSelect = { emoji ->
+
+                        }
+                    )
+                )
+            }
+            if (stateFlow.value.isHost) {
+                if (sender.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
+                    if (sender.isFullMember) {
+                        add(
+                            MessageContextAction.DemoteUser {
+                                confirmUserDemote(
+                                    conversationId = message.conversationId,
+                                    user = sender.displayName,
+                                    userId = message.senderId
+                                )
+                            }
+                        )
+                    } else {
+                        add(
+                            MessageContextAction.PromoteUser {
+                                confirmUserPromote(
+                                    conversationId = message.conversationId,
+                                    user = sender.displayName,
+                                    userId = message.senderId
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (enableReply) {
+                add(
+                    MessageContextAction.Reply {
+                        val anchor = MessageReplyAnchor(message.id, sender, contents)
+                        dispatchEvent(Event.ReplyTo(anchor))
+                    }
+                )
+            }
+
+            if (enableTip) {
+                add(
+                    MessageContextAction.Tip {
+                        dispatchEvent(Event.TipUser(message.id, message.senderId))
+                    }
+                )
+            }
+
+            add(
+                MessageContextAction.Copy {
+                    dispatchEvent(
+                        Event.CopyMessage(
+                            contents.localizedText(
+                                resources = resources,
+                                currencyUtils = currencyUtils
+                            )
+                        )
+                    )
+                }
+            )
+        } + buildSelfDefenseControls(message, sender, contents)
+    }
+
+    private fun buildSelfDefenseControls(
+        message: ConversationMessage,
+        sender: Sender,
+        contents: MessageContent
+    ): List<MessageContextAction> {
+        return mutableListOf<MessageContextAction>().apply {
+            // delete message
+            if (stateFlow.value.isHost || contents.isFromSelf) {
+                add(
+                    MessageContextAction.Delete {
+                        confirmMessageDelete(
+                            conversationId = message.conversationId,
+                            messageId = message.id
+                        )
+                    }
+                )
+            }
+
+
+            if (stateFlow.value.isHost) {
+                if (sender.displayName?.isNotEmpty() == true && !contents.isFromSelf) {
+//                    add(
+//                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
+//                            confirmUserRemoval(
+//                                conversationId = message.conversationId,
+//                                user = member.memberName,
+//                                userId = message.senderId,
+//                            )
+//                        }
+//                    )
+                    add(
+                        MessageContextAction.MuteUser {
+                            confirmUserMute(
+                                conversationId = message.conversationId,
+                                user = sender.displayName,
+                                userId = message.senderId,
+                            )
+                        }
+                    )
+                }
+            }
+
+            if (!contents.isFromSelf) {
+                if (sender.isBlocked) {
+                    add(
+                        MessageContextAction.UnblockUser {
+                            dispatchEvent(Event.UnblockUser(message.senderId))
+                        }
+                    )
+                } else {
+                    add(
+                        MessageContextAction.BlockUser {
+                            confirmUserBlock(
+                                user = sender.displayName,
+                                userId = message.senderId,
+                            )
+                        }
+                    )
+                }
+
+                add(
+                    MessageContextAction.ReportUserForMessage(sender.displayName.orEmpty()) {
+                        confirmUserReport(
+                            user = sender.displayName,
+                            userId = message.senderId,
+                            messageId = message.id
+                        )
+                    }
+                )
+            }
+        }.toList()
+    }
+
+    private fun confirmMessageDelete(conversationId: ID, messageId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_deleteMessage),
+                subtitle = resources.getString(R.string.subtitle_deleteMessage),
+                positiveText = resources.getString(R.string.action_delete),
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.DeleteMessage(conversationId, messageId)) },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserRemoval(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_removeUserFromRoom, user.orEmpty()),
+                subtitle = resources.getString(R.string.subtitle_removeUserFromRoom),
+                positiveText = resources.getString(R.string.action_remove),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.RemoveUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserMute(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_muteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_muteUserInRoom),
+                positiveText = resources.getString(R.string.action_mute),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.MuteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserPromote(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_promoteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_promoteUserInRoom),
+                positiveText = resources.getString(R.string.action_promote),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.PromoteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserDemote(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_demoteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_demoteUserInRoom),
+                positiveText = resources.getString(R.string.action_demote),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.DemoteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserBlock(user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(
+                    R.string.title_blockUserInRoom,
+                    user.orEmpty().ifEmpty { "User" },
+                ),
+                subtitle = resources.getString(R.string.subtitle_blockUserInRoom, user.orEmpty()),
+                positiveText = resources.getString(R.string.action_blockUser, user.orEmpty()),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.BlockUser(userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserReport(user: String?, userId: ID, messageId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_reportUserForMessage, user ?: "User"),
+                subtitle = resources.getString(R.string.subtitle_reportUserForMessage),
+                positiveText = resources.getString(R.string.action_report),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.ReportUser(userId, messageId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmOpenStateChange(conversationId: ID, isRoomOpen: Boolean) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = if (isRoomOpen) resources.getString(R.string.prompt_title_closeRoom) else resources.getString(
+                    R.string.prompt_title_reopenRoom
+                ),
+                subtitle = if (isRoomOpen) resources.getString(R.string.prompt_description_closeRoom) else resources.getString(
+                    R.string.prompt_description_reopenRoom
+                ),
+                positiveText = if (isRoomOpen) resources.getString(R.string.action_closeTemporarily) else resources.getString(
+                    R.string.action_reopenRoom
+                ),
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = {
+                    if (isRoomOpen) {
+                        dispatchEvent(Event.OnCloseRoom(conversationId))
+                    } else {
+                        dispatchEvent(Event.OnOpenRoom(conversationId))
+                    }
+                },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        roomController.closeMessageStream()
+        viewModelScope.launch {
+            stateFlow.value.conversationId?.let {
+                roomController.onUserStoppedTypingIn(it)
+            }
+        }
+    }
+
+    internal companion object {
+        val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            when (event) {
+                is Event.OnChatIdChanged -> Timber.d("onChatID changed ${event.chatId?.base58}")
+                is Event.OnSelfChanged -> Timber.d("onSelf changed ${event.id?.base58}")
+                is Event.OnConversationChanged -> {
+                    val members = event.conversationWithPointers.members.count()
+                    Timber.d(
+                        "conversation changed={id:${event.conversationWithPointers.conversation.id.base58}, " +
+                                "unreadCount:${event.conversationWithPointers.conversation.unreadCount}, " +
+                                "members:$members, " +
+                                "pointers:${event.conversationWithPointers.pointers.count()}"
+                    )
+                }
+
+                is Event.DeleteMessage -> {
+                    Timber.d("Delete Message => ${event.messageId.uuid.toString()}")
+                }
+
+                is Event.OnOtherUsersTyping -> {
+                    Timber.d("${event.users.count()} other user(s) typing")
+                }
+
+                else -> Timber.d("event=${event}")
+            }
+
+            when (event) {
+                is Event.OnChatIdChanged -> { state ->
+                    state.copy(
+                        conversationId = event.chatId,
+                        textFieldState = TextFieldState()
+                    )
+                }
+
+                is Event.OnInitialUnreadCountDetermined -> { state -> state.copy(unreadCount = event.count) }
+
+                is Event.OnTitlesChanged -> { state ->
+                    state.copy(
+                        title = event.title,
+                        roomInfoArgs = state.roomInfoArgs.copy(
+                            roomTitle = event.roomCardTitle
+                        )
+                    )
+                }
+
+                is Event.OnConversationChanged -> { state ->
+                    val (conversation, _, _) = event.conversationWithPointers
+                    val members = event.conversationWithPointers.members
+                    val host = members.firstOrNull { it.isHost }
+
+                    state.copy(
+                        conversationId = conversation.id,
+                        imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
+                        pointers = event.conversationWithPointers.pointers,
+                        lastReadMessage = state.lastReadMessage
+                            ?: findLastReadMessage(event.conversationWithPointers.pointers),
+                        pointerRefs = event.conversationWithPointers.pointers
+                            .asSequence()
+                            .mapNotNull { (key, value) ->
+                                key.timestamp?.let { it to (value ?: MessageStatus.Unknown) }
+                            }
+                            .toMap(),
+                        members = members.count(),
+                        listeners = members.count { !it.isFullMember },
+                        isRoomOpen = conversation.isOpen,
+                        hostId = host?.id,
+                        roomInfoArgs = RoomInfoArgs(
+                            roomId = conversation.id,
+                            roomDescription = conversation.description,
+                            roomNumber = conversation.roomNumber,
+                            ownerId = conversation.ownerId,
+                            hostName = host?.displayName,
+                            memberCount = members.count(),
+                            messagingFeeQuarks = conversation.coverCharge.quarks
+                        )
+                    )
+                }
+
+                Event.OnSendMessageForFee -> { state ->
+                    state.copy(chattableState = ChattableState.TemporarilyEnabled)
+                }
+
+                is Event.OnPointersUpdated -> { state ->
+                    state.copy(pointers = event.pointers)
+                }
+
+                is Event.OnOtherUsersTyping -> { state ->
+                    state.copy(otherUsersTyping = event.users.map { it.imageData })
+                }
+
+                is Event.OnUserTypingStarted -> { state ->
+                    state.copy(isSelfTyping = true)
+                }
+
+                is Event.OnUserTypingStill -> { state -> state }
+
+                is Event.OnUserTypingStopped -> { state ->
+                    state.copy(isSelfTyping = false)
+                }
+
+                is Event.OnShareRoomLink,
+                is Event.ShareRoom,
+                is Event.OnOpenStateChangedRequested,
+                is Event.OnOpenRoom,
+                is Event.OnCloseRoom,
+                is Event.OnRoomNumberChanged,
+                is Event.OnJoinRoom,
+                is Event.OnAccountCreated,
+                is Event.NeedsAccountCreated,
+                is Event.OnJoinRequestedFromSpectating,
+                is Event.Error,
+                Event.RevealIdentity,
+                Event.OnSendCash,
+                is Event.MarkRead,
+                is Event.MarkDelivered,
+                is Event.DeleteMessage,
+                is Event.CopyMessage,
+                is Event.RemoveUser,
+                is Event.ReportUser,
+                is Event.MuteUser,
+                is Event.BlockUser,
+                is Event.UnblockUser,
+                is Event.TipUser,
+                is Event.PromoteUser,
+                is Event.DemoteUser,
+                is Event.Resumed,
+                is Event.Stopped,
+                is Event.LookupRoom,
+                is Event.OpenRoomPreview,
+                is Event.OpenRoom,
+                is Event.OnSendMessage,
+                is Event.SendMessage,
+                is Event.SendMessageWithFee,
+                is Event.SendReaction,
+                is Event.RemoveReaction, -> { state -> state }
+
+                is Event.ResetCreateAccountRequest -> { state -> state.copy(createAccountRequest = null) }
+
+                is Event.OnUserActivity -> { state ->
+                    state.copy(lastSeen = event.activity)
+                }
+
+                is Event.OnSelfChanged -> { state ->
+                    state.copy(
+                        selfId = event.id,
+                        selfName = event.displayName
+                    )
+                }
+
+                is Event.ResetToSpectator -> { state ->
+                    val fee = Kin.fromQuarks(state.roomInfoArgs.messagingFeeQuarks)
+                    state.copy(chattableState = ChattableState.Spectator(fee))
+                }
+
+                is Event.OnAbilityToChatChanged -> { state -> state.copy(chattableState = event.state) }
+                is Event.OnReplyEnabled -> { state -> state.copy(replyEnabled = event.enabled) }
+                is Event.OnStartAtUnread -> { state -> state.copy(startAtUnread = event.enabled) }
+                is Event.ReplyTo -> { state ->
+                    val isFullMember = state.chattableState is ChattableState.Enabled
+                    state.copy(
+                        replyMessage = event.anchor,
+                        chattableState = if (isFullMember) ChattableState.Enabled else ChattableState.TemporarilyEnabled
+                    )
+                }
+
+                is Event.CancelReply -> { state -> state.copy(replyMessage = null) }
+                is Event.OnOpenCloseEnabled -> { state -> state.copy(isOpenCloseEnabled = event.enabled) }
+                is Event.OnTippingEnabled -> { state -> state.copy(isTippingEnabled = event.enabled) }
+                is Event.OnLinkImagePreviewsEnabled -> { state ->
+                    state.copy(
+                        isLinkImagePreviewsEnabled = event.enabled
+                    )
+                }
+
+                is Event.OnUserProfilesEnabled -> { state ->
+                    state.copy(canClickUserAvatars = event.enabled)
+                }
+
+                is Event.ShowConnectedSocials -> { state ->
+                    state.copy(showConnectedSocials = event.enabled)
+                }
+
+                is Event.EnableEmojiReactions -> { state ->
+                    state.copy(canReactToMessages = event.enabled)
+                }
+
+                Event.OnUnreadStateHandled -> { state -> state.copy(unreadStateHandled = true) }
+                is Event.OnTypingConstraintsChanged -> { state ->
+                    state.copy(
+                        typingConstraints = TypingConstraints(
+                            enabled = event.typingFlags.canSendAtAll,
+                            canSendAsListener = event.typingFlags.canSendAsListener,
+                            interval = event.typingFlags.interval,
+                            timeout = event.typingFlags.timeout,
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun findLastReadMessage(
+    statusMap: Map<UUID, MessageStatus?>,
+): UUID? {
+    return statusMap
+        .filter { it.value == MessageStatus.Read }
+        .maxByOrNull { it.key.timestamp ?: 0L }
+        ?.key
+}
+
+private fun findClosestMessageStatus(
+    timestamp: Long?,
+    statusMap: Map<Long, MessageStatus>,
+    fallback: MessageStatus
+): MessageStatus {
+    timestamp ?: return fallback
+    var closestKey: Long? = null
+
+    for (key in statusMap.keys) {
+        if (timestamp <= key && (closestKey == null || key <= closestKey)) {
+            closestKey = key
+        }
+    }
+
+    return closestKey?.let { statusMap[it] } ?: fallback
+}

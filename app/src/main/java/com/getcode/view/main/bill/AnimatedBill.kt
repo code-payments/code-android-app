@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.getcode.models.Bill
-import com.getcode.ui.components.CustomSwipeToDismiss
+import com.getcode.ui.theme.CustomSwipeToDismiss
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable

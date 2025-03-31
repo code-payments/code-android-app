@@ -3,6 +3,7 @@ package com.getcode.view.login
 import android.annotation.SuppressLint
 import android.app.Activity
 import androidx.lifecycle.viewModelScope
+import com.getcode.AppHomeScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
@@ -10,10 +11,9 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AccountManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -116,7 +116,7 @@ class SeedInputViewModel @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
-                    navigator.replaceAll(ScanScreen())
+                    navigator.replaceAll(AppHomeScreen())
                 }, {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(

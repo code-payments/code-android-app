@@ -2,18 +2,12 @@ package com.getcode.util
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
-import android.provider.MediaStore
 import android.provider.MediaStore.Images.Media
 import androidx.core.content.ContextCompat
 import com.getcode.R
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.InputStream
-import kotlin.math.floor
 
 
 fun Context.launchAppSettings() {
@@ -40,6 +34,6 @@ fun Context.uriToBitmap(uri: Uri): Bitmap? {
             decoder.isMutableRequired = true
         }
     } else {
-        MediaStore.Images.Media.getBitmap(contentResolver, uri)
+        Media.getBitmap(contentResolver, uri)
     }
 }

@@ -28,9 +28,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn

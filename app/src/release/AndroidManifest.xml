@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+    <permission
+        android:name="com.getcode.dev.READ_ACCOUNT"
+        android:protectionLevel="signature" />
+
+    <application>
+
+        <provider
+            android:name="com.getcode.AccountProvider"
+            android:authorities="@string/account_provider"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="com.getcode.dev.READ_ACCOUNT"
+            android:enabled="true" />
+    </application>
+
+</manifest>

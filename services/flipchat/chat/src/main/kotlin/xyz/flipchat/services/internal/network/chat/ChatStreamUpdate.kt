@@ -1,0 +1,51 @@
+package xyz.flipchat.services.internal.network.chat
+
+import com.codeinc.flipchat.gen.chat.v1.ChatService.MemberUpdate
+import com.codeinc.flipchat.gen.chat.v1.ChatService.MetadataUpdate
+import com.codeinc.flipchat.gen.chat.v1.isTypingOrNull
+import com.codeinc.flipchat.gen.chat.v1.lastMessageOrNull
+import com.codeinc.flipchat.gen.chat.v1.pointerOrNull
+import com.codeinc.flipchat.gen.messaging.v1.Model
+import com.codeinc.flipchat.gen.messaging.v1.Model.Pointer
+import com.codeinc.flipchat.gen.messaging.v1.memberOrNull
+import com.codeinc.flipchat.gen.messaging.v1.pointerOrNull
+import com.getcode.model.ID
+import com.codeinc.flipchat.gen.chat.v1.ChatService as ChatServiceRpc
+
+data class ChatStreamUpdate(
+    val id: ID,
+    val metadataUpdates: List<MetadataUpdate>,
+    val memberUpdates: List<MemberUpdate>,
+    val lastMessage: Model.Message?,
+    val lastPointer: PointerUpdate?,
+    val isTyping: Boolean?,
+) {
+    companion object {
+        operator fun invoke(proto: ChatServiceRpc.StreamChatEventsResponse.ChatUpdate?): ChatStreamUpdate? {
+            proto ?: return null
+            val chatId = proto.chatId.value.toByteArray().toList()
+            val lastMessage = proto.lastMessageOrNull
+            val lastPointer = proto.pointerOrNull?.let {
+                PointerUpdate(
+                    it.memberOrNull?.value?.toByteArray()?.toList(),
+                    it.pointerOrNull
+                )
+            }
+            val isTyping = proto.isTypingOrNull
+
+            return ChatStreamUpdate(
+                id = chatId,
+                metadataUpdates = proto.metadataUpdatesList,
+                lastMessage = lastMessage,
+                memberUpdates = proto.memberUpdatesList,
+                lastPointer = lastPointer,
+                isTyping = isTyping?.isTyping,
+            )
+        }
+    }
+}
+
+data class PointerUpdate(
+    val userId: ID?,
+    val pointer: Pointer?,
+)

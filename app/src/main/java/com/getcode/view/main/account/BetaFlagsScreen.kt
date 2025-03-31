@@ -13,13 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
-import com.getcode.model.Immutable
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.Immutable
+import com.getcode.services.model.PrefsBool
 import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.SettingsRow
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.components.SettingsSwitchRow
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -77,12 +77,6 @@ fun BetaFlagsScreen(
             R.string.beta_photo_gallery,
             stringResource(id = R.string.beta_photo_gallery_description),
             state.galleryEnabled,
-        ),
-        BetaFeature(
-            PrefsBool.CONVERSATIONS_ENABLED,
-            R.string.beta_conversations,
-            stringResource(id = R.string.beta_conversations_description),
-            state.conversationsEnabled,
         ),
         BetaFeature(
             PrefsBool.VIBRATE_ON_SCAN,
@@ -154,7 +148,7 @@ fun BetaFlagsScreen(
 
     LazyColumn {
         items(options) { option ->
-            SettingsRow(
+            SettingsSwitchRow(
                 modifier = Modifier.animateItemPlacement(),
                 title = stringResource(id = option.titleResId),
                 subtitle = option.subtitleText,
@@ -184,7 +178,6 @@ fun BetaFlagsScreen(
 private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         is Immutable -> false
-        PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }
 }

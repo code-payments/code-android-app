@@ -4,26 +4,22 @@ import android.app.Activity
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.AuthManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.FeatureRepository
-import com.getcode.network.repository.PrefRepository
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

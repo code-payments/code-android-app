@@ -9,15 +9,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.getcode.AppHomeScreen
 import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 
 @Composable
 fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current, fromOnboarding: Boolean = false) {
@@ -27,10 +27,13 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             if (fromOnboarding) {
                 analytics.action(Action.CompletedOnboarding)
             }
-            navigator.replaceAll(ScanScreen())
+            navigator.replaceAll(AppHomeScreen())
         }
     }
-    val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })
+    val notificationPermissionCheck =
+        com.getcode.util.permissions.notificationPermissionCheck(onResult = {
+            onNotificationResult(it)
+        })
 
     SideEffect {
         notificationPermissionCheck(false)

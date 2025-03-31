@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string translatable="false" name="app_name_without_variant">Flipchat</string>
+    <string translatable="false" name="app_name">Flipchat</string>
+    <string translatable="false" name="handle">\@flipchatapp</string>
+    <string translatable="false" name="account_name_link">FlipchatAccount</string>
+
+    <string translatable="false" name="app_root_url">https://app.flipchat.xyz</string>
+    <string translatable="false" name="app_tos">https://flipchat.xyz/terms</string>
+    <string translatable="false" name="app_privacy_policy">https://flipchat.xyz/privacy</string>
+</resources>

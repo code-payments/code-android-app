@@ -14,32 +14,22 @@ import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.domain.CashLinkManager
 import com.getcode.manager.AuthManager
-import com.getcode.manager.BottomBarManager
 import com.getcode.manager.GiftCardManager
-import com.getcode.manager.MnemonicManager
-import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
-import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CameraGesturesFeature
-import com.getcode.model.CodePayload
 import com.getcode.model.Currency
-import com.getcode.model.Domain
 import com.getcode.model.Feature
-import com.getcode.model.Fiat
 import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.GalleryFeature
-import com.getcode.model.ID
 import com.getcode.model.IntentMetadata
 import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
-import com.getcode.model.Username
 import com.getcode.model.notifications.NotificationType
 import com.getcode.models.Bill
 import com.getcode.models.BillState
@@ -47,13 +37,12 @@ import com.getcode.models.BillToast
 import com.getcode.models.ConfirmationState
 import com.getcode.models.DeepLinkRequest
 import com.getcode.models.LoginConfirmation
-import com.getcode.models.PaymentConfirmation
+import com.getcode.models.PrivatePaymentConfirmation
 import com.getcode.models.PaymentValuation
 import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
@@ -77,26 +66,30 @@ import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
 import com.getcode.network.repository.StatusRepository
-import com.getcode.network.repository.hexEncodedString
-import com.getcode.network.repository.toPublicKey
+import com.getcode.util.IntentUtils
+import com.getcode.utils.Kin
+import com.getcode.extensions.formatted
+import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
+import com.getcode.services.model.CodePayload
+import com.getcode.model.Domain
+import com.getcode.services.model.Kind
+import com.getcode.services.model.payload.Username
+import com.getcode.model.toPublicKey
+import com.getcode.services.utils.catchSafely
+import com.getcode.services.utils.nonce
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
-import com.getcode.ui.components.PermissionResult
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.IntentUtils
-import com.getcode.util.Kin
-import com.getcode.util.formatted
+import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionChecker
+import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.catchSafely
-import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.utils.nonce
+import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
-import com.getcode.vendor.Base58
 import com.getcode.view.main.scanner.UiElement
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
@@ -104,14 +97,12 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -127,6 +118,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import java.util.Timer
 import java.util.TimerTask
@@ -179,13 +171,7 @@ sealed interface SessionEvent {
     data object PresentTipEntry : SessionEvent
     data object RequestNotificationPermissions : SessionEvent
     data class SendIntent(val intent: Intent) : SessionEvent
-    data class OnChatPaidForSuccessfully(val intentId: ID, val user: SocialUser): SessionEvent
-}
-
-enum class RestrictionType {
-    ACCESS_EXPIRED,
-    FORCE_UPGRADE,
-    TIMELOCK_UNLOCKED
+    data class OnChatPaidForSuccessfully(val intentId: com.getcode.model.ID, val user: SocialUser): SessionEvent
 }
 
 @SuppressLint("CheckResult")
@@ -196,22 +182,22 @@ class SessionController @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
     private val historyController: NotificationCollectionHistoryController,
-    private val chatHistoryController: ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
     private val authManager: AuthManager,
-    private val networkObserver: NetworkConnectivityListener,
+    private val networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
-    private val currencyUtils: CurrencyUtils,
+    private val currencyUtils: com.getcode.utils.CurrencyUtils,
     private val exchange: Exchange,
     private val giftCardManager: GiftCardManager,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val cashLinkManager: CashLinkManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
     private val codeAnalyzer: KikCodeAnalyzer,
+    private val sessionManager: SessionManager,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
@@ -405,13 +391,6 @@ class SessionController @Inject constructor(
                 state.update { it.copy(notificationUnreadCount = count) }
             }.launchIn(scope)
 
-        chatHistoryController.unreadCount
-            .distinctUntilChanged()
-            .map { it }
-            .onEach { count ->
-                state.update { it.copy(chatUnreadCount = count) }
-            }.launchIn(scope)
-
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
             .flowOn(Dispatchers.IO)
             .onEach { log ->
@@ -461,10 +440,6 @@ class SessionController @Inject constructor(
             UiElement.TIP_CARD
         } else {
             UiElement.GET_KIN
-        }
-
-        if (betaOptions.conversationsEnabled) {
-            actions += UiElement.CHAT
         }
 
         actions += UiElement.BALANCE
@@ -559,7 +534,6 @@ class SessionController @Inject constructor(
     }
 
     private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
-        println("present send")
         if (bill.didReceive) {
             state.update {
                 val billState = it.billState
@@ -867,8 +841,8 @@ class SessionController @Inject constructor(
 
         if (show) {
             delay(400)
-            ModalManager.showMessage(
-                ModalManager.Message(
+            com.getcode.services.manager.ModalManager.showMessage(
+                com.getcode.services.manager.ModalManager.Message(
                     icon = R.drawable.ic_bell,
                     title = resources.getString(R.string.title_turnOnNotifications),
                     subtitle = resources.getString(R.string.subtitle_turnOnNotifications),
@@ -1146,7 +1120,7 @@ class SessionController @Inject constructor(
         if (payload != null) {
             code = payload
         } else {
-            val fiat = Fiat(currency = amount.rate.currency, amount = amount.fiat)
+            val fiat = com.getcode.model.Fiat(currency = amount.rate.currency, amount = amount.fiat)
 
             code = CodePayload(
                 kind = Kind.RequestPayment,
@@ -1173,7 +1147,7 @@ class SessionController @Inject constructor(
 
             if (isReceived) {
                 billState = billState.copy(
-                    paymentConfirmation = PaymentConfirmation(
+                    privatePaymentConfirmation = PrivatePaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         payload = code,
                         requestedAmount = amount,
@@ -1207,12 +1181,12 @@ class SessionController @Inject constructor(
         // keep bill active while sending
         cashLinkManager.cancelBillTimeout()
 
-        val paymentConfirmation = state.value.billState.paymentConfirmation ?: return@launch
+        val paymentConfirmation = state.value.billState.privatePaymentConfirmation ?: return@launch
         state.update {
             val billState = it.billState
             it.copy(
                 billState = billState.copy(
-                    paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
+                    privatePaymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
                 ),
             )
         }
@@ -1226,11 +1200,11 @@ class SessionController @Inject constructor(
 
             state.update {
                 val billState = it.billState
-                val confirmation = it.billState.paymentConfirmation ?: return@update it
+                val confirmation = it.billState.privatePaymentConfirmation ?: return@update it
 
                 it.copy(
                     billState = billState.copy(
-                        paymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                        privatePaymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
                     ),
                 )
             }
@@ -1253,7 +1227,7 @@ class SessionController @Inject constructor(
                     billState = uiModel.billState.copy(
                         bill = null,
                         showToast = false,
-                        paymentConfirmation = null,
+                        privatePaymentConfirmation = null,
                         toast = null,
                         valuation = null,
                         primaryAction = null,
@@ -1265,7 +1239,7 @@ class SessionController @Inject constructor(
     }
 
     private fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
-        val paymentRendezous = state.value.billState.paymentConfirmation
+        val paymentRendezous = state.value.billState.privatePaymentConfirmation
         val bill = state.value.billState.bill ?: return
         val amount = bill.amount
         val request = bill.metadata.request
@@ -1284,7 +1258,7 @@ class SessionController @Inject constructor(
                 presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
                     bill = null,
-                    paymentConfirmation = null,
+                    privatePaymentConfirmation = null,
                     valuation = null,
                     primaryAction = null,
                     secondaryAction = null,
@@ -1325,7 +1299,7 @@ class SessionController @Inject constructor(
     }
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
-        val payload = state.value.billState.paymentConfirmation?.payload
+        val payload = state.value.billState.privatePaymentConfirmation?.payload
         cancelPayment(true, ignoreRedirect)
         payload ?: return
 
@@ -1450,7 +1424,7 @@ class SessionController @Inject constructor(
                 billState = it.billState.copy(
                     bill = null,
                     showToast = false,
-                    paymentConfirmation = null,
+                    privatePaymentConfirmation = null,
                     loginConfirmation = null,
                     toast = null,
                     valuation = null,
@@ -1725,8 +1699,8 @@ class SessionController @Inject constructor(
                         cancelRemoteSend(giftCard, amount)
                         cancelSend(style = PresentationStyle.Slide)
                     },
-                    onClose = {
-                        if (it == null) {
+                    onClose = { fromAction ->
+                        if (!fromAction) {
                             cancelSend(style = PresentationStyle.Pop)
                             vibrator.vibrate()
                         }
@@ -1743,6 +1717,7 @@ class SessionController @Inject constructor(
         if (request != null) {
             when {
                 request.paymentRequest != null -> {
+                    val payment = request.paymentRequest!!
                     scope.launch {
                         if (state.value.balance == null) {
                             balanceController.fetchBalanceSuspend()
@@ -1753,9 +1728,9 @@ class SessionController @Inject constructor(
                                 it.copy(balance = amount)
                             }
                         }
-                        val fiat = request.paymentRequest.fiat
+                        val fiat = payment.fiat
                         val kind =
-                            if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                            if (payment.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
                         val payload = CodePayload(
                             kind = kind,
                             value = fiat,
@@ -1789,9 +1764,10 @@ class SessionController @Inject constructor(
                 }
 
                 request.tipRequest != null -> {
+                    val tip = request.tipRequest!!
                     val payload = CodePayload(
                         kind = Kind.Tip,
-                        value = Username(request.tipRequest.username)
+                        value = Username(tip.username)
                     )
 
                     if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
@@ -1805,7 +1781,8 @@ class SessionController @Inject constructor(
                 }
 
                 request.imageRequest != null -> {
-                    onImageSelected(request.imageRequest.uri)
+                    val image = request.imageRequest!!
+                    onImageSelected(image.uri)
                 }
             }
         }

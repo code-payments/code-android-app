@@ -3,9 +3,9 @@ package com.getcode.view.main.account.withdraw
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.text2.input.TextFieldState
-import androidx.compose.foundation.text2.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.foundation.text2.input.textAsFlow
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
@@ -44,7 +44,6 @@ data class AccountWithdrawAddressUiModel(
 )
 
 @HiltViewModel
-@OptIn(ExperimentalFoundationApi::class)
 class AccountWithdrawAddressViewModel @Inject constructor(
     private val client: Client,
     private val clipboard: ClipboardManager,
@@ -55,7 +54,7 @@ class AccountWithdrawAddressViewModel @Inject constructor(
 
     init {
         uiFlow.map { it.addressText }
-            .flatMapLatest { it.textAsFlow() }
+            .flatMapLatest { snapshotFlow { it.text } }
             .map { it.toString() }
             .debounce(300.milliseconds)
             .onEach { updated -> setAddress(updated) }

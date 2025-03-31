@@ -1,31 +1,47 @@
 @file:Suppress("ConstPropertyName")
 
+
 object Android {
-    const val namespace = "com.getcode"
-    const val compileSdkVersion = 34
+    const val codeNamespace = "com.getcode"
+    const val flipchatNamespace = "xyz.flipchat"
+
+    const val compileSdkVersion = 35
     const val minSdkVersion = 24
-    const val targetSdkVersion = 34
+    const val targetSdkVersion = 35
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
 }
 
-object Packaging {
-    private const val majorVersion = 2
-    private const val minorVersion = 1
-    private const val patchVersion = 14
+sealed class Packaging(
+    majorVersion: Int,
+    minorVersion: Int,
+    patchVersion: Int,
+) {
+    val versionName = "$majorVersion.$minorVersion.$patchVersion"
 
-    const val versionName = "$majorVersion.$minorVersion.$patchVersion"
+    object Code: Packaging(
+        majorVersion = 2,
+        minorVersion = 1,
+        patchVersion = 14,
+    )
+
+    object Flipchat: Packaging(
+        majorVersion = 1,
+        minorVersion = 0,
+        patchVersion = 11,
+    )
 }
 
 object Versions {
     const val java = "17"
-    const val kotlin = "1.9.23"
+    const val kotlin = "1.9.25"
     const val kotlinx_coroutines = "1.7.3"
     const val kotlinx_serialization = "1.6.2"
     const val kotlinx_datetime = "0.5.0"
-    const val android_gradle_build_tools = "8.4.0"
+    const val android_gradle_build_tools = "8.6.0"
     const val google_services = "4.3.15"
 
+    const val androidx_appcompat = "1.7.0"
     const val androidx_activity = "1.7.2"
     const val androidx_annotation = "1.7.1"
     const val androidx_biometrics = "1.2.0-alpha05"
@@ -37,22 +53,23 @@ object Versions {
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"
     const val androidx_room = "2.6.1"
+    const val androidx_work = "2.10.0"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2024.05.00"
+    const val compose = "2024.10.01"
 
     // compose compiler is tied to [Versions.kotlin]
     // See compatibility mapping here:
     // https://developer.android.com/jetpack/androidx/releases/compose-compiler
-    const val compose_compiler = "1.5.11"
+    const val compose_compiler = "1.5.15"
     const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
     const val compose_paging = "3.3.0-alpha02"
     const val compose_webview = "0.33.6"
 
-    const val hilt = "2.50"
-    const val hilt_jetpack = "1.1.0-beta01"
+    const val hilt = "2.52"
+    const val hilt_jetpack = "1.2.0"
     const val okhttp = "4.9.3"
     const val retrofit = "2.6.0"
     const val rxjava: String = "3.1.3"
@@ -67,6 +84,7 @@ object Versions {
     const val crashlytics_gradle: String = "2.8.1"
     const val play_service_auth = "20.7.0"
     const val play_service_auth_phone = "18.0.2"
+    const val google_play_billing = "7.1.1"
 
     const val grpc: String = "1.62.2"
     const val grpc_okhttp: String = "1.33.1"
@@ -76,7 +94,6 @@ object Versions {
     const val mp_android_chart: String = "v3.1.0"
     const val lib_phone_number_port: String = "8.12.43"
     const val lib_phone_number_google: String = "8.12.54"
-    const val hilt_nav_compose: String = "1.1.0-alpha02"
     const val zxing: String = "3.3.2"
 
     const val androidx_test_runner = "1.4.0"
@@ -87,7 +104,7 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
-    const val voyager = "1.0.0"
+    const val voyager = "1.1.0-beta02"
     const val protobuf_plugin = "0.9.4"
 
     const val sodium_bindings = "0.9.0"
@@ -137,6 +154,7 @@ object Plugins {
 
 object Libs {
     const val android_desugaring = "com.android.tools:desugar_jdk_libs:${Versions.desugaring}"
+    const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.androidx_appcompat}"
     const val androidx_activity = "androidx.activity:activity-ktx:{${Versions.androidx_activity}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
     const val androidx_biometrics = "androidx.biometric:biometric:${Versions.androidx_biometrics}"
@@ -164,12 +182,14 @@ object Libs {
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
     const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
     const val androidx_room_paging = "androidx.room:room-paging:${Versions.androidx_room}"
+    const val androidx_work = "androidx.work:work-runtime:${Versions.androidx_work}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
 
     const val coil3 = "io.coil-kt.coil3:coil-compose:${Versions.compose_coil}"
     const val coil3_network = "io.coil-kt.coil3:coil-network-okhttp:${Versions.compose_coil}"
 
     const val hilt = "com.google.dagger:hilt-android:${Versions.hilt}"
+    const val hilt_worker = "androidx.hilt:hilt-work:${Versions.hilt_jetpack}"
     const val hilt_android_compiler = "com.google.dagger:hilt-android-compiler:${Versions.hilt}"
     const val hilt_compiler = "androidx.hilt:hilt-compiler:${Versions.hilt_jetpack}"
     const val hilt_android_test = "com.google.dagger:hilt-android-testing:${Versions.hilt}"
@@ -211,6 +231,7 @@ object Libs {
         "androidx.compose.ui:ui-tooling-preview"
     const val compose_foundation = "androidx.compose.foundation:foundation"
     const val compose_material = "androidx.compose.material:material"
+    const val compose_materialIconsCore = "androidx.compose.material:material-icons-core"
     const val compose_materialIconsExtended =
         "androidx.compose.material:material-icons-extended-android"
     const val compose_activities =
@@ -227,6 +248,8 @@ object Libs {
         "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
     const val compose_voyager_navigation_bottomsheet =
         "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_tabs =
+        "cafe.adriel.voyager:voyager-tab-navigator:${Versions.voyager}"
     const val compose_voyager_navigation_transitions =
         "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
     const val compose_webview = "io.github.kevinnzou:compose-webview:${Versions.compose_webview}"
@@ -251,6 +274,9 @@ object Libs {
     const val play_service_auth_phone =
         "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
 
+    const val google_play_billing_runtime = "com.android.billingclient:billing:${Versions.google_play_billing}"
+    const val google_play_billing_ktx = "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
+
     const val grpc_okhttp = "io.grpc:grpc-okhttp:${Versions.grpc_okhttp}"
     const val grpc_kotlin = "io.grpc:grpc-kotlin-stub:${Versions.grpc_kotlin}"
     const val grpc_protobuf = "io.grpc:grpc-protobuf:${Versions.grpc}"
@@ -266,7 +292,7 @@ object Libs {
         "io.michaelrocks:libphonenumber-android:${Versions.lib_phone_number_port}"
     const val lib_phone_number_google =
         "com.googlecode.libphonenumber:libphonenumber:${Versions.lib_phone_number_google}"
-    const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:1.1.0-alpha01"
+    const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:${Versions.hilt_jetpack}"
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
 
     const val retrofit = "com.squareup.retrofit2:retrofit:${Versions.retrofit}"
@@ -298,5 +324,6 @@ object Libs {
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 
     const val haze = "dev.chrisbanes.haze:haze:0.7.3"
-    const val process_phoenix = "com.jakewharton:process-phoenix:3.0.0"
+    const val rinku = "dev.theolm:rinku:1.1.0"
+    const val rinku_compose = "dev.theolm:rinku-compose-ext:1.1.0"
 }

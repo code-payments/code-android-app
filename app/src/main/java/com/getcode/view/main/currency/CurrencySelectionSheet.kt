@@ -57,12 +57,11 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.keyboardAsState
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -331,7 +330,7 @@ private fun GroupHeader(modifier: Modifier = Modifier, text: String) {
             )
         }
         Divider(
-            color = White05,
+            color = CodeTheme.colors.dividerVariant,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
@@ -433,7 +432,7 @@ private fun ListRowItem(
             }
 
             Divider(
-                color = White05,
+                color = CodeTheme.colors.dividerVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)

@@ -1,0 +1,61 @@
+package xyz.flipchat.notifications
+
+import com.getcode.model.ID
+import com.getcode.model.chat.MessageContent
+import com.getcode.utils.base58
+import com.getcode.utils.decodeBase64
+
+data class FcNotification(
+    val type: FcNotificationType,
+    val title: String,
+    val body: MessageContent,
+)
+
+private enum class TypeValue {
+    Unknown, ChatMessage
+}
+
+sealed interface FcNotificationType {
+    val ordinal: Int
+    val name: String
+
+
+    sealed interface Notifiable
+    class Unknown: FcNotificationType, Notifiable {
+        override val ordinal: Int = 99
+        override val name: String = "Misc"
+    }
+
+    data class ChatMessage(val id: ID?, val roomNumber: Long?, val sender: String?): FcNotificationType, Notifiable {
+        override val ordinal: Int = 1
+        override val name: String = "Chat Messages"
+
+        constructor(): this(null, null, null)
+    }
+
+    fun isNotifiable() = this is Notifiable
+
+    companion object {
+        private const val TYPE = "type"
+        private const val CHAT_ID = "chat_id"
+        private const val SENDER = "sender"
+
+        fun resolve(value: MutableMap<String, String>): FcNotificationType {
+            val type = value[TYPE]
+            var notificationType = runCatching { TypeValue.valueOf(type.orEmpty()) }.getOrNull()
+            if (notificationType == null) {
+                // fallback to chat
+                notificationType = TypeValue.ChatMessage
+            }
+
+            return when (notificationType) {
+                TypeValue.ChatMessage -> {
+                    val chatId = value[CHAT_ID]?.decodeBase64()?.toList()
+                    val sender = value[SENDER]
+                    ChatMessage(chatId, null, sender)
+                }
+                else -> Unknown()
+            }
+        }
+    }
+}

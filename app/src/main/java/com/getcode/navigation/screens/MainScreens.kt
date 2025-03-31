@@ -21,13 +21,12 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.model.ID
-import com.getcode.model.chat.Reference
 import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.RepeatOnLifecycle
-import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.utils.trace
 import com.getcode.view.download.ShareDownloadScreen
 import com.getcode.view.main.account.AccountHome
@@ -39,10 +38,8 @@ import com.getcode.view.main.chat.NotificationCollectionViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.requestKin.RequestKinScreen
 import com.getcode.view.main.scanner.ScanScreen
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
@@ -50,11 +47,11 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class ScanScreen(
-    val seed: String? = null,
+    override val seed: String? = null,
     val cashLink: String? = null,
     @IgnoredOnParcel
     val request: DeepLinkRequest? = null,
-) : AppScreen(), MainGraph {
+) : AppScreen(), MainScreen, MainGraph {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -279,7 +276,6 @@ data class NotificationCollectionScreen(val collectionId: ID) : MainGraph, Modal
     override fun Content() {
         val vm = getViewModel<NotificationCollectionViewModel>()
         val state by vm.stateFlow.collectAsState()
-        val navigator = LocalCodeNavigator.current
 
         ModalContainer(
             titleString = { state.title.localized },
@@ -289,32 +285,8 @@ data class NotificationCollectionScreen(val collectionId: ID) : MainGraph, Modal
             ChatScreen(state = state, messages = messages, dispatch = vm::dispatchEvent)
         }
 
-        LaunchedEffect(vm) {
-            vm.eventFlow
-                .filterIsInstance<NotificationCollectionViewModel.Event.OpenMessageChat>()
-                .map { it.reference }
-                .filterIsInstance<Reference.IntentId>()
-                .map { it.id }
-                .onEach { navigator.push(ConversationScreen(intentId = it)) }
-                .launchIn(this)
-        }
-
         LaunchedEffect(collectionId) {
             vm.dispatchEvent(NotificationCollectionViewModel.Event.OnChatIdChanged(collectionId))
         }
-    }
-}
-
-@Composable
-fun <T> AppScreen.OnScreenResult(block: (T) -> Unit) {
-    RepeatOnLifecycle(
-        targetState = Lifecycle.State.RESUMED,
-    ) {
-        result
-            .filterNotNull()
-            .mapNotNull { it as? T }
-            .onEach { runCatching { block(it) } }
-            .onEach { result.value = null }
-            .launchIn(this)
     }
 }

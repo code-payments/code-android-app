@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
@@ -36,12 +36,13 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.Row
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -50,11 +51,13 @@ import kotlinx.coroutines.flow.onEach
 enum class IdentityConnectionReason {
     TipCard,
     IdentityReveal,
+    Login,
 }
 
 @Composable
 fun ConnectAccountScreen(
-    viewModel: TipConnectViewModel = hiltViewModel()
+    viewModel: ConnectAccountViewModel = hiltViewModel(),
+    titleAlignment: TextAlign = TextAlign.Start,
 ) {
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
@@ -62,11 +65,12 @@ fun ConnectAccountScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<TipConnectViewModel.Event.OpenX>()
+            .filterIsInstance<ConnectAccountViewModel.Event.OpenX>()
             .onEach {
                 composeTweet(context, it.intent)
                 delay(1_000)
                 when (state.reason) {
+                    IdentityConnectionReason.Login,
                     IdentityConnectionReason.IdentityReveal -> navigator.pop()
                     else -> navigator.hide()
                 }
@@ -80,7 +84,7 @@ fun ConnectAccountScreen(
                 modifier = Modifier.fillMaxWidth()
                     .padding(CodeTheme.dimens.inset),
                 onClick = {
-                    viewModel.dispatchEvent(TipConnectViewModel.Event.PostToX)
+                    viewModel.dispatchEvent(ConnectAccountViewModel.Event.PostToX)
                 },
                 buttonState = ButtonState.Filled,
                 content = {
@@ -103,29 +107,35 @@ fun ConnectAccountScreen(
                 .padding(padding),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
         ) {
-            RequestContent(state = state)
+            RequestContent(state = state, titleAlignment = titleAlignment)
         }
     }
 
 }
 
 @Composable
-private fun ColumnScope.RequestContent(state: TipConnectViewModel.State) {
+private fun ColumnScope.RequestContent(state: ConnectAccountViewModel.State, titleAlignment: TextAlign = TextAlign.Start) {
     Text(
+        modifier = Modifier.fillMaxWidth(),
         text = when(state.reason) {
             IdentityConnectionReason.TipCard -> stringResource(id = R.string.title_receiveTips)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.title_connectAccount)
+            IdentityConnectionReason.Login -> stringResource(id = R.string.title_connectYourX)
             null -> ""
         },
-        style = CodeTheme.typography.displayMedium.bolded()
+        style = CodeTheme.typography.displayMedium.bolded(),
+        textAlign = titleAlignment,
     )
     Text(
+        modifier = Modifier.fillMaxWidth(),
         text = when(state.reason) {
             IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardXDescription)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.subtitle_connectXAccount)
+            IdentityConnectionReason.Login -> stringResource(id = R.string.subtitle_identityInApp, stringResource(R.string.app_name_without_variant))
             null -> ""
         },
-        style = CodeTheme.typography.textSmall
+        style = CodeTheme.typography.textSmall,
+        textAlign = titleAlignment,
     )
     Spacer(modifier = Modifier.weight(0.3f))
     TweetPreview(modifier = Modifier.fillMaxWidth(), xMessage = state.xMessage)
@@ -167,7 +177,7 @@ private fun composeTweet(context: Context, intent: Intent) {
 @Preview
 @Composable
 private fun Preview_TweetPreview() {
-    CodeTheme {
+    DesignSystem {
         TweetPreview(xMessage = "${stringResource(R.string.subtitle_connectXTweetText)}\n" +
                 "\n" +
                 "CodeAccount:349pQtzGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQPXved:zGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQP")

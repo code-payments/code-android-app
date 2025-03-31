@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.zIndex
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalSession
 import com.getcode.R
@@ -27,7 +26,7 @@ import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.theme.Black40
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
-import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.core.rememberedClickable
 
 @Composable
 fun ConfirmationModals(
@@ -43,7 +42,7 @@ fun ConfirmationModals(
         val showScrim by remember(billState) {
             derivedStateOf {
                 val loginConfirmation = billState.loginConfirmation
-                val paymentConfirmation = billState.paymentConfirmation
+                val paymentConfirmation = billState.privatePaymentConfirmation
                 val socialPaymentConfirmation = billState.socialUserPaymentConfirmation
 
                 listOf(loginConfirmation, paymentConfirmation, socialPaymentConfirmation).any {
@@ -68,7 +67,7 @@ fun ConfirmationModals(
         // Payment Confirmation container
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = sessionState.billState.paymentConfirmation?.payload, // payload is constant across state changes
+            targetState = sessionState.billState.privatePaymentConfirmation?.payload, // payload is constant across state changes
             transitionSpec = AnimationUtils.modalAnimationSpec(),
             label = "payment confirmation",
         ) {
@@ -77,7 +76,7 @@ fun ConfirmationModals(
                     contentAlignment = BottomCenter
                 ) {
                     PaymentConfirmation(
-                        confirmation = sessionState.billState.paymentConfirmation,
+                        confirmation = sessionState.billState.privatePaymentConfirmation,
                         balance = sessionState.balance,
                         onAddKin = {
                             session.rejectPayment()

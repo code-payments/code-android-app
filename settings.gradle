@@ -1,12 +1,62 @@
-include ':api'
-include ':app'
-include ':crypto:kin'
-include ':crypto:ed25519'
-include ':common:resources'
-include ':service:models'
-include ':service:protos'
-include ':common:components'
-include ':common:theme'
-include ':vendor:tipkit:tipkit'
-include ':vendor:tipkit:tipkit-m2'
 rootProject.name = "Code"
+
+include(
+        // apps
+        ":app",
+        ":flipchatApp",
+
+        // protobuf model and service implementations for Code
+        ":definitions:code:models",
+        ":definitions:code:protos",
+        ":definitions:code-vm:models",
+        ":definitions:code-vm:protos",
+        ":definitions:flipchat:models",
+        ":definitions:flipchat:protos",
+
+        // Internal libs
+        ":libs:crypto:kin",
+        ":libs:crypto:solana",
+        ":libs:currency",
+        ":libs:datetime",
+        ":libs:emojis",
+        ":libs:encryption:base58",
+        ":libs:encryption:ed25519",
+        ":libs:encryption:hmac",
+        ":libs:encryption:keys",
+        ":libs:encryption:mnemonic",
+        ":libs:encryption:sha256",
+        ":libs:encryption:sha512",
+        ":libs:encryption:utils",
+        ":libs:locale",
+        ":libs:logging",
+        ":libs:messaging",
+        ':libs:models',
+        ":libs:network:exchange",
+        ':libs:opengraph',
+        ':libs:network:connectivity',
+        ":libs:permissions",
+        ":libs:quickresponse",
+        ":libs:requests",
+        ":libs:search",
+        ":libs:vibrator",
+
+        // Services definition for app and lib access
+        ":services:shared",
+        ":services:code",
+        ':services:flipchat:core',
+        ":services:flipchat:chat",
+        ":services:flipchat:payments",
+        ':services:flipchat:sdk',
+
+        // common UI
+        ":ui:core",
+        ":ui:components",
+        ":ui:emojis",
+        ":ui:navigation",
+        ":ui:resources",
+        ":ui:theme",
+
+        // 3rd party imported dependencies
+        ":vendor:tipkit:tipkit",
+        ":vendor:tipkit:tipkit-m2",
+)

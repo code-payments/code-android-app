@@ -1,6 +1,5 @@
 package com.getcode.view.login
 
-import android.Manifest
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -12,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -30,7 +28,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.ui.components.*
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 
 @SuppressLint("InlinedApi")
 @Preview
@@ -44,7 +43,8 @@ fun SeedInput(
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
-    val notificationPermissionCheck = notificationPermissionCheck(isShowError = false) {  }
+    val notificationPermissionCheck =
+        com.getcode.util.permissions.notificationPermissionCheck(isShowError = false) { }
 
     Column(
         modifier = Modifier

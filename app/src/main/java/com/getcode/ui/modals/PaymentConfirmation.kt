@@ -25,30 +25,32 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.Kin.Companion.fromFiat
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
+import com.getcode.services.model.Kind
 import com.getcode.model.Rate
-import com.getcode.models.PaymentConfirmation
+import com.getcode.model.fromFiatAmount
+import com.getcode.models.PrivatePaymentConfirmation
 import com.getcode.models.ConfirmationState
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.bolded
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.Modal
+import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.components.SlideToConfirmDefaults
-import com.getcode.view.main.scanner.components.PriceWithFlag
 import kotlinx.coroutines.delay
 
 @Composable
 internal fun PaymentConfirmation(
     modifier: Modifier = Modifier,
     balance: KinAmount?,
-    confirmation: PaymentConfirmation?,
+    confirmation: PrivatePaymentConfirmation?,
     onAddKin: () -> Unit = { },
     onSend: () -> Unit,
     onCancel: () -> Unit,
@@ -106,7 +108,7 @@ private val payload = CodePayload(
     ).map { it.toByte() }
 )
 
-private fun confirmationWithState(state: ConfirmationState) = PaymentConfirmation(
+private fun confirmationWithState(state: ConfirmationState) = PrivatePaymentConfirmation(
     state = state,
     payload = payload,
     requestedAmount = KinAmount.fromFiatAmount(
@@ -124,7 +126,7 @@ private fun confirmationWithState(state: ConfirmationState) = PaymentConfirmatio
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Awaiting() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -145,7 +147,7 @@ fun Preview_PaymentConfirmModal_Awaiting() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Sending() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -166,7 +168,7 @@ fun Preview_PaymentConfirmModal_Sending() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Sent() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -187,15 +189,15 @@ fun Preview_PaymentConfirmModal_Sent() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Interactive() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
         ) {
             var confirmation by remember {
-                mutableStateOf<PaymentConfirmation?>(
-                    PaymentConfirmation(
+                mutableStateOf<PrivatePaymentConfirmation?>(
+                    PrivatePaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         payload = payload,
                         requestedAmount = KinAmount.fromFiatAmount(
@@ -274,7 +276,6 @@ private fun PaymentConfirmationContent(
     }
     SlideToConfirm(
         isLoading = isSending,
-        trackColor = SlideToConfirmDefaults.BlueTrackColor,
         isSuccess = state is ConfirmationState.Sent,
         onConfirm = { onApproved() },
     )

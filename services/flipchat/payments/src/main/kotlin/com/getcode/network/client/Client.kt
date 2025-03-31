@@ -1,0 +1,90 @@
+package com.getcode.network.client
+
+import com.getcode.network.BalanceController
+import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.AccountRepository
+import com.getcode.network.repository.MessagingRepository
+import com.getcode.network.repository.TransactionRepository
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.NetworkConnectivityListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import xyz.flipchat.services.user.AuthState
+import xyz.flipchat.services.user.UserManager
+import java.util.Timer
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.seconds
+
+internal const val TAG = "Client"
+
+@Singleton
+class Client @Inject constructor(
+    internal val userManager: UserManager,
+    internal val transactionRepository: TransactionRepository,
+    internal val messagingRepository: MessagingRepository,
+    internal val balanceController: BalanceController,
+    internal val accountRepository: AccountRepository,
+    internal val exchange: Exchange,
+    internal val transactionReceiver: TransactionReceiver,
+    internal val networkObserver: NetworkConnectivityListener,
+) {
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    private var pollTimer: Timer? = null
+    private var lastPoll: Long = 0L
+
+    private fun startPollTimerWhenAuthenticated() {
+        Timber.tag(TAG).i("Creating poll timer")
+        scope.launch {
+            while(true) {
+                delay(1.seconds)
+                if (userManager.authState is AuthState.LoggedIn) {
+                    startPollTimer()
+                    break
+                }
+            }
+        }
+    }
+
+    private fun startPollTimer() {
+        pollTimer?.cancel()
+        pollTimer = fixedRateTimer("pollTimer", false, 0, 1000 * 10) {
+            scope.launch {
+                val time = System.currentTimeMillis()
+                val isPastThrottle = time - lastPoll > 1000 * 10 || lastPoll == 0L
+
+                if (userManager.authState is AuthState.LoggedIn && isPastThrottle) {
+                    Timber.tag(TAG).i("Timer Polling")
+                    poll()
+                    lastPoll = time
+                }
+            }
+        }
+    }
+
+    private suspend fun poll() {
+        if (networkObserver.isConnected) {
+            try {
+                balanceController.getBalance()
+                exchange.fetchRatesIfNeeded()
+            } catch (e: Exception) {
+                ErrorUtils.handleError(e)
+            }
+            fetchLimits().andThen(fetchPrivacyUpgrades()).blockingSubscribe()
+        }
+    }
+
+    fun startTimer() {
+        startPollTimerWhenAuthenticated()
+    }
+
+    fun stopTimer() {
+        Timber.tag(TAG).i("Cancelling Poller")
+        pollTimer?.cancel()
+    }
+}

@@ -33,31 +33,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.navigator.currentOrThrow
-import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
 import com.getcode.model.chat.Chat
-import com.getcode.model.chat.isConversation
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
-import com.getcode.navigation.screens.ConversationScreen
 import com.getcode.navigation.screens.NotificationCollectionScreen
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.White10
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeCircularProgressIndicator
-import com.getcode.ui.components.chat.ChatNode
-import com.getcode.util.Kin
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.utils.Kin
 import com.getcode.view.main.account.BucketDebugger
 import com.getcode.view.main.currency.CurrencySelectKind
-import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.ui.components.text.AmountArea
 
 
 @Composable
@@ -185,7 +181,7 @@ fun BalanceContent(
             ChatNode(chat = chat, onClick = { openChat(chat) })
             Divider(
                 modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                color = White10,
+                color = CodeTheme.colors.divider,
             )
         }
 
@@ -363,7 +359,7 @@ private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
 @Preview
 @Composable
 private fun TopPreview() {
-    CodeTheme {
+    DesignSystem {
         val model = BalanceSheetViewModel.State(
             amountText = "$12.34 of Kin",
             marketValue = 2_225_100.0,

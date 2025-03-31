@@ -7,7 +7,7 @@ import com.getcode.R
 import com.getcode.manager.AuthManager
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.Feature
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.FeatureRepository

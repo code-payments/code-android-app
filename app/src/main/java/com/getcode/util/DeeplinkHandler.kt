@@ -7,15 +7,15 @@ import android.os.Parcelable
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.R
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.network.repository.BetaFlagsRepository
-import com.getcode.network.repository.urlDecode
+import com.getcode.services.utils.base64EncodedData
 import com.getcode.utils.TraceType
-import com.getcode.utils.base64EncodedData
 import com.getcode.utils.trace
+import com.getcode.utils.urlDecode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
@@ -49,13 +49,15 @@ class DeeplinkHandler @Inject constructor(
         set(value) {
             intent.value = value
             field = value
-            trace("debounced intent data=${value?.data}", type = TraceType.Silent)
+            trace(
+                "debounced intent data=${value?.data}",
+                type = TraceType.Silent
+            )
         }
 
     val intent = MutableStateFlow(debounceIntent)
 
     suspend fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
-        println(intent)
         var uri = when {
             intent?.data != null -> intent.data
             intent?.getStringExtra(Intent.EXTRA_TEXT) != null -> {

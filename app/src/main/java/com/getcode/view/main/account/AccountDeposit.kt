@@ -28,16 +28,15 @@ import androidx.compose.ui.text.style.TextAlign
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.theme.Brand
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.vendor.Base58
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.MiddleEllipsisText
+import org.kin.sdk.base.tools.Base58
 
 @Composable
 fun AccountDeposit() {
@@ -70,7 +69,7 @@ fun AccountDeposit() {
             modifier = Modifier
                 .padding(vertical = CodeTheme.dimens.grid.x3)
                 .clip(CodeTheme.shapes.extraSmall)
-                .border(CodeTheme.dimens.border, BrandLight, CodeTheme.shapes.extraSmall)
+                .border(CodeTheme.dimens.border, CodeTheme.colors.brandLight, CodeTheme.shapes.extraSmall)
                 .fillMaxWidth()
                 .height(CodeTheme.dimens.grid.x10)
                 .background(White05)

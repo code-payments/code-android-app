@@ -17,8 +17,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun CameraPermissionsMissingView(

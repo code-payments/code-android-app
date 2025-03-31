@@ -1,0 +1,201 @@
+package xyz.flipchat.app
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import cafe.adriel.voyager.transitions.SlideTransition
+import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.core.BottomSheetNavigator
+import com.getcode.navigation.core.CombinedNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.navigation.transitions.SheetSlideTransition
+import com.getcode.theme.LocalCodeColors
+import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.ui.components.bars.BottomBarContainer
+import com.getcode.ui.components.bars.TopBarContainer
+import com.getcode.ui.components.bars.rememberBarManager
+import com.getcode.ui.core.RestrictionType
+import com.getcode.ui.decor.ScrimSupport
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.getActivity
+import dev.bmcreations.tipkit.TipScaffold
+import dev.bmcreations.tipkit.engines.TipsEngine
+import dev.theolm.rinku.DeepLink
+import dev.theolm.rinku.compose.ext.DeepLinkListener
+import xyz.flipchat.app.features.home.HomeViewModel
+import xyz.flipchat.app.features.payments.PaymentScaffold
+import xyz.flipchat.app.theme.FlipchatTheme
+import xyz.flipchat.app.ui.LocalUserManager
+import xyz.flipchat.app.ui.navigation.AppScreenContent
+import xyz.flipchat.app.ui.navigation.MainRoot
+import xyz.flipchat.app.util.DeeplinkType
+
+@Composable
+fun App(
+    tipsEngine: TipsEngine,
+) {
+    val homeViewModel = getActivityScopedViewModel<HomeViewModel>()
+    val router = homeViewModel.router
+    val context = LocalContext.current
+
+    //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
+    //authenticated. Currently we will require authentication to see anything, but can be changed in future.
+    var deepLink by remember { mutableStateOf<DeepLink?>(null) }
+    var loginRequest by remember { mutableStateOf<String?>(null) }
+
+    DeepLinkListener {
+        val type = router.processType(it)
+        if (type is DeeplinkType.Login) {
+            loginRequest = type.entropy
+            return@DeepLinkListener
+        }
+        deepLink = it
+    }
+
+    val userManager = LocalUserManager.currentOrThrow
+    val userState by userManager.state.collectAsState()
+
+    FlipchatTheme {
+        val barManager = rememberBarManager()
+        AppScreenContent {
+            PaymentScaffold {
+                TipScaffold(tipsEngine = tipsEngine) {
+                    ScrimSupport {
+                        AppNavHost {
+                            val codeNavigator = LocalCodeNavigator.current
+                            CodeScaffold { innerPaddingModifier ->
+                                Navigator(
+                                    screen = MainRoot { deepLink },
+                                ) { navigator ->
+                                    LaunchedEffect(navigator.lastItem) {
+                                        // update global navigator for platform access to support push/pop from a single
+                                        // navigator current
+                                        codeNavigator.screensNavigator = navigator
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(innerPaddingModifier)
+                                    ) {
+                                        SlideTransition(navigator)
+                                    }
+
+                                    LaunchedEffect(deepLink) {
+                                        if (codeNavigator.lastItem !is MainRoot) {
+                                            if (deepLink != null) {
+                                                val screenSet = router.processDestination(deepLink)
+                                                if (screenSet.isNotEmpty()) {
+                                                    codeNavigator.replaceAll(screenSet)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    LaunchedEffect(loginRequest) {
+                                        loginRequest?.let { entropy ->
+                                            homeViewModel.handleLoginEntropy(
+                                                entropy,
+                                                onSwitchAccounts = {
+                                                    loginRequest = null
+                                                    context.getActivity()?.let {
+                                                        homeViewModel.logout(it) {
+                                                            codeNavigator.replaceAll(
+                                                                ScreenRegistry.get(
+                                                                    NavScreenProvider.Login.Home(
+                                                                        entropy
+                                                                    )
+                                                                )
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                onCancel = {
+                                                    loginRequest = null
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    LaunchedEffect(userState.isTimelockUnlocked) {
+                                        if (userState.isTimelockUnlocked) {
+                                            codeNavigator.replaceAll(
+                                                ScreenRegistry.get(
+                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    OnLifecycleEvent { _, event ->
+                                        when (event) {
+                                            Lifecycle.Event.ON_RESUME -> {
+                                                homeViewModel.onAppOpen()
+                                            }
+
+                                            Lifecycle.Event.ON_STOP,
+                                            Lifecycle.Event.ON_DESTROY -> {
+                                                homeViewModel.closeStream()
+                                            }
+
+                                            else -> Unit
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        TopBarContainer(barManager.barMessages)
+        BottomBarContainer(barManager.barMessages)
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun AppNavHost(content: @Composable () -> Unit) {
+    var combinedNavigator by remember {
+        mutableStateOf<CombinedNavigator?>(null)
+    }
+    BottomSheetNavigator(
+        modifier = Modifier.fillMaxSize(),
+        sheetBackgroundColor = LocalCodeColors.current.background,
+        sheetContentColor = LocalCodeColors.current.onBackground,
+        sheetContent = { sheetNav ->
+            combinedNavigator = combinedNavigator?.apply { sheetNavigator = sheetNav }
+                ?: CombinedNavigator(sheetNav)
+            combinedNavigator?.let {
+                CompositionLocalProvider(LocalCodeNavigator provides it) {
+                    SheetSlideTransition(navigator = it)
+                }
+            }
+
+        },
+        onHide = com.getcode.services.manager.ModalManager::clear
+    ) { sheetNav ->
+        combinedNavigator =
+            combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)
+        combinedNavigator?.let {
+            CompositionLocalProvider(LocalCodeNavigator provides it) {
+                content()
+            }
+        }
+    }
+}

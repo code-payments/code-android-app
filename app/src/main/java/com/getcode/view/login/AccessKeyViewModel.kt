@@ -3,20 +3,21 @@ package com.getcode.view.login
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Build
+import com.getcode.AppHomeScreen
 import com.getcode.analytics.Action
 import com.getcode.analytics.ActionSource
 import com.getcode.analytics.AnalyticsService
+import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.AuthManager
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.media.MediaScanner
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
-import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.getPublicKeyBase58
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -33,7 +34,8 @@ class AccessKeyViewModel @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     resources: ResourceHelper,
     mediaScanner: MediaScanner,
-) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
+    qrCodeGenerator: QRCodeGenerator,
+) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, qrCodeGenerator) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return
@@ -84,7 +86,7 @@ class AccessKeyViewModel @Inject constructor(
         } else {
             if (Build.VERSION.SDK_INT < 33) {
                 analytics.action(Action.CompletedOnboarding)
-                navigator.replaceAll(ScanScreen())
+                navigator.replaceAll(AppHomeScreen())
             } else {
                 val notificationsPermissionDenied = permissions.isDenied(
                     Manifest.permission.POST_NOTIFICATIONS
@@ -94,7 +96,7 @@ class AccessKeyViewModel @Inject constructor(
                     navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, true))
                 } else {
                     analytics.action(Action.CompletedOnboarding)
-                    navigator.replaceAll(ScanScreen())
+                    navigator.replaceAll(AppHomeScreen())
                 }
             }
         }

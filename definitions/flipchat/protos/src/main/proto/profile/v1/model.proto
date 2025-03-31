@@ -1,0 +1,39 @@
+syntax = "proto3";
+package flipchat.profile.v1;
+option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/profile/v1;profilepb";
+option java_package = "com.codeinc.flipchat.gen.profile.v1";
+option objc_class_prefix = "FCPBProfileV1";
+
+message UserProfile {
+	// Display name is the display name of the user (if found).
+	string display_name = 1 ;
+	// Social profiles are links to external social accounts
+	repeated SocialProfile social_profiles = 2 ;
+}
+message SocialProfile {
+	oneof type {
+		XProfile x = 1;
+	}
+}
+message XProfile {
+    // The user's ID on X
+    string id = 1 ;
+    // The user's username on X
+    string username = 2 ;
+    // The user's friendly name on X
+    string name = 3 ;
+	// The user's description on X
+	string description = 4 ;
+    // URL to the user's X profile picture
+    string profile_pic_url = 5 ;
+    // The type of X verification associated with the user
+    VerifiedType verified_type = 6;
+    enum VerifiedType {
+        NONE       = 0;
+        BLUE       = 1;
+        BUSINESS   = 2;
+        GOVERNMENT = 3;
+    }
+    // The number of followers the user has on X
+    uint32 follower_count = 7;    
+}

@@ -6,20 +6,17 @@ import com.getcode.model.BuyModuleFeature
 import com.getcode.model.chat.Chat
 import com.getcode.model.Currency
 import com.getcode.model.Feature
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
-import com.getcode.util.Kin
-import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.Kin
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -33,7 +30,7 @@ class BalanceSheetViewModel @Inject constructor(
     history: NotificationCollectionHistoryController,
     prefsRepository: PrefRepository,
     features: FeatureRepository,
-    networkObserver: NetworkConnectivityListener,
+    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -122,12 +119,6 @@ class BalanceSheetViewModel @Inject constructor(
             }.onEach {
                 dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
             }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnOpened>()
-            .filter { features.isEnabled(PrefsBool.CONVERSATIONS_ENABLED) }
-            .onEach { history.fetch(true) }
-            .launchIn(viewModelScope)
     }
 
     companion object {

@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.KadoWebScreen.BuyKinWebInterface
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.toAGColor
 import com.kevinnzou.web.AccompanistWebViewClient
 import com.kevinnzou.web.LoadingState
@@ -45,7 +45,6 @@ fun BoxScope.KadoWebScreen(
         object : AccompanistWebViewClient() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                println("url=$url")
                 if (url?.startsWith("https://app.kado.money/ramp/order/") == true) {
                     // order created, extract order id
                     orderId = Uri.parse(url).lastPathSegment.orEmpty()

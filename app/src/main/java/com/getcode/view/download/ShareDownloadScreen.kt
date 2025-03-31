@@ -31,14 +31,14 @@ import androidx.compose.ui.text.style.TextAlign
 import com.getcode.LocalDownloadQrCode
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
+import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.components.Cloudy
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.utils.rememberedLongClickable
+import com.getcode.ui.core.rememberedLongClickable
 import com.getcode.util.shareDownloadLink
 
 @Composable

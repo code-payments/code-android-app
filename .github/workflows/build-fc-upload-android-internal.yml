@@ -1,0 +1,107 @@
+name: Flipchat Build and Deploy
+
+env:
+  # The name of the main module repository
+  main_project_module: flipchatApp
+
+  # The name of the Play Store
+  playstore_name: Flipchat
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Define PlayStore track name'
+        required: true
+        default: 'internal'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java env
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+      - name: Setup Ruby env
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7.2
+          bundler-cache: true
+
+      - name: Decode Google Services JSON file
+        uses: timheuer/base64-to-file@v1
+        id: google_services_json_file
+        with:
+          fileName: google-services.json
+          fileDir: ./flipchatApp/src
+          encodedString: ${{ secrets.FLIPCHAT_GOOGLE_SERVICES_JSON }}
+
+      - name: Decode Service Account Key JSON file
+        uses: timheuer/base64-to-file@v1
+        id: service_account_json_file
+        with:
+          fileName: serviceAccount.json
+          encodedString: ${{ secrets.SERVICE_ACCOUNT_KEY_JSON }}
+
+      - name: Decode Upload Key Store file into location 1
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: key
+          fileDir: ./key
+          encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
+
+      - name: Decode Upload Key Store file into location 2
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: key
+          fileDir: ./flipchatApp/key
+          encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
+
+      - name: Setup BugSnag API Key
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCHAT_BUGSNAG_API_KEY }}\" > ./local.properties
+
+      - name: Setup Fingerprint API Key
+        run: echo FINGERPRINT_API_KEY=${{ secrets.FINGERPRINT_API_KEY }} >> ./local.properties
+
+      - name: Setup Google Cloud Project Number
+        run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
+
+      - name: Setup Kado API Key
+        run: echo KADO_API_KEY=\"${{ secrets.KADO_API_KEY }}\" >> ./local.properties
+
+      - name: Setup Mixpanel API Key
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
+
+      - name: Setup X (Twitter) OAuth Client ID
+        run: echo X_CLIENT_ID=\"${{ secrets.FLIPCHAT_X_CLIENT_ID }}\" >> ./local.properties
+
+      - name: Run tests
+        run: bundle exec fastlane android fc_tests
+
+      - name: Build & deploy Android release
+        run: bundle exec fastlane android deploy_fc
+        env:
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
+          KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
+          PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
+    
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: assets
+          path: |
+            ${{ github.workspace }}/flipchatApp/build/outputs/bundle/release
+            ${{ github.workspace }}/flipchatApp/build/outputs/apk/release

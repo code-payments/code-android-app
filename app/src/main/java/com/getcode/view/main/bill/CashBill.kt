@@ -56,11 +56,11 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.Geometry
-import com.getcode.ui.utils.drawWithGradient
+import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.utils.nonScaledSp
-import com.getcode.ui.utils.punchCircle
-import com.getcode.ui.utils.punchRectangle
-import com.getcode.util.formattedRaw
+import com.getcode.ui.core.punchCircle
+import com.getcode.ui.core.punchRectangle
+import com.getcode.extensions.formattedRaw
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 

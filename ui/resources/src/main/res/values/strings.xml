@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title_paymentFailed">Payment Failed</string>
+    <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>
+
+    <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
+    <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough Kin to complete this payment</string>
+
+    <string name="kinLogo">⬢</string>
+    <string name="title_kinAmountWithLogo">⬢ %1$s</string>
+
+    <string name="action_reply">Reply</string>
+    <string name="action_giveTip">Give Tip</string>
+    <string name="action_copyMessage">Copy Message</string>
+    <string name="action_deleteMessage">Delete</string>
+    <string name="action_blockUser">Block User</string>
+    <string name="action_blockUserByName">Block User</string>
+    <string name="action_unblockUser">Unblock User</string>
+    <string name="action_removeUser">Remove %1$s</string>
+    <string name="action_reportUser">Report %1$s</string>
+    <string name="action_report">Report</string>
+    <string name="action_muteUser">Mute User</string>
+    <string name="action_promote">Make a Speaker</string>
+    <string name="action_demote">Remove as Speaker</string>
+</resources>

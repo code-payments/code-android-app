@@ -9,33 +9,29 @@ import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.manager.MnemonicManager
+import com.getcode.libs.qr.QRCodeGenerator
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.media.MediaScanner
-import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.DeniedReason
 import com.getcode.network.repository.ErrorSubmitIntent
 import com.getcode.network.repository.ErrorSubmitIntentException
-import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.Alert
 import com.getcode.theme.Brand
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
-import com.getcode.util.generateQrCode
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.save
-import com.getcode.utils.ErrorUtils
-import com.getcode.vendor.Base58
+import com.getcode.utils.decodeBase64
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
-import java.io.File
-import java.io.FileOutputStream
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -58,6 +54,7 @@ abstract class BaseAccessKeyViewModel(
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
     private val mediaScanner: MediaScanner,
+    private val qrCodeGenerator: QRCodeGenerator,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
@@ -241,7 +238,7 @@ abstract class BaseAccessKeyViewModel(
         val base58 = Base58.encode(entropyB64.decodeBase64())
         val url = "${resources.getString(R.string.root_url_app)}/login?data=$base58"
 
-        return generateQrCode(url, qrCodeSize)
+        return qrCodeGenerator.generate(url, qrCodeSize)
     }
 
     private fun drawText(

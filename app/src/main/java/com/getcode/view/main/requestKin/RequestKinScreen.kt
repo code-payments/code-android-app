@@ -16,20 +16,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.getcode.LocalNetworkObserver
 import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
-import com.getcode.theme.Alert
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeKeyPad
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeKeyPad
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
-import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.utils.network.LocalNetworkObserver
+import com.getcode.ui.components.text.AmountArea
 import kotlinx.coroutines.launch
 
 @Preview
@@ -53,7 +51,7 @@ fun RequestKinScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
-            if (dataState.amountModel.amountKin > dataState.amountModel.buyLimitKin) Alert else BrandLight
+            if (dataState.amountModel.amountKin > dataState.amountModel.buyLimitKin) CodeTheme.colors.errorText else CodeTheme.colors.brandLight
         Box(
             modifier = Modifier.weight(0.65f)
         ) {

@@ -16,8 +16,6 @@ android {
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"
         )
@@ -49,9 +47,10 @@ android {
 
 dependencies {
     api(project(":vendor:tipkit:tipkit"))
-    implementation(project(":common:theme"))
+    implementation(project(":ui:theme"))
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_ui_graphics)
     implementation(Libs.compose_material)
+    implementation(Libs.compose_materialIconsCore)
 }
