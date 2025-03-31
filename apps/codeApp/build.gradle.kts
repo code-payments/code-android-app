@@ -128,6 +128,7 @@ dependencies {
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))
+    implementation(project(":ui:scanner"))
     implementation(project(":ui:theme"))
 
     // kik code scanner

@@ -13,4 +13,3 @@ val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticComposi
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
 val LocalBetaFlags: ProvidableCompositionLocal<BetaOptions> = staticCompositionLocalOf { BetaOptions.Defaults }
 val LocalDownloadQrCode: ProvidableCompositionLocal<BitmapPainter?> = staticCompositionLocalOf { null }
-val LocalBiometricsState: ProvidableCompositionLocal<BiometricsState> = staticCompositionLocalOf { BiometricsState() }

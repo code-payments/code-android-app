@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.views
+package com.getcode.ui.scanner.views
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,13 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.scanner.R
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 @Composable
-internal fun CameraDisabledView(
+fun CameraDisabledView(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {

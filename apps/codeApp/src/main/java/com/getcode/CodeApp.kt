@@ -45,10 +45,11 @@ import com.getcode.ui.modals.ConfirmationModals
 import com.getcode.ui.utils.getActivity
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.ui.LocalTopBarPadding
+import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.biometrics.rememberBiometricsState
 import com.getcode.ui.theme.CodeTheme
 import com.getcode.ui.core.measured
-import com.getcode.view.main.scanner.views.BiometricsBlockingView
+import com.getcode.ui.biometrics.views.BiometricsBlockingView
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 

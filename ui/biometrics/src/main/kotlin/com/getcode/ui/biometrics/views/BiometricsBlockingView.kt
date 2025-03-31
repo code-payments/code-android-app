@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.views
+package com.getcode.ui.biometrics.views
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -12,14 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.getcode.R
-import com.getcode.theme.Brand
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.biometrics.R
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.biometrics.BiometricsState
 
 @Composable
-internal fun BiometricsBlockingView(
+fun BiometricsBlockingView(
     modifier: Modifier = Modifier,
     state: com.getcode.ui.biometrics.BiometricsState,
 ) {
@@ -30,7 +29,7 @@ internal fun BiometricsBlockingView(
     ) {
         Surface(
             modifier = modifier,
-            color = Brand.copy(alpha = 0.87f),
+            color = CodeTheme.colors.brand.copy(alpha = 0.87f),
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),

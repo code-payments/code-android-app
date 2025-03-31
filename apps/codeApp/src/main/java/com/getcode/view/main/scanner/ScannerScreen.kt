@@ -8,7 +8,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,12 +39,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import com.getcode.SessionEvent
-import com.getcode.SessionState
-import com.getcode.SessionController
-import com.getcode.LocalBiometricsState
 import com.getcode.PresentationStyle
 import com.getcode.R
+import com.getcode.SessionController
+import com.getcode.SessionEvent
+import com.getcode.SessionState
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.models.DeepLinkRequest
@@ -58,21 +56,23 @@ import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
+import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.utils.AnimationUtils
+import com.getcode.ui.components.restrictions.ContentRestrictedView
+import com.getcode.ui.core.RestrictionType
 import com.getcode.ui.core.measured
-import com.getcode.util.launchAppSettings
-import com.getcode.view.main.bill.BillManagementOptions
-import com.getcode.view.main.scanner.views.CameraDisabledView
-import com.getcode.view.main.scanner.camera.CodeScanner
-import com.getcode.view.main.bill.HomeBill
-import com.getcode.view.main.scanner.views.CameraPermissionsMissingView
 import com.getcode.ui.modals.ReceivedKinConfirmation
+import com.getcode.ui.scanner.CodeScanner
+import com.getcode.ui.scanner.views.CameraDisabledView
+import com.getcode.ui.scanner.views.CameraPermissionsMissingView
+import com.getcode.ui.utils.AnimationUtils
+import com.getcode.util.launchAppSettings
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
-import com.getcode.ui.components.restrictions.ContentRestrictedView
-import com.getcode.ui.core.RestrictionType
+import com.getcode.utils.ErrorUtils
+import com.getcode.view.main.bill.BillManagementOptions
+import com.getcode.view.main.bill.HomeBill
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -256,7 +256,8 @@ private fun ScannerContent(
                     if (previewing) {
                         session.onCodeScan(it)
                     }
-                }
+                },
+                onError = { ErrorUtils.handleError(it) }
             )
         },
         onAction = { handleAction(it) },
@@ -313,7 +314,7 @@ private fun ScannerContent(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun BillContainer(
     modifier: Modifier = Modifier,
@@ -368,11 +369,9 @@ private fun BillContainer(
         when {
             LocalBiometricsState.current.isAwaitingAuthentication -> {
                 // waiting for result
-                println("CAM : waiting for biometrics check")
             }
 
             dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null -> {
-                println("CAM: checking auto start cam")
                 if (dataState.autoStartCamera == null) {
                     // waiting for result
                 } else if (!dataState.autoStartCamera && !isCameraStarted) {
@@ -385,7 +384,6 @@ private fun BillContainer(
             }
 
             else -> {
-                println("CAM: missing camera perms")
                 CameraPermissionsMissingView(
                     modifier = Modifier.fillMaxSize(),
                     onClick = { checkPermission(true) }

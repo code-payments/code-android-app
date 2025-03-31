@@ -58,6 +58,7 @@ include(
         ":ui:emojis",
         ":ui:navigation",
         ":ui:resources",
+        ":ui:scanner",
         ":ui:theme",
 
         // 3rd party imported dependencies

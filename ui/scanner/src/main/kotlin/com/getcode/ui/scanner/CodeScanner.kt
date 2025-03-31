@@ -1,5 +1,6 @@
-package com.getcode.view.main.scanner.camera
+package com.getcode.ui.scanner
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -29,12 +30,12 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.asFlow
-import com.getcode.LocalBiometricsState
 import com.getcode.libs.biometrics.Biometrics
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.ui.scanner.internal.CameraGestureController
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
@@ -48,13 +49,15 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.Executors
 
+@SuppressLint("ClickableViewAccessibility")
 @Composable
 fun CodeScanner(
     scanningEnabled: Boolean,
     cameraGesturesEnabled: Boolean,
     invertedDragZoomEnabled: Boolean,
     onPreviewStateChanged: (Boolean) -> Unit,
-    onCodeScanned: (ScannableKikCode) -> Unit
+    onCodeScanned: (ScannableKikCode) -> Unit,
+    onError: (Throwable) -> Unit = { },
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -93,7 +96,7 @@ fun CodeScanner(
     val kikCodeAnalyzer = rememberKikCodeAnalyzer(
         scanner = scanner,
         onCodeScanned = onCodeScanned,
-        onError = { ErrorUtils.handleError(it) }
+        onError = onError
     )
 
     val biometricsState = LocalBiometricsState.current
@@ -193,7 +196,7 @@ fun CodeScanner(
 
     AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-    FocusIndicator(autoFocusPoint) {
+    com.getcode.ui.scanner.internal.FocusIndicator(autoFocusPoint) {
         autoFocusPoint = Offset.Unspecified
     }
 

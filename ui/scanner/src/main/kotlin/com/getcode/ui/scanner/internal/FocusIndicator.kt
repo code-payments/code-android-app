@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.camera
+package com.getcode.ui.scanner.internal
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -30,7 +30,7 @@ private const val SHOW_DURATION = 1_500L
 private const val RADIUS_PX = 100f
 
 @Composable
-fun FocusIndicator(position: Offset, onTimeout: () -> Unit) {
+internal fun FocusIndicator(position: Offset, onTimeout: () -> Unit) {
     var center by remember { mutableStateOf(Offset.Unspecified) }
     val circleAlpha = remember { Animatable(0f) }
     val outlineScale = remember { Animatable(OUTLINE_INITIAL_SCALE) }

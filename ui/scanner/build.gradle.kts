@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.ui.biometrics"
+    namespace = "${Android.codeNamespace}.ui.scanner"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -48,17 +48,29 @@ android {
 }
 
 dependencies {
-    api(project(":libs:biometrics"))
+    implementation(project(":libs:logging"))
+
+    implementation(project(":ui:biometrics"))
     implementation(project(":ui:components"))
     implementation(project(":ui:theme"))
 
-    api(Libs.androidx_annotation)
-    api(Libs.kotlin_stdlib)
-    api(Libs.kotlinx_coroutines_core)
+    implementation(project(":vendor:kik:scanner"))
+
+    // cameraX
+    implementation(Libs.androidx_camerax_core)
+    implementation(Libs.androidx_camerax_camera2)
+    implementation(Libs.androidx_camerax_lifecycle)
+    implementation(Libs.androidx_camerax_view)
+
+    implementation(Libs.androidx_annotation)
+    implementation(Libs.kotlin_stdlib)
+    implementation(Libs.kotlinx_coroutines_core)
 
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_animation)
     implementation(Libs.compose_material)
+
+    implementation(Libs.timber)
 }
