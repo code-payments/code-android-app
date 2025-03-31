@@ -1,4 +1,4 @@
-package com.kik.kikx.kikcodes.implementation
+package com.getcode.media
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -24,14 +24,15 @@ import java.io.File
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import androidx.core.graphics.scale
 
 class StaticImageHelper @Inject constructor(
     @ApplicationContext
     private val context: Context,
     private val scanner: KikCodeScanner,
     private val analytics: CodeAnalyticsService,
-) {
-    suspend fun analyze(uri: Uri): Result<ScannableKikCode> {
+): StaticImageAnalyzer {
+    override suspend fun analyze(uri: Uri): Result<ScannableKikCode> {
         val bitmap = context.uriToBitmap(uri)
         return if (bitmap != null) {
             detectCodeInImage(bitmap) { image, quality ->
@@ -221,8 +222,7 @@ class StaticImageHelper @Inject constructor(
         val yOffset = (bitmap.height - cropHeight) / 2
 
         val croppedBitmap = Bitmap.createBitmap(bitmap, xOffset, yOffset, cropWidth, cropHeight)
-        val scaledBitmap =
-            Bitmap.createScaledBitmap(croppedBitmap, bitmap.width, bitmap.height, true)
+        val scaledBitmap = croppedBitmap.scale(bitmap.width, bitmap.height)
 
         croppedBitmap.recycle()
         return scaledBitmap

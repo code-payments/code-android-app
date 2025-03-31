@@ -111,8 +111,6 @@ android {
 }
 
 dependencies {
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-
     // libs (not included with services)
     implementation(project(":libs:locale"))
     implementation(project(":libs:vibrator"))
@@ -132,6 +130,8 @@ dependencies {
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
 
+    // kik code scanner
+    implementation(project(":vendor:kik:scanner"))
     // tipkit
     implementation(project(":vendor:tipkit:tipkit-m2"))
 

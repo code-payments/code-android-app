@@ -5,9 +5,8 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.getcode.media.MediaScanner
+import com.getcode.media.StaticImageAnalyzer
 import com.getcode.util.toByteArray
-import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.KikCodeScanner
 import com.kik.kikx.kikcodes.ScannerError
 import com.kik.kikx.models.ScannableKikCode
@@ -20,11 +19,13 @@ import javax.inject.Inject
 @Composable
 fun rememberKikCodeAnalyzer(
     scanner: KikCodeScanner,
-    onCodeScanned: (ScannableKikCode) -> Unit
+    onError: (Throwable) -> Unit = { },
+    onCodeScanned: (ScannableKikCode) -> Unit,
 ): KikCodeAnalyzer {
-    return remember(scanner, onCodeScanned) {
+    return remember(scanner, onCodeScanned, onError) {
         KikCodeAnalyzer(scanner).apply {
             this.onCodeScanned = onCodeScanned
+            this.onError = onError
         }
     }
 }
@@ -34,13 +35,11 @@ class KikCodeAnalyzer @Inject constructor(
 ) : ImageAnalysis.Analyzer, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     @Inject
-    lateinit var staticImageHelper: StaticImageHelper
+    lateinit var staticImageAnalyzer: StaticImageAnalyzer
 
     var onCodeScanned: (ScannableKikCode) -> Unit = { }
     var onNoCodeFound: () -> Unit = { }
-
-    @Inject
-    internal lateinit var mediaScanner: MediaScanner
+    var onError: (Throwable) -> Unit = { }
 
     override fun analyze(imageProxy: ImageProxy) {
         launch {
@@ -55,7 +54,9 @@ class KikCodeAnalyzer @Inject constructor(
             }.onFailure { error ->
                 when (error) {
                     is ScannerError -> Unit
-                    else -> ErrorUtils.handleError(error)
+                    else -> {
+                        onError(error)
+                    }
                 }
                 imageProxy.close()
             }
@@ -64,13 +65,13 @@ class KikCodeAnalyzer @Inject constructor(
 
     fun analyze(uri: Uri) {
         launch {
-            staticImageHelper.analyze(uri)
+            staticImageAnalyzer.analyze(uri)
                 .onSuccess { result ->
                     onCodeScanned(result)
                 }.onFailure { error ->
                     when (error) {
                         is ScannerError -> onNoCodeFound()
-                        else -> ErrorUtils.handleError(error)
+                        else -> onError(error)
                     }
                 }
         }

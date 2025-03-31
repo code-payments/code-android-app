@@ -34,6 +34,7 @@ import com.getcode.libs.biometrics.Biometrics
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
@@ -89,7 +90,11 @@ fun CodeScanner(
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
     var gestureController by remember { mutableStateOf<CameraGestureController?>(null) }
 
-    val kikCodeAnalyzer = rememberKikCodeAnalyzer(scanner, onCodeScanned)
+    val kikCodeAnalyzer = rememberKikCodeAnalyzer(
+        scanner = scanner,
+        onCodeScanned = onCodeScanned,
+        onError = { ErrorUtils.handleError(it) }
+    )
 
     val biometricsState = LocalBiometricsState.current
 

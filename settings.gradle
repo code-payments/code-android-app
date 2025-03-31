@@ -61,6 +61,7 @@ include(
         ":ui:theme",
 
         // 3rd party imported dependencies
+        ":vendor:kik:scanner",
         ":vendor:tipkit:tipkit",
         ":vendor:tipkit:tipkit-m2",
 )

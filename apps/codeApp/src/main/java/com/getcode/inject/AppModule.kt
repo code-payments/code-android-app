@@ -10,6 +10,9 @@ import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.biometric.BiometricManager
 import androidx.core.app.NotificationManagerCompat
+import com.getcode.analytics.CodeAnalyticsService
+import com.getcode.media.StaticImageAnalyzer
+import com.getcode.media.StaticImageHelper
 import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidPermissions
 import com.getcode.util.vibration.Api25Vibrator
@@ -125,4 +128,11 @@ object AppModule {
     @Provides
     @Singleton
     fun providesCodeScanner(): KikCodeScanner = KikCodeScannerImpl()
+
+    @Provides
+    fun providesStaticImageAnalysis(
+        @ApplicationContext context: Context,
+        scanner: KikCodeScanner,
+        analyticsService: CodeAnalyticsService
+    ): StaticImageAnalyzer = StaticImageHelper(context, scanner, analyticsService)
 }
