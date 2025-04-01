@@ -76,9 +76,9 @@ dependencies {
     api(project(":libs:logging"))
     api(project(":libs:models"))
     api(project(":libs:network:exchange"))
-    api(project(":libs:network:connectivity"))
+    api(project(":libs:network:connectivity:public"))
 
-    implementation(project(":libs:locale"))
+    implementation(project(":libs:locale:public"))
     implementation(project(":ui:resources"))
 
     implementation(Libs.rxjava)
