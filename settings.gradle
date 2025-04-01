@@ -3,6 +3,7 @@ rootProject.name = "Code"
 include(
         // apps
         ":apps:codeApp",
+        ":apps:flipcashApp",
         ":apps:flipchatApp",
 
         // protobuf model and service implementations for Code
@@ -29,26 +30,40 @@ include(
         ":libs:encryption:sha256",
         ":libs:encryption:sha512",
         ":libs:encryption:utils",
-        ":libs:locale",
+
+        ":libs:locale:bindings",
+        ":libs:locale:impl",
+        ":libs:locale:public",
+
         ":libs:logging",
         ":libs:messaging",
-        ':libs:models',
+        ":libs:models",
         ":libs:network:exchange",
-        ':libs:opengraph',
-        ':libs:network:connectivity',
-        ":libs:permissions",
+        ":libs:opengraph",
+
+        ":libs:network:connectivity:bindings",
+        ":libs:network:connectivity:impl",
+        ":libs:network:connectivity:public",
+
+        ":libs:permissions:bindings",
+        ":libs:permissions:impl",
+        ":libs:permissions:public",
+
         ":libs:quickresponse",
         ":libs:requests",
         ":libs:search",
-        ":libs:vibrator",
+        
+        ":libs:vibrator:bindings",
+        ":libs:vibrator:impl",
+        ":libs:vibrator:public",
 
         // Services definition for app and lib access
         ":services:shared",
         ":services:code",
-        ':services:flipchat:core',
+        ":services:flipchat:core",
         ":services:flipchat:chat",
         ":services:flipchat:payments",
-        ':services:flipchat:sdk',
+        ":services:flipchat:sdk",
 
         // common UI
         ":ui:analytics",

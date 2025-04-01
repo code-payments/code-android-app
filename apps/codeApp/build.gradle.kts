@@ -112,10 +112,10 @@ android {
 
 dependencies {
     // libs (not included with services)
-    implementation(project(":libs:locale"))
-    implementation(project(":libs:vibrator"))
+    implementation(project(":libs:locale:public"))
+    implementation(project(":libs:vibrator:public"))
     implementation(project(":libs:messaging"))
-    implementation(project(":libs:permissions"))
+    implementation(project(":libs:permissions:public"))
     implementation(project(":libs:quickresponse"))
     implementation(project(":libs:requests"))
 
