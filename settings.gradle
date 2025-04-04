@@ -9,10 +9,16 @@ include(
         // protobuf model and service implementations for Code
         ":definitions:code:models",
         ":definitions:code:protos",
-        ":definitions:code-vm:models",
-        ":definitions:code-vm:protos",
+
+        // protobuf model and service implementations for Flipchat (fc specific and code bridge RPCs on the VM)
+        ":definitions:flipchat-vm:models",
+        ":definitions:flipchat-vm:protos",
         ":definitions:flipchat:models",
         ":definitions:flipchat:protos",
+
+        // protobuf model and service implementations for the Open Code Protocol
+        ":definitions:opencode:models",
+        ":definitions:opencode:protos",
 
         // Internal libs
         ":libs:analytics",
@@ -64,6 +70,7 @@ include(
         ":services:flipchat:chat",
         ":services:flipchat:payments",
         ":services:flipchat:sdk",
+        ":services:opencode",
 
         // common UI
         ":ui:analytics",

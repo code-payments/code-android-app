@@ -12,7 +12,7 @@ version = "0.0.1"
 group = "com.codeinc.gen"
 
 dependencies {
-    protobuf(project(":definitions:code-vm:protos"))
+    protobuf(project(":definitions:flipchat-vm:protos"))
 
     implementation(Libs.grpc_protobuf_lite)
     implementation(Libs.grpc_stub)

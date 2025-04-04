@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--  Actions  -->
+    <color name="code_alert">#FF8383</color>
+    <color name="code_alert_hover">#FFA1A1</color>
+    <color name="code_warning">#FFF383</color>
+    <color name="code_warning_hover">#FFF6A3</color>
+    <color name="code_success_positive">#FFF6A3</color>
+    <color name="code_success_positive_hover">#65F57C</color>
+
+    <!-- Grays -->
+    <color name="code_gray_1">#666666</color>
+    <color name="code_gray_2">#8D8D94</color>
+    <color name="code_gray_3">#BABBC2</color>
+    <color name="code_gray_4">#E6E6EB</color>
+    <color name="code_gray_5">#F0F0F5</color>
+
+    <!--  Brand -->
+    <color name="code_brand">#0F0C1F</color>
+    <color name="code_brand_light">#7379A0</color>
+    <color name="code_brand_subtle">#565C86</color>
+    <color name="code_brand_accent">#443091</color>
+
+    <color name="purple_dark">#0F0C1F</color>
+    <color name="purple_light">#8785A9</color>
+    <color name="forty_percent_black">#66000000</color>
+    <color name="seventy_percent_black">#B3000000</color>
+    <color name="clear">#00000000</color>
+    <color name="purple_background">#1D1A30</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="white_30_percent">#05FFFFFF</color>
+</resources>

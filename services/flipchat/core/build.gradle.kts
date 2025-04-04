@@ -52,8 +52,10 @@ android {
 }
 
 dependencies {
-    implementation(project(":definitions:code-vm:models"))
+    implementation(project(":definitions:flipchat-vm:models"))
     api(project(":services:shared"))
+    api(project(":libs:crypto:kin"))
+    api(project(":libs:crypto:solana"))
     implementation(project(":ui:resources"))
 
     api(project(":libs:analytics"))

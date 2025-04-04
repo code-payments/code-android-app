@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.services.common"
+    namespace = "${Android.codeNamespace}.services.opencode"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -15,6 +15,21 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
 
         consumerProguardFiles("consumer-rules.pro")
+
+        buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipchat.versionName}\"")
+
+        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+        buildConfigField(
+            "String",
+            "GOOGLE_CLOUD_PROJECT_NUMBER",
+            "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
+        )
+
+        buildConfigField(
+            "String",
+            "FINGERPRINT_API_KEY",
+            "\"${tryReadProperty(rootProject.rootDir, "FINGERPRINT_API_KEY")}\""
+        )
     }
 
     java {
@@ -37,34 +52,22 @@ android {
 }
 
 dependencies {
-    api(project(":libs:datetime"))
-    api(project(":libs:currency"))
-    api(project(":libs:encryption:base58"))
-    api(project(":libs:encryption:ed25519"))
-    api(project(":libs:encryption:hmac"))
-    api(project(":libs:encryption:keys"))
-    api(project(":libs:encryption:mnemonic"))
-    api(project(":libs:encryption:sha256"))
-    api(project(":libs:encryption:sha512"))
-    api(project(":libs:encryption:utils"))
-    api(project(":libs:logging"))
-    api(project(":libs:models"))
-    api(project(":libs:network:exchange"))
-    api(project(":libs:network:connectivity:public"))
+    implementation(project(":definitions:opencode:models"))
+    api(project(":services:shared"))
+    api(project(":libs:crypto:kin"))
+    api(project(":libs:crypto:solana"))
     implementation(project(":ui:resources"))
 
-    implementation(Libs.rxjava)
+    api(project(":libs:analytics"))
+
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)
 
+    implementation(Libs.grpc_android)
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
     implementation(Libs.androidx_lifecycle_runtime)
-    implementation(Libs.androidx_room_runtime)
-    implementation(Libs.androidx_room_ktx)
-    implementation(Libs.androidx_room_rxjava3)
-    implementation(Libs.androidx_room_paging)
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)
 
@@ -88,7 +91,10 @@ dependencies {
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)
     androidTestImplementation(Libs.androidx_test_runner)
+
     implementation(Libs.hilt)
+    kapt(Libs.hilt_android_compiler)
+    kapt(Libs.hilt_compiler)
 
     implementation(Libs.timber)
     implementation(Libs.bugsnag)

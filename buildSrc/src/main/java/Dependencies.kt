@@ -4,6 +4,7 @@
 object Android {
     const val codeNamespace = "com.getcode"
     const val flipchatNamespace = "xyz.flipchat"
+    const val flipcashNamespace = "com.flipcash"
 
     const val compileSdkVersion = 35
     const val minSdkVersion = 24
@@ -23,6 +24,12 @@ sealed class Packaging(
         majorVersion = 2,
         minorVersion = 1,
         patchVersion = 14,
+    )
+
+    object Flipcash: Packaging(
+        majorVersion = 0,
+        minorVersion = 0,
+        patchVersion = 1,
     )
 
     object Flipchat: Packaging(
