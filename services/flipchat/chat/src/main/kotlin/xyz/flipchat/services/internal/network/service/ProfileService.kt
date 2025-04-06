@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.profile.v1.Model
 import com.codeinc.flipchat.gen.profile.v1.ProfileService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
+import com.getcode.opencode.internal.network.managedApiRequest
 import com.getcode.services.model.profile.SocialAccountLinkRequest
 import com.getcode.services.model.profile.SocialAccountUnlinkRequest
 import com.getcode.services.network.core.NetworkOracle

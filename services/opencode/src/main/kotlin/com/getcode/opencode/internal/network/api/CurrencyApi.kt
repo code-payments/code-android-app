@@ -1,10 +1,10 @@
 package com.getcode.opencode.internal.network.api
 
-import com.codeinc.gen.currency.v1.CurrencyGrpc
-import com.codeinc.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.CurrencyGrpc
+import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.toProtobufTimestamp
-import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":services:shared"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:logging"))
+    implementation(project(":libs:models"))
     implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:keys"))
     implementation(project(":libs:encryption:mnemonic"))

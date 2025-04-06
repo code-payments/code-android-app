@@ -1,12 +1,12 @@
 package com.getcode.opencode.internal.network.api
 
-import com.codeinc.gen.account.v1.AccountGrpc
-import com.codeinc.gen.account.v1.AccountService
+import com.codeinc.opencode.gen.account.v1.AccountGrpc
+import com.codeinc.opencode.gen.account.v1.AccountService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.utils.sign
-import com.getcode.services.network.core.GrpcApi
+import com.getcode.opencode.internal.network.extensions.sign
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -50,7 +50,7 @@ internal class AccountApi @Inject constructor(
      *
      * @return The [AccountService.GetTokenAccountInfosResponse]
      */
-    fun getTokenAccountInfos(
+    fun getTokenAccounts(
         owner: KeyPair
     ): Flow<AccountService.GetTokenAccountInfosResponse> {
         val request = AccountService.GetTokenAccountInfosRequest.newBuilder()

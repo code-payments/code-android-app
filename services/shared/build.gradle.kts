@@ -38,7 +38,6 @@ android {
 
 dependencies {
     api(project(":libs:datetime"))
-    api(project(":libs:currency"))
     api(project(":libs:encryption:base58"))
     api(project(":libs:encryption:ed25519"))
     api(project(":libs:encryption:hmac"))
@@ -47,8 +46,11 @@ dependencies {
     api(project(":libs:encryption:sha256"))
     api(project(":libs:encryption:sha512"))
     api(project(":libs:encryption:utils"))
-    api(project(":libs:logging"))
+    api(project(":libs:currency"))
+    api(project(":libs:crypto:kin"))
+    api(project(":libs:crypto:solana"))
     api(project(":libs:models"))
+    api(project(":libs:logging"))
     api(project(":libs:network:exchange"))
     api(project(":libs:network:connectivity:public"))
     implementation(project(":ui:resources"))

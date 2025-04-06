@@ -1,7 +1,7 @@
 syntax = "proto3";
 package code.transaction.v2;
 option go_package = "github.com/code-payments/code-protobuf-api/generated/go/transaction/v2;transaction";
-option java_package = "com.codeinc.gen.transaction.v2";
+option java_package = "com.codeinc.opencode.gen.transaction.v2";
 option objc_class_prefix = "APBTransactionV2";
 import "common/v1/model.proto";
 import "google/protobuf/timestamp.proto";

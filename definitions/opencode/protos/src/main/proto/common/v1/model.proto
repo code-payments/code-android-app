@@ -1,7 +1,7 @@
 syntax = "proto3";
 package code.common.v1;
 option go_package = "github.com/code-payments/code-protobuf-api/generated/go/common/v1;common";
-option java_package = "com.codeinc.gen.common.v1";
+option java_package = "com.codeinc.opencode.gen.common.v1";
 option objc_class_prefix = "CPBCommonV1";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";

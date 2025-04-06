@@ -2,8 +2,8 @@ package com.getcode.opencode.internal.domain.extensions
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
-import com.getcode.model.Kin
 import com.getcode.opencode.internal.domain.vmTimeAuthority
+import com.getcode.opencode.model.core.Fiat
 import com.getcode.solana.instructions.programs.*
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.Key32.Companion.splitter
@@ -158,7 +158,7 @@ fun PublicKey.Companion.deriveProgramAddress(programId: PublicKey, seeds: List<B
     return PublicKey(hash.toList())
 }
 
-fun PublicKey.Companion.deriveCommitmentStateAccount(treasury: PublicKey, recentRoot: Hash, transcript: Hash, destination: PublicKey, amount: Kin): ProgramDerivedAccount {
+fun PublicKey.Companion.deriveCommitmentStateAccount(treasury: PublicKey, recentRoot: Hash, transcript: Hash, destination: PublicKey, amount: Fiat): ProgramDerivedAccount {
     return findProgramAddress(
         programId = splitter,
         seeds = listOf(
@@ -167,7 +167,7 @@ fun PublicKey.Companion.deriveCommitmentStateAccount(treasury: PublicKey, recent
             recentRoot.bytes.toByteArray(),
             transcript.bytes.toByteArray(),
             destination.bytes.toByteArray(),
-            amount.quarks.longToByteArray()
+            amount.quarks.toLong().longToByteArray()
         )
     )
 }

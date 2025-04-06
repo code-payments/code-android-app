@@ -16,19 +16,11 @@ android {
 
         consumerProguardFiles("consumer-rules.pro")
 
-        buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipchat.versionName}\"")
-
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
         buildConfigField(
             "String",
             "GOOGLE_CLOUD_PROJECT_NUMBER",
             "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
-        )
-
-        buildConfigField(
-            "String",
-            "FINGERPRINT_API_KEY",
-            "\"${tryReadProperty(rootProject.rootDir, "FINGERPRINT_API_KEY")}\""
         )
     }
 
@@ -53,12 +45,23 @@ android {
 
 dependencies {
     implementation(project(":definitions:opencode:models"))
-    api(project(":services:shared"))
+    api(project(":libs:datetime"))
+    api(project(":libs:encryption:base58"))
+    api(project(":libs:encryption:ed25519"))
+    api(project(":libs:encryption:hmac"))
+    api(project(":libs:encryption:keys"))
+    api(project(":libs:encryption:mnemonic"))
+    api(project(":libs:encryption:sha256"))
+    api(project(":libs:encryption:sha512"))
+    api(project(":libs:encryption:utils"))
     api(project(":libs:crypto:kin"))
     api(project(":libs:crypto:solana"))
+    api(project(":libs:logging"))
     implementation(project(":ui:resources"))
 
     api(project(":libs:analytics"))
+
+    implementation(Libs.inject)
 
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)

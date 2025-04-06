@@ -1,7 +1,7 @@
 syntax = "proto3";
 package code.messaging.v1;
 option go_package = "github.com/code-payments/code-protobuf-api/generated/go/messaging/v1;messaging";
-option java_package = "com.codeinc.gen.messaging.v1";
+option java_package = "com.codeinc.opencode.gen.messaging.v1";
 option objc_class_prefix = "CPBMessagingV1";
 import "common/v1/model.proto";
 import "transaction/v2/transaction_service.proto";

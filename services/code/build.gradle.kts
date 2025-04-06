@@ -60,7 +60,7 @@ dependencies {
     implementation(project(":definitions:code:models"))
     api(project(":services:shared"))
     api(project(":libs:crypto:solana"))
-
+    api(project(":libs:currency"))
     api(project(":libs:analytics"))
     api(project(":libs:datetime"))
     api(project(":libs:crypto:kin"))

@@ -18,7 +18,7 @@ class TimelockProgram_TransferWithAuthority(
     val destination: com.getcode.solana.keys.PublicKey,
     val payer: com.getcode.solana.keys.PublicKey,
     val bump: Byte,
-    val kin: Kin
+    val quarks: Long
 ) : com.getcode.solana.instructions.InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
@@ -43,7 +43,7 @@ class TimelockProgram_TransferWithAuthority(
             Command.transferWithAuthority.value.toByteArray().toList()
         )
         data.add(bump)
-        data.addAll(kin.quarks.longToByteArray().toList())
+        data.addAll(quarks.longToByteArray().toList())
 
         return data
     }
@@ -69,7 +69,7 @@ class TimelockProgram_TransferWithAuthority(
                 destination = instruction.accounts[4].publicKey,
                 payer = instruction.accounts[5].publicKey,
                 bump = bump.consumed.first(),
-                kin = Kin.fromQuarks(quarks)
+                quarks = quarks
             )
         }
     }

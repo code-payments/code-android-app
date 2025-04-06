@@ -1,16 +1,16 @@
 package com.getcode.opencode.internal.network.api
 
-import com.codeinc.gen.messaging.v1.MessagingGrpc
-import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.MessagingGrpc
+import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.model.ID
-import com.getcode.opencode.domain.messaging.Message
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asRendezvousKey
-import com.getcode.opencode.internal.network.extensions.toProtobufMessage
+import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.internal.network.extensions.toMessageId
-import com.getcode.opencode.internal.network.utils.sign
-import com.getcode.services.network.core.GrpcApi
+import com.getcode.opencode.internal.network.extensions.toProtobufMessage
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.messaging.Message
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
@@ -119,20 +119,6 @@ internal class MessagingApi @Inject constructor(
     fun openMessageStreamWithKeepAlive(
         observer: StreamObserver<MessagingService.OpenMessageStreamWithKeepAliveResponse>
     ): StreamObserver<MessagingService.OpenMessageStreamWithKeepAliveRequest> {
-//        val builder = MessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
-//
-//        when (requestOption) {
-//            is KeepAliveRequest.ClientPong -> {
-//                builder.setPong(clientPongWith(requestOption.timestamp))
-//            }
-//            is KeepAliveRequest.OpenStreamRequest -> {
-//                builder.setRequest(openMessageStreamRequest(requestOption.rendezvous))
-//            }
-//        }
-//
-//        val request = builder.build()
-
-
         return api.openMessageStreamWithKeepAlive(observer)
     }
 

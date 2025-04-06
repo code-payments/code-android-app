@@ -70,6 +70,7 @@ include(
         ":services:flipchat:chat",
         ":services:flipchat:payments",
         ":services:flipchat:sdk",
+
         ":services:opencode",
 
         // common UI

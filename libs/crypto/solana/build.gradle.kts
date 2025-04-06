@@ -45,7 +45,6 @@ dependencies {
     implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:currency"))
-//    implementation(project(":libs:models"))
     implementation(Libs.timber)
     implementation(Libs.kotlinx_serialization_json)
 }
