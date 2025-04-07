@@ -48,7 +48,7 @@ dependencies {
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
 
-    implementation("org.jsoup:jsoup:1.16.1")
+    implementation("org.jsoup:jsoup:1.19.1")
     implementation(project(":libs:encryption:utils"))
 
     implementation(Libs.kotlinx_coroutines_core)
