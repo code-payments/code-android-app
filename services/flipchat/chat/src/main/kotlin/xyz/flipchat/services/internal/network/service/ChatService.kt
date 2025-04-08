@@ -28,6 +28,7 @@ import xyz.flipchat.services.internal.network.api.ChatApi
 import xyz.flipchat.services.internal.network.chat.GetOrJoinChatResponse
 import com.getcode.utils.FlipchatServerError
 import xyz.flipchat.services.internal.network.utils.authenticate
+import xyz.flipchat.services.network.managedApiRequest
 import javax.inject.Inject
 
 typealias ChatHomeStreamReference = BidirectionalStreamReference<ChatServiceRpc.StreamChatEventsRequest, ChatServiceRpc.StreamChatEventsResponse>

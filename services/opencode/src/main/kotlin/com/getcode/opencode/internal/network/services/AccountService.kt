@@ -5,7 +5,8 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.managedApiRequest
-import com.getcode.utils.CodeServerError
+import com.getcode.opencode.model.core.errors.CodeAccountCheckError
+import com.getcode.opencode.model.core.errors.LinkAccountsError
 import javax.inject.Inject
 
 internal class AccountService @Inject constructor(
@@ -18,9 +19,12 @@ internal class AccountService @Inject constructor(
             handleResponse = { response ->
                 when (response.result) {
                     AccountService.IsCodeAccountResponse.Result.OK -> Result.success(true)
-                    AccountService.IsCodeAccountResponse.Result.NOT_FOUND -> Result.failure(CodeAccountCheckError.NotFound())
-                    AccountService.IsCodeAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> Result.failure(CodeAccountCheckError.UnlockedTimelockAccount())
-                    AccountService.IsCodeAccountResponse.Result.UNRECOGNIZED -> Result.failure(CodeAccountCheckError.Unrecognized())
+                    AccountService.IsCodeAccountResponse.Result.NOT_FOUND -> Result.failure(
+                        CodeAccountCheckError.NotFound())
+                    AccountService.IsCodeAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> Result.failure(
+                        CodeAccountCheckError.UnlockedTimelockAccount())
+                    AccountService.IsCodeAccountResponse.Result.UNRECOGNIZED -> Result.failure(
+                        CodeAccountCheckError.Unrecognized())
                     else -> Result.failure(CodeAccountCheckError.Other())
                 }
             },
@@ -41,9 +45,12 @@ internal class AccountService @Inject constructor(
             handleResponse = { response ->
                 when (response.result) {
                     AccountService.LinkAdditionalAccountsResponse.Result.OK -> Result.success(Unit)
-                    AccountService.LinkAdditionalAccountsResponse.Result.DENIED -> Result.failure(LinkAccountsError.Denied())
-                    AccountService.LinkAdditionalAccountsResponse.Result.INVALID_ACCOUNT -> Result.failure(LinkAccountsError.InvalidAccount())
-                    AccountService.LinkAdditionalAccountsResponse.Result.UNRECOGNIZED -> Result.failure(LinkAccountsError.Unrecognized())
+                    AccountService.LinkAdditionalAccountsResponse.Result.DENIED -> Result.failure(
+                        LinkAccountsError.Denied())
+                    AccountService.LinkAdditionalAccountsResponse.Result.INVALID_ACCOUNT -> Result.failure(
+                        LinkAccountsError.InvalidAccount())
+                    AccountService.LinkAdditionalAccountsResponse.Result.UNRECOGNIZED -> Result.failure(
+                        LinkAccountsError.Unrecognized())
                     else -> Result.failure(LinkAccountsError.Other())
                 }
             },
@@ -54,38 +61,3 @@ internal class AccountService @Inject constructor(
     }
 }
 
-sealed class CodeAccountCheckError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-): CodeServerError(message, cause) {
-    class NotFound: CodeAccountCheckError()
-    class UnlockedTimelockAccount: CodeAccountCheckError()
-    class Unrecognized: CodeAccountCheckError()
-    data class Other(override val cause: Throwable? = null) : CodeAccountCheckError()
-}
-
-sealed class GetAccountsError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-): CodeServerError(message, cause) {
-    class NotFound: GetAccountsError()
-    class Unrecognized: GetAccountsError()
-    data class Other(override val cause: Throwable? = null) : GetAccountsError()
-}
-
-sealed class LinkAccountsError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-): CodeServerError(message, cause) {
-    /**
-     * The action has been denied (eg. owner account not phone verified)
-     */
-    class Denied: LinkAccountsError()
-
-    /**
-     * An account being linked is not valid
-     */
-    class InvalidAccount: LinkAccountsError()
-    class Unrecognized: LinkAccountsError()
-    data class Other(override val cause: Throwable? = null) : LinkAccountsError()
-}

@@ -10,9 +10,12 @@ import com.getcode.opencode.internal.network.extensions.openMessageStreamRequest
 import com.getcode.opencode.internal.network.extensions.toId
 import com.getcode.opencode.internal.network.managedApiRequest
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.errors.AckMessagesError
+import com.getcode.opencode.model.core.errors.OpenMessageStreamError
+import com.getcode.opencode.model.core.errors.PollMessagesError
+import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.observers.BidirectionalStreamReference
-import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -213,35 +216,4 @@ internal class MessagingService @Inject constructor(
             }
         )
     }
-}
-
-sealed class OpenMessageStreamError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    data class Other(override val cause: Throwable? = null) : OpenMessageStreamError()
-}
-
-sealed class PollMessagesError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    data class Other(override val cause: Throwable? = null) : PollMessagesError()
-}
-
-sealed class AckMessagesError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class Unrecognized : AckMessagesError()
-    data class Other(override val cause: Throwable? = null) : AckMessagesError()
-}
-
-sealed class SendMessageError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class NoActiveStream : SendMessageError()
-    class Unrecognized : SendMessageError()
-    data class Other(override val cause: Throwable? = null) : SendMessageError()
 }

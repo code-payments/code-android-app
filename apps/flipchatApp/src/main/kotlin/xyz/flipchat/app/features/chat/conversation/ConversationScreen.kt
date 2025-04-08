@@ -41,7 +41,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AppScreen
 import com.getcode.theme.CodeTheme

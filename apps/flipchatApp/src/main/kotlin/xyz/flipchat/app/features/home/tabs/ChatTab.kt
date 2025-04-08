@@ -34,7 +34,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.manager.BottomBarManager
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavigationLocator
 import com.getcode.navigation.core.NavigatorStub

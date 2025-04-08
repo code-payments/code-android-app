@@ -11,7 +11,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.FullScreenModalScreen
 import com.getcode.ui.components.AppBarWithTitle

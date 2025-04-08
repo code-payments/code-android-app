@@ -4,8 +4,8 @@ import androidx.core.net.toUri
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.model.ID
-import com.getcode.navigation.NavScreenProvider
-import com.getcode.navigation.RoomInfoArgs
+import xyz.flipchat.app.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.RoomInfoArgs
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.vendor.Base58
@@ -13,10 +13,6 @@ import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.features.home.tabs.CashTab
 import xyz.flipchat.app.features.home.tabs.ChatTab

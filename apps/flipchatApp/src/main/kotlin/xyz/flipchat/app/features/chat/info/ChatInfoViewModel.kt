@@ -11,7 +11,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.chat.MinimalMember
-import com.getcode.navigation.RoomInfoArgs
+import xyz.flipchat.app.navigation.RoomInfoArgs
 import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.permissions.PermissionChecker
@@ -19,7 +19,6 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
@@ -30,7 +29,6 @@ import xyz.flipchat.app.R
 import xyz.flipchat.app.beta.Lab
 import xyz.flipchat.app.beta.Labs
 import xyz.flipchat.app.data.RoomInfo
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel.Event
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.chat.RoomController

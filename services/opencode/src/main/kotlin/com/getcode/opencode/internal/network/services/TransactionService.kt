@@ -14,6 +14,11 @@ import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.managedApiRequest
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.Limits
+import com.getcode.opencode.model.core.errors.AirdropError
+import com.getcode.opencode.model.core.errors.GetIntentMetadataError
+import com.getcode.opencode.model.core.errors.GetLimitsError
+import com.getcode.opencode.model.core.errors.SubmitIntentError
+import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -298,99 +303,4 @@ private fun handleErrors(
     }
 
     return errors
-}
-
-enum class DeniedReason {
-    Unspecified,
-    TooManyFreeAccountsForPhoneNumber,
-    TooManyFreeAccountsForDevice,
-    UnsupportedCountry,
-    UnsupportedDevice;
-
-    companion object {
-        fun fromValue(value: Int): DeniedReason {
-            return entries.firstOrNull { it.ordinal == value } ?: Unspecified
-        }
-    }
-}
-
-sealed class SubmitIntentError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    data class InvalidIntent(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString())
-
-    class Signature : SubmitIntentError()
-    data class StaleState(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString())
-
-    data class Denied(private val reasons: List<DeniedReason>) :
-        SubmitIntentError(message = reasons.joinToString())
-
-    class Unrecognized : SubmitIntentError()
-    data class Other(override val cause: Throwable? = null) : SubmitIntentError()
-
-    companion object {
-        fun typed(proto: SubmitIntentResponse.Error): SubmitIntentError {
-            val reasonStrings = proto.errorDetailsList.mapNotNull {
-                when (it.typeCase) {
-                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
-                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-
-                    else -> null
-                }
-            }
-            return when (proto.code) {
-                SubmitIntentResponse.Error.Code.DENIED -> {
-                    val reasons = proto.errorDetailsList.mapNotNull {
-                        if (!it.hasDenied()) return@mapNotNull null
-                        DeniedReason.fromValue(it.denied.codeValue)
-                    }
-
-                    Denied(reasons)
-                }
-
-                SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent(reasonStrings)
-                SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-                SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState(reasonStrings)
-                SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-                else -> return Other()
-            }
-        }
-    }
-}
-
-sealed class GetIntentMetadataError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class NotFound : GetIntentMetadataError()
-    class Unrecognized : GetIntentMetadataError()
-    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError()
-}
-
-sealed class GetLimitsError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class Unrecognized : GetIntentMetadataError()
-    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError()
-}
-
-sealed class WithdrawalAvailabilityError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    data class Other(override val cause: Throwable? = null) : WithdrawalAvailabilityError()
-}
-
-sealed class AirdropError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class Unavailable: AirdropError()
-    class AlreadyClaimed: AirdropError()
-    class Unrecognized: AirdropError()
-    data class Other(override val cause: Throwable? = null) : AirdropError()
 }

@@ -3,7 +3,7 @@ package xyz.flipchat.app.features.chat.lookup
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
-import com.getcode.navigation.RoomInfoArgs
+import xyz.flipchat.app.navigation.RoomInfoArgs
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.login.register.onResult
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel

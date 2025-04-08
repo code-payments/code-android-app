@@ -111,7 +111,7 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
-    const val voyager = "1.1.0-beta02"
+    const val voyager = "1.1.0-beta03"
     const val protobuf_plugin = "0.9.4"
 
     const val sodium_bindings = "0.9.0"
@@ -147,6 +147,7 @@ object Plugins {
     const val androidx_navigation_safeargs = "androidx.navigation.safeargs.kotlin"
     const val kotlin_android = "kotlin-android"
     const val kotlin_parcelize = "kotlin-parcelize"
+    const val kotlin_ksp = "com.google.devtools.ksp"
     const val kotlin_kapt = "kotlin-kapt"
     const val kotlin_serialization = "org.jetbrains.kotlin.plugin.serialization"
     const val hilt = "dagger.hilt.android.plugin"

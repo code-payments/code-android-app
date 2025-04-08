@@ -1,7 +1,7 @@
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_ksp)
     id(Plugins.kotlin_serialization)
 }
 
@@ -40,6 +40,11 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 }
 
@@ -57,9 +62,17 @@ dependencies {
     api(project(":libs:crypto:kin"))
     api(project(":libs:crypto:solana"))
     api(project(":libs:logging"))
+    api(project(":libs:locale:bindings"))
+    api(project(":libs:network:connectivity:public"))
     implementation(project(":ui:resources"))
 
     api(project(":libs:analytics"))
+
+    api(Libs.sodium_bindings)
+
+    //Jetpack compose
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
 
     implementation(Libs.inject)
 
@@ -84,7 +97,7 @@ dependencies {
 
     implementation(Libs.androidx_paging_runtime)
 
-    kapt(Libs.androidx_room_compiler)
+    ksp(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
 
     implementation(Libs.fingerprint_pro)
@@ -96,8 +109,8 @@ dependencies {
     androidTestImplementation(Libs.androidx_test_runner)
 
     implementation(Libs.hilt)
-    kapt(Libs.hilt_android_compiler)
-    kapt(Libs.hilt_compiler)
+    ksp(Libs.hilt_android_compiler)
+    ksp(Libs.hilt_compiler)
 
     implementation(Libs.timber)
     implementation(Libs.bugsnag)

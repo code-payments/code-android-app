@@ -9,3 +9,7 @@ internal fun ByteArray.toHash(): com.getcode.solana.keys.Hash {
 internal fun ByteArray.toPublicKey(): PublicKey {
     return PublicKey(this.toList())
 }
+
+internal fun UByteArray.toPublicKey(): PublicKey {
+    return PublicKey.fromUbytes(this.toList())
+}

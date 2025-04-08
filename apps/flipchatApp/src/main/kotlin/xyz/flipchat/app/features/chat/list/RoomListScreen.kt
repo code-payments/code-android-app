@@ -32,7 +32,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.model.ID
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.AppScreen

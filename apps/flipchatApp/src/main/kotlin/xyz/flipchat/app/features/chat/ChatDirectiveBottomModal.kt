@@ -4,7 +4,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.getcode.manager.BottomBarManager
 import com.getcode.model.Currency
 import com.getcode.model.Kin
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.Kin

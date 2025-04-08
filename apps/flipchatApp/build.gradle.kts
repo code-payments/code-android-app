@@ -118,8 +118,8 @@ dependencies {
     implementation(project(":services:flipchat:sdk"))
 
     implementation(project(":libs:datetime"))
-    implementation(project(":libs:locale:public"))
-    implementation(project(":libs:vibrator:public"))
+    implementation(project(":libs:locale:bindings"))
+    implementation(project(":libs:vibrator:bindings"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:keys"))
     implementation(project(":libs:encryption:mnemonic"))
@@ -129,7 +129,7 @@ dependencies {
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
-    implementation(project(":libs:network:connectivity:public"))
+    implementation(project(":libs:network:connectivity:bindings"))
     implementation(project(":libs:opengraph"))
     implementation(project(":libs:permissions:public"))
     implementation(project(":libs:quickresponse"))
@@ -156,12 +156,12 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
-    implementation("androidx.webkit:webkit:1.12.1")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
-
     implementation(Libs.hilt_worker)
-    
+
+    implementation("androidx.webkit:webkit:1.12.1")
+
     androidTestImplementation(Libs.hilt)
     androidTestImplementation(Libs.hilt_android_test)
     kaptAndroidTest(Libs.hilt_android_compiler)

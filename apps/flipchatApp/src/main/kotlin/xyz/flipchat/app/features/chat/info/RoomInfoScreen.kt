@@ -58,8 +58,8 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.manager.TopBarManager
 import com.getcode.model.chat.MinimalMember
-import com.getcode.navigation.NavScreenProvider
-import com.getcode.navigation.RoomInfoArgs
+import xyz.flipchat.app.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme
@@ -77,7 +77,6 @@ import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.util.permissions.notificationPermissionCheck
 import com.getcode.utils.base58
@@ -89,7 +88,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
-import xyz.flipchat.app.features.chat.conversation.ConversationViewModel
 import xyz.flipchat.app.features.home.TabbedHomeScreen
 import xyz.flipchat.app.util.dialNumber
 

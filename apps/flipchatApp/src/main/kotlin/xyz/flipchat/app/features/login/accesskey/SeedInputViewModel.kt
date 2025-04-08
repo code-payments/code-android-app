@@ -6,7 +6,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import xyz.flipchat.app.R
 import xyz.flipchat.app.util.AccountManager

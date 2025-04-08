@@ -2,7 +2,7 @@ package xyz.flipchat.app.ui.navigation
 
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import xyz.flipchat.app.features.balance.BalanceScreen
 import xyz.flipchat.app.features.beta.BetaFlagsScreen
 import xyz.flipchat.app.features.chat.conversation.ConversationScreen

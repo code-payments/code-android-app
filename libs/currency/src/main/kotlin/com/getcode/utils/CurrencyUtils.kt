@@ -27,7 +27,6 @@ val LocalCurrencyUtils: ProvidableCompositionLocal<CurrencyUtils?> = staticCompo
 class CurrencyUtils @Inject constructor(
    private val resources: ResourceHelper,
 ) {
-
     private val currencies: List<Currency> by lazy { runBlocking {
         initCurrencies()
     } }

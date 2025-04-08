@@ -2,6 +2,7 @@ plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_ksp)
     id(Plugins.kotlin_serialization)
     id(Plugins.hilt)
 }
@@ -43,4 +44,6 @@ dependencies {
     implementation(Libs.hilt)
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
+    ksp(Libs.hilt_android_compiler)
+    ksp(Libs.hilt_compiler)
 }

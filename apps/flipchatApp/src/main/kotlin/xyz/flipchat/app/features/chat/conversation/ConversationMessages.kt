@@ -38,7 +38,7 @@ import androidx.paging.compose.LazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.getcode.manager.TopBarManager
 import com.getcode.model.chat.AnnouncementAction
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ContextSheet
 import com.getcode.theme.CodeTheme

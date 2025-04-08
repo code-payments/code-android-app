@@ -1,10 +1,15 @@
 rootProject.name = "Code"
 
 include(
-        // apps
+        // app containers
         ":apps:codeApp",
-        ":apps:flipcashApp",
+        ":apps:flipcash:app",
         ":apps:flipchatApp",
+
+        // flipcash features
+        ":apps:flipcash:core",
+        ":apps:flipcash:features:login",
+        ":apps:flipcash:features:router",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",
@@ -72,6 +77,10 @@ include(
         ":services:flipchat:sdk",
 
         ":services:opencode",
+        ":services:opencode-compose",
+
+        ":services:flipcash",
+        ":services:flipcash-compose",
 
         // common UI
         ":ui:analytics",

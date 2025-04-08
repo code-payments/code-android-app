@@ -14,7 +14,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,7 +48,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.manager.BottomBarManager
 import com.getcode.model.ID
-import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.model.social.user.SocialProfile
 import com.getcode.navigation.screens.ContextSheet
@@ -126,7 +125,8 @@ class ProfileScreen(val userId: ID? = null, val isInTab: Boolean) : Screen, Parc
                                                 composeScope
                                             ) { activity ->
                                                 viewModel.deleteAccount(activity) {
-                                                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                                                    navigator.replaceAll(ScreenRegistry.get(
+                                                        NavScreenProvider.Login.Home()))
                                                 }
                                             }
                                         }
