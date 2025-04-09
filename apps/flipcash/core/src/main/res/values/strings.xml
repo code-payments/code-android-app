@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="action_getStarted">Get Started</string>
+    <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Flipcash</string>
+    <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Flipcash</string>
+    <string name="prompt_title_notFlipcashAccount">Not a Flipcash Account</string>
+    <string name="prompt_description_notFlipcashAccount">Only accounts created through Flipcash are currently supported</string>
+    <string name="action_createNewFlipcashAccount">Create a New Flipcash Account</string>
+    <string name="action_tryDifferentFlipcashAccount">Try a Different Flipcash Account</string>
+
+    <string name="title_badge_no_connection">No Connection</string>
 </resources>

@@ -9,7 +9,7 @@ plugins {
     id(Plugins.kotlin_serialization)
     id(Plugins.androidx_navigation_safeargs)
     id(Plugins.hilt)
-//    id(Plugins.google_services)
+    id(Plugins.google_services)
     id(Plugins.firebase_crashlytics)
     id(Plugins.firebase_perf)
     id(Plugins.bugsnag)
@@ -118,13 +118,13 @@ dependencies {
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:router"))
+    implementation(project(":apps:flipcash:features:scanner"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:messaging"))
-    implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity:bindings"))
     implementation(project(":libs:permissions:bindings"))
     implementation(project(":libs:quickresponse"))
@@ -133,7 +133,6 @@ dependencies {
     implementation(project(":ui:scanner"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
-    implementation(project(":vendor:tipkit:tipkit-m2"))
 
     coreLibraryDesugaring(Libs.android_desugaring)
 

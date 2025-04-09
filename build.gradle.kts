@@ -37,6 +37,10 @@ allprojects {
     }
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
+        resolutionStrategy {
+            force(Libs.kotlinx_serialization_core)
+            force(Libs.kotlinx_serialization_json)
+        }
     }
 
     tasks.matching { it.name.contains("kapt") }.configureEach {

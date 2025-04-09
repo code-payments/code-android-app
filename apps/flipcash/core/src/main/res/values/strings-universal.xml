@@ -8,4 +8,9 @@
     <string translatable="false" name="app_root_url">https://app.flipcash.com</string>
     <string translatable="false" name="app_tos">https://flipcash.com/terms</string>
     <string translatable="false" name="app_privacy_policy">https://flipcash.com/privacy</string>
+
+    <string translatable="false" name="app_download_link">https://flipcash.com/d</string>
+    <string translatable="false" name="app_download_link_with_ref">https://flipcash.com/d?r=%1$s</string>
+    <string translatable="false" name="app_download_link_qr_ref">aqr</string>
+    <string translatable="false" name="app_download_link_share_ref">as</string>
 </resources>

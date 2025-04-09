@@ -32,6 +32,7 @@ object PriceWithFlagDefaults {
         )
     }
 }
+
 @Composable
 fun PriceWithFlag(
     modifier: Modifier = Modifier,
@@ -40,23 +41,40 @@ fun PriceWithFlag(
     iconSize: Dp = CodeTheme.dimens.staticGrid.x4,
     text: @Composable (String) -> Unit = { PriceWithFlagDefaults.Text(label = it) },
 ) {
+    PriceWithFlag(
+        modifier = modifier,
+        currencyCode = currencyCode.name,
+        amount = amount.formatted(),
+        flag = currencyCode.flagResId,
+        iconSize = iconSize,
+        text = text
+    )
+}
+
+@Composable
+fun PriceWithFlag(
+    modifier: Modifier = Modifier,
+    currencyCode: String,
+    amount: String,
+    flag: Int?,
+    iconSize: Dp = CodeTheme.dimens.staticGrid.x4,
+    text: @Composable (String) -> Unit = { PriceWithFlagDefaults.Text(label = it) },
+) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
-        val currencyCodeName = currencyCode.name
-        val flagResId = currencyCode.flagResId
-        if (flagResId != null) {
+        if (flag != null) {
             Icon(
                 modifier = Modifier
                     .clip(CircleShape)
                     .size(iconSize),
-                painter = painterResource(id = flagResId),
+                painter = painterResource(id = flag),
                 tint = Color.Unspecified,
-                contentDescription = currencyCodeName.let { "$it flag" }
+                contentDescription = currencyCode.let { "$it flag" }
             )
-            text(amount.formatted())
+            text(amount)
         }
     }
 }

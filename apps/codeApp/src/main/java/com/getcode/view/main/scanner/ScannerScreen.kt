@@ -239,7 +239,6 @@ private fun ScannerContent(
     }
 
     BillContainer(
-        navigator = navigator,
         isPaused = isPaused,
         isCameraReady = previewing,
         isCameraStarted = cameraStarted,
@@ -318,7 +317,6 @@ private fun ScannerContent(
 @Composable
 private fun BillContainer(
     modifier: Modifier = Modifier,
-    navigator: CodeNavigator,
     isCameraReady: Boolean,
     isCameraStarted: Boolean,
     isPaused: Boolean,

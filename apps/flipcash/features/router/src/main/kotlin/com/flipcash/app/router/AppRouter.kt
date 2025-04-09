@@ -17,7 +17,7 @@ class AppRouter : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
         return deeplink?.let {
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
-                is DeeplinkType.Login -> listOf(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
+                is DeeplinkType.Login -> listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(deeplink)))
             }
         } ?: emptyList()
     }

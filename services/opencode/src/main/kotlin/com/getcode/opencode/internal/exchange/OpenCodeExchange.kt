@@ -121,37 +121,13 @@ internal class OpenCodeExchange @Inject constructor(
         }
 
     init {
+        println("OPEN CODE EXCHANGE")
         launch {
             val currencyCode = locale.getDefaultCurrencyName()
             localCurrency = CurrencyCode.tryValueOf(currencyCode)
             entryCurrency = CurrencyCode.tryValueOf(currencyCode)
-
-//            prefs.observeOrDefault(PrefsString.KEY_ENTRY_CURRENCY, "")
-//                .map { it.takeIf { it.isNotEmpty() } }
-//                .map { com.getcode.model.CurrencyCode.tryValueOf(it.orEmpty()) }
-//                .mapNotNull { preferred ->
-//                    preferred ?: com.getcode.model.CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
-//                }.onEach { setEntryCurrency(it) }
-//                .launchIn(this@CodeExchange)
-        }
-
-        launch {
-//            db?.exchangeDao()?.query()?.let { exchangeData ->
-//                val rates = exchangeData.map { Rate(it.fx, it.currency) }
-//                val dateMillis = exchangeData.minOf { it.synced }
-//                set(RatesBox(dateMillis = dateMillis, rates = rates))
-//            }
-
             fetchRatesIfNeeded()
         }
-
-//        prefs.observeOrDefault(PrefsString.KEY_LOCAL_CURRENCY, "")
-//            .map { it.takeIf { it.isNotEmpty() } }
-//            .map { com.getcode.model.CurrencyCode.tryValueOf(it.orEmpty()) }
-//            .mapNotNull { preferred ->
-//                preferred ?: com.getcode.model.CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
-//            }.onEach { setLocalCurrency(it) }
-//            .launchIn(this)
     }
 
     override suspend fun fetchRatesIfNeeded() {

@@ -10,6 +10,7 @@ include(
         ":apps:flipcash:core",
         ":apps:flipcash:features:login",
         ":apps:flipcash:features:router",
+        ":apps:flipcash:features:scanner",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

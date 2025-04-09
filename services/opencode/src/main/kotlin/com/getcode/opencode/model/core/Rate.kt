@@ -8,7 +8,7 @@ data class Rate(
     val currency: CurrencyCode
 ) {
     companion object {
-        val oneToOne = Rate(fx = 1.0, currency = CurrencyCode.KIN)
+        val oneToOne = Rate(fx = 1.0, currency = CurrencyCode.USD)
     }
 }
 

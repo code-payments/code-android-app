@@ -58,6 +58,7 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
+    implementation(project(":libs:permissions:bindings"))
     implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))

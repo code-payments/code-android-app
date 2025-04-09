@@ -1,4 +1,4 @@
-package com.flipcash.app.login
+package com.flipcash.app.login.router
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.auth.AuthManager

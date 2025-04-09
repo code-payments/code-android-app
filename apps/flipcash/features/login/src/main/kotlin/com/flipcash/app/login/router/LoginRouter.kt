@@ -1,4 +1,4 @@
-package com.flipcash.app.login
+package com.flipcash.app.login.router
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
@@ -11,7 +11,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.login.internal.LoginScreenContent
+import com.flipcash.app.login.internal.LoginRouterScreenContent
 import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
@@ -22,7 +22,7 @@ import kotlinx.parcelize.Parcelize
 import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
-class LoginScreen(private val seed: String? = null) : Screen, Parcelable {
+class LoginRouter(private val seed: String? = null) : Screen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -36,14 +36,14 @@ class LoginScreen(private val seed: String? = null) : Screen, Parcelable {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
                 .onEach { delay(2.seconds) }
-                .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen())) }
+                .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())) }
                 .launchIn(this)
         }
 
         if (seed != null) {
 //            SeedDeepLink(getViewModel(), seed)
         } else {
-            LoginScreenContent(
+            LoginRouterScreenContent(
                 isCreatingAccount = state.creatingAccount,
                 betaFlagsVisible = state.betaOptionsVisible,
                 isSpectatorJoinEnabled = state.followerModeEnabled,

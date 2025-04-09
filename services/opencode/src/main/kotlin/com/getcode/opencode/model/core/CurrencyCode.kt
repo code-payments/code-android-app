@@ -1,7 +1,6 @@
 package com.getcode.opencode.model.core
 
 enum class CurrencyCode {
-    KIN,
     AED,
     AFN,
     ALL,
@@ -158,7 +157,6 @@ enum class CurrencyCode {
 
     fun getRegion(): RegionCode? {
         return when (this) {
-            KIN -> null
             USD -> RegionCode.US
             EUR -> RegionCode.EU
             CHF -> RegionCode.CH
@@ -325,7 +323,6 @@ enum class CurrencyCode {
         }
 
         val currenciesRegions: Map<CurrencyCode, RegionCode?> = mapOf(
-            KIN to null,
             USD to RegionCode.US,
             EUR to RegionCode.EU,
             CHF to RegionCode.CH,

@@ -2,6 +2,7 @@ plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_ksp)
+    id(Plugins.hilt)
     id(Plugins.kotlin_serialization)
 }
 
@@ -107,6 +108,10 @@ dependencies {
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)
     androidTestImplementation(Libs.androidx_test_runner)
+
+    implementation(Libs.retrofit)
+    implementation(Libs.retrofit_converter)
+    implementation(Libs.okhttp_logging_interceptor)
 
     implementation(Libs.hilt)
     ksp(Libs.hilt_android_compiler)

@@ -1,7 +1,6 @@
 package com.flipcash.app.login.internal
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,7 +40,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.view.LoadingSuccessState
 
 @Composable
-internal fun LoginScreenContent(
+internal fun LoginRouterScreenContent(
     isSpectatorJoinEnabled: Boolean = false,
     isCreatingAccount: LoadingSuccessState = LoadingSuccessState(),
     betaFlagsVisible: Boolean = false,
@@ -55,7 +54,6 @@ internal fun LoginScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CodeTheme.colors.secondary)
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {

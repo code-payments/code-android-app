@@ -15,7 +15,7 @@ internal object FlipcashModule {
     fun providesOpenCodeProtocolConfig(): ProtocolConfig {
         return object: ProtocolConfig {
             override val baseUrl: String
-                get() = ""
+                get() = "payments.api.flipchat-infra.xyz" // TODO: swap for flipcash
             override val userAgent: String
                 get() = "Flipcash/Payments/Android/1.0.0"
 

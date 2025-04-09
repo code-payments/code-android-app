@@ -8,10 +8,13 @@ import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.BuildConfig
 import com.flipcash.app.core.AccountType
+import com.flipcash.services.analytics.FlipcashAnalyticsManager
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.AndroidSettingsHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.SettingsHelper
+import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -64,33 +67,11 @@ object AppModule {
         @ApplicationContext context: Context
     ): NotificationManagerCompat = NotificationManagerCompat.from(context)
 
-    // TODO:
-//    @Provides
-//    fun providesAnalyticsService(
-//        mixpanelAPI: MixpanelAPI
-//    ): FlipchatAnalyticsService = FlipchatAnalyticsManager(mixpanelAPI)
+    @Provides
+    fun providesAnalyticsService(
+        mixpanelAPI: MixpanelAPI
+    ): FlipcashAnalyticsService = FlipcashAnalyticsManager(mixpanelAPI)
 
-//    @Provides
-//    fun providesDeeplinkRouter(
-//        labs: Labs,
-//        userManager: UserManager,
-//        chatsController: ChatsController,
-//        resources: ResourceHelper,
-//    ): Router = RouterImpl(
-//        labs = labs,
-//        userManager = userManager,
-//        chatsController = chatsController,
-//        resources = resources,
-//        tabIndexResolver = { resolved ->
-//            when (resolved) {
-//                FcTab.Chat -> FcTab.Chat.ordinal
-//                FcTab.Cash -> FcTab.Cash.ordinal
-//                FcTab.Settings -> FcTab.Settings.ordinal
-//                FcTab.Profile -> FcTab.Profile.ordinal
-//            }
-//        },
-//        indexTabResolver = { index -> FcTab.entries[index] }
-//    )
 //
 //    @Singleton
 //    @Provides

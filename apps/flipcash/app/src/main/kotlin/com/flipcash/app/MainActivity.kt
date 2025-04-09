@@ -9,12 +9,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import com.flipcash.app.core.LocalSessionController
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.SessionController
 import com.flipcash.app.router.Router
 import com.flipcash.app.ui.LocalRouter
 import com.flipcash.services.user.UserManager
-import com.getcode.network.exchange.ExchangeNull
-import com.getcode.network.exchange.LocalExchange
+import com.getcode.opencode.compose.LocalExchange
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.LocalSystemSettings
 import com.getcode.util.resources.ResourceHelper
@@ -59,6 +61,12 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var userManager: UserManager
 
+    @Inject
+    lateinit var sessionController: SessionController
+
+    @Inject
+    lateinit var exchange: Exchange
+
 //    @Inject
 //    lateinit var client: Client
 //
@@ -81,11 +89,12 @@ class MainActivity : FragmentActivity() {
                 LocalResources provides resources,
                 LocalSystemSettings provides settingsHelper,
                 LocalNetworkObserver provides networkObserver,
-                LocalExchange provides ExchangeNull(),
+                LocalExchange provides exchange,
                 LocalCurrencyUtils provides currencyUtils,
                 LocalVibrator provides vibrator,
                 LocalRouter provides router,
                 LocalUserManager provides userManager,
+                LocalSessionController provides sessionController,
 //                LocalPaymentController provides paymentController,
 //                LocalBillingClient provides iapController,
 //                LocalBalanceController provides balanceController,

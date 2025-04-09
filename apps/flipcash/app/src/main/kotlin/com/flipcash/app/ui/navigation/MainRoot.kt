@@ -105,7 +105,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
                             if (screens.isNotEmpty()) {
                                 navigator.replaceAll(screens)
                             } else {
-                                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                                navigator.replace(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
                             }
                         }
                         AuthState.LoggedOut -> {

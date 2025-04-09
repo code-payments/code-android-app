@@ -96,7 +96,6 @@ object AppModule {
         @ApplicationContext context: Context
     ): NotificationManagerCompat = NotificationManagerCompat.from(context)
 
-    // TODO:
     @Provides
     fun providesAnalyticsService(
         mixpanelAPI: MixpanelAPI
