@@ -2,10 +2,12 @@ package com.flipcash.app.scanner.internal.bills
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
@@ -16,22 +18,25 @@ import com.getcode.ui.utils.nonScaledSp
 
 @Composable
 @Preview
-fun BillAmount(modifier: Modifier = Modifier, text: String = "") {
+fun BillAmount(modifier: Modifier = Modifier, text: String = "", flag: Int? = R.drawable.ic_flag_us) {
     Box(modifier = modifier) {
         Row(
             modifier = Modifier
                 .vertical()
                 .rotate(-90f)
         ) {
-            Image(
-                modifier = Modifier
-                    .padding(end = CodeTheme.dimens.grid.x2)
-                    .height(CodeTheme.dimens.grid.x3)
-                    .width(CodeTheme.dimens.grid.x3)
-                    .align(Alignment.CenterVertically),
-                painter = painterResource(id = R.drawable.ic_kin_white),
-                contentDescription = ""
-            )
+            if (flag != null) {
+                Image(
+                    modifier = Modifier
+                        .padding(end = CodeTheme.dimens.grid.x2)
+                        .height(CodeTheme.dimens.grid.x5)
+                        .width(CodeTheme.dimens.grid.x5)
+                        .align(Alignment.CenterVertically)
+                        .clip(CircleShape),
+                    painter = painterResource(id = flag),
+                    contentDescription = ""
+                )
+            }
             Text(
                 text = text,
                 style = CodeTheme.typography.displayLarge.copy(

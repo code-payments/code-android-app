@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.flipcash.app.core.money.formatted
 import com.flipcash.features.scanner.R
+import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.core.LocalFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
@@ -140,6 +141,7 @@ internal fun CashBill(
     payloadData: List<Byte>,
     amount: LocalFiat,
 ) {
+    val exchange = LocalExchange.current
     BoxWithConstraints(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
@@ -224,7 +226,8 @@ internal fun CashBill(
                     .align(Alignment.TopStart)
                     .padding(top = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(start = geometry.valuePadding),
-                text = amount.formatted
+                text = amount.formatted,
+                flag = exchange.getFlagByCurrency(amount.rate.currency.name)
             )
 
             // Bill Value Bottom Right
@@ -233,7 +236,8 @@ internal fun CashBill(
                     .align(Alignment.BottomEnd)
                     .padding(bottom = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(end = geometry.valuePadding),
-                text = amount.formatted
+                text = amount.formatted,
+                flag = exchange.getFlagByCurrency(amount.rate.currency.name)
             )
 
             // Lines
