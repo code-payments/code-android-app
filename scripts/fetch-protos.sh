@@ -20,6 +20,8 @@ while getopts ":r:t:x" opt; do
       TARGET=$OPTARG
       if [ "$TARGET" == "flipchat" ]; then
         REPO_URL="git@github.com:code-payments/flipchat-protobuf-api.git"
+      elif [ "$TARGET" == "flipcash" ]; then
+        REPO_URL="git@github.com:code-payments/flipcash-protobuf-api.git"
       fi
       ;;
     \? )

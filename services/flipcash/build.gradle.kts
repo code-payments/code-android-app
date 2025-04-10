@@ -44,6 +44,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":definitions:flipcash:models"))
     api(project(":services:opencode"))
     implementation(project(":ui:resources"))
 

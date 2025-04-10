@@ -27,6 +27,10 @@ include(
         ":definitions:opencode:models",
         ":definitions:opencode:protos",
 
+        // protobuf model and service implementations for Flipcash
+        ":definitions:flipcash:models",
+        ":definitions:flipcash:protos",
+
         // Internal libs
         ":libs:analytics",
         ":libs:biometrics",
