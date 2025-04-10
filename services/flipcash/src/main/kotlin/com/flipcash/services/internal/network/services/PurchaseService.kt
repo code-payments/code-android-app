@@ -1,14 +1,13 @@
-package xyz.flipchat.services.internal.network.service
+package com.flipcash.services.internal.network.services
 
-import com.codeinc.flipchat.gen.iap.v1.IapService
+import com.codeinc.flipcash.gen.iap.v1.IapService
+import com.flipcash.services.internal.network.api.PurchaseApi
+import com.flipcash.services.models.PurchaseAckError
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.services.network.core.NetworkOracle
-import com.getcode.utils.CodeServerError
+import com.getcode.opencode.internal.network.core.NetworkOracle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
-import xyz.flipchat.services.internal.network.api.PurchaseApi
-import com.getcode.utils.FlipchatServerError
 import javax.inject.Inject
 
 internal class PurchaseService @Inject constructor(
@@ -23,7 +22,6 @@ internal class PurchaseService @Inject constructor(
                         IapService.OnPurchaseCompletedResponse.Result.OK -> Result.success(Unit)
                         IapService.OnPurchaseCompletedResponse.Result.DENIED -> {
                             val error = PurchaseAckError.Denied()
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
                         IapService.OnPurchaseCompletedResponse.Result.INVALID_RECEIPT -> {
@@ -49,14 +47,4 @@ internal class PurchaseService @Inject constructor(
             Result.failure(error)
         }
     }
-}
-
-sealed class PurchaseAckError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class Unrecognized : PurchaseAckError()
-    class Denied : PurchaseAckError()
-    class InvalidReceipt: PurchaseAckError()
-    data class Other(override val cause: Throwable? = null) : PurchaseAckError(cause = cause)
 }

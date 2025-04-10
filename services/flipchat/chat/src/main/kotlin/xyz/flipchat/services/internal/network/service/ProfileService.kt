@@ -7,6 +7,7 @@ import com.getcode.model.ID
 import com.getcode.services.model.profile.SocialAccountLinkRequest
 import com.getcode.services.model.profile.SocialAccountUnlinkRequest
 import com.getcode.services.network.core.NetworkOracle
+import com.getcode.utils.CodeServerError
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -127,7 +128,7 @@ internal class ProfileService @Inject constructor(
 sealed class GetProfileError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class NotFound : GetProfileError()
     class Unrecognized : GetProfileError()
     data class Other(override val cause: Throwable? = null) : GetProfileError(cause = cause)
@@ -136,7 +137,7 @@ sealed class GetProfileError(
 sealed class SetUserDisplayNameError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class InvalidDisplayName : SetUserDisplayNameError()
     class Unrecognized : SetUserDisplayNameError()
     data class Other(override val cause: Throwable? = null) : SetUserDisplayNameError(cause = cause)
@@ -145,7 +146,7 @@ sealed class SetUserDisplayNameError(
 sealed class LinkSocialAccountError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class InvalidLinkingToken : LinkSocialAccountError()
     class ExistingLink : LinkSocialAccountError()
     class Denied : LinkSocialAccountError()
@@ -156,7 +157,7 @@ sealed class LinkSocialAccountError(
 sealed class UnlinkSocialAccountError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Denied : UnlinkSocialAccountError()
     class Unrecognized : UnlinkSocialAccountError()
     data class Other(override val cause: Throwable? = null) : UnlinkSocialAccountError(cause = cause)

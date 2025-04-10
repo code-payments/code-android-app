@@ -6,7 +6,7 @@ import com.getcode.opencode.internal.network.extensions.toMetadata
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import javax.inject.Inject
 
-class TransactionMetadataMapper @Inject constructor():
+internal class TransactionMetadataMapper @Inject constructor():
     Mapper<TransactionService.Metadata, TransactionMetadata> {
     override fun map(from: TransactionService.Metadata): TransactionMetadata {
         return from.toMetadata()

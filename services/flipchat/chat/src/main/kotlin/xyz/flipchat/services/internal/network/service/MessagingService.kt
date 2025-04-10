@@ -13,6 +13,7 @@ import com.getcode.model.description
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.services.network.core.NetworkOracle
 import com.getcode.services.observers.BidirectionalStreamReference
+import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -369,7 +370,7 @@ internal class MessagingService @Inject constructor(
 sealed class GetMessagesError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : GetMessagesError()
     class Denied : GetMessagesError()
     data class Other(override val cause: Throwable? = null) : GetMessagesError(cause = cause)
@@ -378,7 +379,7 @@ sealed class GetMessagesError(
 sealed class AdvancePointerError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : AdvancePointerError()
     class Denied : AdvancePointerError()
     data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
@@ -387,7 +388,7 @@ sealed class AdvancePointerError(
 sealed class TypingChangeError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : AdvancePointerError()
     class Denied : AdvancePointerError()
     data class Other(override val cause: Throwable? = null) : AdvancePointerError(cause = cause)
@@ -396,7 +397,7 @@ sealed class TypingChangeError(
 sealed class SendMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : GetMessagesError()
     class Denied : GetMessagesError()
     class InvalidContentType : GetMessagesError()

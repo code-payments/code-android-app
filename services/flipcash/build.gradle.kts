@@ -71,6 +71,9 @@ dependencies {
     implementation(Libs.firebase_perf)
     implementation(Libs.firebase_messaging)
 
+    api(Libs.google_play_billing_runtime)
+    api(Libs.google_play_billing_ktx)
+
     implementation(Libs.play_integrity)
 
     implementation(Libs.androidx_paging_runtime)

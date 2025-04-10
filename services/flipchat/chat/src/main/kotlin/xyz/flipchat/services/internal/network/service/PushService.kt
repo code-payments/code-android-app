@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.push.v1.PushService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.services.network.core.NetworkOracle
+import com.getcode.utils.CodeServerError
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -106,7 +107,7 @@ internal class PushService @Inject constructor(
 sealed class AddTokenError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class InvalidPushToken : AddTokenError()
     class Unrecognized : AddTokenError()
     data class Other(override val cause: Throwable? = null) : AddTokenError(cause = cause)
@@ -115,7 +116,7 @@ sealed class AddTokenError(
 sealed class DeleteTokenError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : DeleteTokenError()
     data class Other(override val cause: Throwable? = null) : DeleteTokenError(cause = cause)
 }

@@ -32,7 +32,7 @@ object ErrorUtils {
         if (isNetworkError(throwable) || isRuntimeError(throwable)) return
 
         val throwableCause: Throwable =
-            if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException || throwable is FlipchatServerError))
+            if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException || throwable is CodeServerError))
                 throwable.cause ?: throwable
             else throwable
 

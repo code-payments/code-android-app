@@ -9,6 +9,7 @@ import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.services.network.core.NetworkOracle
 import com.getcode.services.observers.BidirectionalStreamReference
+import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -26,7 +27,6 @@ import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.network.api.ChatApi
 import xyz.flipchat.services.internal.network.chat.GetOrJoinChatResponse
-import com.getcode.utils.FlipchatServerError
 import xyz.flipchat.services.internal.network.utils.authenticate
 import xyz.flipchat.services.network.managedApiRequest
 import javax.inject.Inject
@@ -844,7 +844,7 @@ internal class ChatService @Inject constructor(
 sealed class StartChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class UserNotFound : StartChatError()
     class Denied : StartChatError()
     class Unrecognized : StartChatError()
@@ -854,7 +854,7 @@ sealed class StartChatError(
 sealed class GetChatsError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : GetChatsError()
     data class Other(override val cause: Throwable? = null) : GetChatsError(cause = cause)
 }
@@ -862,7 +862,7 @@ sealed class GetChatsError(
 sealed class JoinChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : JoinChatError()
     class Denied : JoinChatError()
     data class Other(override val cause: Throwable? = null) : JoinChatError(cause = cause)
@@ -871,7 +871,7 @@ sealed class JoinChatError(
 sealed class LeaveChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : LeaveChatError()
     data class Other(override val cause: Throwable? = null) : LeaveChatError(cause = cause)
 }
@@ -879,7 +879,7 @@ sealed class LeaveChatError(
 sealed class MuteChatStateError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : MuteChatStateError()
     class Denied : MuteChatStateError()
     data class Other(override val cause: Throwable? = null) : MuteChatStateError(cause = cause)
@@ -889,7 +889,7 @@ sealed class SetRoomDisplayNameError(
     open val alternateSuggestions: List<String> = emptyList(),
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     data class CantSet(override val alternateSuggestions: List<String>) :
         SetRoomDisplayNameError(alternateSuggestions)
 
@@ -900,7 +900,7 @@ sealed class SetRoomDisplayNameError(
 sealed class SetRoomDescriptionError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class CantSet : SetRoomDescriptionError()
     class Denied : SetRoomDescriptionError()
     data class Other(override val cause: Throwable? = null) : SetRoomDescriptionError(cause = cause)
@@ -909,7 +909,7 @@ sealed class SetRoomDescriptionError(
 sealed class GetChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class NotFound : GetChatError()
     class Unrecognized : GetChatError()
     data class Other(override val cause: Throwable? = null) : GetChatError(cause = cause)
@@ -918,7 +918,7 @@ sealed class GetChatError(
 sealed class CoverChargeError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : CoverChargeError()
     class Denied : CoverChargeError()
     class CantSet : CoverChargeError()
@@ -928,7 +928,7 @@ sealed class CoverChargeError(
 sealed class MessagingFeeError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : MessagingFeeError()
     class Denied : MessagingFeeError()
     class CantSet : MessagingFeeError()
@@ -938,7 +938,7 @@ sealed class MessagingFeeError(
 sealed class RemoveUserError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : RemoveUserError()
     class Denied : RemoveUserError()
     data class Other(override val cause: Throwable? = null) : RemoveUserError(cause = cause)
@@ -947,7 +947,7 @@ sealed class RemoveUserError(
 sealed class GetMemberUpdateError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : GetMemberUpdateError()
     class NotFound : GetMemberUpdateError()
     data class Other(override val cause: Throwable? = null) : GetMemberUpdateError(cause = cause)
@@ -956,7 +956,7 @@ sealed class GetMemberUpdateError(
 sealed class PromoteUserError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Denied : PromoteUserError()
     class Unrecognized : PromoteUserError()
     class NotRegistered: PromoteUserError()
@@ -966,7 +966,7 @@ sealed class PromoteUserError(
 sealed class DemoteUserError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Denied : DemoteUserError()
     class Unrecognized : DemoteUserError()
     data class Other(override val cause: Throwable? = null) : DemoteUserError(cause = cause)
@@ -975,7 +975,7 @@ sealed class DemoteUserError(
 sealed class OpenChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Denied : OpenChatError()
     class Unrecognized : OpenChatError()
     data class Other(override val cause: Throwable? = null) : OpenChatError(cause = cause)
@@ -984,7 +984,7 @@ sealed class OpenChatError(
 sealed class CloseChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Denied : CloseChatError()
     class Unrecognized : CloseChatError()
     data class Other(override val cause: Throwable? = null) : CloseChatError(cause = cause)
@@ -993,7 +993,7 @@ sealed class CloseChatError(
 sealed class CheckDisplayNameError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class CantSet: CheckDisplayNameError()
     class Unrecognized : CheckDisplayNameError()
     data class Other(override val cause: Throwable? = null) : CheckDisplayNameError(cause = cause)
@@ -1003,7 +1003,7 @@ sealed class CheckDisplayNameError(
 sealed class MuteUserError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : MuteUserError()
     data class Other(override val cause: Throwable? = null) : MuteUserError(cause = cause)
 }
@@ -1011,7 +1011,7 @@ sealed class MuteUserError(
 sealed class ReportUserError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : ReportUserError()
     data class Other(override val cause: Throwable? = null) : ReportUserError(cause = cause)
 }

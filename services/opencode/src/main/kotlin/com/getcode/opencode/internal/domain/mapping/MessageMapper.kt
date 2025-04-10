@@ -8,7 +8,7 @@ import javax.inject.Inject
 import com.getcode.opencode.model.messaging.Message as ProtocolMessage
 import com.getcode.solana.keys.Signature as SolanaSig
 
-class MessageMapper @Inject constructor(): Mapper<MessagingService.Message, ProtocolMessage> {
+internal class MessageMapper @Inject constructor(): Mapper<MessagingService.Message, ProtocolMessage> {
     override fun map(from: MessagingService.Message): ProtocolMessage {
         val signature =
             SolanaSig(

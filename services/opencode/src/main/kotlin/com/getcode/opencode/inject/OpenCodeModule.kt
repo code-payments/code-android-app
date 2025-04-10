@@ -3,6 +3,7 @@ package com.getcode.opencode.inject
 import android.content.Context
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
+import com.getcode.opencode.annotations.OpenCodeProtocol
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
@@ -23,7 +24,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import io.grpc.Internal
 import io.grpc.ManagedChannel
 import io.grpc.android.AndroidChannelBuilder
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
@@ -55,6 +55,7 @@ object OpenCodeModule {
     @OpenCodeManagedChannel
     fun provideManagedChannel(
         @ApplicationContext context: Context,
+        @OpenCodeProtocol
         config: ProtocolConfig,
     ): ManagedChannel {
         return AndroidChannelBuilder

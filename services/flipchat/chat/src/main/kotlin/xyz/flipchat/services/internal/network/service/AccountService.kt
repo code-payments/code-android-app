@@ -7,6 +7,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.services.network.core.NetworkOracle
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.CodeServerError
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -181,7 +182,7 @@ internal class AccountService @Inject constructor(
 sealed class LoginError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     data class InvalidTimestamp(override val message: String) : LoginError(message)
     data class NotFound(override val message: String) : LoginError(message)
     data class Denied(override val message: String) : LoginError(message)
@@ -193,7 +194,7 @@ sealed class LoginError(
 sealed class RegisterError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     data class InvalidSignature(override val message: String) : RegisterError(message)
     data class InvalidDisplayName(override val message: String) : RegisterError(message)
     data class Denied(override val message: String): RegisterError(message)
@@ -205,7 +206,7 @@ sealed class RegisterError(
 sealed class GetPaymentDestinationError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : GetPaymentDestinationError()
     class NotFound : GetPaymentDestinationError()
     data class Other(override val cause: Throwable? = null) : GetPaymentDestinationError()
@@ -214,7 +215,7 @@ sealed class GetPaymentDestinationError(
 sealed class GetUserFlagsError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : FlipchatServerError(message, cause) {
+) : CodeServerError(message, cause) {
     class Unrecognized : GetUserFlagsError()
     class Denied : GetUserFlagsError()
     data class Other(override val cause: Throwable? = null) : GetUserFlagsError()

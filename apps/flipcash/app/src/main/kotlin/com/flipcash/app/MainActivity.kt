@@ -14,6 +14,8 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.SessionController
 import com.flipcash.app.router.Router
 import com.flipcash.app.ui.LocalRouter
+import com.flipcash.services.LocalBillingClient
+import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.exchange.Exchange
@@ -73,8 +75,8 @@ class MainActivity : FragmentActivity() {
 //    @Inject
 //    lateinit var paymentController: PaymentController
 //
-//    @Inject
-//    lateinit var iapController: BillingClient
+    @Inject
+    lateinit var billing: BillingClient
 //
 //    @Inject
 //    lateinit var balanceController: BalanceController
@@ -96,7 +98,7 @@ class MainActivity : FragmentActivity() {
                 LocalUserManager provides userManager,
                 LocalSessionController provides sessionController,
 //                LocalPaymentController provides paymentController,
-//                LocalBillingClient provides iapController,
+                LocalBillingClient provides billing,
 //                LocalBalanceController provides balanceController,
             ) {
                 Rinku {
@@ -109,7 +111,7 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
 //        client.startTimer()
-//        iapController.connect()
+        billing.connect()
     }
 
     override fun onStop() {
