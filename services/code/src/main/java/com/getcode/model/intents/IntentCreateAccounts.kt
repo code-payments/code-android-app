@@ -18,7 +18,7 @@ class IntentCreateAccounts(
 
     override fun metadata(): TransactionService.Metadata {
         return TransactionService.Metadata.newBuilder()
-            .setOpenAccounts(TransactionService.OpenAccountsMetadata.getDefaultInstance())
+             v
             .build()
     }
 

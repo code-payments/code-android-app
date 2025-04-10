@@ -7,8 +7,8 @@ import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asRendezvousKey
 import com.getcode.opencode.internal.network.extensions.sign
-import com.getcode.opencode.internal.network.extensions.toMessageId
-import com.getcode.opencode.internal.network.extensions.toProtobufMessage
+import com.getcode.opencode.internal.network.extensions.asMessageId
+import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.messaging.Message
 import io.grpc.ManagedChannel
@@ -157,7 +157,7 @@ internal class MessagingApi @Inject constructor(
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply {
                messageIds.forEachIndexed { index, id ->
-                   setMessageIds(index, id.toMessageId())
+                   setMessageIds(index, id.asMessageId())
                }
             }.build()
 
@@ -174,7 +174,7 @@ internal class MessagingApi @Inject constructor(
         rendezvous: KeyPair,
     ): Flow<MessagingService.SendMessageResponse> {
         val request = MessagingService.SendMessageRequest.newBuilder()
-            .setMessage(message.toProtobufMessage())
+            .setMessage(message.asProtobufMessage())
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply { setSignature(sign(rendezvous)) }
             .build()

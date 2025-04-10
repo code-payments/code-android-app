@@ -25,6 +25,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.observers.BidirectionalStreamReference
 import com.getcode.services.opencode.BuildConfig
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
@@ -51,34 +52,22 @@ internal class TransactionService @Inject constructor(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
-    ): OcpIntentStreamReference {
+    ): Result<IntentType> = suspendCancellableCoroutine { cont ->
         trace(
             tag = "SubmitIntent",
             message = "Opening stream."
         )
         val streamReference = OcpIntentStreamReference(scope)
         streamReference.retain()
-        streamReference.timeoutHandler = {
-            trace(
-                tag = "SubmitIntent",
-                message = "Stream timed out"
-            )
-            scope.launch {
-                openIntentStream(
-                    streamRef = streamReference,
-                    intent = intent,
-                    owner = owner,
-                )
-            }
+
+        scope.launch {
+            cont.resume(openIntentStream(streamReference, intent, owner))
+            streamReference.cancel()
         }
-
-        openIntentStream(streamReference, intent, owner)
-
-        return streamReference
     }
 
     suspend fun getIntentMetadata(
-        intentId: ID,
+        intentId: PublicKey,
         owner: KeyPair
     ): Result<TransactionMetadata> {
         return networkOracle.managedApiRequest(

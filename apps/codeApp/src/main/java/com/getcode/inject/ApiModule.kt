@@ -101,10 +101,10 @@ object ApiModule {
                 ""
             ).takeIf { it.isNotEmpty() }
             val preferredCurrency = preferredCurrencyCode?.let { currencyUtils.getCurrency(it) }
-            return preferredCurrency ?: locale.getDefaultCurrency()
+            return preferredCurrency ?: locale.getDefaultCurrencyName().let { currencyUtils.getCurrency(it) }
         }
 
-        override suspend fun defaultCurrency(): Currency? = locale.getDefaultCurrency()
+        override suspend fun defaultCurrency(): Currency? = currencyUtils.getCurrency(locale.getDefaultCurrencyName())
 
         override fun suffix(currency: Currency?): String {
             return if (currency?.code == CurrencyCode.KIN.name) {

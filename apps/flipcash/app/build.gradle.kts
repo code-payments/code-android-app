@@ -119,6 +119,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:router"))
     implementation(project(":apps:flipcash:features:scanner"))
+    implementation(project(":apps:flipcash:features:give"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))

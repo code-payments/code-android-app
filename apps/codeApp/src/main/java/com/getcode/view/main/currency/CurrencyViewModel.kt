@@ -127,7 +127,7 @@ class CurrencyViewModel @Inject constructor(
                     .toMutableList()
                     .let { sorted ->
                         val currency =
-                            currencies.find { it.code == localeHelper.getDefaultCurrency()?.code }
+                            currencies.find { it.code == localeHelper.getDefaultCurrencyName() }
                         if (currency != null) {
                             // only add local currency if not removed by user this session
                             if (!sorted.contains(currency) && !stateFlow.value.wasLocalRemovedFromRecents) {
@@ -181,7 +181,7 @@ class CurrencyViewModel @Inject constructor(
                     .currenciesRecent.orEmpty()
                     .filter { it.code != selected.code }
 
-                if (selected.code == localeHelper.getDefaultCurrency()?.code) {
+                if (selected.code == localeHelper.getDefaultCurrencyName()) {
                     dispatchEvent(Event.RemovedLocalFromRecents)
                 }
 

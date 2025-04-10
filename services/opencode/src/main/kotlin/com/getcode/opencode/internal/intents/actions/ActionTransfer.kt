@@ -25,7 +25,7 @@ internal class ActionTransfer(
 
     override fun transactions(): List<SolanaTransaction> {
         val serverParameter = serverParameter ?: return emptyList()
-        val timelock = source.timelock ?: return emptyList()
+        val timelock = source.timelock
 
         return serverParameter.configs.map { config ->
             TransactionBuilder.transfer(
@@ -94,15 +94,15 @@ internal class ActionTransfer(
         fun newInstance(
             kind: Kind,
             amount: Fiat,
-            source: AccountCluster,
+            sourceCluster: AccountCluster,
             destination: PublicKey
         ): ActionTransfer {
             return ActionTransfer(
                 id = 0,
-                signer = source.authority.keyPair,
+                signer = sourceCluster.authority.keyPair,
                 kind = kind,
                 amount = amount,
-                source = source,
+                source = sourceCluster,
                 destination = destination
             )
         }

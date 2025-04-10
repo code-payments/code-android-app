@@ -95,8 +95,8 @@ class BuyKinViewModel @Inject constructor(
         return super.observeRate()
             .map {
                 // if device is US-based, force currency to USD
-                val deviceCurrency = localeHelper.getDefaultCurrency()
-                if (deviceCurrency?.code == CurrencyCode.USD.name) {
+                val deviceCurrency = localeHelper.getDefaultCurrencyName()
+                if (deviceCurrency == CurrencyCode.USD.name) {
                     return@map exchange.rateForUsd()!!
                 }
 
@@ -119,12 +119,11 @@ class BuyKinViewModel @Inject constructor(
     }
 
     private fun checkLocalRate(rate: Rate): Currency {
-        val deviceCurrency = localeHelper.getDefaultCurrency()
+        val deviceCurrencyName = localeHelper.getDefaultCurrencyName()
+        val deviceCurrency = currencyUtils.getCurrency(deviceCurrencyName)
         if (deviceCurrency?.code == CurrencyCode.USD.name) {
             return deviceCurrency
         }
-
-
 
         if (!supportedCurrencies.contains(rate.currency)) {
             // default to USD

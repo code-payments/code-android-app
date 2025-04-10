@@ -2,8 +2,8 @@ package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
 import com.getcode.crypt.DerivedKey
-import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.mnemonic.MnemonicManager
+import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.uuid
 import com.getcode.services.opencode.BuildConfig
@@ -35,8 +35,8 @@ class UserManager @Inject constructor(
     val entropy: String?
         get() = _state.value.entropy
 
-    val keyPair: KeyPair?
-        get() = _state.value.keyPair
+    val accountCluster: AccountCluster?
+        get() = _state.value.cluster
 
     val userId: ID?
         get() = _state.value.userId
@@ -47,7 +47,7 @@ class UserManager @Inject constructor(
     data class State(
         val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,
-        val keyPair: KeyPair? = null,
+        val cluster: AccountCluster? = null,
         val userId: ID? = null,
         val isTimelockUnlocked: Boolean = false,
     )
@@ -59,7 +59,7 @@ class UserManager @Inject constructor(
         _state.update {
             it.copy(
                 entropy = entropy,
-                keyPair = authority.keyPair,
+                cluster = AccountCluster.newInstance(authority),
             )
         }
     }
@@ -103,7 +103,7 @@ class UserManager @Inject constructor(
             it.copy(
                 authState = AuthState.LoggedOut,
                 entropy = null,
-                keyPair = null,
+                cluster = null,
                 userId = emptyList(),
             )
         }

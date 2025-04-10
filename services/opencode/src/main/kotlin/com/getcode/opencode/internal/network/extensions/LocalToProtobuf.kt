@@ -21,7 +21,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
 
-internal fun ByteArray.toSignature(): Model.Signature {
+internal fun ByteArray.asSignature(): Model.Signature {
     return Model.Signature.newBuilder().setValue(this.toByteString())
         .build()
 }
@@ -58,22 +58,22 @@ internal fun openMessageStreamRequest(rendezvous: KeyPair): MessagingService.Ope
 internal fun clientPongWith(timestampInMillis: Long): Model.ClientPong {
     return Model.ClientPong.newBuilder()
         .setTimestamp(
-            timestampInMillis.toProtobufTimestamp()
+            timestampInMillis.asProtobufTimestamp()
         ).build()
 }
 
-internal fun Long.toProtobufTimestamp(): Timestamp =
+internal fun Long.asProtobufTimestamp(): Timestamp =
     Timestamp.newBuilder().setSeconds(this / 1_000).build()
 
-internal fun ID.toMessageId(): MessagingService.MessageId {
+internal fun ID.asMessageId(): MessagingService.MessageId {
     return MessagingService.MessageId.newBuilder().setValue(toByteString()).build()
 }
 
-internal fun ID.toIntentId(): Model.IntentId {
+internal fun ID.asIntentId(): Model.IntentId {
     return Model.IntentId.newBuilder().setValue(toByteString()).build()
 }
 
-internal fun TransactionMetadata.toProtobufMetadata(): TransactionService.Metadata {
+internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metadata {
     val builder = TransactionService.Metadata.newBuilder()
 
     when (this) {
@@ -89,7 +89,7 @@ internal fun TransactionMetadata.toProtobufMetadata(): TransactionService.Metada
                     .setQuarks(quarks)
                     .setIsRemoteSend(isRemoteSend)
                     .setIsIssuerVoidingGiftCard(isIssuerVoidingGiftCard)
-                    .setExchangeData(exchangeData.toProtobufExchangeData())
+                    .setExchangeData(exchangeData.asProtobufExchangeData())
                     .build()
             )
         }
@@ -102,7 +102,7 @@ internal fun TransactionMetadata.toProtobufMetadata(): TransactionService.Metada
     return builder.build()
 }
 
-internal fun ExchangeData.WithRate.toProtobufExchangeData(): TransactionService.ExchangeData {
+internal fun ExchangeData.WithRate.asProtobufExchangeData(): TransactionService.ExchangeData {
     return TransactionService.ExchangeData.newBuilder()
         .setCurrency(currencyCode)
         .setExchangeRate(exchangeRate)
@@ -111,43 +111,43 @@ internal fun ExchangeData.WithRate.toProtobufExchangeData(): TransactionService.
         .build()
 }
 
-internal fun ExchangeData.WithoutRate.toProtobufExchangeData(): TransactionService.ExchangeDataWithoutRate {
+internal fun ExchangeData.WithoutRate.asProtobufExchangeData(): TransactionService.ExchangeDataWithoutRate {
     return TransactionService.ExchangeDataWithoutRate.newBuilder()
         .setCurrency(currencyCode)
         .setNativeAmount(nativeAmount)
         .build()
 }
 
-internal fun Message.toProtobufMessage(): MessagingService.Message {
+internal fun Message.asProtobufMessage(): MessagingService.Message {
     val builder = MessagingService.Message.newBuilder()
-        .setId(id.toMessageId())
+        .setId(id.asMessageId())
 
     when (kind) {
         is MessageKind.AirdropReceived -> {
             builder.airdropReceived = airdropReceived {
                 airdropType = TransactionService.AirdropType.forNumber(kind.type.ordinal)
-                exchangeData = kind.exchangeData.toProtobufExchangeData()
-                timestamp = kind.timestamp.toProtobufTimestamp()
+                exchangeData = kind.exchangeData.asProtobufExchangeData()
+                timestamp = kind.timestamp.asProtobufTimestamp()
             }
         }
 
         is MessageKind.ClientRejectedPayment -> {
             builder.clientRejectedPayment = clientRejectedPayment {
-                intentId = kind.intentId.toIntentId()
+                intentId = kind.intentId.asIntentId()
             }
         }
 
         is MessageKind.CodeScanned -> {
             builder.codeScanned = codeScanned {
-                timestamp = kind.timestamp.toProtobufTimestamp()
+                timestamp = kind.timestamp.asProtobufTimestamp()
             }
         }
 
         is MessageKind.IntentSubmitted -> {
             builder.intentSubmitted = intentSubmitted {
-                intentId = kind.intentId.toIntentId()
+                intentId = kind.intentId.asIntentId()
                 if (kind.metadata != null) {
-                    metadata = kind.metadata.toProtobufMetadata()
+                    metadata = kind.metadata.asProtobufMetadata()
                 }
             }
         }
@@ -161,10 +161,10 @@ internal fun Message.toProtobufMessage(): MessagingService.Message {
                 requestorAccount = kind.requestor.asSolanaAccountId()
                 when (val exchange = kind.exchangeData) {
                     is ExchangeData.WithRate -> {
-                        exact = exchange.toProtobufExchangeData()
+                        exact = exchange.asProtobufExchangeData()
                     }
                     is ExchangeData.WithoutRate -> {
-                        partial = exchange.toProtobufExchangeData()
+                        partial = exchange.asProtobufExchangeData()
                     }
 
                     ExchangeData.Unset -> Unit
@@ -181,7 +181,7 @@ internal fun Message.toProtobufMessage(): MessagingService.Message {
         }
         is MessageKind.WebhookCalled -> {
             builder.webhookCalled = webhookCalled {
-                timestamp = kind.timestamp.toProtobufTimestamp()
+                timestamp = kind.timestamp.asProtobufTimestamp()
             }
         }
 

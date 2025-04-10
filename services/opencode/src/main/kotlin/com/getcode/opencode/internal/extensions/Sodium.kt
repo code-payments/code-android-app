@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.extensions
 
 import android.util.Base64
+import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.errors.SodiumError
 import com.getcode.solana.keys.PrivateKey
@@ -101,3 +102,5 @@ internal fun List<Byte>.boxOpen(privateKey: PrivateKey, publicKey: PublicKey, no
 
     return Result.success(decrypted.getOrNull()!!.map { it.toByte() })
 }
+
+internal fun PublicKey.Companion.generate(): PublicKey = Ed25519.createSeed32().toPublicKey()

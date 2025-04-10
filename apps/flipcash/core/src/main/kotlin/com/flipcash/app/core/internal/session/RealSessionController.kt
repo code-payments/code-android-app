@@ -10,15 +10,14 @@ import com.flipcash.app.core.bill.DeepLinkRequest
 import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.model.core.OpenCodePayload
-import com.getcode.opencode.model.core.PayloadKind
-import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.trace
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +29,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class RealSessionController @Inject constructor(
@@ -65,7 +65,8 @@ class RealSessionController @Inject constructor(
     }
 
     override fun showBill(bill: Bill, vibrate: Boolean) {
-        if (bill.amount.fiat.doubleValue == 0.0) return
+        if (bill.amount.converted.doubleValue == 0.0) return
+        val owner = userManager.accountCluster ?: return
 
         if (!networkObserver.isConnected) {
             return ErrorUtils.showNetworkError(resources)
@@ -94,16 +95,39 @@ class RealSessionController @Inject constructor(
             else -> Unit
         }
 
-        val payload = OpenCodePayload(
-            kind = PayloadKind.Cash,
-            value = bill.amount.fiat,
-            nonce = nonce
-        )
+        billController.awaitGrab(
+            amount = bill.amount,
+            owner = owner,
+            onGrabbed = {
+                cancelSend(PresentationStyle.Pop)
+                vibrator.vibrate()
 
-        presentSend(
-            payload.codeData.toList(),
-            bill = bill,
-            isVibrate = vibrate
+                scope.launch {
+//                    client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
+                }
+            },
+            onTimeout = {
+                cancelSend(style = PresentationStyle.Slide)
+//                analytics.billTimeoutReached(
+//                    bill.amount.kin,
+//                    bill.amount.rate.currency,
+//                    CodeAnalyticsManager.BillPresentationStyle.Slide
+//                )
+            },
+            onError = { cancelSend(style = PresentationStyle.Slide) },
+            present = { data ->
+                if (!bill.didReceive) {
+                    trace(
+                        tag = "Bill",
+                        message = "Pull out cash",
+                        metadata = {
+                            "amount" to bill.amount
+                        },
+                        type = TraceType.User,
+                    )
+                }
+                presentSend(data, bill, vibrate)
+            },
         )
     }
 
@@ -127,7 +151,7 @@ class RealSessionController @Inject constructor(
         if (bill.didReceive) {
             billController.update {
                 it.copy(
-                    valuation = PaymentValuation(bill.amount.fiat),
+                    valuation = PaymentValuation(bill.amount.converted),
                 )
             }
         }
@@ -143,7 +167,7 @@ class RealSessionController @Inject constructor(
                     amount = bill.amount,
                     didReceive = bill.didReceive
                 ),
-                valuation = PaymentValuation(bill.amount.fiat),
+                valuation = PaymentValuation(bill.amount.converted),
                 showToast = bill.didReceive
             )
         }

@@ -9,4 +9,6 @@
     <string name="action_tryDifferentFlipcashAccount">Try a Different Flipcash Account</string>
 
     <string name="title_badge_no_connection">No Connection</string>
+
+    <string name="title_give">Give</string>
 </resources>

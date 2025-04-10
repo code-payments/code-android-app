@@ -15,10 +15,6 @@ class AndroidLocale @Inject constructor(
         return LocaleUtils.getDefaultCurrency(context)
     }
 
-    override fun getDefaultCurrency(): Currency? {
-        return currencyUtils.getCurrency(getDefaultCurrencyName())
-    }
-
     override fun getDefaultCountry(): String {
         return LocaleUtils.getDefaultCountry(context)
     }

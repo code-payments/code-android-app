@@ -1,13 +1,14 @@
 package com.getcode.opencode.internal.intents
 
-import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.getcode.opencode.internal.extensions.generate
+import com.getcode.opencode.internal.intents.actions.ActionTransfer
 import com.getcode.opencode.internal.model.account.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.core.LocalFiat
 import com.getcode.solana.keys.PublicKey
 
-class IntentTransfer(
+internal class IntentTransfer(
     override val id: PublicKey,
     private val sourceCluster: AccountCluster,
     private val destination: PublicKey,
@@ -23,18 +24,40 @@ class IntentTransfer(
                     .setIsWithdrawal(true)
                     .setExchangeData(
                         TransactionService.ExchangeData.newBuilder()
-                            .setQuarks(amount.fiat.quarks.toLong())
+                            .setQuarks(amount.converted.quarks.toLong())
                             .setCurrency(amount.rate.currency.name.lowercase())
                             .setExchangeRate(amount.rate.fx)
-                            .setNativeAmount(amount.fiat.doubleValue)
+                            .setNativeAmount(amount.converted.doubleValue)
                     )
             )
             .build()
     }
 
-    sealed interface Destination {
-        data class Local(val accountType: Model.AccountType): Destination
-        data class External(val publicKey: PublicKey): Destination
+    companion object {
+        fun create(
+            amount: LocalFiat,
+            sourceCluster: AccountCluster,
+            destination: PublicKey
+        ): IntentTransfer {
+            val id = PublicKey.generate()
+
+            val transfer = ActionTransfer.newInstance(
+                kind = ActionTransfer.Kind.Transfer,
+                sourceCluster = sourceCluster,
+                destination = destination,
+                amount = amount.converted
+            )
+
+            return IntentTransfer(
+                id = id,
+                sourceCluster = sourceCluster,
+                destination = destination,
+                amount = amount,
+                actionGroup = ActionGroup().apply {
+                    actions = listOf(transfer)
+                }
+            )
+        }
     }
 }
 

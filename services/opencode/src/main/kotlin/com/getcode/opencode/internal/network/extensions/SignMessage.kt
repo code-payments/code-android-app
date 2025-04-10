@@ -13,5 +13,5 @@ internal fun <M : GeneratedMessageLite<M?, B?>, B : GeneratedMessageLite.Builder
     /**
      * sign message up to this point with owner and return as [com.codeinc.gen.common.v1.Signature]
      */
-    return Ed25519.sign(bos.toByteArray(), owner).toSignature()
+    return Ed25519.sign(bos.toByteArray(), owner).asSignature()
 }

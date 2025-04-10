@@ -1,5 +1,6 @@
 package com.getcode.opencode.internal.network.services
 
+import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.MessageMapper
 import com.getcode.opencode.internal.network.api.MessagingApi
@@ -11,7 +12,6 @@ import com.getcode.opencode.internal.network.extensions.toId
 import com.getcode.opencode.internal.network.managedApiRequest
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.AckMessagesError
-import com.getcode.opencode.model.core.errors.OpenMessageStreamError
 import com.getcode.opencode.model.core.errors.PollMessagesError
 import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.model.messaging.Message
@@ -23,7 +23,14 @@ import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 import com.codeinc.opencode.gen.messaging.v1.MessagingService as RpcMessagingService
 
@@ -38,17 +45,26 @@ internal class MessagingService @Inject constructor(
     suspend fun openMessageStream(
         rendezvous: KeyPair,
         timeout: Long = DEFAULT_STREAM_TIMEOUT,
-    ): Result<List<Message>> {
-        return networkOracle.managedApiRequest(
-            call = { api.openMessageStream(rendezvous) },
-            timeout = timeout,
-            handleResponse = { response ->
-                Result.success(response.messagesList.map { messageMapper.map(it) })
-            },
-            onOtherError = { cause ->
-                Result.failure(OpenMessageStreamError.Other(cause = cause))
-            }
-        )
+        filter: (MessagingService.Message.KindCase) -> Boolean = { true },
+    ): Flow<List<Message>> = withTimeout(timeout) {
+        coroutineScope {
+            api.openMessageStream(rendezvous)
+                .map {
+                    it.messagesList.filter { filter(it.kindCase) }
+                }.filter { it.isNotEmpty() }
+                .map { messages -> messages.map { messageMapper.map(it) } }
+                .onEach { messages ->
+                    ackMessages(rendezvous, messages.map { it.id })
+                        .onSuccess {
+                            trace(
+                                tag = "MessagingService",
+                                message = "acked",
+                                type = TraceType.Silent
+                            )
+                        }.onFailure { ErrorUtils.handleError(it) }
+                }.filter { it.isNotEmpty() }
+                .retry(retries = 10)
+        }
     }
 
     fun openMessageStreamWithKeepAlive(

@@ -1,4 +1,4 @@
-package com.getcode.opencode.mnemonic
+package com.getcode.opencode.generators
 
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.internal.generator.Generator

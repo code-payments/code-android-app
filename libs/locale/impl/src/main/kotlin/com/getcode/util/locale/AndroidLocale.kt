@@ -7,14 +7,9 @@ import javax.inject.Inject
 
 class AndroidLocale @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val currencyUtils: com.getcode.utils.CurrencyUtils,
 ): LocaleHelper {
     override fun getDefaultCurrencyName(): String {
         return LocaleUtils.getDefaultCurrency(context)
-    }
-
-    override fun getDefaultCurrency(): Currency? {
-        return currencyUtils.getCurrency(getDefaultCurrencyName())
     }
 
     override fun getDefaultCountry(): String {

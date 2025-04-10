@@ -6,7 +6,7 @@ import com.getcode.opencode.internal.intents.actions.ActionType
 import com.getcode.opencode.internal.intents.actions.numberActions
 import com.getcode.opencode.internal.network.extensions.asIntentId
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.extensions.toSignature
+import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.solana.Message
 import com.getcode.solana.SolanaTransaction
@@ -26,9 +26,6 @@ abstract class IntentType {
         }
 
         parameters.forEachIndexed { index, parameter ->
-            if (actionGroup.actions[index].id != parameter.actionId) {
-                throw Exception(Error.ActionParameterMismatch.name)
-            }
             actionGroup.actions[index].serverParameter = parameter
         }
     }
@@ -56,7 +53,7 @@ abstract class IntentType {
         return TransactionService.SubmitIntentRequest.newBuilder()
             .setSubmitSignatures(
                 TransactionService.SubmitIntentRequest.SubmitSignatures.newBuilder()
-                    .addAllSignatures(signatures().map { it.bytes.toByteArray().toSignature() })
+                    .addAllSignatures(signatures().map { it.bytes.toByteArray().asSignature() })
             )
             .build()
     }

@@ -5,10 +5,16 @@ import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
+import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.core.NetworkOracleImpl
 import com.getcode.opencode.internal.network.services.CurrencyService
+import com.getcode.opencode.internal.network.services.MessagingService
+import com.getcode.opencode.internal.network.services.TransactionService
+import com.getcode.opencode.repositories.MessagingRepository
+import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
@@ -17,6 +23,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.grpc.Internal
 import io.grpc.ManagedChannel
 import io.grpc.android.AndroidChannelBuilder
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
@@ -62,4 +69,14 @@ object OpenCodeModule {
             }
             .build()
     }
+
+    @Provides
+    internal fun providesMessagingRepository(
+        messagingService: MessagingService
+    ): MessagingRepository = InternalMessagingRepository(messagingService)
+
+    @Provides
+    internal fun providesTransactionRepository(
+        transactionService: TransactionService
+    ): TransactionRepository = InternalTransactionRepository(transactionService)
 }

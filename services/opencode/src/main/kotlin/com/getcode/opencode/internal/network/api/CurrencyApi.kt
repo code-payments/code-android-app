@@ -4,7 +4,7 @@ import com.codeinc.opencode.gen.currency.v1.CurrencyGrpc
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
-import com.getcode.opencode.internal.network.extensions.toProtobufTimestamp
+import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +33,7 @@ internal class CurrencyApi @Inject constructor(
         val builder = CurrencyService.GetAllRatesRequest.newBuilder()
 
         if (timestampInMillis != null) {
-            builder.setTimestamp(timestampInMillis.toProtobufTimestamp())
+            builder.setTimestamp(timestampInMillis.asProtobufTimestamp())
         }
 
         val request = builder.build()

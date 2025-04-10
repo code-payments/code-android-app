@@ -18,15 +18,15 @@ import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRe
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
+import com.getcode.opencode.internal.network.extensions.asIntentId
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.extensions.toIntentId
-import com.getcode.opencode.internal.network.extensions.toProtobufExchangeData
-import com.getcode.opencode.internal.network.extensions.toProtobufTimestamp
+import com.getcode.opencode.internal.network.extensions.asProtobufExchangeData
+import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
 import com.getcode.opencode.internal.network.extensions.sign
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.bytes
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
@@ -93,11 +93,11 @@ class TransactionApi @Inject constructor(
      * key. Only owner accounts involved in the intent can access the metadata.
      */
     fun getIntentMetadata(
-        intentId: ID,
+        intentId: PublicKey,
         owner: KeyPair,
     ): Flow<GetIntentMetadataResponse> {
         val request = GetIntentMetadataRequest.newBuilder()
-            .setIntentId(intentId.toIntentId())
+            .setIntentId(intentId.asIntentId())
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -123,7 +123,7 @@ class TransactionApi @Inject constructor(
     ): Flow<GetLimitsResponse> {
         val request = GetLimitsRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
-            .setConsumedSince(consumedSince.toProtobufTimestamp())
+            .setConsumedSince(consumedSince.asProtobufTimestamp())
             .apply { setSignature(sign(owner)) }
             .build()
 
@@ -215,7 +215,7 @@ class TransactionApi @Inject constructor(
     ): Flow<DeclareFiatOnrampPurchaseAttemptResponse> {
         val request = DeclareFiatOnrampPurchaseAttemptRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
-            .setPurchaseAmount(purchaseAmount.toProtobufExchangeData())
+            .setPurchaseAmount(purchaseAmount.asProtobufExchangeData())
             .setNonce(Model.UUID.newBuilder().setValue(nonce.bytes.toByteString()))
             .apply { setSignature(sign(owner)) }
             .build()

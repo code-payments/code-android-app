@@ -1,9 +1,10 @@
-package com.getcode.opencode.mnemonic
+package com.getcode.opencode.managers
 
 import com.getcode.crypt.MnemonicCache
 import com.getcode.crypt.MnemonicCode
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.generators.MnemonicGenerator
 import com.getcode.opencode.utils.Base58String
 import com.getcode.opencode.utils.Base64String
 import javax.inject.Inject
