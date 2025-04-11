@@ -61,7 +61,6 @@ dependencies {
     api(project(":libs:encryption:sha512"))
     api(project(":libs:encryption:utils"))
     api(project(":libs:crypto:kin"))
-    api(project(":libs:crypto:solana"))
     api(project(":libs:logging"))
     api(project(":libs:locale:bindings"))
     api(project(":libs:network:connectivity:public"))

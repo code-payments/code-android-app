@@ -26,6 +26,11 @@ internal fun ByteArray.asSignature(): Model.Signature {
         .build()
 }
 
+internal fun KeyPair.asSignature(): Model.Signature {
+    return Model.Signature.newBuilder().setValue(this.publicKeyBytes.toByteString())
+        .build()
+}
+
 internal fun KeyPair.asSolanaAccountId(): Model.SolanaAccountId {
     return Model.SolanaAccountId.newBuilder().setValue(this.publicKeyBytes.toByteString()).build()
 }

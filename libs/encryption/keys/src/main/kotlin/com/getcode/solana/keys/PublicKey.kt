@@ -12,6 +12,8 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
 
     companion object {
 
+        const val MAX_SEEDS = 16
+
         val kin: Mint
             get() = Mint(Base58.decode("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6").toList())
 

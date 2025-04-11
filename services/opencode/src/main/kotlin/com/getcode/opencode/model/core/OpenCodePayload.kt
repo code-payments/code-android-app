@@ -2,10 +2,10 @@ package com.getcode.opencode.model.core
 
 import com.getcode.codeScanner.CodeScanner
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
+import com.getcode.opencode.internal.solana.utils.DataSlice.suffix
+import com.getcode.opencode.internal.solana.utils.DataSlice.toLong
 import com.getcode.opencode.utils.deriveRendezvousKey
-import com.getcode.utils.DataSlice.byteToUnsignedInt
-import com.getcode.utils.DataSlice.suffix
-import com.getcode.utils.DataSlice.toLong
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.longToByteArray
 import java.nio.ByteBuffer

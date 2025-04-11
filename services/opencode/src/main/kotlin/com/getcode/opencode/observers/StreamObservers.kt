@@ -12,13 +12,14 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 
-class BidirectionalStreamReference<Request, Response>(private val scope: CoroutineScope) : AutoCloseable {
+class BidirectionalStreamReference<Request, Response>(scope: CoroutineScope) : AutoCloseable {
 
     private val supervisorJob = SupervisorJob()
     val coroutineScope = CoroutineScope(supervisorJob + scope.coroutineContext)
 
     var stream: StreamObserver<Request>? = null
         set(value) {
+            Timber.d("Setting stream: ${value.hashCode()}, previous: ${field.hashCode()}")
             field = value
             if (value != null) {
                 postponeTimeout()
@@ -93,7 +94,9 @@ class BidirectionalStreamReference<Request, Response>(private val scope: Corouti
     }
 
     fun cancel() {
+        Timber.d("Cancelling stream: $stream")
         stream?.onCompleted()
+        stream = null
     }
 
     fun retain() {

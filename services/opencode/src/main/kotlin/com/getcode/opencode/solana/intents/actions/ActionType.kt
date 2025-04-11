@@ -1,12 +1,12 @@
-package com.getcode.opencode.internal.intents.actions
+package com.getcode.opencode.solana.intents.actions
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.internal.intents.CompactMessage
-import com.getcode.opencode.internal.intents.CompactMessageArgs
-import com.getcode.opencode.internal.intents.ServerParameter
-import com.getcode.solana.SolanaTransaction
+import com.getcode.opencode.solana.intents.CompactMessage
+import com.getcode.opencode.solana.intents.CompactMessageArgs
+import com.getcode.opencode.solana.intents.ServerParameter
+import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.utils.toByteArray
 import org.kin.sdk.base.models.toUTF8Bytes
 
@@ -52,8 +52,8 @@ abstract class ActionType {
     }
 }
 
-fun List<com.getcode.opencode.internal.intents.actions.ActionType>.numberActions(): List<com.getcode.opencode.internal.intents.actions.ActionType> {
-    return this.mapIndexed { index, _ ->
+internal fun List<ActionType>.numberActions(): List<ActionType> {
+    return List(this.size) { index ->
         this[index].apply { this.id = index }
     }
 }

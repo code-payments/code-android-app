@@ -1,7 +1,7 @@
 package com.getcode.opencode.model.transactions
 
-import com.getcode.opencode.internal.domain.extensions.newInstance
-import com.getcode.solana.keys.AssociatedTokenAccount
+import com.getcode.opencode.internal.solana.extensions.newInstance
+import com.getcode.opencode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 

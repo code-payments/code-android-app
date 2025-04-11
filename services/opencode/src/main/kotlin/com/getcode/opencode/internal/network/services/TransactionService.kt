@@ -6,13 +6,12 @@ import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRe
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.extensions.toPublicKey
-import com.getcode.opencode.internal.intents.IntentType
-import com.getcode.opencode.internal.intents.ServerParameter
+import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.managedApiRequest
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.Limits
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
@@ -24,10 +23,11 @@ import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.observers.BidirectionalStreamReference
+import com.getcode.opencode.solana.SolanaTransaction
+import com.getcode.opencode.solana.diff
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
-import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
@@ -61,8 +61,19 @@ internal class TransactionService @Inject constructor(
         streamReference.retain()
 
         scope.launch {
-            cont.resume(openIntentStream(streamReference, intent, owner))
-            streamReference.cancel()
+            try {
+                val result = openIntentStream(streamReference, intent, owner)
+                cont.resume(result)
+            } catch (e: Exception) {
+                trace(
+                    tag = "SubmitIntent",
+                    message = "Failed to open intent stream.",
+                    error = e
+                )
+                if (!cont.isCompleted) {
+                    cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
+                }
+            }
         }
     }
 
@@ -175,8 +186,8 @@ internal class TransactionService @Inject constructor(
         owner: KeyPair,
     ): Result<IntentType> = suspendCancellableCoroutine { cont ->
         try {
-            streamRef.cancel()
-            streamRef.stream = api.submitIntent(object : StreamObserver<SubmitIntentResponse> {
+            // Initialize stream without cancelling existing one prematurely
+            val streamObserver = api.submitIntent(object : StreamObserver<SubmitIntentResponse> {
                 override fun onNext(value: SubmitIntentResponse?) {
                     when (value?.responseCase) {
                         SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS -> {
@@ -189,7 +200,9 @@ internal class TransactionService @Inject constructor(
 
                         SubmitIntentResponse.ResponseCase.SUCCESS -> {
                             streamRef.stream?.onCompleted()
-                            cont.resume(Result.success(intent))
+                            if (!cont.isCompleted) {
+                                cont.resume(Result.success(intent))
+                            }
                         }
 
                         SubmitIntentResponse.ResponseCase.ERROR -> {
@@ -199,11 +212,10 @@ internal class TransactionService @Inject constructor(
                                 message = "Error: ${errors.joinToString("\n")}",
                                 type = TraceType.Error
                             )
-
                             streamRef.stream?.onCompleted()
-                            cont.resume(
-                                Result.failure(SubmitIntentError.typed(value.error))
-                            )
+                            if (!cont.isCompleted) {
+                                cont.resume(Result.failure(SubmitIntentError.typed(value.error)))
+                            }
                         }
 
                         SubmitIntentResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
@@ -212,6 +224,10 @@ internal class TransactionService @Inject constructor(
                 }
 
                 override fun onError(t: Throwable?) {
+                    t?.printStackTrace()
+                    if (!cont.isCompleted) {
+                        cont.resume(Result.failure(SubmitIntentError.Other(cause = t)))
+                    }
                     streamRef.cancel()
                 }
 
@@ -224,12 +240,13 @@ internal class TransactionService @Inject constructor(
                 }
             })
 
+            // Set stream only after initialization
+            streamRef.stream = streamObserver
             streamRef.stream?.onNext(intent.requestToSubmitActions(owner))
         } catch (e: Exception) {
-            if (e is IllegalStateException && e.message == "call already half-closed") {
-                // ignore
-            } else {
+            if (!cont.isCompleted) {
                 ErrorUtils.handleError(e)
+                cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
             }
         }
     }
@@ -277,10 +294,23 @@ private fun handleErrors(
             }
 
             TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
-                val expectedVixn =
-                    error.invalidSignature.expectedVixnHash.value.toByteArray()
-                val produced = intent.vixnHash()
-                errors.add("Signature mismatch: :: VIXN:: expected=${expectedVixn.base58}, produced=${produced.base58()}")
+                val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
+                val produced = intent.transaction()
+                errors.addAll(
+                    listOf(
+                        "Action index: ${error.invalidSignature.actionId}",
+                        "Invalid signature: ${
+                            com.getcode.solana.keys.Signature(
+                                error.invalidSignature.providedSignature.value.toByteArray()
+                                    .toList()
+                            ).base58()}",
+                        "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
+                        "Transaction expected: $expected",
+                        "Android produced: $produced"
+                    )
+                )
+
+                expected?.diff(produced)
             }
 
             TransactionService.ErrorDetails.TypeCase.DENIED -> {

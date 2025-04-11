@@ -1,7 +1,7 @@
 package com.getcode.opencode.repositories
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.intents.IntentType
+import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.model.core.Limits
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData

@@ -1,15 +1,15 @@
-package com.getcode.opencode.internal.intents.actions
+package com.getcode.opencode.internal.network.api.intents.actions
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.model.account.AccountCluster
-import com.getcode.opencode.internal.intents.CompactMessageArgs
-import com.getcode.opencode.internal.intents.ServerParameter
-import com.getcode.opencode.internal.intents.actions.ActionTransfer.Kind.*
+import com.getcode.opencode.solana.intents.CompactMessageArgs
+import com.getcode.opencode.solana.intents.ServerParameter
+import com.getcode.opencode.internal.network.api.intents.actions.ActionTransfer.Kind.*
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.solana.SolanaTransaction
-import com.getcode.opencode.internal.solana.builder.TransactionBuilder
+import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.model.core.Fiat
+import com.getcode.opencode.solana.intents.actions.ActionType
 import com.getcode.solana.keys.PublicKey
 
 internal class ActionTransfer(
@@ -23,22 +23,7 @@ internal class ActionTransfer(
     val destination: PublicKey,
 ) : ActionType() {
 
-    override fun transactions(): List<SolanaTransaction> {
-        val serverParameter = serverParameter ?: return emptyList()
-        val timelock = source.timelock
-
-        return serverParameter.configs.map { config ->
-            TransactionBuilder.transfer(
-                timelockDerivedAccounts = timelock,
-                destination = destination,
-                amount = amount,
-                nonce = config.nonce,
-                recentBlockhash = config.blockhash,
-                kreIndex = kreIndex
-            )
-        }
-    }
-
+    override fun transactions(): List<SolanaTransaction> = listOf()
     override fun compactMessageArgs(): List<CompactMessageArgs> {
         val configs = serverParameter?.configs ?: return emptyList()
         return configs.map {

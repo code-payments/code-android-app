@@ -24,7 +24,7 @@ class LoggingClientCallListener<ReqT, ResT>(
             println("Request: $requestLog")
             println("Response: $responseLog")
             println("The request was processed successfully")
-        } else if (UNSUCCESSFUL_STATUS_CODES.contains(status.code)) {
+        } else {
             println("Request: $requestLog")
             println("An error occurred while processing the request: ${status.asRuntimeException()}")
         }
@@ -63,7 +63,8 @@ class LoggingClientCallListener<ReqT, ResT>(
         private val UNSUCCESSFUL_STATUS_CODES = listOf(
             Status.INVALID_ARGUMENT.code,
             Status.INTERNAL.code,
-            Status.NOT_FOUND.code
+            Status.NOT_FOUND.code,
+            Status.UNAUTHENTICATED.code
         )
     }
 }

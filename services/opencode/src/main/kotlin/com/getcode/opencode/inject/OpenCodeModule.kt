@@ -51,6 +51,23 @@ object OpenCodeModule {
     }
 
     @Singleton
+    @OpenCodeProtocol
+    @Provides
+    fun providesOpenCodeProtocolConfig(
+        @ApplicationContext context: Context
+    ): ProtocolConfig {
+        return object: ProtocolConfig {
+            override val baseUrl: String
+                get() = "ocp.api.flipcash-infra.net"
+            override val userAgent: String
+                get() {
+                    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    return "OpenCodeProtocol/Android/$version"
+                }
+        }
+    }
+
+    @Singleton
     @Provides
     @OpenCodeManagedChannel
     fun provideManagedChannel(

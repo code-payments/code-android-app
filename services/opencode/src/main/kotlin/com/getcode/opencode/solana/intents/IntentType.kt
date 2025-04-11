@@ -1,51 +1,52 @@
-package com.getcode.opencode.internal.intents
+package com.getcode.opencode.solana.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.internal.intents.actions.ActionType
-import com.getcode.opencode.internal.intents.actions.numberActions
+import com.getcode.opencode.solana.intents.actions.ActionType
+import com.getcode.opencode.solana.intents.actions.numberActions
 import com.getcode.opencode.internal.network.extensions.asIntentId
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.sign
-import com.getcode.solana.Message
-import com.getcode.solana.SolanaTransaction
+import com.getcode.opencode.solana.Message
+import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 
 abstract class IntentType {
     abstract val id: PublicKey
     abstract val actionGroup: ActionGroup
 
-    fun getActions() = actionGroup.actions
-    fun getAction(index: Int) = getActions()[index]
+    val actions: List<ActionType>
+        get() = actionGroup.actions
 
     fun apply(parameters: List<ServerParameter>) {
-        if (parameters.size != actionGroup.actions.size) {
+        if (parameters.size != actions.size) {
             throw Exception(Error.InvalidParameterCount.name)
         }
 
         parameters.forEachIndexed { index, parameter ->
-            actionGroup.actions[index].serverParameter = parameter
+            actions[index].serverParameter = parameter
         }
     }
 
     fun vixnHash(): Hash {
-        return actionGroup.actions.flatMap { it.compactMessages() }
+        return actions.flatMap { it.compactMessages() }
             .flatMap { it.toList() }
             .take(32).let { Hash(it) }
     }
 
     fun transaction(): SolanaTransaction {
-        val message = actionGroup.actions.flatMap { it.transactions() }.map { it.message }
+        val message = actions.flatMap { it.transactions() }.map { it.message }
             .let { Message.newInstance(it.map { it.encode().toList() }.flatten()) }!!
-        val sigs = actionGroup.actions.flatMap { it.signatures() }
+        val sigs = actions.flatMap { it.signatures() }
 
         return SolanaTransaction(message, sigs)
     }
 
-    fun signatures(): List<com.getcode.solana.keys.Signature> =
-        actionGroup.actions.map { it.signatures().firstOrNull() }.mapNotNull { it }
+    val signatures: List<Signature>
+        get() = actions.map { it.signatures().firstOrNull() }.mapNotNull { it }
 
     abstract fun metadata(): TransactionService.Metadata
 
@@ -53,7 +54,7 @@ abstract class IntentType {
         return TransactionService.SubmitIntentRequest.newBuilder()
             .setSubmitSignatures(
                 TransactionService.SubmitIntentRequest.SubmitSignatures.newBuilder()
-                    .addAllSignatures(signatures().map { it.bytes.toByteArray().asSignature() })
+                    .addAllSignatures(signatures.map { it.bytes.toByteArray().asSignature() })
             )
             .build()
     }
@@ -63,7 +64,7 @@ abstract class IntentType {
         submitActionsBuilder.owner = owner.asSolanaAccountId()
         submitActionsBuilder.id = id.asIntentId()
         submitActionsBuilder.metadata = metadata()
-        submitActionsBuilder.addAllActions(actionGroup.actions.map { it.action() })
+        submitActionsBuilder.addAllActions(actions.map { it.action() })
 
         submitActionsBuilder.signature = submitActionsBuilder.sign(owner)
 
@@ -73,8 +74,7 @@ abstract class IntentType {
     }
 
     enum class Error {
-        InvalidParameterCount,
-        ActionParameterMismatch
+        InvalidParameterCount
     }
 }
 
@@ -95,4 +95,5 @@ sealed interface CompactMessageArgs {
         val nonceValue: Hash,
     ): CompactMessageArgs
 }
+
 typealias CompactMessage = ByteArray

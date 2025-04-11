@@ -1,10 +1,11 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.intents.IntentCreateAccount
-import com.getcode.opencode.internal.intents.IntentTransfer
-import com.getcode.opencode.internal.intents.IntentType
+import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
+import com.getcode.opencode.internal.network.api.intents.IntentTransfer
+import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.repositories.TransactionRepository
@@ -31,11 +32,11 @@ class TransactionController @Inject constructor(
 ) {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    suspend fun createAccounts(owner: AccountCluster): Result<Unit> {
+    suspend fun createAccounts(owner: AccountCluster): Result<ID> {
         val intent = IntentCreateAccount.create(owner)
 
         return submitIntent(scope, intent, owner.authority.keyPair)
-            .map { Unit }
+            .map { it.id.bytes }
     }
 
     suspend fun transfer(
