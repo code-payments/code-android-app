@@ -40,9 +40,12 @@ internal fun RenderedBill(
 @Composable
 fun Preview_CashBill() {
     DesignSystem {
+        // $3 USD
+        val usdcBase = Fiat(3.00, CurrencyCode.USD)
+        val cadRate = Rate(1.4, CurrencyCode.CAD)
         val payload = OpenCodePayload(
             PayloadKind.Cash,
-            value = Fiat(currencyCode = CurrencyCode.USD, quarks = 300u),
+            value = usdcBase,
             nonce = listOf(
                 -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
             ).map { it.toByte() }
@@ -50,8 +53,9 @@ fun Preview_CashBill() {
 
         CashBill(
             amount = LocalFiat(
-                fiat = Fiat(currencyCode = CurrencyCode.USD, quarks = 300u),
-                rate = Rate(1.0, CurrencyCode.USD)
+                usdc = usdcBase,
+                converted = usdcBase.convertingTo(cadRate),
+                rate = cadRate
             ),
             payloadData = payload.codeData.toList(),
         )
@@ -62,19 +66,25 @@ fun Preview_CashBill() {
 @Composable
 fun Preview_PaymentBill() {
     DesignSystem {
+        // $3 USD
+        val usdcBase = Fiat(3.00, CurrencyCode.USD)
+        val cadRate = Rate(1.4, CurrencyCode.CAD)
+
         val payload = OpenCodePayload(
             PayloadKind.RequestPaymentV2,
-            value = Fiat(currencyCode = CurrencyCode.USD, quarks = 300u),
+            value = usdcBase,
             nonce = listOf(
                 -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
             ).map { it.toByte() }
         )
 
+
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Receipt(
                 amount = LocalFiat(
-                    fiat = Fiat(currencyCode = CurrencyCode.USD, quarks = 300u),
-                    rate = Rate(1.0, CurrencyCode.USD)
+                    usdc = usdcBase,
+                    converted = usdcBase.convertingTo(cadRate),
+                    rate = cadRate
                 ),
                 data = payload.codeData.toList(),
                 currencyCode = payload.fiat?.currencyCode

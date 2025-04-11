@@ -3,17 +3,23 @@ package com.flipcash.app.core.auth
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
+import com.bugsnag.android.Bugsnag
 import com.flipcash.app.core.AccountType
 import com.flipcash.app.core.internal.accounts.AccountUtils
 import com.flipcash.app.core.internal.accounts.UserIdResult
 import com.flipcash.app.core.internal.extensions.token
+import com.flipcash.core.BuildConfig
 import com.flipcash.services.FlipcashCore
+import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -35,6 +41,9 @@ class AuthManager @Inject constructor(
     private val notificationManager: NotificationManagerCompat,
     @AccountType
     private val accountType: String,
+    private val accountController: AccountController,
+    private val pushController: PushController,
+    private val transactionController: TransactionController,
 //    private val balanceController: BalanceController,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
@@ -77,23 +86,24 @@ class AuthManager @Inject constructor(
     suspend fun createAccount(): Result<ID> {
         val entropy = setupAsNew()
         FlipcashCore.initialize(context, entropy)
-        return Result.failure(NotImplementedError())
-//        return authController.createAccount()
-//            .onSuccess { userId ->
-//                AccountUtils.addAccount(
-//                    context = context,
-//                    name = "Flipchat User",
-//                    password = userId.base58,
-//                    token = entropy,
-//                    isUnregistered = true
-//                )
-//                userManager.set(userId)
-//                userManager.set(AuthState.Unregistered)
-////                profileController.getUserFlags()
-//            }.onFailure {
-//                it.printStackTrace()
-//                clearToken()
-//            }
+
+        return accountController.createAccount()
+            .onSuccess { userId ->
+                AccountUtils.addAccount(
+                    context = context,
+                    name = "Flipcash User",
+                    password = userId.base58,
+                    token = entropy,
+                    type = accountType,
+                    isUnregistered = true
+                )
+                userManager.set(userId)
+                userManager.set(AuthState.Unregistered)
+
+                accountController.getUserFlags()
+            }.onFailure {
+                clearToken()
+            }
     }
 
     suspend fun login(
@@ -130,43 +140,38 @@ class AuthManager @Inject constructor(
             }
         } else {
             Result.failure<ID>(NotImplementedError())
-//            authController.login()
+            accountController.login()
         }
 
-        return Result.failure(NotImplementedError())
-//        return ret
-//            .map { it to profileController.getProfile(it) }
-//            .map { (id, profileResult) ->
-//                id to profileResult.getOrNull()
-//            }
-//            .onSuccess { (userId, profile) ->
-//                if (!isSoftLogin) {
-//                    AccountUtils.addAccount(
-//                        context = context,
-//                        name = profile?.displayName ?: "Flipchat User",
-//                        password = userId.base58,
-//                        token = entropyB64,
-//                        isUnregistered = false,
-//                    )
-//                }
-//
-//                userManager.set(userId = userId)
-//
-//                savePrefs()
-//            }
-//            .onFailure {
-//                it.printStackTrace()
-//                if (rollbackOnError) {
-//                    login(
-//                        originalEntropy.orEmpty(),
-//                        isSoftLogin,
-//                        rollbackOnError = false
-//                    )
-//                } else {
-//                    logout(context)
-//                    clearToken()
-//                }
-//            }.map { it.first }
+        return ret
+            .onSuccess { userId ->
+                if (!isSoftLogin) {
+                    AccountUtils.addAccount(
+                        context = context,
+                        name = "Flipcash User", // TODO: ?
+                        password = userId.base58,
+                        token = entropyB64,
+                        type = accountType,
+                        isUnregistered = false,
+                    )
+                }
+
+                userManager.set(userId = userId)
+
+                savePrefs()
+            }
+            .onFailure {
+                if (rollbackOnError) {
+                    login(
+                        originalEntropy.orEmpty(),
+                        isSoftLogin,
+                        rollbackOnError = false
+                    )
+                } else {
+                    logout(context)
+                    clearToken()
+                }
+            }
     }
 
     suspend fun deleteAndLogout(context: Context): Result<Unit> {
@@ -192,11 +197,11 @@ class AuthManager @Inject constructor(
 
     private suspend fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
-//        pushController.deleteTokens()
+        pushController.deleteTokens()
         notificationManager.cancelAll()
         FlipcashCore.reset(context)
         userManager.clear()
-//        if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
+        if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 
     private suspend fun savePrefs() {
@@ -206,12 +211,12 @@ class AuthManager @Inject constructor(
     @SuppressLint("CheckResult")
     private suspend fun updateFcmToken() {
         val pushToken = Firebase.messaging.token() ?: return
-//        pushController.addToken(pushToken)
-//            .onSuccess {
-//                trace("push token updated", type = TraceType.Silent)
-//            }.onFailure {
-//                trace(message = "Failure updating push token", error = it)
-//            }
+        pushController.addToken(pushToken)
+            .onSuccess {
+                trace("push token updated", type = TraceType.Silent)
+            }.onFailure {
+                trace(message = "Failure updating push token", error = it)
+            }
     }
 
     sealed class AuthManagerException : Exception() {

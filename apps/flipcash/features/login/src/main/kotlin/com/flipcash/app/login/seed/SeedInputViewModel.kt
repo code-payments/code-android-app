@@ -12,7 +12,7 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.opencode.mnemonic.MnemonicManager
+import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel

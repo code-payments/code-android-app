@@ -88,7 +88,7 @@ internal fun Receipt(
                         value = CodeTheme.typography.textMedium
                             .monospace(weight = FontWeight.W500)
                     ) {
-                        PriceWithFlag(currencyCode = currencyCode.name, flag = exchange.getFlag(currencyCode.name), amount = amount.fiat.formatted())
+                        PriceWithFlag(currencyCode = currencyCode.name, flag = exchange.getFlag(currencyCode.name), amount = amount.converted.formatted())
                     }
                 }
             }

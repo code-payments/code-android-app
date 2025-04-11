@@ -56,9 +56,6 @@ class UserManager @Inject constructor(
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
 
-        println("entropy=$entropy")
-        println("words=${mnemonic.words.joinToString(" ")}")
-        
         _state.update {
             it.copy(
                 entropy = entropy,
