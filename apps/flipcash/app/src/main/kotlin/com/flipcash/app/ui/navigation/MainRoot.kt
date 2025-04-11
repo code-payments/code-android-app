@@ -57,7 +57,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CodeTheme.colors.secondary),
+                .background(CodeTheme.colors.brand),
             contentAlignment = Alignment.Center,
         ) {
             Column(

@@ -3,7 +3,7 @@ package com.getcode.opencode.inject
 import android.content.Context
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
-import com.getcode.opencode.annotations.OpenCodeProtocol
+import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository

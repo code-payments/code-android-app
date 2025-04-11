@@ -2,7 +2,7 @@ package com.getcode.opencode.internal.network.api.intents.actions
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.solana.intents.CompactMessageArgs
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.internal.network.api.intents.actions.ActionTransfer.Kind.*

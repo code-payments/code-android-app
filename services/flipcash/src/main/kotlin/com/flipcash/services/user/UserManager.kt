@@ -3,8 +3,7 @@ package com.flipcash.services.user
 import com.bugsnag.android.Bugsnag
 import com.flipcash.services.internal.model.account.UserFlags
 import com.getcode.crypt.DerivedKey
-import com.getcode.opencode.controllers.BalanceController
-import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.uuid

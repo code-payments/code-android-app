@@ -21,6 +21,7 @@ interface SessionController {
     val state: StateFlow<SessionState>
     val billState: StateFlow<BillState>
     fun onAppInForeground()
+    fun onAppInBackground()
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(

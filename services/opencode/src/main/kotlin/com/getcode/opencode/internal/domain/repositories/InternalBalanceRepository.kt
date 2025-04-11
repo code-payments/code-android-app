@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.domain.repositories
 
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.model.accounts.AccountInfo

@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -27,7 +26,6 @@ internal fun Scanner() {
     val state by session.state.collectAsState()
     var isPaused by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
     var previewing by remember {
         mutableStateOf(false)
     }

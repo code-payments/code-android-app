@@ -1,4 +1,4 @@
-package com.getcode.opencode.annotations
+package com.getcode.opencode.internal.annotations
 
 import javax.inject.Qualifier
 
@@ -11,4 +11,4 @@ import javax.inject.Qualifier
     AnnotationTarget.VALUE_PARAMETER,
     AnnotationTarget.FIELD
 )
-annotation class OpenCodeProtocol
+internal annotation class OpenCodeProtocol

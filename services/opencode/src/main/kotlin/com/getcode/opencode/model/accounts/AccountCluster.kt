@@ -1,4 +1,4 @@
-package com.getcode.opencode.internal.model.account
+package com.getcode.opencode.model.accounts
 
 import com.getcode.crypt.DerivedKey
 import com.getcode.opencode.internal.solana.extensions.newInstance

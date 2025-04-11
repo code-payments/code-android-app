@@ -1,5 +1,6 @@
 package com.flipcash.app.core.internal.session
 
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.PresentationStyle
 import com.flipcash.app.core.SessionController
@@ -14,13 +15,18 @@ import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.model.core.OpenCodePayload
+import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
+import com.getcode.utils.hexEncodedString
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
 import com.kik.kikx.models.ScannableKikCode
@@ -59,6 +65,8 @@ class RealSessionController @Inject constructor(
     override val billState: StateFlow<BillState>
         get() = billController.state
 
+    private val scannedRendezvous = mutableListOf<String>()
+
     init {
         userManager.state
             .map { it.isTimelockUnlocked }
@@ -76,6 +84,10 @@ class RealSessionController @Inject constructor(
     override fun onAppInForeground() {
         updateUserFlags()
         requestAirdrop()
+    }
+
+    override fun onAppInBackground() {
+        billController.reset()
     }
 
     private fun updateUserFlags() {
@@ -179,11 +191,53 @@ class RealSessionController @Inject constructor(
     }
 
     override fun onCodeScan(code: ScannableKikCode) {
-        TODO("Not yet implemented")
+        if (billController.state.value.bill != null) {
+            trace(
+                tag = "Session",
+                message = "Already showing a bill",
+                type = TraceType.Silent
+            )
+            return
+        }
+
+        val payload = (code as? ScannableKikCode.RemoteKikCode)?.payloadId?.toList() ?: return
+        val codePayload = OpenCodePayload.fromList(payload)
+        if (scannedRendezvous.contains(codePayload.rendezvous.publicKey)) {
+            trace(
+                tag = "Session",
+                message = "Nonce previously received: ${codePayload.nonce.hexEncodedString()}",
+                type = TraceType.Silent
+            )
+            return
+        }
+
+        scannedRendezvous.add(codePayload.rendezvous.publicKey)
+
+        trace(
+            tag = "Session",
+            message = """
+                Kind: ${codePayload.kind}
+                Nonce: ${codePayload.nonce.hexEncodedString()}
+                Rendezvous: ${codePayload.rendezvous.publicKeyBytes.base58}
+            """.trimIndent()
+        )
+
+        when (codePayload.kind) {
+            PayloadKind.Cash -> onCashScanned(codePayload)
+            PayloadKind.GiftCard -> Unit
+            PayloadKind.RequestPaymentV2 -> Unit
+        }
     }
 
     override fun handleRequest(request: DeepLinkRequest?) {
         TODO("Not yet implemented")
+    }
+
+    private fun onCashScanned(payload: OpenCodePayload) {
+        trace(
+            tag = "Session",
+            message = "Scanned: ${payload.fiat!!.formatted()} ${payload.fiat!!.currencyCode}"
+        )
     }
 
     private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {

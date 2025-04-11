@@ -265,7 +265,7 @@ internal fun CashBill(
                 ) {
                     // Mint
                     Text(
-                        text = Mint.kin.base58(),
+                        text = Mint.usdc.base58(),
                         fontSize = 8.nonScaledSp,
                         color = CashBillDefaults.DecorColor,
                     )

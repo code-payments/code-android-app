@@ -145,6 +145,7 @@ fun App(
 
                                             Lifecycle.Event.ON_STOP,
                                             Lifecycle.Event.ON_DESTROY -> {
+                                                session.onAppInBackground()
                                             }
 
                                             else -> Unit

@@ -4,7 +4,7 @@ import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.ServerParameter
-import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.solana.SolanaTransaction

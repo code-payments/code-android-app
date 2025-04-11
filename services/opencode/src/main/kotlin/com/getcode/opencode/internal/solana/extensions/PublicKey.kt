@@ -2,7 +2,7 @@ package com.getcode.opencode.internal.solana.extensions
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.internal.model.core.timeAuthority
+import com.getcode.opencode.internal.solana.timeAuthority
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
 import com.getcode.opencode.internal.solana.programs.TimelockProgram
 import com.getcode.opencode.internal.solana.programs.TokenProgram

@@ -3,7 +3,7 @@ package com.getcode.opencode.internal.network.api.intents
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.opencode.internal.extensions.generate
 import com.getcode.opencode.internal.network.api.intents.actions.ActionTransfer
-import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.solana.intents.ActionGroup

@@ -1,7 +1,7 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.model.account.AccountCluster
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
