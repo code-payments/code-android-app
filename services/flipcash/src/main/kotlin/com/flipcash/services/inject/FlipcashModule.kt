@@ -35,27 +35,19 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 internal object FlipcashModule {
     @Singleton
-    @OpenCodeProtocol
-    @Provides
-    fun providesOpenCodeProtocolConfig(): ProtocolConfig {
-        return object: ProtocolConfig {
-            override val baseUrl: String
-                get() = "payments.api.flipcash-infra.com" // TODO: swap for flipcash
-            override val userAgent: String
-                get() = "Flipcash/Payments/Android/1.0.0" // TODO: Feed in app version
-
-        }
-    }
-
-    @Singleton
     @FlipcashProtocol
     @Provides
-    fun providesFlipcashProtocolConfig(): ProtocolConfig {
+    fun providesFlipcashProtocolConfig(
+        @ApplicationContext context: Context
+    ): ProtocolConfig {
         return object: ProtocolConfig {
             override val baseUrl: String
-                get() = "api.flipcash-infra.com" // TODO: swap for flipcash
+                get() = "fc.api.flipcash-infra.net"
             override val userAgent: String
-                get() = "Flipcash/Core/Android/1.0.0"  // TODO: Feed in app version
+                get() {
+                    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    return "Flipcash/Core/Android/$version"
+                }
 
         }
     }

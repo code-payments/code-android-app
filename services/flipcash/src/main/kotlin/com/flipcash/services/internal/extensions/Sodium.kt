@@ -1,4 +1,4 @@
-package com.getcode.opencode.internal.extensions
+package com.flipcash.services.internal.extensions
 
 import android.util.Base64
 import com.getcode.ed25519.Ed25519

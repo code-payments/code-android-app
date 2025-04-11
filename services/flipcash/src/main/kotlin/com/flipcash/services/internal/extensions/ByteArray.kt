@@ -1,4 +1,4 @@
-package com.getcode.opencode.internal.extensions
+package com.flipcash.services.internal.extensions
 
 import com.getcode.solana.keys.PublicKey
 

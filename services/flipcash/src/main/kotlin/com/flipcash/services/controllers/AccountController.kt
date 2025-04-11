@@ -10,7 +10,7 @@ class AccountController @Inject constructor(
     private val repository: AccountRepository,
     private val userManager: UserManager,
 ) {
-    suspend fun register(): Result<ID> {
+    suspend fun createAccount(): Result<ID> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         return repository.register(owner)
@@ -22,9 +22,12 @@ class AccountController @Inject constructor(
         return repository.login(owner)
     }
 
-    suspend fun getUserFlags(userId: ID): Result<UserFlags> {
+    suspend fun getUserFlags(): Result<UserFlags> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        val userId = userManager.userId
+            ?: return Result.failure(Throwable("No user ID in UserManager"))
 
         return repository.getUserFlags(
             owner = owner,
