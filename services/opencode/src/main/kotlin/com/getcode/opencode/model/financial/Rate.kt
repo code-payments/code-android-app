@@ -1,4 +1,4 @@
-package com.getcode.opencode.model.core
+package com.getcode.opencode.model.financial
 
 import kotlinx.serialization.Serializable
 

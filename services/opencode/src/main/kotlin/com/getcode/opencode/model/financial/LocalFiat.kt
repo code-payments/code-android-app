@@ -1,4 +1,4 @@
-package com.getcode.opencode.model.core
+package com.getcode.opencode.model.financial
 
 data class LocalFiat(
     val usdc: Fiat,
@@ -17,4 +17,12 @@ data class LocalFiat(
         converted = Fiat(usdc.doubleValue, rate.currency),
         rate = rate
     )
+
+    companion object {
+        val Zero = LocalFiat(
+            usdc = Fiat(0),
+            converted = Fiat(0),
+            rate = Rate.oneToOne
+        )
+    }
 }

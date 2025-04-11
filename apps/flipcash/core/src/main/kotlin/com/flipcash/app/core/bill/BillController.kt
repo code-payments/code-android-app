@@ -1,9 +1,8 @@
 package com.flipcash.app.core.bill
 
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.model.account.AccountCluster
 import com.getcode.opencode.managers.BillTransactionManager
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.LocalFiat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update

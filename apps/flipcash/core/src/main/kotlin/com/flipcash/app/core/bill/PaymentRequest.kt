@@ -1,8 +1,8 @@
 package com.flipcash.app.core.bill
 
 import android.net.Uri
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.Fiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.decodeBase64

@@ -1,12 +1,18 @@
 package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.account.v1.AccountService
+import com.codeinc.opencode.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.managedApiRequest
+import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.core.errors.CodeAccountCheckError
+import com.getcode.opencode.model.core.errors.GetAccountsError
 import com.getcode.opencode.model.core.errors.LinkAccountsError
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.getPublicKeyBase58
+import timber.log.Timber
 import javax.inject.Inject
 
 internal class AccountService @Inject constructor(
@@ -34,7 +40,37 @@ internal class AccountService @Inject constructor(
         )
     }
 
-    // TODO: implement getAccounts
+    suspend fun getAccounts(
+        owner: KeyPair
+    ): Result<Map<PublicKey, AccountInfo>> {
+        return networkOracle.managedApiRequest(
+            call = { api.getTokenAccounts(owner) },
+            handleResponse = { response ->
+                when (response.result) {
+                    AccountService.GetTokenAccountInfosResponse.Result.OK -> {
+                        val container = mutableMapOf<PublicKey, AccountInfo>()
+
+                        for ((base58, info) in response.tokenAccountInfosMap) {
+                            val account = PublicKey.fromBase58(base58)
+                            val accountInfo = AccountInfo.newInstance(info)
+                            if (accountInfo != null) {
+                                container[account] = accountInfo
+                            }
+                        }
+                        Result.success(container.toMap())
+                    }
+                    AccountService.GetTokenAccountInfosResponse.Result.NOT_FOUND -> Result.failure(
+                        GetAccountsError.NotFound())
+                    AccountService.GetTokenAccountInfosResponse.Result.UNRECOGNIZED -> Result.failure(
+                        GetAccountsError.Unrecognized())
+                    else -> Result.failure(GetAccountsError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(GetAccountsError.Other(cause = cause))
+            }
+        )
+    }
 
     suspend fun linkAdditionalAccounts(
         owner: KeyPair,

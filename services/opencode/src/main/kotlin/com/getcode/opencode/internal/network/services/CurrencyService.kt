@@ -4,10 +4,9 @@ import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.managedApiRequest
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.Rate
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.core.errors.GetRatesError
-import com.getcode.utils.CodeServerError
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 

@@ -8,7 +8,7 @@ import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.internal.network.api.intents.actions.ActionTransfer.Kind.*
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.solana.SolanaTransaction
-import com.getcode.opencode.model.core.Fiat
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.solana.intents.actions.ActionType
 import com.getcode.solana.keys.PublicKey
 

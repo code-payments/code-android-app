@@ -3,7 +3,7 @@ package com.flipcash.app.core
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.DeepLinkRequest
-import com.getcode.opencode.model.core.Fiat
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.kik.kikx.models.ScannableKikCode

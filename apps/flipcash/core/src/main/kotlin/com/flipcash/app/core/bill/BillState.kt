@@ -7,8 +7,8 @@ import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
 import com.getcode.opencode.model.core.ExtendedMetadata
 import com.getcode.opencode.model.core.OpenCodePayload
-import com.getcode.opencode.model.core.Fiat
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 
 data class BillState(

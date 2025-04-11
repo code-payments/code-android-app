@@ -2,10 +2,10 @@ package com.getcode.opencode.internal.exchange
 
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.network.services.CurrencyService
-import com.getcode.opencode.model.core.Currency
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.Rate
-import com.getcode.opencode.model.core.RegionCode
+import com.getcode.opencode.model.financial.Currency
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.RegionCode
 import com.getcode.services.opencode.R
 import com.getcode.util.format
 import com.getcode.util.locale.LocaleHelper

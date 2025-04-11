@@ -1,8 +1,8 @@
 package com.getcode.opencode.exchange
 
-import com.getcode.opencode.model.core.Currency
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.Rate
+import com.getcode.opencode.model.financial.Currency
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Rate
 import kotlinx.coroutines.flow.Flow
 
 interface Exchange {

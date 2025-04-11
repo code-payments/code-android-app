@@ -6,7 +6,7 @@ import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.internal.model.account.AccountCluster
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.utils.flowInterval

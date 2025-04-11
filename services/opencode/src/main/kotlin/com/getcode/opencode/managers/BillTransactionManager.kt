@@ -6,7 +6,7 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.model.account.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asProtobufMessage
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.messaging.MessageKind

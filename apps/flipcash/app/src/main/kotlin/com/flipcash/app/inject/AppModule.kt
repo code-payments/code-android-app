@@ -40,23 +40,6 @@ object AppModule {
     ): SettingsHelper = AndroidSettingsHelper(context)
 
     @Provides
-    fun providesWifiManager(
-        @ApplicationContext context: Context,
-    ): WifiManager =
-        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-
-    @Provides
-    fun providesConnectivityManager(
-        @ApplicationContext context: Context,
-    ): ConnectivityManager =
-        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-    @Provides
-    fun providesTelephonyManager(
-        @ApplicationContext context: Context,
-    ): TelephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-
-    @Provides
     fun providesClipboard(
         @ApplicationContext context: Context
     ): ClipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

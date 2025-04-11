@@ -1,4 +1,4 @@
-package com.getcode.opencode.model.core
+package com.getcode.opencode.model.financial
 
 data class Currency(
     val code: String,

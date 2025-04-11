@@ -4,15 +4,73 @@ import android.content.Context
 import com.getcode.opencode.inject.OpenCodeModule
 import com.getcode.opencode.internal.domain.mapping.MessageMapper
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
+import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.api.TransactionApi
+import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
+import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.opencode.repositories.BalanceRepository
 import com.getcode.opencode.repositories.MessagingRepository
 import com.getcode.opencode.repositories.TransactionRepository
+import com.getcode.utils.network.ConnectivityModule
 import dagger.hilt.android.EntryPointAccessors
 
 object RepositoryFactory {
+    fun createAccountRepository(context: Context, config: ProtocolConfig): AccountRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = AccountApi(module.provideManagedChannel(context, config))
+        val service = AccountService(api, module.provideNetworkOracle())
+        return module.providesAccountRepository(service)
+    }
+
+    fun createBalanceRepository(context: Context, config: ProtocolConfig): BalanceRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val connectivityModule = EntryPointAccessors.fromApplication(
+                appContext,
+            ConnectivityModule::class.java,
+        )
+
+        val telephony = connectivityModule.providesTelephonyManager(context)
+        val connectivity = connectivityModule.providesConnectivityManager(context)
+        val wifi = connectivityModule.providesWifiManager(context)
+        val networkObserver = connectivityModule.providesNetworkObserver(
+            connectivity, telephony, wifi
+        )
+
+        val accountApi = AccountApi(module.provideManagedChannel(context, config))
+        val accountService = AccountService(accountApi, module.provideNetworkOracle())
+
+        val transactionApi = TransactionApi(module.provideManagedChannel(context, config))
+        val mapper = TransactionMetadataMapper()
+        val transactionService = TransactionService(transactionApi, module.provideNetworkOracle(), mapper)
+        val exchange = ExchangeFactory.createOpenCodeExchange(context, config)
+
+        return module.providesBalanceRepository(
+            exchange = exchange,
+            networkObserver = networkObserver,
+            accountService = accountService,
+            transactionService = transactionService,
+        )
+    }
+
     fun createMessagingRepository(context: Context, config: ProtocolConfig): MessagingRepository {
         val appContext = context.applicationContext ?: throw IllegalStateException(
             "applicationContext was not provided",

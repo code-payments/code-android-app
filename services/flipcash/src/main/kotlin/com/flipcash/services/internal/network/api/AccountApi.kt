@@ -3,17 +3,17 @@ package com.flipcash.services.internal.network.api
 import com.codeinc.flipcash.gen.account.v1.AccountGrpc
 import com.codeinc.flipcash.gen.account.v1.AccountService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
+import com.flipcash.services.internal.network.extensions.asPublicKey
+import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.sign
-import com.flipcash.services.internal.network.extensions.asUserId
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
 import com.google.protobuf.Timestamp
 import io.grpc.ManagedChannel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class AccountApi @Inject constructor(
@@ -21,7 +21,8 @@ class AccountApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
 
-    private val api = AccountGrpc.newStub(managedChannel).withWaitForReady()
+    private val api
+        get() = AccountGrpc.newStub(managedChannel).withWaitForReady()
 
     /**
      * Registers a new user, bound to the provided PublicKey.
@@ -29,12 +30,12 @@ class AccountApi @Inject constructor(
      */
     fun register(owner: KeyPair): Flow<AccountService.RegisterResponse> {
         val request = AccountService.RegisterRequest.newBuilder()
+            .setPublicKey(owner.asPublicKey())
             .apply { setSignature(sign(owner)) }
             .build()
 
         return api::register
             .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
     }
 
     /**
@@ -49,7 +50,6 @@ class AccountApi @Inject constructor(
 
         return api::login
             .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
     }
 
     /**
@@ -66,6 +66,5 @@ class AccountApi @Inject constructor(
 
         return api::getUserFlags
             .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
     }
 }

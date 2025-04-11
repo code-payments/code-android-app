@@ -1,6 +1,6 @@
 package com.getcode.opencode.exchange
 
-import com.getcode.opencode.model.core.Currency
+import com.getcode.opencode.model.financial.Currency
 
 interface CurrencyProvider {
     suspend fun preferredCurrency(): Currency?

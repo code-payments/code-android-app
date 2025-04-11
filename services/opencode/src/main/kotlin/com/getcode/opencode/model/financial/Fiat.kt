@@ -1,4 +1,4 @@
-package com.getcode.opencode.model.core
+package com.getcode.opencode.model.financial
 
 import android.icu.util.Currency
 import java.text.DecimalFormat
@@ -6,7 +6,7 @@ import java.util.Locale
 
 data class Fiat(
     val quarks: ULong,
-    val currencyCode: CurrencyCode
+    val currencyCode: CurrencyCode = CurrencyCode.USD
 ) : Comparable<Fiat> {
 
     val decimalValue: Double
@@ -15,21 +15,21 @@ data class Fiat(
     val doubleValue: Double
         get() = decimalValue
 
-    constructor(fiat: Double, currencyCode: CurrencyCode) : this(
+    constructor(fiat: Double, currencyCode: CurrencyCode = CurrencyCode.USD) : this(
         quarks = (fiat * MULTIPLIER).toULong(),
         currencyCode = currencyCode
     ) {
         require(fiat >= 0) { "Fiat value must be non-negative" }
     }
 
-    constructor(fiat: Int, currencyCode: CurrencyCode) : this(
+    constructor(fiat: Int, currencyCode: CurrencyCode = CurrencyCode.USD) : this(
         quarks = (fiat * MULTIPLIER).toULong(),
         currencyCode = currencyCode
     ) {
         require(fiat >= 0) { "Fiat value must be non-negative" }
     }
 
-    constructor(stringAmount: String, currencyCode: CurrencyCode) : this(
+    constructor(stringAmount: String, currencyCode: CurrencyCode = CurrencyCode.USD) : this(
         fiat = parseStringToDouble(stringAmount),
         currencyCode = currencyCode
     )
@@ -68,6 +68,8 @@ data class Fiat(
 
     companion object {
         const val MULTIPLIER: Long = 1_000_000
+
+        val Zero = Fiat(0, CurrencyCode.USD)
 
         private fun parseStringToDouble(stringAmount: String): Double {
             val formatter = DecimalFormat.getNumberInstance(Locale.getDefault()).apply {

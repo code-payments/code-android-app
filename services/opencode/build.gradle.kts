@@ -63,7 +63,7 @@ dependencies {
     api(project(":libs:crypto:kin"))
     api(project(":libs:logging"))
     api(project(":libs:locale:bindings"))
-    api(project(":libs:network:connectivity:public"))
+    api(project(":libs:network:connectivity:bindings"))
     implementation(project(":ui:resources"))
 
     api(project(":libs:analytics"))

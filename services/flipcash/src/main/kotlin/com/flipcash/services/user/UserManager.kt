@@ -1,7 +1,9 @@
 package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
+import com.flipcash.services.internal.model.account.UserFlags
 import com.getcode.crypt.DerivedKey
+import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.internal.model.account.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
@@ -49,13 +51,13 @@ class UserManager @Inject constructor(
         val entropy: String? = null,
         val cluster: AccountCluster? = null,
         val userId: ID? = null,
+        val flags: UserFlags? = null,
         val isTimelockUnlocked: Boolean = false,
     )
 
     fun establish(entropy: String) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
-
         _state.update {
             it.copy(
                 entropy = entropy,
@@ -73,6 +75,16 @@ class UserManager @Inject constructor(
 
     fun set(authState: AuthState) {
         _state.update { it.copy(authState = authState) }
+    }
+
+    fun set(userFlags: UserFlags?) {
+        _state.update {
+            it.copy(
+                flags = userFlags,
+                authState = if (userFlags?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered
+            )
+        }
+        associate()
     }
 
     fun didDetectUnlockedAccount() {
@@ -103,8 +115,10 @@ class UserManager @Inject constructor(
             it.copy(
                 authState = AuthState.LoggedOut,
                 entropy = null,
+                flags = null,
                 cluster = null,
                 userId = emptyList(),
+                isTimelockUnlocked = false,
             )
         }
     }

@@ -1,7 +1,7 @@
 package com.getcode.opencode.solana.keys
 
 import com.getcode.crypt.Sha256Hash
-import com.getcode.opencode.model.core.Fiat
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58

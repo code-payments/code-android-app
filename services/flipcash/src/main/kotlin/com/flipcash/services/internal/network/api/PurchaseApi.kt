@@ -17,7 +17,8 @@ class PurchaseApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
-    private val api = IapGrpc.newStub(managedChannel).withWaitForReady()
+    private val api
+        get() = IapGrpc.newStub(managedChannel).withWaitForReady()
 
     // OnPurchaseCompleted is called when an IAP has been completed
     fun onPurchaseCompleted(

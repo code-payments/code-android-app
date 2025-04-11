@@ -1,4 +1,4 @@
-package com.getcode.opencode.model.core
+package com.getcode.opencode.model.financial
 
 enum class RegionCode {
     AD,

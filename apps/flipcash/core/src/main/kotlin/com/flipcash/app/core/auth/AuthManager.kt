@@ -15,7 +15,9 @@ import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
@@ -44,7 +46,8 @@ class AuthManager @Inject constructor(
     private val accountController: AccountController,
     private val pushController: PushController,
     private val transactionController: TransactionController,
-//    private val balanceController: BalanceController,
+    private val mnemonicManager: MnemonicManager,
+    private val balanceController: BalanceController,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -73,14 +76,9 @@ class AuthManager @Inject constructor(
     }
 
     private fun setupAsNew(): String {
-        val entropyB64 = userManager.entropy
-        return if (entropyB64 == null) {
-            val seedB64 = Ed25519.createSeed16().encodeBase64()
-            userManager.establish(seedB64)
-            return seedB64
-        } else {
-            entropyB64
-        }
+        val seedB64 = Ed25519.createSeed16().encodeBase64()
+        userManager.establish(seedB64)
+        return seedB64
     }
 
     suspend fun createAccount(): Result<ID> {
@@ -102,7 +100,8 @@ class AuthManager @Inject constructor(
 
                 accountController.getUserFlags()
             }.onFailure {
-                clearToken()
+                userManager.clear()
+//                clearToken()
             }
     }
 
@@ -120,26 +119,23 @@ class AuthManager @Inject constructor(
 
         FlipcashCore.initialize(context, entropyB64)
 
-        val originalEntropy = userManager.entropy
         userManager.establish(entropy = entropyB64)
         userManager.set(AuthState.LoggedInAwaitingUser)
 
         if (!isSoftLogin) {
+            softLoginDisabled = true
             loginAnalytics()
         }
 
-        if (!isSoftLogin) softLoginDisabled = true
-
-        val lookup = AccountUtils.getUserId(context, accountType)
-
         val ret = if (isSoftLogin) {
+            val lookup = AccountUtils.getUserId(context, accountType)
+            taggedTrace("Login userId lookup => $lookup")
             when (lookup) {
                 is UserIdResult.Registered -> Result.success(Base58.decode(lookup.userId).toList())
                 is UserIdResult.Unregistered -> Result.success(Base58.decode(lookup.userId).toList())
                 null -> Result.failure(Throwable("No user Id found"))
             }
         } else {
-            Result.failure<ID>(NotImplementedError())
             accountController.login()
         }
 
@@ -155,22 +151,21 @@ class AuthManager @Inject constructor(
                         isUnregistered = false,
                     )
                 }
-
+                userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
                 userManager.set(userId = userId)
+                accountController.getUserFlags()
+                    .onSuccess { flags ->
+                        userManager.set(flags)
+                    }.onFailure {
+                        taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
+                        userManager.set(authState =  AuthState.Unregistered)
+                    }
 
                 savePrefs()
             }
             .onFailure {
-                if (rollbackOnError) {
-                    login(
-                        originalEntropy.orEmpty(),
-                        isSoftLogin,
-                        rollbackOnError = false
-                    )
-                } else {
-                    logout(context)
-                    clearToken()
-                }
+                logout(context)
+                clearToken()
             }
     }
 
@@ -201,6 +196,7 @@ class AuthManager @Inject constructor(
         notificationManager.cancelAll()
         FlipcashCore.reset(context)
         userManager.clear()
+        balanceController.reset()
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

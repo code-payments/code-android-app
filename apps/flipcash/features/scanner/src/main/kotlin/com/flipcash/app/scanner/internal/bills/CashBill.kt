@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.isSpecified
 import com.flipcash.app.core.money.formatted
 import com.flipcash.features.scanner.R
 import com.getcode.opencode.compose.LocalExchange
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme

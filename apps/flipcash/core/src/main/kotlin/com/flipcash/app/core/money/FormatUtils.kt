@@ -1,7 +1,7 @@
 package com.flipcash.app.core.money
 
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.LocalFiat
 import java.text.NumberFormat
 import java.util.*
 import kotlin.math.floor

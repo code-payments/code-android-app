@@ -18,7 +18,6 @@ import com.flipcash.services.repository.PushRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
-import com.getcode.opencode.annotations.OpenCodeProtocol
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import dagger.Module
 import dagger.Provides

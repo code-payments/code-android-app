@@ -7,12 +7,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.bill.Bill
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.Fiat
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
-import com.getcode.opencode.model.core.Rate
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.theme.DesignSystem
 
 @Composable

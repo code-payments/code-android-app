@@ -12,7 +12,7 @@ import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.managedApiRequest
-import com.getcode.opencode.model.core.Limits
+import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
@@ -30,7 +30,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.base58
 import com.getcode.utils.trace
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope

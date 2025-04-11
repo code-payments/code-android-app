@@ -1,14 +1,16 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.AccountApi
+import com.flipcash.services.internal.network.managedApiRequest
 import com.flipcash.services.models.GetUserFlagsError
 import com.flipcash.services.models.LoginError
 import com.flipcash.services.models.RegisterError
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.network.core.DEFAULT_STREAM_TIMEOUT
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.model.core.ID
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import com.getcode.utils.trace
+import kotlinx.coroutines.flow.catch
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.account.v1.AccountService as RpcAccountService
 
@@ -17,102 +19,87 @@ internal class AccountService @Inject constructor(
     private val networkOracle: NetworkOracle,
 ) {
     suspend fun register(owner: KeyPair): Result<ID> {
-        return try {
-            networkOracle.managedRequest(api.register(owner))
-                .map { response ->
-                    when (response.result) {
-                        RpcAccountService.RegisterResponse.Result.OK -> {
-                            Result.success(response.userId.value.toByteArray().toList())
-                        }
-
-                        RpcAccountService.RegisterResponse.Result.INVALID_SIGNATURE -> {
-                            val error = RegisterError.InvalidSignature()
-                            Result.failure(error)
-                        }
-
-                        RpcAccountService.RegisterResponse.Result.DENIED -> {
-                            val error = RegisterError.Denied()
-                            Result.failure(error)
-                        }
-
-                        RpcAccountService.RegisterResponse.Result.UNRECOGNIZED -> {
-                            val error = RegisterError.Unrecognized()
-                            Result.failure(error)
-                        }
-
-                        else -> {
-                            val error = RegisterError.Other()
-                            Result.failure(error)
-                        }
+        return networkOracle.managedApiRequest(
+            call = {
+                api.register(owner)
+                    .catch {
+                        trace("gRPC error: $it")
                     }
-                }.first()
-        } catch (e: Exception) {
-            val error = RegisterError.Other(cause = e)
-            Result.failure(error)
-        }
+            },
+            timeout = DEFAULT_STREAM_TIMEOUT * 3,
+            handleResponse = { response ->
+                when (response.result) {
+                    RpcAccountService.RegisterResponse.Result.OK -> {
+                        Result.success(response.userId.value.toByteArray().toList())
+                    }
+
+                    RpcAccountService.RegisterResponse.Result.INVALID_SIGNATURE -> {
+                        Result.failure(RegisterError.InvalidSignature())
+                    }
+
+                    RpcAccountService.RegisterResponse.Result.DENIED -> {
+                        Result.failure(RegisterError.Denied())
+                    }
+
+                    RpcAccountService.RegisterResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(RegisterError.Unrecognized())
+                    }
+
+                    else -> Result.failure(RegisterError.Other())
+                }
+            },
+            onOtherError = { Result.failure(RegisterError.Other(cause = it)) }
+        )
     }
 
     suspend fun login(owner: KeyPair): Result<ID> {
-        return try {
-            networkOracle.managedRequest(api.login(owner))
-                .map { response ->
-                    when (response.result) {
-                        RpcAccountService.LoginResponse.Result.OK -> {
-                            Result.success(response.userId.value.toByteArray().toList())
-                        }
-
-                        RpcAccountService.LoginResponse.Result.UNRECOGNIZED -> {
-                            val error = LoginError.Unrecognized()
-                            Result.failure(error)
-                        }
-
-                        RpcAccountService.LoginResponse.Result.INVALID_TIMESTAMP -> {
-                            val error = LoginError.InvalidTimestamp()
-                            Result.failure(error)
-                        }
-
-                        RpcAccountService.LoginResponse.Result.DENIED -> {
-                            val error = LoginError.Denied()
-                            Result.failure(error)
-                        }
-
-                        else -> {
-                            val error = LoginError.Other()
-                            Result.failure(error)
-                        }
+        return networkOracle.managedApiRequest(
+            call = { api.login(owner) },
+            timeout = DEFAULT_STREAM_TIMEOUT * 3,
+            handleResponse = { response ->
+                when (response.result) {
+                    RpcAccountService.LoginResponse.Result.OK -> {
+                        Result.success(response.userId.value.toByteArray().toList())
                     }
-                }.first()
-        } catch (e: Exception) {
-            val error = RegisterError.Other(cause = e)
-            Result.failure(error)
-        }
+
+                    RpcAccountService.LoginResponse.Result.INVALID_TIMESTAMP -> {
+                        Result.failure(LoginError.InvalidTimestamp())
+                    }
+
+                    RpcAccountService.LoginResponse.Result.DENIED -> {
+                        Result.failure(LoginError.Denied())
+                    }
+
+                    RpcAccountService.LoginResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(LoginError.Unrecognized())
+                    }
+
+                    else -> Result.failure(LoginError.Other())
+                }
+            },
+            onOtherError = { Result.failure(LoginError.Other(cause = it)) }
+        )
     }
 
     suspend fun getUserFlags(owner: KeyPair, userId: ID): Result<RpcAccountService.UserFlags> {
-        return try {
-            networkOracle.managedRequest(api.getUserFlags(owner = owner, userId = userId))
-                .map { response ->
-                    when (response.result) {
-                        RpcAccountService.GetUserFlagsResponse.Result.OK -> Result.success(response.userFlags)
-                        RpcAccountService.GetUserFlagsResponse.Result.DENIED -> {
-                            val error = GetUserFlagsError.Denied()
-                            Result.failure(error)
-                        }
+        return networkOracle.managedApiRequest(
+            call = { api.getUserFlags(userId, owner) },
+            handleResponse = { response ->
+                when (response.result) {
+                    RpcAccountService.GetUserFlagsResponse.Result.OK -> Result.success(response.userFlags)
 
-                        RpcAccountService.GetUserFlagsResponse.Result.UNRECOGNIZED -> {
-                            val error = GetUserFlagsError.Unrecognized()
-                            Result.failure(error)
-                        }
-
-                        else -> {
-                            val error = GetUserFlagsError.Other()
-                            Result.failure(error)
-                        }
+                    RpcAccountService.GetUserFlagsResponse.Result.DENIED -> {
+                        Result.failure(GetUserFlagsError.Denied())
                     }
-                }.first()
-        } catch (e: Exception) {
-            val error = GetUserFlagsError.Other(cause = e)
-            Result.failure(error)
-        }
+
+                    RpcAccountService.GetUserFlagsResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(GetUserFlagsError.Unrecognized())
+                    }
+
+                    else -> Result.failure(GetUserFlagsError.Other())
+                }
+            },
+            onOtherError = { Result.failure(GetUserFlagsError.Other(cause = it)) }
+        )
     }
 }

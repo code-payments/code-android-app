@@ -1,8 +1,10 @@
 package com.flipcash.app.login.internal
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -99,31 +101,33 @@ private fun SeedInputContent(
                     colors = inputColors(),
                 )
 
-                Text(
-                    text = state.wordCount.toString(),
-                    color = CodeTheme.colors.textSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(
-                            bottom = CodeTheme.dimens.grid.x2,
-                            start = CodeTheme.dimens.grid.x2
-                        )
-                )
-            }
-
-            if (state.isValid) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_checked_blue),
-                    modifier = Modifier
-                        .padding(
+                            top = CodeTheme.dimens.grid.x2,
                             bottom = CodeTheme.dimens.grid.x2,
                             start = CodeTheme.dimens.grid.x1
+                        ),
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = state.wordCount.toString(),
+                        color = CodeTheme.colors.textSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+
+                    if (state.isValid) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_checked_blue),
+                            modifier = Modifier
+                                .height(CodeTheme.dimens.grid.x3),
+                            contentDescription = ""
                         )
-                        .height(CodeTheme.dimens.grid.x3),
-                    contentDescription = ""
-                )
+                    }
+                }
             }
 
             CodeButton(
@@ -132,8 +136,7 @@ private fun SeedInputContent(
                     .padding(
                         top = CodeTheme.dimens.grid.x3,
                         bottom = CodeTheme.dimens.grid.x4
-                    )
-                    .imePadding(),
+                    ),
                 onClick = {
                     focusManager.clearFocus()
                     onLogin()

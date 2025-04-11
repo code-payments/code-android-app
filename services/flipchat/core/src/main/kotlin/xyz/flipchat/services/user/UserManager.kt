@@ -189,7 +189,8 @@ class UserManager @Inject constructor(
                 organizer = null,
                 flags = null,
                 openRoom = null,
-                linkedSocialProfiles = emptyList()
+                linkedSocialProfiles = emptyList(),
+                isTimelockUnlocked = false,
             )
         }
     }

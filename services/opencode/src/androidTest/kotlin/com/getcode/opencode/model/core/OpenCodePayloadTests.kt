@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.core
 
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.utils.nonce
 import org.junit.Assert.assertEquals
 import org.junit.Test

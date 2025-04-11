@@ -27,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.opencode.compose.LocalExchange
-import com.getcode.opencode.model.core.CurrencyCode
-import com.getcode.opencode.model.core.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DashEffect
 import com.getcode.theme.monospace
