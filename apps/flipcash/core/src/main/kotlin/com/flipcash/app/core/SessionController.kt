@@ -20,6 +20,7 @@ sealed interface PresentationStyle {
 interface SessionController {
     val state: StateFlow<SessionState>
     val billState: StateFlow<BillState>
+    fun onAppInForeground()
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(

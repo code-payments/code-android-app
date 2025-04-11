@@ -17,6 +17,7 @@ import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.flipcash.app.core.LocalSessionController
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.router.DeeplinkType
 import com.flipcash.app.theme.FlipcashTheme
@@ -61,6 +62,7 @@ fun App(
     }
 
     val userManager = LocalUserManager.currentOrThrow
+    val session = LocalSessionController.currentOrThrow
     val userState by userManager.state.collectAsState()
 
     FlipcashTheme {
@@ -138,12 +140,11 @@ fun App(
                                     OnLifecycleEvent { _, event ->
                                         when (event) {
                                             Lifecycle.Event.ON_RESUME -> {
-//                                                homeViewModel.onAppOpen()
+                                                session.onAppInForeground()
                                             }
 
                                             Lifecycle.Event.ON_STOP,
                                             Lifecycle.Event.ON_DESTROY -> {
-//                                                homeViewModel.closeStream()
                                             }
 
                                             else -> Unit

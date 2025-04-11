@@ -1,5 +1,6 @@
 package com.flipcash.app.core.internal.session
 
+import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.PresentationStyle
 import com.flipcash.app.core.SessionController
 import com.flipcash.app.core.SessionState
@@ -9,7 +10,11 @@ import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.DeepLinkRequest
 import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.errors.showNetworkError
+import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -25,8 +30,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,6 +43,8 @@ import javax.inject.Inject
 class RealSessionController @Inject constructor(
     private val billController: BillController,
     private val userManager: UserManager,
+    private val accountController: AccountController,
+    private val balanceController: BalanceController,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator
@@ -54,6 +64,35 @@ class RealSessionController @Inject constructor(
             .map { it.isTimelockUnlocked }
             .onEach { _state.update { it.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) } }
             .launchIn(scope)
+
+        userManager.state
+            .mapNotNull { it.authState }
+            .filterIsInstance<AuthState.LoggedIn>()
+            .distinctUntilChanged()
+            .onEach { onAppInForeground() }
+            .launchIn(scope)
+    }
+
+    override fun onAppInForeground() {
+        updateUserFlags()
+        requestAirdrop()
+    }
+
+    private fun updateUserFlags() {
+        scope.launch {
+            accountController.getUserFlags()
+        }
+    }
+
+    private fun requestAirdrop() {
+        scope.launch {
+            userManager.accountCluster?.let {
+                balanceController.airdrop(
+                    type = AirdropType.GetFirstCrypto,
+                    destination = it.authority.keyPair
+                )
+            }
+        }
     }
 
     override fun onCameraScanning(scanning: Boolean) {
