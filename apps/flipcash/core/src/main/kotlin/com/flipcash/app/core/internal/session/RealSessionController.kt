@@ -1,7 +1,5 @@
 package com.flipcash.app.core.internal.session
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.PresentationStyle
 import com.flipcash.app.core.SessionController
 import com.flipcash.app.core.SessionState
@@ -15,10 +13,11 @@ import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.solana.keys.PublicKey
+import com.getcode.opencode.repositories.EventRepository
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -51,6 +50,7 @@ class RealSessionController @Inject constructor(
     private val userManager: UserManager,
     private val accountController: AccountController,
     private val balanceController: BalanceController,
+    private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator
@@ -99,7 +99,7 @@ class RealSessionController @Inject constructor(
     private fun requestAirdrop() {
         scope.launch {
             userManager.accountCluster?.let {
-                balanceController.airdrop(
+                transactionController.airdrop(
                     type = AirdropType.GetFirstCrypto,
                     destination = it.authority.keyPair
                 )

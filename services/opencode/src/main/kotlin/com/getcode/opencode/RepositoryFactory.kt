@@ -11,10 +11,9 @@ import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
-import com.getcode.opencode.repositories.BalanceRepository
+import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
 import com.getcode.opencode.repositories.TransactionRepository
-import com.getcode.utils.network.ConnectivityModule
 import dagger.hilt.android.EntryPointAccessors
 
 object RepositoryFactory {
@@ -33,7 +32,7 @@ object RepositoryFactory {
         return module.providesAccountRepository(service)
     }
 
-    fun createBalanceRepository(context: Context, config: ProtocolConfig): BalanceRepository {
+    fun createEventRepository(context: Context, config: ProtocolConfig): EventRepository {
         val appContext = context.applicationContext ?: throw IllegalStateException(
             "applicationContext was not provided",
         )
@@ -43,31 +42,16 @@ object RepositoryFactory {
             OpenCodeModule::class.java,
         )
 
-        val connectivityModule = EntryPointAccessors.fromApplication(
-                appContext,
-            ConnectivityModule::class.java,
-        )
 
-        val telephony = connectivityModule.providesTelephonyManager(context)
-        val connectivity = connectivityModule.providesConnectivityManager(context)
-        val wifi = connectivityModule.providesWifiManager(context)
-        val networkObserver = connectivityModule.providesNetworkObserver(
-            connectivity, telephony, wifi
-        )
+        val bus = module.providesEventBus()
 
-        val accountApi = AccountApi(module.provideManagedChannel(context, config))
-        val accountService = AccountService(accountApi, module.provideNetworkOracle())
+        val transactionController = ControllerFactory.createTransactionController(context, config)
+        val balanceController = ControllerFactory.createBalanceController(context, config)
 
-        val transactionApi = TransactionApi(module.provideManagedChannel(context, config))
-        val mapper = TransactionMetadataMapper()
-        val transactionService = TransactionService(transactionApi, module.provideNetworkOracle(), mapper)
-        val exchange = ExchangeFactory.createOpenCodeExchange(context, config)
-
-        return module.providesBalanceRepository(
-            exchange = exchange,
-            networkObserver = networkObserver,
-            accountService = accountService,
-            transactionService = transactionService,
+        return module.providesEventRepository(
+            eventBus = bus,
+            balanceController = balanceController,
+            transactionController = transactionController
         )
     }
 

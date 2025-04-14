@@ -9,7 +9,9 @@ import com.getcode.opencode.repositories.MessagingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class MessagingController @Inject constructor(
     private val repository: MessagingRepository
 ) {

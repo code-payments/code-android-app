@@ -118,4 +118,6 @@ dependencies {
 
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
+
+    implementation(Libs.eventBus)
 }

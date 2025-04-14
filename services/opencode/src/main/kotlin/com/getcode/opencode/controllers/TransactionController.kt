@@ -1,18 +1,21 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.domain.events.Events
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.utils.flowInterval
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,17 +29,26 @@ import kotlinx.coroutines.flow.takeWhile
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class TransactionController @Inject constructor(
-    private val repository: TransactionRepository
+    private val repository: TransactionRepository,
+    private val eventBus: ChannelEventBus,
 ) {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    suspend fun createAccounts(owner: AccountCluster): Result<ID> {
-        val intent = IntentCreateAccount.create(owner)
-
-        return submitIntent(scope, intent, owner.authority.keyPair)
-            .map { it.id.bytes }
+    suspend fun airdrop(
+        destination: KeyPair,
+        type: AirdropType
+    ): Result<Unit> {
+        return repository.airdrop(
+            type = type,
+            destination = destination
+        ).onSuccess {
+            trace("Airdrop was successful.")
+            eventBus.send(Events.FetchBalance())
+        }.map { Unit }
     }
 
     suspend fun transfer(
@@ -54,7 +66,7 @@ class TransactionController @Inject constructor(
         return submitIntent(scope, intent, owner.authority.keyPair)
     }
 
-    private suspend fun submitIntent(
+    internal suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,

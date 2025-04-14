@@ -16,9 +16,8 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.controllers.BalanceController
-import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
@@ -45,9 +44,8 @@ class AuthManager @Inject constructor(
     private val accountType: String,
     private val accountController: AccountController,
     private val pushController: PushController,
-    private val transactionController: TransactionController,
-    private val mnemonicManager: MnemonicManager,
     private val balanceController: BalanceController,
+    private val eventRepository: EventRepository,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -97,6 +95,9 @@ class AuthManager @Inject constructor(
                 )
                 userManager.set(userId)
                 userManager.set(AuthState.Unregistered)
+
+                // TODO: this will move to post IAP
+                userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
 
                 accountController.getUserFlags()
             }.onFailure {
@@ -151,8 +152,11 @@ class AuthManager @Inject constructor(
                         isUnregistered = false,
                     )
                 }
+                // TODO: this will move to post IAP check
                 userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
+
                 userManager.set(userId = userId)
+
                 accountController.getUserFlags()
                     .onSuccess { flags ->
                         userManager.set(flags)

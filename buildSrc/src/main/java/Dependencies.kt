@@ -117,6 +117,8 @@ object Versions {
     const val sodium_bindings = "0.9.0"
 
     const val desugaring = "2.1.2"
+
+    const val eventBus = "0.1.0"
 }
 
 object Classpath {
@@ -334,4 +336,6 @@ object Libs {
     const val haze = "dev.chrisbanes.haze:haze:0.7.3"
     const val rinku = "dev.theolm:rinku:1.1.0"
     const val rinku_compose = "dev.theolm:rinku-compose-ext:1.1.0"
+
+    const val eventBus = "io.github.hoc081098:channel-event-bus:${Versions.eventBus}"
 }

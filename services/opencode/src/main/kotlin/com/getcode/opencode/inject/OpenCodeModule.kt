@@ -3,11 +3,13 @@ package com.getcode.opencode.inject
 import android.content.Context
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
+import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository
-import com.getcode.opencode.internal.domain.repositories.InternalBalanceRepository
+import com.getcode.opencode.internal.domain.repositories.InternalEventRepository
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
@@ -18,13 +20,14 @@ import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
-import com.getcode.opencode.repositories.BalanceRepository
+import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.hoc081098.channeleventbus.ChannelEventBus
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -95,30 +98,32 @@ object OpenCodeModule {
     }
 
     @Provides
+    @Singleton
     internal fun providesAccountRepository(
         service: AccountService
     ): AccountRepository = InternalAccountRepository(service)
 
     @Provides
-    internal fun providesBalanceRepository(
-        exchange: Exchange,
-        networkObserver: NetworkConnectivityListener,
-        accountService: AccountService,
-        transactionService: TransactionService,
-    ): BalanceRepository = InternalBalanceRepository(
-        exchange = exchange,
-        networkObserver = networkObserver,
-        accountService = accountService,
-        transactionService = transactionService
-    )
-
-    @Provides
+    @Singleton
     internal fun providesMessagingRepository(
         service: MessagingService
     ): MessagingRepository = InternalMessagingRepository(service)
 
     @Provides
+    @Singleton
     internal fun providesTransactionRepository(
         service: TransactionService
     ): TransactionRepository = InternalTransactionRepository(service)
+
+    @Provides
+    @Singleton
+    internal fun providesEventRepository(
+        eventBus: ChannelEventBus,
+        balanceController: BalanceController,
+        transactionController: TransactionController,
+    ): EventRepository = InternalEventRepository(eventBus, balanceController, transactionController)
+
+    @Provides
+    @Singleton
+    internal fun providesEventBus(): ChannelEventBus = ChannelEventBus()
 }
