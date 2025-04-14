@@ -10,7 +10,9 @@ sealed class NavScreenProvider : ScreenProvider {
     sealed class Login {
         data class Home(val seed: String? = null) : NavScreenProvider()
         data object SeedInput : NavScreenProvider()
+        data class AccessKey(val showInModal: Boolean = false) : NavScreenProvider()
         data class NotificationPermission(val fromOnboarding: Boolean = false) : NavScreenProvider()
+        data class CameraPermission(val fromOnboarding: Boolean = false) : NavScreenProvider()
     }
 
     sealed interface CreateAccount {

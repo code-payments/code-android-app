@@ -115,7 +115,7 @@ class SeedInputViewModel @Inject constructor(
                 .onSuccess {
                     setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
                     delay(if (deeplink) 0.seconds else 1.seconds)
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.CameraPermission()))
                 }
         }
     }

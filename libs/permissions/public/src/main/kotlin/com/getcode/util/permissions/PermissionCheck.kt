@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.getcode.util.getActivity
@@ -17,35 +18,60 @@ enum class PermissionResult {
     Granted, Denied, ShouldShowRationale
 }
 
-typealias PermissionsLauncher = ManagedActivityResultLauncher<String, Boolean>
+interface PermissionsLauncher {
+    fun launch(permission: String)
+}
 
 @Composable
 fun getPermissionLauncher(
     permission: String,
     onPermissionResult: (result: PermissionResult) -> Unit
 ): PermissionsLauncher {
-    val context = LocalContext.current
-    val activity = context as Activity
+    val launcher = if (LocalInspectionMode.current) {
+        MockPermissionsLauncher()
+    } else {
+        val context = LocalContext.current
+        val activity = context as Activity
 
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        // This block will be triggered after the user chooses to grant or deny the permission
-        // and we can tell if the user permanently declines or if we need to show rational
-        val permissionPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
-            activity, permission
-        ) && !isGranted
+        DefaultPermissionsLauncher { isGranted: Boolean ->
+            // This block will be triggered after the user chooses to grant or deny the permission
+            // and we can tell if the user permanently declines or if we need to show rational
+            val permissionPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
+                activity, permission
+            ) && !isGranted
 
-        when {
-            permissionPermanentlyDenied -> {
-                onPermissionResult(PermissionResult.ShouldShowRationale)
+            when {
+                permissionPermanentlyDenied -> {
+                    onPermissionResult(PermissionResult.ShouldShowRationale)
+                }
+                !isGranted -> onPermissionResult(PermissionResult.Denied)
+                else -> onPermissionResult(PermissionResult.Granted)
             }
-            !isGranted -> onPermissionResult(PermissionResult.Denied)
-            else -> onPermissionResult(PermissionResult.Granted)
         }
     }
 
     return launcher
+}
+
+private class MockPermissionsLauncher : PermissionsLauncher {
+    override fun launch(permission: String) {
+    }
+}
+
+@Composable
+private fun DefaultPermissionsLauncher(
+    onResult: (Boolean) -> Unit
+): PermissionsLauncher {
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        onResult(isGranted)
+    }
+    return object : PermissionsLauncher {
+        override fun launch(permission: String) {
+            launcher.launch(permission)
+        }
+    }
 }
 
 @Composable

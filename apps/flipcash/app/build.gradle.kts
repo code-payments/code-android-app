@@ -116,10 +116,10 @@ dependencies {
     implementation(project(":services:flipcash-compose"))
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:features:accesskey"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:router"))
     implementation(project(":apps:flipcash:features:scanner"))
-    implementation(project(":apps:flipcash:features:give"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))

@@ -8,6 +8,7 @@ include(
 
         // flipcash features
         ":apps:flipcash:core",
+        ":apps:flipcash:features:accesskey",
         ":apps:flipcash:features:login",
         ":apps:flipcash:features:router",
         ":apps:flipcash:features:scanner",
