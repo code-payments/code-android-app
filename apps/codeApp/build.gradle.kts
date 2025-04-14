@@ -159,7 +159,7 @@ dependencies {
     testImplementation(Libs.hilt_android_test)
     kaptTest(Libs.hilt_android_compiler)
 
-    androidTestImplementation("io.mockk:mockk:1.13.16")
+    androidTestImplementation("io.mockk:mockk:1.14.0")
 
     //Jetpack compose
     implementation(platform(Libs.compose_bom))
