@@ -25,5 +25,5 @@ interface Exchange {
 
     fun rateFor(currencyCode: CurrencyCode): Rate?
 
-    fun rateForUsd(): Rate?
+    fun rateForUsd(): Rate
 }

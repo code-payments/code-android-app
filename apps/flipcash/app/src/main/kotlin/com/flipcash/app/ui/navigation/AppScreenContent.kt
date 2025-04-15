@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.give.GiveScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.permissions.CameraPermissionScreen
 import com.flipcash.app.login.permissions.NotificationPermissionScreen
@@ -45,7 +46,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Give> {
-            Dummy()
+            GiveScreen()
         }
 
         register<NavScreenProvider.HomeScreen.Send> {

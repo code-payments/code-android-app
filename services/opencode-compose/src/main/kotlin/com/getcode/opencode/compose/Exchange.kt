@@ -61,7 +61,7 @@ private class ExchangeNull : Exchange {
         return null
     }
 
-    override fun rateForUsd(): Rate? {
-        return null
+    override fun rateForUsd(): Rate {
+        return Rate.oneToOne
     }
 }

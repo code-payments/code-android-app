@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
+import kotlin.time.Duration.Companion.seconds
 
 internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
 
@@ -95,7 +96,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
                     Timber.d("sessionState=$state")
                     when (state) {
                         AuthState.LoggedInAwaitingUser -> {
-                            delay(500)
+                            delay(1.5.seconds)
                             showLoading = true
                         }
                         AuthState.Unregistered,

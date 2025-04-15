@@ -3,11 +3,14 @@ package com.flipcash.services.user
 import com.bugsnag.android.Bugsnag
 import com.flipcash.services.internal.model.account.UserFlags
 import com.getcode.crypt.DerivedKey
+import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.uuid
 import com.getcode.services.opencode.BuildConfig
+import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +31,8 @@ sealed interface AuthState {
 class UserManager @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val mixpanelAPI: MixpanelAPI,
+    private val eventBus: ChannelEventBus,
+    balanceController: BalanceController,
 ) {
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State>
@@ -54,15 +59,23 @@ class UserManager @Inject constructor(
         val isTimelockUnlocked: Boolean = false,
     )
 
+    init {
+        balanceController.onTimelockUnlocked = {
+            didDetectUnlockedAccount()
+        }
+    }
+
     fun establish(entropy: String) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
+        val cluster = AccountCluster.newInstance(authority)
         _state.update {
             it.copy(
                 entropy = entropy,
-                cluster = AccountCluster.newInstance(authority),
+                cluster = cluster,
             )
         }
+        eventBus.send(Events.UpdateLimits(cluster, force = true))
     }
 
     fun set(userId: ID) {

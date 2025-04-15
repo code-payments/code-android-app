@@ -2,7 +2,7 @@ package com.getcode.opencode.internal.domain.repositories
 
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.internal.domain.events.Events
+import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.repositories.EventRepository
 import com.hoc081098.channeleventbus.ChannelEvent
@@ -37,6 +37,15 @@ internal class InternalEventRepository @Inject constructor(
                 transactionController.airdrop(
                     type = AirdropType.GetFirstCrypto,
                     destination = it.owner.authority.keyPair
+                )
+            }
+        }
+
+        eventBus.handle(Events.UpdateLimits) {
+            scope.launch {
+                transactionController.updateLimits(
+                    owner = it.owner,
+                    force = it.force
                 )
             }
         }

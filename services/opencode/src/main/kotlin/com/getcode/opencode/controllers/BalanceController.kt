@@ -47,6 +47,8 @@ class BalanceController @Inject constructor(
     private val localizedBalance = MutableStateFlow(LocalFiat.Zero)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
 
+    var onTimelockUnlocked: (() -> Unit) = { }
+
     val balance: StateFlow<LocalFiat>
         get() = localizedBalance.asStateFlow()
 
@@ -81,8 +83,8 @@ class BalanceController @Inject constructor(
                     )
                 }
             }.distinctUntilChanged()
-            .onEach {
-                localizedBalance.update { it }
+            .onEach { newBalance ->
+                localizedBalance.update { newBalance }
             }.launchIn(scope)
     }
 
@@ -114,7 +116,7 @@ class BalanceController @Inject constructor(
 
             .map { accounts ->
                 if (accounts.values.any { it.unusable }) {
-                    // TODO: relay back to UserManager
+                    onTimelockUnlocked()
                 }
                 retrieveBalanceFromAccounts(accounts)
             }

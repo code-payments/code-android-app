@@ -176,7 +176,7 @@ internal class OpenCodeExchange @Inject constructor(
 
     override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
 
-    override fun rateForUsd(): Rate? = rates.rateForUsd()
+    override fun rateForUsd(): Rate = rates.rateForUsd()
 
     private fun updateRates() {
         if (rates.isEmpty) {
@@ -303,7 +303,7 @@ private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, R
         return currencyCode?.let { rates[it] }
     }
 
-    fun rateForUsd(): Rate? {
-        return rates[CurrencyCode.USD]
+    fun rateForUsd(): Rate {
+        return rates[CurrencyCode.USD]?: Rate.oneToOne
     }
 }

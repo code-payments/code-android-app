@@ -1,6 +1,8 @@
 package com.getcode.opencode.model.financial
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import kotlinx.datetime.Instant
+import kotlin.math.sin
 import kotlin.time.Duration.Companion.hours
 
 data class Limits(
@@ -37,6 +39,14 @@ data class Limits(
     }
 
     companion object {
+        val Empty = Limits(
+            sinceDate = Instant.DISTANT_PAST.toEpochMilliseconds(),
+            fetchDate = Instant.DISTANT_PAST.toEpochMilliseconds(),
+            sendLimits = emptyMap(),
+            buyLimits = emptyMap(),
+            maxDeposit = Fiat.Zero
+        )
+
         fun newInstance(
             sinceDate: Long,
             fetchDate: Long,

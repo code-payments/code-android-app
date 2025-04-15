@@ -1,16 +1,15 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.domain.events.Events
-import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
+import com.getcode.opencode.events.Events
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
-import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.repositories.TransactionRepository
+import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
@@ -19,6 +18,9 @@ import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.datetime.Clock
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
@@ -38,6 +41,36 @@ class TransactionController @Inject constructor(
 ) {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private val _limits = MutableStateFlow<Limits?>(Limits.Empty)
+    val limits: StateFlow<Limits?>
+        get() = _limits.asStateFlow()
+
+    val areLimitsStale: Boolean
+        get() = _limits.value == null || _limits.value?.isStale == true
+
+    suspend fun updateLimits(owner: AccountCluster, force: Boolean = false) {
+        if (areLimitsStale || force) {
+            val since = Clock.System.now()
+            trace(
+                tag = "TRX",
+                message = "updating limits from $since",
+                type = TraceType.Process
+            )
+            repository.getLimits(
+                owner = owner.authority.keyPair,
+                consumedSince = since
+            ).onSuccess {
+                _limits.value = it
+            }.onFailure {
+                trace(
+                    tag = "TRX",
+                    message = "Failed to update limits",
+                    error = it
+                )
+            }
+        }
+    }
+
     suspend fun airdrop(
         destination: KeyPair,
         type: AirdropType
@@ -46,7 +79,11 @@ class TransactionController @Inject constructor(
             type = type,
             destination = destination
         ).onSuccess {
-            trace("Airdrop was successful.")
+            trace(
+                tag = "TRX",
+                message = "Airdrop was successful.",
+                type = TraceType.Process
+            )
             eventBus.send(Events.FetchBalance())
         }.map { Unit }
     }

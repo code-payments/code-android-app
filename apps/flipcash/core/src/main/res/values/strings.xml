@@ -11,4 +11,11 @@
     <string name="title_badge_no_connection">No Connection</string>
 
     <string name="title_give">Give</string>
+
+    <string name="error_title_insuffiecientFunds">Insufficient Funds</string>
+    <string name="error_description_insuffiecientFunds">To learn how to get more funds go to the FAQ in Settings.</string>
+    <string name="error_description_giveLimitReached">Flipcash is designed for small, every day transactions. Your daily give limit will increase tomorrow.</string>
+    <string name="subtitle_giveCashHint">Enter up to %1$s</string>
+
+
 </resources>

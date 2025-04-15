@@ -2,11 +2,12 @@ plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_ksp)
-    id(Plugins.kotlin_serialization)
+    id(Plugins.hilt)
+    id(Plugins.kotlin_parcelize)
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.core"
+    namespace = "${Android.flipcashNamespace}.features.give"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -47,33 +48,22 @@ dependencies {
 
     implementation(Libs.timber)
 
-    implementation(Libs.androidx_browser)
-
-    implementation(Libs.kotlinx_serialization_core)
-    implementation(Libs.kotlinx_serialization_json)
-
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
+    implementation(Libs.compose_material)
+    implementation(Libs.compose_materialIconsExtended)
 
-    implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_messaging)
-    implementation(Libs.bugsnag)
-
-    api(project(":services:flipcash-compose"))
-
+    implementation(project(":apps:flipcash:core"))
+    implementation(project(":libs:datetime"))
+    implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
-    api(project(":libs:permissions:public"))
-    implementation(project(":libs:vibrator:public"))
-
+    implementation(project(":libs:permissions:bindings"))
+    implementation(project(":ui:analytics"))
+    implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
+    implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
     implementation(Libs.rinku_compose)
-
-    api(project(":vendor:kik:scanner"))
-
-    api(project(":ui:core"))
-
-    api(project(":vendor:tipkit:tipkit-m2"))
 }
