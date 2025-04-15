@@ -54,7 +54,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
         val userManager = LocalUserManager.currentOrThrow
         var showLoading by remember { mutableStateOf(false) }
         val router = LocalRouter.currentOrThrow
-
+        var showLogo by remember { mutableStateOf(true) }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -101,19 +101,20 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
                         }
                         AuthState.Unregistered,
                         AuthState.LoggedIn -> {
+                            showLogo = false
                             val screens = router.processDestination(deepLink())
 
                             if (screens.isNotEmpty()) {
                                 navigator.replaceAll(screens)
                             } else {
-                                navigator.replace(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
                             }
                         }
                         AuthState.LoggedOut -> {
-                            navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                         }
                         AuthState.Unknown -> {
-                            navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                         }
                     }
                 }.launchIn(this)

@@ -14,11 +14,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.stack.StackEvent
+import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipcash.app.core.LocalSessionController
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.router.DeeplinkType
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.ui.LocalRouter
@@ -88,7 +93,24 @@ fun App(
                                         modifier = Modifier
                                             .padding(innerPaddingModifier)
                                     ) {
-                                        SlideTransition(navigator)
+
+                                        when (navigator.lastEvent) {
+                                            StackEvent.Push,
+                                            StackEvent.Pop -> {
+                                                when (navigator.lastItem) {
+                                                    ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
+                                                    ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission()),
+                                                    is MainRoot -> {
+                                                        CrossfadeTransition(navigator = navigator)
+                                                    }
+
+                                                    else -> SlideTransition(navigator = navigator)
+                                                }
+                                            }
+
+                                            StackEvent.Idle,
+                                            StackEvent.Replace -> CurrentScreen()
+                                        }
                                     }
 
                                     LaunchedEffect(deepLink) {
