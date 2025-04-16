@@ -58,3 +58,12 @@ sealed class DeleteTokenError(
     class Unrecognized : DeleteTokenError()
     data class Other(override val cause: Throwable? = null) : DeleteTokenError(cause = cause)
 }
+
+sealed class GetActivityFeedMessagesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : GetActivityFeedMessagesError()
+    class Unrecognized : GetActivityFeedMessagesError()
+    data class Other(override val cause: Throwable? = null) : GetActivityFeedMessagesError(cause = cause)
+}
