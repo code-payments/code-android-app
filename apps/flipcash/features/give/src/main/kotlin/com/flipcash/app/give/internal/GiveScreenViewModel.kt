@@ -56,10 +56,30 @@ internal class GiveScreenViewModel @Inject constructor(
         val currencyModel: CurrencyUiModel = CurrencyUiModel(),
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
         val limits: Limits? = null,
-        val hint: String = "",
-        val canGive: Boolean = false,
+        val maxForGive: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
-    )
+    ) {
+        val canGive: Boolean
+            get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0) > 0.00
+
+        val maxAvailableForGive: String
+            get() = maxForGive?.let { FormatUtils.formatCurrency(it.first, it.second) }.orEmpty()
+
+        val isError: Boolean
+            get() {
+                if (amountAnimatedModel.amountData.amount.isEmpty()) return false
+
+                if (maxForGive != null) {
+                    if ((amountAnimatedModel.amountData.amount.toDoubleOrNull()
+                            ?: 0.0) < maxForGive.first
+                    ) {
+                        return false
+                    }
+                }
+
+                return true
+            }
+    }
 
     sealed interface Event {
         data class OnBalanceChanged(val balance: LocalFiat) : Event
@@ -69,7 +89,7 @@ internal class GiveScreenViewModel @Inject constructor(
         data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
         data class OnAmountChanged(val amountAnimatedModel: AmountAnimatedInputUiModel) : Event
         data class OnCurrencyChanged(val model: CurrencyUiModel) : Event
-        data class OnHintChanged(val hint: String) : Event
+        data class OnMaxDetermined(val max: Double, val currencyCode: CurrencyCode) : Event
         data class OnLimitsChanged(val limits: Limits?) : Event
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
@@ -194,10 +214,7 @@ internal class GiveScreenViewModel @Inject constructor(
                 val sendLimit = limits?.sendLimitFor(currency) ?: SendLimit.Zero
                 val nextTransactionLimit = sendLimit.nextTransaction
                 val max = min(nextTransactionLimit, balance.converted.doubleValue)
-                val formattedMax = FormatUtils.formatCurrency(max, currency)
-
-                val hint = resources.getString(R.string.subtitle_giveCashHint, formattedMax)
-                dispatchEvent(Event.OnHintChanged(hint))
+                dispatchEvent(Event.OnMaxDetermined(max, currency))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -228,12 +245,8 @@ internal class GiveScreenViewModel @Inject constructor(
                 }
 
                 is Event.OnAmountChanged -> { state ->
-                    val amount = event.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
-                    val minValue = 0.01
-
                     state.copy(
-                        amountAnimatedModel = event.amountAnimatedModel,
-                        canGive = amount >= minValue
+                        amountAnimatedModel = event.amountAnimatedModel
                     )
                 }
 
@@ -255,7 +268,7 @@ internal class GiveScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnHintChanged -> { state -> state.copy(hint = event.hint) }
+                is Event.OnMaxDetermined -> { state -> state.copy(maxForGive = event.max to event.currencyCode) }
                 is Event.OnLimitsChanged -> { state -> state.copy(limits = event.limits) }
             }
         }

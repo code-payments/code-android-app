@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.SessionState
+import com.flipcash.app.core.bill.BillState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
@@ -47,6 +48,7 @@ import com.getcode.utils.network.LocalNetworkObserver
 @Composable
 internal fun DecorView(
     state: SessionState,
+    billState: BillState,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
     onAction: (ScannerDecorItem) -> Unit,
@@ -81,7 +83,7 @@ internal fun DecorView(
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(end = CodeTheme.dimens.grid.x5),
-                visible = state.billState.showToast && state.billState.toast != null,
+                visible = billState.showToast && billState.toast != null,
                 enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
                         fadeIn(animationSpec = tween(500, 100)),
                 exit = if (!isPaused)
@@ -89,8 +91,8 @@ internal fun DecorView(
                             fadeOut(animationSpec = tween(500, 100))
                 else fadeOut(animationSpec = tween(0)),
             ) {
-                val toast by remember(state.billState.toast) {
-                    derivedStateOf { state.billState.toast }
+                val toast by remember(billState.toast) {
+                    derivedStateOf { billState.toast }
                 }
                 Pill(
                     text = toast?.formattedAmount.orEmpty(),

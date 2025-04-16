@@ -1,42 +1,63 @@
 package com.getcode.opencode.controllers
 
+import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.network.core.DEFAULT_STREAM_TIMEOUT
+import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.services.OcpMessageStreamReference
-import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.messaging.Message
+import com.getcode.opencode.model.core.OpenCodePayload
+import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.repositories.MessagingRepository
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class MessagingController @Inject constructor(
-    private val repository: MessagingRepository
+    private val repository: MessagingRepository,
 ) {
-    suspend fun openMessageStream(
-        rendezvous: KeyPair,
-        timeout: Long = DEFAULT_STREAM_TIMEOUT,
-    ): Flow<List<Message>> = repository.openMessageStream(rendezvous, timeout)
+    private var streamReference: OcpMessageStreamReference? = null
 
-    fun openMessageStreamWithKeepAlive(
+    suspend fun awaitRequestToGrabBill(
         scope: CoroutineScope,
         rendezvous: KeyPair,
-        onEvent: (Result<List<Message>>) -> Unit,
-    ): OcpMessageStreamReference = repository.openMessageStreamWithKeepAlive(scope, rendezvous, onEvent)
+    ): TransferRequest? = suspendCancellableCoroutine { cont ->
+        cancelAwaitForBillGrab()
+        streamReference = repository.openMessageStreamWithKeepAlive(scope, rendezvous) { result ->
+            result.onSuccess {
+                cont.resume(it)
+            }.onFailure {
+                trace(
+                    tag = "Messaging",
+                    message = it.message.orEmpty(),
+                    type = TraceType.Silent
+                )
+            }
+        }
+    }
 
-    suspend fun pollMessages(
-        rendezvous: KeyPair,
-    ): Result<List<Message>> = repository.pollMessages(rendezvous)
+    fun cancelAwaitForBillGrab() {
+        streamReference?.destroy()
+        streamReference = null
+    }
 
-    fun ackMessages(
-        rendezvous: KeyPair,
-        messageIds: List<ID> = emptyList(),
-    ): Result<Unit> = ackMessages(rendezvous, messageIds)
+    suspend fun sendRequestToGrabBill(
+        destination: PublicKey,
+        payload: OpenCodePayload,
+    ): Result<PublicKey> {
+        val paymentRequest = MessagingService.RequestToGrabBill.newBuilder()
+            .setRequestorAccount(destination.asSolanaAccountId())
 
-    suspend fun sendMessage(
-        rendezvous: KeyPair,
-        message: Message,
-    ): Result<ID> = repository.sendMessage(rendezvous, message)
+        val message = MessagingService.Message.newBuilder()
+            .setRequestToGrabBill(paymentRequest)
+
+        return repository.sendMessage(
+            message = message,
+            rendezvous = payload.rendezvous
+        )
+    }
 }

@@ -1,5 +1,7 @@
 package com.getcode.opencode.model.financial
 
+import com.getcode.opencode.model.transactions.ExchangeData
+
 data class LocalFiat(
     val usdc: Fiat,
     val converted: Fiat,
@@ -10,6 +12,19 @@ data class LocalFiat(
         usdc = Fiat(value, CurrencyCode.USD),
         converted = Fiat(value, rate.currency),
         rate = rate
+    )
+
+    @Throws(Exception::class)
+    constructor(exchangeData: ExchangeData.WithRate): this(
+        usdc = Fiat(exchangeData.quarks.toULong(), CurrencyCode.USD),
+        converted = Fiat(
+            fiat = exchangeData.nativeAmount,
+            currencyCode = CurrencyCode.tryValueOf(exchangeData.currencyCode) ?: throw IllegalArgumentException("CurrencyCode provided is invalid => ${exchangeData.currencyCode}")
+        ),
+        rate = Rate(
+            fx = exchangeData.exchangeRate,
+            currency = CurrencyCode.tryValueOf(exchangeData.currencyCode) ?: throw IllegalArgumentException("CurrencyCode provided is invalid => ${exchangeData.currencyCode}")
+        ),
     )
 
     // Replace rate

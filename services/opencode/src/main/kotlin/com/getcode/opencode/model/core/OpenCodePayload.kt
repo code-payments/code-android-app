@@ -61,40 +61,18 @@ data class OpenCodePayload(
         fun fromList(list: List<Byte>): OpenCodePayload {
             val kind = PayloadKind.entries.find { it.value == list[0].toInt() } ?: PayloadKind.Cash
 
-            val (value, nonce) = when (kind) {
-                PayloadKind.Cash,
-                PayloadKind.GiftCard -> {
+            val value = when (kind) {
+                PayloadKind.Cash -> {
                     // grab currency
                     val currencyIndex = list[1].byteToUnsignedInt()
                     val currency = CurrencyCode.entries.toList()[currencyIndex]
 
                     val quarks = list.subList(2, OFFSET_NONCE).toByteArray().byteArrayToLong()
-                    val fiat = Fiat(currencyCode = currency, quarks = quarks.toULong())
-
-                    // grab nonce
-                    val nonce = list.suffix(OFFSET_NONCE)
-                    fiat to nonce
-                }
-
-                PayloadKind.RequestPaymentV2 -> {
-                    // grab currency
-                    val currencyIndex = list[1].byteToUnsignedInt()
-                    val currency = CurrencyCode.entries.toList()[currencyIndex]
-
-                    // grab the fiat value
-                    val amountData = ByteArray(7)
-                    val buffer = ByteBuffer.wrap(list.toByteArray())
-                    buffer.position(2)
-                    buffer.get(amountData, 0, 7)
-                    val amountCents = amountData.toLong()
-
-                    val fiat = Fiat(currencyCode = currency, quarks = (amountCents / 100.0).toULong())
-
-                    // grab nonce
-                    val nonce = list.suffix(OFFSET_NONCE)
-                    fiat to nonce
+                    Fiat(currencyCode = currency, quarks = quarks.toULong())
                 }
             }
+
+            val nonce = list.suffix(OFFSET_NONCE)
 
             return OpenCodePayload(kind, value, nonce)
         }
@@ -105,10 +83,10 @@ data class OpenCodePayload(
 
 enum class PayloadKind(val value: Int) {
     Cash(0),
-    GiftCard(1),
+//    GiftCard(1),
 //    RequestPayment(2),
 //    Login(3),
-    RequestPaymentV2(4),
+//    RequestPaymentV2(4),
 }
 
 /*

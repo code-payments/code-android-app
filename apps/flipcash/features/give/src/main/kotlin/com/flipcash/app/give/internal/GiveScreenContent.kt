@@ -31,7 +31,12 @@ internal fun GiveScreenContent(viewModel: GiveScreenViewModel) {
             currencyFlag = state.currencyModel.selected?.resId,
             prefix = state.currencyModel.selected?.symbol.orEmpty(),
             placeholder = "0",
-            hint = state.hint,
+            hint = if (state.isError) {
+                stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.maxAvailableForGive)
+            } else {
+                stringResource(R.string.subtitle_giveCashHint, state.maxAvailableForGive)
+            },
+            isError = state.isError,
             onNumberPressed = { viewModel.dispatchEvent(GiveScreenViewModel.Event.OnNumberPressed(it)) },
             onBackspace = { viewModel.dispatchEvent(GiveScreenViewModel.Event.OnBackspace) },
             onDecimal = { viewModel.dispatchEvent(GiveScreenViewModel.Event.OnDecimalPressed) }

@@ -84,9 +84,9 @@ internal class TransactionService @Inject constructor(
             call = { api.getIntentMetadata(intentId, owner) },
             handleResponse = { response ->
                 when (response.result) {
-                    TransactionService.GetIntentMetadataResponse.Result.OK -> Result.success(
-                        metadataMapper.map(response.metadata)
-                    )
+                    TransactionService.GetIntentMetadataResponse.Result.OK -> {
+                        Result.success(metadataMapper.map(response.metadata))
+                    }
 
                     TransactionService.GetIntentMetadataResponse.Result.NOT_FOUND -> Result.failure(
                         GetIntentMetadataError.NotFound()

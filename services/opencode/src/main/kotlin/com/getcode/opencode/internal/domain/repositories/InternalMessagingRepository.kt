@@ -1,47 +1,77 @@
 package com.getcode.opencode.internal.domain.repositories
 
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.OcpMessageStreamReference
-import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.messaging.Message
+import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.repositories.MessagingRepository
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.codeinc.opencode.gen.messaging.v1.MessagingService as RpcMessagingService
 
 internal class InternalMessagingRepository @Inject constructor(
     private val service: MessagingService,
 ): MessagingRepository {
-    override suspend fun openMessageStream(
-        rendezvous: Ed25519.KeyPair,
-        timeout: Long
-    ): Flow<List<Message>> {
-        return service.openMessageStream(rendezvous, timeout) {
-            it == com.codeinc.opencode.gen.messaging.v1.MessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL
-        }
-    }
-
     override fun openMessageStreamWithKeepAlive(
         scope: CoroutineScope,
         rendezvous: Ed25519.KeyPair,
-        onEvent: (Result<List<Message>>) -> Unit
+        onEvent: (Result<TransferRequest>) -> Unit
     ): OcpMessageStreamReference {
-        TODO("Not yet implemented")
+        return service.openMessageStreamWithKeepAlive(scope, rendezvous) { result ->
+            result.onSuccess { messages ->
+                scope.launch {
+                    // ack them back to server
+                    service.ackMessages(
+                        rendezvous,
+                        messages.map { it.id }
+                    ).onSuccess {
+                        trace(
+                            tag = "MessagingService",
+                            message = "acked",
+                            type = TraceType.Silent
+                        )
+                        // extract request to grab bill
+                        val request = extractRequestToGrabBill(messages)
+                        if (request != null) {
+                            // send back to transactor
+                            onEvent(Result.success(request))
+                        }
+                    }.onFailure { ErrorUtils.handleError(it) }
+                }
+            }.onFailure { onEvent(Result.failure(it)) }
+        }
     }
 
-    override suspend fun pollMessages(rendezvous: Ed25519.KeyPair): Result<List<Message>> {
-        TODO("Not yet implemented")
+    private fun extractRequestToGrabBill(messages: List<RpcMessagingService.Message>): TransferRequest?  {
+        val message = messages.firstOrNull { it.kindCase == RpcMessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL } ?: return null
+        val account =
+            message.requestToGrabBill.requestorAccount.value.toByteArray().toPublicKey()
+        val signature =
+            com.getcode.solana.keys.Signature(
+                message.sendMessageRequestSignature.value.toByteArray().toList()
+            )
+
+        return TransferRequest(account, signature)
+    }
+
+    override suspend fun pollMessages(rendezvous: Ed25519.KeyPair): Result<List<RpcMessagingService.Message>> {
+        return service.pollMessages(rendezvous)
     }
 
     override suspend fun ackMessages(
         rendezvous: Ed25519.KeyPair,
-        messageIds: List<ID>
+        messageIds: List<RpcMessagingService.MessageId>
     ): Result<Unit> {
-        TODO("Not yet implemented")
+        return service.ackMessages(rendezvous, messageIds)
     }
 
-    override suspend fun sendMessage(rendezvous: Ed25519.KeyPair, message: Message): Result<ID> {
-        TODO("Not yet implemented")
+    override suspend fun sendMessage(rendezvous: Ed25519.KeyPair, message: RpcMessagingService.Message.Builder): Result<PublicKey> {
+        return service.sendMessage(rendezvous, message)
     }
 }

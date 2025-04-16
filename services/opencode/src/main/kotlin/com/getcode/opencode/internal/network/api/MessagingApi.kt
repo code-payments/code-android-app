@@ -1,21 +1,21 @@
 package com.getcode.opencode.internal.network.api
 
+import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingGrpc
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asRendezvousKey
 import com.getcode.opencode.internal.network.extensions.sign
-import com.getcode.opencode.internal.network.extensions.asMessageId
-import com.getcode.opencode.internal.network.extensions.asProtobufMessage
-import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.messaging.Message
+import com.google.protobuf.ByteString
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 internal class MessagingApi @Inject constructor(
@@ -151,15 +151,12 @@ internal class MessagingApi @Inject constructor(
      */
     fun ackMessages(
         rendezvous: KeyPair,
-        messageIds: List<ID> = emptyList()
+        messageIds: List<MessagingService.MessageId> = emptyList()
     ): Flow<MessagingService.AckMesssagesResponse> {
         val request = MessagingService.AckMessagesRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
-            .apply {
-               messageIds.forEachIndexed { index, id ->
-                   setMessageIds(index, id.asMessageId())
-               }
-            }.build()
+            .addAllMessageIds(messageIds)
+            .build()
 
         return api::ackMessages
             .callAsCancellableFlow(request)
@@ -170,13 +167,19 @@ internal class MessagingApi @Inject constructor(
      * Sends a message
      */
     fun sendMessage(
-        message: Message,
+        message: MessagingService.Message.Builder,
         rendezvous: KeyPair,
     ): Flow<MessagingService.SendMessageResponse> {
+        val signature = ByteArrayOutputStream().let {
+            message.buildPartial().writeTo(it)
+            val signed = Ed25519.sign(it.toByteArray(), rendezvous)
+            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
+        }
+
         val request = MessagingService.SendMessageRequest.newBuilder()
-            .setMessage(message.asProtobufMessage())
+            .setMessage(message)
             .setRendezvousKey(rendezvous.asRendezvousKey())
-            .apply { setSignature(sign(rendezvous)) }
+            .setSignature(signature)
             .build()
 
         return api::sendMessage

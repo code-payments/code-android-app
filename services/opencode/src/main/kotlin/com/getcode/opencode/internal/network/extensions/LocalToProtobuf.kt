@@ -16,9 +16,11 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
+import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 
 internal fun ByteArray.asSignature(): Model.Signature {
@@ -49,8 +51,9 @@ internal fun PublicKey.asRendezvousKey(): MessagingService.RendezvousKey {
 }
 
 internal fun KeyPair.asRendezvousKey(): MessagingService.RendezvousKey {
-    return MessagingService.RendezvousKey.newBuilder().setValue(this.publicKeyBytes.toByteString())
-        .build()
+    return MessagingService.RendezvousKey.newBuilder().setValue(
+        ByteString.copyFrom(publicKeyBytes)
+    ).build()
 }
 
 internal fun openMessageStreamRequest(rendezvous: KeyPair): MessagingService.OpenMessageStreamRequest {
@@ -99,6 +102,14 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
             )
         }
         is TransactionMetadata.SendPublicPayment -> {
+            builder.setSendPublicPayment(
+                TransactionService.SendPublicPaymentMetadata.newBuilder()
+                    .setSource(source.asSolanaAccountId())
+                    .setExchangeData(exchangeData.asProtobufExchangeData())
+                    .setDestination(destination.asSolanaAccountId())
+                    .setIsWithdrawal(isWithdrawal)
+                    .build()
+            )
 
         }
         TransactionMetadata.Unknown -> Unit
@@ -121,6 +132,16 @@ internal fun ExchangeData.WithoutRate.asProtobufExchangeData(): TransactionServi
         .setCurrency(currencyCode)
         .setNativeAmount(nativeAmount)
         .build()
+}
+
+internal fun TransferRequest.asProtobufMessage(): MessagingService.Message {
+    return MessagingService.Message
+        .newBuilder()
+        .setRequestToGrabBill(
+            MessagingService.RequestToGrabBill
+                .newBuilder()
+                .setRequestorAccount(account.asSolanaAccountId())
+        ).build()
 }
 
 internal fun Message.asProtobufMessage(): MessagingService.Message {

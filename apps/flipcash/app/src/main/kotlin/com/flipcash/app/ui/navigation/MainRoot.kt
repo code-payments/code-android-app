@@ -1,5 +1,6 @@
 package com.flipcash.app.ui.navigation
 
+import android.os.Parcelable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,11 +40,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
-internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen {
+@Parcelize
+internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcelable {
 
+    @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     private fun readResolve(): Any = this

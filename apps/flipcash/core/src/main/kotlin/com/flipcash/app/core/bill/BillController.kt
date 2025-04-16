@@ -2,7 +2,10 @@ package com.flipcash.app.core.bill
 
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.BillTransactionManager
+import com.getcode.opencode.model.core.OpenCodePayload
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -21,8 +24,9 @@ class BillController @Inject constructor(
         _state.update(function)
     }
 
-    fun reset() {
-        _state.update { BillState.Default }
+    fun reset(showToast: Boolean = false) {
+        _state.update { BillState.Default.copy(showToast = showToast) }
+        transactionManager.cancelSend()
     }
 
     fun awaitGrab(
@@ -33,4 +37,11 @@ class BillController @Inject constructor(
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.awaitGrabFromRecipient(amount, owner, present, onGrabbed, onTimeout, onError)
+
+    fun attemptGrab(
+        owner: AccountCluster,
+        payload: OpenCodePayload,
+        onGrabbed: (LocalFiat) -> Unit,
+        onError: (Throwable) -> Unit,
+    ) = transactionManager.attemptGrabFromSender(owner, payload, onGrabbed, onError)
 }

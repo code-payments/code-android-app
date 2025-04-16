@@ -38,6 +38,7 @@ import com.flipcash.app.core.PresentationStyle
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.scanner.internal.DecorView
+import com.flipcash.app.scanner.internal.ReceivedFundsConfirmation
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.features.scanner.R
 import com.getcode.manager.TopBarManager
@@ -170,6 +171,7 @@ internal fun BillContainer(
         ) {
             DecorView(
                 state = updatedState,
+                billState = updatedBillState,
                 isPaused = isPaused,
                 onAction = onAction
             )
@@ -252,10 +254,10 @@ internal fun BillContainer(
                 Box(
                     contentAlignment = BottomCenter
                 ) {
-//                    ReceivedKinConfirmation(
-//                        bill = updatedState.billState.bill as Bill.Cash,
-//                        onClaim = { session.cancelSend() }
-//                    )
+                    ReceivedFundsConfirmation(
+                        bill = updatedBillState.bill as Bill.Cash,
+                        onClaim = { session.cancelSend() }
+                    )
                 }
             }
         }

@@ -19,7 +19,7 @@ import com.getcode.solana.keys.PublicKey
 internal fun Model.IntentId.toId(): ID = value.toByteArray().toList()
 internal fun Model.SolanaAccountId.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun Model.Signature.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
-internal fun MessagingService.MessageId.toId(): ID = value.toByteArray().toList()
+internal fun MessagingService.MessageId.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun MessagingService.RendezvousKey.toPublicKey(): PublicKey =
     value.toByteArray().toPublicKey()
 

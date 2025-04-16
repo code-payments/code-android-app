@@ -61,34 +61,3 @@ fun Preview_CashBill() {
         )
     }
 }
-
-@Preview
-@Composable
-fun Preview_PaymentBill() {
-    DesignSystem {
-        // $3 USD
-        val usdcBase = Fiat(3.00, CurrencyCode.USD)
-        val cadRate = Rate(1.4, CurrencyCode.CAD)
-
-        val payload = OpenCodePayload(
-            PayloadKind.RequestPaymentV2,
-            value = usdcBase,
-            nonce = listOf(
-                -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
-            ).map { it.toByte() }
-        )
-
-
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Receipt(
-                amount = LocalFiat(
-                    usdc = usdcBase,
-                    converted = usdcBase.convertingTo(cadRate),
-                    rate = cadRate
-                ),
-                data = payload.codeData.toList(),
-                currencyCode = payload.fiat?.currencyCode
-            )
-        }
-    }
-}

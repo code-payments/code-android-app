@@ -5,10 +5,12 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.MessageMapper
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.core.DEFAULT_STREAM_TIMEOUT
+import com.getcode.opencode.internal.network.core.INFINITE_STREAM_TIMEOUT
 import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.extensions.clientPongWith
 import com.getcode.opencode.internal.network.extensions.openMessageStreamRequest
 import com.getcode.opencode.internal.network.extensions.toId
+import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.internal.network.managedApiRequest
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.AckMessagesError
@@ -16,8 +18,11 @@ import com.getcode.opencode.model.core.errors.PollMessagesError
 import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.observers.BidirectionalStreamReference
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
+import com.getcode.utils.decodeBase58
 import com.getcode.utils.trace
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
@@ -39,38 +44,11 @@ typealias OcpMessageStreamReference = BidirectionalStreamReference<RpcMessagingS
 internal class MessagingService @Inject constructor(
     private val api: MessagingApi,
     private val networkOracle: NetworkOracle,
-    private val messageMapper: MessageMapper,
 ) {
-
-    suspend fun openMessageStream(
-        rendezvous: KeyPair,
-        timeout: Long = DEFAULT_STREAM_TIMEOUT,
-        filter: (MessagingService.Message.KindCase) -> Boolean = { true },
-    ): Flow<List<Message>> = withTimeout(timeout) {
-        coroutineScope {
-            api.openMessageStream(rendezvous)
-                .map {
-                    it.messagesList.filter { filter(it.kindCase) }
-                }.filter { it.isNotEmpty() }
-                .map { messages -> messages.map { messageMapper.map(it) } }
-                .onEach { messages ->
-                    ackMessages(rendezvous, messages.map { it.id })
-                        .onSuccess {
-                            trace(
-                                tag = "MessagingService",
-                                message = "acked",
-                                type = TraceType.Silent
-                            )
-                        }.onFailure { ErrorUtils.handleError(it) }
-                }.filter { it.isNotEmpty() }
-                .retry(retries = 10)
-        }
-    }
-
     fun openMessageStreamWithKeepAlive(
         scope: CoroutineScope,
         rendezvous: KeyPair,
-        onEvent: (Result<List<Message>>) -> Unit,
+        onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit,
     ): OcpMessageStreamReference {
         trace("Message Opening stream.")
         val streamReference = OcpMessageStreamReference(scope)
@@ -92,7 +70,7 @@ internal class MessagingService @Inject constructor(
     private fun openMessageStream(
         rendezvous: KeyPair,
         streamRef: OcpMessageStreamReference,
-        onEvent: (Result<List<Message>>) -> Unit
+        onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit
     ) {
         try {
             streamRef.cancel()
@@ -111,11 +89,7 @@ internal class MessagingService @Inject constructor(
 
                         when (result) {
                             RpcMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
-                                onEvent(Result.success(value.response.messagesList.map {
-                                    messageMapper.map(
-                                        it
-                                    )
-                                }))
+                                onEvent(Result.success(value.response.messagesList))
                             }
 
                             RpcMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.PING -> {
@@ -173,11 +147,11 @@ internal class MessagingService @Inject constructor(
 
     suspend fun pollMessages(
         rendezvous: KeyPair,
-    ): Result<List<Message>> {
+    ): Result<List<MessagingService.Message>> {
         return networkOracle.managedApiRequest(
             call = { api.pollMessages(rendezvous) },
             handleResponse = { response ->
-                Result.success(response.messagesList.map { messageMapper.map(it) })
+                Result.success(response.messagesList)
             },
             onOtherError = { error ->
                 Result.failure(PollMessagesError.Other(cause = error))
@@ -187,7 +161,7 @@ internal class MessagingService @Inject constructor(
 
     suspend fun ackMessages(
         rendezvous: KeyPair,
-        messageIds: List<ID> = emptyList(),
+        messageIds: List<MessagingService.MessageId> = emptyList(),
     ): Result<Unit> {
         return networkOracle.managedApiRequest(
             call = { api.ackMessages(rendezvous, messageIds) },
@@ -209,13 +183,15 @@ internal class MessagingService @Inject constructor(
 
     suspend fun sendMessage(
         rendezvous: KeyPair,
-        message: Message,
-    ): Result<ID> {
+        message: RpcMessagingService.Message.Builder,
+    ): Result<PublicKey> {
         return networkOracle.managedApiRequest(
             call = { api.sendMessage(rendezvous = rendezvous, message = message) },
             handleResponse = { response ->
                 when (response.result) {
-                    RpcMessagingService.SendMessageResponse.Result.OK -> Result.success(response.messageId.toId())
+                    RpcMessagingService.SendMessageResponse.Result.OK -> {
+                        Result.success(response.messageId.toPublicKey())
+                    }
                     RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
                         Result.failure(SendMessageError.Unrecognized())
                     }

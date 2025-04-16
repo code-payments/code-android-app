@@ -1,5 +1,7 @@
 package com.flipcash.app.scanner.internal
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -8,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -18,12 +21,15 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.utils.ErrorUtils
 import timber.log.Timber
+import java.util.Timer
+import kotlin.concurrent.schedule
 
 @Composable
 internal fun Scanner() {
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.currentOrThrow
     val state by session.state.collectAsState()
+    val billState by session.billState.collectAsState()
     var isPaused by remember { mutableStateOf(false) }
 
     var previewing by remember {
@@ -105,10 +111,20 @@ internal fun Scanner() {
         previewing = !navigator.isVisible
     }
 
-    LaunchedEffect(state.billState.bill) {
-        if (state.billState.bill != null) {
+    val context = LocalContext.current
+    LaunchedEffect(billState.bill) {
+        if (billState.bill != null) {
             navigator.hide()
         }
-//        session.resetScreenTimeout(context as Activity)
+        resetScreenTimeout(context as Activity)
+    }
+}
+
+private fun resetScreenTimeout(activity: Activity) {
+    activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    Timer().schedule(10000) {
+        activity.runOnUiThread {
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 }

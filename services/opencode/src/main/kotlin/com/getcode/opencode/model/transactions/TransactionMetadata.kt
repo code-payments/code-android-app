@@ -37,7 +37,7 @@ sealed interface TransactionMetadata {
     data class SendPublicPayment(
         val source: PublicKey,
         val destination: PublicKey,
-        val exchangeData: ExchangeData,
+        val exchangeData: ExchangeData.WithRate,
         val isWithdrawal: Boolean
     ): TransactionMetadata
 

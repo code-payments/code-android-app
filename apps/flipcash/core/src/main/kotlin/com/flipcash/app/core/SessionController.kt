@@ -45,7 +45,6 @@ data class SessionState(
     val autoStartCamera: Boolean? = true,
     val isCameraScanEnabled: Boolean = true,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
-    val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val notificationUnreadCount: Int = 0,

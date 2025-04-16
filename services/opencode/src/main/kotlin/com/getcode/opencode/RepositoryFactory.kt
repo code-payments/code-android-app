@@ -2,7 +2,6 @@ package com.getcode.opencode
 
 import android.content.Context
 import com.getcode.opencode.inject.OpenCodeModule
-import com.getcode.opencode.internal.domain.mapping.MessageMapper
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.api.MessagingApi
@@ -66,8 +65,7 @@ object RepositoryFactory {
         )
 
         val api = MessagingApi(module.provideManagedChannel(context, config))
-        val mapper = MessageMapper()
-        val service = MessagingService(api, module.provideNetworkOracle(), mapper)
+        val service = MessagingService(api, module.provideNetworkOracle())
         return module.providesMessagingRepository(service)
     }
 

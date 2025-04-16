@@ -7,6 +7,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
@@ -74,7 +75,7 @@ class TransactionController @Inject constructor(
     suspend fun airdrop(
         destination: KeyPair,
         type: AirdropType
-    ): Result<Unit> {
+    ): Result<LocalFiat> {
         return repository.airdrop(
             type = type,
             destination = destination
@@ -85,19 +86,22 @@ class TransactionController @Inject constructor(
                 type = TraceType.Process
             )
             eventBus.send(Events.FetchBalance())
-        }.map { Unit }
+        }.map { LocalFiat(it) }
     }
 
     suspend fun transfer(
         amount: LocalFiat,
         owner: AccountCluster,
         destination: PublicKey,
+        rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
         val intent = IntentTransfer.create(
             amount = amount,
             sourceCluster = owner,
-            destination = destination
+            destination = destination,
+            rendezvous = rendezvous,
+
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)
@@ -114,33 +118,39 @@ class TransactionController @Inject constructor(
         owner: KeyPair,
     ): Result<TransactionMetadata> = repository.getIntentMetadata(intentId, owner)
 
-    suspend fun pollIntentMetadata(
+    suspend fun <T: TransactionMetadata> pollIntentMetadata(
         intentId: PublicKey,
         owner: KeyPair,
         maxAttempts: Int = 10,
-    ): Result<TransactionMetadata> {
+        debugLogs: Boolean = false,
+    ): Result<T> {
         val stopped = AtomicBoolean()
         val attemptCount = AtomicInteger()
 
-        trace(
-            tag = "opencodescan",
-            message = "pollIntentMetadata: start",
-            type = TraceType.Process
-        )
+        if (debugLogs) {
+            trace(
+                tag = "opencodescan",
+                message = "pollIntentMetadata: start",
+                type = TraceType.Process
+            )
+        }
 
         return flowInterval({ 50L * (attemptCount.get() / 10) })
             .takeWhile { !stopped.get() && attemptCount.get() < maxAttempts }
             .map { attemptCount.incrementAndGet() }
             .onEach {
-                trace(
-                    tag = "opencodescan",
-                    message = "pollIntentMetadata: [$it] fetch data",
-                    type = TraceType.Process
-                )
+                if (debugLogs) {
+                    trace(
+                        tag = "opencodescan",
+                        message = "pollIntentMetadata: [$it] fetch data",
+                        type = TraceType.Process
+                    )
+                }
             }
             .map {
                 try {
                     val result = repository.getIntentMetadata(intentId, owner)
+                    println(result)
                     Result.success(result.getOrNull() ?: throw IllegalStateException("No metadata received"))
                 } catch (e: Exception) {
                     Result.failure(e)
@@ -150,19 +160,20 @@ class TransactionController @Inject constructor(
             .mapNotNull { result ->
                 result.fold(
                     onSuccess = { metadata ->
-                        trace(
-                            tag = "opencodescan",
-                            message = "pollIntentMetadata: took ${attemptCount.get()} attempts",
-                            type = TraceType.Process
-                        )
-                        stopped.set(true)
+                        if (debugLogs) {
+                            trace(
+                                tag = "opencodescan",
+                                message = "pollIntentMetadata: took ${attemptCount.get()} attempts",
+                                type = TraceType.Process
+                            )
+                        }
                         metadata
                     },
                     onFailure = { null }
                 )
-            }
+            }.mapNotNull { it as? T }
             .map { Result.success(it) }
             .catch { emit(Result.failure(it)) }
-            .firstOrNull() ?: Result.success(TransactionMetadata.Unknown)
+            .firstOrNull() ?: Result.failure(IllegalStateException("Never received the desired metadata"))
     }
 }
