@@ -53,7 +53,7 @@ android {
 
 dependencies {
     implementation(project(":definitions:flipchat-vm:models"))
-    api(project(":services:shared"))
+    api(project(":services:legacy-shared"))
     api(project(":libs:models"))
     api(project(":libs:crypto:kin"))
     api(project(":libs:crypto:solana"))

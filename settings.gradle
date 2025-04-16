@@ -76,7 +76,7 @@ include(
         ":libs:vibrator:public",
 
         // Services definition for app and lib access
-        ":services:shared",
+        ':services:legacy-shared',
         ":services:code",
         ":services:flipchat:core",
         ":services:flipchat:chat",

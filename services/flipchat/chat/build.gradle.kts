@@ -41,7 +41,7 @@ android {
 dependencies {
     implementation(project(":definitions:flipchat:models"))
     implementation(project(":services:flipchat:core"))
-    api(project(":services:shared"))
+    api(project(":services:legacy-shared"))
     implementation(project(":ui:resources"))
 
     implementation(Libs.kotlinx_coroutines_core)

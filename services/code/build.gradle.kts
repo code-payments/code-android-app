@@ -58,7 +58,7 @@ android {
 
 dependencies {
     implementation(project(":definitions:code:models"))
-    api(project(":services:shared"))
+    api(project(":services:legacy-shared"))
     api(project(":libs:crypto:solana"))
     api(project(":libs:currency"))
     api(project(":libs:analytics"))

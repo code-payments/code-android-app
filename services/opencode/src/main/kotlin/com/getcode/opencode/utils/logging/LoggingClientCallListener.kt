@@ -1,5 +1,7 @@
 package com.getcode.opencode.utils.logging
 
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import io.grpc.ClientCall
 import io.grpc.ForwardingClientCallListener
 import io.grpc.Status
@@ -21,12 +23,21 @@ class LoggingClientCallListener<ReqT, ResT>(
         val responseLog = responseQueue.joinToString(separator = ", ", prefix = "[", postfix = "]") { getObjectDetails(it) }
 
         if (status.isOk) {
-            println("Request: $requestLog")
-            println("Response: $responseLog")
-            println("The request was processed successfully")
+            trace(tag = "RpcLogging", message = "Request: $requestLog", type = TraceType.Network)
+            trace(tag = "RpcLogging", message = "Response: $responseLog", type = TraceType.Network)
+            trace(
+                tag = "RpcLogging",
+                message = "The request was processed successfully",
+                type = TraceType.Network
+            )
         } else {
-            println("Request: $requestLog")
-            println("An error occurred while processing the request: ${status.asRuntimeException()}")
+            trace(tag = "RpcLogging", message = "Request: $requestLog", type = TraceType.Network)
+            trace(
+                tag = "RpcLogging",
+                message = "An error occurred while processing the request",
+                type = TraceType.Error,
+                error = status.asRuntimeException()
+            )
         }
 
         super.onClose(status, trailers)
