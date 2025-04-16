@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/flipcash-protobuf-api/generated/go
 option java_package = "com.codeinc.flipcash.gen.push.v1";
 option objc_class_prefix = "FPBPushV1";
 import "common/v1/common.proto";
+
 service Push {
     // AddToken adds a push token associated with a user.
     rpc AddToken(AddTokenRequest) returns (AddTokenResponse);

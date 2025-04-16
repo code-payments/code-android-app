@@ -3,6 +3,7 @@ package flipcash.common.v1;
 option go_package = "github.com/code-payments/flipcash-protobuf-api/generated/go/common/v1;commonpb";
 option java_package = "com.codeinc.flipcash.gen.common.v1";
 option objc_class_prefix = "FPBCommonV1";
+
 message PublicKey {
     bytes value = 1 ;
 }
@@ -40,4 +41,13 @@ enum Platform {
     UNKNOWN = 0;
     APPLE   = 1;
     GOOGLE  = 2;
+}
+// PaymentAmount defines an amount of USDC with currency exchange data
+message PaymentAmount {
+    // ISO 4217 alpha-3 currency code the payment was made in
+    string currency = 1;
+    // The amount in the native currency that was paid
+    double native_amount = 2;
+    // The amount in quarks of USDC that was paid
+    uint64 quarks = 3;
 }

@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.iap.v1.IapGrpc
 import com.codeinc.flipcash.gen.iap.v1.IapService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
+import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -24,10 +25,16 @@ class PurchaseApi @Inject constructor(
     fun onPurchaseCompleted(
         owner: KeyPair,
         receiptValue: String,
+        metadata: IapMetadata,
     ): Flow<IapService.OnPurchaseCompletedResponse> {
         val request = IapService.OnPurchaseCompletedRequest.newBuilder()
             .setPlatform(Common.Platform.GOOGLE)
             .setReceipt(IapService.Receipt.newBuilder().setValue(receiptValue))
+            .setMetadata(IapService.Metadata.newBuilder()
+                .setProduct(metadata.product)
+                .setCurrency(metadata.currency)
+                .setAmount(metadata.amount)
+            )
             .apply { setAuth(authenticate(owner)) }
             .build()
 

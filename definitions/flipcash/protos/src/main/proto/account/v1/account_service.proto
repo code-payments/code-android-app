@@ -5,6 +5,7 @@ option java_package = "com.codeinc.flipcash.gen.account.v1";
 option objc_class_prefix = "FPBAccountV1";
 import "common/v1/common.proto";
 import "google/protobuf/timestamp.proto";
+
 service Account {
 	// Register registers a new user, bound to the provided PublicKey.
 	// If the PublicKey is already in use, the previous user account is returned.

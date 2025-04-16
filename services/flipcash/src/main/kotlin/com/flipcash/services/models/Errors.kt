@@ -38,6 +38,7 @@ sealed class PurchaseAckError(
     class Unrecognized : PurchaseAckError()
     class Denied : PurchaseAckError()
     class InvalidReceipt: PurchaseAckError()
+    class InvalidMetadata: PurchaseAckError()
     data class Other(override val cause: Throwable? = null) : PurchaseAckError(cause = cause)
 }
 

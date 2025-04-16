@@ -25,6 +25,7 @@ import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentError
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
+import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.uuid
@@ -171,36 +172,37 @@ internal class GooglePlayBillingClient(
     }
 
     private fun completePurchase(item: Purchase) {
-        printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
-        if (!item.isAcknowledged) {
-            scope.launch {
-                printLog("onPurchaseComplete for ${item.purchaseToken}")
-                purchaseRepository.onPurchaseCompleted(
-                    userManager.accountCluster?.authority?.keyPair!!,
-                    item.purchaseToken
-                ).onSuccess {
-                    acknowledgeOrConsume(item)
-                }.onFailure {
-                    _eventFlow.emit(
-                        IapPaymentEvent.OnError(
-                            item.products.firstOrNull() ?: "NONE",
-                            it
-                        )
-                    )
-                }
-            }
-
-        } else {
-            val productId = item.products.first()
-            val product = IapProduct.entries.firstOrNull { it.productId == productId }
-            if (product != null) {
-                scope.launch {
-                    _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
-                }
-            }
-        }
-
-        purchases[item.products.first()] = item.purchaseState
+//        printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
+//        if (!item.isAcknowledged) {
+//            scope.launch {
+//                printLog("onPurchaseComplete for ${item.purchaseToken}")
+//                purchaseRepository.onPurchaseCompleted(
+//                    userManager.accountCluster?.authority?.keyPair!!,
+//                    Receipt(item.purchaseToken),
+//
+//                ).onSuccess {
+//                    acknowledgeOrConsume(item)
+//                }.onFailure {
+//                    _eventFlow.emit(
+//                        IapPaymentEvent.OnError(
+//                            item.products.firstOrNull() ?: "NONE",
+//                            it
+//                        )
+//                    )
+//                }
+//            }
+//
+//        } else {
+//            val productId = item.products.first()
+//            val product = IapProduct.entries.firstOrNull { it.productId == productId }
+//            if (product != null) {
+//                scope.launch {
+//                    _eventFlow.emit(IapPaymentEvent.OnSuccess(productId))
+//                }
+//            }
+//        }
+//
+//        purchases[item.products.first()] = item.purchaseState
     }
 
     private fun acknowledgeOrConsume(item: Purchase) {
