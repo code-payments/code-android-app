@@ -282,7 +282,7 @@ internal fun CashBill(
                             .width(geometry.brandWidth),
                         contentScale = ContentScale.FillWidth,
                         painter = painterResource(
-                            R.drawable.ic_code_logo_offwhite_small
+                            R.drawable.ic_flipcash_logo_offwhite_small
                         ),
                         colorFilter = ColorFilter.tint(CashBillDefaults.DecorColor),
                         contentDescription = "",
