@@ -23,7 +23,7 @@ internal class IntentTransfer(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
                     .setSource(sourceCluster.vaultPublicKey.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
-                    .setIsWithdrawal(true)
+                    .setIsWithdrawal(false) // false for code<->code transfers
                     .setExchangeData(
                         TransactionService.ExchangeData.newBuilder()
                             .setQuarks(amount.converted.quarks.toLong())
