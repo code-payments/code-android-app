@@ -25,7 +25,6 @@ internal class MessageMapper @Inject constructor(): Mapper<MessagingService.Mess
                 MessagingService.Message.KindCase.CLIENT_REJECTED_PAYMENT -> from.clientRejectedPayment.toMessageKind()
                 MessagingService.Message.KindCase.INTENT_SUBMITTED -> from.intentSubmitted.toMessageKind()
                 MessagingService.Message.KindCase.WEBHOOK_CALLED -> from.webhookCalled.toMessageKind()
-                MessagingService.Message.KindCase.AIRDROP_RECEIVED -> from.airdropReceived.toMessageKind()
                 MessagingService.Message.KindCase.KIND_NOT_SET -> MessageKind.Unknown
                 else -> MessageKind.Unknown
             }

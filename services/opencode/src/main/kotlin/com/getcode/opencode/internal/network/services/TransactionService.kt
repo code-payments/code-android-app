@@ -119,7 +119,6 @@ internal class TransactionService @Inject constructor(
                             fetchDate = System.currentTimeMillis(),
                             sendLimits = response.sendLimitsByCurrencyMap,
                             buyLimits = response.buyModuleLimitsByCurrencyMap,
-                            deposits = response.depositLimit
                         )
                         Result.success(limits)
                     }

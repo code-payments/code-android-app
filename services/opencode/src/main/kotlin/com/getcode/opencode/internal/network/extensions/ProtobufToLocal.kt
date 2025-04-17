@@ -118,17 +118,3 @@ internal fun MessagingService.WebhookCalled.toMessageKind(): MessageKind.Webhook
         timestamp = timestamp.seconds * 1_000
     )
 }
-
-internal fun MessagingService.AirdropReceived.toMessageKind(): MessageKind.AirdropReceived {
-    return MessageKind.AirdropReceived(
-        type = when (airdropType) {
-            TransactionService.AirdropType.UNKNOWN -> AirdropType.Unknown
-            TransactionService.AirdropType.GIVE_FIRST_CRYPTO -> AirdropType.GiveFirstCrypto
-            TransactionService.AirdropType.GET_FIRST_CRYPTO -> AirdropType.GetFirstCrypto
-            TransactionService.AirdropType.UNRECOGNIZED -> AirdropType.Unknown
-            else -> AirdropType.Unknown
-        },
-        exchangeData = exchangeData.toModel(),
-        timestamp = timestamp.seconds * 1_000
-    )
-}

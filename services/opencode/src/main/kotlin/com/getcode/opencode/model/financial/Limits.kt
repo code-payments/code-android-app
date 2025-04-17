@@ -2,7 +2,6 @@ package com.getcode.opencode.model.financial
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import kotlinx.datetime.Instant
-import kotlin.math.sin
 import kotlin.time.Duration.Companion.hours
 
 data class Limits(
@@ -11,12 +10,6 @@ data class Limits(
 
     // Date at which the limits were fetched
     val fetchDate: Long,
-
-    // Maximum quarks that may be deposited at any time. Server will guarantee
-    // this threshold will be below enforced dollar value limits, while also
-    // ensuring sufficient funds are available for a full organizer that supports
-    // max payment sends. Total dollar value limits may be spread across many deposits.
-    val maxDeposit: Fiat,
 
     // Remaining send limits keyed by currency
     private val sendLimits: Map<CurrencyCode, SendLimit>,
@@ -44,7 +37,6 @@ data class Limits(
             fetchDate = Instant.DISTANT_PAST.toEpochMilliseconds(),
             sendLimits = emptyMap(),
             buyLimits = emptyMap(),
-            maxDeposit = Fiat.Zero
         )
 
         fun newInstance(
@@ -52,7 +44,6 @@ data class Limits(
             fetchDate: Long,
             sendLimits: Map<String, TransactionService.SendLimit>,
             buyLimits: Map<String, TransactionService.BuyModuleLimit>,
-            deposits: TransactionService.DepositLimit,
         ): Limits {
             val sends = sendLimits
                 .mapNotNull { (k, v) ->
@@ -83,7 +74,6 @@ data class Limits(
                 fetchDate = fetchDate,
                 sendLimits = sends,
                 buyLimits = buys,
-                maxDeposit = Fiat(quarks = deposits.maxQuarks.toULong(), currencyCode = CurrencyCode.USD)
             )
         }
     }

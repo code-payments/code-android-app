@@ -3,7 +3,6 @@ package com.getcode.opencode.internal.network.extensions
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.common.v1.domain
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
-import com.codeinc.opencode.gen.messaging.v1.airdropReceived
 import com.codeinc.opencode.gen.messaging.v1.clientRejectedPayment
 import com.codeinc.opencode.gen.messaging.v1.codeScanned
 import com.codeinc.opencode.gen.messaging.v1.intentSubmitted
@@ -149,14 +148,6 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
         .setId(id.asMessageId())
 
     when (kind) {
-        is MessageKind.AirdropReceived -> {
-            builder.airdropReceived = airdropReceived {
-                airdropType = TransactionService.AirdropType.forNumber(kind.type.ordinal)
-                exchangeData = kind.exchangeData.asProtobufExchangeData()
-                timestamp = kind.timestamp.asProtobufTimestamp()
-            }
-        }
-
         is MessageKind.ClientRejectedPayment -> {
             builder.clientRejectedPayment = clientRejectedPayment {
                 intentId = kind.intentId.asIntentId()

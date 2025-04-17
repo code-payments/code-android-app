@@ -150,23 +150,6 @@ sealed interface MessageKind {
 
     // endregion
 
-    // region Airdrops
-
-    /**
-     * Client has received an aidrop from server
-     *
-     * > NOTE: This message type is only initiated by server.
-     *
-     * @param type The type of airdrop received
-     * @param exchangeData Exchange data relating to the amount of Kin and fiat value of the airdrop
-     * @param timestamp Time the airdrop was received
-     */
-    data class AirdropReceived(
-        val type: AirdropType,
-        val exchangeData: ExchangeData.WithRate,
-        val timestamp: Long,
-    ): MessageKind
-
     // endregion
 
     data object Unknown: MessageKind
