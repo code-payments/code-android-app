@@ -6,17 +6,26 @@ import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.models.ActivityFeedMessage
 import com.flipcash.services.models.FeedMessageMetadata
 import com.getcode.opencode.internal.domain.mapper.Mapper
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Rate
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 internal class ActivityFeedMessageMapper @Inject constructor(
-    private val paymentAmountMapper: PaymentAmountMapper,
 ) : Mapper<Model.Notification, ActivityFeedMessage> {
     override fun map(from: Model.Notification): ActivityFeedMessage {
         return ActivityFeedMessage(
             id = from.id.toId(),
             text = from.localizedText,
-            amount = from.paymentAmountOrNull?.let { paymentAmountMapper.map(it) },
+            amount = from.paymentAmountOrNull?.let {
+                LocalFiat(
+                    usdc = Fiat(quarks = it.quarks.toULong()),
+                    converted = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
+                    rate = Rate.ignore
+                )
+            },
             timestamp = Instant.fromEpochSeconds(from.ts.seconds, 0),
             metadata = when (from.additionalMetadataCase) {
                 Model.Notification.AdditionalMetadataCase.WELCOME_BONUS -> FeedMessageMetadata.WelcomeBonus
@@ -26,7 +35,6 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 Model.Notification.AdditionalMetadataCase.ADDITIONALMETADATA_NOT_SET,
                 null -> FeedMessageMetadata.Unknown
             }
-
         )
     }
 }

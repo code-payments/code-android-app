@@ -3,6 +3,8 @@ package com.flipcash.app.ui.navigation
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
+import com.flipcash.app.balance.BalanceScreen
+import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.give.GiveScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
@@ -54,13 +56,16 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Balance> {
-            Dummy()
+            BalanceScreen()
         }
 
         register<NavScreenProvider.HomeScreen.Menu> {
             Dummy()
         }
     }
+
+    PreloadBalance()
+
     content()
 }
 

@@ -13,6 +13,7 @@ include(
         ":apps:flipcash:features:router",
         ":apps:flipcash:features:scanner",
         ":apps:flipcash:features:give",
+        ":apps:flipcash:features:balance",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

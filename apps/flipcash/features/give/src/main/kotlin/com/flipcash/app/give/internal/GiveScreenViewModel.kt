@@ -236,9 +236,8 @@ internal class GiveScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-    companion object {
+    internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("give event=$event")
             when (event) {
                 is Event.OnBalanceChanged -> { state ->
                     state.copy(balance = event.balance)

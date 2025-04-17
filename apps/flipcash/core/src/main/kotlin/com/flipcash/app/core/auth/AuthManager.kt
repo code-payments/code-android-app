@@ -11,6 +11,7 @@ import com.flipcash.app.core.internal.extensions.token
 import com.flipcash.core.BuildConfig
 import com.flipcash.services.FlipcashCore
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -45,6 +46,7 @@ class AuthManager @Inject constructor(
     private val accountController: AccountController,
     private val pushController: PushController,
     private val balanceController: BalanceController,
+    private val activityFeedController: ActivityFeedController,
     private val eventRepository: EventRepository,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
@@ -201,6 +203,7 @@ class AuthManager @Inject constructor(
         FlipcashCore.reset(context)
         userManager.clear()
         balanceController.reset()
+        activityFeedController.clearCache()
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

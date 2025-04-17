@@ -12,6 +12,8 @@ import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.ActivityFeedController
+import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -55,6 +57,7 @@ class RealSessionController @Inject constructor(
     private val billController: BillController,
     private val userManager: UserManager,
     private val accountController: AccountController,
+    private val activityFeedController: ActivityFeedController,
     private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
@@ -89,6 +92,7 @@ class RealSessionController @Inject constructor(
     override fun onAppInForeground() {
         updateUserFlags()
         requestAirdrop()
+        populateActivityFeed()
     }
 
     override fun onAppInBackground() {
@@ -111,6 +115,12 @@ class RealSessionController @Inject constructor(
                     showToast(amount = amount, isDeposit = true, initialDelay = 1.seconds)
                 }
             }
+        }
+    }
+
+    private fun populateActivityFeed() {
+        scope.launch {
+            activityFeedController.getLatestMessagesFor(ActivityFeedType.TransactionHistory)
         }
     }
 
@@ -171,6 +181,9 @@ class RealSessionController @Inject constructor(
             onGrabbed = {
                 cancelSend(PresentationStyle.Pop)
                 vibrator.vibrate()
+                scope.launch {
+                    activityFeedController.refreshAfterEvent(ActivityFeedType.TransactionHistory)
+                }
             },
             onTimeout = {
                 cancelSend(style = PresentationStyle.Slide)
@@ -258,6 +271,9 @@ class RealSessionController @Inject constructor(
                     bill = Bill.Cash(amount = amount, didReceive = true),
                     vibrate = true
                 )
+                scope.launch {
+                    activityFeedController.refreshAfterEvent(ActivityFeedType.TransactionHistory)
+                }
             },
             onError = {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)

@@ -14,11 +14,6 @@ internal class InternalPurchaseRepository(
         owner: Ed25519.KeyPair,
         receipt: Receipt,
         metadata: IapMetadata
-    ): Result<Unit> = service.onPurchaseCompleted(owner, receipt)
+    ): Result<Unit> = service.onPurchaseCompleted(owner, receipt, metadata)
     .onFailure { ErrorUtils.handleError(it) }
-    override suspend fun onPurchaseCompleted(
-        owner: Ed25519.KeyPair,
-        receipt: String
-    ): Result<Unit> = service.onPurchaseCompleted(owner, receipt)
-        .onFailure { ErrorUtils.handleError(it) }
 }

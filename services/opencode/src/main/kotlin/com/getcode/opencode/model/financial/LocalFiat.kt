@@ -1,7 +1,9 @@
 package com.getcode.opencode.model.financial
 
 import com.getcode.opencode.model.transactions.ExchangeData
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class LocalFiat(
     val usdc: Fiat,
     val converted: Fiat,

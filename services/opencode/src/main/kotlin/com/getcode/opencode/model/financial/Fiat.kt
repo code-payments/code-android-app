@@ -1,9 +1,11 @@
 package com.getcode.opencode.model.financial
 
 import android.icu.util.Currency
+import kotlinx.serialization.Serializable
 import java.text.DecimalFormat
 import java.util.Locale
 
+@Serializable
 data class Fiat(
     val quarks: ULong,
     val currencyCode: CurrencyCode = CurrencyCode.USD

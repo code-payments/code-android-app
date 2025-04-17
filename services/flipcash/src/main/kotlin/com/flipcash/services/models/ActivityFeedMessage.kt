@@ -1,7 +1,8 @@
 package com.flipcash.services.models
 
-import com.flipcash.services.internal.model.common.PaymentAmount
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import kotlinx.datetime.Instant
 
 /**
@@ -18,7 +19,7 @@ import kotlinx.datetime.Instant
 data class ActivityFeedMessage(
     val id: ID,
     val text: String,
-    val amount: PaymentAmount?,
+    val amount: LocalFiat?,
     val timestamp: Instant,
     val metadata: FeedMessageMetadata?
 )
