@@ -1,15 +1,20 @@
-name: Code Build and Deploy (Internal)
+name: Flipchat Build and Deploy
 
 env:
   # The name of the main module repository
-  main_project_module: app
+  main_project_module: apps:flipchatApp
 
   # The name of the Play Store
-  playstore_name: Code Wallet
+  playstore_name: Flipchat
 
 on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      track:
+        description: 'Define PlayStore track name'
+        required: true
+        default: 'internal'
 
 jobs:
   deploy:
@@ -38,8 +43,8 @@ jobs:
         id: google_services_json_file
         with:
           fileName: google-services.json
-          fileDir: ./app/src
-          encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          fileDir: ./apps/flipchatApp/src
+          encodedString: ${{ secrets.FLIPCHAT_GOOGLE_SERVICES_JSON }}
 
       - name: Decode Service Account Key JSON file
         uses: timheuer/base64-to-file@v1
@@ -59,11 +64,11 @@ jobs:
         uses: timheuer/base64-to-file@v1
         with:
           fileName: key
-          fileDir: ./app/key
+          fileDir: ./apps/flipchatApp/key
           encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
 
       - name: Setup BugSnag API Key
-        run: echo BUGSNAG_API_KEY=\"${{ secrets.BUGSNAG_API_KEY }}\" > ./local.properties
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCHAT_BUGSNAG_API_KEY }}\" > ./local.properties
 
       - name: Setup Fingerprint API Key
         run: echo FINGERPRINT_API_KEY=${{ secrets.FINGERPRINT_API_KEY }} >> ./local.properties
@@ -75,18 +80,22 @@ jobs:
         run: echo KADO_API_KEY=\"${{ secrets.KADO_API_KEY }}\" >> ./local.properties
 
       - name: Setup Mixpanel API Key
-        run: echo MIXPANEL_API_KEY=\"${{ secrets.MIXPANEL_API_KEY }}\" >> ./local.properties
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
+
+      - name: Setup X (Twitter) OAuth Client ID
+        run: echo X_CLIENT_ID=\"${{ secrets.FLIPCHAT_X_CLIENT_ID }}\" >> ./local.properties
 
       - name: Run tests
-        run: bundle exec fastlane android code_tests
+        run: bundle exec fastlane android flipchat_tests
 
       - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_code_internal
+        run: bundle exec fastlane android deploy_flipchat
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
+          PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
     
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -94,4 +103,5 @@ jobs:
         with:
           name: assets
           path: |
-            ${{ github.workspace }}/app/build/outputs/bundle/release
+            ${{ github.workspace }}/apps/flipchatApp/build/outputs/bundle/release
+            ${{ github.workspace }}/apps/flipchatApp/build/outputs/apk/release

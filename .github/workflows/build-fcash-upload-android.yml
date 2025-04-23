@@ -1,11 +1,11 @@
-name: Flipchat Build and Deploy
+name: Flipcash Build and Deploy
 
 env:
   # The name of the main module repository
-  main_project_module: flipchatApp
+  main_project_module: apps:flipcash:app
 
   # The name of the Play Store
-  playstore_name: Flipchat
+  playstore_name: Flipcash
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -43,8 +43,8 @@ jobs:
         id: google_services_json_file
         with:
           fileName: google-services.json
-          fileDir: ./flipchatApp/src
-          encodedString: ${{ secrets.FLIPCHAT_GOOGLE_SERVICES_JSON }}
+          fileDir: ./apps/flipchatApp/src
+          encodedString: ${{ secrets.FLIPCASH_GOOGLE_SERVICES_JSON }}
 
       - name: Decode Service Account Key JSON file
         uses: timheuer/base64-to-file@v1
@@ -64,32 +64,23 @@ jobs:
         uses: timheuer/base64-to-file@v1
         with:
           fileName: key
-          fileDir: ./flipchatApp/key
+          fileDir: ./apps/flipcash/app/key
           encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
 
       - name: Setup BugSnag API Key
-        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCHAT_BUGSNAG_API_KEY }}\" > ./local.properties
-
-      - name: Setup Fingerprint API Key
-        run: echo FINGERPRINT_API_KEY=${{ secrets.FINGERPRINT_API_KEY }} >> ./local.properties
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\" > ./local.properties
 
       - name: Setup Google Cloud Project Number
         run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
 
-      - name: Setup Kado API Key
-        run: echo KADO_API_KEY=\"${{ secrets.KADO_API_KEY }}\" >> ./local.properties
-
       - name: Setup Mixpanel API Key
-        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
-
-      - name: Setup X (Twitter) OAuth Client ID
-        run: echo X_CLIENT_ID=\"${{ secrets.FLIPCHAT_X_CLIENT_ID }}\" >> ./local.properties
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
-        run: bundle exec fastlane android fc_tests
+        run: bundle exec fastlane android flipcash_tests
 
       - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_fc
+        run: bundle exec fastlane android deploy_flipcash
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
@@ -103,5 +94,5 @@ jobs:
         with:
           name: assets
           path: |
-            ${{ github.workspace }}/flipchatApp/build/outputs/bundle/release
-            ${{ github.workspace }}/flipchatApp/build/outputs/apk/release
+            ${{ github.workspace }}/apps/flipcash/app/build/outputs/bundle/release
+            ${{ github.workspace }}/apps/flipcash/app/build/outputs/apk/release

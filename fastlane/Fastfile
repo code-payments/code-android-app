@@ -18,20 +18,25 @@ default_platform(:android)
 platform :android do
   desc "Runs all the tests for Code"
   lane :code_tests do
-    gradle(task: "app:testDebug")
+    gradle(task: "apps:codeApp:testDebug")
   end
 
   desc "Runs all the tests for Flipchat"
-    lane :fc_tests do
-      gradle(task: "generateEmojiList")
-      gradle(task: "flipchatApp:testDebug")
+  lane :flipchat_tests do
+    gradle(task: "generateEmojiList")
+    gradle(task: "apps:flipchatApp:testDebug")
+  end
+
+  desc "Runs all the tests for Flipcash"
+    lane :flipcash_tests do
+      gradle(task: "app:flipcash:app:testDebug")
     end
 
-  desc "Build and Deploy a new internal version of Code to the Google Play"
-    lane :deploy_code_internal do
+  desc "Build and Deploy a new version of Code to the Google Play"
+    lane :deploy_code do
       #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
       gradle(
-        task: "clean app:bundle", #"clean app:bundleRelease",
+        task: "clean apps:codeApp:bundle", #"clean app:bundleRelease",
         build_type: "release",
         properties: {
           #"versionPatch" => ENV["BUILD_NUMBER"],
@@ -60,14 +65,14 @@ platform :android do
 
 
   desc "Build and Deploy a new version of Flipchat to the Google Play Store"
-    lane :deploy_fc do
+    lane :deploy_flipchat do
       #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
       gradle(
         task: "generateEmojiList"
       )
 
       gradle(
-        task: "clean flipchatApp:bundle", #"clean app:bundleRelease",
+        task: "clean apps:flipchatApp:bundle", #"clean app:bundleRelease",
         build_type: "release",
         properties: {
           #"versionPatch" => ENV["BUILD_NUMBER"],
@@ -85,7 +90,7 @@ platform :android do
         ks_key_alias_password: ENV["KEY_PASSWORD"],
         bundletool_version: '1.10.0',
         aab_path: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
-        apk_output_path: "flipchatApp/build/outputs/apk/release",
+        apk_output_path: "apps/flipchatApp/build/outputs/apk/release",
         verbose: true,
       )
 
@@ -100,6 +105,47 @@ platform :android do
         skip_upload_changelogs: true,
         skip_upload_images: true,
         package_name: "xyz.flipchat.app",
+        mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
+      #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
+      )
+    end
+
+desc "Build and Deploy a new version of Flipcash to the Google Play Store"
+    lane :deploy_flipcash do
+      gradle(
+        task: "clean apps:flipcash:app:bundle", #"clean app:bundleRelease",
+        build_type: "release",
+        properties: {
+          #"versionPatch" => ENV["BUILD_NUMBER"],
+          "android.injected.signing.store.file" => "key/key",
+          "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
+          "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
+          "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+        }
+      )
+
+      bundletool(
+        ks_path: "key/key",
+        ks_password: ENV["STORE_PASSWORD"],
+        ks_key_alias: ENV["KEY_ALIAS"],
+        ks_key_alias_password: ENV["KEY_PASSWORD"],
+        bundletool_version: '1.10.0',
+        aab_path: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+        apk_output_path: "apps/flipcash/app/build/outputs/apk/release",
+        verbose: true,
+      )
+
+      validate_play_store_json_key(
+        json_key: ENV["SERVICE_ACCOUNT_KEY_JSON"]
+      )
+
+      upload_to_play_store(
+        track: ENV["PLAYSTORE_TRACK"],
+        aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+        skip_upload_apk: true,
+        skip_upload_changelogs: true,
+        skip_upload_images: true,
+        package_name: "com.flipcash.app",
         mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
       #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
       )
