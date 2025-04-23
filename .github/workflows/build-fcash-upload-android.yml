@@ -1,11 +1,11 @@
-name: Flipchat Build and Deploy (Internal)
+name: Flipcash Build and Deploy
 
 env:
   # The name of the main module repository
-  main_project_module: flipchatApp
+  main_project_module: apps:flipcash:app
 
   # The name of the Play Store
-  playstore_name: Flipchat
+  playstore_name: Flipcash
 
 on:
   # Allows you to run this workflow manually from the Actions tab
