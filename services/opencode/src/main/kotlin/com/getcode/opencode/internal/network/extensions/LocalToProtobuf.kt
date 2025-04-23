@@ -12,6 +12,7 @@ import com.codeinc.opencode.gen.messaging.v1.webhookCalled
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -206,4 +207,13 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
     }
 
     return builder.build()
+}
+
+internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
+    return TransactionService.ExchangeData.newBuilder()
+        .setQuarks(converted.quarks.toLong())
+        .setCurrency(rate.currency.name.lowercase())
+        .setExchangeRate(rate.fx)
+        .setNativeAmount(converted.doubleValue)
+        .build()
 }

@@ -9,7 +9,6 @@ import javax.inject.Inject
 internal class TransactionMetadataMapper @Inject constructor():
     Mapper<TransactionService.Metadata, TransactionMetadata> {
     override fun map(from: TransactionService.Metadata): TransactionMetadata {
-        println("mapping from ${from.typeCase}")
         return from.toMetadata()
     }
 }

@@ -34,6 +34,17 @@ abstract class ActionType {
 
                     Sha256Hash.hash(data.toByteArray())
                 }
+
+                is CompactMessageArgs.Withdraw -> {
+                    val data = mutableListOf<Byte>()
+                    data.addAll("withdraw_and_close".toUTF8Bytes().toList())
+                    data.addAll(args.source.bytes)
+                    data.addAll(args.destination.bytes)
+                    data.addAll(args.nonce.bytes)
+                    data.addAll(args.nonceValue.bytes)
+
+                    Sha256Hash.hash(data.toByteArray())
+                }
             }
         }
     }

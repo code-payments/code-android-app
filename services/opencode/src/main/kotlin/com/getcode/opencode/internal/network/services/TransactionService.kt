@@ -288,7 +288,7 @@ private fun handleErrors(
     errorDetails.forEach { error ->
         when (error.typeCase) {
             TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
-                errors.add("Reason: ${error.reasonString}")
+                errors.add("Reason: ${error.reasonString.reason}")
             }
 
             TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {

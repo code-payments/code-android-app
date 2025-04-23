@@ -1,12 +1,12 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
-import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.intents.actions.ActionType
 
@@ -14,7 +14,7 @@ internal class ActionOpenAccount(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
     override val signer: Ed25519.KeyPair? = null,
-
+    val accountType: AccountType,
     val owner: AccountCluster,
 ) : ActionType() {
 
@@ -27,7 +27,7 @@ internal class ActionOpenAccount(
                 this.setOpenAccount(TransactionService.OpenAccountAction.newBuilder()
                     .setIndex(0)
                     .setOwner(source.authorityPublicKey.asSolanaAccountId())
-                    .setAccountType(Model.AccountType.PRIMARY)
+                    .setAccountType(accountType.getAccountType())
                     .setAuthority(source.authorityPublicKey.asSolanaAccountId())
                     .setToken(source.vaultPublicKey.asSolanaAccountId())
                     .apply {
@@ -39,10 +39,19 @@ internal class ActionOpenAccount(
     }
 
     companion object {
-        fun create(owner: AccountCluster): ActionOpenAccount {
+        fun createPrimary(owner: AccountCluster): ActionOpenAccount {
             return ActionOpenAccount(
                 id = 0,
-                owner = owner
+                owner = owner,
+                accountType = AccountType.Primary
+            )
+        }
+
+        fun createGiftCard(owner: AccountCluster): ActionOpenAccount {
+            return ActionOpenAccount(
+                id = 0,
+                owner = owner,
+                accountType = AccountType.RemoteSend
             )
         }
     }

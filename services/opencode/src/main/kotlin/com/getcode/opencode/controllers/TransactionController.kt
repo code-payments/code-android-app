@@ -2,12 +2,14 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
+import com.getcode.opencode.internal.network.api.intents.IntentCancelRemoteSend
+import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
@@ -107,6 +109,34 @@ class TransactionController @Inject constructor(
         return submitIntent(scope, intent, owner.authority.keyPair)
     }
 
+    suspend fun remoteSend(
+        amount: LocalFiat,
+        owner: AccountCluster,
+        rendezvous: PublicKey,
+        scope: CoroutineScope = this.scope,
+    ): Result<IntentType> {
+        val giftCard = GiftCardAccount.create()
+        val intent = IntentRemoteSend.create(
+            amount = amount,
+            sourceCluster = owner,
+            giftCard = giftCard,
+            rendezvous = rendezvous
+        )
+
+        return submitIntent(scope, intent, owner.authority.keyPair)
+    }
+
+    suspend fun cancelRemoteSend(
+        amount: LocalFiat,
+        giftCard: GiftCardAccount,
+        owner: AccountCluster,
+        scope: CoroutineScope = this.scope,
+    ): Result<IntentType> {
+        val intent = IntentCancelRemoteSend.create(giftCard, amount, owner)
+
+        return submitIntent(scope, intent, owner.authority.keyPair)
+    }
+
     internal suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
@@ -150,7 +180,6 @@ class TransactionController @Inject constructor(
             .map {
                 try {
                     val result = repository.getIntentMetadata(intentId, owner)
-                    println(result)
                     Result.success(result.getOrNull() ?: throw IllegalStateException("No metadata received"))
                 } catch (e: Exception) {
                     Result.failure(e)

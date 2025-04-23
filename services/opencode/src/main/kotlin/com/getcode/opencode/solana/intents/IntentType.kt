@@ -94,6 +94,13 @@ sealed interface CompactMessageArgs {
         val nonce: PublicKey,
         val nonceValue: Hash,
     ): CompactMessageArgs
+
+    data class Withdraw(
+        val source: PublicKey,
+        val destination: PublicKey,
+        val nonce: PublicKey,
+        val nonceValue: Hash,
+    ): CompactMessageArgs
 }
 
 typealias CompactMessage = ByteArray

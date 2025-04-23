@@ -26,7 +26,7 @@ internal class IntentCreateAccount(
                 id = PublicKey.generate(),
                 owner = owner,
                 actionGroup = ActionGroup().apply {
-                    actions = listOf(ActionOpenAccount.create(owner))
+                    actions = listOf(ActionOpenAccount.createPrimary(owner))
                 }
             )
         }
