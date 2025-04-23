@@ -1,0 +1,12 @@
+name: Flipchat Build and Deploy (Internal)
+
+env:
+  # The name of the main module repository
+  main_project_module: apps:flipchat
+
+  # The name of the Play Store
+  playstore_name: Flipchat
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
