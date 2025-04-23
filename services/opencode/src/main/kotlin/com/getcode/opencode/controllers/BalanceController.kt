@@ -1,6 +1,5 @@
 package com.getcode.opencode.controllers
 
-import androidx.compose.runtime.mutableStateMapOf
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountInfo
@@ -9,6 +8,7 @@ import com.getcode.opencode.model.accounts.unusable
 import com.getcode.opencode.model.core.errors.GetAccountsError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -90,6 +89,16 @@ class BalanceController @Inject constructor(
             }.launchIn(scope)
     }
 
+    fun add(fiat: LocalFiat) {
+        rawBalance.value += fiat.usdc
+        localizedBalance.value = fiat
+    }
+
+    fun subtract(fiat: LocalFiat) {
+        rawBalance.value -= fiat.usdc
+        localizedBalance.value = fiat
+    }
+
     suspend fun fetchBalance(): Result<Fiat> {
         val owner = cluster.value
             ?: return Result.failure(IllegalStateException("Missing owner while fetching balance"))
@@ -104,7 +113,7 @@ class BalanceController @Inject constructor(
             .recover { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
-                    val createResult = accountController.createAccounts(owner)
+                    val createResult = accountController.createUserAccount(owner)
                     if (createResult.isSuccess) {
                         accountController.getAccounts(owner)
                             .getOrElse { throw it }

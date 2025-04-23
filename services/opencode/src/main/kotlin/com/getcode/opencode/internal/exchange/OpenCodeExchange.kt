@@ -29,6 +29,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 internal class OpenCodeExchange @Inject constructor(
@@ -72,6 +73,14 @@ internal class OpenCodeExchange @Inject constructor(
 
     override fun rates() = rates.rates
     override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
+
+    // Remember, the exchange rates date is the server-provided
+    // date-of-rate and not the time the rate was fetched. It
+    // might be reasonable for the server to return a date that
+    // is dated 11 minutes or older.
+    override val staleThreshold: Duration
+        get() = 20.minutes
+
     override suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> =
         withContext(Dispatchers.Default) {
             return@withContext currencies
@@ -112,16 +121,10 @@ internal class OpenCodeExchange @Inject constructor(
     private val isStale: Boolean
         get() {
             if (rates.rates.isEmpty()) return true
-            // Remember, the exchange rates date is the server-provided
-            // date-of-rate and not the time the rate was fetched. It
-            // might be reasonable for the server to return a date that
-            // is dated 11 minutes or older.
-            val threshold = 20.minutes.inWholeMilliseconds
-            return System.currentTimeMillis() - rates.dateMillis > threshold
+            return System.currentTimeMillis() - rates.dateMillis > staleThreshold.inWholeMilliseconds
         }
 
     init {
-        println("OPEN CODE EXCHANGE")
         launch {
             val currencyCode = locale.getDefaultCurrencyName()
             localCurrency = CurrencyCode.tryValueOf(currencyCode)
@@ -201,7 +204,7 @@ internal class OpenCodeExchange @Inject constructor(
                     message = "local:: Rate for $localCurrency not found. Defaulting to USD.",
                     type = TraceType.Process
                 )
-                rates.rateForUsd()!!
+                rates.rateForUsd()
             }
         }
 
@@ -224,7 +227,7 @@ internal class OpenCodeExchange @Inject constructor(
                     message = "entry:: Rate for $entryCurrency not found. Defaulting to USD.",
                     type = TraceType.Process
                 )
-                rates.rateForUsd()!!
+                rates.rateForUsd()
             }
         }
 

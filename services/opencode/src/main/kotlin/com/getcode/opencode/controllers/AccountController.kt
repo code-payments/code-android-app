@@ -19,7 +19,7 @@ class AccountController @Inject constructor(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    suspend fun createAccounts(owner: AccountCluster): Result<ID> {
+    suspend fun createUserAccount(owner: AccountCluster): Result<ID> {
         val intent = IntentCreateAccount.create(owner)
 
         return transactionController.submitIntent(scope, intent, owner.authority.keyPair)

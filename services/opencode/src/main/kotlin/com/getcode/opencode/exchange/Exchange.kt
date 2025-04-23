@@ -4,6 +4,7 @@ import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.Duration
 
 interface Exchange {
     val localRate: Rate
@@ -14,6 +15,8 @@ interface Exchange {
 
     fun rates(): Map<CurrencyCode, Rate>
     fun observeRates(): Flow<Map<CurrencyCode, Rate>>
+
+    val staleThreshold: Duration
 
     suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency>
     fun getCurrency(code: String): Currency?

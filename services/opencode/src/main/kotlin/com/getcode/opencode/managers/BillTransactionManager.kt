@@ -4,10 +4,13 @@ import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.transactors.ReceiveBillTransactor
+import com.getcode.opencode.internal.transactors.GiveBillTransactor
 import com.getcode.opencode.internal.transactors.SendBillTransactor
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.utils.onSuccessWithDelay
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +22,7 @@ import java.util.TimerTask
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.schedule
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class BillTransactionManager @Inject constructor(
@@ -27,8 +31,10 @@ class BillTransactionManager @Inject constructor(
     private val balanceController: BalanceController,
 ) {
     private var billDismissTimer: TimerTask? = null
-    private var sendTransactor: SendBillTransactor? = null
+
+    private var giveTransactor: GiveBillTransactor? = null
     private var receiveTransactor: ReceiveBillTransactor? = null
+    private var sendTransactor: SendBillTransactor? = null
 
     fun awaitGrabFromRecipient(
         amount: LocalFiat,
@@ -38,30 +44,30 @@ class BillTransactionManager @Inject constructor(
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        sendTransactor?.dispose()
+        giveTransactor?.dispose()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        val payload = SendBillTransactor(messagingController, transactionController, scope).also {
-            sendTransactor = it
+        val payload = GiveBillTransactor(messagingController, transactionController, scope).also {
+            giveTransactor = it
         }.with(amount, owner)
 
         scope.launch {
-            sendTransactor?.start()
+            giveTransactor?.start()
                 ?.onSuccess {
                     onGrabbed()
-                    balanceController.fetchBalance()
+                    balanceController.subtract(amount)
                     transactionController.updateLimits(owner, force = true)
-                    sendTransactor?.dispose()
-                    sendTransactor = null
+                    giveTransactor?.dispose()
+                    giveTransactor = null
                 }
                 ?.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
-                    sendTransactor?.dispose()
-                    sendTransactor = null
+                    giveTransactor?.dispose()
+                    giveTransactor = null
                 }
         }
 
-        presentSend(onTimeout)
+        presentBillForGive(onTimeout)
         present(payload)
     }
 
@@ -92,7 +98,7 @@ class BillTransactionManager @Inject constructor(
                         message = "Grabbed ${amount.converted.formatted()} from sender"
                     )
                     onGrabbed(amount)
-                    balanceController.fetchBalance()
+                    balanceController.add(amount)
                     transactionController.updateLimits(owner, force = true)
                     receiveTransactor?.dispose()
                     receiveTransactor = null
@@ -106,15 +112,36 @@ class BillTransactionManager @Inject constructor(
         }
     }
 
-    private fun presentSend(onTimeout: () -> Unit) {
+    fun createGiftCard(
+        amount: LocalFiat,
+        owner: AccountCluster,
+        onCreated: (GiftCardAccount) -> Unit,
+        onError: (Throwable) -> Unit,
+    ) {
+        sendTransactor?.dispose()
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val sendTransactor = SendBillTransactor(transactionController, scope).apply {
+            with(amount, owner)
+        }
+
+        scope.launch {
+            sendTransactor.start()
+                .onSuccess { onCreated(it) }
+                .onFailure { onError(it) }
+        }
+    }
+
+    private fun presentBillForGive(onTimeout: () -> Unit) {
         cancelBillTimeout()
         billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
             onTimeout()
         }
     }
 
-    fun cancelSend() {
+    fun reset() {
         cancelBillTimeout()
+        giveTransactor?.dispose()
+        receiveTransactor?.dispose()
         sendTransactor?.dispose()
     }
 

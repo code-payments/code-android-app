@@ -8,10 +8,12 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 
-private class ExchangeNull : Exchange {
+private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exchange {
     override val localRate: Rate
         get() = Rate.oneToOne
 

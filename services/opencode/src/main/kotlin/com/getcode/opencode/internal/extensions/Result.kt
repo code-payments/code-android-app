@@ -17,7 +17,6 @@ internal inline fun <reified K> Result<*>.filterIsInstance(): Result<K> {
             val value = getOrThrow()
             if (value is K) Result.success(value)
             else {
-                println(value?.javaClass?.simpleName)
                 Result.failure(Exception("Value is not an instance of ${K::class.simpleName}"))
             }
         }
