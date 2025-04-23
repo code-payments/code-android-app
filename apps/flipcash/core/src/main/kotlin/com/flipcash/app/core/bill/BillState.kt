@@ -93,7 +93,6 @@ sealed interface Bill {
     val canSwipeToDismiss: Boolean
         get() = when (this) {
             is Cash -> true
-            is Payment -> false
         }
 
     val canFlip: Boolean
@@ -105,12 +104,6 @@ sealed interface Bill {
                     amount = amount,
                     data = data
                 )
-
-                is Payment -> Metadata(
-                    amount = amount,
-                    data = payload.codeData.toList(),
-                    request = request,
-                )
             }
         }
 
@@ -120,16 +113,6 @@ sealed interface Bill {
         override val data: List<Byte> = emptyList(),
         val kind: Kind = Kind.cash,
     ) : Bill {
-        override val canFlip: Boolean = false
-    }
-
-    data class Payment(
-        override val amount: LocalFiat,
-        val payload: OpenCodePayload,
-        val request: DeepLinkRequest? = null
-    ) : Bill {
-        override val didReceive: Boolean = false
-        override val data: List<Byte> = payload.codeData.toList()
         override val canFlip: Boolean = false
     }
 }

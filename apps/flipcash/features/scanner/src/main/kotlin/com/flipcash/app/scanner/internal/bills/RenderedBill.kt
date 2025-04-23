@@ -26,13 +26,6 @@ internal fun RenderedBill(
             payloadData = bill.data,
             amount = bill.amount
         )
-
-        is Bill.Payment -> Receipt(
-            modifier = modifier,
-            data = bill.data,
-            currencyCode = bill.payload.fiat?.currencyCode,
-            amount = bill.amount
-        )
     }
 }
 

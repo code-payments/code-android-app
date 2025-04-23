@@ -25,18 +25,18 @@ fun BillAmount(modifier: Modifier = Modifier, text: String = "", flag: Int? = R.
                 .vertical()
                 .rotate(-90f)
         ) {
-            if (flag != null) {
-                Image(
-                    modifier = Modifier
-                        .padding(end = CodeTheme.dimens.grid.x2)
-                        .height(CodeTheme.dimens.grid.x5)
-                        .width(CodeTheme.dimens.grid.x5)
-                        .align(Alignment.CenterVertically)
-                        .clip(CircleShape),
-                    painter = painterResource(id = flag),
-                    contentDescription = ""
-                )
-            }
+//            if (flag != null) {
+//                Image(
+//                    modifier = Modifier
+//                        .padding(end = CodeTheme.dimens.grid.x2)
+//                        .height(CodeTheme.dimens.grid.x5)
+//                        .width(CodeTheme.dimens.grid.x5)
+//                        .align(Alignment.CenterVertically)
+//                        .clip(CircleShape),
+//                    painter = painterResource(id = flag),
+//                    contentDescription = ""
+//                )
+//            }
             Text(
                 text = text,
                 style = CodeTheme.typography.displayLarge.copy(

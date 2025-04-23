@@ -109,8 +109,6 @@ fun EmojiGarden(onClick: (String) -> Unit) {
             cumulativeIndex += allEmojis[category]?.count() ?: 0
         }
 
-        println(mapping)
-
         mapping
     }
 
@@ -245,9 +243,7 @@ fun EmojiGarden(onClick: (String) -> Unit) {
                 }
                 .distinctUntilChanged()
                 .onEach { newCategory ->
-                    println("category should now be ${newCategory.name}")
                     selectedCategory = newCategory
-                    println("now ${selectedCategory.name}")
                 }.launchIn(this)
         }
     }
@@ -260,7 +256,6 @@ private fun EmojiCategorySelection(
     selectedCategory: Category,
     onSelection: (Category) -> Unit,
 ) {
-    println("ecs ${selectedCategory.name}")
     val itemPositions = remember(categories) { mutableStateMapOf<Int, Float>() }
     val animatedOffset = remember(categories) { Animatable(0f) }
 

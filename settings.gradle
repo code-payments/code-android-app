@@ -14,6 +14,7 @@ include(
         ":apps:flipcash:features:scanner",
         ":apps:flipcash:features:give",
         ":apps:flipcash:features:balance",
+        ":apps:flipcash:features:send",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

@@ -4,12 +4,16 @@ import com.flipcash.app.core.PresentationStyle
 import com.flipcash.app.core.SessionController
 import com.flipcash.app.core.SessionState
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.bill.BillController
 import com.flipcash.app.core.bill.BillState
-import com.flipcash.app.core.bill.BillToast
 import com.flipcash.app.core.bill.DeepLinkRequest
 import com.flipcash.app.core.bill.PaymentValuation
+import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
+import com.flipcash.app.core.internal.share.ShareResult
+import com.flipcash.app.core.internal.share.ShareSheetController
+import com.flipcash.app.core.internal.toast.ToastController
+import com.flipcash.app.core.internal.updater.BalanceUpdater
+import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ActivityFeedController
@@ -17,11 +21,14 @@ import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -49,8 +56,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class RealSessionController @Inject constructor(
@@ -61,7 +66,11 @@ class RealSessionController @Inject constructor(
     private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
-    private val vibrator: Vibrator
+    private val vibrator: Vibrator,
+    private val balanceUpdater: BalanceUpdater,
+    private val exchangeUpdater: ExchangeUpdater,
+    private val shareSheetController: ShareSheetController,
+    private val toastController: ToastController,
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -90,13 +99,26 @@ class RealSessionController @Inject constructor(
     }
 
     override fun onAppInForeground() {
+        println("onAppInForeground")
+        startPolling()
         updateUserFlags()
         requestAirdrop()
         populateActivityFeed()
+        shareSheetController.checkForShare()
     }
 
     override fun onAppInBackground() {
-        billController.reset()
+       stopPolling()
+    }
+
+    private fun startPolling() {
+        exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
+        balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+    }
+
+    private fun stopPolling() {
+        exchangeUpdater.stop()
+        balanceUpdater.stop()
     }
 
     private fun updateUserFlags() {
@@ -112,7 +134,7 @@ class RealSessionController @Inject constructor(
                     type = AirdropType.GetFirstCrypto,
                     destination = it.authority.keyPair
                 ).onSuccess { amount ->
-                    showToast(amount = amount, isDeposit = true, initialDelay = 1.seconds)
+                    toastController.show(amount = amount, isDeposit = true, initialDelay = 1.seconds)
                 }
             }
         }
@@ -140,41 +162,59 @@ class RealSessionController @Inject constructor(
             return ErrorUtils.showNetworkError(resources)
         }
 
-        // Don't show the remote send and cancel buttons for airdrop
+        // Don't show action buttons for airdrop
         when (bill) {
             is Bill.Cash -> {
-                if (bill.kind == Bill.Kind.airdrop) {
-                    billController.update {
-                        it.copy(
-                            primaryAction = null,
-                            secondaryAction = null,
-                        )
-                    }
-                } else {
-                    if (bill.didReceive) {
+                when (bill.kind) {
+                    Bill.Kind.airdrop -> {
+                        // Don't show action buttons for airdrop
                         billController.update {
                             it.copy(
                                 primaryAction = null,
                                 secondaryAction = null,
                             )
                         }
-                    } else {
-                        billController.update {
-                            it.copy(
-                                primaryAction = BillState.Action.Cancel(
-                                    label = resources.getString(R.string.action_cancel),
-                                    action = { cancelSend() }
-                                ),
-                                secondaryAction = null,
-                            )
+                    }
+                    Bill.Kind.cash -> {
+                        if (bill.didReceive) {
+                            // Don't show action buttons for received cash
+                            billController.update {
+                                it.copy(
+                                    primaryAction = null,
+                                    secondaryAction = null,
+                                )
+                            }
+                        } else {
+                            // Allow cancelling pending outgoing cash bills
+                            billController.update {
+                                it.copy(
+                                    primaryAction = BillState.Action.Cancel(
+                                        label = resources.getString(R.string.action_cancel),
+                                        action = { cancelSend() }
+                                    ),
+                                    secondaryAction = null,
+                                )
+                            }
+                        }
+                        awaitBillGrab(bill, owner, vibrate)
+                    }
+                    Bill.Kind.remote -> {
+                        val data = OpenCodePayload(
+                            kind = PayloadKind.Cash,
+                            value = bill.amount.converted,
+                            nonce = nonce
+                        )
+
+                        shareGiftCard(bill.amount, owner) {
+                            presentBillToUser(data.codeData.toList(), bill, vibrate)
                         }
                     }
                 }
             }
-
-            else -> Unit
         }
+    }
 
+    private fun awaitBillGrab(bill: Bill, owner: AccountCluster, vibrate: Boolean) {
         billController.awaitGrab(
             amount = bill.amount,
             owner = owner,
@@ -197,7 +237,7 @@ class RealSessionController @Inject constructor(
             present = { data ->
                 if (!bill.didReceive) {
                     trace(
-                        tag = "Bill",
+                        tag = "Session",
                         message = "Pull out cash",
                         metadata = {
                             "amount" to bill.amount
@@ -205,13 +245,46 @@ class RealSessionController @Inject constructor(
                         type = TraceType.User,
                     )
                 }
-                presentSend(data, bill, vibrate)
+                presentBillToUser(data, bill, vibrate)
             },
         )
     }
 
-    override fun onRemoteSend() {
-        TODO("Not yet implemented")
+    private fun shareGiftCard(amount: LocalFiat, owner: AccountCluster, onCreated: () -> Unit) {
+        billController.createGiftCard(
+            amount = amount,
+            owner = owner,
+            onCreated = { giftCard ->
+                onCreated()
+                scope.launch {
+                    delay(500)
+                    shareSheetController.onShared = { result ->
+                        when (result) {
+                            ShareResult.CopiedToClipboard -> {
+                                cancelSend(PresentationStyle.Pop)
+                                scope.launch {
+                                    activityFeedController.refreshAfterEvent(ActivityFeedType.TransactionHistory)
+                                }
+                            }
+                            is ShareResult.SharedToApp -> {
+                                cancelSend(PresentationStyle.Pop)
+                                scope.launch {
+                                    activityFeedController.refreshAfterEvent(ActivityFeedType.TransactionHistory)
+                                }
+                            }
+                            ShareResult.NotShared -> cancelSend()
+                        }
+                    }
+                    shareSheetController.presentForCashLink(giftCard, amount)
+                }
+            },
+            onError = {
+                TopBarManager.showMessage(
+                    title = resources.getString(R.string.error_title_failedToCreateGiftCard),
+                    message = resources.getString(R.string.error_description_failedToCreateGiftCard)
+                )
+            }
+        )
     }
 
     override fun onCodeScan(code: ScannableKikCode) {
@@ -282,7 +355,7 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+    private fun presentBillToUser(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
         if (bill.didReceive) {
             billController.update {
                 it.copy(
@@ -327,70 +400,15 @@ class RealSessionController @Inject constructor(
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
         scope.launch {
-            val shown = showToastIfNeeded(style)
+            val shown = toastController.showIfNeeded(style)
             _state.update { it.copy(presentationStyle = style) }
             billController.reset(showToast = shown)
 
             if (shown) {
                 delay(5.seconds)
             }
+            shareSheetController.reset()
             billController.reset()
-        }
-    }
-
-    private fun showToastIfNeeded(
-        style: PresentationStyle,
-    ): Boolean {
-        val billState = billController.state.value
-        val bill = billState.bill ?: return false
-
-        if (style is PresentationStyle.Pop || billState.showToast) {
-            showToast(
-                amount = bill.metadata.amount,
-                isDeposit = when (style) {
-                    PresentationStyle.Slide -> true
-                    PresentationStyle.Pop -> false
-                    else -> false
-                },
-            )
-
-            return true
-        }
-
-        return false
-    }
-
-    private fun showToast(
-        amount: LocalFiat,
-        isDeposit: Boolean = false,
-        initialDelay: Duration = 500.milliseconds
-    ) {
-        if (amount.converted.doubleValue == 0.0) {
-            return
-        }
-
-        scope.launch {
-            delay(initialDelay)
-            billController.update {
-                it.copy(
-                    showToast = true,
-                    toast = BillToast(amount = amount.converted, isDeposit = isDeposit)
-                )
-            }
-
-            delay(5.seconds)
-
-            billController.update {
-                it.copy(
-                    showToast = false
-                )
-            }
-
-            // wait for animation to run
-            delay(500.milliseconds)
-            billController.update {
-                it.copy(toast = null)
-            }
         }
     }
 }

@@ -1,11 +1,11 @@
-package com.flipcash.app.give.internal
+package com.flipcash.app.send.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.money.FormatUtils
 import com.flipcash.app.core.ui.CurrencyHolder
-import com.flipcash.features.give.R
+import com.flipcash.features.send.R
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
@@ -35,12 +35,12 @@ import javax.inject.Inject
 import kotlin.math.min
 
 @HiltViewModel
-internal class GiveScreenViewModel @Inject constructor(
+internal class SendScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
     balanceController: BalanceController,
     transactionController: TransactionController,
-) : BaseViewModel2<GiveScreenViewModel.State, GiveScreenViewModel.Event>(
+) : BaseViewModel2<SendScreenViewModel.State, SendScreenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -52,22 +52,22 @@ internal class GiveScreenViewModel @Inject constructor(
         val currencyModel: CurrencyHolder = CurrencyHolder(),
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
         val limits: Limits? = null,
-        val maxForGive: Pair<Double, CurrencyCode>? = null,
+        val maxForSend: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
     ) {
-        val canGive: Boolean
+        val canSend: Boolean
             get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0) > 0.00
 
-        val maxAvailableForGive: String
-            get() = maxForGive?.let { FormatUtils.formatCurrency(it.first, it.second) }.orEmpty()
+        val maxAvailableForSend: String
+            get() = maxForSend?.let { FormatUtils.formatCurrency(it.first, it.second) }.orEmpty()
 
         val isError: Boolean
             get() {
                 if (amountAnimatedModel.amountData.amount.isEmpty()) return false
 
-                if (maxForGive != null) {
+                if (maxForSend != null) {
                     if ((amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                            ?: 0.0) < maxForGive.first
+                            ?: 0.0) < maxForSend.first
                     ) {
                         return false
                     }
@@ -84,10 +84,10 @@ internal class GiveScreenViewModel @Inject constructor(
         data object OnBackspace : Event
         data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
         data class OnAmountChanged(val amountAnimatedModel: AmountAnimatedInputUiModel) : Event
-        data class OnCurrencyChanged(val model: Currency) : Event
+        data class OnCurrencyChanged(val currency: Currency) : Event
         data class OnMaxDetermined(val max: Double, val currencyCode: CurrencyCode) : Event
         data class OnLimitsChanged(val limits: Limits?) : Event
-        data object OnGive : Event
+        data object OnSend : Event
         data class PresentBill(val bill: Bill.Cash) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
@@ -119,8 +119,8 @@ internal class GiveScreenViewModel @Inject constructor(
         if (isOverLimit) {
             val currencySymbol = currency.selected?.symbol ?: "$"
             TopBarManager.showMessage(
-                resources.getString(R.string.error_title_giveLimitReached),
-                resources.getString(R.string.error_description_giveLimitReached)
+                resources.getString(R.string.error_title_sendLimitReached),
+                resources.getString(R.string.error_description_sendLimitReached)
                     .replaceParam(
                         "$currencySymbol${sendLimit.nextTransaction.toInt()}"
                     )
@@ -203,7 +203,7 @@ internal class GiveScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnGive>()
+            .filterIsInstance<Event.OnSend>()
             .map { stateFlow.value.amountAnimatedModel }
             .filter { !(checkBalanceLimit() || checkSendLimit()) }
             .onEach { data ->
@@ -215,7 +215,7 @@ internal class GiveScreenViewModel @Inject constructor(
                 }
 
                 val amountFiat = data.amountData.amount.let { LocalFiat(it, rate) }
-                val bill = Bill.Cash(amount = amountFiat)
+                val bill = Bill.Cash(amount = amountFiat, kind = Bill.Kind.remote)
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
                 dispatchEvent(Event.PresentBill(bill))
             }.launchIn(viewModelScope)
@@ -235,12 +235,12 @@ internal class GiveScreenViewModel @Inject constructor(
                 }
 
                 Event.OnBackspace,
-                Event.OnGive,
+                Event.OnSend,
                 is Event.OnEnteredNumberChanged,
                 is Event.PresentBill,
                 is Event.OnNumberPressed -> { state -> state }
 
-                is Event.OnCurrencyChanged -> { state -> state.copy(currencyModel = CurrencyHolder(event.model)) }
+                is Event.OnCurrencyChanged -> { state -> state.copy(currencyModel = CurrencyHolder(event.currency)) }
                 Event.OnDecimalPressed -> { state -> state }
                 is Event.UpdateLoadingState -> { state ->
                     val loadingSuccess = state.generatingBill
@@ -252,7 +252,7 @@ internal class GiveScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnMaxDetermined -> { state -> state.copy(maxForGive = event.max to event.currencyCode) }
+                is Event.OnMaxDetermined -> { state -> state.copy(maxForSend = event.max to event.currencyCode) }
                 is Event.OnLimitsChanged -> { state -> state.copy(limits = event.limits) }
             }
         }

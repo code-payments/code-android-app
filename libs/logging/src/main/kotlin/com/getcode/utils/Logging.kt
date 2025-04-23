@@ -67,15 +67,23 @@ private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
 fun trace(
     message: String,
     tag: String? = null,
-    type: TraceType = TraceType.Log,
     metadata: MetadataBuilder.() -> Unit = {},
-    error: Throwable? = null
+    error: Throwable? = null,
+    type: TraceType = if (error != null) TraceType.Error else TraceType.Log,
 ) {
-    error?.printStackTrace()
     val tagBlock = tag?.let { "[$it] " }
     val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 
-    tree.d(message)
+    when (type) {
+        TraceType.Error -> tree.e(message)
+        TraceType.Log -> tree.d(message)
+        TraceType.Navigation -> tree.d(message)
+        TraceType.Network -> tree.i(message)
+        TraceType.Process -> tree.i(message)
+        TraceType.Silent -> tree.d(message)
+        TraceType.StateChange -> tree.i(message)
+        TraceType.User -> tree.d(message)
+    }
 
     val metadataMap = metadata { metadata() }
 
@@ -119,7 +127,7 @@ fun <T> timedTrace(
         "duration" to time.inWholeMilliseconds
     }
 
-    trace(message, tag, type, timedMetadata, error)
+    trace(message = message, tag = tag, type = type, metadata = timedMetadata, error = error)
     onComplete(result, time)
     return result
 }
@@ -144,7 +152,7 @@ suspend fun <T> timedTraceSuspend(
         "duration" to time.inWholeMilliseconds
     }
 
-    trace(message, tag, type, timedMetadata, error)
+    trace(message = message, tag = tag, type = type, metadata = timedMetadata, error = error)
     onComplete(result, time)
     return result
 }

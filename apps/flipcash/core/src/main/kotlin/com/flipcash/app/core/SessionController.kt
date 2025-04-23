@@ -24,15 +24,9 @@ interface SessionController {
     fun onAppInBackground()
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
-    fun showBill(
-        bill: Bill,
-        vibrate: Boolean = false
-    )
+    fun showBill(bill: Bill, vibrate: Boolean = false)
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide)
-    fun onRemoteSend()
-    fun onCodeScan(
-        code: ScannableKikCode,
-    )
+    fun onCodeScan(code: ScannableKikCode)
     fun handleRequest(request: DeepLinkRequest?)
 }
 
