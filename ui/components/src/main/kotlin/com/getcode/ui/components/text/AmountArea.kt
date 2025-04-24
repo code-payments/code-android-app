@@ -77,50 +77,19 @@ fun AmountArea(
                 }
             }
         }
-        KinValueHint(
+        ValueHint(
             modifier = Modifier.align(CenterHorizontally),
             showIcon = isAltCaption && isAltCaptionKinIcon,
             iconColor = altCaptionColor ?: CodeTheme.colors.brandLight,
-            captionColor = if (isAltCaption) (altCaptionColor ?: CodeTheme.colors.errorText) else CodeTheme.colors.brandLight,
+            captionColor = if (isAltCaption) (altCaptionColor ?: CodeTheme.colors.errorText) else CodeTheme.colors.textSecondary,
             captionText = captionText,
             networkState = networkState
         )
-//        Row(
-//            modifier = Modifier
-//                .wrapContentHeight()
-//                .align(Alignment.CenterHorizontally),
-//            verticalAlignment = CenterVertically
-//        ) {
-//            if (isAltCaption && isAltCaptionKinIcon) {
-//                Image(
-//                    modifier = Modifier
-//                        .padding(end = CodeTheme.dimens.staticGrid.x1)
-//                        .requiredSize(CodeTheme.dimens.staticGrid.x2),
-//                    painter = painterResource(
-//                        id = if (altCaptionColor == Alert) R.drawable.ic_kin_red
-//                        else R.drawable.ic_kin_brand
-//                    ),
-//                    contentDescription = ""
-//                )
-//            }
-//            if (!networkState.connected) {
-//                ConnectionStatus(state = networkState)
-//            } else if (captionText != null) {
-//                Text(
-//                    text = captionText,
-//                    color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-//                    style = CodeTheme.typography.textMedium.copy(
-//                        textAlign = TextAlign.Center
-//                    )
-//                )
-//            }
-//
-//        }
     }
 }
 
 @Composable
-fun KinValueHint(
+private fun ValueHint(
     modifier: Modifier = Modifier,
     showIcon: Boolean = true,
     iconColor: Color = CodeTheme.colors.textSecondary,
