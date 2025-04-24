@@ -7,6 +7,7 @@ import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
+import com.getcode.theme.CashBill
 import com.getcode.theme.CodeTypography
 import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
@@ -47,7 +48,8 @@ private val colors = ColorScheme(
     textSecondary = FC_TextWithPrimary,
     divider = FC_Secondary,
     dividerVariant = FC_Tertiary,
-    trackColor = Color(0xFF241A4B)
+    trackColor = Color(0xFF241A4B),
+    cashBill = CashBill
 )
 
 @Composable

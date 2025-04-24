@@ -68,7 +68,8 @@ import kotlin.math.roundToInt
 @Suppress("ConstPropertyName")
 private object CashBillDefaults {
     const val AspectRatio = 0.555f
-    val BillColor: Color = Color(red = 44, green = 42, blue = 65)
+    val BillColor: Color
+        @Composable get() = CodeTheme.colors.cashBillColor
 
     const val CodeBackgroundOpacity = 0.65f
 
@@ -378,7 +379,7 @@ private fun BillDecorImage(
 private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, data: List<Byte>) {
     Box(
         modifier = modifier
-            .punchCircle(CashBillDefaults.BillColor.copy(0.9f)),
+            .punchCircle(CashBillDefaults.BillColor.copy(0.6f)),
         contentAlignment = Alignment.Center
     ) {
         if (data.isNotEmpty()) {

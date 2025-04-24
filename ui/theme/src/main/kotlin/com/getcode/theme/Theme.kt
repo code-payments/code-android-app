@@ -42,7 +42,8 @@ internal val CodeDefaultColorScheme = ColorScheme(
     textSecondary = TextSecondary,
     divider = White10,
     dividerVariant = White05,
-    trackColor = BrandSlideToConfirm
+    trackColor = BrandSlideToConfirm,
+    cashBill = CashBill
 )
 
 @Composable
@@ -116,6 +117,7 @@ class ColorScheme(
     textMain: Color,
     textSecondary: Color,
     trackColor: Color,
+    cashBill: Color,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -167,6 +169,8 @@ class ColorScheme(
         private set
     var trackColor by mutableStateOf(trackColor)
         private set
+    var cashBillColor by mutableStateOf(cashBill)
+        private set
 
     fun update(other: ColorScheme) {
         brand = other.brand
@@ -194,6 +198,7 @@ class ColorScheme(
         divider = other.divider
         dividerVariant = other.dividerVariant
         trackColor = other.trackColor
+        cashBillColor = other.cashBillColor
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -221,7 +226,8 @@ class ColorScheme(
         onAction = onAction,
         divider = divider,
         dividerVariant = dividerVariant,
-        trackColor = trackColor
+        trackColor = trackColor,
+        cashBill = cashBillColor
     )
 }
 

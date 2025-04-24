@@ -1,8 +1,8 @@
 package com.flipcash.app.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import com.getcode.theme.Brand
 import com.getcode.theme.BrandAccent
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandIndicator
@@ -17,40 +17,47 @@ import com.getcode.theme.Error
 import com.getcode.theme.Gray50
 import com.getcode.theme.Success
 import com.getcode.theme.TextError
-import com.getcode.theme.TextMain
-import com.getcode.theme.TextSecondary
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
 import com.getcode.theme.codeTypography
 
-private val colors = ColorScheme(
-    brand = Brand,
-    brandLight = BrandLight,
-    brandSubtle = BrandSubtle,
-    brandMuted = BrandMuted,
-    brandDark = BrandDark,
-    brandOverlay = BrandOverlay,
-    brandContainer = Brand,
-    secondary = BrandAccent,
-    tertiary = BrandAccent,
-    indicator = BrandIndicator,
-    action = Gray50,
-    onAction = White,
-    background = Brand,
-    onBackground = White,
-    surface = Brand,
-    surfaceVariant = BrandDark,
-    onSurface = White,
-    error = Error,
-    errorText = TextError,
-    success = Success,
-    textMain = TextMain,
-    textSecondary = TextSecondary,
-    divider = White10,
-    dividerVariant = White05,
-    trackColor = BrandSlideToConfirm
-)
+private object ColorSpec {
+    val primary = Color(0xFF001A0C)
+    val secondaryText = Color(115, 129, 121)
+    val cashBill = Color(0xFF06450F)
+}
+
+private val colors = with(ColorSpec) {
+    ColorScheme(
+        brand = primary,
+        brandLight = BrandLight,
+        brandSubtle = BrandSubtle,
+        brandMuted = BrandMuted,
+        brandDark = BrandDark,
+        brandOverlay = BrandOverlay,
+        brandContainer = primary,
+        secondary = BrandAccent,
+        tertiary = BrandAccent,
+        indicator = BrandIndicator,
+        action = Gray50,
+        onAction = White,
+        background = primary,
+        onBackground = White,
+        surface = primary,
+        surfaceVariant = BrandDark,
+        onSurface = White,
+        error = Error,
+        errorText = TextError,
+        success = Success,
+        textMain = Color.White,
+        textSecondary = secondaryText,
+        divider = White10,
+        dividerVariant = White05,
+        trackColor = BrandSlideToConfirm,
+        cashBill = cashBill,
+    )
+}
 
 @Composable
 fun FlipcashTheme(content: @Composable () -> Unit) {

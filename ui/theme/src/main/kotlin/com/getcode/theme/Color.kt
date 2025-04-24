@@ -31,6 +31,8 @@ val Warning = Color(0xFFf1ab1f)
 val Success = Color(0xFF87D300)
 val Error = Color(0xFFA42D2D)
 
+val CashBill = Color(red = 44, green = 42, blue = 65)
+
 val TextMain = White
 val TextSecondary = BrandLight
 val TextError = Alert
