@@ -63,6 +63,8 @@ import com.getcode.ui.core.addIf
 import com.getcode.ui.core.measured
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.util.permissions.LocalPermissionChecker
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
@@ -71,7 +73,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class AccessKeyScreen: Screen, NamedScreen, Parcelable {
+class AccessKeyScreen : Screen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -83,6 +85,7 @@ class AccessKeyScreen: Screen, NamedScreen, Parcelable {
     override fun Content() {
         val viewModel = getViewModel<LoginAccessKeyViewModel>()
         val navigator = LocalCodeNavigator.current
+        val permissions = LocalPermissionChecker.current
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -93,7 +96,18 @@ class AccessKeyScreen: Screen, NamedScreen, Parcelable {
                 titleAlignment = Alignment.CenterHorizontally,
             )
             AccessKeyScreenContent(viewModel) {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Login.CameraPermission(true)))
+                val nextScreen = when {
+                    permissions.isDenied(Manifest.permission.CAMERA) -> {
+                        ScreenRegistry.get(NavScreenProvider.Login.CameraPermission(true))
+                    }
+
+                    permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
+                        ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true))
+                    }
+
+                    else -> ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())
+                }
+                navigator.push(nextScreen)
             }
         }
 
@@ -128,7 +142,8 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
         }
     }
 
-    val launcher = getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
+    val launcher =
+        getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
     val permissionChecker = rememberPermissionHandler()
 
     LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
@@ -156,7 +171,6 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
                 launcher = launcher
             )
         }
-
     }
     val onSkipClick = {
         onCompleted()
@@ -231,7 +245,7 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxHeight()
-                .addIf(buttonHeight.isSpecified) { Modifier.padding(bottom = buttonHeight + CodeTheme.dimens.grid.x4) },
+                .addIf(buttonHeight.isSpecified) { Modifier.padding(bottom = buttonHeight) },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(

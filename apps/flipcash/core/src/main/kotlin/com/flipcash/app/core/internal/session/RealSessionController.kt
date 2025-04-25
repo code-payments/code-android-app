@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -92,7 +93,7 @@ class RealSessionController @Inject constructor(
 
         userManager.state
             .mapNotNull { it.authState }
-            .filterIsInstance<AuthState.LoggedIn>()
+            .filter { it.canAccessAuthenticatedApis }
             .distinctUntilChanged()
             .onEach { onAppInForeground() }
             .launchIn(scope)
@@ -112,8 +113,10 @@ class RealSessionController @Inject constructor(
     }
 
     private fun startPolling() {
-        exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
-        balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
+            balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+        }
     }
 
     private fun stopPolling() {
@@ -122,27 +125,37 @@ class RealSessionController @Inject constructor(
     }
 
     private fun updateUserFlags() {
-        scope.launch {
-            accountController.getUserFlags()
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                accountController.getUserFlags()
+            }
         }
     }
 
     private fun requestAirdrop() {
-        scope.launch {
-            userManager.accountCluster?.let {
-                transactionController.airdrop(
-                    type = AirdropType.GetFirstCrypto,
-                    destination = it.authority.keyPair
-                ).onSuccess { amount ->
-                    toastController.show(amount = amount, isDeposit = true, initialDelay = 1.seconds)
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                userManager.accountCluster?.let {
+                    transactionController.airdrop(
+                        type = AirdropType.GetFirstCrypto,
+                        destination = it.authority.keyPair
+                    ).onSuccess { amount ->
+                        toastController.show(
+                            amount = amount,
+                            isDeposit = true,
+                            initialDelay = 1.seconds
+                        )
+                    }
                 }
             }
         }
     }
 
     private fun populateActivityFeed() {
-        scope.launch {
-            activityFeedController.getLatestMessagesFor(ActivityFeedType.TransactionHistory)
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                activityFeedController.getLatestMessagesFor(ActivityFeedType.TransactionHistory)
+            }
         }
     }
 

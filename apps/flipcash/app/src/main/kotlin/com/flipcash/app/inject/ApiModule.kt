@@ -2,7 +2,6 @@ package com.flipcash.app.inject
 
 import android.content.Context
 import com.flipcash.app.BuildConfig
-import com.flipcash.app.accounts.AccountAuthenticator
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -14,14 +13,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object ApiModule {
-
-    @Singleton
-    @Provides
-    fun provideAccountAuthenticator(
-        @ApplicationContext context: Context,
-    ): AccountAuthenticator {
-        return AccountAuthenticator(context)
-    }
 
     @Singleton
     @Provides

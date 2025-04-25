@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.runtime.Composable
@@ -33,7 +32,6 @@ import androidx.compose.ui.text.withStyle
 import com.flipcash.app.core.chrome.ChromeTabsUtils
 import com.flipcash.features.login.R
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -62,20 +60,13 @@ internal fun LoginRouterScreenContent(
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .fillMaxWidth(0.65f)
                     .noRippleClickable(enabled = !betaFlagsVisible) { onLogoTapped() },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
                 Image(
-                    painter = painterResource(R.drawable.flipchat_logo),
+                    painter = painterResource(R.drawable.ic_flipcash_logo_w_name_large),
                     contentDescription = "",
-                    modifier = Modifier
-                )
-                Text(
-                    text = stringResource(R.string.app_name_without_variant),
-                    style = CodeTheme.typography.displayMedium,
-                    color = White
                 )
             }
 

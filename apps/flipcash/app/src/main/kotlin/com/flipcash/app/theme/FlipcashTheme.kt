@@ -31,8 +31,8 @@ private object ColorSpec {
 private val colors = with(ColorSpec) {
     ColorScheme(
         brand = primary,
-        brandLight = BrandLight,
-        brandSubtle = BrandSubtle,
+        brandLight = secondaryText,
+        brandSubtle = secondaryText,
         brandMuted = BrandMuted,
         brandDark = BrandDark,
         brandOverlay = BrandOverlay,

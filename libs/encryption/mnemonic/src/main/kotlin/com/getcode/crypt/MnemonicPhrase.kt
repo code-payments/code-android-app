@@ -28,6 +28,9 @@ class MnemonicPhrase(val kind: Kind, val words: List<String>) {
         return Derive.path(mnemonicSeed, path)
     }
 
+    val wordString: String
+        get() = words.joinToString(" ")
+
     fun getBase64EncodedEntropy(): String {
         return MnemonicCache.cachedCode
             .toEntropy(words)

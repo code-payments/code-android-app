@@ -6,5 +6,5 @@ sealed class ScannerDecorItem(val screen: NavScreenProvider) {
     data object Give : ScannerDecorItem(NavScreenProvider.HomeScreen.Give)
     data object Send : ScannerDecorItem(NavScreenProvider.HomeScreen.Send)
     data object Balance : ScannerDecorItem(NavScreenProvider.HomeScreen.Balance)
-    data object Menu : ScannerDecorItem(NavScreenProvider.HomeScreen.Menu)
+    data object Menu : ScannerDecorItem(NavScreenProvider.HomeScreen.Menu.Root)
 }

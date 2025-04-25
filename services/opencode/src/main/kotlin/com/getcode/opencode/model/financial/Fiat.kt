@@ -46,11 +46,7 @@ data class Fiat(
     fun formatted(suffix: String? = null, truncated: Boolean = false): String {
         val formatter = android.icu.text.DecimalFormat.getCurrencyInstance(Locale.getDefault()).apply {
             currency = Currency.getInstance(currencyCode.name)
-            maximumFractionDigits = if (truncated) {
-                0
-            } else {
-                6 // Match the multiplier precision
-            }
+            maximumFractionDigits = if (truncated) 0 else 2
         }
         val formattedValue = formatter.format(decimalValue)
         return if (suffix != null) "$formattedValue $suffix" else formattedValue

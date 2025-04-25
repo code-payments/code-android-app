@@ -12,6 +12,7 @@ import coil3.request.crossfade
 import com.bugsnag.android.Bugsnag
 import com.flipcash.app.core.auth.AuthManager
 import com.getcode.crypt.MnemonicCache
+import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
@@ -26,6 +27,9 @@ class FlipcashApp : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var authManager: AuthManager
+
+    @Inject
+    lateinit var eventRepository: EventRepository
 
     override fun onCreate() {
         super.onCreate()

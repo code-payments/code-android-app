@@ -19,6 +19,8 @@ import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.util.permissions.LocalPermissionChecker
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.LocalSystemSettings
 import com.getcode.util.resources.ResourceHelper
@@ -68,18 +70,15 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var exchange: Exchange
-
-//    @Inject
-//    lateinit var client: Client
 //
 //    @Inject
 //    lateinit var paymentController: PaymentController
 //
     @Inject
     lateinit var billing: BillingClient
-//
-//    @Inject
-//    lateinit var balanceController: BalanceController
+
+    @Inject
+    lateinit var permissionChecker: PermissionChecker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,7 +98,7 @@ class MainActivity : FragmentActivity() {
                 LocalSessionController provides sessionController,
 //                LocalPaymentController provides paymentController,
                 LocalBillingClient provides billing,
-//                LocalBalanceController provides balanceController,
+                LocalPermissionChecker provides permissionChecker,
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

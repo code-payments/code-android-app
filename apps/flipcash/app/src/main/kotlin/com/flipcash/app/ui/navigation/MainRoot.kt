@@ -76,7 +76,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.flipchat_logo),
+                        painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
                         contentDescription = null,
                     )
                 }

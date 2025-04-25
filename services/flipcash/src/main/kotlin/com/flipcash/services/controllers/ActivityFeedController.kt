@@ -44,9 +44,6 @@ class ActivityFeedController @Inject constructor(
 
     // New method to refresh cache after an event
     suspend fun refreshAfterEvent(type: ActivityFeedType, maxItems: Int = -1): Result<List<ActivityFeedMessage>> {
-        val owner = userManager.accountCluster?.authority?.keyPair
-            ?: return Result.failure(Throwable("No account cluster in UserManager"))
-
         // Generate cache key
         val cacheKey = "${type.name}_$maxItems"
 

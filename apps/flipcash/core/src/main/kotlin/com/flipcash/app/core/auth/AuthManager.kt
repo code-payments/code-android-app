@@ -1,35 +1,26 @@
 package com.flipcash.app.core.auth
 
 import android.annotation.SuppressLint
-import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import com.bugsnag.android.Bugsnag
-import com.flipcash.app.core.AccountType
-import com.flipcash.app.core.internal.accounts.AccountUtils
-import com.flipcash.app.core.internal.accounts.UserIdResult
+import com.flipcash.app.core.credentials.PassphraseCredentialManager
 import com.flipcash.app.core.internal.extensions.token
 import com.flipcash.core.BuildConfig
-import com.flipcash.services.FlipcashCore
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.base58
-import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
-import com.getcode.vendor.Base58
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
 import com.ionspin.kotlin.crypto.LibsodiumInitializer
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,16 +29,13 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val credentialManager: PassphraseCredentialManager,
     private val userManager: UserManager,
     private val notificationManager: NotificationManagerCompat,
-    @AccountType
-    private val accountType: String,
     private val accountController: AccountController,
     private val pushController: PushController,
     private val balanceController: BalanceController,
     private val activityFeedController: ActivityFeedController,
-    private val eventRepository: EventRepository,
 //    private val analytics: AnalyticsService,
 //    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -55,7 +43,11 @@ class AuthManager @Inject constructor(
 
     companion object {
         private const val TAG = "AuthManager"
-        internal fun taggedTrace(message: String, type: TraceType = TraceType.Log, cause: Throwable? = null) {
+        internal fun taggedTrace(
+            message: String,
+            type: TraceType = TraceType.Log,
+            cause: Throwable? = null
+        ) {
             trace(message = message, type = type, tag = TAG, error = cause)
         }
     }
@@ -63,7 +55,7 @@ class AuthManager @Inject constructor(
     @SuppressLint("CheckResult")
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            val token = AccountUtils.getToken(context, accountType)?.token
+            val token = credentialManager.lookup()
             softLogin(token.orEmpty())
                 .onSuccess { LibsodiumInitializer.initializeWithCallback(onInitialized) }
                 .onFailure(ErrorUtils::handleError)
@@ -75,37 +67,16 @@ class AuthManager @Inject constructor(
         return login(entropyB64, isSoftLogin = true)
     }
 
-    private fun setupAsNew(): String {
-        val seedB64 = Ed25519.createSeed16().encodeBase64()
-        userManager.establish(seedB64)
-        return seedB64
-    }
-
-    suspend fun createAccount(): Result<ID> {
-        val entropy = setupAsNew()
-        FlipcashCore.initialize(context, entropy)
-
-        return accountController.createAccount()
-            .onSuccess { userId ->
-                AccountUtils.addAccount(
-                    context = context,
-                    name = "Flipcash User",
-                    password = userId.base58,
-                    token = entropy,
-                    type = accountType,
-                    isUnregistered = true
-                )
-                userManager.set(userId)
-                userManager.set(AuthState.Unregistered)
-
+    suspend fun createAccount(): Result<Unit> {
+        return credentialManager.create()
+            .onSuccess {
                 // TODO: this will move to post IAP
                 userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
 
                 accountController.getUserFlags()
             }.onFailure {
                 userManager.clear()
-//                clearToken()
-            }
+            }.map { Unit }
     }
 
     suspend fun login(
@@ -120,71 +91,47 @@ class AuthManager @Inject constructor(
             return Result.failure(Throwable("Provided entropy was empty"))
         }
 
-        FlipcashCore.initialize(context, entropyB64)
-
-        userManager.establish(entropy = entropyB64)
-        userManager.set(AuthState.LoggedInAwaitingUser)
-
         if (!isSoftLogin) {
             softLoginDisabled = true
             loginAnalytics()
         }
 
-        val ret = if (isSoftLogin) {
-            val lookup = AccountUtils.getUserId(context, accountType)
-            taggedTrace("Login userId lookup => $lookup")
-            when (lookup) {
-                is UserIdResult.Registered -> Result.success(Base58.decode(lookup.userId).toList())
-                is UserIdResult.Unregistered -> Result.success(Base58.decode(lookup.userId).toList())
-                null -> Result.failure(Throwable("No user Id found"))
-            }
-        } else {
-            accountController.login()
-        }
-
-        return ret
-            .onSuccess { userId ->
-                if (!isSoftLogin) {
-                    AccountUtils.addAccount(
-                        context = context,
-                        name = "Flipcash User", // TODO: ?
-                        password = userId.base58,
-                        token = entropyB64,
-                        type = accountType,
-                        isUnregistered = false,
-                    )
-                }
+        return credentialManager.login(entropyB64)
+            .onSuccess { account ->
                 // TODO: this will move to post IAP check
                 userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
 
-                userManager.set(userId = userId)
+                userManager.set(userId = account.id)
 
                 accountController.getUserFlags()
                     .onSuccess { flags ->
                         userManager.set(flags)
                     }.onFailure {
                         taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
-                        userManager.set(authState =  AuthState.Unregistered)
+                        userManager.set(authState = AuthState.Unregistered)
                     }
 
                 savePrefs()
-            }
-            .onFailure {
-                logout(context)
+            }.onFailure {
+                logout()
                 clearToken()
-            }
+            }.map { it.id }
     }
 
-    suspend fun deleteAndLogout(context: Context): Result<Unit> {
+
+
+    suspend fun selectAccount(): Result<MnemonicPhrase> {
+        return credentialManager.selectCredential()
+    }
+
+    suspend fun deleteAndLogout(): Result<Unit> {
         //todo: add account deletion
-        return logout(context)
+        return logout()
     }
 
-    suspend fun logout(context: Context): Result<Unit> {
-        return AccountUtils.removeAccounts(context, accountType).toFlowable()
-            .to { runCatching { it.firstOrError().blockingGet() } }
-            .map { clearToken() }
-            .map { Result.success(Unit) }
+    suspend fun logout(): Result<Unit> {
+        return credentialManager.logout()
+            .onSuccess { clearToken() }
     }
 
     private fun loginAnalytics() {
@@ -200,7 +147,6 @@ class AuthManager @Inject constructor(
         FirebaseMessaging.getInstance().deleteToken()
         pushController.deleteTokens()
         notificationManager.cancelAll()
-        FlipcashCore.reset(context)
         userManager.clear()
         balanceController.reset()
         activityFeedController.clearCache()

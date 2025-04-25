@@ -1,5 +1,6 @@
 package com.flipcash.app.login.seed
 
+import android.Manifest
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -13,6 +14,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel
@@ -43,6 +45,7 @@ class SeedInputViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
     private val accountManager: AccountManager,
+    private val permissionChecker: PermissionChecker,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
@@ -115,9 +118,27 @@ class SeedInputViewModel @Inject constructor(
                 .onSuccess {
                     setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
                     delay(if (deeplink) 0.seconds else 1.seconds)
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.CameraPermission()))
+                    val nextScreen = when {
+                        permissionChecker.isDenied(Manifest.permission.CAMERA) -> {
+                            ScreenRegistry.get(NavScreenProvider.Login.CameraPermission())
+                        }
+
+                        permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
+                            ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission())
+                        }
+
+                        else -> ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())
+                    }
+                    navigator.replaceAll(nextScreen)
                 }
         }
+    }
+
+    suspend fun restoreAccount(navigator: CodeNavigator): Result<Unit> {
+        return authManager.selectAccount()
+            .onSuccess { mnemonic ->
+                performLogin(navigator, mnemonic.getBase64EncodedEntropy())
+            }.map { Unit }
     }
 
     private fun setState(isLoading: Boolean, isSuccess: Boolean, isContinueEnabled: Boolean) {
@@ -149,7 +170,7 @@ class SeedInputViewModel @Inject constructor(
                 title = resources.getString(R.string.prompt_title_notFlipcashAccount),
                 subtitle = resources.getString(R.string.prompt_description_notFlipcashAccount),
                 positiveText = resources.getString(R.string.action_createNewFlipcashAccount),
-                negativeText = resources.getString(R.string.action_tryDifferentFlipcashAccount),
+                tertiaryText = resources.getString(R.string.action_tryDifferentFlipcashAccount),
                 onPositive = {
                     navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                 }

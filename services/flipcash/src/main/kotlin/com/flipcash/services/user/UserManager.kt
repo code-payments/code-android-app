@@ -25,6 +25,9 @@ sealed interface AuthState {
     data object LoggedInAwaitingUser : AuthState
     data object LoggedIn : AuthState
     data object LoggedOut : AuthState
+
+    val canAccessAuthenticatedApis: Boolean
+        get() = this is Unregistered || this is LoggedIn
 }
 
 @Singleton

@@ -27,7 +27,7 @@ object AppModule {
 
     @Provides
     @AccountType
-    fun providesAccountType(): String = BuildConfig.APPLICATION_ID
+    fun providesAccountType(): String = "flipcash.com"
 
     @Provides
     fun providesResourceHelper(

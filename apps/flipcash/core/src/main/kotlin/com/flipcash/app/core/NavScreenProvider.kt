@@ -10,7 +10,7 @@ sealed class NavScreenProvider : ScreenProvider {
     sealed class Login {
         data class Home(val seed: String? = null) : NavScreenProvider()
         data object SeedInput : NavScreenProvider()
-        data class AccessKey(val showInModal: Boolean = false) : NavScreenProvider()
+        data object AccessKey : NavScreenProvider()
         data class NotificationPermission(val fromOnboarding: Boolean = false) : NavScreenProvider()
         data class CameraPermission(val fromOnboarding: Boolean = false) : NavScreenProvider()
     }
@@ -26,6 +26,13 @@ sealed class NavScreenProvider : ScreenProvider {
         data object Give: NavScreenProvider()
         data object Send: NavScreenProvider()
         data object Balance: NavScreenProvider()
-        data object Menu: NavScreenProvider()
+        sealed class Menu {
+            data object Root: NavScreenProvider()
+            data object Deposit: NavScreenProvider()
+            data object Withdraw: NavScreenProvider()
+            data object MyAccount: NavScreenProvider()
+            data object AppSettings: NavScreenProvider()
+            data object Labs: NavScreenProvider()
+        }
     }
 }

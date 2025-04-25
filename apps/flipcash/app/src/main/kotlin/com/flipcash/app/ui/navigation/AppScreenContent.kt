@@ -28,12 +28,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Login.AccessKey> {
-            if (it.showInModal) {
-                AccessKeyScreen()
-//                AccessKeyModalScreen()
-            } else {
-                AccessKeyScreen()
-            }
+            AccessKeyScreen()
         }
 
         register<NavScreenProvider.Login.NotificationPermission> {
@@ -60,7 +55,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             BalanceScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu> {
+        register<NavScreenProvider.HomeScreen.Menu.Root> {
             Dummy()
         }
     }

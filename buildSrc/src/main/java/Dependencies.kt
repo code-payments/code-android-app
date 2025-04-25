@@ -53,6 +53,7 @@ object Versions {
     const val androidx_annotation = "1.7.1"
     const val androidx_biometrics = "1.2.0-alpha05"
     const val androidx_camerax = "1.3.2"
+    const val androidx_credentials = "1.5.0"
     const val androidx_core = "1.12.0"
     const val androidx_constraint_layout = "2.1.3"
     const val androidx_lifecycle = "2.7.0"
@@ -177,6 +178,10 @@ object Libs {
     const val androidx_core = "androidx.core:core-ktx:${Versions.androidx_core}"
     const val androidx_constraint_layout =
         "androidx.constraintlayout:constraintlayout:${Versions.androidx_constraint_layout}"
+
+    const val androidx_credentials = "androidx.credentials:credentials:${Versions.androidx_credentials}"
+    const val androidx_credentials_play_auth = "androidx.credentials:credentials-play-services-auth:${Versions.androidx_credentials}"
+
     const val androidx_lifecycle_runtime =
         "androidx.lifecycle:lifecycle-runtime-ktx:${Versions.androidx_lifecycle}"
     const val androidx_navigation_fragment =
@@ -192,6 +197,7 @@ object Libs {
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
     const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
     const val androidx_room_paging = "androidx.room:room-paging:${Versions.androidx_room}"
+
     const val androidx_work = "androidx.work:work-runtime:${Versions.androidx_work}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
 

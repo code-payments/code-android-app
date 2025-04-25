@@ -61,6 +61,10 @@ dependencies {
     implementation(Libs.firebase_messaging)
     implementation(Libs.bugsnag)
 
+    implementation(Libs.androidx_credentials)
+    implementation(Libs.androidx_credentials_play_auth)
+    implementation(Libs.androidx_datastore)
+
     api(project(":services:flipcash-compose"))
 
     implementation(project(":libs:messaging"))

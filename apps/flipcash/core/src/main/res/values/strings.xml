@@ -25,4 +25,7 @@
     <string name="error_title_failedToCreateGiftCard">Something Went Wrong</string>
     <string name="error_description_failedToCreateGiftCard">Failed to create a cashlink. Please try again</string>
 
+    <string name="title_depositUsdc">Deposit USDC</string>
+    <string name="title_withdrawUsdc">Withdraw USDC</string>
+    <string name="title_labs">Labs</string>
 </resources>

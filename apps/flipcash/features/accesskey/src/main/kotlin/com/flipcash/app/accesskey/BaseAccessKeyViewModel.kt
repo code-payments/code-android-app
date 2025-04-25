@@ -74,9 +74,8 @@ abstract class BaseAccessKeyViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun initWithEntropy(entropyB64: String) {
+    private fun initWithEntropy(entropyB64: String) {
         if (uiFlow.value.entropyB64 == entropyB64) return
-        Timber.d("entropy=$entropyB64")
         val words = mnemonicManager.fromEntropyBase64(entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")
 

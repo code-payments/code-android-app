@@ -1,17 +1,16 @@
 package com.flipcash.app.login.internal
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -22,11 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,20 +44,34 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.keyboardAsState
 import com.getcode.util.permissions.notificationPermissionCheck
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun SeedInputContent(viewModel: SeedInputViewModel) {
     val navigator: CodeNavigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
-
+    val context = LocalContext.current
     SeedInputContent(
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
-        onLogin = { viewModel.onSubmit(navigator) }
+        onLogin = { viewModel.onSubmit(navigator) },
+        onRestore = { viewModel.restoreAccount(navigator)
+            .onFailure {
+                Toast.makeText(
+                    context,
+                    "Unable to find or restore an existing account.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     )
 }
 
@@ -63,12 +79,18 @@ internal fun SeedInputContent(viewModel: SeedInputViewModel) {
 private fun SeedInputContent(
     state: SeedInputUiModel,
     onTextChange: (String) -> Unit,
-    onLogin: () -> Unit
+    onLogin: () -> Unit,
+    onRestore: suspend () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
     val notificationPermissionCheck = notificationPermissionCheck(isShowError = false) { }
+
+    val keyboardVisible by keyboardAsState()
+    val ime = LocalSoftwareKeyboardController.current
+    val composeScope = rememberCoroutineScope()
+    val animationScale by rememberAnimationScale()
 
     CodeScaffold(
         modifier = Modifier
@@ -77,7 +99,10 @@ private fun SeedInputContent(
             .padding(horizontal = CodeTheme.dimens.inset)
             .padding(bottom = CodeTheme.dimens.grid.x4),
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        Column(
+            modifier = Modifier.padding(padding),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+        ) {
             Text(
                 style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center),
                 color = CodeTheme.colors.textSecondary,
@@ -87,7 +112,7 @@ private fun SeedInputContent(
             Box {
                 OutlinedTextField(
                     modifier = Modifier
-                        .padding(top = CodeTheme.dimens.inset)
+                        .padding(top = CodeTheme.dimens.grid.x1)
                         .fillMaxWidth()
                         .height(120.dp)
                         .focusRequester(focusRequester),
@@ -106,8 +131,8 @@ private fun SeedInputContent(
                         .align(Alignment.BottomStart)
                         .padding(
                             top = CodeTheme.dimens.grid.x2,
-                            bottom = CodeTheme.dimens.grid.x2,
-                            start = CodeTheme.dimens.grid.x1
+                            bottom = CodeTheme.dimens.grid.x1,
+                            start = CodeTheme.dimens.grid.x2
                         ),
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                     verticalAlignment = Alignment.CenterVertically
@@ -133,10 +158,7 @@ private fun SeedInputContent(
             CodeButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        top = CodeTheme.dimens.grid.x3,
-                        bottom = CodeTheme.dimens.grid.x4
-                    ),
+                    .padding(bottom = CodeTheme.dimens.grid.x4),
                 onClick = {
                     focusManager.clearFocus()
                     onLogin()
@@ -146,6 +168,23 @@ private fun SeedInputContent(
                 enabled = state.continueEnabled,
                 text = stringResource(R.string.action_logIn),
                 buttonState = ButtonState.Filled,
+            )
+
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clickable {
+                        composeScope.launch {
+                            if (keyboardVisible) {
+                                ime?.hide()
+                                delay(500.scaled(animationScale))
+                            }
+                            onRestore()
+                        }
+                    },
+                text = "Recover Existing Account",
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary
             )
 
             if (state.isSuccess) {
