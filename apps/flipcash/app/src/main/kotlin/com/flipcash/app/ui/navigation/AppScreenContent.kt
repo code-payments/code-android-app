@@ -12,6 +12,7 @@ import com.flipcash.app.login.permissions.CameraPermissionScreen
 import com.flipcash.app.login.permissions.NotificationPermissionScreen
 import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
+import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.send.SendScreen
 
@@ -56,7 +57,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Menu.Root> {
-            Dummy()
+            MenuScreen()
         }
     }
 
