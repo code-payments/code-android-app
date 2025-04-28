@@ -98,11 +98,11 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
             AccessKeyScreenContent(viewModel) {
                 val nextScreen = when {
                     permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                        ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true))
+                        ScreenRegistry.get(NavScreenProvider.Permissions.Notification(true))
                     }
 
                     permissions.isDenied(Manifest.permission.CAMERA) -> {
-                        ScreenRegistry.get(NavScreenProvider.Login.CameraPermission(true))
+                        ScreenRegistry.get(NavScreenProvider.Permissions.Camera(true))
                     }
 
                     else -> ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())

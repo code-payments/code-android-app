@@ -32,11 +32,11 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             AccessKeyScreen()
         }
 
-        register<NavScreenProvider.Login.NotificationPermission> {
+        register<NavScreenProvider.Permissions.Notification> {
             NotificationPermissionScreen(it.fromOnboarding)
         }
 
-        register<NavScreenProvider.Login.CameraPermission> {
+        register<NavScreenProvider.Permissions.Camera> {
             CameraPermissionScreen(it.fromOnboarding)
         }
 

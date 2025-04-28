@@ -121,11 +121,11 @@ class SeedInputViewModel @Inject constructor(
                     delay(if (deeplink) 0.seconds else 1.seconds)
                     val nextScreen = when {
                         permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                            ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission())
+                            ScreenRegistry.get(NavScreenProvider.Permissions.Notification())
                         }
 
                         permissionChecker.isDenied(Manifest.permission.CAMERA) -> {
-                            ScreenRegistry.get(NavScreenProvider.Login.CameraPermission())
+                            ScreenRegistry.get(NavScreenProvider.Permissions.Camera())
                         }
 
                         else -> ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())
