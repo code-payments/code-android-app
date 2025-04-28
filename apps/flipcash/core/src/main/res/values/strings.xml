@@ -28,4 +28,13 @@
     <string name="title_depositUsdc">Deposit USDC</string>
     <string name="title_withdrawUsdc">Withdraw USDC</string>
     <string name="title_labs">Labs</string>
+
+    <string name="error_title_selectCredential">Something went wrong</string>
+    <string name="error_description_selectCredential">Failed to restore selected account. Please try again</string>
+
+    <string name="permissions_description_camera">Your camera is used to grab Digital Cash. Please allow access to the camera to proceed</string>
+    <string name="permissions_description_push">Please allow Push Notifications to get notified when you receive cash</string>
+
+    <string name="subtitle_allowCameraAccess">Code enables you to grab Digital Cash by pointing your camera at the digital bill on another user\'s phone</string>
+    <string name="subtitle_allowCameraSettings">You need to allow camera access to be able to grab Digital Cash</string>
 </resources>

@@ -25,7 +25,7 @@ internal fun ReceivedKinConfirmation(
     bill: Bill.Cash,
     onClaim: () -> Unit,
 ) {
-    Modal(backgroundColor = Brand) {
+    Modal {
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
             style = CodeTheme.typography.textLarge.copy(

@@ -26,7 +26,7 @@ internal fun ReceivedFundsConfirmation(
     onClaim: () -> Unit,
 ) {
     val exchange = LocalExchange.current
-    Modal(backgroundColor = Brand) {
+    Modal {
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
             style = CodeTheme.typography.textLarge.copy(
