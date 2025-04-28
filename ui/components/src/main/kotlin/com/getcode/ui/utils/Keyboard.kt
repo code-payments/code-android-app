@@ -1,16 +1,27 @@
 package com.getcode.ui.utils
 
+import android.annotation.SuppressLint
+import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 @Composable
+@Deprecated(
+    message = "Replaced with KeyboardController that combines visibility with show/hide support"
+)
 fun keyboardAsState(): State<Boolean> {
     val keyboardState = remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -24,4 +35,53 @@ fun keyboardAsState(): State<Boolean> {
         onDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener) }
     }
     return keyboardState
+}
+
+class KeyboardController(
+    private val view: View,
+    private val softwareController: SoftwareKeyboardController?
+) {
+    var visible by mutableStateOf(false)
+        private set
+
+    fun show() {
+        softwareController?.show()
+    }
+
+    fun hide() {
+        softwareController?.hide()
+    }
+
+    // Internal setup for visibility tracking
+    @SuppressLint("ComposableNaming")
+    @Composable
+    internal fun setupVisibilityTracking() {
+        val viewTreeObserver = view.viewTreeObserver
+        DisposableEffect(viewTreeObserver) {
+            val listener = ViewTreeObserver.OnGlobalLayoutListener {
+                visible = ViewCompat.getRootWindowInsets(view)
+                    ?.isVisible(WindowInsetsCompat.Type.ime()) ?: false
+            }
+            viewTreeObserver.addOnGlobalLayoutListener(listener)
+            onDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener) }
+        }
+    }
+}
+
+val LocalKeyboardController = staticCompositionLocalOf<KeyboardController> {
+    error("No KeyboardController provided")
+}
+
+@Composable
+fun rememberKeyboardController(): KeyboardController {
+    val view = LocalView.current
+    val softwareController = LocalSoftwareKeyboardController.current
+    val keyboardController = remember(view, softwareController) {
+        KeyboardController(view, softwareController)
+    }
+
+    // Trigger visibility tracking
+    keyboardController.setupVisibilityTracking()
+
+    return keyboardController
 }
