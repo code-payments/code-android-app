@@ -63,15 +63,7 @@ internal fun SeedInputContent(viewModel: SeedInputViewModel) {
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
         onLogin = { viewModel.onSubmit(navigator) },
-        onRestore = { viewModel.restoreAccount(navigator)
-            .onFailure {
-                Toast.makeText(
-                    context,
-                    "Unable to find or restore an existing account.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
+        onRestore = { viewModel.restoreAccount(navigator) }
     )
 }
 

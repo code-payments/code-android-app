@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.auth.AuthManager
+import com.flipcash.app.core.credentials.SelectCredentialError
 import com.flipcash.app.core.internal.accounts.AccountManager
 import com.flipcash.features.login.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -138,6 +139,16 @@ class SeedInputViewModel @Inject constructor(
         return authManager.selectAccount()
             .onSuccess { mnemonic ->
                 performLogin(navigator, mnemonic.getBase64EncodedEntropy())
+            }.onFailure { error ->
+             when (error) {
+                 is SelectCredentialError.UserCancelled -> { /* no op */ }
+                 else -> {
+                     TopBarManager.showMessage(
+                         getString(R.string.error_title_selectCredential),
+                         getString(R.string.error_description_selectCredential)
+                     )
+                 }
+             }
             }.map { Unit }
     }
 

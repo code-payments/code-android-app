@@ -6,6 +6,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetPasswordOption
 import androidx.credentials.PasswordCredential
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -95,7 +96,8 @@ class PassphraseCredentialManager @Inject constructor(
     }
 
     suspend fun lookup(): String? {
-        val selectedAccountId = storage.data.map { it[selectedAccountIdKey] }.firstOrNull() ?: return null
+        val selectedAccountId =
+            storage.data.map { it[selectedAccountIdKey] }.firstOrNull() ?: return null
         return storage.data.map { it[entropyKey(selectedAccountId)] }.firstOrNull()
     }
 
@@ -184,7 +186,10 @@ class PassphraseCredentialManager @Inject constructor(
             val mnemonic = MnemonicPhrase.newInstance(words)!!
             Result.success(mnemonic)
         } catch (e: Exception) {
-            Result.failure(e)
+            when (e) {
+                is GetCredentialCancellationException -> Result.failure(SelectCredentialError.UserCancelled())
+                else -> Result.failure(e)
+            }
         }
     }
 
@@ -326,4 +331,8 @@ class PassphraseCredentialManager @Inject constructor(
             word.lowercase().replaceFirstChar { it.titlecase() }
         }
     }
+}
+
+sealed class SelectCredentialError : Exception() {
+    class UserCancelled : SelectCredentialError()
 }
