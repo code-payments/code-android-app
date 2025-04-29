@@ -34,12 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.util.fastForEach
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.Black40
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
@@ -190,13 +190,17 @@ fun BottomBarView(
                             onClose(true)
                         },
                         textColor = when (bottomBarMessage.type) {
-                            BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
+                            BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {
+                                BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.error
+                                BottomBarManager.BottomBarButtonStyle.Filled50 -> Color.White
+                            }
+
+                            BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
-                            BottomBarManager.BottomBarMessageType.THEMED -> Brand
                         },
                         buttonState = when (action.style) {
                             BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
-                            BottomBarManager.BottomBarButtonStyle.Filled10 -> ButtonState.Filled10
+                            BottomBarManager.BottomBarButtonStyle.Filled50 -> ButtonState.Filled50
                         },
                         text = action.text
                     )

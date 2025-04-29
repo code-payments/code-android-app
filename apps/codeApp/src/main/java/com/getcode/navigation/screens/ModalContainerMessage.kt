@@ -98,7 +98,7 @@ private data class ModalContainerMessage(
                     if (negativeText.isNotEmpty()) {
                         CodeButton(
                             modifier = Modifier.fillMaxWidth(),
-                            buttonState = ButtonState.Filled10,
+                            buttonState = ButtonState.Filled50,
                             text = negativeText,
                             onClick = {
                                 message.onNegative()

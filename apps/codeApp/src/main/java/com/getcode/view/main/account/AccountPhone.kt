@@ -101,7 +101,7 @@ fun AccountPhone(
             text = if (!dataState.isLinked) stringResource(R.string.action_linkPhoneNumber) else stringResource(
                 R.string.action_removeYourPhoneNumber
             ),
-            buttonState = if (!dataState.isLinked) ButtonState.Filled else ButtonState.Filled10,
+            buttonState = if (!dataState.isLinked) ButtonState.Filled else ButtonState.Filled50,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.inset)

@@ -49,7 +49,7 @@ object BottomBarManager {
             replaceWith = ReplaceWith("actions.getOrNull(1)?.style ?: \"\""),
             level = DeprecationLevel.WARNING
         )
-        val negativeStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled10,
+        val negativeStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled50,
         @Deprecated(
             message = "Use actions instead (e.g., the third item in actions)",
             replaceWith = ReplaceWith("actions.getOrNull(2)?.title"),
@@ -81,7 +81,7 @@ object BottomBarManager {
             positiveText: String,
             positiveStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled,
             negativeText: String = "",
-            negativeStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled10,
+            negativeStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled50,
             tertiaryText: String? = null,
             onPositive: () -> Unit,
             onNegative: () -> Unit = {},
@@ -141,9 +141,14 @@ object BottomBarManager {
 
     fun clear() = _messages.update { listOf() }
 
-    fun clearByType(type: BottomBarMessageType) =  _messages.update { it.filterNot { m -> m.type == type } }
+    fun clearByType(type: BottomBarMessageType) =
+        _messages.update { it.filterNot { m -> m.type == type } }
 
-    enum class BottomBarMessageType { DESTRUCTIVE, REMOTE_SEND, THEMED }
+    enum class BottomBarMessageType {
+        DESTRUCTIVE,
+        @Deprecated("This is no longer necessary with the VM and balance deductions are handled intelligently")
+        REMOTE_SEND, THEMED
+    }
 
     enum class BottomBarActionType {
         Positive,
@@ -152,7 +157,7 @@ object BottomBarManager {
     }
 
     enum class BottomBarButtonStyle {
-        Filled, Filled10
+        Filled, Filled50
     }
 
 }

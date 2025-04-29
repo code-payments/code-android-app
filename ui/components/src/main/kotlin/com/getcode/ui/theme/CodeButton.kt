@@ -47,7 +47,7 @@ import com.getcode.ui.utils.plus
 enum class ButtonState {
     Bordered,
     Filled,
-    Filled10,
+    Filled50,
     Subtle
 }
 
@@ -182,7 +182,7 @@ fun getRipple(
     color = when (buttonState) {
         ButtonState.Bordered -> White
         ButtonState.Filled -> CodeTheme.colors.brandLight
-        ButtonState.Filled10 -> White50
+        ButtonState.Filled50 -> White50
         ButtonState.Subtle -> White
     }
 )
@@ -208,11 +208,11 @@ fun getButtonColors(
                 contentColor = textColor.takeOrElse { Color.LightGray }
             )
 
-        ButtonState.Filled10 ->
+        ButtonState.Filled50 ->
             ButtonDefaults.outlinedButtonColors(
-                backgroundColor = White10,
+                backgroundColor = White50,
                 disabledContentColor = White50,
-                contentColor = textColor.takeOrElse { White50 },
+                contentColor = textColor.takeOrElse { White },
             )
 
         ButtonState.Subtle ->
