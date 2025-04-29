@@ -54,6 +54,7 @@ dependencies {
     implementation(Libs.compose_material)
     implementation(Libs.compose_materialIconsExtended)
 
+    implementation(Libs.kotlin_stdlib)
     implementation(project(":apps:flipcash:core"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))

@@ -1,6 +1,5 @@
 package com.flipcash.app.login.internal
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -138,7 +137,7 @@ private fun SeedInputContent(
 
                     if (state.isValid) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_checked_blue),
+                            painter = painterResource(id = R.drawable.ic_checked),
                             modifier = Modifier
                                 .height(CodeTheme.dimens.grid.x3),
                             contentDescription = ""

@@ -11,14 +11,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.features.send.R
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun SendScreenContent(viewModel: SendScreenViewModel) {
+    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsState()
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -35,6 +40,16 @@ internal fun SendScreenContent(viewModel: SendScreenViewModel) {
                 stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.maxAvailableForSend)
             } else {
                 stringResource(R.string.subtitle_giveCashHint, state.maxAvailableForSend)
+            },
+            isClickable = true,
+            onAmountClicked = {
+                navigator.push(
+                    ScreenRegistry.get(
+                        NavScreenProvider.HomeScreen.CurrencySelection(
+                            kind = CurrencySelectionKind.Entry
+                        )
+                    )
+                )
             },
             isError = state.isError,
             onNumberPressed = { viewModel.dispatchEvent(SendScreenViewModel.Event.OnNumberPressed(it)) },

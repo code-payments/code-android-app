@@ -47,21 +47,38 @@ internal class OpenCodeExchange @Inject constructor(
     private val currenciesMap: Map<String, Currency> by lazy {
         currencies.associateBy { it.code }
     }
-    private var _entryRate = MutableStateFlow(Rate.oneToOne)
+
+    private val _balanceRate = MutableStateFlow(Rate.oneToOne)
+    override val balanceRate
+        get() = _balanceRate.value
+
+    override fun observeBalanceRate(): Flow<Rate> = _balanceRate
+
+    override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
+        balanceCurrency = currencyCode
+        fetchRatesIfNeeded()
+        rates.rateFor(currencyCode)?.let {
+            _balanceRate.value = it
+        }
+    }
+
+    private val _entryRate = MutableStateFlow(Rate.oneToOne)
     override val entryRate: Rate
         get() = _entryRate.value
 
     override fun observeEntryRate(): Flow<Rate> = _entryRate
 
-    private val _localRate = MutableStateFlow(Rate.oneToOne)
-    override val localRate
-        get() = _localRate.value
-
-    override fun observeLocalRate(): Flow<Rate> = _localRate
+    override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
+        entryCurrency = currencyCode
+        fetchRatesIfNeeded()
+        rates.rateFor(currencyCode)?.let {
+            _entryRate.value = it
+        }
+    }
 
     private var rateDate: Long = System.currentTimeMillis()
 
-    private var localCurrency: CurrencyCode? = null
+    private var balanceCurrency: CurrencyCode? = null
     private var entryCurrency: CurrencyCode? = null
 
     private val _rates = MutableStateFlow(emptyMap<CurrencyCode, Rate>())
@@ -127,8 +144,7 @@ internal class OpenCodeExchange @Inject constructor(
     init {
         launch {
             val currencyCode = locale.getDefaultCurrencyName()
-            localCurrency = CurrencyCode.tryValueOf(currencyCode)
-            entryCurrency = CurrencyCode.tryValueOf(currencyCode)
+            balanceCurrency = CurrencyCode.tryValueOf(currencyCode)
             fetchRatesIfNeeded()
         }
     }
@@ -149,25 +165,15 @@ internal class OpenCodeExchange @Inject constructor(
         updateRates()
     }
 
-    private fun setEntryCurrency(currency: CurrencyCode) {
-        entryCurrency = currency
-        updateRates()
-    }
-
-    private fun setLocalCurrency(currency: CurrencyCode) {
-        localCurrency = currency
-        updateRates()
-    }
-
     private suspend fun set(ratesBox: RatesBox) {
         rates = ratesBox
         rateDate = ratesBox.dateMillis
 
-        setLocalEntryCurrencyIfNeeded()
+        setBalanceEntryCurrencyIfNeeded()
         updateRates()
     }
 
-    private suspend fun setLocalEntryCurrencyIfNeeded() {
+    private suspend fun setBalanceEntryCurrencyIfNeeded() {
         if (entryCurrency != null) {
             return
         }
@@ -180,28 +186,36 @@ internal class OpenCodeExchange @Inject constructor(
     override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
 
     override fun rateForUsd(): Rate = rates.rateForUsd()
+    override fun rateToUsd(from: CurrencyCode): Rate? {
+        val fromRate = rates.rateFor(from) ?: return null
+
+        return Rate(
+            fx = 1 / fromRate.fx,
+            currency = CurrencyCode.USD
+        )
+    }
 
     private fun updateRates() {
         if (rates.isEmpty) {
             return
         }
 
-        val localRate = localCurrency?.let { rates.rateFor(it) }
-        val localChanged = _localRate.value != localRate
-        if (localChanged) {
-            _localRate.value = if (localRate != null) {
+        val balanceRate = balanceCurrency?.let { rates.rateFor(it) }
+        val balanceChanged = _balanceRate.value != balanceRate
+        if (balanceChanged) {
+            _balanceRate.value = if (balanceRate != null) {
                 trace(
                     tag = "Background",
-                    message = "Updated the local currency: $localCurrency, " +
+                    message = "Updated the local currency: $balanceCurrency, " +
                             "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
                             "Date: ${Date(rates.dateMillis)}",
                     type = TraceType.Process
                 )
-                localRate
+                balanceRate
             } else {
                 trace(
                     tag = "Background",
-                    message = "local:: Rate for $localCurrency not found. Defaulting to USD.",
+                    message = "local:: Rate for $balanceCurrency not found. Defaulting to USD.",
                     type = TraceType.Process
                 )
                 rates.rateForUsd()
@@ -231,7 +245,7 @@ internal class OpenCodeExchange @Inject constructor(
             }
         }
 
-        if (localChanged || entryChanged) {
+        if (balanceChanged || entryChanged) {
             trace(
                 tag = "Background",
                 message = "Updated rates",

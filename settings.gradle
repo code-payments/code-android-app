@@ -16,6 +16,8 @@ include(
         ":apps:flipcash:features:balance",
         ":apps:flipcash:features:send",
         ":apps:flipcash:features:menu",
+        ":apps:flipcash:features:currency-selection:core",
+        ":apps:flipcash:features:currency-selection:ui",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

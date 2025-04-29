@@ -41,5 +41,5 @@ fun Int.withCommas(): String {
 
 val LocalFiat.formatted: String
     get() {
-        return converted.convertingTo(rate).formatted()
+        return converted.formatted()
     }

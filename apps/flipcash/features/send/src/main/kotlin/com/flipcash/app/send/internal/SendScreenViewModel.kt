@@ -2,7 +2,6 @@ package com.flipcash.app.send.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.money.FormatUtils
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.features.send.R
@@ -15,6 +14,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -23,7 +23,7 @@ import com.getcode.utils.replaceParam
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -59,7 +59,7 @@ internal class SendScreenViewModel @Inject constructor(
             get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0) > 0.00
 
         val maxAvailableForSend: String
-            get() = maxForSend?.let { FormatUtils.formatCurrency(it.first, it.second) }.orEmpty()
+            get() = maxForSend?.let { Fiat(it.first, it.second).formatted() }.orEmpty()
 
         val isError: Boolean
             get() {
@@ -95,14 +95,15 @@ internal class SendScreenViewModel @Inject constructor(
 
     val checkBalanceLimit: () -> Boolean = {
         val amount = stateFlow.value.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
+        val conversionRate = exchange.rateToUsd(stateFlow.value.currencyModel.code ?: CurrencyCode.USD) ?: Rate.ignore
         val enteredInUsdc = Fiat(
             fiat = amount,
             currencyCode = stateFlow.value.currencyModel.code ?: CurrencyCode.USD
-        ).convertingTo(exchange.rateForUsd())
+        ).convertingTo(conversionRate)
         val balanceInUsdc = stateFlow.value.balance.usdc
 
         val isOverBalance = enteredInUsdc > balanceInUsdc
-        if (isOverBalance) {
+        if (isOverBalance || conversionRate == Rate.ignore) {
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_insuffiecientFunds),
                 resources.getString(R.string.error_description_insuffiecientFunds)
@@ -136,18 +137,32 @@ internal class SendScreenViewModel @Inject constructor(
             exchange.fetchRatesIfNeeded()
         }
 
+        combine(
+            balanceController.rawBalance,
+            exchange.observeEntryRate(),
+        ) { balance, rate ->
+            LocalFiat(
+                usdc = balance,
+                converted = balance.convertingTo(rate),
+                rate = rate
+            )
+        }.onEach {
+            dispatchEvent(Event.OnBalanceChanged(it))
+        }.mapNotNull {
+            exchange.getCurrency(it.rate.currency.name)
+        }.onEach {
+            dispatchEvent(Event.OnCurrencyChanged(it))
+        }.launchIn(viewModelScope)
 
-        balanceController.balance
-            .onEach { dispatchEvent(Event.OnBalanceChanged(it)) }
-            .launchIn(viewModelScope)
+        exchange.observeEntryRate()
+            .onEach {
+                // reset when entry rate changes
+                numberInputHelper.reset()
+                dispatchEvent(Event.OnAmountChanged(AmountAnimatedInputUiModel()))
+            }.launchIn(viewModelScope)
 
         transactionController.limits
             .onEach { dispatchEvent(Event.OnLimitsChanged(it)) }
-            .launchIn(viewModelScope)
-
-        exchange.observeLocalRate()
-            .mapNotNull { exchange.getCurrency(it.currency.name) }
-            .onEach { currency -> dispatchEvent(Event.OnCurrencyChanged(currency)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -193,13 +208,12 @@ internal class SendScreenViewModel @Inject constructor(
 
         stateFlow
             .filter { it.limits != null && it.balance != LocalFiat.Zero }
-            .distinctUntilChanged { old, new -> old.limits != new.limits || old.balance != new.balance }
-            .map { it.limits to exchange.localRate.currency to it.balance }
-            .onEach { (limits, currency, balance) ->
-                val sendLimit = limits?.sendLimitFor(currency) ?: SendLimit.Zero
+            .map { it.limits to it.balance }
+            .onEach { (limits, balance) ->
+                val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero
                 val nextTransactionLimit = sendLimit.nextTransaction
                 val max = min(nextTransactionLimit, balance.converted.doubleValue)
-                dispatchEvent(Event.OnMaxDetermined(max, currency))
+                dispatchEvent(Event.OnMaxDetermined(max, balance.rate.currency))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -238,10 +252,13 @@ internal class SendScreenViewModel @Inject constructor(
                 Event.OnSend,
                 is Event.OnEnteredNumberChanged,
                 is Event.PresentBill,
-                is Event.OnNumberPressed -> { state -> state }
-
-                is Event.OnCurrencyChanged -> { state -> state.copy(currencyModel = CurrencyHolder(event.currency)) }
+                is Event.OnNumberPressed,
                 Event.OnDecimalPressed -> { state -> state }
+
+                is Event.OnCurrencyChanged -> { state ->
+                    state.copy(currencyModel = CurrencyHolder(event.currency))
+                }
+
                 is Event.UpdateLoadingState -> { state ->
                     val loadingSuccess = state.generatingBill
                     state.copy(

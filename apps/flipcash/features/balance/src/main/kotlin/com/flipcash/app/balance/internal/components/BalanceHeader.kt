@@ -20,6 +20,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 internal fun BalanceHeader(
     balance: LocalFiat?,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
     val exchange = LocalExchange.current
     Column(
@@ -47,8 +48,9 @@ internal fun BalanceHeader(
                 isAltCaptionKinIcon = false,
                 captionText = stringResource(R.string.subtitle_balanceIsHeldInUsd).takeIf { !isUsd },
                 currencyResId = exchange.getFlagByCurrency(balance.converted.currencyCode.name),
-                isClickable = false,
+                isClickable = true,
                 textStyle = CodeTheme.typography.displayLarge,
+                onClick = onClick
             )
         }
     }

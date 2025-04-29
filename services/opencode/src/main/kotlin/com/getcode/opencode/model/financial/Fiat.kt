@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import android.icu.util.Currency
 import kotlinx.serialization.Serializable
+import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.util.Locale
 
@@ -12,7 +13,7 @@ data class Fiat(
 ) : Comparable<Fiat> {
 
     val decimalValue: Double
-        get() = quarks.toDouble() / MULTIPLIER.toDouble()
+        get() = quarks.toDouble() / MULTIPLIER
 
     val doubleValue: Double
         get() = decimalValue
@@ -47,6 +48,7 @@ data class Fiat(
         val formatter = android.icu.text.DecimalFormat.getCurrencyInstance(Locale.getDefault()).apply {
             currency = Currency.getInstance(currencyCode.name)
             maximumFractionDigits = if (truncated) 0 else 2
+            roundingMode = RoundingMode.DOWN.ordinal
         }
         val formattedValue = formatter.format(decimalValue)
         return if (suffix != null) "$formattedValue $suffix" else formattedValue
@@ -65,7 +67,7 @@ data class Fiat(
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
 
     companion object {
-        const val MULTIPLIER: Long = 1_000_000
+        const val MULTIPLIER: Double = 1_000_000.0
 
         val Zero = Fiat(0, CurrencyCode.USD)
 

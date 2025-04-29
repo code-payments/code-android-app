@@ -40,15 +40,17 @@ class BalanceController @Inject constructor(
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
-    private val eventBus: ChannelEventBus,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val rawBalance = MutableStateFlow(Fiat.Zero)
+    private val _rawBalance = MutableStateFlow(Fiat.Zero)
     private val localizedBalance = MutableStateFlow(LocalFiat.Zero)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
 
     var onTimelockUnlocked: (() -> Unit) = { }
+
+    val rawBalance: StateFlow<Fiat>
+        get() = _rawBalance.asStateFlow()
 
     val balance: StateFlow<LocalFiat>
         get() = localizedBalance.asStateFlow()
@@ -72,10 +74,10 @@ class BalanceController @Inject constructor(
                 }
             }.flatMapLatest {
                 combine(
-                    exchange.observeLocalRate()
+                    exchange.observeBalanceRate()
                         .flowOn(Dispatchers.IO)
                         .onEach { exchange.fetchRatesIfNeeded() },
-                    rawBalance
+                    _rawBalance
                 ) { rate, balance ->
                     LocalFiat(
                         usdc = balance,
@@ -90,12 +92,12 @@ class BalanceController @Inject constructor(
     }
 
     fun add(fiat: LocalFiat) {
-        rawBalance.value += fiat.usdc
+        _rawBalance.value += fiat.usdc
         localizedBalance.value = fiat
     }
 
     fun subtract(fiat: LocalFiat) {
-        rawBalance.value -= fiat.usdc
+        _rawBalance.value -= fiat.usdc
         localizedBalance.value = fiat
     }
 
@@ -137,7 +139,7 @@ class BalanceController @Inject constructor(
                     message = "Updated balance is ${newBalance.formatted()} USD",
                     type = TraceType.Process
                 )
-                rawBalance.update { newBalance }
+                _rawBalance.update { newBalance }
             }
     }
 
@@ -155,7 +157,7 @@ class BalanceController @Inject constructor(
     }
 
     fun reset() {
-        rawBalance.value = Fiat.Zero
+        _rawBalance.value = Fiat.Zero
         localizedBalance.value = LocalFiat.Zero
         cluster.value = null
     }

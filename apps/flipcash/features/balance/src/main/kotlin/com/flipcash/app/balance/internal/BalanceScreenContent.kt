@@ -1,11 +1,8 @@
 package com.flipcash.app.balance.internal
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -17,21 +14,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.balance.internal.components.FeedItem
+import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.money.CurrencySelectionKind
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
 
 @Composable
 internal fun BalanceScreenContent(viewModel: BalanceViewModel) {
     val state by viewModel.stateFlow.collectAsState()
+    val navigator = LocalCodeNavigator.current
 
     Column {
         BalanceHeader(
             modifier = Modifier
                 .fillMaxWidth(),
             balance = state.balance
-        )
+        ) {
+            navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.CurrencySelection(CurrencySelectionKind.Balance)))
+        }
 
         val listState = rememberLazyListState()
         LazyColumn(

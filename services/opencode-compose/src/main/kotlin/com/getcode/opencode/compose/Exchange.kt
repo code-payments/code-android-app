@@ -14,19 +14,27 @@ import kotlin.time.Duration.Companion.days
 val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 
 private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exchange {
-    override val localRate: Rate
+    override val balanceRate: Rate
         get() = Rate.oneToOne
 
     override val entryRate: Rate
         get() = Rate.oneToOne
 
 
-    override fun observeLocalRate(): Flow<Rate> {
+    override fun observeEntryRate(): Flow<Rate> {
         return emptyFlow()
     }
 
-    override fun observeEntryRate(): Flow<Rate> {
+    override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
+        fetchRatesIfNeeded()
+    }
+
+    override fun observeBalanceRate(): Flow<Rate> {
         return emptyFlow()
+    }
+
+    override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
+       fetchRatesIfNeeded()
     }
 
     override fun rates(): Map<CurrencyCode, Rate> {
@@ -66,4 +74,6 @@ private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exc
     override fun rateForUsd(): Rate {
         return Rate.oneToOne
     }
+
+    override fun rateToUsd(from: CurrencyCode): Rate? = null
 }

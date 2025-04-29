@@ -25,7 +25,9 @@ fun AmountWithKeypad(
     allowDecimals: Boolean = true,
     hint: String = "",
     isError: Boolean = false,
+    isClickable: Boolean = false,
     onNumberPressed: (Int) -> Unit,
+    onAmountClicked: () -> Unit = { },
     onBackspace: () -> Unit,
     onDecimal: () -> Unit = { },
 ) {
@@ -54,7 +56,8 @@ fun AmountWithKeypad(
                 isAltCaption = isError,
                 uiModel = amountAnimatedModel,
                 isAnimated = true,
-                isClickable = false,
+                isClickable = isClickable,
+                onClick = { onAmountClicked?.invoke() },
                 networkState = networkState,
                 textStyle = CodeTheme.typography.displayLarge,
             )

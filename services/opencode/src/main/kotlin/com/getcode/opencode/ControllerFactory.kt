@@ -30,7 +30,6 @@ object ControllerFactory {
             accountController = createAccountController(context, config),
             exchange = ExchangeFactory.createOpenCodeExchange(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
-            eventBus = module.providesEventBus()
         )
     }
 

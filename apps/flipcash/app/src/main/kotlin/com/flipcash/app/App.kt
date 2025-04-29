@@ -99,7 +99,7 @@ fun App(
                                             StackEvent.Pop -> {
                                                 when (navigator.lastItem) {
                                                     ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
-                                                    ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission()),
+                                                    ScreenRegistry.get(NavScreenProvider.Permissions.Camera()),
                                                     is MainRoot -> {
                                                         CrossfadeTransition(navigator = navigator)
                                                     }

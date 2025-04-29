@@ -54,7 +54,7 @@ internal fun PermissionScreenContent(
             },
             onNotGranted = {
                 navigator.push(
-                    ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(fromOnboarding))
+                    ScreenRegistry.get(NavScreenProvider.Permissions.Notification(fromOnboarding))
                 )
             }
         )
