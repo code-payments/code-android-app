@@ -7,10 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.ui.FlagWithFiat
 import com.flipcash.services.models.ActivityFeedMessage
+import com.flipcash.services.models.FeedMessageMetadata
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.theme.CodeTheme
 import com.getcode.util.DateUtils
@@ -21,10 +25,19 @@ import kotlinx.datetime.Instant
 internal fun FeedItem(
     message: ActivityFeedMessage,
     modifier: Modifier = Modifier,
+    onCancelRequested: () -> Unit,
 ) {
+    val canCancel by remember(message.metadata) {
+        derivedStateOf {
+            message.metadata ?: return@derivedStateOf false
+            val metadata = (message.metadata as? FeedMessageMetadata.SentUsdc) ?: return@derivedStateOf false
+            metadata.canCancel
+        }
+    }
+
     Row(
         modifier = modifier
-            .clickable(enabled = false) { } // enable for cancellable items
+            .clickable(enabled = canCancel) { onCancelRequested() }
             .padding(
                 horizontal = CodeTheme.dimens.inset,
                 vertical = CodeTheme.dimens.inset,

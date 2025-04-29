@@ -37,4 +37,13 @@
 
     <string name="subtitle_allowCameraAccess">Code enables you to grab Digital Cash by pointing your camera at the digital bill on another user\'s phone</string>
     <string name="subtitle_allowCameraSettings">You need to allow camera access to be able to grab Digital Cash</string>
+
+    <string name="error_title_failedToCancelTransfer">Something went wrong</string>
+    <string name="error_description_failedToCancelTransfer">We were unable to cancel your transfer. Please try again</string>
+
+    <string name="prompt_title_cancelTransferNoAmount">Cancel Transfer?</string>
+    <string name="prompt_title_cancelTransferWithAmount">Cancel %1$s Transfer?</string>
+    <string name="prompt_description_cancelTransfer">The money will be returned to your wallet</string>
+    <string name="action_cancelTransfer">Cancel Transfer</string>
+    <string name="action_nevermind">Nevermind</string>
 </resources>
