@@ -210,8 +210,8 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
 
 internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
     return TransactionService.ExchangeData.newBuilder()
-        .setQuarks(converted.quarks.toLong())
-        .setCurrency(rate.currency.name.lowercase())
+        .setQuarks(usdc.quarks.toLong())
+        .setCurrency(converted.currencyCode.name.lowercase())
         .setExchangeRate(rate.fx)
         .setNativeAmount(converted.doubleValue)
         .build()

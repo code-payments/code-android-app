@@ -45,14 +45,14 @@ internal class IntentRemoteSend(
 
             // 2. Transfer all funds from primary account to the created gift card
             val transferToGiftCardAccount = ActionPublicTransfer.newInstance(
-                amount = amount.converted,
+                amount = amount.usdc,
                 sourceCluster = sourceCluster,
                 destination = openGiftCardAccount.owner.vaultPublicKey
             )
 
             // 3. Allow auto-returning back to the primary if not collected
             val withdrawToDestination = ActionPublicWithdraw.newInstance(
-                amount = amount.converted,
+                amount = amount.usdc,
                 sourceCluster = giftCard.cluster,
                 destination = sourceCluster.vaultPublicKey,
                 canAutoReturn = true

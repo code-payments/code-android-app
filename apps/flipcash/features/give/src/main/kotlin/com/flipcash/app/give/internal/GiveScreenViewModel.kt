@@ -228,7 +228,14 @@ internal class GiveScreenViewModel @Inject constructor(
                     exchange.fetchRatesIfNeeded()
                 }
 
-                val amountFiat = data.amountData.amount.let { LocalFiat(it, rate) }
+                val localizedAmount = Fiat(data.amountData.amount, rate.currency)
+
+                val amountFiat = LocalFiat(
+                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                    converted = localizedAmount,
+                    rate = rate,
+                )
+
                 val bill = Bill.Cash(amount = amountFiat)
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
                 dispatchEvent(Event.PresentBill(bill))

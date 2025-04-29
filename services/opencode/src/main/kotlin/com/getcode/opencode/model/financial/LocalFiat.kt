@@ -9,13 +9,6 @@ data class LocalFiat(
     val converted: Fiat,
     val rate: Rate
 ) {
-    // Constructor from string amount
-    constructor(value: String, rate: Rate) : this(
-        usdc = Fiat(value, CurrencyCode.USD),
-        converted = Fiat(value, rate.currency),
-        rate = rate
-    )
-
     @Throws(Exception::class)
     constructor(exchangeData: ExchangeData.WithRate): this(
         usdc = Fiat(exchangeData.quarks.toULong(), CurrencyCode.USD),
@@ -27,12 +20,6 @@ data class LocalFiat(
             fx = exchangeData.exchangeRate,
             currency = CurrencyCode.tryValueOf(exchangeData.currencyCode) ?: throw IllegalArgumentException("CurrencyCode provided is invalid => ${exchangeData.currencyCode}")
         ),
-    )
-
-    // Replace rate
-    fun replacing(rate: Rate): LocalFiat = copy(
-        converted = Fiat(usdc.doubleValue, rate.currency),
-        rate = rate
     )
 
     companion object {
