@@ -60,14 +60,6 @@ data class AccountInfo(
     val blockchainState: BlockchainState,
 
     /**
-     * For temporary incoming accounts only. Flag indicates whether client must
-     * actively try rotating it by issuing a ReceivePaymentsPrivately intent. In
-     * general, clients should wait as long as possible until this flag is true
-     * or requiring the funds to send their next payment.
-     */
-    val mustRotate: Boolean,
-
-    /**
      * Whether an account is claimed. This only applies to relevant account types
      * (e.g. [com.codeinc.opencode.gen.common.v1.Model.AccountType.REMOTE_SEND_GIFT_CARD]
      */
@@ -125,7 +117,6 @@ data class AccountInfo(
                 balance = Fiat(info.balance.toULong()),
                 managementState = managementState,
                 blockchainState = blockchainState,
-                mustRotate = info.mustRotate,
                 claimState = claimState,
                 originalExchangeData = exchangeData,
                 mint = info.mint.toPublicKey(),
