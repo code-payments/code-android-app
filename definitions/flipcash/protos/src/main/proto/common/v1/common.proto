@@ -51,3 +51,22 @@ message PaymentAmount {
     // The amount in quarks of USDC that was paid
     uint64 quarks = 3;
 }
+message PagingToken {
+    bytes value = 1 ;
+}
+message QueryOptions {
+    // PageSize limits the maximum page size of a response.
+    //
+    // Server may choose to return less items. If <= 0,
+    // server may select an arbitrary default page size.
+    int32 page_size = 1;
+    // PagingToken is a token that can be extracted from the
+    // identifier of a collection.
+    PagingToken paging_token = 2;
+    // Order is the order of elements, if applicable.
+    Order order = 3;
+    enum Order {
+        ASC = 0;
+        DESC = 1;
+    }
+}

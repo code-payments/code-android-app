@@ -3,6 +3,7 @@ package com.flipcash.services.models
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.PublicKey
 import kotlinx.datetime.Instant
 
 /**
@@ -25,9 +26,19 @@ data class ActivityFeedMessage(
 )
 
 sealed interface FeedMessageMetadata {
-    data object Unknown: FeedMessageMetadata
-    data object WelcomeBonus: FeedMessageMetadata
-    data object GaveUsdc: FeedMessageMetadata
-    data object ReceivedUsdc: FeedMessageMetadata
-    data object WithdrewUsdc: FeedMessageMetadata
+    data object Unknown : FeedMessageMetadata
+    data object WelcomeBonus : FeedMessageMetadata
+    data object GaveUsdc : FeedMessageMetadata
+
+    /**
+     * @param creator The vault of the gift card account that was created for the cash link
+     * @param canCancel Whether the cancel action can be initiated by the user
+     */
+    data class SentUsdc(
+        val creator: PublicKey,
+        val canCancel: Boolean,
+    ) : FeedMessageMetadata
+
+    data object ReceivedUsdc : FeedMessageMetadata
+    data object WithdrewUsdc : FeedMessageMetadata
 }
