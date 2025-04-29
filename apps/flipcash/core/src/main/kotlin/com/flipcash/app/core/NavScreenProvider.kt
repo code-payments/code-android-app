@@ -1,11 +1,12 @@
 package com.flipcash.app.core
 
 import cafe.adriel.voyager.core.registry.ScreenProvider
+import com.flipcash.app.core.money.CurrencySelectionKind
 import com.getcode.ui.core.RestrictionType
 import dev.theolm.rinku.DeepLink
 
 sealed class NavScreenProvider : ScreenProvider {
-    data class AppRestricted(val restrictionType: RestrictionType): NavScreenProvider()
+    data class AppRestricted(val restrictionType: RestrictionType) : NavScreenProvider()
 
     sealed class Login {
         data class Home(val seed: String? = null) : NavScreenProvider()
@@ -20,21 +21,23 @@ sealed class NavScreenProvider : ScreenProvider {
 
     sealed interface CreateAccount {
         data class AccessKey(val showInModal: Boolean = false) : NavScreenProvider()
-        data object Purchase: NavScreenProvider()
+        data object Purchase : NavScreenProvider()
     }
 
     sealed interface HomeScreen {
         data class Scanner(val deeplink: DeepLink? = null) : NavScreenProvider()
-        data object Give: NavScreenProvider()
-        data object Send: NavScreenProvider()
-        data object Balance: NavScreenProvider()
+        data object Give : NavScreenProvider()
+        data object Send : NavScreenProvider()
+        data object Balance : NavScreenProvider()
         sealed class Menu {
-            data object Root: NavScreenProvider()
-            data object Deposit: NavScreenProvider()
-            data object Withdraw: NavScreenProvider()
-            data object MyAccount: NavScreenProvider()
-            data object AppSettings: NavScreenProvider()
-            data object Labs: NavScreenProvider()
+            data object Root : NavScreenProvider()
+            data object Deposit : NavScreenProvider()
+            data object Withdraw : NavScreenProvider()
+            data object MyAccount : NavScreenProvider()
+            data object AppSettings : NavScreenProvider()
+            data object Labs : NavScreenProvider()
         }
+
+        data class CurrencySelection(val kind: CurrencySelectionKind) : NavScreenProvider()
     }
 }

@@ -11,11 +11,13 @@ import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.bugsnag.android.Bugsnag
 import com.flipcash.app.core.auth.AuthManager
+import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.crypt.MnemonicCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.initialize
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
@@ -30,6 +32,9 @@ class FlipcashApp : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var eventRepository: EventRepository
+
+    @Inject
+    lateinit var preferredCurrencyController: PreferredCurrencyController
 
     override fun onCreate() {
         super.onCreate()
@@ -66,7 +71,7 @@ class FlipcashApp : Application(), SingletonImageLoader.Factory {
         }
 
         Firebase.initialize(this)
-//        Firebase.crashlytics.setCrashlyticsCollectionEnabled(BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG)
+        Firebase.crashlytics.setCrashlyticsCollectionEnabled(BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG)
         MnemonicCache.init(this)
         authManager.init { trace("NaCl init") }
 

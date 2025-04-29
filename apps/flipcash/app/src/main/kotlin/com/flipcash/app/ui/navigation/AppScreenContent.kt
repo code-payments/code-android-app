@@ -6,6 +6,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.currency.CurrencySelectionModal
 import com.flipcash.app.give.GiveScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.permissions.CameraPermissionScreen
@@ -54,6 +55,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.HomeScreen.Balance> {
             BalanceScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.CurrencySelection> {
+            CurrencySelectionModal(it.kind)
         }
 
         register<NavScreenProvider.HomeScreen.Menu.Root> {

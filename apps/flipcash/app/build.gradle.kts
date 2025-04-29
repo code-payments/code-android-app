@@ -116,6 +116,8 @@ dependencies {
     implementation(project(":services:flipcash-compose"))
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:features:currency-selection:core"))
+    implementation(project(":apps:flipcash:features:currency-selection:ui"))
     implementation(project(":apps:flipcash:features:accesskey"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:router"))
