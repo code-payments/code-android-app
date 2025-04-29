@@ -15,8 +15,6 @@ abstract class ActionType {
     abstract var serverParameter: ServerParameter?
     abstract val signer: Ed25519.KeyPair?
 
-    //abstract var configCountRequirement: Int
-
     abstract fun transactions(): List<SolanaTransaction>
     open fun compactMessageArgs(): List<CompactMessageArgs> = emptyList()
     fun compactMessages(): List<CompactMessage> {

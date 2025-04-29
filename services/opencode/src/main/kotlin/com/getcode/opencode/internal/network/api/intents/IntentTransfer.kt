@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.getcode.opencode.internal.network.api.intents.actions.ActionTransfer
+import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asExchangeData
@@ -37,7 +37,7 @@ internal class IntentTransfer(
             destination: PublicKey,
             rendezvous: PublicKey,
         ): IntentTransfer {
-            val transfer = ActionTransfer.newInstance(
+            val transfer = ActionPublicTransfer.newInstance(
                 sourceCluster = sourceCluster,
                 destination = destination,
                 amount = amount.converted

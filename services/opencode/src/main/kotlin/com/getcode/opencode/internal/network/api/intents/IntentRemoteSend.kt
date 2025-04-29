@@ -2,8 +2,8 @@ package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.opencode.internal.network.api.intents.actions.ActionOpenAccount
-import com.getcode.opencode.internal.network.api.intents.actions.ActionTransfer
-import com.getcode.opencode.internal.network.api.intents.actions.ActionWithdraw
+import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
+import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
 import com.getcode.opencode.internal.network.extensions.asExchangeData
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -43,18 +43,19 @@ internal class IntentRemoteSend(
             // 1. Open gift card account
             val openGiftCardAccount = ActionOpenAccount.createGiftCard(giftCard.cluster)
 
-            // 2. Move all funds from primary into the outgoing account and prepare for transfer
-            val transferToGiftCardAccount = ActionTransfer.newInstance(
+            // 2. Transfer all funds from primary account to the created gift card
+            val transferToGiftCardAccount = ActionPublicTransfer.newInstance(
                 amount = amount.converted,
                 sourceCluster = sourceCluster,
                 destination = openGiftCardAccount.owner.vaultPublicKey
             )
 
-            // 3. Transfer all collected funds to the destination account
-            val withdrawToDestination = ActionWithdraw.newInstance(
+            // 3. Allow auto-returning back to the primary if not collected
+            val withdrawToDestination = ActionPublicWithdraw.newInstance(
                 amount = amount.converted,
-                sourceCluster = sourceCluster,
-                destination = giftCard.cluster.vaultPublicKey
+                sourceCluster = giftCard.cluster,
+                destination = sourceCluster.vaultPublicKey,
+                canAutoReturn = true
             )
 
             val actions = ActionGroup().apply {

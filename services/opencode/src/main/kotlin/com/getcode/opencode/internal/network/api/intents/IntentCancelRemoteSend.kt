@@ -2,7 +2,7 @@ package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.opencode.internal.extensions.generate
-import com.getcode.opencode.internal.network.api.intents.actions.ActionWithdraw
+import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -37,10 +37,11 @@ internal class IntentCancelRemoteSend(
         ): IntentCancelRemoteSend {
             val intentId = PublicKey.generate()
 
-            val withdrawFromGiftCard = ActionWithdraw.newInstance(
+            val withdrawFromGiftCard = ActionPublicWithdraw.newInstance(
                 amount = amount.converted,
                 sourceCluster = giftCard.cluster,
-                destination = owner.vaultPublicKey
+                destination = owner.vaultPublicKey,
+                canAutoReturn = false,
             )
 
             return IntentCancelRemoteSend(
