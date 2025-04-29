@@ -37,4 +37,9 @@ interface TransactionRepository {
         type: AirdropType,
         destination: KeyPair,
     ): Result<ExchangeData.WithRate>
+
+    suspend fun voidGiftCard(
+        owner: KeyPair,
+        giftCardVault: PublicKey
+    ): Result<Unit>
 }

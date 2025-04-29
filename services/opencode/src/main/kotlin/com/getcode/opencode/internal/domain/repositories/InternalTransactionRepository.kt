@@ -41,4 +41,9 @@ internal class InternalTransactionRepository @Inject constructor(
         type: AirdropType,
         destination: Ed25519.KeyPair
     ): Result<ExchangeData.WithRate> = service.airdrop(type, destination)
+
+    override suspend fun voidGiftCard(
+        owner: Ed25519.KeyPair,
+        giftCardVault: PublicKey
+    ): Result<Unit> = service.voidGiftCard(owner, giftCardVault)
 }

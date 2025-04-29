@@ -104,7 +104,6 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
             source = receivePaymentsPublicly.source.toPublicKey(),
             quarks = receivePaymentsPublicly.quarks,
             isRemoteSend = receivePaymentsPublicly.isRemoteSend,
-            isIssuerVoidingGiftCard = receivePaymentsPublicly.isIssuerVoidingGiftCard,
             exchangeData = receivePaymentsPublicly.exchangeData.toModel()
         )
 

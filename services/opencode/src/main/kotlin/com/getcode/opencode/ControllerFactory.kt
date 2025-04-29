@@ -5,7 +5,9 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.generators.MnemonicGenerator
 import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.managers.MnemonicManager
 import dagger.hilt.android.EntryPointAccessors
 
 object ControllerFactory {
@@ -49,7 +51,7 @@ object ControllerFactory {
 
         return TransactionController(
             repository = RepositoryFactory.createTransactionRepository(context, config),
-            eventBus = module.providesEventBus()
+            eventBus = module.providesEventBus(),
         )
     }
 }

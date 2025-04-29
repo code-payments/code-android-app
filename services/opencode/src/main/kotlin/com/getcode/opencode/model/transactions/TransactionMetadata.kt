@@ -60,10 +60,6 @@ sealed interface TransactionMetadata {
      * @param quarks The exact amount of Kin in quarks being received
      * @param isRemoteSend Is the receipt of funds from a remote send gift card? Currently, this is
      * the only use case for this intent and validation enforces the flag to true.
-     * @param isIssuerVoidingGiftCard If [isRemoteSend] is true, is the gift card being voided? The user owner
-     * account's 12 words that issued the gift card may only set this flag to true.
-     * Functionally, this doesn't affect the intent, but rather if we decide to show
-     * it in a user-friendly payment history.
      * @param exchangeData If [isRemoteSend] is true, the original exchange data that was provided as
      * part of creating the gift card account. This is purely a server-provided value.
      * SubmitIntent will disallow this being set.
@@ -72,7 +68,6 @@ sealed interface TransactionMetadata {
         val source: PublicKey,
         val quarks: Long,
         val isRemoteSend: Boolean = true,
-        val isIssuerVoidingGiftCard: Boolean,
         val exchangeData: ExchangeData.WithRate,
     ): TransactionMetadata
 

@@ -15,6 +15,8 @@ import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetLimitsReque
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetLimitsResponse
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRequest
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v2.TransactionService.VoidGiftCardRequest
+import com.codeinc.opencode.gen.transaction.v2.TransactionService.VoidGiftCardResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -223,5 +225,27 @@ class TransactionApi @Inject constructor(
         return api::declareFiatOnrampPurchaseAttempt
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
+    }
+
+    /**
+     * Voids a gift card account by returning the funds to the funds back
+     * to the issuer via the auto-return action if it hasn't been claimed or already
+     * returned.
+     *
+     * NOTE: The RPC is idempotent. If the user already claimed/voided the gift card, or
+     * it is close to or is auto-returned, then OK will be returned.
+     */
+    fun voidGiftCard(
+        owner: KeyPair,
+        giftCardVault: PublicKey,
+    ): Flow<VoidGiftCardResponse> {
+        val request = VoidGiftCardRequest.newBuilder()
+            .setOwner(owner.asSolanaAccountId())
+            .setGiftCardVault(giftCardVault.asSolanaAccountId())
+            .apply { setSignature(sign(owner)) }
+            .build()
+
+        return api::voidGiftCard
+            .callAsCancellableFlow(request)
     }
 }

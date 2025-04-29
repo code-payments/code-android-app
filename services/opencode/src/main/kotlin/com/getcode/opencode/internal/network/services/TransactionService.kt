@@ -17,6 +17,7 @@ import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.SubmitIntentError
+import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -175,6 +176,28 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onOtherError = { error -> Result.failure(AirdropError.Other(cause = error)) }
+        )
+    }
+
+    suspend fun voidGiftCard(
+        owner: KeyPair,
+        giftCardVault: PublicKey,
+    ): Result<Unit> {
+        return networkOracle.managedApiRequest(
+            call = { api.voidGiftCard(owner, giftCardVault) },
+            handleResponse = { response ->
+                when (response.result) {
+                    TransactionService.VoidGiftCardResponse.Result.OK -> Result.success(Unit)
+                    TransactionService.VoidGiftCardResponse.Result.DENIED -> Result.failure(VoidGiftCardError.Denied())
+                    TransactionService.VoidGiftCardResponse.Result.CLAIMED_BY_OTHER_USER -> Result.failure(VoidGiftCardError.AlreadyClaimed())
+                    TransactionService.VoidGiftCardResponse.Result.NOT_FOUND -> Result.failure(VoidGiftCardError.NotFound())
+                    TransactionService.VoidGiftCardResponse.Result.UNRECOGNIZED -> Result.failure(VoidGiftCardError.Unrecognized())
+                    else -> Result.failure(VoidGiftCardError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(VoidGiftCardError.Other(cause = cause))
+            }
         )
     }
 

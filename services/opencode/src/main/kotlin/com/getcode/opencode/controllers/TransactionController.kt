@@ -2,9 +2,9 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
-import com.getcode.opencode.internal.network.api.intents.IntentCancelRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
+import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.Limits
@@ -16,6 +16,7 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
+import com.getcode.utils.base64
 import com.getcode.utils.trace
 import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.CoroutineScope
@@ -127,14 +128,10 @@ class TransactionController @Inject constructor(
     }
 
     suspend fun cancelRemoteSend(
-        amount: LocalFiat,
-        giftCard: GiftCardAccount,
         owner: AccountCluster,
-        scope: CoroutineScope = this.scope,
-    ): Result<IntentType> {
-        val intent = IntentCancelRemoteSend.create(giftCard, amount, owner)
-
-        return submitIntent(scope, intent, owner.authority.keyPair)
+        vault: PublicKey,
+    ): Result<Unit> {
+        return repository.voidGiftCard(owner.authority.keyPair, vault)
     }
 
     internal suspend fun submitIntent(

@@ -96,7 +96,6 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
                     .setSource(source.asSolanaAccountId())
                     .setQuarks(quarks)
                     .setIsRemoteSend(isRemoteSend)
-                    .setIsIssuerVoidingGiftCard(isIssuerVoidingGiftCard)
                     .setExchangeData(exchangeData.asProtobufExchangeData())
                     .build()
             )

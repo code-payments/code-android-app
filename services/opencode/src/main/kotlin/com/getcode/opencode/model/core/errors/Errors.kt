@@ -177,3 +177,15 @@ sealed class AirdropError(
     class Unrecognized: AirdropError()
     data class Other(override val cause: Throwable? = null) : AirdropError()
 }
+
+sealed class VoidGiftCardError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied: VoidGiftCardError()
+    class NotFound: VoidGiftCardError()
+    class AlreadyClaimed: VoidGiftCardError()
+    class Unrecognized: VoidGiftCardError()
+    data class Other(override val cause: Throwable? = null) : VoidGiftCardError()
+}
+
