@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.financial
 
-import android.icu.util.Currency
+import android.icu.util.ULocale
 import kotlinx.serialization.Serializable
 import java.math.RoundingMode
 import java.text.DecimalFormat
@@ -45,13 +45,23 @@ data class Fiat(
 
     // Formatting
     fun formatted(suffix: String? = null, truncated: Boolean = false): String {
-        val formatter = android.icu.text.DecimalFormat.getCurrencyInstance(Locale.getDefault()).apply {
-            currency = Currency.getInstance(currencyCode.name)
-            maximumFractionDigits = if (truncated) 0 else 2
-            roundingMode = RoundingMode.DOWN.ordinal
+        val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
+            minimumFractionDigits = 2
+            maximumFractionDigits = 2
+            roundingMode = if (truncated) RoundingMode.DOWN.ordinal else RoundingMode.HALF_DOWN.ordinal
+            (this as android.icu.text.DecimalFormat).decimalFormatSymbols = decimalFormatSymbols.apply {
+                currencySymbol = ""
+            }
+
+            val prefix = currencyCode.singleCharacterCurrencySymbol.orEmpty()
+
+            positivePrefix = prefix
+            negativePrefix = prefix
+            positiveSuffix = suffix?.prependIndent(" ").orEmpty()
+            negativeSuffix = suffix?.prependIndent(" ").orEmpty()
         }
-        val formattedValue = formatter.format(decimalValue)
-        return if (suffix != null) "$formattedValue $suffix" else formattedValue
+
+        return formatter.format(decimalValue)
     }
 
     // String representation

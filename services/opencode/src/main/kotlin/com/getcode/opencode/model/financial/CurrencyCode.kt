@@ -1,5 +1,8 @@
 package com.getcode.opencode.model.financial
 
+import com.getcode.opencode.internal.extensions.getClosestLocale
+import java.util.Currency
+
 enum class CurrencyCode {
     AED,
     AFN,
@@ -322,7 +325,24 @@ enum class CurrencyCode {
             }
         }
 
-        val currenciesRegions: Map<CurrencyCode, RegionCode?> = mapOf(
+        private val lookupTable: Map<CurrencyCode, Set<String>> by lazy {
+            buildMap {
+                CurrencyCode.entries.forEach { currency ->
+                    val locale = currency.getClosestLocale()
+                    try {
+                        val currencyInstance = Currency.getInstance(currency.name)
+                        val symbol = currencyInstance.getSymbol(locale)
+                        if (symbol != null) {
+                            put(currency, setOf(symbol))
+                        }
+                    } catch (e: IllegalArgumentException) {
+                        // Skip currencies with no valid symbol
+                    }
+                }
+            }
+        }
+
+        private val currenciesRegions: Map<CurrencyCode, RegionCode?> = mapOf(
             USD to RegionCode.US,
             EUR to RegionCode.EU,
             CHF to RegionCode.CH,
@@ -483,5 +503,11 @@ enum class CurrencyCode {
                 .mapNotNull { p -> p.value?.let { v -> Pair(v, p.key) } }
                 .toMap()
     }
+
+    val currencySymbols: List<String>
+        get() = lookupTable[this]?.toList()?.sortedBy { it.length } ?: emptyList()
+
+    val singleCharacterCurrencySymbol: String?
+        get() = lookupTable[this]?.firstOrNull { it.length == 1 }
 }
 

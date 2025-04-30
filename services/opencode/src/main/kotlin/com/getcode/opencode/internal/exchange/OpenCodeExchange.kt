@@ -1,11 +1,12 @@
 package com.getcode.opencode.internal.exchange
 
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.extensions.fromCode
+import com.getcode.opencode.internal.extensions.getClosestLocale
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.opencode.model.financial.RegionCode
 import com.getcode.services.opencode.R
 import com.getcode.util.format
 import com.getcode.util.locale.LocaleHelper
@@ -17,17 +18,13 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import java.util.Date
-import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -37,16 +34,6 @@ internal class OpenCodeExchange @Inject constructor(
     private val resources: ResourceHelper,
     private val locale: LocaleHelper,
 ) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
-
-    private val currencies: List<Currency> by lazy {
-        runBlocking {
-            initCurrencies()
-        }
-    }
-
-    private val currenciesMap: Map<String, Currency> by lazy {
-        currencies.associateBy { it.code }
-    }
 
     private val _balanceRate = MutableStateFlow(Rate.oneToOne)
     override val balanceRate
@@ -100,18 +87,18 @@ internal class OpenCodeExchange @Inject constructor(
 
     override suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> =
         withContext(Dispatchers.Default) {
-            return@withContext currencies
-                .mapNotNull {
-                    val code = CurrencyCode.tryValueOf(it.code) ?: return@mapNotNull null
+            return@withContext CurrencyCode.entries
+                .mapNotNull { code ->
                     val rate = rates[code]?.fx ?: 0.0
-                    it.copy(rate = rate)
+                    getCurrencyWithRate(code.name, rate)
                 }
         }
 
-    override fun getCurrency(code: String): Currency? = currenciesMap[code.uppercase()]
+    override fun getCurrency(code: String): Currency? =
+        CurrencyCode.tryValueOf(code)?.let { Currency.fromCode(it, resources) }
 
     override fun getCurrencyWithRate(code: String, rate: Double): Currency? =
-        currenciesMap[code.uppercase()]?.copy(rate = rate)
+        getCurrency(code)?.copy(rate = rate)
 
     override fun getFlagByCurrency(currencyCode: String?): Int? {
         currencyCode ?: return null
@@ -258,14 +245,10 @@ internal class OpenCodeExchange @Inject constructor(
         }
     }
 
-    private fun getLocale(region: RegionCode?): Locale {
-        return Locale(Locale.getDefault().language, region?.name.orEmpty())
-    }
-
     private suspend fun getCurrency(code: CurrencyCode, scope: CoroutineScope): Currency {
         val resId = scope.async { getFlagByCurrency(code.name) }
         val currencyJava = scope.async { java.util.Currency.getInstance(code.name) }
-        val locale = scope.async { getLocale(code.getRegion()) }
+        val locale = scope.async { code.getClosestLocale() }
 
         return Currency(
             code = currencyJava.await().currencyCode,
@@ -273,35 +256,6 @@ internal class OpenCodeExchange @Inject constructor(
             resId = resId.await(),
             symbol = currencyJava.await().getSymbol(locale.await())
         )
-    }
-
-    private suspend fun initCurrencies(): List<Currency> {
-        val scope = CoroutineScope(Dispatchers.Default)
-
-        val currencyMap = ConcurrentHashMap<String, Currency>()
-
-        val chunkSize = 25
-        val chunks = CurrencyCode.entries.chunked(chunkSize)
-
-        // Process each chunk asynchronously
-        val jobs = chunks.map { chunk ->
-            scope.async {
-                chunk.forEach { currencyCode ->
-                    try {
-                        val currency = getCurrency(currencyCode, scope)
-                        currencyMap[currency.name] = currency
-                    } catch (_: Exception) {
-                        // Handle exceptions if needed
-                    }
-                }
-            }
-        }
-
-        // Wait for all jobs to complete
-        jobs.awaitAll()
-
-        // Sort the currencies by name
-        return currencyMap.values.sortedBy { it.name }
     }
 }
 
