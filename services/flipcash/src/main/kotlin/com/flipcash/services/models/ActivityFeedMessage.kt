@@ -15,6 +15,7 @@ import kotlinx.datetime.Instant
  *  @param text The localized title text for the message
  *  @param amount If a payment applies, the amount that was paid
  *  @param timestamp The timestamp of this message
+ *  @param state The state of this notification
  *  @param metadata Additional metadata for this message specific to the message
  */
 data class ActivityFeedMessage(
@@ -22,8 +23,29 @@ data class ActivityFeedMessage(
     val text: String,
     val amount: LocalFiat?,
     val timestamp: Instant,
+    val state: FeedMessageState,
     val metadata: FeedMessageMetadata?
 )
+
+/**
+ * Determines the mutability of a message, and whether client should attempt to refetch state.
+ */
+enum class FeedMessageState {
+    /**
+     * ¯\_(ツ)_/¯
+     */
+    UNKNOWN,
+
+    /**
+     * Message state will change based on some app action in the future
+     */
+    PENDING,
+
+    /**
+     * Message state will not change
+     */
+    COMPLETED
+}
 
 sealed interface FeedMessageMetadata {
     data object Unknown : FeedMessageMetadata

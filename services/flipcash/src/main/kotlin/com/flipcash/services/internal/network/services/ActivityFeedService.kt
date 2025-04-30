@@ -6,8 +6,10 @@ import com.flipcash.services.internal.network.api.ActivityFeedApi
 import com.flipcash.services.internal.network.managedApiRequest
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.GetActivityFeedMessagesError
+import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.NetworkOracle
+import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
 
 internal class ActivityFeedService @Inject constructor(
@@ -26,6 +28,48 @@ internal class ActivityFeedService @Inject constructor(
                     ActivityFeedService.GetLatestNotificationsResponse.Result.OK -> Result.success(response.notificationsList)
                     ActivityFeedService.GetLatestNotificationsResponse.Result.DENIED -> Result.failure(GetActivityFeedMessagesError.Denied())
                     ActivityFeedService.GetLatestNotificationsResponse.Result.UNRECOGNIZED -> Result.failure(GetActivityFeedMessagesError.Unrecognized())
+                    else -> Result.failure(GetActivityFeedMessagesError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(GetActivityFeedMessagesError.Other(cause = cause))
+            }
+        )
+    }
+
+    suspend fun getNotificationsPage(
+        owner: KeyPair,
+        type: ActivityFeedType,
+        queryOptions: QueryOptions,
+    ): Result<List<Model.Notification>> {
+        return networkOracle.managedApiRequest(
+            call = { api.getNotificationsPage(owner, type, queryOptions) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ActivityFeedService.GetPagedNotificationsResponse.Result.OK -> Result.success(response.notificationsList)
+                    ActivityFeedService.GetPagedNotificationsResponse.Result.DENIED -> Result.failure(GetActivityFeedMessagesError.Denied())
+                    ActivityFeedService.GetPagedNotificationsResponse.Result.UNRECOGNIZED -> Result.failure(GetActivityFeedMessagesError.Unrecognized())
+                    else -> Result.failure(GetActivityFeedMessagesError.Other())
+                }
+            },
+            onOtherError = { cause ->
+                Result.failure(GetActivityFeedMessagesError.Other(cause = cause))
+            }
+        )
+    }
+
+    suspend fun getNotificationsByIds(
+        owner: KeyPair,
+        ids: List<ID>
+    ): Result<List<Model.Notification>> {
+        return networkOracle.managedApiRequest(
+            call = { api.getNotificationsByIds(owner, ids) },
+            handleResponse = { response ->
+                when (response.result) {
+                    ActivityFeedService.GetBatchNotificationsResponse.Result.OK -> Result.success(response.notificationsList)
+                    ActivityFeedService.GetBatchNotificationsResponse.Result.DENIED -> Result.failure(GetActivityFeedMessagesError.Denied())
+                    ActivityFeedService.GetBatchNotificationsResponse.Result.NOT_FOUND -> Result.failure(GetActivityFeedMessagesError.NotFound())
+                    ActivityFeedService.GetBatchNotificationsResponse.Result.UNRECOGNIZED -> Result.failure(GetActivityFeedMessagesError.Unrecognized())
                     else -> Result.failure(GetActivityFeedMessagesError.Other())
                 }
             },

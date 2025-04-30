@@ -65,5 +65,6 @@ sealed class GetActivityFeedMessagesError(
 ) : CodeServerError(message, cause) {
     class Denied : GetActivityFeedMessagesError()
     class Unrecognized : GetActivityFeedMessagesError()
+    class NotFound: GetActivityFeedMessagesError()
     data class Other(override val cause: Throwable? = null) : GetActivityFeedMessagesError(cause = cause)
 }

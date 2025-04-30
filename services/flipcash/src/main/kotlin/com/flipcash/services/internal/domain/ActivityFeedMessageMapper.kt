@@ -6,6 +6,7 @@ import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.models.ActivityFeedMessage
 import com.flipcash.services.models.FeedMessageMetadata
+import com.flipcash.services.models.FeedMessageState
 import com.getcode.opencode.internal.domain.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -28,6 +29,13 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 )
             },
             timestamp = Instant.fromEpochSeconds(from.ts.seconds, 0),
+            state = when (from.state) {
+                Model.NotificationState.NOTIFICATION_STATE_PENDING -> FeedMessageState.PENDING
+                Model.NotificationState.NOTIFICATION_STATE_COMPLETED -> FeedMessageState.COMPLETED
+                Model.NotificationState.NOTIFICATION_STATE_UNKNOWN,
+                Model.NotificationState.UNRECOGNIZED,
+                null -> FeedMessageState.UNKNOWN
+            },
             metadata = when (from.additionalMetadataCase) {
                 Model.Notification.AdditionalMetadataCase.WELCOME_BONUS -> FeedMessageMetadata.WelcomeBonus
                 Model.Notification.AdditionalMetadataCase.GAVE_USDC -> FeedMessageMetadata.GaveUsdc
