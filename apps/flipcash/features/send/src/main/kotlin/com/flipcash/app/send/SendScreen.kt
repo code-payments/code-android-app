@@ -12,9 +12,9 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipcash.app.core.LocalSessionController
 import com.flipcash.app.send.internal.SendScreenContent
 import com.flipcash.app.send.internal.SendScreenViewModel
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen

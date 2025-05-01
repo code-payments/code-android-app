@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.balance.internal.components.FeedItem
@@ -27,6 +29,8 @@ import com.getcode.ui.core.verticalScrollStateGradient
 internal fun BalanceScreenContent(viewModel: BalanceViewModel) {
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
+
+    val feed = viewModel.feed.collectAsLazyPagingItems()
 
     Column {
         BalanceHeader(
@@ -48,7 +52,8 @@ internal fun BalanceScreenContent(viewModel: BalanceViewModel) {
                 ),
             state = listState
         ) {
-            itemsIndexed(state.feed, key = { _, item -> item.id }) { index, message ->
+            items(feed.itemCount, key = feed.itemKey { item -> item.id }) { index ->
+                val message = feed[index] ?: return@items
                 FeedItem(
                     modifier = Modifier
                         .fillParentMaxWidth()
@@ -59,7 +64,7 @@ internal fun BalanceScreenContent(viewModel: BalanceViewModel) {
                     }
                 )
 
-                if (index < state.feed.lastIndex) {
+                if (index < feed.itemCount - 1) {
                     Divider(color = CodeTheme.colors.dividerVariant)
                 }
             }

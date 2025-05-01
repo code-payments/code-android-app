@@ -38,7 +38,7 @@ internal fun ReceivedFundsConfirmation(
 
         Row {
             AmountArea(
-                amountText = bill.amount.formatted,
+                amountText = bill.amount.formatted(),
                 currencyResId = exchange.getFlagByCurrency(bill.amount.rate.currency.name),
                 isClickable = false
             )

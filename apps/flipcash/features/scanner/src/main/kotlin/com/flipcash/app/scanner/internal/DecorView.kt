@@ -36,7 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.SessionState
+import com.flipcash.app.session.SessionState
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
@@ -47,7 +47,7 @@ import com.getcode.utils.network.LocalNetworkObserver
 
 @Composable
 internal fun DecorView(
-    state: SessionState,
+    state: com.flipcash.app.session.SessionState,
     billState: BillState,
     isPaused: Boolean,
     modifier: Modifier = Modifier,

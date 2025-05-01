@@ -1,7 +1,7 @@
 package com.flipcash.app.login.router
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.auth.AuthManager
+import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.internal.extensions.onSuccessWithDelay
 import com.getcode.manager.TopBarManager
 import com.getcode.view.BaseViewModel2
@@ -18,7 +18,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val authManager: AuthManager,
+    private val authManager: com.flipcash.app.auth.AuthManager,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent

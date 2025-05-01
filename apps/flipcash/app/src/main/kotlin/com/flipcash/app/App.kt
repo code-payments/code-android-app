@@ -21,10 +21,10 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
-import com.flipcash.app.core.LocalSessionController
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.router.DeeplinkType
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.ui.LocalRouter
 import com.flipcash.app.ui.navigation.AppScreenContent

@@ -4,9 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.core.auth.AuthManager
-import com.flipcash.app.core.credentials.SelectCredentialError
 import com.flipcash.app.core.internal.accounts.AccountManager
 import com.flipcash.features.login.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -42,7 +41,7 @@ data class SeedInputUiModel(
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
-    private val authManager: AuthManager,
+    private val authManager: com.flipcash.app.auth.AuthManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
     private val accountManager: AccountManager,
@@ -105,7 +104,7 @@ class SeedInputViewModel @Inject constructor(
             setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
             authManager.login(entropyB64)
                 .onFailure {
-                    if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
+                    if (it is com.flipcash.app.auth.AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(
                             getString(R.string.error_title_timelockUnlocked),
                             getString(R.string.error_description_timelockUnlocked)

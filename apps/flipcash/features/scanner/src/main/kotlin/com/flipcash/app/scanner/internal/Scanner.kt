@@ -14,8 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipcash.app.core.LocalSessionController
 import com.flipcash.app.scanner.internal.bills.BillContainer
+import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner

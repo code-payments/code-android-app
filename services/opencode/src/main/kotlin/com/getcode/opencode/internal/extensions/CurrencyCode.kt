@@ -30,8 +30,6 @@ internal fun CurrencyCode.getClosestLocale(): Locale {
         }
     }
 
-    println("Matched locale: $matchedLocale")
-
     val language = customLanguageMap[matchedLocale?.language] ?: matchedLocale?.language
     val country = matchedLocale?.country
     return try {

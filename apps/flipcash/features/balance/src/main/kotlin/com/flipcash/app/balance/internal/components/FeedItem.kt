@@ -12,9 +12,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.ui.FlagWithFiat
-import com.flipcash.services.models.ActivityFeedMessage
-import com.flipcash.services.models.FeedMessageMetadata
+import com.flipcash.services.models.ActivityFeedNotification
+import com.flipcash.services.models.NotificationMetadata
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.theme.CodeTheme
 import com.getcode.util.DateUtils
@@ -30,7 +32,7 @@ internal fun FeedItem(
     val canCancel by remember(message.metadata) {
         derivedStateOf {
             message.metadata ?: return@derivedStateOf false
-            val metadata = (message.metadata as? FeedMessageMetadata.SentUsdc) ?: return@derivedStateOf false
+            val metadata = (message.metadata as? MessageMetadata.SentUsdc) ?: return@derivedStateOf false
             metadata.canCancel
         }
     }

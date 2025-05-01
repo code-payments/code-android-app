@@ -56,6 +56,8 @@ dependencies {
     implementation(Libs.compose_activities)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:session"))
+
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))

@@ -6,11 +6,13 @@ import com.codeinc.flipcash.gen.activity.v1.Model
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.toNotificationIds
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -79,9 +81,7 @@ class ActivityFeedApi @Inject constructor(
     ): Flow<ActivityFeedService.GetBatchNotificationsResponse> {
         val request = ActivityFeedService.GetBatchNotificationsRequest.newBuilder()
             .apply {
-                ids.forEachIndexed { index, id ->
-                    addIds(index, Model.NotificationId.parseFrom(id.toByteArray()))
-                }
+                addAllIds(ids.toNotificationIds())
             }.apply {
                 setAuth(authenticate(owner))
             }.build()

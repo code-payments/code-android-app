@@ -227,7 +227,7 @@ internal fun CashBill(
                     .align(Alignment.TopStart)
                     .padding(top = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(start = geometry.valuePadding),
-                text = amount.formatted,
+                text = amount.formatted(),
                 flag = exchange.getFlagByCurrency(amount.rate.currency.name)
             )
 
@@ -237,7 +237,7 @@ internal fun CashBill(
                     .align(Alignment.BottomEnd)
                     .padding(bottom = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(end = geometry.valuePadding),
-                text = amount.formatted,
+                text = amount.formatted(),
                 flag = exchange.getFlagByCurrency(amount.rate.currency.name)
             )
 

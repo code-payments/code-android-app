@@ -53,8 +53,10 @@ dependencies {
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
     implementation(Libs.compose_materialIconsExtended)
+    implementation(Libs.compose_paging)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:activityfeed"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
@@ -65,5 +67,6 @@ dependencies {
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
+
     implementation(Libs.rinku_compose)
 }

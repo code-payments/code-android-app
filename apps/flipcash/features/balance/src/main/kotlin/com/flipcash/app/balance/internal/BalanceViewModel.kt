@@ -1,13 +1,13 @@
 package com.flipcash.app.balance.internal
 
 import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
+import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.money.formatted
 import com.flipcash.features.balance.R
-import com.flipcash.services.controllers.ActivityFeedController
-import com.flipcash.services.models.ActivityFeedMessage
-import com.flipcash.services.models.ActivityFeedType
-import com.flipcash.services.models.FeedMessageMetadata
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
@@ -23,13 +23,14 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 internal class BalanceViewModel @Inject constructor(
     balanceController: BalanceController,
-    activityFeedController: ActivityFeedController,
+    feedCoordinator: ActivityFeedCoordinator,
     transactionController: TransactionController,
     userManager: UserManager,
     resources: ResourceHelper,
@@ -39,13 +40,11 @@ internal class BalanceViewModel @Inject constructor(
 ) {
     data class State(
         val balance: LocalFiat? = null,
-        val feed: List<ActivityFeedMessage> = emptyList(),
     )
 
     sealed interface Event {
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
         data object UpdateFeed : Event
-        data class OnMessagesUpdated(val latest: List<ActivityFeedMessage>) : Event
         data class OnCancelRequested(val message: ActivityFeedMessage) : Event
         data class CancelTransfer(val vault: PublicKey) : Event
     }
@@ -56,23 +55,11 @@ internal class BalanceViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.UpdateFeed>()
-            .map { activityFeedController.getLatestMessagesFor(type = ActivityFeedType.TransactionHistory) }
-            .onResult(
-                onError = {
-
-                },
-                onSuccess = {
-                    dispatchEvent(Event.OnMessagesUpdated(it))
-                }
-            ).launchIn(viewModelScope)
-
-        eventFlow
             .filterIsInstance<Event.OnCancelRequested>()
             .map { it.message }
             .onEach { message ->
-                val metadata = message.metadata as? FeedMessageMetadata.SentUsdc ?: return@onEach
-                val formattedAmount = message.amount?.formatted
+                val metadata = message.metadata as? MessageMetadata.SentUsdc ?: return@onEach
+                val formattedAmount = message.amount?.formatted()
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)
                 } ?: resources.getString(R.string.prompt_title_cancelTransferNoAmount)
@@ -105,13 +92,15 @@ internal class BalanceViewModel @Inject constructor(
                 },
                 onSuccess = {
                     viewModelScope.launch {
-                        activityFeedController.refreshAfterEvent(
-                            type = ActivityFeedType.TransactionHistory
-                        )
+                        feedCoordinator.checkPendingMessagesForUpdates()
+                        balanceController.fetchBalance()
                     }
                 }
             ).launchIn(viewModelScope)
     }
+
+    val feed = feedCoordinator.messages
+        .cachedIn(viewModelScope)
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -120,7 +109,6 @@ internal class BalanceViewModel @Inject constructor(
                 is Event.OnCancelRequested -> { state -> state }
                 is Event.CancelTransfer -> { state -> state }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
-                is Event.OnMessagesUpdated -> { state -> state.copy(feed = event.latest) }
             }
         }
     }

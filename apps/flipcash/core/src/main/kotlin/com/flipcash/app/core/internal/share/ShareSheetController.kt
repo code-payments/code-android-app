@@ -9,9 +9,13 @@ import android.content.IntentFilter
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.internal.Linkify
 import com.flipcash.app.core.money.formatted
+import com.flipcash.core.R
+import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import java.security.SecureRandom
@@ -29,6 +33,8 @@ class ShareSheetController @Inject constructor(
     @ApplicationContext
     private val context: Context,
     private val clipboardManager: ClipboardManager,
+    private val resources: ResourceHelper,
+    private val balanceController: BalanceController,
 ) {
     internal companion object {
         const val ACTION_SHARE_CASH_LINK = "com.flipcash.app.ACTION_SHARE_CASH_LINK"
@@ -39,6 +45,7 @@ class ShareSheetController @Inject constructor(
     private var sharedWithApp: String? = null
 
     private var pendingEntropy = ""
+    private var pendingAmount: LocalFiat? = null
 
     var onShared: ((ShareResult) -> Unit)? = null
 
@@ -53,6 +60,7 @@ class ShareSheetController @Inject constructor(
 
         // if it was shared with an app, return successfully
         if (sharedWithApp != null) {
+            pendingAmount?.let { balanceController.subtract(it) }
             onShared?.invoke(ShareResult.SharedToApp(sharedWithApp!!))
             return
         }
@@ -61,6 +69,7 @@ class ShareSheetController @Inject constructor(
         if (clipboardManager.hasPrimaryClip()) {
             val clippedText = clipboardManager.primaryClip?.getItemAt(0)?.text
             if (clippedText?.contains(pendingEntropy) == true) {
+                pendingAmount?.let { balanceController.subtract(it) }
                 onShared?.invoke(ShareResult.CopiedToClipboard)
             }
         }
@@ -80,6 +89,7 @@ class ShareSheetController @Inject constructor(
         amount: LocalFiat
     ) {
         pendingEntropy = giftCardAccount.entropy
+        pendingAmount = amount
         shareCashLink(giftCardAccount, amount)
         delay(300)
         isChecking = true
@@ -94,7 +104,12 @@ class ShareSheetController @Inject constructor(
         amount: LocalFiat,
     ) {
         val url = Linkify.cashLink(giftCardAccount.entropy)
-        val text = "${amount.formatted} $url"
+        val suffix = amount.converted.currencyCode.takeIf {
+            it != CurrencyCode.USD
+        }?.let {
+            resources.getString(R.string.subtitle_ofUsdSuffix)
+        }
+        val text = "${amount.formatted(suffix = suffix)} $url"
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, text)

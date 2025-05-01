@@ -33,13 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipcash.app.core.LocalSessionController
-import com.flipcash.app.core.PresentationStyle
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.scanner.internal.DecorView
 import com.flipcash.app.scanner.internal.ReceivedFundsConfirmation
 import com.flipcash.app.scanner.internal.ScannerDecorItem
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.features.scanner.R
 import com.getcode.manager.TopBarManager
 import com.getcode.ui.biometrics.LocalBiometricsState
@@ -196,11 +195,11 @@ internal fun BillContainer(
             contentPadding = PaddingValues(bottom = managementHeight),
             bill = updatedBillState.bill,
             transitionSpec = {
-                if (updatedState.presentationStyle is PresentationStyle.Slide) {
+                if (updatedState.presentationStyle is com.flipcash.app.session.PresentationStyle.Slide) {
                     AnimationUtils.animationBillEnterGive
                 } else {
                     AnimationUtils.animationBillEnterGrabbed
-                } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
+                } togetherWith if (updatedState.presentationStyle is com.flipcash.app.session.PresentationStyle.Slide) {
                     AnimationUtils.animationBillExitReturned
                 } else {
                     AnimationUtils.animationBillExitGrabbed

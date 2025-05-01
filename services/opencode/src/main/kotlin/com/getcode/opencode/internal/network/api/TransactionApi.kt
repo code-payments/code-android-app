@@ -247,5 +247,6 @@ class TransactionApi @Inject constructor(
 
         return api::voidGiftCard
             .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
     }
 }

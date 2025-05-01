@@ -6,8 +6,16 @@ include(
         ":apps:flipcash:app",
         ":apps:flipchatApp",
 
-        // flipcash features
+        // flipcash modules
         ":apps:flipcash:core",
+        // shared flipcash coordinators/controllers
+        ":apps:flipcash:shared:authentication",
+        ":apps:flipcash:shared:activityfeed",
+        ":apps:flipcash:shared:persistence:db",
+        ":apps:flipcash:shared:persistence:provider",
+        ":apps:flipcash:shared:persistence:sources",
+        ":apps:flipcash:shared:session",
+        // flipcash features
         ":apps:flipcash:features:accesskey",
         ":apps:flipcash:features:login",
         ":apps:flipcash:features:router",

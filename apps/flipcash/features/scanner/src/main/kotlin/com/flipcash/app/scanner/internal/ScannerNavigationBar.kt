@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.SessionState
+import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
@@ -36,7 +36,7 @@ import com.getcode.ui.utils.widthOrZero
 @Composable
 internal fun ScannerNavigationBar(
     modifier: Modifier = Modifier,
-    state: SessionState = SessionState(),
+    state: com.flipcash.app.session.SessionState = com.flipcash.app.session.SessionState(),
     onAction: (ScannerDecorItem) -> Unit = { }
 ) {
     Row(

@@ -39,7 +39,6 @@ fun Int.withCommas(): String {
     return this.toString().reversed().chunked(3).joinToString(",").reversed()
 }
 
-val LocalFiat.formatted: String
-    get() {
-        return converted.formatted()
-    }
+fun LocalFiat.formatted(suffix: String? = null, truncated: Boolean = false): String {
+    return converted.formatted(suffix, truncated)
+}

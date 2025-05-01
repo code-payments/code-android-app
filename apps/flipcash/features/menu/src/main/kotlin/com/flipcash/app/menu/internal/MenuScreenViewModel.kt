@@ -1,17 +1,15 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.auth.AuthManager
+import com.flipcash.app.auth.AuthManager
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.ui.utils.getActivity
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull

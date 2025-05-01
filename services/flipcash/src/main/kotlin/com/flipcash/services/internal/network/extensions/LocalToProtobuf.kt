@@ -1,5 +1,6 @@
 package com.flipcash.services.internal.network.extensions
 
+import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
@@ -35,4 +36,8 @@ internal fun QueryOptions.asQueryOptions(): Common.QueryOptions {
 
 internal fun PagingToken.toPagingToken(): Common.PagingToken {
     return Common.PagingToken.newBuilder().setValue(this.toByteString()).build()
+}
+
+internal fun List<ID>.toNotificationIds(): List<Model.NotificationId> {
+    return this.map { Model.NotificationId.newBuilder().setValue(it.toByteString()).build() }
 }

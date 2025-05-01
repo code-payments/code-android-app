@@ -46,4 +46,6 @@
     <string name="prompt_description_cancelTransfer">The money will be returned to your wallet</string>
     <string name="action_cancelTransfer">Cancel Transfer</string>
     <string name="action_nevermind">Nevermind</string>
+
+    <string name="subtitle_ofUsdSuffix">of USD</string>
 </resources>

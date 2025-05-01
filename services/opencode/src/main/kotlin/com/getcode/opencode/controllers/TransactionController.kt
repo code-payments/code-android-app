@@ -131,6 +131,11 @@ class TransactionController @Inject constructor(
         owner: AccountCluster,
         vault: PublicKey,
     ): Result<Unit> {
+        trace(
+            tag = "TRX",
+            message = "Canceling remote send for vault ${vault.bytes.base64}",
+            type = TraceType.User
+        )
         return repository.voidGiftCard(owner.authority.keyPair, vault)
     }
 
