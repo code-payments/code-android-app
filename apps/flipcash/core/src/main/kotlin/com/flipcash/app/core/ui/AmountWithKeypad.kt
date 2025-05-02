@@ -57,7 +57,7 @@ fun AmountWithKeypad(
                 uiModel = amountAnimatedModel,
                 isAnimated = true,
                 isClickable = isClickable,
-                onClick = { onAmountClicked?.invoke() },
+                onClick = { onAmountClicked.invoke() },
                 networkState = networkState,
                 textStyle = CodeTheme.typography.displayLarge,
             )

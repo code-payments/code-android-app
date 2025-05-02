@@ -138,8 +138,7 @@ fun AmountPreview() {
         amountSuffix = "suffix",
         captionText = "The value of kin fluctuates",
         currencyResId = R.drawable.ic_flag_ca,
-        isAnimated = false,
-        networkState = networkStateValues.last()
+        networkState = networkStateValues.last(),
     )
 }
 
@@ -153,6 +152,5 @@ fun AmountPreviewDisconnected() {
         captionText = "The value of kin fluctuates",
         currencyResId = R.drawable.ic_flag_ca,
         networkState = networkStateValues.first(),
-        isAnimated = false
     )
 }
