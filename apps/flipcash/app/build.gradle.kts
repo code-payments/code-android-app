@@ -117,12 +117,12 @@ dependencies {
 
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:features:currency-selection:core"))
     implementation(project(":apps:flipcash:features:currency-selection:ui"))
     implementation(project(":apps:flipcash:features:accesskey"))
     implementation(project(":apps:flipcash:features:login"))
-    implementation(project(":apps:flipcash:features:router"))
     implementation(project(":apps:flipcash:features:scanner"))
     implementation(project(":apps:flipcash:features:give"))
     implementation(project(":apps:flipcash:features:balance"))

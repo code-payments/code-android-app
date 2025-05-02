@@ -42,7 +42,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Scanner> {
-            ScannerScreen()
+            ScannerScreen(it.deeplink)
         }
 
         register<NavScreenProvider.HomeScreen.Give> {

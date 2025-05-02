@@ -2,6 +2,7 @@ package com.flipcash.app.core
 
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.CurrencySelectionKind
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.getcode.ui.core.RestrictionType
 import dev.theolm.rinku.DeepLink
 
@@ -25,7 +26,7 @@ sealed class NavScreenProvider : ScreenProvider {
     }
 
     sealed interface HomeScreen {
-        data class Scanner(val deeplink: DeepLink? = null) : NavScreenProvider()
+        data class Scanner(val deeplink: DeeplinkType? = null) : NavScreenProvider()
         data object Give : NavScreenProvider()
         data object Send : NavScreenProvider()
         data object Balance : NavScreenProvider()

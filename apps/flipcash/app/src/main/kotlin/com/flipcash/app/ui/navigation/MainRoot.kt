@@ -30,7 +30,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.ui.LocalRouter
+import com.flipcash.app.router.LocalRouter
 import com.flipcash.services.user.AuthState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator

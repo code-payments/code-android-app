@@ -51,4 +51,11 @@ class BillController @Inject constructor(
         onCreated: (GiftCardAccount) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.createGiftCard(amount, owner, onCreated, onError)
+
+    fun receiveGiftCard(
+        entropy: String,
+        owner: AccountCluster,
+        onReceived: (LocalFiat) -> Unit,
+        onError: (Throwable) -> Unit,
+    ) = transactionManager.receiveGiftCard(owner, entropy, onReceived, onError)
 }

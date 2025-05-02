@@ -13,12 +13,14 @@ import com.flipcash.app.session.internal.toast.ToastController
 import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.session.PresentationStyle
+import com.flipcash.app.session.SessionController
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -67,7 +69,7 @@ class RealSessionController @Inject constructor(
     private val exchangeUpdater: ExchangeUpdater,
     private val shareSheetController: ShareSheetController,
     private val toastController: ToastController,
-) : com.flipcash.app.session.SessionController {
+) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val _state = MutableStateFlow(com.flipcash.app.session.SessionState())
@@ -79,6 +81,7 @@ class RealSessionController @Inject constructor(
         get() = billController.state
 
     private val scannedRendezvous = mutableListOf<String>()
+    private val openedLinks = mutableListOf<String>()
 
     init {
         userManager.state
@@ -335,8 +338,66 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    override fun handleRequest(request: DeepLinkRequest?) {
-        TODO("Not yet implemented")
+    override fun openCashLink(cashLink: String?) {
+        val entropy = cashLink?.trim()?.replace("\n", "") ?: return
+        val owner = userManager.accountCluster ?: return
+
+        if (entropy.isEmpty()) {
+            trace(
+                tag = "Session",
+                message = "Cash link empty",
+                type = TraceType.Silent
+            )
+            return
+        }
+
+        if (openedLinks.contains(entropy)) {
+            trace(
+                tag = "Session",
+                message = "Cash link previously opened: $entropy",
+            )
+            return
+        }
+
+        // TODO: analytics
+        openedLinks.add(entropy)
+
+        billController.receiveGiftCard(
+            entropy = entropy,
+            owner = owner,
+            onReceived = {
+                BottomBarManager.clear()
+                showBill(
+                    bill = Bill.Cash(amount = it, didReceive = true),
+                    vibrate = true
+                )
+            },
+            onError = { cause ->
+                when (cause) {
+                    is ReceiveGiftTransactorError.AlreadyClaimed -> {
+                        TopBarManager.showMessage(
+                            resources.getString(R.string.error_title_alreadyCollected),
+                            resources.getString(R.string.error_description_alreadyCollected)
+                        )
+                    }
+
+                    is ReceiveGiftTransactorError.Expired -> {
+                        TopBarManager.showMessage(
+                            resources.getString(R.string.error_title_linkExpired),
+                            resources.getString(R.string.error_description_linkExpired)
+                        )
+                    }
+
+                    else -> {
+                        TopBarManager.showMessage(
+                            resources.getString(R.string.error_title_failedToCollect),
+                            resources.getString(R.string.error_description_failedToCollect)
+                        )
+                    }
+
+                }
+            }
+        )
     }
 
     private fun onCashScanned(payload: OpenCodePayload) {

@@ -16,7 +16,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
-internal class SendBillTransactor(
+internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
 ) {
@@ -65,6 +65,12 @@ internal class SendBillTransactor(
     }
 
     fun dispose() {
+        amount = null
+        owner = null
+        payload = null
+        data = null
+        rendezvousKey = null
+
         scope.cancel()
     }
 

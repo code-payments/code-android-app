@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.flipcash.app.core.bill.DeepLinkRequest
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -25,11 +27,13 @@ import java.util.Timer
 import kotlin.concurrent.schedule
 
 @Composable
-internal fun Scanner() {
+internal fun Scanner(deepLink: DeeplinkType?) {
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.currentOrThrow
     val state by session.state.collectAsState()
     val billState by session.billState.collectAsState()
+
+
     var isPaused by remember { mutableStateOf(false) }
 
     var previewing by remember {
@@ -42,6 +46,17 @@ internal fun Scanner() {
 
     LaunchedEffect(previewing) {
         session.onCameraScanning(previewing)
+    }
+
+    LaunchedEffect(deepLink) {
+        deepLink ?: return@LaunchedEffect
+        when (deepLink) {
+            is DeeplinkType.CashLink -> {
+                session.openCashLink(deepLink.entropy)
+            }
+
+            is DeeplinkType.Login -> Unit
+        }
     }
 
     BillContainer(

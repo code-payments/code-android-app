@@ -48,4 +48,10 @@
     <string name="action_nevermind">Nevermind</string>
 
     <string name="subtitle_ofUsdSuffix">of USD</string>
+
+    <string name="error_title_alreadyCollected">Cash Already Collected</string>
+    <string name="error_title_alreadyCollectedBySomeone">Cash Already Collected</string>
+
+    <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
+
 </resources>

@@ -1,16 +1,17 @@
 package com.getcode.opencode.managers
 
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.internal.transactors.ReceiveBillTransactor
+import com.getcode.opencode.internal.transactors.GrabBillTransactor
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
-import com.getcode.opencode.internal.transactors.SendBillTransactor
+import com.getcode.opencode.internal.transactors.ReceiveGiftCardTransactor
+import com.getcode.opencode.internal.transactors.SendGiftCardTransactor
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.utils.onSuccessWithDelay
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -22,19 +23,25 @@ import java.util.TimerTask
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.schedule
-import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class BillTransactionManager @Inject constructor(
+    private val accountController: AccountController,
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val balanceController: BalanceController,
+    private val mnemonicManager: MnemonicManager,
+    private val giftCardManager: GiftCardManager,
 ) {
     private var billDismissTimer: TimerTask? = null
 
+    // bills
     private var giveTransactor: GiveBillTransactor? = null
-    private var receiveTransactor: ReceiveBillTransactor? = null
-    private var sendTransactor: SendBillTransactor? = null
+    private var grabTransactor: GrabBillTransactor? = null
+
+    // gifts
+    private var giftTransactor: SendGiftCardTransactor? = null
+    private var receiveTransactor: ReceiveGiftCardTransactor? = null
 
     fun awaitGrabFromRecipient(
         amount: LocalFiat,
@@ -77,14 +84,15 @@ class BillTransactionManager @Inject constructor(
         onGrabbed: (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        receiveTransactor?.dispose()
+        grabTransactor?.dispose()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        receiveTransactor = ReceiveBillTransactor(messagingController, transactionController, scope).apply {
-            with(owner, payload)
-        }
+        grabTransactor =
+            GrabBillTransactor(messagingController, transactionController, scope).apply {
+                with(owner, payload)
+            }
 
         scope.launch {
-            receiveTransactor?.start()
+            grabTransactor?.start()
                 ?.onSuccess { metadata ->
                     trace(
                         tag = "Bill",
@@ -100,14 +108,14 @@ class BillTransactionManager @Inject constructor(
                     onGrabbed(amount)
                     balanceController.add(amount)
                     transactionController.updateLimits(owner, force = true)
-                    receiveTransactor?.dispose()
-                    receiveTransactor = null
+                    grabTransactor?.dispose()
+                    grabTransactor = null
                 }
                 ?.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
-                    receiveTransactor?.dispose()
-                    receiveTransactor = null
+                    grabTransactor?.dispose()
+                    grabTransactor = null
                 }
         }
     }
@@ -118,16 +126,46 @@ class BillTransactionManager @Inject constructor(
         onCreated: (GiftCardAccount) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        sendTransactor?.dispose()
+        giftTransactor?.dispose()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        val sendTransactor = SendBillTransactor(transactionController, scope).apply {
+        giftTransactor = SendGiftCardTransactor(transactionController, scope).apply {
             with(amount, owner)
         }
 
         scope.launch {
-            sendTransactor.start()
-                .onSuccess { onCreated(it) }
-                .onFailure { onError(it) }
+            giftTransactor?.start()
+                ?.onSuccess { onCreated(it) }
+                ?.onFailure { onError(it) }
+        }
+    }
+
+    fun receiveGiftCard(
+        owner: AccountCluster,
+        entropy: String,
+        onReceived: (LocalFiat) -> Unit,
+        onError: (Throwable) -> Unit,
+    ) {
+        receiveTransactor?.dispose()
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        receiveTransactor = ReceiveGiftCardTransactor(
+            accountController = accountController,
+            transactionController = transactionController,
+            scope = scope,
+            mnemonicManager = mnemonicManager,
+            giftCardManager = giftCardManager
+        ).apply {
+            with(owner, entropy)
+        }
+
+        scope.launch {
+            receiveTransactor?.start()
+                ?.onSuccess { onReceived(it) }
+                ?.onFailure {
+                    ErrorUtils.handleError(it)
+                    onError(it)
+                    receiveTransactor?.dispose()
+                    receiveTransactor = null
+                }
         }
     }
 
@@ -141,8 +179,8 @@ class BillTransactionManager @Inject constructor(
     fun reset() {
         cancelBillTimeout()
         giveTransactor?.dispose()
-        receiveTransactor?.dispose()
-        sendTransactor?.dispose()
+        grabTransactor?.dispose()
+        giftTransactor?.dispose()
     }
 
     private fun cancelBillTimeout() {

@@ -3,7 +3,6 @@ package com.flipcash.app.session
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
-import com.flipcash.app.core.bill.DeepLinkRequest
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
@@ -28,7 +27,7 @@ interface SessionController {
     fun showBill(bill: Bill, vibrate: Boolean = false)
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide)
     fun onCodeScan(code: ScannableKikCode)
-    fun handleRequest(request: DeepLinkRequest?)
+    fun openCashLink(cashLink: String?)
 }
 
 data class SessionState(

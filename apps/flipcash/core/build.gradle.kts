@@ -3,6 +3,7 @@ plugins {
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_ksp)
     id(Plugins.kotlin_serialization)
+    id(Plugins.kotlin_parcelize)
 }
 
 android {

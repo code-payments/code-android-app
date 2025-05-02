@@ -91,7 +91,14 @@ internal class GiveBillTransactor(
     }
 
     fun dispose() {
+        owner = null
+        payload = null
+        data = null
+        rendezvousKey = null
+        receivingAccount = null
+
         messagingController.cancelAwaitForBillGrab()
+
         scope.cancel()
     }
 

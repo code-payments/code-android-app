@@ -10,10 +10,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
-import com.flipcash.app.ui.LocalRouter
 import com.flipcash.services.LocalBillingClient
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.user.UserManager

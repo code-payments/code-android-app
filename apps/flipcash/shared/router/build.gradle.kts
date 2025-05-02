@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.features.router"
+    namespace = "${Android.flipcashNamespace}.shared.router"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

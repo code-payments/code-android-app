@@ -23,10 +23,10 @@ import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.router.DeeplinkType
+import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
-import com.flipcash.app.ui.LocalRouter
 import com.flipcash.app.ui.navigation.AppScreenContent
 import com.flipcash.app.ui.navigation.MainRoot
 import com.flipcash.services.modals.ModalManager
@@ -52,8 +52,8 @@ fun App(
 ) {
     val router = LocalRouter.currentOrThrow
 
-    //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
-    //authenticated. Currently we will require authentication to see anything, but can be changed in future.
+    // We are obtaining deep link here to handle a login request while already logged in to
+    // present the option for the user to switch accounts
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }
     var loginRequest by remember { mutableStateOf<String?>(null) }
 

@@ -2,9 +2,9 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
+import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
-import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.Limits
@@ -137,6 +137,20 @@ class TransactionController @Inject constructor(
             type = TraceType.User
         )
         return repository.voidGiftCard(owner.authority.keyPair, vault)
+    }
+
+    suspend fun receiveRemotely(
+        owner: AccountCluster,
+        giftCard: GiftCardAccount,
+        amount: LocalFiat,
+    ): Result<IntentType> {
+        val intent = IntentRemoteReceive.create(
+            amount = amount,
+            giftCard = giftCard,
+            owner = owner
+        )
+
+        return submitIntent(scope, intent, owner.authority.keyPair)
     }
 
     internal suspend fun submitIntent(

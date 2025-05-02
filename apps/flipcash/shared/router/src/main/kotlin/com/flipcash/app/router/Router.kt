@@ -1,6 +1,8 @@
 package com.flipcash.app.router
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
+import com.flipcash.app.core.navigation.DeeplinkType
 import dev.theolm.rinku.DeepLink
 
 interface Router {
@@ -8,6 +10,4 @@ interface Router {
     fun processType(deeplink: DeepLink?): DeeplinkType?
 }
 
-sealed interface DeeplinkType {
-    data class Login(val entropy: String) : DeeplinkType
-}
+val LocalRouter = staticCompositionLocalOf<Router?> { null }
