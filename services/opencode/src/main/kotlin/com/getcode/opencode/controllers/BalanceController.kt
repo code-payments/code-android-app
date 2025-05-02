@@ -97,7 +97,7 @@ class BalanceController @Inject constructor(
     }
 
     fun subtract(fiat: LocalFiat) {
-        _rawBalance.value -= fiat.usdc
+        _rawBalance.value = (_rawBalance.value - fiat.usdc).coerceAtLeast(Fiat.Zero)
         localizedBalance.value = fiat
     }
 
