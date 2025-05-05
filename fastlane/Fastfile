@@ -18,6 +18,7 @@ default_platform(:android)
 platform :android do
   desc "Runs all the tests for Code"
   lane :code_tests do
+      gradle(task: "generateEmojiList")
     gradle(task: "apps:codeApp:testDebug")
   end
 
@@ -29,6 +30,7 @@ platform :android do
 
   desc "Runs all the tests for Flipcash"
     lane :flipcash_tests do
+      gradle(task: "generateEmojiList")
       gradle(task: "app:flipcash:app:testDebug")
     end
 
