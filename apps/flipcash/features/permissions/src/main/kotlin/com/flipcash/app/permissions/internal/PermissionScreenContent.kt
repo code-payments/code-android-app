@@ -1,4 +1,4 @@
-package com.flipcash.app.login.internal
+package com.flipcash.app.permissions.internal
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -25,9 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.features.login.R
-import com.getcode.libs.analytics.LocalAnalytics
-import com.getcode.navigation.core.CodeNavigator
+import com.flipcash.features.permissions.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState

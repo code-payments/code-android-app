@@ -9,11 +9,11 @@ import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.currency.CurrencySelectionModal
 import com.flipcash.app.give.GiveScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
-import com.flipcash.app.login.permissions.CameraPermissionScreen
-import com.flipcash.app.login.permissions.NotificationPermissionScreen
 import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
+import com.flipcash.app.permissions.CameraPermissionScreen
+import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.send.SendScreen
 

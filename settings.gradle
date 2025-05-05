@@ -24,6 +24,7 @@ include(
         ":apps:flipcash:features:balance",
         ":apps:flipcash:features:send",
         ":apps:flipcash:features:menu",
+        ":apps:flipcash:features:permissions",
         ":apps:flipcash:features:currency-selection:core",
         ":apps:flipcash:features:currency-selection:ui",
 
