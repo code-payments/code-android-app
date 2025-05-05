@@ -43,7 +43,7 @@ jobs:
         id: google_services_json_file
         with:
           fileName: google-services.json
-          fileDir: ./apps/flipchatApp/src
+          fileDir: ./apps/flipcash/app/src
           encodedString: ${{ secrets.FLIPCASH_GOOGLE_SERVICES_JSON }}
 
       - name: Decode Service Account Key JSON file
