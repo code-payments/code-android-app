@@ -99,10 +99,10 @@ class SeedInputViewModel @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    fun performLogin(navigator: CodeNavigator, entropyB64: String, deeplink: Boolean = false) {
+    fun performLogin(navigator: CodeNavigator, entropyB64: String, deeplink: Boolean = false, isRestore: Boolean = false) {
         viewModelScope.launch {
             setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
-            authManager.login(entropyB64)
+            authManager.login(entropyB64, isFromSelection = isRestore)
                 .onFailure {
                     if (it is com.flipcash.app.auth.AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(
@@ -137,7 +137,11 @@ class SeedInputViewModel @Inject constructor(
     suspend fun restoreAccount(navigator: CodeNavigator): Result<Unit> {
         return authManager.selectAccount()
             .onSuccess { mnemonic ->
-                performLogin(navigator, mnemonic.getBase64EncodedEntropy())
+                performLogin(
+                    navigator = navigator,
+                    entropyB64 = mnemonic.getBase64EncodedEntropy(),
+                    isRestore = true
+                )
             }.onFailure { error ->
              when (error) {
                  is SelectCredentialError.UserCancelled -> { /* no op */ }

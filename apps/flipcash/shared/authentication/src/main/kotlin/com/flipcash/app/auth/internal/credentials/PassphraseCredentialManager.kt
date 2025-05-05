@@ -2,6 +2,7 @@ package com.flipcash.app.auth.internal.credentials
 
 import android.content.Context
 import androidx.credentials.CreatePasswordRequest
+import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetPasswordOption
@@ -54,6 +55,8 @@ class PassphraseCredentialManager @Inject constructor(
 
     private val credentialManager = CredentialManager.create(context)
 
+    private val credentialLookupCache = mutableMapOf<String, PasswordCredential>()
+
     private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val storage = PreferenceDataStoreFactory.create(
@@ -103,6 +106,7 @@ class PassphraseCredentialManager @Inject constructor(
 
     suspend fun login(
         entropy: String,
+        fromSelection: Boolean = false,
     ): Result<AccountMetadata> {
         userManager.establish(entropy)
         userManager.set(AuthState.LoggedInAwaitingUser)
@@ -113,35 +117,41 @@ class PassphraseCredentialManager @Inject constructor(
             return Result.success(selectedMetadata)
         }
 
-        // Check existing credential
-        val userId = getUserId(entropy)
-        val existingCredential = getCredentialByEntropy(entropy, userId)
+        if (!fromSelection) {
+            // Check existing credential
+            val userId = getUserId(entropy)
+            val existingCredential =
+                credentialLookupCache[entropy] ?: getCredentialByEntropy(entropy, userId)
 
-        if (existingCredential != null) {
-            val metadata = getMetadata(userId.orEmpty())?.copy(isUnregistered = false)
-                ?: AccountMetadata(
-                    userId.orEmpty(),
-                    entropy,
-                    isUnregistered = false
+            if (existingCredential != null) {
+                val metadata = getMetadata(userId.orEmpty())?.copy(isUnregistered = false)
+                    ?: AccountMetadata(
+                        userId.orEmpty(),
+                        entropy,
+                        isUnregistered = false
+                    )
+
+                storeMetadata(metadata, isSelected = true)
+                updateUserManager(
+                    Base58.decode(existingCredential.password).toList(),
+                    AuthState.LoggedIn
                 )
 
-            storeMetadata(metadata, isSelected = true)
-            updateUserManager(
-                Base58.decode(existingCredential.password).toList(),
-                AuthState.LoggedIn
-            )
-            return Result.success(metadata)
-        }
+                credentialLookupCache.clear()
 
-        // Check fallback userId
-        if (userId != null) {
-            storeCredential(entropy, Base58.decode(userId).toList())
-            storage.edit { it.remove(userIdKey(entropy)) }
+                return Result.success(metadata)
+            }
 
-            val metadata = AccountMetadata(userId, entropy, isUnregistered = false)
-            storeMetadata(metadata, isSelected = true)
-            updateUserManager(Base58.decode(userId).toList(), AuthState.LoggedIn)
-            return Result.success(metadata)
+            // Check fallback userId
+            if (userId != null) {
+                storeCredential(entropy, Base58.decode(userId).toList())
+                storage.edit { it.remove(userIdKey(entropy)) }
+
+                val metadata = AccountMetadata(userId, entropy, isUnregistered = false)
+                storeMetadata(metadata, isSelected = true)
+                updateUserManager(Base58.decode(userId).toList(), AuthState.LoggedIn)
+                return Result.success(metadata)
+            }
         }
 
         // Non-existent credential - check with backend
@@ -155,7 +165,10 @@ class PassphraseCredentialManager @Inject constructor(
 
         val userIdBytes = backendResult.getOrNull()!!
         val userIdStr = userIdBytes.base58
-        storeCredential(entropy, userIdBytes)
+
+        if (!fromSelection) {
+            storeCredential(entropy, userIdBytes)
+        }
 
         val metadata = AccountMetadata(userIdStr, entropy, isUnregistered = false)
         storeMetadata(metadata, isSelected = true)
@@ -184,6 +197,7 @@ class PassphraseCredentialManager @Inject constructor(
                 .replace(Regex("(\\s)+"), " ")
                 .lowercase(Locale.getDefault()).split(" ")
             val mnemonic = MnemonicPhrase.newInstance(words)!!
+            credentialLookupCache[mnemonic.wordString] = credential
             Result.success(mnemonic)
         } catch (e: Exception) {
             when (e) {

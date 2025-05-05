@@ -85,6 +85,7 @@ class AuthManager @Inject constructor(
     suspend fun login(
         entropyB64: String,
         isSoftLogin: Boolean = false,
+        isFromSelection: Boolean = false,
         rollbackOnError: Boolean = false
     ): Result<ID> {
         taggedTrace("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
@@ -99,7 +100,7 @@ class AuthManager @Inject constructor(
             loginAnalytics()
         }
 
-        return credentialManager.login(entropyB64)
+        return credentialManager.login(entropyB64, isFromSelection)
             .onSuccess { account ->
                 persistence.openDatabase(entropyB64)
                 // TODO: this will move to post IAP check
