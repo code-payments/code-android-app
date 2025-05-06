@@ -134,7 +134,7 @@
 <!--            android:name="com.google.firebase.messaging.default_notification_color"-->
 <!--            android:value="#FF362774" />-->
 
-       <meta-data-->
+       <meta-data
            android:name="com.bugsnag.android.API_KEY"
            android:value="${BUGSNAG_API_KEY}" />
 
