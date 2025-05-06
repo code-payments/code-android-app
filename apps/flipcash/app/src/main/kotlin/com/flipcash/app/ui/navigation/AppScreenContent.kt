@@ -14,6 +14,7 @@ import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
+import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.send.SendScreen
 
@@ -29,8 +30,12 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             SeedInputScreen()
         }
 
-        register<NavScreenProvider.Login.AccessKey> {
+        register<NavScreenProvider.CreateAccount.AccessKey> {
             AccessKeyScreen()
+        }
+
+        register<NavScreenProvider.CreateAccount.Purchase> {
+            PurchaseAccountScreen()
         }
 
         register<NavScreenProvider.Permissions.Notification> {

@@ -46,6 +46,8 @@ class PassphraseCredentialManager @Inject constructor(
     private val mnemonicManager: MnemonicManager,
 ) {
     companion object {
+        private val temporaryAccountKey = stringPreferencesKey("temporaryAccount")
+        private fun seenAccessKeyKey(entropy: String) = booleanPreferencesKey("${entropy}_seenAccessKey")
         private val selectedAccountIdKey = stringPreferencesKey("selectedAccount")
         private fun entropyKey(accountId: String) = stringPreferencesKey("${accountId}_entropy")
         private fun userIdKey(entropy: String) = stringPreferencesKey("${entropy}_userId")
@@ -68,11 +70,27 @@ class PassphraseCredentialManager @Inject constructor(
         produceFile = { context.preferencesDataStoreFile("credentials") }
     )
 
-    suspend fun create(): Result<AccountMetadata> {
+    suspend fun create(): Result<String> {
         // Setup as new
         val seedB64 = Ed25519.createSeed16().encodeBase64()
         userManager.establish(seedB64)
+        storage.edit { preferences ->
+            preferences[temporaryAccountKey] = seedB64
+        }
+        return Result.success(seedB64)
+    }
 
+    suspend fun onUserAccessKeySeen(): Result<Unit> {
+        storage.edit { prefs ->
+            prefs[temporaryAccountKey]?.let { entropy ->
+                prefs[seenAccessKeyKey(entropy)] = true
+            }
+        }
+
+        return Result.success(Unit)
+    }
+
+    suspend fun registerCreatedAccount(): Result<AccountMetadata> {
         // Seed is retrieved internally via userManager state
         val backendResult = accountController.createAccount()
         if (backendResult.isFailure) {
@@ -89,19 +107,39 @@ class PassphraseCredentialManager @Inject constructor(
         // Store credential
         storeCredential(entropy, userId)
 
+        // remove temporary states
+        storage.edit {
+            it.remove(temporaryAccountKey)
+            it.remove(seenAccessKeyKey(entropy))
+        }
+
         // Store metadata
         println("storing metadata for ${userId.base58}")
         val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = true)
         storeMetadata(metadata, isSelected = true)
-        updateUserManager(userId, AuthState.Unregistered)
+        updateUserManager(userId, AuthState.LoggedIn)
 
         return Result.success(metadata)
     }
 
-    suspend fun lookup(): String? {
+    suspend fun lookup(): LookupResult {
         val selectedAccountId =
-            storage.data.map { it[selectedAccountIdKey] }.firstOrNull() ?: return null
-        return storage.data.map { it[entropyKey(selectedAccountId)] }.firstOrNull()
+            storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+        val existingAccount = selectedAccountId?.let { id ->
+            storage.data.map { it[entropyKey(id)] }.firstOrNull()
+        }
+
+        if (existingAccount != null) {
+            return LookupResult.ExistingAccountFound(existingAccount)
+        }
+
+        val temporaryAccount = storage.data.map { it[temporaryAccountKey] }.firstOrNull()
+        if (temporaryAccount != null) {
+            val seenAccessKey = storage.data.map { it[seenAccessKeyKey(temporaryAccount)] }.firstOrNull() ?: false
+            return LookupResult.TemporaryAccountCreated(temporaryAccount, seenAccessKey)
+        }
+
+        return LookupResult.NoAccountFound
     }
 
     suspend fun login(

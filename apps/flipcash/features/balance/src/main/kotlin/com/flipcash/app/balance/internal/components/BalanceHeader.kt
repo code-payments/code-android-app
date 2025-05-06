@@ -1,13 +1,6 @@
 package com.flipcash.app.balance.internal.components
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,10 +35,6 @@ internal fun BalanceHeader(
             }
         } else {
             Crossfade(balance.converted) { amount ->
-                val isUsd = amount.currencyCode.takeIf {
-                    it == CurrencyCode.USD
-                } != null
-
                 AmountArea(
                     amountText = amount.formatted(
                         suffix = amount.currencyCode.takeIf {
@@ -56,7 +45,7 @@ internal fun BalanceHeader(
                     ),
                     isAltCaption = false,
                     isAltCaptionKinIcon = false,
-                    captionText = stringResource(R.string.subtitle_balanceIsHeldInUsd).takeIf { !isUsd },
+                    captionText = stringResource(R.string.subtitle_balanceIsHeldInUsdStablecoins),
                     currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
                     isClickable = true,
                     textStyle = CodeTheme.typography.displayLarge,

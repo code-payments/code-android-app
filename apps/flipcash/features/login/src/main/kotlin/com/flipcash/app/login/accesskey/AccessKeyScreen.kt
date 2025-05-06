@@ -29,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,7 @@ import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -105,7 +107,7 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
                         ScreenRegistry.get(NavScreenProvider.Permissions.Camera(true))
                     }
 
-                    else -> ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())
+                    else -> ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase)
                 }
                 navigator.push(nextScreen)
             }
@@ -121,6 +123,8 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
+
+    val composeScope = rememberCoroutineScope()
 
     var isExportSeedRequested by remember { mutableStateOf(false) }
     var isStoragePermissionGranted by remember { mutableStateOf(false) }
@@ -173,7 +177,10 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
         }
     }
     val onSkipClick = {
-        onCompleted()
+        composeScope.launch {
+            viewModel.onWroteDownInstead()
+                .onSuccess { onCompleted() }
+        }
     }
 
     var buttonHeight by remember {

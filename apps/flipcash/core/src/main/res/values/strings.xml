@@ -8,6 +8,16 @@
     <string name="action_createNewFlipcashAccount">Create a New Flipcash Account</string>
     <string name="action_tryDifferentFlipcashAccount">Try a Different Flipcash Account</string>
 
+    <string name="title_finalizeAccountCreationWithWelcomeBonus">Pay %1$s, Get %2$s</string>
+    <string name="subtitle_finalizeAccountCreationWithWelcomeBonus">Pay %1$s to create your Flipcash account and get %2$s in your wallet.  You can withdraw these funds to your bank account at any time</string>
+    <string name="title_finalizeAccountCreationWithoutBonus">Pay %1$s</string>
+    <string name="subtitle_finalizeAccountCreationWithoutBonus">Pay %1$s to create your Flipcash account</string>
+
+    <string name="action_purchaseAccount">Buy Your Account</string>
+
+    <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
+    <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
+
     <string name="title_badge_no_connection">No Connection</string>
 
     <string name="title_give">Give</string>

@@ -115,6 +115,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
+        billing.disconnect()
 //        client.stopTimer()
     }
 }

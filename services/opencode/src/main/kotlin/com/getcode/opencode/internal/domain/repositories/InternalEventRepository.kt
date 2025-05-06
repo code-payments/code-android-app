@@ -32,6 +32,12 @@ internal class InternalEventRepository @Inject constructor(
             }
         }
 
+        eventBus.handle(Events.OnLoggedIn) {
+            scope.launch {
+                balanceController.onUserLoggedIn(it.owner)
+            }
+        }
+
         eventBus.handle(Events.RequestFirstAirdrop) {
             scope.launch {
                 transactionController.airdrop(

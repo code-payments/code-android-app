@@ -104,7 +104,15 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                             delay(1.5.seconds)
                             showLoading = true
                         }
-                        AuthState.Unregistered,
+
+                        is AuthState.Unregistered -> {
+                            if (state.seenAccessKey) {
+                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
+                            } else {
+                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey))
+                            }
+                        }
+
                         AuthState.LoggedIn -> {
                             showLogo = false
                             val screens = router.processDestination(deepLink())
@@ -115,9 +123,11 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                                 navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
                             }
                         }
+
                         AuthState.LoggedOut -> {
                             navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                         }
+
                         AuthState.Unknown -> {
                             navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                         }

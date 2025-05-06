@@ -21,16 +21,6 @@ class IapPaymentError(val code: Int, override val message: String): Throwable(me
     constructor(result: BillingResult): this(result.responseCode, result.debugMessage)
 }
 
-enum class BillingClientState {
-    Disconnected,
-    Connecting,
-    Connected,
-    ConnectionLost,
-    Failed;
-
-    fun canConnect() = this == Disconnected || this == ConnectionLost || this == Failed
-}
-
 interface BillingClient {
     val eventFlow: SharedFlow<IapPaymentEvent>
     val state: StateFlow<BillingClientState>

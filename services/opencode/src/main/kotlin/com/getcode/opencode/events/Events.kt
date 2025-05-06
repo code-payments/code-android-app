@@ -10,6 +10,11 @@ sealed interface Events {
         companion object Key : ChannelEventKey<FetchBalance>(FetchBalance::class)
     }
 
+    data class OnLoggedIn(internal val owner: AccountCluster): ChannelEvent<OnLoggedIn>, Events {
+        override val key: ChannelEvent.Key<OnLoggedIn> = Key
+        companion object Key : ChannelEventKey<OnLoggedIn>(OnLoggedIn::class)
+    }
+
     data class RequestFirstAirdrop(internal val owner: AccountCluster): ChannelEvent<RequestFirstAirdrop>,
         Events {
         override val key: ChannelEvent.Key<RequestFirstAirdrop> = Key

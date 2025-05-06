@@ -124,6 +124,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:accesskey"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:permissions"))
+    implementation(project(":apps:flipcash:features:purchase"))
     implementation(project(":apps:flipcash:features:scanner"))
     implementation(project(":apps:flipcash:features:give"))
     implementation(project(":apps:flipcash:features:balance"))

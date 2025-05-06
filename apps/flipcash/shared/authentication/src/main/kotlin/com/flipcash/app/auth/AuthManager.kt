@@ -1,13 +1,12 @@
 package com.flipcash.app.auth
 
-import android.annotation.SuppressLint
 import androidx.core.app.NotificationManagerCompat
 import com.bugsnag.android.Bugsnag
+import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.auth.internal.extensions.token
 import com.flipcash.services.controllers.AccountController
-import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -36,10 +35,8 @@ class AuthManager @Inject constructor(
     private val accountController: AccountController,
     private val pushController: PushController,
     private val balanceController: BalanceController,
-    private val activityFeedController: ActivityFeedController,
     private val persistence: PersistenceProvider
 //    private val analytics: AnalyticsService,
-//    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
@@ -54,13 +51,21 @@ class AuthManager @Inject constructor(
         }
     }
 
-    @SuppressLint("CheckResult")
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            val token = credentialManager.lookup()
-            softLogin(token.orEmpty())
-                .onSuccess { LibsodiumInitializer.initializeWithCallback(onInitialized) }
-                .onFailure(ErrorUtils::handleError)
+            when (val result = credentialManager.lookup().also { taggedTrace("lookup result: $it") }) {
+                is LookupResult.ExistingAccountFound -> {
+                    val token = result.entropy
+                    softLogin(token)
+                        .onSuccess { LibsodiumInitializer.initializeWithCallback(onInitialized) }
+                        .onFailure(ErrorUtils::handleError)
+                }
+                LookupResult.NoAccountFound -> Unit
+                is LookupResult.TemporaryAccountCreated -> {
+                    userManager.establish(entropy = result.entropy)
+                    userManager.set(AuthState.Unregistered(result.seenAccessKey))
+                }
+            }
         }
     }
 
@@ -71,12 +76,24 @@ class AuthManager @Inject constructor(
 
     suspend fun createAccount(): Result<Unit> {
         return credentialManager.create()
-            .onSuccess { account ->
-                persistence.openDatabase(account.entropy)
-                // TODO: this will move to post IAP
-                userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
+            .onSuccess { entropy ->
+                persistence.openDatabase(entropy)
+            }.onFailure {
+                userManager.clear()
+            }.map { Unit }
+    }
 
-                accountController.getUserFlags()
+    suspend fun onUserAccessKeySeen(): Result<Unit> {
+        return credentialManager.onUserAccessKeySeen()
+            .onSuccess {
+                userManager.set(AuthState.Unregistered(true))
+            }.map { Unit }
+    }
+
+    suspend fun registerAccount(): Result<Unit> {
+        return credentialManager.registerCreatedAccount()
+            .onSuccess {
+                accountController.getUserFlags().onSuccess { userManager.set(it) }
             }.onFailure {
                 userManager.clear()
             }.map { Unit }
@@ -104,7 +121,8 @@ class AuthManager @Inject constructor(
             .onSuccess { account ->
                 persistence.openDatabase(entropyB64)
                 // TODO: this will move to post IAP check
-                userManager.accountCluster?.let { balanceController.onUserLoggedIn(it) }
+                userManager.accountCluster?.let {
+                    balanceController.onUserLoggedIn(it) }
 
                 userManager.set(userId = account.id)
 
@@ -113,7 +131,7 @@ class AuthManager @Inject constructor(
                         userManager.set(flags)
                     }.onFailure {
                         taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
-                        userManager.set(authState = AuthState.Unregistered)
+                        userManager.set(authState = AuthState.Unregistered())
                     }
 
                 savePrefs()
@@ -140,7 +158,6 @@ class AuthManager @Inject constructor(
     }
 
     private fun loginAnalytics() {
-        taggedTrace("analytics login event")
 //        analytics.login(
 //            ownerPublicKey = owner.getPublicKeyBase58(),
 //            autoCompleteCount = 0,
@@ -162,7 +179,6 @@ class AuthManager @Inject constructor(
         updateFcmToken()
     }
 
-    @SuppressLint("CheckResult")
     private suspend fun updateFcmToken() {
         val pushToken = Firebase.messaging.token() ?: return
         pushController.addToken(pushToken)

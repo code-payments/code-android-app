@@ -21,13 +21,13 @@ import javax.inject.Singleton
 
 sealed interface AuthState {
     data object Unknown : AuthState
-    data object Unregistered : AuthState
+    data class Unregistered(val seenAccessKey: Boolean = true) : AuthState
     data object LoggedInAwaitingUser : AuthState
     data object LoggedIn : AuthState
     data object LoggedOut : AuthState
 
     val canAccessAuthenticatedApis: Boolean
-        get() = this is Unregistered || this is LoggedIn
+        get() = this is LoggedIn
 }
 
 @Singleton
@@ -49,6 +49,9 @@ class UserManager @Inject constructor(
 
     val userId: ID?
         get() = _state.value.userId
+
+    val userFlags: UserFlags?
+        get() = _state.value.flags
 
     val authState: AuthState
         get() = _state.value.authState
@@ -78,7 +81,6 @@ class UserManager @Inject constructor(
                 cluster = cluster,
             )
         }
-        eventBus.send(Events.UpdateLimits(cluster, force = true))
     }
 
     fun set(userId: ID) {
@@ -90,15 +92,31 @@ class UserManager @Inject constructor(
 
     fun set(authState: AuthState) {
         _state.update { it.copy(authState = authState) }
+
+        when (authState) {
+            AuthState.LoggedIn,
+            AuthState.LoggedInAwaitingUser -> {
+                accountCluster?.let { owner ->
+                    eventBus.send(Events.UpdateLimits(owner = owner, force = true))
+                }
+            }
+            else -> Unit
+        }
     }
 
     fun set(userFlags: UserFlags?) {
         _state.update {
             it.copy(
                 flags = userFlags,
-                authState = if (userFlags?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered
             )
         }
+
+//        set(if (userFlags?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered)
+
+        if (userFlags?.isRegistered == true) {
+            accountCluster?.let { eventBus.send(Events.OnLoggedIn(accountCluster!!)) }
+        }
+
         associate()
     }
 
