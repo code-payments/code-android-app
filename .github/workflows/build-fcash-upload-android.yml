@@ -51,7 +51,7 @@ jobs:
         id: service_account_json_file
         with:
           fileName: serviceAccount.json
-          encodedString: ${{ secrets.SERVICE_ACCOUNT_KEY_JSON }}
+          encodedString: ${{ secrets.FLIPCASH_SERVICE_ACCOUNT_KEY_JSON }}
 
       - name: Decode Upload Key Store file into location 1
         uses: timheuer/base64-to-file@v1
