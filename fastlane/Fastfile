@@ -119,7 +119,7 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
         build_type: "release",
         properties: {
           #"versionPatch" => ENV["BUILD_NUMBER"],
-          "android.injected.signing.store.file" => "key/key",
+          "android.injected.signing.store.file" => ENV["STORE_FILE"],
           "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
           "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
           "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
@@ -127,7 +127,7 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
       )
 
       bundletool(
-        ks_path: "key/key",
+        ks_path: ENV["STORE_FILE"],
         ks_password: ENV["STORE_PASSWORD"],
         ks_key_alias: ENV["KEY_ALIAS"],
         ks_key_alias_password: ENV["KEY_PASSWORD"],
