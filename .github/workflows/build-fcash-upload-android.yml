@@ -55,6 +55,7 @@ jobs:
 
       - name: Decode Upload Key Store file into location 1
         uses: timheuer/base64-to-file@v1
+        id: signing_key
         with:
           fileName: key
           fileDir: ./key
@@ -82,6 +83,7 @@ jobs:
       - name: Build & deploy Android release
         run: bundle exec fastlane android deploy_flipcash
         env:
+          STORE_FILE: ${{ steps.signing_key.outputs.filePath }}
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
