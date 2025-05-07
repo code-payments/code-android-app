@@ -1,7 +1,7 @@
 package com.flipcash.app.inject
 
 import android.content.Context
-import com.flipcash.app.BuildConfig
+import com.flipcash.android.BuildConfig
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides

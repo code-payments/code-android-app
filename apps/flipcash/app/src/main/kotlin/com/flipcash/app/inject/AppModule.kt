@@ -2,11 +2,7 @@ package com.flipcash.app.inject
 
 import android.content.ClipboardManager
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.wifi.WifiManager
-import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
-import com.flipcash.app.BuildConfig
 import com.flipcash.app.core.AccountType
 import com.flipcash.services.analytics.FlipcashAnalyticsManager
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -61,17 +57,4 @@ object AppModule {
 //    fun providesBetaController(
 //        @ApplicationContext context: Context
 //    ): Labs = LabsController(context)
-
-//    @Singleton
-//    @Provides
-//    fun providesBillingController(
-//        @ApplicationContext context: Context,
-//        userManager: UserManager,
-//        purchaseRepository: InAppPurchaseRepository
-//    ): BillingClient = if (BuildConfig.DEBUG) {
-//        StubBillingClient
-//    } else {
-//        GooglePlayBillingClient(context, userManager, purchaseRepository)
-//    }
-//
 }
