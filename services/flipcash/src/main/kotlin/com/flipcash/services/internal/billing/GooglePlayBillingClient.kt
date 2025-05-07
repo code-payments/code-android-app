@@ -119,6 +119,7 @@ internal class GooglePlayBillingClient(
         purchases[product.productId] == PurchaseState.PURCHASED
 
     override fun costOf(product: IapProduct): String {
+        printLog("checking cost of ${product.productId} in ${productDetails.entries}")
         var details = productDetails[product.productId]
         if (details == null) {
             queryProduct(product)
@@ -284,6 +285,7 @@ internal class GooglePlayBillingClient(
         client.queryProductDetailsAsync(
             queryProductDetailsParams
         ) { result, productDetailsList ->
+            printLog("QUERY ${product.productId} ${result.debugMessage}")
             printLog("products for ${product.productId} = ${productDetailsList.count()}")
             if (productDetailsList.isNotEmpty()) {
                 productDetails[product.productId] = productDetailsList.first()

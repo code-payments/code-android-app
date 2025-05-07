@@ -8,6 +8,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.features.purchase.BuildConfig
 import com.flipcash.features.purchase.R
 import com.flipcash.services.billing.BillingClient
+import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
 import com.getcode.manager.TopBarManager
@@ -16,9 +17,12 @@ import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -83,22 +87,25 @@ internal class PurchaseAccountViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch {
-            val receivedWelcomeBonus =
-                billingClient.hasPaidFor(IapProduct.CreateAccountWithWelcomeBonus)
-            val (product, cost) = if (!receivedWelcomeBonus) {
-                IapProduct.CreateAccountWithWelcomeBonus to billingClient.costOf(IapProduct.CreateAccountWithWelcomeBonus)
-            } else {
-                IapProduct.CreateAccount to billingClient.costOf(IapProduct.CreateAccount)
-            }
+        billingClient.state
+            .filter { it == BillingClientState.Connected }
+            .distinctUntilChanged()
+            .onEach {
+                val receivedWelcomeBonus =
+                    billingClient.hasPaidFor(IapProduct.CreateAccountWithWelcomeBonus)
+                val (product, cost) = if (!receivedWelcomeBonus) {
+                    IapProduct.CreateAccountWithWelcomeBonus to billingClient.costOf(IapProduct.CreateAccountWithWelcomeBonus)
+                } else {
+                    IapProduct.CreateAccount to billingClient.costOf(IapProduct.CreateAccount)
+                }
 
-            dispatchEvent(
-                Event.OnProductChanged(
-                    product = product,
-                    cost = cost
+                dispatchEvent(
+                    Event.OnProductChanged(
+                        product = product,
+                        cost = cost
+                    )
                 )
-            )
-        }
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.BuyAccount>()
@@ -151,6 +158,7 @@ internal class PurchaseAccountViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            println("PurchaseAccountViewModel.updateStateForEvent $event")
             when (event) {
                 Event.OnAccountCreated -> { state -> state }
                 is Event.BuyAccount -> { state -> state }
