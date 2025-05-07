@@ -102,6 +102,7 @@ internal object FlipcashModule {
     ): PushRepository = InternalPushRepository(service)
 
     @Provides
+    @Singleton
     internal fun providesBillingClient(
         @ApplicationContext context: Context,
         repository: PurchaseRepository,

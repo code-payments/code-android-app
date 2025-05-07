@@ -29,7 +29,6 @@ import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.model.core.uuid
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
@@ -67,12 +66,8 @@ internal class GooglePlayBillingClient(
     override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
 
     private val _stateFlow = MutableStateFlow(BillingClientState.Disconnected)
-    override val state: StateFlow<BillingClientState> = _stateFlow.asStateFlow()
-
-    data class State(
-        val connected: Boolean = false,
-        val failedToConnect: Boolean = false,
-    )
+    override val state: StateFlow<BillingClientState>
+        get() = _stateFlow.asStateFlow()
 
     private val client = GooglePlayBillingClient.newBuilder(context)
         .setListener(this)
@@ -179,7 +174,7 @@ internal class GooglePlayBillingClient(
 
                 val details = productDetails[item.products.first()]
                 val price = details?.oneTimePurchaseOfferDetails?.priceAmountMicros
-                    ?.let { priceMicros -> priceMicros / 1_000_000.0 }?.toFloat() ?: 0.0f
+                    ?.let { priceMicros -> priceMicros / 1_000_000.0 } ?: 0.0
                 val currency = details?.oneTimePurchaseOfferDetails?.priceCurrencyCode ?: "USD"
 
                 purchaseRepository.onPurchaseCompleted(

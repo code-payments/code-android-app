@@ -43,6 +43,9 @@ internal class PurchaseAccountViewModel @Inject constructor(
         private val costOfAccount: String = "",
         val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
     ) {
+        val hasProduct: Boolean
+            get() = productToBuy != null
+
         private val receivedWelcomeBonus
             get() = productToBuy != IapProduct.CreateAccountWithWelcomeBonus
 
@@ -89,7 +92,6 @@ internal class PurchaseAccountViewModel @Inject constructor(
     init {
         billingClient.state
             .filter { it == BillingClientState.Connected }
-            .distinctUntilChanged()
             .onEach {
                 val receivedWelcomeBonus =
                     billingClient.hasPaidFor(IapProduct.CreateAccountWithWelcomeBonus)

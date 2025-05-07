@@ -37,6 +37,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.getActivity
 import com.getcode.util.permissions.LocalPermissionChecker
@@ -86,6 +87,7 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
                     modifier = Modifier
                         .fillMaxWidth(),
                     buttonState = ButtonState.Filled,
+                    enabled = state.hasProduct,
                     isLoading = state.creatingAccount.loading,
                     isSuccess = state.creatingAccount.success,
                     text = stringResource(R.string.action_purchaseAccount),
@@ -142,20 +144,24 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
                     contentDescription = null,
                 )
 
-                Text(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
-                    text = state.title,
-                    style = CodeTheme.typography.textLarge,
-                    textAlign = TextAlign.Center,
-                    color = CodeTheme.colors.textMain
-                )
+                if (state.hasProduct) {
+                    Text(
+                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
+                        text = state.title,
+                        style = CodeTheme.typography.textLarge,
+                        textAlign = TextAlign.Center,
+                        color = CodeTheme.colors.textMain
+                    )
 
-                Text(
-                    text = state.subtitle,
-                    style = CodeTheme.typography.textMedium,
-                    textAlign = TextAlign.Center,
-                    color = CodeTheme.colors.textSecondary
-                )
+                    Text(
+                        text = state.subtitle,
+                        style = CodeTheme.typography.textMedium,
+                        textAlign = TextAlign.Center,
+                        color = CodeTheme.colors.textSecondary
+                    )
+                } else {
+                    CodeCircularProgressIndicator()
+                }
             }
         }
     }
