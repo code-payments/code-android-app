@@ -62,6 +62,7 @@ dependencies {
     implementation(project(":libs:messaging"))
 
     implementation(project(":services:flipcash"))
+    implementation(project(":services:opencode"))
 
     implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))

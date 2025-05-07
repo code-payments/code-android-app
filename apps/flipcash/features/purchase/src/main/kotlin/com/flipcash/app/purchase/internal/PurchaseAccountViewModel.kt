@@ -11,7 +11,10 @@ import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
+import com.flipcash.services.billing.ProductPrice
 import com.getcode.manager.TopBarManager
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
@@ -40,7 +43,8 @@ internal class PurchaseAccountViewModel @Inject constructor(
 ) {
     data class State(
         internal val productToBuy: IapProduct? = null,
-        private val costOfAccount: String = "",
+        internal val costOfAccount: ProductPrice? = null,
+        private val formattedCost: String = "",
         val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val hasProduct: Boolean
@@ -50,10 +54,10 @@ internal class PurchaseAccountViewModel @Inject constructor(
             get() = productToBuy != IapProduct.CreateAccountWithWelcomeBonus
 
         private val safeCost: String
-            get() = costOfAccount.trim().takeIf { it.isNotEmpty() } ?: if (BuildConfig.DEBUG) "💰💰💰" else "\$XX"
+            get() = formattedCost.trim().takeIf { it.isNotEmpty() } ?: if (BuildConfig.DEBUG) "💰💰💰" else "\$XX"
 
         private val safeReward: String
-            get() = costOfAccount.trim().takeIf { it.isNotEmpty() } ?: if (BuildConfig.DEBUG) "¯\\_(ツ)_/¯" else "\$XX"
+            get() = formattedCost.trim().takeIf { it.isNotEmpty() } ?: if (BuildConfig.DEBUG) "¯\\_(ツ)_/¯" else "\$XX"
 
         private val titleForWelcomeBonus: String
             @Composable get() = stringResource(R.string.title_finalizeAccountCreationWithWelcomeBonus, safeCost, safeReward)
@@ -83,7 +87,8 @@ internal class PurchaseAccountViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnProductChanged(val product: IapProduct, val cost: String) : Event
+        data class OnProductChanged(val product: IapProduct, val cost: ProductPrice?) : Event
+        data class OnPriceFormatted(val cost: String): Event
         data class BuyAccount(val activity: Activity) : Event
         data class OnCreatingChanged(val creating: Boolean, val created: Boolean = false) : Event
         data object OnAccountCreated : Event
@@ -108,6 +113,13 @@ internal class PurchaseAccountViewModel @Inject constructor(
                     )
                 )
             }.launchIn(viewModelScope)
+
+        stateFlow
+            .mapNotNull { it.costOfAccount }
+            .map { it.amount to (CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD) }
+            .map { (amount, currency) -> Fiat(amount, currency) }
+            .onEach { dispatchEvent(Event.OnPriceFormatted(it.formatted(truncated = true))) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.BuyAccount>()
@@ -160,13 +172,14 @@ internal class PurchaseAccountViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("PurchaseAccountViewModel.updateStateForEvent $event")
             when (event) {
                 Event.OnAccountCreated -> { state -> state }
                 is Event.BuyAccount -> { state -> state }
                 is Event.OnProductChanged -> { state ->
                     state.copy(productToBuy = event.product, costOfAccount = event.cost)
                 }
+
+                is Event.OnPriceFormatted -> { state -> state.copy(formattedCost = event.cost) }
 
                 is Event.OnCreatingChanged -> { state ->
                     state.copy(
