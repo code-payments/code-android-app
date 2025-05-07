@@ -10,7 +10,7 @@ import coil3.disk.directory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.bugsnag.android.Bugsnag
-import com.flipcash.android.BuildConfig
+import com.flipcash.android.app.BuildConfig
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.crypt.MnemonicCache

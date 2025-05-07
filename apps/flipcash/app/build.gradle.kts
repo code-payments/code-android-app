@@ -18,7 +18,7 @@ plugins {
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
-val appNamespace = "${Android.flipcashNamespace}.android"
+val appNamespace = "${Android.flipcashNamespace}.android.app"
 
 android {
     // static namespace

@@ -27,7 +27,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipcash.android.R
+import com.flipcash.android.app.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.router.LocalRouter
