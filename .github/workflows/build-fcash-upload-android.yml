@@ -15,6 +15,23 @@ on:
         description: 'Define PlayStore track name'
         required: true
         default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+      release_status:
+        description: 'Status of the release'
+        required: true
+        type: choice
+        default: 'completed'
+        options:
+          - completed
+          - draft
+          - inProgress
+          - halted
 
 jobs:
   deploy:
@@ -90,6 +107,7 @@ jobs:
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
           PACKAGE_NAME: com.flipcash.android.app
           PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
+          RELEASE_STATUS: ${{ github.event.inputs.release_status }}
     
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

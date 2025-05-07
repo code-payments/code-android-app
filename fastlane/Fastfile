@@ -54,7 +54,8 @@ platform :android do
       )
 
       upload_to_play_store(
-        track: "internal",
+        track: ENV["PLAYSTORE_TRACK"],
+#         release_status: ENV["RELEASE_STATUS"],
         aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
         skip_upload_apk: true,
         skip_upload_changelogs: true,
@@ -102,6 +103,7 @@ platform :android do
 
       upload_to_play_store(
         track: ENV["PLAYSTORE_TRACK"],
+        release_status: ENV["RELEASE_STATUS"],
         aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
         skip_upload_apk: true,
         skip_upload_changelogs: true,
@@ -143,6 +145,7 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
 
       upload_to_play_store(
         track: ENV["PLAYSTORE_TRACK"],
+        release_status: ENV["RELEASE_STATUS"],
         aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
         skip_upload_apk: true,
         skip_upload_changelogs: true,

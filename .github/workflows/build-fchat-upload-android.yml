@@ -15,6 +15,23 @@ on:
         description: 'Define PlayStore track name'
         required: true
         default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+      release_status:
+        description: 'Status of the release'
+        default: 'completed'
+        type: choice
+        required: true
+        options:
+          - completed
+          - draft
+          - inProgress
+          - halted
 
 jobs:
   deploy:
@@ -55,6 +72,7 @@ jobs:
 
       - name: Decode Upload Key Store file into location 1
         uses: timheuer/base64-to-file@v1
+        id: signing_key
         with:
           fileName: key
           fileDir: ./key
@@ -91,13 +109,15 @@ jobs:
       - name: Build & deploy Android release
         run: bundle exec fastlane android deploy_flipchat
         env:
+          STORE_FILE: ${{ steps.signing_key.outputs.filePath }}
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
           PACKAGE_NAME: xyz.flipchat.app
           PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
-    
+          RELEASE_STATUS: ${{ github.event.inputs.release_status }}
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
