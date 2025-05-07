@@ -95,7 +95,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
-          PACKAGE_NAME: com.flipchat.app
+          PACKAGE_NAME: xyz.flipchat.app
           PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
     
       - name: Upload build artifacts
