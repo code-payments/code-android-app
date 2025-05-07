@@ -17,7 +17,7 @@ internal class PurchaseService @Inject constructor(
 ) {
     suspend fun onPurchaseCompleted(owner: KeyPair, receipt: Receipt, metadata: IapMetadata): Result<Unit> {
         return try {
-            networkOracle.managedRequest(api.onPurchaseCompleted(owner, receipt.value, metadata))
+            networkOracle.managedRequest(api.onPurchaseCompleted(owner, receipt, metadata))
                 .map { response ->
                     when (response.result) {
                         IapService.OnPurchaseCompletedResponse.Result.OK -> Result.success(Unit)

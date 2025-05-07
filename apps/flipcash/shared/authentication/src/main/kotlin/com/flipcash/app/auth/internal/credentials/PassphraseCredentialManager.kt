@@ -2,7 +2,6 @@ package com.flipcash.app.auth.internal.credentials
 
 import android.content.Context
 import androidx.credentials.CreatePasswordRequest
-import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetPasswordOption
@@ -46,8 +45,9 @@ class PassphraseCredentialManager @Inject constructor(
     private val mnemonicManager: MnemonicManager,
 ) {
     companion object {
-        private val temporaryAccountKey = stringPreferencesKey("temporaryAccount")
-        private fun seenAccessKeyKey(entropy: String) = booleanPreferencesKey("${entropy}_seenAccessKey")
+        private val temporaryEntropyKey = stringPreferencesKey("temporaryEntropy")
+        private val temporaryUserIdKey = stringPreferencesKey("temporaryUserId")
+        private fun seenAccessKeyKey(accountId: String) = booleanPreferencesKey("${accountId}_seenAccessKey")
         private val selectedAccountIdKey = stringPreferencesKey("selectedAccount")
         private fun entropyKey(accountId: String) = stringPreferencesKey("${accountId}_entropy")
         private fun userIdKey(entropy: String) = stringPreferencesKey("${entropy}_userId")
@@ -70,27 +70,14 @@ class PassphraseCredentialManager @Inject constructor(
         produceFile = { context.preferencesDataStoreFile("credentials") }
     )
 
-    suspend fun create(): Result<String> {
+    suspend fun createAccount(): Result<String> {
         // Setup as new
         val seedB64 = Ed25519.createSeed16().encodeBase64()
         userManager.establish(seedB64)
         storage.edit { preferences ->
-            preferences[temporaryAccountKey] = seedB64
-        }
-        return Result.success(seedB64)
-    }
-
-    suspend fun onUserAccessKeySeen(): Result<Unit> {
-        storage.edit { prefs ->
-            prefs[temporaryAccountKey]?.let { entropy ->
-                prefs[seenAccessKeyKey(entropy)] = true
-            }
+            preferences[temporaryEntropyKey] = seedB64
         }
 
-        return Result.success(Unit)
-    }
-
-    suspend fun registerCreatedAccount(): Result<AccountMetadata> {
         // Seed is retrieved internally via userManager state
         val backendResult = accountController.createAccount()
         if (backendResult.isFailure) {
@@ -102,6 +89,28 @@ class PassphraseCredentialManager @Inject constructor(
         }
 
         val userId = backendResult.getOrNull()!!
+
+        storage.edit { preferences ->
+            preferences[temporaryUserIdKey] = userId.base58
+        }
+
+        updateUserManager(userId, AuthState.Unregistered(false))
+
+        return Result.success(seedB64)
+    }
+
+    suspend fun onUserAccessKeySeen(): Result<Unit> {
+        storage.edit { prefs ->
+            prefs[temporaryUserIdKey]?.let { userId ->
+                prefs[seenAccessKeyKey(userId)] = true
+            }
+        }
+
+        return Result.success(Unit)
+    }
+
+    suspend fun presentSaveOption(): Result<AccountMetadata> {
+        val userId = userManager.userId!!
         val entropy = userManager.entropy.orEmpty()
 
         // Store credential
@@ -109,8 +118,9 @@ class PassphraseCredentialManager @Inject constructor(
 
         // remove temporary states
         storage.edit {
-            it.remove(temporaryAccountKey)
-            it.remove(seenAccessKeyKey(entropy))
+            it.remove(temporaryEntropyKey)
+            it.remove(temporaryUserIdKey)
+            it.remove(seenAccessKeyKey(userId.base58))
         }
 
         // Store metadata
@@ -133,7 +143,7 @@ class PassphraseCredentialManager @Inject constructor(
             return LookupResult.ExistingAccountFound(existingAccount)
         }
 
-        val temporaryAccount = storage.data.map { it[temporaryAccountKey] }.firstOrNull()
+        val temporaryAccount = storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
         if (temporaryAccount != null) {
             val seenAccessKey = storage.data.map { it[seenAccessKeyKey(temporaryAccount)] }.firstOrNull() ?: false
             return LookupResult.TemporaryAccountCreated(temporaryAccount, seenAccessKey)

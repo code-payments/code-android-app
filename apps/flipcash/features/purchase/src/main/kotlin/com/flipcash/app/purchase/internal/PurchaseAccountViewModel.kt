@@ -20,7 +20,6 @@ import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -152,7 +151,7 @@ internal class PurchaseAccountViewModel @Inject constructor(
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
             .onEach {
                 dispatchEvent(Event.OnCreatingChanged(true))
-                authManager.registerAccount()
+                authManager.presentCredentialStorage()
                     .onSuccess {
                         dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
                         delay(2.seconds)

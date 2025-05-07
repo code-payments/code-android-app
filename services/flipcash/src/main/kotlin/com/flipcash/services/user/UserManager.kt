@@ -2,6 +2,8 @@ package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
 import com.flipcash.services.internal.model.account.UserFlags
+import com.getcode.crypt.DerivePath
+import com.getcode.crypt.DerivePath.Companion
 import com.getcode.crypt.DerivedKey
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.events.Events
@@ -20,10 +22,18 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 sealed interface AuthState {
+    // still to determine
     data object Unknown : AuthState
+    // account has been created but not yet paid for
+    // seenAccessKey used as a flag whether to land them back on
+    // access key screen or purchase
     data class Unregistered(val seenAccessKey: Boolean = true) : AuthState
+    // account has been created and paid for
+    // and we are waiting for metadata to be pulled from storage
     data object LoggedInAwaitingUser : AuthState
+    // account is paid for and we ready for use in app
     data object LoggedIn : AuthState
+    // logged out
     data object LoggedOut : AuthState
 
     val canAccessAuthenticatedApis: Boolean
@@ -73,7 +83,7 @@ class UserManager @Inject constructor(
 
     fun establish(entropy: String) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
-        val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
+        val authority = DerivedKey.derive(DerivePath.primary, mnemonic)
         val cluster = AccountCluster.newInstance(authority)
         _state.update {
             it.copy(

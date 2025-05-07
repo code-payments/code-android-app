@@ -75,7 +75,7 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun createAccount(): Result<Unit> {
-        return credentialManager.create()
+        return credentialManager.createAccount()
             .onSuccess { entropy ->
                 persistence.openDatabase(entropy)
             }.onFailure {
@@ -90,8 +90,8 @@ class AuthManager @Inject constructor(
             }.map { Unit }
     }
 
-    suspend fun registerAccount(): Result<Unit> {
-        return credentialManager.registerCreatedAccount()
+    suspend fun presentCredentialStorage(): Result<Unit> {
+        return credentialManager.presentSaveOption()
             .onSuccess {
                 accountController.getUserFlags().onSuccess { userManager.set(it) }
             }.onFailure {
