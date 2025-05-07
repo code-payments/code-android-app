@@ -7,5 +7,5 @@ package com.flipcash.services.internal.model.billing
 data class IapMetadata(
     val product: String,
     val currency: String,
-    val amount: Float,
+    val amount: Double,
 )

@@ -24,11 +24,12 @@ message Notification {
     NotificationState state = 10;
     // Additional metadata for this notification specific to the notification
     oneof additional_metadata {
-        WelcomeBonusNotificationMetadata welcome_bonus = 5;
-        GaveUsdcNotificationMetadata     gave_usdc     = 6;
-        ReceivedUsdcNotificationMetadata received_usdc = 7;
-        WithdrewUsdcNotificationMetadata withdrew_usdc = 8;
-        SentUsdcNotificationMetadata     sent_usdc     = 9;
+        WelcomeBonusNotificationMetadata  welcome_bonus  = 5;
+        GaveUsdcNotificationMetadata      gave_usdc      = 6;
+        ReceivedUsdcNotificationMetadata  received_usdc  = 7;
+        WithdrewUsdcNotificationMetadata  withdrew_usdc  = 8;
+        SentUsdcNotificationMetadata      sent_usdc      = 9;
+        DepositedUsdcNotificationMetadata deposited_usdc = 11;
     }
 }
 message WelcomeBonusNotificationMetadata {
@@ -44,6 +45,8 @@ message SentUsdcNotificationMetadata {
     common.v1.PublicKey vault = 1;
     // Whether the cancel action can be initiated by the user
     bool can_initiate_cancel_action = 2;
+}
+message DepositedUsdcNotificationMetadata {
 }
 // ActivityFeedType enables multiple activity feeds, where notifications may be
 // split across different parts of the app

@@ -1,7 +1,7 @@
 package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.account.v1.AccountGrpc
-import com.codeinc.flipcash.gen.account.v1.AccountService
+import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asPublicKey
 import com.flipcash.services.internal.network.extensions.asUserId
@@ -27,8 +27,8 @@ class AccountApi @Inject constructor(
      * Registers a new user, bound to the provided PublicKey.
      * If the PublicKey is already in use, the previous user account is returned.
      */
-    fun register(owner: KeyPair): Flow<AccountService.RegisterResponse> {
-        val request = AccountService.RegisterRequest.newBuilder()
+    fun register(owner: KeyPair): Flow<RpcAccountService.RegisterResponse> {
+        val request = RpcAccountService.RegisterRequest.newBuilder()
             .setPublicKey(owner.asPublicKey())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -41,8 +41,8 @@ class AccountApi @Inject constructor(
      * Retrieves the UserId (and in the future, potentially other information)
      * required for 'recovering' an account.
      */
-    fun login(owner: KeyPair): Flow<AccountService.LoginResponse> {
-        val request = AccountService.LoginRequest.newBuilder()
+    fun login(owner: KeyPair): Flow<RpcAccountService.LoginResponse> {
+        val request = RpcAccountService.LoginRequest.newBuilder()
             .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -57,8 +57,8 @@ class AccountApi @Inject constructor(
     fun getUserFlags(
         userId: ID,
         owner: KeyPair,
-    ): Flow<AccountService.GetUserFlagsResponse> {
-        val request = AccountService.GetUserFlagsRequest.newBuilder()
+    ): Flow<RpcAccountService.GetUserFlagsResponse> {
+        val request = RpcAccountService.GetUserFlagsRequest.newBuilder()
             .setUserId(userId.asUserId())
             .apply { setAuth(authenticate(owner)) }
             .build()

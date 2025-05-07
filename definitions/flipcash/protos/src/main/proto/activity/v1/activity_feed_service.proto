@@ -36,7 +36,7 @@ message GetPagedNotificationsRequest {
     common.v1.QueryOptions query_options = 2;
     common.v1.Auth auth = 3;
 }
-message     GetPagedNotificationsResponse {
+message GetPagedNotificationsResponse {
     Result result = 1;
     enum Result {
         OK = 0;

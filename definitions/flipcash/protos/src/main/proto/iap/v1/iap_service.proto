@@ -32,5 +32,5 @@ message Receipt {
 message Metadata {
     string product = 1 ;
     string currency = 2 ;
-    float amount = 3;
+    double amount = 3;
 }

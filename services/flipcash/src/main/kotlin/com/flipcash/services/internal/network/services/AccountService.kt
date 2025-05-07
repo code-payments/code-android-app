@@ -12,7 +12,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.utils.trace
 import kotlinx.coroutines.flow.catch
 import javax.inject.Inject
-import com.codeinc.flipcash.gen.account.v1.AccountService as RpcAccountService
+import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService
 
 internal class AccountService @Inject constructor(
     private val api: AccountApi,

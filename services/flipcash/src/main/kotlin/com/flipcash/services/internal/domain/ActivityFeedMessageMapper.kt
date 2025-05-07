@@ -45,6 +45,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                     creator = from.sentUsdc.vault.value.toByteArray().toPublicKey(),
                     canCancel = from.sentUsdc.canInitiateCancelAction
                 )
+                Model.Notification.AdditionalMetadataCase.DEPOSITED_USDC -> NotificationMetadata.DepositedUsdc
                 Model.Notification.AdditionalMetadataCase.ADDITIONALMETADATA_NOT_SET,
                 null -> NotificationMetadata.Unknown
             }

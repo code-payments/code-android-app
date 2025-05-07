@@ -69,6 +69,9 @@ sealed interface NotificationMetadata {
     ) : NotificationMetadata
 
     @Serializable
+    data object DepositedUsdc : NotificationMetadata
+
+    @Serializable
     data object ReceivedUsdc : NotificationMetadata
 
     @Serializable

@@ -53,6 +53,9 @@ sealed interface MessageMetadata {
     @Serializable
     data object WithdrewUsdc : MessageMetadata
 
+    @Serializable
+    data object DepositedUsdc : MessageMetadata
+
     companion object {
         fun from(named: String?): MessageMetadata? {
             named ?: return null

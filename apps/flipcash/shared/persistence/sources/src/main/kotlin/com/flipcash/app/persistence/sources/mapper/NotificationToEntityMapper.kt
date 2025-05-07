@@ -58,6 +58,7 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
             NotificationMetadata.Unknown -> MessageMetadata.Unknown
             NotificationMetadata.WelcomeBonus -> MessageMetadata.WelcomeBonus
             NotificationMetadata.WithdrewUsdc -> MessageMetadata.WithdrewUsdc
+            NotificationMetadata.DepositedUsdc -> MessageMetadata.DepositedUsdc
         }
     }
 }
