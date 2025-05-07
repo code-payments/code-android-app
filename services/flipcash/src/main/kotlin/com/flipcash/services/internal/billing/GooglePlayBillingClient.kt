@@ -25,10 +25,12 @@ import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentError
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
+import com.flipcash.services.billing.ProductPrice
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
@@ -113,7 +115,7 @@ internal class GooglePlayBillingClient(
     override fun hasPaidFor(product: IapProduct) =
         purchases[product.productId] == PurchaseState.PURCHASED
 
-    override fun costOf(product: IapProduct): String {
+    override fun costOf(product: IapProduct): ProductPrice? {
         printLog("checking cost of ${product.productId} in ${productDetails.entries}")
         var details = productDetails[product.productId]
         if (details == null) {
@@ -130,10 +132,15 @@ internal class GooglePlayBillingClient(
                     )
                 )
             }
-            return "     "
+            return null
         }
 
-        return details.oneTimePurchaseOfferDetails?.formattedPrice ?: "     "
+        return details.oneTimePurchaseOfferDetails?.let {
+            ProductPrice(
+                amount = it.priceAmountMicros / 1_000_000.0,
+                currency = it.priceCurrencyCode
+            )
+        }
     }
 
     override suspend fun purchase(activity: Activity, product: IapProduct) {
@@ -173,21 +180,26 @@ internal class GooglePlayBillingClient(
                 printLog("onPurchaseComplete for ${item.purchaseToken}")
 
                 val details = productDetails[item.products.first()]
+                val product = item.products.first()
+                val receipt = Receipt(item.purchaseToken)
                 val price = details?.oneTimePurchaseOfferDetails?.priceAmountMicros
                     ?.let { priceMicros -> priceMicros / 1_000_000.0 } ?: 0.0
-                val currency = details?.oneTimePurchaseOfferDetails?.priceCurrencyCode ?: "USD"
+                val currencyCode = CurrencyCode.tryValueOf(details?.oneTimePurchaseOfferDetails?.priceCurrencyCode) ?: CurrencyCode.USD
+
+                printLog("product=$product, $receipt=$receipt, price=$price, currency=${currencyCode.name}")
 
                 purchaseRepository.onPurchaseCompleted(
                     owner = userManager.accountCluster?.authority?.keyPair!!,
-                    receipt = Receipt(item.purchaseToken),
+                    receipt = receipt,
                     metadata = IapMetadata(
-                        product = item.products.first(),
+                        product = product,
                         amount = price,
-                        currency = currency
+                        currency = currencyCode
                     )
                 ).onSuccess {
                     acknowledgeOrConsume(item)
                 }.onFailure {
+                    it.printStackTrace()
                     _eventFlow.emit(
                         IapPaymentEvent.OnError(
                             item.products.firstOrNull() ?: "NONE",

@@ -32,7 +32,7 @@ class PurchaseApi @Inject constructor(
             .setReceipt(IapService.Receipt.newBuilder().setValue(receiptValue))
             .setMetadata(IapService.Metadata.newBuilder()
                 .setProduct(metadata.product)
-                .setCurrency(metadata.currency)
+                .setCurrency(metadata.currency.name.lowercase())
                 .setAmount(metadata.amount)
             )
             .apply { setAuth(authenticate(owner)) }
