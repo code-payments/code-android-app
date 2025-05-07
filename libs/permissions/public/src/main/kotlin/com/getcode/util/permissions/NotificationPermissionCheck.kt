@@ -60,17 +60,13 @@ private fun notificationPermissionCheckApi33(
     )
 
     val permissionCheck = { shouldRequest: Boolean ->
-        if (Build.VERSION.SDK_INT < 33) {
-            onPermissionResult(PermissionResult.Granted)
-        } else {
-            permissionRequested = shouldRequest
-            permissionChecker.request(
-                permission = Manifest.permission.POST_NOTIFICATIONS,
-                shouldRequest = shouldRequest,
-                onPermissionResult = onPermissionResult,
-                launcher = launcher
-            )
-        }
+        permissionRequested = shouldRequest
+        permissionChecker.request(
+            permission = Manifest.permission.POST_NOTIFICATIONS,
+            shouldRequest = shouldRequest,
+            onPermissionResult = onPermissionResult,
+            launcher = launcher
+        )
     }
 
     return permissionCheck

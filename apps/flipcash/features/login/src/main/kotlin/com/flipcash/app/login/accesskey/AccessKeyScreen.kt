@@ -87,7 +87,6 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
     override fun Content() {
         val viewModel = getViewModel<LoginAccessKeyViewModel>()
         val navigator = LocalCodeNavigator.current
-        val permissions = LocalPermissionChecker.current
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -98,18 +97,7 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
                 titleAlignment = Alignment.CenterHorizontally,
             )
             AccessKeyScreenContent(viewModel) {
-                val nextScreen = when {
-                    permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                        ScreenRegistry.get(NavScreenProvider.Permissions.Notification(true))
-                    }
-
-                    permissions.isDenied(Manifest.permission.CAMERA) -> {
-                        ScreenRegistry.get(NavScreenProvider.Permissions.Camera(true))
-                    }
-
-                    else -> ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase)
-                }
-                navigator.push(nextScreen)
+                navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
             }
         }
 

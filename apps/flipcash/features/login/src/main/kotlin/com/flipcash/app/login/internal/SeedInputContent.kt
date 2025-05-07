@@ -177,10 +177,6 @@ private fun SeedInputContent(
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary
             )
-
-            if (state.isSuccess) {
-                notificationPermissionCheck(true)
-            }
         }
     }
 

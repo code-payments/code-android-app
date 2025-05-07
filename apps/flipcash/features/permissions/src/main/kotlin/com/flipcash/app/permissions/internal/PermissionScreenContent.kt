@@ -1,5 +1,6 @@
 package com.flipcash.app.permissions.internal
 
+import android.Manifest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +31,9 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.cameraPermissionCheck
+import com.getcode.util.permissions.notificationPermissionCheck
 
 internal enum class Permission {
     Camera, Notifications
@@ -42,6 +45,8 @@ internal fun PermissionScreenContent(
     fromOnboarding: Boolean
 ) {
     val navigator = LocalCodeNavigator.current
+    val permissionChecker = LocalPermissionChecker.current
+
     when (permission) {
         Permission.Camera -> CameraPermissionScreenContent(
             onGranted = {
@@ -51,16 +56,18 @@ internal fun PermissionScreenContent(
                 navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
             },
             onNotGranted = {
-                navigator.push(
-                    ScreenRegistry.get(NavScreenProvider.Permissions.Notification(fromOnboarding))
-                )
+                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
             }
         )
         Permission.Notifications -> NotificationScreenContent {
             if (fromOnboarding) {
 //                analytics.action(Action.CompletedOnboarding)
             }
-            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+            if (permissionChecker.isDenied(Manifest.permission.CAMERA)) {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera()))
+            } else {
+                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+            }
         }
     }
 }
@@ -81,7 +88,7 @@ internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: 
     }
 
     val notificationPermissionCheck =
-        com.getcode.util.permissions.notificationPermissionCheck { onNotificationResult(it) }
+        notificationPermissionCheck { onNotificationResult(it) }
 
     val onCameraResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
@@ -141,10 +148,9 @@ internal fun NotificationScreenContent(onGranted: () -> Unit) {
             onGranted()
         }
     }
-    val notificationPermissionCheck =
-        com.getcode.util.permissions.notificationPermissionCheck(onResult = {
-            onNotificationResult(it)
-        })
+    val notificationPermissionCheck = notificationPermissionCheck(onResult = {
+        onNotificationResult(it)
+    })
 
     SideEffect {
         notificationPermissionCheck(false)

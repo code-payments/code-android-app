@@ -1,5 +1,6 @@
 package com.flipcash.app.purchase.internal
 
+import android.Manifest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.getActivity
+import com.getcode.util.permissions.LocalPermissionChecker
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -46,6 +48,7 @@ import kotlinx.coroutines.flow.onEach
 internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
+    val permissions = LocalPermissionChecker.current
 
     val state by viewModel.stateFlow.collectAsState()
 
@@ -53,7 +56,19 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
             .onEach {
-                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                when {
+                    permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
+                        navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Notification(true)))
+                    }
+
+                    permissions.isDenied(Manifest.permission.CAMERA) -> {
+                        navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera(true)))
+                    }
+
+                    else -> {
+                        navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                    }
+                }
             }.launchIn(this)
     }
 
