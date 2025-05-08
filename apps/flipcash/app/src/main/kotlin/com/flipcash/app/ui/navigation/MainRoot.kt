@@ -105,7 +105,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                             showLoading = true
                         }
 
-                        is AuthState.Unregistered -> {
+                        is AuthState.Registered -> {
                             if (state.seenAccessKey) {
                                 navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
                             } else {

@@ -63,7 +63,7 @@ class AuthManager @Inject constructor(
                 LookupResult.NoAccountFound -> Unit
                 is LookupResult.TemporaryAccountCreated -> {
                     userManager.establish(entropy = result.entropy)
-                    userManager.set(AuthState.Unregistered(result.seenAccessKey))
+                    userManager.set(AuthState.Registered(result.seenAccessKey))
                 }
             }
         }
@@ -86,7 +86,7 @@ class AuthManager @Inject constructor(
     suspend fun onUserAccessKeySeen(): Result<Unit> {
         return credentialManager.onUserAccessKeySeen()
             .onSuccess {
-                userManager.set(AuthState.Unregistered(true))
+                userManager.set(AuthState.Registered(true))
             }.map { Unit }
     }
 
@@ -131,7 +131,7 @@ class AuthManager @Inject constructor(
                         userManager.set(flags)
                     }.onFailure {
                         taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
-                        userManager.set(authState = AuthState.Unregistered())
+                        userManager.set(authState = AuthState.Registered())
                     }
 
                 savePrefs()

@@ -94,7 +94,7 @@ class PassphraseCredentialManager @Inject constructor(
             preferences[temporaryUserIdKey] = userId.base58
         }
 
-        updateUserManager(userId, AuthState.Unregistered(false))
+        updateUserManager(userId, AuthState.Registered(false))
 
         return Result.success(seedB64)
     }
