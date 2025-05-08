@@ -107,18 +107,6 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
-
-    override fun onResume() {
-        super.onResume()
-//        client.startTimer()
-        billing.connect()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        billing.disconnect()
-//        client.stopTimer()
-    }
 }
 
 private fun Activity.handleUncaughtException() {

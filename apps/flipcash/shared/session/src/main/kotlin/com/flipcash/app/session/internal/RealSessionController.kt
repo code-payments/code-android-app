@@ -14,6 +14,7 @@ import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.internal.toast.ToastController
 import com.flipcash.core.R
+import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -68,6 +69,7 @@ class RealSessionController @Inject constructor(
     private val exchangeUpdater: ExchangeUpdater,
     private val shareSheetController: ShareSheetController,
     private val toastController: ToastController,
+    private val billingClient: BillingClient,
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -94,6 +96,15 @@ class RealSessionController @Inject constructor(
             .distinctUntilChanged()
             .onEach { onAppInForeground() }
             .launchIn(scope)
+
+        userManager.state
+            .mapNotNull { it.authState }
+            .filter { it.isAtLeastRegistered }
+            .distinctUntilChanged()
+            .onEach {
+                billingClient.connect()
+            }
+            .launchIn(scope)
     }
 
     override fun onAppInForeground() {
@@ -108,6 +119,7 @@ class RealSessionController @Inject constructor(
 
     override fun onAppInBackground() {
        stopPolling()
+        billingClient.disconnect()
     }
 
     private fun startPolling() {
