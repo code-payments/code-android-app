@@ -1,4 +1,4 @@
-package com.flipcash.app.core
+package com.flipcash.app.core.annotations
 
 import javax.inject.Qualifier
 

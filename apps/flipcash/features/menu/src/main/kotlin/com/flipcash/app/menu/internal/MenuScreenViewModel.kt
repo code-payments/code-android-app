@@ -2,6 +2,8 @@ package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.core.android.VersionInfo
+import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -40,6 +42,7 @@ internal class MenuScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     userManager: UserManager,
     authManager: AuthManager,
+    versionInfo: VersionInfo,
 ) :
     BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -47,10 +50,12 @@ internal class MenuScreenViewModel @Inject constructor(
     ) {
     data class State(
         val items: List<MenuItem> = DefaultMenuItems,
+        val appVersionInfo: VersionInfo = VersionInfo(),
         val isLabsUnlocked: Boolean = false,
     )
 
     sealed interface Event {
+        data class OnAppVersionUpdated(val versionInfo: VersionInfo): Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data object OnDepositClicked : Event
         data object OnWithdrawClicked : Event
@@ -66,8 +71,10 @@ internal class MenuScreenViewModel @Inject constructor(
         userManager.state
             .mapNotNull { it.flags }
             .map { it.isStaff }
-            .onEach { dispatchEvent(Event.OnStaffUserDetermined(it)) }
-            .launchIn(viewModelScope)
+            .onEach {
+                dispatchEvent(Event.OnAppVersionUpdated(versionInfo))
+                dispatchEvent(Event.OnStaffUserDetermined(it))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnLogOutClicked>()
@@ -98,6 +105,10 @@ internal class MenuScreenViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                is Event.OnAppVersionUpdated -> { state ->
+                    state.copy(appVersionInfo = event.versionInfo)
+                }
+
                 is Event.OnStaffUserDetermined -> { state ->
                     state.copy(items = if (event.staff) StaffMenuItems else DefaultMenuItems)
                 }

@@ -1,7 +1,7 @@
 package com.flipcash.app.core.internal.accounts
 
 import android.content.Context
-import com.flipcash.app.core.AccountType
+import com.flipcash.app.core.annotations.AccountType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 

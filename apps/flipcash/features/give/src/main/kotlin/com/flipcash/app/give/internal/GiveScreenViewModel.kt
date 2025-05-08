@@ -207,7 +207,7 @@ internal class GiveScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         stateFlow
-            .filter { it.limits != null && it.balance != LocalFiat.Zero }
+            .filter { it.limits != null }
             .map { it.limits to it.balance }
             .onEach { (limits, balance) ->
                 val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero

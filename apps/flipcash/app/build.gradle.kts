@@ -34,8 +34,8 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
+        buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipcash.versionName}\"")
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
-        buildConfigField("String", "KADO_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "KADO_API_KEY")}\"")
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
     }
 

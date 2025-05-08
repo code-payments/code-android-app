@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.width
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,7 +62,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             painterResource(R.drawable.ic_flipcash_logo_w_name),
                             contentDescription = "",
                             modifier = Modifier
-                                .requiredHeight(CodeTheme.dimens.staticGrid.x10)
+                                .requiredHeight(CodeTheme.dimens.staticGrid.x8)
                                 .rememberedClickable(
                                     indication = null,
                                     interactionSource = remember { MutableInteractionSource() }
@@ -78,8 +80,13 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.Center),
-                    text = "Version XX • Build YY",
+                        .align(Alignment.Center)
+                        .navigationBarsPadding(),
+                    text = stringResource(
+                        R.string.subtitle_appVersionInfoFooter,
+                        state.appVersionInfo.versionName,
+                        state.appVersionInfo.versionCode
+                    ),
                     color = CodeTheme.colors.textSecondary,
                     style = CodeTheme.typography.textSmall.copy(
                         textAlign = TextAlign.Center
@@ -99,7 +106,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 ),
             state = listState,
             contentPadding = PaddingValues(
-                top = CodeTheme.dimens.grid.x11
+                top = CodeTheme.dimens.grid.x4
             )
         ) {
             items(state.items, key = { it.id }, contentType = { it }) { item ->
