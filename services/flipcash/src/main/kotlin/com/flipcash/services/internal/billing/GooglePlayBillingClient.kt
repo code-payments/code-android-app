@@ -31,6 +31,7 @@ import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
@@ -199,7 +200,7 @@ internal class GooglePlayBillingClient(
                 ).onSuccess {
                     acknowledgeOrConsume(item)
                 }.onFailure {
-                    it.printStackTrace()
+                    ErrorUtils.handleError(it)
                     _eventFlow.emit(
                         IapPaymentEvent.OnError(
                             item.products.firstOrNull() ?: "NONE",
