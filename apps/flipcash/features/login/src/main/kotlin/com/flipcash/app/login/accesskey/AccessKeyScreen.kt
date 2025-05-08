@@ -95,13 +95,13 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
             AppBarWithTitle(
                 title = name,
                 titleAlignment = Alignment.CenterHorizontally,
+                backButton = true,
+                onBackIconClicked = { navigator.pop() },
             )
             AccessKeyScreenContent(viewModel) {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
             }
         }
-
-        BackHandler { /* intercept */ }
     }
 }
 

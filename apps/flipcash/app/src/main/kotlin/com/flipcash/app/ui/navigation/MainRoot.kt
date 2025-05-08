@@ -31,6 +31,7 @@ import com.flipcash.android.app.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.router.LocalRouter
+import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -99,40 +100,66 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                 .distinctUntilChanged()
                 .onEach { state ->
                     Timber.d("sessionState=$state")
+                    val screens = buildNavGraphForLaunch(state, router)
+
                     when (state) {
                         AuthState.LoggedInAwaitingUser -> {
                             delay(1.5.seconds)
                             showLoading = true
                         }
 
-                        is AuthState.Registered -> {
-                            if (state.seenAccessKey) {
-                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
-                            } else {
-                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey))
-                            }
-                        }
-
                         AuthState.LoggedIn -> {
                             showLogo = false
-                            val screens = router.processDestination(deepLink())
-
-                            if (screens.isNotEmpty()) {
-                                navigator.replaceAll(screens)
-                            } else {
-                                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
-                            }
                         }
 
-                        AuthState.LoggedOut -> {
-                            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                        }
+                        else -> Unit
+                    }
 
-                        AuthState.Unknown -> {
-                            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                        }
+                    if (screens != null) {
+                        navigator.replaceAll(screens)
                     }
                 }.launchIn(this)
+        }
+    }
+
+    private suspend fun buildNavGraphForLaunch(
+        state: AuthState,
+        router: Router,
+    ): List<Screen>? {
+        return when (state) {
+            is AuthState.Registered -> {
+                if (state.seenAccessKey) {
+                    listOf(
+                        ScreenRegistry.get(NavScreenProvider.Login.Home()),
+                        ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
+                        ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase)
+                    )
+                } else {
+                    listOf(
+                        ScreenRegistry.get(NavScreenProvider.Login.Home()),
+                        ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey)
+                    )
+                }
+            }
+
+            AuthState.LoggedIn -> {
+//                showLogo = false
+                val screens = router.processDestination(deepLink())
+
+                screens.ifEmpty {
+                    listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                }
+            }
+
+            AuthState.LoggedOut -> {
+                listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+            }
+
+            AuthState.Unknown -> {
+                listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+            }
+
+            AuthState.LoggedInAwaitingUser -> null
         }
     }
 }

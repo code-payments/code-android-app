@@ -36,7 +36,7 @@ class LoginRouter(private val seed: String? = null) : Screen, Parcelable {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
                 .onEach { delay(2.seconds) }
-                .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey)) }
+                .onEach { navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey)) }
                 .launchIn(this)
         }
 

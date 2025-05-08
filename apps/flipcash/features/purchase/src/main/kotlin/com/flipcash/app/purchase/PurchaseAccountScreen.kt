@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.purchase.internal.PurchaseAccountScreenContent
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.Parcelize
 
@@ -15,14 +16,13 @@ class PurchaseAccountScreen: Screen, Parcelable {
 
     @Composable
     override fun Content() {
+        val navigator = LocalCodeNavigator.current
         Column {
             AppBarWithTitle(
-                backButton = false,
-                isInModal = true
+                backButton = true,
+                onBackIconClicked = { navigator.pop() },
             )
             PurchaseAccountScreenContent(getViewModel())
         }
-        /** swallow **/
-        BackHandler { /** swallow **/ }
     }
 }
