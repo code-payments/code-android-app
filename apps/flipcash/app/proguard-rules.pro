@@ -8,22 +8,6 @@
 -keepclasseswithmembernames class * {
     native <methods>;
 }
-#-keepclasseswithmembers class * {
-#    public <init>(android.content.Context, android.util.AttributeSet);
-#}
-
-#-keepclasseswithmembers class * {
-#    public <init>(android.content.Context, android.util.AttributeSet, int);
-#}
-
-#-keepclassmembers class * extends android.app.Activity {
-#   public void *(android.view.View);
-#}
-
-#-keepclassmembers enum * {
-#    public static **[] values();
-#    public static ** valueOf(java.lang.String);
-#}
 
 -keepclassmembers class **.R$* {
     public static <fields>;
@@ -50,6 +34,7 @@
     public static int e(...);
 }
 
+-keepattributes SourceFile,LineNumberTable        # Keep file names and line numbers.
 -keep public class * extends java.lang.Exception
 
 # https://github.com/firebase/firebase-android-sdk/issues/3688
