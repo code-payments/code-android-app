@@ -3,7 +3,6 @@ package com.flipcash.app.menu.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.android.VersionInfo
-import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -33,7 +32,7 @@ private val StaffMenuItems = buildList {
 //    add(MyAccount)
 //    add(AppSettings)
 //    add(SwitchAccount)
-//    add(Labs)
+    add(Labs)
     add(LogOut)
 }
 

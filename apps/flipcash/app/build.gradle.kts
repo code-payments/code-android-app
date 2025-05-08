@@ -130,6 +130,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:balance"))
     implementation(project(":apps:flipcash:features:send"))
     implementation(project(":apps:flipcash:features:menu"))
+    implementation(project(":apps:flipcash:features:lab"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))

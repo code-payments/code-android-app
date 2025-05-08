@@ -90,7 +90,7 @@ internal data object Labs : MenuItem {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Filled.Science)
     override val name: String
-        @Composable get() = stringResource(R.string.title_labs)
+        @Composable get() = stringResource(R.string.title_betaFlags)
     override val description: String?
         @Composable get() = null
 

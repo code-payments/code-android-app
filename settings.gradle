@@ -29,6 +29,7 @@ include(
         ":apps:flipcash:features:purchase",
         ":apps:flipcash:features:currency-selection:core",
         ":apps:flipcash:features:currency-selection:ui",
+        ":apps:flipcash:features:lab",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

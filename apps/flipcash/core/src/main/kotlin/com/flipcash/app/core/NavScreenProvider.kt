@@ -4,7 +4,6 @@ import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.getcode.ui.core.RestrictionType
-import dev.theolm.rinku.DeepLink
 
 sealed class NavScreenProvider : ScreenProvider {
     data class AppRestricted(val restrictionType: RestrictionType) : NavScreenProvider()
@@ -35,7 +34,7 @@ sealed class NavScreenProvider : ScreenProvider {
             data object Withdraw : NavScreenProvider()
             data object MyAccount : NavScreenProvider()
             data object AppSettings : NavScreenProvider()
-            data object Labs : NavScreenProvider()
+            data object Lab : NavScreenProvider()
         }
 
         data class CurrencySelection(val kind: CurrencySelectionKind) : NavScreenProvider()

@@ -37,7 +37,6 @@
 
     <string name="title_depositUsdc">Deposit USDC</string>
     <string name="title_withdrawUsdc">Withdraw USDC</string>
-    <string name="title_labs">Labs</string>
 
     <string name="error_title_selectCredential">Something went wrong</string>
     <string name="error_description_selectCredential">Failed to restore selected account. Please try again</string>
@@ -64,4 +63,8 @@
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
 
+    <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s</string>
+
+    <string name="title_labsAreEmpty">Nothing Cooking in the Lab Right Now</string>
+    <string name="subtitle_labsAreEmpty">Check back in the next app update.</string>
 </resources>
