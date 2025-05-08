@@ -11,6 +11,7 @@ include(
         // shared flipcash coordinators/controllers
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",
+        ":apps:flipcash:shared:featureflags",
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",
         ":apps:flipcash:shared:persistence:sources",

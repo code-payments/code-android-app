@@ -1,6 +1,6 @@
 package com.flipcash.app.router.inject
 
-import com.flipcash.app.router.AppRouter
+import com.flipcash.app.router.internal.AppRouter
 import com.flipcash.app.router.Router
 import dagger.Module
 import dagger.Provides

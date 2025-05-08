@@ -1,4 +1,4 @@
-package com.flipcash.app.router
+package com.flipcash.app.router.internal
 
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -7,11 +7,12 @@ import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
+import com.flipcash.app.router.Router
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
-class AppRouter : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+internal class AppRouter : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
