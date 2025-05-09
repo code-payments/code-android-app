@@ -68,4 +68,15 @@
     <string name="title_labsAreEmpty">Nothing Cooking in the Lab Right Now</string>
     <string name="subtitle_labsAreEmpty">Check back in the next app update.</string>
     <string name="subtitle_beta">Beta</string>
+
+    <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
+    <string name="prompt_description_deleteAccount">This will permanently delete your Flipcash account</string>
+    <string name="action_deleteAccount">Delete Flipcash Account</string>
+
+    <string name="error_title_failedToLogOut">Something went wrong</string>
+    <string name="error_description_failedToLogOut">We were unable to log you out. Please try again</string>
+
+    <string name="error_title_failedToDeleteAccount">Something went wrong</string>
+    <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
+
 </resources>

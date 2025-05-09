@@ -2,12 +2,15 @@ package com.flipcash.app.menu.internal
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.features.menu.R
+import com.getcode.util.resources.icons.Delete
 import java.util.UUID
 
 internal sealed interface MenuItem {
@@ -97,3 +100,12 @@ internal data object LogOut : FullMenuItem() {
         @Composable get() = stringResource(R.string.action_logout)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnLogOutClicked
 }
+
+internal data object DeleteAccount: FullMenuItem() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(ImageVector.Delete)
+    override val name: String
+        @Composable get() = stringResource(R.string.action_deleteAccount)
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnDeleteAccountClicked
+}
+

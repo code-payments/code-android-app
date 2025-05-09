@@ -9,6 +9,7 @@ import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -32,6 +33,7 @@ private val FullMenuList = buildList {
     add(SwitchAccount)
     add(Labs)
     add(LogOut)
+    add(DeleteAccount)
 }
 
 @HiltViewModel
@@ -69,6 +71,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
+        data object OnDeleteAccountClicked : Event
     }
 
     init {
@@ -130,7 +133,40 @@ internal class MenuScreenViewModel @Inject constructor(
                                         dispatchEvent(Event.OnLoggedOutCompletely)
                                     }
                                     .onFailure {
+                                        TopBarManager.showMessage(
+                                            TopBarManager.TopBarMessage(
+                                                title = resources.getString(R.string.error_title_failedToLogOut),
+                                                message = resources.getString(R.string.error_description_failedToLogOut),
+                                            )
+                                        )
+                                    }
+                            }
+                        }
+                    )
+                )
+            }.launchIn(viewModelScope)
 
+        eventFlow
+            .filterIsInstance<Event.OnDeleteAccountClicked>()
+            .onEach {
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = resources.getString(R.string.prompt_title_deleteAccount),
+                        subtitle = resources.getString(R.string.prompt_description_deleteAccount),
+                        positiveText = resources.getString(R.string.action_deleteAccount),
+                        tertiaryText = resources.getString(R.string.action_cancel),
+                        onPositive = {
+                            viewModelScope.launch {
+                                delay(150) // wait for dismiss
+                                authManager.deleteAndLogout()
+                                    .onSuccess { dispatchEvent(Event.OnLoggedOutCompletely) }
+                                    .onFailure {
+                                        TopBarManager.showMessage(
+                                            TopBarManager.TopBarMessage(
+                                                title = resources.getString(R.string.error_title_failedToDeleteAccount),
+                                                message = resources.getString(R.string.error_description_failedToDeleteAccount),
+                                            )
+                                        )
                                     }
                             }
                         }
@@ -181,11 +217,10 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.OnAppSettingsClicked,
                 Event.OnLogOutClicked,
                 Event.OnSwitchAccountsClicked,
-                Event.OnLabsClicked -> { state -> state }
-
-                Event.OnLoggedOutCompletely -> { state -> state }
-
-                is Event.OnSwitchAccountTo -> { state -> state }
+                Event.OnLabsClicked,
+                Event.OnLoggedOutCompletely,
+                is Event.OnSwitchAccountTo,
+                Event.OnDeleteAccountClicked -> { state -> state }
             }
         }
     }
