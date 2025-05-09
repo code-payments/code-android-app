@@ -55,6 +55,7 @@ dependencies {
     implementation(Libs.compose_materialIconsExtended)
 
     implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:core"))
 
     implementation(project(":libs:datetime"))

@@ -9,6 +9,7 @@ import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.core.uuid
 import com.getcode.services.opencode.BuildConfig
 import com.hoc081098.channeleventbus.ChannelEventBus
@@ -162,7 +163,7 @@ class UserManager @Inject constructor(
                 entropy = null,
                 flags = null,
                 cluster = null,
-                userId = emptyList(),
+                userId =  NoId,
                 isTimelockUnlocked = false,
             )
         }

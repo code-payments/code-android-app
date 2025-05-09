@@ -29,6 +29,8 @@ internal class InternalFeatureFlagController @Inject constructor(
     companion object {
         private val FeatureFlag.booleanPreferenceKey
             get() = booleanPreferencesKey(key)
+
+        private val betaOverrideKey = booleanPreferencesKey("beta_override")
     }
 
     private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -47,6 +49,18 @@ internal class InternalFeatureFlagController @Inject constructor(
             .filter { it.launched }
             .onEach { reset(it) }
     }
+
+    override fun enableBetaFeatures() {
+        dataScope.launch(Dispatchers.IO) {
+            betaFlags.edit { prefs ->
+                prefs[betaOverrideKey] = true
+            }
+        }
+    }
+
+    override fun observeOverride(): StateFlow<Boolean> =
+        betaFlags.data.map { prefs -> prefs[betaOverrideKey] ?: false }
+            .stateIn(dataScope, SharingStarted.Eagerly, false)
 
     override fun set(flag: FeatureFlag, value: Boolean) {
         dataScope.launch(Dispatchers.IO) {

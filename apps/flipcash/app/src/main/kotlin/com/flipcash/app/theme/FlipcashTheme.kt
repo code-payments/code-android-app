@@ -3,6 +3,7 @@ package com.flipcash.app.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.getcode.theme.BetaIndicator
 import com.getcode.theme.BrandAccent
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandIndicator
@@ -56,7 +57,8 @@ private val colors = with(ColorSpec) {
         dividerVariant = White05,
         trackColor = BrandSlideToConfirm,
         cashBill = cashBill,
-        cashBillDecorColor = secondaryText
+        cashBillDecorColor = secondaryText,
+        betaIndicator = BetaIndicator
     )
 }
 

@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 interface FeatureFlagController {
+    fun enableBetaFeatures()
+    fun observeOverride(): StateFlow<Boolean>
     fun set(flag: FeatureFlag, value: Boolean)
     suspend fun get(flag: FeatureFlag): Boolean
     fun observe(): StateFlow<List<BetaFeature>>
@@ -14,6 +16,8 @@ interface FeatureFlagController {
 }
 
 object NoOpFeatureFlagController : FeatureFlagController {
+    override fun enableBetaFeatures() = Unit
+    override fun observeOverride(): StateFlow<Boolean> = MutableStateFlow(false)
     override fun set(flag: FeatureFlag, value: Boolean) = Unit
 
     override suspend fun get(flag: FeatureFlag): Boolean = false

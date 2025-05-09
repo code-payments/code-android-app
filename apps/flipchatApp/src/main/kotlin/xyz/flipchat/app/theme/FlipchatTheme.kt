@@ -4,10 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.getcode.theme.Alert
+import com.getcode.theme.BetaIndicator
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
 import com.getcode.theme.CashBill
+import com.getcode.theme.CashBillDecor
 import com.getcode.theme.CodeTypography
 import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
@@ -49,7 +51,9 @@ private val colors = ColorScheme(
     divider = FC_Secondary,
     dividerVariant = FC_Tertiary,
     trackColor = Color(0xFF241A4B),
-    cashBill = CashBill
+    cashBill = CashBill,
+    cashBillDecorColor = CashBillDecor,
+    betaIndicator = BetaIndicator
 )
 
 @Composable

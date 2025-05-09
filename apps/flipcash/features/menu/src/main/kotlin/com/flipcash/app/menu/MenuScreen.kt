@@ -13,6 +13,7 @@ import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.Parcelize
 
@@ -39,6 +40,16 @@ class MenuScreen : ModalScreen, NamedScreen, Parcelable {
                 .filterIsInstance<MenuScreenViewModel.Event.OnLabsClicked>()
                 .onEach {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Lab)) }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<MenuScreenViewModel.Event.OnSwitchAccountTo>()
+                .map { it.entropy }
+                .onEach {
+                    navigator.hide()
+                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(it))) }
                 .launchIn(this)
         }
     }

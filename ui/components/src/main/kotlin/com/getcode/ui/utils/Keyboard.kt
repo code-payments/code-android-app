@@ -5,13 +5,11 @@ import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.SoftwareKeyboardController
@@ -66,10 +64,6 @@ class KeyboardController(
             onDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener) }
         }
     }
-}
-
-val LocalKeyboardController = staticCompositionLocalOf<KeyboardController> {
-    error("No KeyboardController provided")
 }
 
 @Composable

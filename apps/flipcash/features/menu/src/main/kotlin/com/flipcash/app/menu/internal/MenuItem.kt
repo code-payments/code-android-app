@@ -23,88 +23,77 @@ internal sealed interface MenuItem {
     val description: String?
 
     val action: MenuScreenViewModel.Event
+
+    val isStaffOnly: Boolean
 }
 
-internal data object Deposit : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal abstract class FullMenuItem(
+    override val id: Any = UUID.randomUUID().toString(),
+    @get:Composable
+    override val description: String? = null,
+    override val isStaffOnly: Boolean = false
+) : MenuItem
+
+internal abstract class StaffMenuItem(
+    override val id: Any = UUID.randomUUID().toString(),
+    @get:Composable
+    override val description: String? = null,
+    override val isStaffOnly: Boolean = true
+) : MenuItem
+
+internal data object Deposit : FullMenuItem() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_deposit)
     override val name: String
         @Composable get() = stringResource(R.string.title_depositUsdc)
-    override val description: String?
-        @Composable get() = null
-
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnDepositClicked
 }
 
-internal data object Withdraw : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal data object Withdraw : FullMenuItem() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_withdraw)
     override val name: String
         @Composable get() = stringResource(R.string.title_withdrawUsdc)
-    override val description: String?
-        @Composable get() = null
 
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnWithdrawClicked
 }
 
-internal data object MyAccount : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal data object MyAccount : FullMenuItem() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_account)
     override val name: String
         @Composable get() = stringResource(R.string.title_myAccount)
-    override val description: String?
-        @Composable get() = null
-
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnMyAccountClicked
 }
 
-internal data object AppSettings : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal data object AppSettings : FullMenuItem() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_settings_outline)
     override val name: String
         @Composable get() = stringResource(R.string.title_appSettings)
-    override val description: String?
-        @Composable get() = null
-
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnAppSettingsClicked
 }
 
-internal data object SwitchAccount : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal data object SwitchAccount : StaffMenuItem() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_switchaccounts)
     override val name: String
         @Composable get() = stringResource(R.string.title_switchAccounts)
-    override val description: String?
-        @Composable get() = null
-
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnSwitchAccountsClicked
 }
 
-internal data object Labs : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal data object Labs : StaffMenuItem() {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Filled.Science)
     override val name: String
         @Composable get() = stringResource(R.string.title_betaFlags)
-    override val description: String?
-        @Composable get() = null
-
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnLabsClicked
 }
 
-internal data object LogOut : MenuItem {
-    override val id: Any = UUID.randomUUID().toString()
+internal data object LogOut : FullMenuItem() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_logout)
     override val name: String
         @Composable get() = stringResource(R.string.action_logout)
-    override val description: String?
-        @Composable get() = null
-
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnLogOutClicked
 }

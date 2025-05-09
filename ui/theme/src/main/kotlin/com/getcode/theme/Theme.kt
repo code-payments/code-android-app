@@ -44,7 +44,8 @@ internal val CodeDefaultColorScheme = ColorScheme(
     dividerVariant = White05,
     trackColor = BrandSlideToConfirm,
     cashBill = CashBill,
-    cashBillDecorColor = CashBillDecor
+    cashBillDecorColor = CashBillDecor,
+    betaIndicator = BetaIndicator
 )
 
 @Composable
@@ -120,6 +121,7 @@ class ColorScheme(
     trackColor: Color,
     cashBill: Color,
     cashBillDecorColor: Color,
+    betaIndicator: Color,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -173,7 +175,9 @@ class ColorScheme(
         private set
     var cashBillColor by mutableStateOf(cashBill)
         private set
-    var cashBillDecorColor by mutableStateOf(cashBill)
+    var cashBillDecorColor by mutableStateOf(cashBillDecorColor)
+        private set
+    var betaIndicator by mutableStateOf(betaIndicator)
         private set
 
     fun update(other: ColorScheme) {
@@ -204,6 +208,7 @@ class ColorScheme(
         trackColor = other.trackColor
         cashBillColor = other.cashBillColor
         cashBillDecorColor = other.cashBillDecorColor
+        betaIndicator = other.betaIndicator
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -234,6 +239,7 @@ class ColorScheme(
         trackColor = trackColor,
         cashBill = cashBillColor,
         cashBillDecorColor = cashBillDecorColor,
+        betaIndicator = betaIndicator
     )
 }
 

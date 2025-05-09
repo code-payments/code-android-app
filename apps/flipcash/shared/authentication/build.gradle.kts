@@ -50,5 +50,6 @@ dependencies {
     implementation(Libs.androidx_datastore)
 
     implementation(project(":apps:flipcash:shared:persistence:provider"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":services:flipcash"))
 }

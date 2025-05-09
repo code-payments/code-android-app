@@ -40,24 +40,25 @@ class LoginRouter(private val seed: String? = null) : Screen, Parcelable {
                 .launchIn(this)
         }
 
-        if (seed != null) {
-//            SeedDeepLink(getViewModel(), seed)
-        } else {
-            LoginRouterScreenContent(
-                isCreatingAccount = state.creatingAccount,
-                betaFlagsVisible = state.betaOptionsVisible,
-                isSpectatorJoinEnabled = state.followerModeEnabled,
-                onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-                openBetaFlags = {
-//                    navigator.push(ScreenRegistry.get(NavScreenProvider.BetaFlags))
-                },
-                createAccount = {
-                    vm.dispatchEvent(LoginViewModel.Event.CreateAccount)
-                },
-                login = {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput))
-                }
-            )
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
+                .onEach { delay(1.333.seconds) }
+                .onEach { navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())) }
+                .launchIn(this)
         }
+
+        LaunchedEffect(seed) {
+            if (seed != null) {
+                vm.dispatchEvent(LoginViewModel.Event.LogIn(seed))
+            }
+        }
+
+        LoginRouterScreenContent(
+            isCreatingAccount = state.creatingAccount,
+            isLoggingIn = state.loggingIn,
+            createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
+            login = { navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput)) }
+        )
     }
 }

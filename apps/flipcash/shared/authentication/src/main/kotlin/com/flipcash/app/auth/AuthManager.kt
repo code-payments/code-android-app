@@ -6,6 +6,7 @@ import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.auth.internal.extensions.token
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
@@ -35,7 +36,8 @@ class AuthManager @Inject constructor(
     private val accountController: AccountController,
     private val pushController: PushController,
     private val balanceController: BalanceController,
-    private val persistence: PersistenceProvider
+    private val persistence: PersistenceProvider,
+    private val featureFlagController: FeatureFlagController,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
@@ -157,6 +159,10 @@ class AuthManager @Inject constructor(
             .onSuccess { resetStateForUser() }
     }
 
+    suspend fun logoutAndSwitchAccount(entropy: String): Result<String> {
+        return logout().map { entropy }
+    }
+
     private fun loginAnalytics() {
 //        analytics.login(
 //            ownerPublicKey = owner.getPublicKeyBase58(),
@@ -172,6 +178,7 @@ class AuthManager @Inject constructor(
         userManager.clear()
         balanceController.reset()
         persistence.close()
+        featureFlagController.reset()
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="action_getStarted">Get Started</string>
+    <string name="action_createNewAccount">Create a New Account</string>
     <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Flipcash</string>
     <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Flipcash</string>
     <string name="prompt_title_notFlipcashAccount">Not a Flipcash Account</string>
@@ -67,4 +67,5 @@
 
     <string name="title_labsAreEmpty">Nothing Cooking in the Lab Right Now</string>
     <string name="subtitle_labsAreEmpty">Check back in the next app update.</string>
+    <string name="subtitle_beta">Beta</string>
 </resources>

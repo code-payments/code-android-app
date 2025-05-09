@@ -39,11 +39,8 @@ import com.getcode.view.LoadingSuccessState
 
 @Composable
 internal fun LoginRouterScreenContent(
-    isSpectatorJoinEnabled: Boolean = false,
     isCreatingAccount: LoadingSuccessState = LoadingSuccessState(),
-    betaFlagsVisible: Boolean = false,
-    onLogoTapped: () -> Unit,
-    openBetaFlags: () -> Unit,
+    isLoggingIn: LoadingSuccessState = LoadingSuccessState(),
     createAccount: () -> Unit,
     login: () -> Unit,
 ) {
@@ -59,8 +56,7 @@ internal fun LoginRouterScreenContent(
 
             Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .noRippleClickable(enabled = !betaFlagsVisible) { onLogoTapped() },
+                    .align(Alignment.CenterHorizontally),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
@@ -76,14 +72,11 @@ internal fun LoginRouterScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset),
+                enabled = !isLoggingIn.loading && !isLoggingIn.success,
                 onClick = createAccount,
                 isLoading = isCreatingAccount.loading,
                 isSuccess = isCreatingAccount.success,
-                text = if (isSpectatorJoinEnabled) {
-                    stringResource(R.string.action_getStarted)
-                } else {
-                    stringResource(R.string.action_createAccount)
-                },
+                text = stringResource(R.string.action_createNewAccount),
                 buttonState = ButtonState.Filled,
             )
             CodeButton(
@@ -91,6 +84,8 @@ internal fun LoginRouterScreenContent(
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset),
                 onClick = login,
+                isLoading = isLoggingIn.loading,
+                isSuccess = isLoggingIn.success,
                 text = stringResource(R.string.action_logIn),
                 buttonState = ButtonState.Subtle,
             )
@@ -138,18 +133,6 @@ internal fun LoginRouterScreenContent(
                         }
                 }
             )
-        }
-
-        if (betaFlagsVisible) {
-            IconButton(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(top = CodeTheme.dimens.inset),
-                onClick = openBetaFlags
-            ) {
-                Icon(Icons.Filled.Science, contentDescription = null, tint = Color.White)
-            }
         }
     }
 }

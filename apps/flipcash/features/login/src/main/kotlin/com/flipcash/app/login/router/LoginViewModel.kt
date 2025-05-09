@@ -18,7 +18,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val authManager: com.flipcash.app.auth.AuthManager,
+    private val authManager: AuthManager,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -26,17 +26,20 @@ class LoginViewModel @Inject constructor(
     data class State(
         val followerModeEnabled: Boolean = false,
         val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
+        val loggingIn: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
     )
 
     sealed interface Event {
-        data object OnLogoTapped: Event
-        data object BetaOptionsUnlocked: Event
-        data class OnFollowerModeEnabled(val enabled: Boolean): Event
-        data object CreateAccount: Event
-        data object OnAccountCreated: Event
-        data object CreateFailed: Event
+        data object OnLogoTapped : Event
+        data object BetaOptionsUnlocked : Event
+        data object CreateAccount : Event
+        data class LogIn(val seed: String) : Event
+        data object LoggedInSuccessfully : Event
+        data object LogInFailed : Event
+        data object OnAccountCreated : Event
+        data object CreateFailed : Event
     }
 
     init {
@@ -65,20 +68,80 @@ class LoginViewModel @Inject constructor(
                     }
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LogIn>()
+            .map {
+                authManager.login(
+                    entropyB64 = it.seed,
+                    // treat deep links as if they came from the selection screen
+                    isFromSelection = true
+                ).onFailure {
+                    dispatchEvent(Event.LogInFailed)
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = "Login Failed",
+                            message = it.message ?: "Something went wrong"
+                        )
+                    )
+                }.onSuccess {
+                    dispatchEvent(Event.LoggedInSuccessfully)
+                }
+            }.launchIn(viewModelScope)
+
     }
 
     internal companion object {
         private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.CreateAccount -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = true)) }
-                Event.OnAccountCreated -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false, success = true)) }
-                Event.CreateFailed -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false)) }
-                is Event.OnFollowerModeEnabled -> { state -> state.copy(followerModeEnabled = event.enabled) }
+                Event.CreateAccount -> { state ->
+                    state.copy(
+                        creatingAccount = LoadingSuccessState(
+                            loading = true
+                        )
+                    )
+                }
+
+                Event.OnAccountCreated -> { state ->
+                    state.copy(
+                        creatingAccount = LoadingSuccessState(
+                            loading = false,
+                            success = true
+                        )
+                    )
+                }
+
+                Event.CreateFailed -> { state ->
+                    state.copy(
+                        creatingAccount = LoadingSuccessState(
+                            loading = false
+                        )
+                    )
+                }
+
                 is Event.BetaOptionsUnlocked -> { state -> state.copy(betaOptionsVisible = true) }
                 is Event.OnLogoTapped -> { state ->
                     if (state.logoTapCount >= TAP_THRESHOLD) state
                     else state.copy(logoTapCount = state.logoTapCount + 1)
+                }
+
+                is Event.LogIn -> { state -> state.copy(loggingIn = LoadingSuccessState(loading = true)) }
+                is Event.LoggedInSuccessfully -> { state ->
+                    state.copy(
+                        loggingIn = LoadingSuccessState(
+                            loading = false,
+                            success = true
+                        )
+                    )
+                }
+
+                is Event.LogInFailed -> { state ->
+                    state.copy(
+                        loggingIn = LoadingSuccessState(
+                            loading = false
+                        )
+                    )
                 }
             }
         }

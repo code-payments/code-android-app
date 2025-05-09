@@ -34,6 +34,8 @@ val Error = Color(0xFFA42D2D)
 val CashBill = Color(red = 44, green = 42, blue = 65)
 val CashBillDecor = Color(0xFFA9A9B1)
 
+val BetaIndicator = Color(0xFFFEF383)
+
 val TextMain = White
 val TextSecondary = BrandLight
 val TextError = Alert

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -32,6 +33,9 @@ import com.getcode.ui.utils.calculateHorizontalPadding
 import com.getcode.ui.core.unboundedClickable
 
 object AppBarDefaults {
+    val ContentPadding: PaddingValues
+        @Composable get() = PaddingValues(horizontal = CodeTheme.dimens.grid.x2)
+
     @Composable
     fun UpNavigation(modifier: Modifier = Modifier, onClick: () -> Unit) {
         Icon(
@@ -39,8 +43,7 @@ object AppBarDefaults {
             contentDescription = "",
             tint = Color.White,
             modifier = modifier
-                .wrapContentWidth()
-                .size(24.dp)
+                .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
         )
     }
@@ -52,8 +55,7 @@ object AppBarDefaults {
             contentDescription = "",
             tint = Color.White,
             modifier = modifier
-                .wrapContentWidth()
-                .size(24.dp)
+                .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
         )
     }
@@ -65,8 +67,7 @@ object AppBarDefaults {
             contentDescription = "",
             tint = Color.White,
             modifier = modifier
-                .wrapContentWidth()
-                .size(24.dp)
+                .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
         )
     }
@@ -78,8 +79,7 @@ object AppBarDefaults {
             contentDescription = "",
             tint = Color.White,
             modifier = modifier
-                .wrapContentWidth()
-                .size(24.dp)
+                .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
         )
     }
@@ -91,8 +91,7 @@ object AppBarDefaults {
             contentDescription = "",
             tint = Color.White,
             modifier = modifier
-                .wrapContentWidth()
-                .size(24.dp)
+                .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
         )
     }
@@ -107,8 +106,7 @@ object AppBarDefaults {
             contentDescription = "",
             tint = Color.White,
             modifier = modifier
-                .wrapContentWidth()
-                .size(24.dp)
+                .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
         )
     }
@@ -130,20 +128,21 @@ object AppBarDefaults {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
     isInModal: Boolean = false,
     title: String = "",
     titleAlignment: Alignment.Horizontal = Alignment.Start,
+    contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     backButton: Boolean = false,
     onBackIconClicked: () -> Unit = {},
     endContent: @Composable () -> Unit = { },
 ) {
     TopAppBarBase(
-        modifier = modifier
-            .addIf(!isInModal) { Modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility) },
+        modifier = modifier,
+        isInModal = isInModal,
+        contentPadding = contentPadding,
         leftIcon = {
             if (backButton) {
                 AppBarDefaults.UpNavigation { onBackIconClicked() }
@@ -157,18 +156,21 @@ fun AppBarWithTitle(
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
+    isInModal: Boolean = false,
     title: String = "",
+    contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     startContent: @Composable () -> Unit = { },
     endContent: @Composable () -> Unit = { },
 ) {
     TopAppBarBase(
-        modifier = modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
+        modifier = modifier,
+        isInModal = isInModal,
         leftIcon =  startContent,
+        contentPadding = contentPadding,
         titleRegion = {
             AppBarDefaults.Title(text = title)
         },
@@ -177,18 +179,19 @@ fun AppBarWithTitle(
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
+    isInModal: Boolean = false,
     title: @Composable () -> Unit,
     titleAlignment: Alignment.Horizontal = Alignment.Start,
-    contentPadding: PaddingValues = PaddingValues(horizontal = CodeTheme.dimens.grid.x2),
+    contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     leftIcon: @Composable () -> Unit = { },
     rightContents: @Composable () -> Unit = { }
 ) {
     TopAppBarBase(
-        modifier = modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
+        modifier = modifier,
+        isInModal = isInModal,
         leftIcon = leftIcon,
         rightContents = rightContents,
         contentPadding = contentPadding,
@@ -197,10 +200,12 @@ fun AppBarWithTitle(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TopAppBarBase(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = CodeTheme.dimens.grid.x2),
+    isInModal: Boolean = false,
+    contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     leftIcon: @Composable () -> Unit = { },
     titleRegion: @Composable () -> Unit = { },
     rightContents: @Composable () -> Unit = { },
@@ -209,7 +214,11 @@ private fun TopAppBarBase(
     val inset = CodeTheme.dimens.inset
     val horizontal = contentPadding.calculateHorizontalPadding()
 
-    SubcomposeLayout(modifier = modifier.height(56.dp)) { constraints ->
+    SubcomposeLayout(
+        modifier = modifier
+            .addIf(!isInModal) { Modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility) }
+            .height(56.dp),
+    ) { constraints ->
         // Measure left icon, if provided
         val leftIconPlaceable = subcompose("leftIcon", leftIcon).firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0)
@@ -234,13 +243,13 @@ private fun TopAppBarBase(
             // Place left icon, if present
             leftIconPlaceable?.placeRelative(
                 x = contentPadding.calculateLeftPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - (leftIconPlaceable.height)) / 2
+                y = (constraints.maxHeight - (leftIconPlaceable.height)) / 2 + contentPadding.calculateTopPadding().roundToPx()
             )
 
             // Place right contents, if present
             rightContentsPlaceable?.placeRelative(
                 x = constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - rightContentsPlaceable.height) / 2
+                y = (constraints.maxHeight - rightContentsPlaceable.height) / 2 + contentPadding.calculateTopPadding().roundToPx()
             )
 
             // Place title region with configurable alignment
@@ -256,7 +265,7 @@ private fun TopAppBarBase(
             // Place title region
             titleRegionPlaceable?.placeRelative(
                 x = titleX,
-                y = (constraints.maxHeight - (titleRegionPlaceable.height)) / 2
+                y = (constraints.maxHeight - (titleRegionPlaceable.height)) / 2 + contentPadding.calculateTopPadding().roundToPx()
             )
         }
     }
