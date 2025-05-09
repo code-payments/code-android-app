@@ -67,13 +67,15 @@ import kotlin.math.roundToInt
 @Suppress("ConstPropertyName")
 private object CashBillDefaults {
     const val AspectRatio = 0.555f
-    val BillColor: Color = Color(red = 44, green = 42, blue = 65)
+
+    val BillColor: Color
+        @Composable get() = CodeTheme.colors.cashBillColor
+    val DecorColor: Color
+        @Composable get() = CodeTheme.colors.cashBillDecorColor
 
     const val CodeBackgroundOpacity = 0.65f
 
     const val SecurityStripCount = 3
-
-    val DecorColor: Color = Color(0xFFA9A9B1)
 }
 
 private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) {

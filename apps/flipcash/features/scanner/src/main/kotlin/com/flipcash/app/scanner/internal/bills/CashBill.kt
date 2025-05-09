@@ -75,7 +75,8 @@ private object CashBillDefaults {
 
     const val SecurityStripCount = 3
 
-    val DecorColor: Color = Color(0xFFA9A9B1)
+    val DecorColor: Color
+        @Composable get() = CodeTheme.colors.cashBillDecorColor
 }
 
 private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) {
@@ -109,7 +110,7 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
     val linesHeight: Dp
         get() = (topStripHeight.value - 2).dp
     val lineSpacing: Dp
-        get() = ceil(size.width.value * 0.032f).dp
+        get() = ceil(size.width.value * 0.014f).dp
 
     val mintPadding: Dp
         get() = ceil(size.height.value * 0.01f).dp
@@ -250,13 +251,14 @@ internal fun CashBill(
                 Row(
                     modifier = Modifier
                         .height(geometry.linesHeight)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.grid.x1),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // September
-                    Lines(count = 9, spacing = geometry.lineSpacing)
-                    // Sept 12
-                    Lines(count = 12, spacing = geometry.lineSpacing)
+                    // October
+                    Lines(count = 10, spacing = geometry.lineSpacing)
+                    // Oct 31
+                    Lines(count = 31, spacing = geometry.lineSpacing)
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -289,8 +291,13 @@ internal fun CashBill(
                         contentDescription = "",
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    // 2017
-                    Lines(count = 17, spacing = geometry.lineSpacing)
+                    // 2008
+                    Lines(
+                        modifier = Modifier
+                            .padding(end = CodeTheme.dimens.grid.x2),
+                        count = 8,
+                        spacing = geometry.lineSpacing
+                    )
                 }
             }
 
