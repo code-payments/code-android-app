@@ -11,6 +11,8 @@ include(
         // shared flipcash coordinators/controllers
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",
+        ":apps:flipcash:shared:currency-selection:core",
+        ":apps:flipcash:shared:currency-selection:ui",
         ":apps:flipcash:shared:featureflags",
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",
@@ -27,8 +29,6 @@ include(
         ":apps:flipcash:features:menu",
         ":apps:flipcash:features:permissions",
         ":apps:flipcash:features:purchase",
-        ":apps:flipcash:features:currency-selection:core",
-        ":apps:flipcash:features:currency-selection:ui",
         ":apps:flipcash:features:lab",
 
         // protobuf model and service implementations for Code

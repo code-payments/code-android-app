@@ -57,7 +57,7 @@ dependencies {
     implementation(Libs.androidx_datastore)
 
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:features:currency-selection:core"))
+    implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":ui:analytics"))
