@@ -104,12 +104,8 @@ class ShareSheetController @Inject constructor(
         amount: LocalFiat,
     ) {
         val url = Linkify.cashLink(giftCardAccount.entropy)
-        val suffix = amount.converted.currencyCode.takeIf {
-            it != CurrencyCode.USD
-        }?.let {
-            resources.getString(R.string.subtitle_ofUsdSuffix)
-        }
-        val text = "${amount.formatted(suffix = suffix)} $url"
+
+        val text = "${amount.formatted()} $url"
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, text)
