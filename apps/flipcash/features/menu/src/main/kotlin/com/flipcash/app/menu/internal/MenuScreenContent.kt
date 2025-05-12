@@ -113,7 +113,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             )
         ) {
             items(state.items, key = { it.id }, contentType = { it }) { item ->
-                ListItem(item = item) {
+                ListItem(modifier = Modifier.animateItem(), item = item) {
                     viewModel.dispatchEvent(item.action)
                 }
             }
@@ -122,9 +122,13 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
 }
 
 @Composable
-private fun ListItem(item: MenuItem, onClick: () -> Unit) {
+private fun ListItem(
+    modifier: Modifier = Modifier,
+    item: MenuItem,
+    onClick: () -> Unit
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .rememberedClickable { onClick() }
             .padding(CodeTheme.dimens.grid.x5)
             .fillMaxWidth()
