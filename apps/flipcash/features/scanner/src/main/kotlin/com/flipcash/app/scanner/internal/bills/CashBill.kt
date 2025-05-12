@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -71,7 +72,11 @@ private object CashBillDefaults {
     val BillColor: Color
         @Composable get() = CodeTheme.colors.cashBillColor
 
-    const val CodeBackgroundOpacity = 0.65f
+    const val CodeBackgroundOpacity = 0.8f
+
+    val PunchColor: Color
+        @Composable get() =
+            Color.Black.copy(0.15f).compositeOver(BillColor.copy(CodeBackgroundOpacity))
 
     const val SecurityStripCount = 3
 
@@ -85,7 +90,7 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
         get() = ceil(size.width.value * 0.18f).dp
 
     override val codeSize: Dp
-        get() = size.width * 0.6f
+        get() = size.width * 0.65f
 
     val globeWidth: Dp
         get() = size.width * 1.5f
@@ -320,7 +325,7 @@ private fun SecurityStrip(
         modifier = modifier
             .size(geometry.securityStripSize)
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
-            .punchRectangle(CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity)),
+            .punchRectangle(CashBillDefaults.PunchColor),
     ) {
         for (i in 0 until CashBillDefaults.SecurityStripCount) {
             Image(
@@ -386,7 +391,7 @@ private fun BillDecorImage(
 private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, data: List<Byte>) {
     Box(
         modifier = modifier
-            .punchCircle(CashBillDefaults.BillColor.copy(0.6f)),
+            .punchCircle(CashBillDefaults.PunchColor),
         contentAlignment = Alignment.Center
     ) {
         if (data.isNotEmpty()) {
