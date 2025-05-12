@@ -100,7 +100,6 @@ fun AmountText(
             modifier = Modifier
                 .wrapContentWidth()
                 .wrapContentHeight()
-                .padding(vertical = CodeTheme.dimens.grid.x3)
                 .drawWithCache {
                     onDrawWithContent {
                         if (isReadyToDraw) drawContent()

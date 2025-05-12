@@ -119,12 +119,11 @@ private fun ValueHint(
             Text(
                 text = captionText,
                 color = captionColor,
-                style = CodeTheme.typography.textMedium.copy(
+                style = CodeTheme.typography.textSmall.copy(
                     textAlign = TextAlign.Center
                 )
             )
         }
-
     }
 }
 
