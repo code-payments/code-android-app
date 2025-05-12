@@ -27,7 +27,7 @@ internal fun BalanceHeader(
     Column(
         modifier = modifier
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(top = CodeTheme.dimens.inset),
+            .padding(vertical = CodeTheme.dimens.inset),
     ) {
         if (balance == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -35,17 +35,16 @@ internal fun BalanceHeader(
             }
         } else {
             Crossfade(balance.converted) { amount ->
+                val captionText = if (amount.currencyCode == CurrencyCode.USD) {
+                    stringResource(R.string.subtitle_balanceIsHeldInUsdStablecoins)
+                } else {
+                    balance.usdc.formatted(suffix = stringResource(R.string.subtitle_ofUsdStablecoins))
+                }
                 AmountArea(
-                    amountText = amount.formatted(
-                        suffix = amount.currencyCode.takeIf {
-                            it != CurrencyCode.USD
-                        }?.let {
-                            stringResource(R.string.subtitle_ofUsdSuffix)
-                        }
-                    ),
+                    amountText = amount.formatted(),
                     isAltCaption = false,
                     isAltCaptionKinIcon = false,
-                    captionText = stringResource(R.string.subtitle_balanceIsHeldInUsdStablecoins),
+                    captionText = captionText,
                     currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
                     isClickable = true,
                     textStyle = CodeTheme.typography.displayLarge,
