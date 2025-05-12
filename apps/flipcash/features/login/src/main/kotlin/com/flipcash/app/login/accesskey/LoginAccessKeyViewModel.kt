@@ -5,10 +5,13 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaScanner
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
+import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginAccessKeyViewModel @Inject constructor(
@@ -22,7 +25,8 @@ class LoginAccessKeyViewModel @Inject constructor(
 
     suspend fun saveImage(): Result<Unit> = saveBitmapToFile()
         .onSuccess { authManager.onUserAccessKeySeen() }
-        .map { Unit }
+        .map { authManager.presentCredentialStorage() }
 
     suspend fun onWroteDownInstead(): Result<Unit> = authManager.onUserAccessKeySeen()
+        .map { authManager.presentCredentialStorage() }
 }

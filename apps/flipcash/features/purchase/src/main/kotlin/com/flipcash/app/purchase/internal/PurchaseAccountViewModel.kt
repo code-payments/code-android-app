@@ -12,6 +12,8 @@ import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
 import com.flipcash.services.billing.ProductPrice
+import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.user.UserManager
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -34,6 +36,8 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 internal class PurchaseAccountViewModel @Inject constructor(
     private val authManager: AuthManager,
+    private val accountController: AccountController,
+    private val userManager: UserManager,
     billingClient: BillingClient,
     resources: ResourceHelper,
 ) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
@@ -53,22 +57,38 @@ internal class PurchaseAccountViewModel @Inject constructor(
             get() = productToBuy != IapProduct.CreateAccountWithWelcomeBonus
 
         private val safeCost: String
-            get() = formattedCost.trim().takeIf { it.isNotEmpty() } ?: if (BuildConfig.DEBUG) "💰💰💰" else "\$XX"
+            get() = formattedCost.trim().takeIf { it.isNotEmpty() }
+                ?: if (BuildConfig.DEBUG) "💰💰💰" else "\$XX"
 
         private val safeReward: String
-            get() = formattedCost.trim().takeIf { it.isNotEmpty() } ?: if (BuildConfig.DEBUG) "¯\\_(ツ)_/¯" else "\$XX"
+            get() = formattedCost.trim().takeIf { it.isNotEmpty() }
+                ?: if (BuildConfig.DEBUG) "¯\\_(ツ)_/¯" else "\$XX"
 
         private val titleForWelcomeBonus: String
-            @Composable get() = stringResource(R.string.title_finalizeAccountCreationWithWelcomeBonus, safeCost, safeReward)
+            @Composable get() = stringResource(
+                R.string.title_finalizeAccountCreationWithWelcomeBonus,
+                safeCost,
+                safeReward
+            )
 
         private val titleForNoBonus: String
-            @Composable get() = stringResource(R.string.title_finalizeAccountCreationWithoutBonus, safeCost)
+            @Composable get() = stringResource(
+                R.string.title_finalizeAccountCreationWithoutBonus,
+                safeCost
+            )
 
         private val subtitleForWelcomeBonus: String
-            @Composable get() = stringResource(R.string.subtitle_finalizeAccountCreationWithWelcomeBonus, safeCost, safeReward)
+            @Composable get() = stringResource(
+                R.string.subtitle_finalizeAccountCreationWithWelcomeBonus,
+                safeCost,
+                safeReward
+            )
 
         private val subtitleForNoBonus: String
-            @Composable get() = stringResource(R.string.subtitle_finalizeAccountCreationWithoutBonus, safeCost)
+            @Composable get() = stringResource(
+                R.string.subtitle_finalizeAccountCreationWithoutBonus,
+                safeCost
+            )
 
         val title: String
             @Composable get() = if (receivedWelcomeBonus) {
@@ -87,7 +107,7 @@ internal class PurchaseAccountViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnProductChanged(val product: IapProduct, val cost: ProductPrice?) : Event
-        data class OnPriceFormatted(val cost: String): Event
+        data class OnPriceFormatted(val cost: String) : Event
         data class BuyAccount(val activity: Activity) : Event
         data class OnCreatingChanged(val creating: Boolean, val created: Boolean = false) : Event
         data object OnAccountCreated : Event
@@ -151,19 +171,17 @@ internal class PurchaseAccountViewModel @Inject constructor(
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
             .onEach {
                 dispatchEvent(Event.OnCreatingChanged(true))
-                authManager.presentCredentialStorage()
+                delay(2.seconds)
+                accountController.getUserFlags()
                     .onSuccess {
+                        userManager.set(it)
                         dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
                         delay(2.seconds)
                         dispatchEvent(Event.OnAccountCreated)
                     }.onFailure {
-                        dispatchEvent(Event.OnCreatingChanged(creating = false))
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                resources.getString(R.string.error_title_failedToPurchaseItem),
-                                resources.getString(R.string.error_description_failedToPurchaseItem)
-                            )
-                        )
+                        dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
+                        delay(2.seconds)
+                        dispatchEvent(Event.OnAccountCreated)
                     }
             }
             .launchIn(viewModelScope)
