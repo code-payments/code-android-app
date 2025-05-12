@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class KikCodeContentView @JvmOverloads constructor(
     context: Context,
@@ -31,7 +32,7 @@ class KikCodeContentView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val smallSide = min(width, height)
+        val smallSide = (min(width, height) * 1.03f).roundToInt()
         canvas.translate((width - smallSide) / 2f, (height - smallSide) / 2f)
 
         val encodedKikCode = encodedKikCode ?: return
