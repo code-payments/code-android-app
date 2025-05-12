@@ -66,13 +66,6 @@ internal fun FeedItem(
                 horizontalAlignment = Alignment.End
             ) {
                 FlagWithFiat(fiat = amount.converted)
-                if (amount.converted.currencyCode != CurrencyCode.USD) {
-                    Text(
-                        text = amount.usdc.formatted(suffix = "USDC"),
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary
-                    )
-                }
             }
         }
     }
