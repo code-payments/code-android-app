@@ -40,7 +40,7 @@ internal class IntentTransfer(
             val transfer = ActionPublicTransfer.newInstance(
                 sourceCluster = sourceCluster,
                 destination = destination,
-                amount = amount.converted
+                amount = amount.usdc
             )
 
             return IntentTransfer(
