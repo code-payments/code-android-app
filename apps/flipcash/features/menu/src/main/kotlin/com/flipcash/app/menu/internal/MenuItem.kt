@@ -22,9 +22,6 @@ internal sealed interface MenuItem {
     @get:Composable
     val name: String
 
-    @get:Composable
-    val description: String?
-
     val action: MenuScreenViewModel.Event
 
     val isStaffOnly: Boolean
@@ -32,15 +29,11 @@ internal sealed interface MenuItem {
 
 internal abstract class FullMenuItem(
     override val id: Any = UUID.randomUUID().toString(),
-    @get:Composable
-    override val description: String? = null,
     override val isStaffOnly: Boolean = false
 ) : MenuItem
 
 internal abstract class StaffMenuItem(
     override val id: Any = UUID.randomUUID().toString(),
-    @get:Composable
-    override val description: String? = null,
     override val isStaffOnly: Boolean = true
 ) : MenuItem
 

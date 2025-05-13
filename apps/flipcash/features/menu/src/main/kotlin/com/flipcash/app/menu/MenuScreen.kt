@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class MenuScreen : ModalScreen, NamedScreen, Parcelable {
+class MenuScreen : ModalScreen, Parcelable {
     @Composable
     override fun ModalContent() {
         val viewModel = getViewModel<MenuScreenViewModel>()

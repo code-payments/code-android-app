@@ -41,11 +41,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 }
 
@@ -69,10 +64,6 @@ dependencies {
     api(project(":libs:analytics"))
 
     api(Libs.sodium_bindings)
-
-    //Jetpack compose
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
 
     implementation(Libs.inject)
 

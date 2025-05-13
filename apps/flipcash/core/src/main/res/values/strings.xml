@@ -59,6 +59,7 @@
     <string name="subtitle_ofUsdSuffix">of USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
+    <string name="error_description_alreadyCollected">This cash was already collected by someone else.</string>
     <string name="error_title_alreadyCollectedBySomeone">Cash Already Collected</string>
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
@@ -79,4 +80,5 @@
     <string name="error_title_failedToDeleteAccount">Something went wrong</string>
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
+    <string name="subtitle_howToDeposit">Deposit cash into your Flipcash wallet by sending USDC to your Deposit Address below. Tap to copy.</string>
 </resources>

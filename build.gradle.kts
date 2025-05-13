@@ -24,7 +24,8 @@ buildscript {
 }
 
 plugins {
-    id("com.google.devtools.ksp") version "1.9.25-1.0.20" apply false
+    id(Plugins.kotlin_ksp) version Versions.kotlin_ksp apply false
+    id(Plugins.jetbrains_compose_compiler) version Versions.kotlin apply false
 }
 
 allprojects {

@@ -4,6 +4,7 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.kotlin_serialization)
     id(Plugins.kotlin_parcelize)
+    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
@@ -34,10 +35,6 @@ android {
         buildConfig = true
         compose = true
     }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
-    }
 }
 
 dependencies {
@@ -62,6 +59,7 @@ dependencies {
     implementation(Libs.firebase_messaging)
     implementation(Libs.bugsnag)
 
+    implementation(Libs.androidx_localbroadcastmanager)
     implementation(Libs.androidx_credentials)
     implementation(Libs.androidx_credentials_play_auth)
     implementation(Libs.androidx_datastore)

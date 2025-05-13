@@ -14,6 +14,7 @@ include(
         ":apps:flipcash:shared:currency-selection:core",
         ":apps:flipcash:shared:currency-selection:ui",
         ":apps:flipcash:shared:featureflags",
+        ":apps:flipcash:shared:permissions",
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",
         ":apps:flipcash:shared:persistence:sources",
@@ -27,9 +28,9 @@ include(
         ":apps:flipcash:features:balance",
         ":apps:flipcash:features:send",
         ":apps:flipcash:features:menu",
-        ":apps:flipcash:features:permissions",
         ":apps:flipcash:features:purchase",
         ":apps:flipcash:features:lab",
+        ":apps:flipcash:features:deposit",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

@@ -101,9 +101,7 @@ class RealSessionController @Inject constructor(
             .mapNotNull { it.authState }
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
-            .onEach {
-                billingClient.connect()
-            }
+            .onEach { billingClient.connect() }
             .launchIn(scope)
     }
 
@@ -118,7 +116,7 @@ class RealSessionController @Inject constructor(
     }
 
     override fun onAppInBackground() {
-       stopPolling()
+        stopPolling()
         billingClient.disconnect()
     }
 
@@ -220,7 +218,6 @@ class RealSessionController @Inject constructor(
                             billController.update {
                                 it.copy(
                                     primaryAction = BillState.Action.Cancel(
-                                        label = resources.getString(R.string.action_cancel),
                                         action = { cancelSend() }
                                     ),
                                     secondaryAction = null,
@@ -382,6 +379,8 @@ class RealSessionController @Inject constructor(
                     bill = Bill.Cash(amount = it, didReceive = true),
                     vibrate = true
                 )
+                checkPendingItemsInFeed()
+                bringActivityFeedCurrent()
             },
             onError = { cause ->
                 when (cause) {

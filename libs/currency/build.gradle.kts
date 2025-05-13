@@ -4,6 +4,7 @@ plugins {
     id(Plugins.kotlin_kapt)
     id(Plugins.kotlin_serialization)
     id(Plugins.kotlin_parcelize)
+    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
@@ -37,10 +38,6 @@ android {
 
     buildFeatures {
         compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 }
 

@@ -41,12 +41,16 @@ sealed class Packaging(
 
 object Versions {
     const val java = "17"
-    const val kotlin = "1.9.25"
-    const val kotlinx_coroutines = "1.7.3"
-    const val kotlinx_serialization = "1.6.2"
-    const val kotlinx_datetime = "0.5.0"
-    const val android_gradle_build_tools = "8.6.0"
-    const val google_services = "4.3.15"
+    const val kotlin = "2.1.20"
+    const val kotlinx_coroutines = "1.9.0"
+    const val kotlinx_serialization = "1.7.3"
+    const val kotlinx_datetime = "0.6.1"
+
+    private const val ksp = "2.0.1"
+    const val kotlin_ksp = "$kotlin-$ksp"
+
+    const val android_gradle_build_tools = "8.7.1"
+    const val google_services = "4.4.2"
 
     const val androidx_appcompat = "1.7.0"
     const val androidx_activity = "1.7.2"
@@ -54,43 +58,39 @@ object Versions {
     const val androidx_biometrics = "1.2.0-alpha05"
     const val androidx_camerax = "1.3.2"
     const val androidx_credentials = "1.5.0"
-    const val androidx_core = "1.12.0"
+    const val androidx_core = "1.13.1"
     const val androidx_constraint_layout = "2.1.3"
     const val androidx_lifecycle = "2.7.0"
-    const val androidx_navigation = "2.7.4"
+    const val androidx_navigation = "2.8.0"
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"
-    const val androidx_room = "2.6.1"
-    const val androidx_work = "2.10.0"
+    const val androidx_room = "2.7.0"
+    const val androidx_work = "2.10.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2024.10.01"
+    const val compose = "2025.05.00"
 
-    // compose compiler is tied to [Versions.kotlin]
-    // See compatibility mapping here:
-    // https://developer.android.com/jetpack/androidx/releases/compose-compiler
-    const val compose_compiler = "1.5.15"
     const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
-    const val compose_navigation: String = "2.7.3"
-    const val compose_paging = "3.3.0-alpha02"
+    const val compose_navigation: String = "2.8.0"
+    const val compose_paging = "3.3.0"
     const val compose_webview = "0.33.6"
 
-    const val hilt = "2.52"
+    const val hilt = "2.56.2"
     const val hilt_jetpack = "1.2.0"
-    const val okhttp = "4.9.3"
-    const val retrofit = "2.6.0"
+    const val okhttp = "4.12.0"
+    const val retrofit = "2.11.0"
     const val rxjava: String = "3.1.3"
     const val rxandroid: String = "3.0.0"
 
     const val compose_accompanist: String = "0.24.2-alpha"
-    const val compose_coil: String = "3.0.0-alpha06"
+    const val compose_coil: String = "3.0.0"
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
-    const val firebase_bom: String = "32.7.1"
-    const val crashlytics_gradle: String = "2.8.1"
-    const val play_service_auth = "20.7.0"
+    const val firebase_bom: String = "33.1.0"
+    const val crashlytics_gradle: String = "3.0.2"
+    const val play_service_auth = "21.0.0"
     const val play_service_auth_phone = "18.0.2"
     const val google_play_billing = "7.1.1"
 
@@ -161,6 +161,7 @@ object Plugins {
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
     const val versioning_gradle_plugin = "de.nanogiants.android-versioning"
+    const val jetbrains_compose_compiler = "org.jetbrains.kotlin.plugin.compose"
 }
 
 object Libs {
@@ -182,6 +183,7 @@ object Libs {
     const val androidx_credentials = "androidx.credentials:credentials:${Versions.androidx_credentials}"
     const val androidx_credentials_play_auth = "androidx.credentials:credentials-play-services-auth:${Versions.androidx_credentials}"
 
+    const val androidx_localbroadcastmanager = "androidx.localbroadcastmanager:localbroadcastmanager:1.0.0"
     const val androidx_lifecycle_runtime =
         "androidx.lifecycle:lifecycle-runtime-ktx:${Versions.androidx_lifecycle}"
     const val androidx_navigation_fragment =

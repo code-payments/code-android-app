@@ -1,5 +1,4 @@
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
-import org.jetbrains.kotlin.cli.common.toBooleanLenient
 
 plugins {
     id(Plugins.android_application)
@@ -15,6 +14,7 @@ plugins {
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
     id(Plugins.versioning_gradle_plugin)
+    id(Plugins.jetbrains_compose_compiler)
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -53,10 +53,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
-    }
-
     buildTypes {
         getByName("release") {
             resValue("string", "applicationId", appNamespace)
@@ -69,7 +65,7 @@ android {
             resValue("string", "applicationId", "${appNamespace}.dev")
             signingConfig = signingConfigs.getByName("contributors")
 
-            val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanLenient() ?: false
+            val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanStrictOrNull() ?: false
             isMinifyEnabled = debugMinifyEnabled
             isShrinkResources = debugMinifyEnabled
 
@@ -81,7 +77,7 @@ android {
             }
 
             configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanLenient() ?: false
+                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanStrictOrNull() ?: false
             }
         }
     }
@@ -121,9 +117,9 @@ dependencies {
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":apps:flipcash:shared:currency-selection:ui"))
+    implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:features:accesskey"))
     implementation(project(":apps:flipcash:features:login"))
-    implementation(project(":apps:flipcash:features:permissions"))
     implementation(project(":apps:flipcash:features:purchase"))
     implementation(project(":apps:flipcash:features:scanner"))
     implementation(project(":apps:flipcash:features:give"))
