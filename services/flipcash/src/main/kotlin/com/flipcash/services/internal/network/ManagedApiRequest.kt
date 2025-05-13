@@ -16,15 +16,12 @@ suspend fun <ResponseType: Any, Output: Any> NetworkOracle.managedApiRequest(
     handleResponse: (ResponseType) -> Result<Output>,
     onOtherError: (Exception) -> Result<Output>
 ): Result<Output> {
-    Log.d("ManagedApiRequest", "Starting with timeout: ${timeout.seconds.inWholeMilliseconds}")
     return try {
         val result = managedRequest(call(), timeout)
             .map { response -> handleResponse(response) }
-            .onEach { Log.d("ManagedApiRequest", "Emitted: $it") }
             .firstOrNull()
         result ?: onOtherError(IllegalStateException("No response received from server"))
     } catch (e: Exception) {
-        Log.e("ManagedApiRequest", "Error: $e")
         onOtherError(e)
     }
 }
