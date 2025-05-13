@@ -23,6 +23,7 @@ import com.getcode.utils.replaceParam
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -133,7 +134,7 @@ internal class SendScreenViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             exchange.fetchRatesIfNeeded()
         }
 

@@ -7,6 +7,7 @@ import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.currency.CurrencySelectionModal
+import com.flipcash.app.deposit.DepositScreen
 import com.flipcash.app.give.GiveScreen
 import com.flipcash.app.lab.LabScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
@@ -73,6 +74,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.HomeScreen.Menu.Lab> {
             LabScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Menu.Deposit> {
+            DepositScreen()
         }
     }
 

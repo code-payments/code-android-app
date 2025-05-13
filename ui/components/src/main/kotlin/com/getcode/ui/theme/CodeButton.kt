@@ -1,11 +1,21 @@
 package com.getcode.ui.theme
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
@@ -98,8 +108,8 @@ fun CodeButton(
     buttonState: ButtonState = ButtonState.Bordered,
     shape: Shape = CodeTheme.shapes.small,
     contentPadding: PaddingValues = PaddingValues(
-        top = CodeTheme.dimens.grid.x3,
-        bottom = CodeTheme.dimens.grid.x3,
+        top = CodeTheme.dimens.grid.x2,
+        bottom = CodeTheme.dimens.grid.x2,
     ),
     overrideContentPadding: Boolean = false,
     contentColor: Color = Color.Unspecified,
@@ -114,7 +124,7 @@ fun CodeButton(
         derivedStateOf { isSuccess }
     }
 
-    val colors = getButtonColors(enabled, buttonState, contentColor)
+    val colors = getButtonColors(isEnabled, buttonState, contentColor)
     val border = getButtonBorder(buttonState, isEnabled)
     val ripple = getRipple(buttonState = buttonState)
 
@@ -127,14 +137,24 @@ fun CodeButton(
             mutableStateOf(DpSize.Unspecified)
         }
 
-        val cp = (if (overrideContentPadding) PaddingValues(0.dp) else ButtonDefaults.ContentPadding).plus(contentPadding)
+        val cp =
+            (if (overrideContentPadding) PaddingValues(0.dp) else ButtonDefaults.ContentPadding).plus(
+                contentPadding
+            )
+
+        val contentState by remember(isLoading, isSuccessful) {
+            derivedStateOf {
+                when {
+                    isLoading -> ButtonContentState.Loading
+                    isSuccessful -> ButtonContentState.Successful
+                    else -> ButtonContentState.Content
+                }
+            }
+        }
 
         Button(
             onClick = onClick,
-            modifier = Modifier
-                .addIf(size.isSpecified) { Modifier.size(size) }
-                .addIf(size.isUnspecified) { Modifier.measured { size = it } }
-                .then(modifier),
+            modifier = modifier,
             colors = colors,
             border = border,
             enabled = isEnabled,
@@ -145,33 +165,52 @@ fun CodeButton(
             shape = shape,
             contentPadding = cp
         ) {
-            when {
-                isLoading -> {
-                    CodeCircularProgressIndicator(
-                        strokeWidth = CodeTheme.dimens.thickBorder,
-                        color = White,
-                        modifier = Modifier
-                            .size(CodeTheme.dimens.grid.x3)
-                    )
-                }
+            Box(modifier = Modifier
+                .addIf(size.isSpecified) { Modifier.size(size) }
+                .addIf(size.isUnspecified) { Modifier.measured { size = it } }
+                .width(IntrinsicSize.Max)
+                .height(IntrinsicSize.Min)
+            ) {
+            Crossfade(contentState) { state ->
+                when (state) {
+                    ButtonContentState.Content -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            ProvideTextStyle(value = style) {
+                                this@Button.content()
+                            }
+                        }
+                    }
 
-                isSuccessful -> {
-                    Icon(
-                        modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
-                        painter = painterResource(id = R.drawable.ic_check),
-                        tint = CodeTheme.colors.success,
-                        contentDescription = "",
-                    )
-                }
+                    ButtonContentState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            CodeCircularProgressIndicator(
+                                strokeWidth = CodeTheme.dimens.thickBorder,
+                                color = White,
+                                modifier = Modifier
+                                    .size(CodeTheme.dimens.grid.x3)
+                            )
+                        }
+                    }
 
-                else -> {
-                    ProvideTextStyle(value = style) {
-                        content()
+                    ButtonContentState.Successful -> {
+                        Icon(
+                            modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
+                            painter = painterResource(id = R.drawable.ic_check),
+                            tint = CodeTheme.colors.success,
+                            contentDescription = "",
+                        )
                     }
                 }
             }
+                }
         }
     }
+}
+
+sealed interface ButtonContentState {
+    data object Loading : ButtonContentState
+    data object Successful : ButtonContentState
+    data object Content : ButtonContentState
 }
 
 @Composable
@@ -219,7 +258,9 @@ fun getButtonColors(
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = Transparent,
                 disabledContentColor = Transparent,
-                contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.brandLight } else Color.White.copy(0.30f)
+                contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.brandLight } else Color.White.copy(
+                    0.30f
+                )
             )
     }
 }

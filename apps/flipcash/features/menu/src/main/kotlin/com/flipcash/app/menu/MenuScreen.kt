@@ -52,5 +52,13 @@ class MenuScreen : ModalScreen, Parcelable {
                     navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(it))) }
                 .launchIn(this)
         }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<MenuScreenViewModel.Event.OnDepositClicked>()
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Deposit)) }
+                .launchIn(this)
+        }
     }
 }

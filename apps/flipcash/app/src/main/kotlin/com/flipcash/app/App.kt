@@ -196,8 +196,9 @@ private fun AppNavHost(content: @Composable () -> Unit) {
         sheetBackgroundColor = LocalCodeColors.current.background,
         sheetContentColor = LocalCodeColors.current.onBackground,
         sheetContent = { sheetNav ->
-            combinedNavigator = combinedNavigator?.apply { sheetNavigator = sheetNav }
-                ?: CombinedNavigator(sheetNav)
+            if (combinedNavigator == null) {
+                combinedNavigator = CombinedNavigator(sheetNav)
+            }
             combinedNavigator?.let {
                 CompositionLocalProvider(LocalCodeNavigator provides it) {
                     SheetSlideTransition(navigator = it)
@@ -207,8 +208,9 @@ private fun AppNavHost(content: @Composable () -> Unit) {
         },
         onHide = ModalManager::clear
     ) { sheetNav ->
-        combinedNavigator =
-            combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)
+        if (combinedNavigator == null) {
+            combinedNavigator = CombinedNavigator(sheetNav)
+        }
         combinedNavigator?.let {
             CompositionLocalProvider(LocalCodeNavigator provides it) {
                 content()
