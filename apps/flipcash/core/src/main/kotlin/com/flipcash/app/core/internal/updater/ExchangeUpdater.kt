@@ -1,5 +1,6 @@
 package com.flipcash.app.core.internal.updater
 
+import com.flipcash.app.core.updater.NetworkUpdater
 import com.getcode.opencode.exchange.Exchange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -11,13 +12,11 @@ import kotlin.time.Duration.Companion.seconds
 
 class ExchangeUpdater @Inject constructor(
     private val exchange: Exchange,
-) {
-    private var updater: Timer? = null
-
-    fun poll(
+): NetworkUpdater() {
+    override fun poll(
         scope: CoroutineScope,
         frequency: Duration,
-        startIn: Duration = 0.seconds,
+        startIn: Duration,
     ) {
         updater = fixedRateTimer(
             name = "update exchange rates",
@@ -28,10 +27,5 @@ class ExchangeUpdater @Inject constructor(
                 exchange.fetchRatesIfNeeded()
             }
         }
-    }
-
-    fun stop() {
-        updater?.cancel()
-        updater = null
     }
 }
