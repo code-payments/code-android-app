@@ -2,14 +2,39 @@ package com.getcode.opencode.internal.solana.extensions
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.internal.solana.timeAuthority
+import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
+import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram
 import com.getcode.opencode.internal.solana.programs.TimelockProgram
 import com.getcode.opencode.internal.solana.programs.TokenProgram
 import com.getcode.opencode.solana.keys.ProgramDerivedAccount
 import com.getcode.solana.keys.PublicKey
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+
+internal fun PublicKey.Companion.deriveVirtualMachineAccount(mint: PublicKey, lockout: UByte): ProgramDerivedAccount {
+    return findProgramAddress(
+        seeds = listOf(
+            "code_vm".toByteArray(Charsets.UTF_8),
+            mint.bytes.toByteArray(),
+            vmAuthority.bytes.toByteArray(),
+            byteArrayOf(lockout.toByte())
+        ),
+        programId = VirtualMachineProgram.address,
+    )
+}
+
+internal fun PublicKey.Companion.deriveDepositAccount(vm: PublicKey, depositor: PublicKey): ProgramDerivedAccount {
+    return findProgramAddress(
+        seeds = listOf(
+            "code_vm".toByteArray(Charsets.UTF_8),
+            "vm_deposit_pda".toByteArray(Charsets.UTF_8),
+            depositor.bytes.toByteArray(),
+            vm.bytes.toByteArray()
+        ),
+        programId = VirtualMachineProgram.address,
+    )
+}
 
 internal fun PublicKey.Companion.deriveAssociatedAccount(owner: PublicKey, mint: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
@@ -23,7 +48,7 @@ internal fun PublicKey.Companion.deriveTimelockStateAccount(owner: PublicKey, lo
         seeds = listOf(
             "timelock_state".toByteArray(Charsets.UTF_8),
             usdc.bytes.toByteArray(),
-            timeAuthority.bytes.toByteArray(),
+            vmAuthority.bytes.toByteArray(),
             owner.bytes.toByteArray(),
             byteArrayOf(lockout.toByte())
         ),
