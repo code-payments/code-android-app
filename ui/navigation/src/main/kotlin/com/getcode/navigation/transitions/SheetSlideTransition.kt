@@ -80,6 +80,8 @@ fun BottomSheetScreenTransition(
             }
             else -> CurrentScreen()
         }
+    } else {
+        CurrentScreen()
     }
 }
 
