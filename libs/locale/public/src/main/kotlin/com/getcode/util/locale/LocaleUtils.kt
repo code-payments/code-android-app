@@ -2,6 +2,8 @@ package com.getcode.util.locale
 
 import android.content.Context
 import android.telephony.TelephonyManager
+import com.getcode.model.CurrencyCode
+import com.getcode.model.CurrencyCode.Companion
 import com.getcode.model.RegionCode
 import java.util.*
 
@@ -10,7 +12,7 @@ object LocaleUtils {
         val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         val networkCountryIso = tm.networkCountryIso.uppercase()
         val simCountryIso = tm.simCountryIso.uppercase()
-        return networkCountryIso.ifBlank { simCountryIso }
+        return simCountryIso.ifBlank { networkCountryIso }
     }
 
     fun getDefaultCurrency(context: Context): String {
@@ -18,20 +20,22 @@ object LocaleUtils {
         val networkCountryIso = tm.networkCountryIso.uppercase()
         val simCountryIso = tm.simCountryIso.uppercase()
         val localCountry = context.resources.configuration.locale
+        val isRoaming = tm.isNetworkRoaming
 
         val networkCountryIsoCurrency = if (networkCountryIso.isNotBlank()) {
-            com.getcode.model.CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(networkCountryIso)]
+            CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(networkCountryIso)]
         } else null
 
         val simCountryIsoCurrency = if (simCountryIso.isNotBlank()) {
-            com.getcode.model.CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(simCountryIso)]
+            CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(simCountryIso)]
         } else null
 
         val localeIsoCurrency =
             runCatching { Currency.getInstance(localCountry).currencyCode }.getOrNull()
-                ?.let { com.getcode.model.CurrencyCode.tryValueOf(it) }
-                ?: com.getcode.model.CurrencyCode.USD
+                ?.let { CurrencyCode.tryValueOf(it) }
 
-        return (networkCountryIsoCurrency ?: simCountryIsoCurrency ?: localeIsoCurrency).name
+        val defaultCurrency = simCountryIsoCurrency ?: localeIsoCurrency ?: networkCountryIsoCurrency
+
+        return defaultCurrency?.name ?: CurrencyCode.USD.name
     }
 }
