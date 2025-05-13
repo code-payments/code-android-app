@@ -1,6 +1,7 @@
 package com.flipcash.app.session.internal
 
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
+import com.flipcash.app.activityfeed.ActivityFeedUpdater
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
@@ -67,6 +68,7 @@ class RealSessionController @Inject constructor(
     private val vibrator: Vibrator,
     private val balanceUpdater: BalanceUpdater,
     private val exchangeUpdater: ExchangeUpdater,
+    private val activityFeedUpdater: ActivityFeedUpdater,
     private val shareSheetController: ShareSheetController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
@@ -124,12 +126,14 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
             balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+            activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
         }
     }
 
     private fun stopPolling() {
         exchangeUpdater.stop()
         balanceUpdater.stop()
+        activityFeedUpdater.stop()
     }
 
     private fun updateUserFlags() {
