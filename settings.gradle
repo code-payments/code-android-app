@@ -22,6 +22,7 @@ include(
         ":apps:flipcash:shared:persistence:sources",
         ":apps:flipcash:shared:router",
         ":apps:flipcash:shared:session",
+        ":apps:flipcash:shared:shareable",
         // flipcash features
         ":apps:flipcash:features:login",
         ":apps:flipcash:features:scanner",

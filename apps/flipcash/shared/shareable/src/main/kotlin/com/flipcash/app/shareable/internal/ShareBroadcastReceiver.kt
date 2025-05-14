@@ -1,10 +1,11 @@
-package com.flipcash.app.core.internal.share
+package com.flipcash.app.shareable.internal
 
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LINK_SHARED
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 
@@ -21,7 +22,7 @@ class ShareBroadcastReceiver : BroadcastReceiver() {
             )
 
             // Send internal broadcast
-            val internalIntent = Intent(ShareSheetController.ACTION_CASH_LINK_SHARED).apply {
+            val internalIntent = Intent(ACTION_CASH_LINK_SHARED).apply {
                 putExtra(Intent.EXTRA_CHOSEN_COMPONENT, clickedComponent.packageName)
             }
             LocalBroadcastManager.getInstance(context).sendBroadcast(internalIntent)

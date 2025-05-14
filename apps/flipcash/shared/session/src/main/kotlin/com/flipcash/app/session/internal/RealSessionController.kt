@@ -7,13 +7,14 @@ import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
-import com.flipcash.app.core.internal.share.ShareResult
-import com.flipcash.app.core.internal.share.ShareSheetController
 import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.internal.toast.ToastController
+import com.flipcash.app.shareable.ShareResult
+import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.shareable.Shareable
 import com.flipcash.core.R
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
@@ -301,7 +302,8 @@ class RealSessionController @Inject constructor(
                             ShareResult.NotShared -> cancelSend()
                         }
                     }
-                    shareSheetController.presentForCashLink(giftCard, amount)
+                    val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
+                    shareSheetController.present(shareable)
                 }
             },
             onError = {

@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
-        <receiver android:name="com.flipcash.app.core.internal.share.ShareBroadcastReceiver" android:exported="false">
+        <receiver android:name="com.flipcash.app.shareable.internal.ShareBroadcastReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="com.flipcash.app.ACTION_SHARE_CASH_LINK" />
             </intent-filter>

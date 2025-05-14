@@ -5,7 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.core.net.toUri
-import com.flipcash.app.core.internal.Linkify
+import com.flipcash.app.core.util.Linkify
 
 
 object IntentUtils {

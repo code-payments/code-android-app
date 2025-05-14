@@ -4,9 +4,9 @@ import android.Manifest
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.core.internal.accounts.AccountManager
 import com.flipcash.features.login.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.getcode.crypt.MnemonicPhrase
@@ -16,7 +16,6 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -41,26 +40,13 @@ data class SeedInputUiModel(
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
-    private val authManager: com.flipcash.app.auth.AuthManager,
+    private val authManager: AuthManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
-    private val accountManager: AccountManager,
     private val permissionChecker: PermissionChecker,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
-
-    init {
-        viewModelScope.launch {
-            val token = accountManager.getToken()
-            if (token != null) {
-                analytics.unintentionalLogout()
-                ErrorUtils.handleError(
-                    Throwable("We shouldn't be here. Login screen visible with associated account in AccountManager.")
-                )
-            }
-        }
-    }
 
     fun onTextChange(wordsString: String) {
         val isLoading = uiFlow.value.isLoading
@@ -104,7 +90,7 @@ class SeedInputViewModel @Inject constructor(
             setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
             authManager.login(entropyB64, isFromSelection = isRestore)
                 .onFailure {
-                    if (it is com.flipcash.app.auth.AuthManager.AuthManagerException.TimelockUnlockedException) {
+                    if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(
                             getString(R.string.error_title_timelockUnlocked),
                             getString(R.string.error_description_timelockUnlocked)
