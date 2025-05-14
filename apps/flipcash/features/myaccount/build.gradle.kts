@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.features.accesskey"
+    namespace = "${Android.flipcashNamespace}.features.myaccount"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -51,17 +51,19 @@ dependencies {
     implementation(Libs.compose_material)
     implementation(Libs.compose_materialIconsExtended)
 
+    implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:menu"))
     implementation(project(":apps:flipcash:core"))
+
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
-    api(project(":libs:quickresponse"))
     implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
-    implementation(project(":ui:resources"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
     implementation(Libs.rinku_compose)

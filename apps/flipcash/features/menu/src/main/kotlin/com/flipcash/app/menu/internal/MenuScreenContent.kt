@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,12 +37,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.menu.MenuList
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
@@ -84,7 +83,8 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.Center)
-                        .navigationBarsPadding(),
+                        .navigationBarsPadding()
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(
                         R.string.subtitle_appVersionInfoFooter,
                         state.appVersionInfo.versionName,
@@ -98,89 +98,15 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             }
         }
     ) { padding ->
-        val listState = rememberLazyListState()
-        LazyColumn(
+        MenuList(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScrollStateGradient(
-                    scrollState = listState,
-                    isLongGradient = true,
-                ),
-            state = listState,
-            contentPadding = PaddingValues(
-                top = CodeTheme.dimens.grid.x6
-            )
-        ) {
-            items(state.items, key = { it.id }, contentType = { it }) { item ->
-                ListItem(modifier = Modifier.animateItem(), item = item) {
-                    viewModel.dispatchEvent(item.action)
-                }
+                .padding(padding),
+            items = state.items,
+            contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x6),
+            onItemClick = {
+                viewModel.dispatchEvent(it.action)
             }
-        }
-    }
-}
-
-@Composable
-private fun ListItem(
-    modifier: Modifier = Modifier,
-    item: MenuItem,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = modifier
-            .rememberedClickable { onClick() }
-            .padding(CodeTheme.dimens.grid.x5)
-            .fillMaxWidth()
-            .wrapContentHeight(),
-        verticalAlignment = CenterVertically
-    ) {
-        Image(
-            modifier = Modifier
-                .padding(end = CodeTheme.dimens.inset)
-                .height(CodeTheme.dimens.staticGrid.x5)
-                .width(CodeTheme.dimens.staticGrid.x5),
-            painter = item.icon,
-            colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground),
-            contentDescription = ""
         )
-
-        Text(
-            modifier = Modifier.align(CenterVertically),
-            text = item.name,
-            style = CodeTheme.typography.textLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
-        )
-
-        Spacer(Modifier.weight(1f))
-
-        if (item.isStaffOnly) {
-            Row(
-                verticalAlignment = CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(CodeTheme.dimens.grid.x1)
-                        .background(
-                            color = CodeTheme.colors.betaIndicator,
-                            shape = CircleShape
-                        )
-                )
-
-                Text(
-                    text = stringResource(R.string.subtitle_beta),
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary
-                )
-            }
-        }
     }
-
-    Divider(
-        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-        color = CodeTheme.colors.divider,
-        thickness = 0.5.dp
-    )
 }

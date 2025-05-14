@@ -5,6 +5,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -28,12 +29,11 @@ import javax.inject.Inject
 private val FullMenuList = buildList {
     add(Deposit)
 //    add(Withdraw)
-//    add(MyAccount)
+    add(MyAccount)
 //    add(AppSettings)
     add(SwitchAccount)
     add(Labs)
     add(LogOut)
-    add(DeleteAccount)
 }
 
 @HiltViewModel
@@ -50,7 +50,7 @@ internal class MenuScreenViewModel @Inject constructor(
         updateStateForEvent = updateStateForEvent
     ) {
     data class State(
-        val items: List<MenuItem> = FullMenuList,
+        val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
         val unlockedBetaFeaturesManually: Boolean = false,
@@ -71,7 +71,6 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
-        data object OnDeleteAccountClicked : Event
     }
 
     init {
@@ -145,40 +144,12 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 )
             }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnDeleteAccountClicked>()
-            .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_deleteAccount),
-                        subtitle = resources.getString(R.string.prompt_description_deleteAccount),
-                        positiveText = resources.getString(R.string.action_deleteAccount),
-                        tertiaryText = resources.getString(R.string.action_cancel),
-                        onPositive = {
-                            viewModelScope.launch {
-                                delay(150) // wait for dismiss
-                                authManager.deleteAndLogout()
-                                    .onSuccess { dispatchEvent(Event.OnLoggedOutCompletely) }
-                                    .onFailure {
-                                        TopBarManager.showMessage(
-                                            TopBarManager.TopBarMessage(
-                                                title = resources.getString(R.string.error_title_failedToDeleteAccount),
-                                                message = resources.getString(R.string.error_description_failedToDeleteAccount),
-                                            )
-                                        )
-                                    }
-                            }
-                        }
-                    )
-                )
-            }.launchIn(viewModelScope)
     }
 
     internal companion object {
         private const val TAP_THRESHOLD = 6
 
-        private fun buildItemList(isStaff: Boolean, overrode: Boolean): List<MenuItem> {
+        private fun buildItemList(isStaff: Boolean, overrode: Boolean): List<MenuItem<Event>> {
             return if (isStaff || overrode) {
                 FullMenuList
             } else {
@@ -187,7 +158,6 @@ internal class MenuScreenViewModel @Inject constructor(
         }
 
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("Event: $event")
             when (event) {
                 Event.OnLogoTapped -> { state ->
                     state.copy(logoTapCount = state.logoTapCount + 1)
@@ -219,8 +189,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.OnSwitchAccountsClicked,
                 Event.OnLabsClicked,
                 Event.OnLoggedOutCompletely,
-                is Event.OnSwitchAccountTo,
-                Event.OnDeleteAccountClicked -> { state -> state }
+                is Event.OnSwitchAccountTo -> { state -> state }
             }
         }
     }

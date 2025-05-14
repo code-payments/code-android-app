@@ -32,7 +32,12 @@ sealed class NavScreenProvider : ScreenProvider {
             data object Root : NavScreenProvider()
             data object Deposit : NavScreenProvider()
             data object Withdraw : NavScreenProvider()
-            data object MyAccount : NavScreenProvider()
+
+            sealed class MyAccount {
+                data object Root : NavScreenProvider()
+                data object BackupKey : NavScreenProvider()
+            }
+
             data object AppSettings : NavScreenProvider()
             data object Lab : NavScreenProvider()
         }

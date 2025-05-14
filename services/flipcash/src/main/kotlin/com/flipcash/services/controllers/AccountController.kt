@@ -26,7 +26,7 @@ class AccountController @Inject constructor(
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        val userId = userManager.userId
+        val userId = userManager.accountId
             ?: return Result.failure(Throwable("No user ID in UserManager"))
 
         return repository.getUserFlags(

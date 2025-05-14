@@ -110,7 +110,7 @@ class PassphraseCredentialManager @Inject constructor(
     }
 
     suspend fun presentSaveOption(): Result<AccountMetadata> {
-        val userId = userManager.userId!!
+        val userId = userManager.accountId!!
         val entropy = userManager.entropy.orEmpty()
 
         // Store credential

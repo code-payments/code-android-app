@@ -60,8 +60,8 @@ class UserManager @Inject constructor(
     val accountCluster: AccountCluster?
         get() = _state.value.cluster
 
-    val userId: ID?
-        get() = _state.value.userId
+    val accountId: ID?
+        get() = _state.value.accountId
 
     val userFlags: UserFlags?
         get() = _state.value.flags
@@ -73,7 +73,7 @@ class UserManager @Inject constructor(
         val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,
         val cluster: AccountCluster? = null,
-        val userId: ID? = null,
+        val accountId: ID? = null,
         val flags: UserFlags? = null,
         val isTimelockUnlocked: Boolean = false,
     )
@@ -96,9 +96,9 @@ class UserManager @Inject constructor(
         }
     }
 
-    fun set(userId: ID) {
+    fun set(accountId: ID) {
         _state.update {
-            it.copy(userId = userId)
+            it.copy(accountId = accountId)
         }
         associate()
     }
@@ -143,11 +143,11 @@ class UserManager @Inject constructor(
         }
     }
 
-    fun isSelf(id: ID?) = userId == id
+    fun isSelf(id: ID?) = accountId == id
 
     private fun associate() {
         if (!BuildConfig.DEBUG) {
-            val distinctId = userId?.uuid?.toString()
+            val distinctId = accountId?.uuid?.toString()
             if (Bugsnag.isStarted()) {
                 Bugsnag.setUser(distinctId, null, "")
             }
@@ -163,7 +163,7 @@ class UserManager @Inject constructor(
                 entropy = null,
                 flags = null,
                 cluster = null,
-                userId =  NoId,
+                accountId =  NoId,
                 isTimelockUnlocked = false,
             )
         }

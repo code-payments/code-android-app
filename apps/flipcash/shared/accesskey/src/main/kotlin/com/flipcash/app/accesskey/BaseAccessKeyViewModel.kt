@@ -10,8 +10,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.internal.extensions.save
 import com.flipcash.app.core.storage.MediaScanner
-import com.flipcash.features.accesskey.R
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.accesskey.R
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.kin.sdk.base.tools.Base58
-import timber.log.Timber
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date

@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -174,7 +175,7 @@ fun CodeButton(
             Crossfade(contentState) { state ->
                 when (state) {
                     ButtonContentState.Content -> {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             ProvideTextStyle(value = style) {
                                 this@Button.content()
                             }
@@ -182,7 +183,7 @@ fun CodeButton(
                     }
 
                     ButtonContentState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CodeCircularProgressIndicator(
                                 strokeWidth = CodeTheme.dimens.thickBorder,
                                 color = White,
@@ -193,12 +194,14 @@ fun CodeButton(
                     }
 
                     ButtonContentState.Successful -> {
-                        Icon(
-                            modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
-                            painter = painterResource(id = R.drawable.ic_check),
-                            tint = CodeTheme.colors.success,
-                            contentDescription = "",
-                        )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
+                                painter = painterResource(id = R.drawable.ic_check),
+                                tint = CodeTheme.colors.success,
+                                contentDescription = "",
+                            )
+                        }
                     }
                 }
             }

@@ -81,4 +81,10 @@
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
     <string name="subtitle_howToDeposit">Deposit cash into your Flipcash wallet by sending USDC to your Deposit Address below. Tap to copy.</string>
+
+    <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
+    <string name="title_clipboardLabelPublicKey">Public Key</string>
+    <string name="title_clipboardLabelAccountId">Account ID</string>
+
+    <string name="prompt_description_viewAccessKey">Your Access Key will grant access to your Flipcash account. Keep it private and safe.</string>
 </resources>

@@ -63,7 +63,7 @@ class PreferredCurrencyController @Inject constructor(
 
     init {
         userManager.state
-            .mapNotNull { it.userId }
+            .mapNotNull { it.accountId }
             .distinctUntilChanged()
             .map { it.base58 }
             .onEach { userId ->
@@ -102,7 +102,7 @@ class PreferredCurrencyController @Inject constructor(
     fun observePreferredForKind(
         kind: CurrencySelectionKind
     ): Flow<String> {
-        val identifier = userManager.userId?.base58 ?: return emptyFlow()
+        val identifier = userManager.accountId?.base58 ?: return emptyFlow()
 
         return storage.data
             .map { prefs ->
@@ -111,7 +111,7 @@ class PreferredCurrencyController @Inject constructor(
     }
 
     fun observeRecentCurrencies(): Flow<Set<String>> {
-        val identifier = userManager.userId?.base58 ?: return emptyFlow()
+        val identifier = userManager.accountId?.base58 ?: return emptyFlow()
 
         return storage.data.map { prefs -> prefs[recentsKeyForUser(identifier)].orEmpty() }
     }
@@ -120,7 +120,7 @@ class PreferredCurrencyController @Inject constructor(
         kind: CurrencySelectionKind,
         currency: Currency
     ) {
-        val identifier = userManager.userId?.base58 ?: return
+        val identifier = userManager.accountId?.base58 ?: return
         storage.edit { prefs ->
             prefs[kindKeyForUser(kind, identifier)] = currency.code
 
@@ -148,7 +148,7 @@ class PreferredCurrencyController @Inject constructor(
     suspend fun removeFromRecents(
         currency: Currency
     ) {
-        val identifier = userManager.userId?.base58 ?: return
+        val identifier = userManager.accountId?.base58 ?: return
 
         storage.edit { prefs ->
             val recentKey = recentsKeyForUser(identifier)

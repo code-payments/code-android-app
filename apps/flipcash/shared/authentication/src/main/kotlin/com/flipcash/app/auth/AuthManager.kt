@@ -126,7 +126,7 @@ class AuthManager @Inject constructor(
                 userManager.accountCluster?.let {
                     balanceController.onUserLoggedIn(it) }
 
-                userManager.set(userId = account.id)
+                userManager.set(accountId = account.id)
 
                 accountController.getUserFlags()
                     .onSuccess { flags ->

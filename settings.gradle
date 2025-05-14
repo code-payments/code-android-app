@@ -8,12 +8,14 @@ include(
 
         // flipcash modules
         ":apps:flipcash:core",
-        // shared flipcash coordinators/controllers
+        // shared flipcash coordinators/controllers/viewmodels
+        ":apps:flipcash:shared:accesskey",
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",
         ":apps:flipcash:shared:currency-selection:core",
         ":apps:flipcash:shared:currency-selection:ui",
         ":apps:flipcash:shared:featureflags",
+        ":apps:flipcash:shared:menu",
         ":apps:flipcash:shared:permissions",
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",
@@ -21,7 +23,6 @@ include(
         ":apps:flipcash:shared:router",
         ":apps:flipcash:shared:session",
         // flipcash features
-        ":apps:flipcash:features:accesskey",
         ":apps:flipcash:features:login",
         ":apps:flipcash:features:scanner",
         ":apps:flipcash:features:give",
@@ -31,6 +32,8 @@ include(
         ":apps:flipcash:features:purchase",
         ":apps:flipcash:features:lab",
         ":apps:flipcash:features:deposit",
+        ":apps:flipcash:features:myaccount",
+        ":apps:flipcash:features:backupkey",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

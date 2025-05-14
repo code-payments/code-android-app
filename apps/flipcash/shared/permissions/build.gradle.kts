@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.features.permissions"
+    namespace = "${Android.flipcashNamespace}.shared.permissions"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

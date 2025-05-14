@@ -2,7 +2,7 @@ package com.flipcash.app.ui.navigation
 
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
+import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.core.NavScreenProvider
@@ -14,6 +14,7 @@ import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
+import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
@@ -79,16 +80,17 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         register<NavScreenProvider.HomeScreen.Menu.Deposit> {
             DepositScreen()
         }
+
+        register<NavScreenProvider.HomeScreen.Menu.MyAccount.Root> {
+            MyAccountScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Menu.MyAccount.BackupKey> {
+            BackupKeyScreen()
+        }
     }
 
     PreloadBalance()
 
     content()
-}
-
-private class Dummy: Screen {
-    @Composable
-    override fun Content() {
-
-    }
 }

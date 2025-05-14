@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.features.permissions.R
+import com.flipcash.shared.permissions.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState

@@ -52,9 +52,9 @@ dependencies {
     implementation(Libs.compose_materialIconsExtended)
     implementation(Libs.compose_activities)
 
+    implementation(project(":apps:flipcash:shared:accesskey"))
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:features:accesskey"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))

@@ -27,6 +27,7 @@ class DepositScreen : ModalScreen, NamedScreen, Parcelable {
 
     override val name: String
         @Composable get() = stringResource(R.string.title_depositUsdc)
+
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
