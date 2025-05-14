@@ -20,6 +20,7 @@ import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.send.SendScreen
+import com.flipcash.app.shareapp.ShareAppScreen
 
 
 @Composable
@@ -67,6 +68,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.HomeScreen.CurrencySelection> {
             CurrencySelectionModal(it.kind)
+        }
+        
+        register<NavScreenProvider.HomeScreen.ShareApp> {
+            ShareAppScreen()
         }
 
         register<NavScreenProvider.HomeScreen.Menu.Root> {

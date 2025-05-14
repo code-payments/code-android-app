@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.stack.StackEvent
@@ -29,12 +31,15 @@ import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.ui.navigation.AppScreenContent
 import com.flipcash.app.ui.navigation.MainRoot
+import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
+import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
@@ -75,111 +80,119 @@ fun App(
     val userState by userManager.state.collectAsState()
 
     FlipcashTheme {
+        // save download QR early
+        rememberQrBitmapPainter(
+            content = stringResource(
+                R.string.app_download_link,
+                stringResource(id = R.string.app_download_link_qr_ref)
+            ),
+            size = CodeTheme.dimens.screenWidth * 0.60f,
+            padding = 0.25.dp
+        )
+
         val barManager = rememberBarManager()
         AppScreenContent {
-            // TODO: create PaymentScaffold for flipcash
-//            PaymentScaffold {
-                TipScaffold(tipsEngine = tipsEngine) {
-                    ScrimSupport {
-                        AppNavHost {
-                            val codeNavigator = LocalCodeNavigator.current
-                            CodeScaffold { innerPaddingModifier ->
-                                Navigator(
-                                    screen = MainRoot { deepLink },
-                                ) { navigator ->
-                                    LaunchedEffect(navigator.lastItem) {
-                                        // update global navigator for platform access to support push/pop from a single
-                                        // navigator current
-                                        codeNavigator.screensNavigator = navigator
-                                    }
+            TipScaffold(tipsEngine = tipsEngine) {
+                ScrimSupport {
+                    AppNavHost {
+                        val codeNavigator = LocalCodeNavigator.current
+                        CodeScaffold { innerPaddingModifier ->
+                            Navigator(
+                                screen = MainRoot { deepLink },
+                            ) { navigator ->
+                                LaunchedEffect(navigator.lastItem) {
+                                    // update global navigator for platform access to support push/pop from a single
+                                    // navigator current
+                                    codeNavigator.screensNavigator = navigator
+                                }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(innerPaddingModifier)
-                                    ) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(innerPaddingModifier)
+                                ) {
 
-                                        when (navigator.lastEvent) {
-                                            StackEvent.Push,
-                                            StackEvent.Pop -> {
-                                                when (navigator.lastItem) {
-                                                    ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
-                                                    ScreenRegistry.get(NavScreenProvider.Permissions.Camera()),
-                                                    is MainRoot -> {
-                                                        CrossfadeTransition(navigator = navigator)
-                                                    }
-
-                                                    else -> SlideTransition(navigator = navigator)
+                                    when (navigator.lastEvent) {
+                                        StackEvent.Push,
+                                        StackEvent.Pop -> {
+                                            when (navigator.lastItem) {
+                                                ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
+                                                ScreenRegistry.get(NavScreenProvider.Permissions.Camera()),
+                                                is MainRoot -> {
+                                                    CrossfadeTransition(navigator = navigator)
                                                 }
+
+                                                else -> SlideTransition(navigator = navigator)
                                             }
-
-                                            StackEvent.Idle,
-                                            StackEvent.Replace -> CurrentScreen()
                                         }
-                                    }
 
-                                    LaunchedEffect(deepLink) {
-                                        if (codeNavigator.lastItem !is MainRoot) {
-                                            if (deepLink != null) {
-                                                val screenSet = router.processDestination(deepLink)
-                                                if (screenSet.isNotEmpty()) {
-                                                    codeNavigator.replaceAll(screenSet)
-                                                }
+                                        StackEvent.Idle,
+                                        StackEvent.Replace -> CurrentScreen()
+                                    }
+                                }
+
+                                LaunchedEffect(deepLink) {
+                                    if (codeNavigator.lastItem !is MainRoot) {
+                                        if (deepLink != null) {
+                                            val screenSet = router.processDestination(deepLink)
+                                            if (screenSet.isNotEmpty()) {
+                                                codeNavigator.replaceAll(screenSet)
                                             }
                                         }
                                     }
+                                }
 
-                                    LaunchedEffect(loginRequest) {
-                                        loginRequest?.let { entropy ->
-                                            viewModel.handleLoginEntropy(
-                                                entropy,
-                                                onSwitchAccount = {
-                                                    loginRequest = null
-                                                    codeNavigator.replaceAll(
-                                                        ScreenRegistry.get(
-                                                            NavScreenProvider.Login.Home(
-                                                                entropy
-                                                            )
+                                LaunchedEffect(loginRequest) {
+                                    loginRequest?.let { entropy ->
+                                        viewModel.handleLoginEntropy(
+                                            entropy,
+                                            onSwitchAccount = {
+                                                loginRequest = null
+                                                codeNavigator.replaceAll(
+                                                    ScreenRegistry.get(
+                                                        NavScreenProvider.Login.Home(
+                                                            entropy
                                                         )
                                                     )
-                                                },
-                                                onCancel = {
-                                                    loginRequest = null
-                                                }
-                                            )
-                                        }
-                                    }
-
-                                    LaunchedEffect(userState.isTimelockUnlocked) {
-                                        if (userState.isTimelockUnlocked) {
-                                            codeNavigator.replaceAll(
-                                                ScreenRegistry.get(
-                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
                                                 )
-                                            )
-                                        }
+                                            },
+                                            onCancel = {
+                                                loginRequest = null
+                                            }
+                                        )
                                     }
+                                }
 
-                                    OnLifecycleEvent { _, event ->
-                                        when (event) {
-                                            Lifecycle.Event.ON_RESUME -> {
-                                                session.onAppInForeground()
-                                            }
+                                LaunchedEffect(userState.isTimelockUnlocked) {
+                                    if (userState.isTimelockUnlocked) {
+                                        codeNavigator.replaceAll(
+                                            ScreenRegistry.get(
+                                                NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
+                                            )
+                                        )
+                                    }
+                                }
 
-                                            Lifecycle.Event.ON_STOP,
-                                            Lifecycle.Event.ON_DESTROY -> {
-                                                session.onAppInBackground()
-                                            }
-
-                                            else -> Unit
+                                OnLifecycleEvent { _, event ->
+                                    when (event) {
+                                        Lifecycle.Event.ON_RESUME -> {
+                                            session.onAppInForeground()
                                         }
+
+                                        Lifecycle.Event.ON_STOP,
+                                        Lifecycle.Event.ON_DESTROY -> {
+                                            session.onAppInBackground()
+                                        }
+
+                                        else -> Unit
                                     }
                                 }
                             }
                         }
                     }
                 }
-//            }
+            }
         }
+
         TopBarContainer(barManager.barMessages)
         BottomBarContainer(barManager.barMessages)
     }

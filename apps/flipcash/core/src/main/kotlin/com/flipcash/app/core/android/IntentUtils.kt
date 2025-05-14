@@ -32,23 +32,4 @@ object IntentUtils {
 
         return shareIntent
     }
-
-    fun cashLink(
-        entropy: String,
-        formattedAmount: String,
-    ): Intent {
-        val url = Linkify.cashLink(entropy)
-        val text = "$formattedAmount $url"
-
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, text)
-            type = "text/plain"
-        }
-        val shareIntent = Intent.createChooser(sendIntent, null).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-
-        return shareIntent
-    }
 }

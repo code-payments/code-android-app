@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.shared.accesskey"
+    namespace = "${Android.flipcashNamespace}.features.shareapp"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -51,12 +51,12 @@ dependencies {
     implementation(Libs.compose_material)
     implementation(Libs.compose_materialIconsExtended)
 
+    implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:core"))
+
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-    implementation(project(":libs:permissions:bindings"))
-    api(project(":libs:quickresponse"))
+    implementation(project(":libs:quickresponse"))
     implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))

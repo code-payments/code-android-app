@@ -35,6 +35,7 @@ include(
         ":apps:flipcash:features:deposit",
         ":apps:flipcash:features:myaccount",
         ":apps:flipcash:features:backupkey",
+        ":apps:flipcash:features:shareapp",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

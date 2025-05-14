@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
@@ -36,18 +38,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.session.SessionState
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 import com.getcode.ui.components.Pill
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.utils.network.LocalNetworkObserver
 
 @Composable
 internal fun DecorView(
-    state: com.flipcash.app.session.SessionState,
+    state: SessionState,
     billState: BillState,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
@@ -58,6 +61,24 @@ internal fun DecorView(
             .fillMaxSize()
             .then(modifier)
     ) {
+
+        Image(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(vertical = CodeTheme.dimens.grid.x3)
+                .padding(horizontal = CodeTheme.dimens.grid.x3)
+                .align(Alignment.TopStart)
+                .width(CodeTheme.dimens.staticGrid.x18)
+                .rememberedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    onAction(ScannerDecorItem.Logo)
+                },
+            painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
+            contentDescription = "Tap to share the app",
+        )
+
         Column(
             modifier = Modifier
                 .statusBarsPadding()

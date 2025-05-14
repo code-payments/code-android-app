@@ -126,7 +126,7 @@ class RealSessionController @Inject constructor(
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
-            balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+            balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
         }
     }

@@ -1,5 +1,8 @@
 package com.flipcash.app.shareable
 
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
 
@@ -17,6 +20,10 @@ sealed interface Shareable {
         val amount: LocalFiat,
         override val pendingData: ShareablePendingData.CashLink? = null
     ): Shareable
+
+    data object DownloadLink: Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
 }
 
 sealed interface ShareablePendingData {
@@ -37,3 +44,12 @@ interface ShareSheetController {
         const val ACTION_CASH_LINK_SHARED = "com.flipcash.app.ACTION_CASH_LINK_SHARED"
     }
 }
+
+private object NoOpController: ShareSheetController {
+    override var onShared: ((ShareResult) -> Unit)? = null
+    override fun checkForShare() = Unit
+    override suspend fun present(shareable: Shareable) = Unit
+    override fun reset() = Unit
+}
+
+val LocalShareController: ProvidableCompositionLocal<ShareSheetController> = staticCompositionLocalOf { NoOpController }

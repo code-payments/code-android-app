@@ -28,6 +28,9 @@ sealed class NavScreenProvider : ScreenProvider {
         data object Give : NavScreenProvider()
         data object Send : NavScreenProvider()
         data object Balance : NavScreenProvider()
+
+        data object ShareApp: NavScreenProvider()
+
         sealed class Menu {
             data object Root : NavScreenProvider()
             data object Deposit : NavScreenProvider()

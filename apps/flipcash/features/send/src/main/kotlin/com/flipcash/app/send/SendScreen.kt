@@ -55,7 +55,6 @@ class SendScreen : ModalScreen, NamedScreen, Parcelable {
 
         Column(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
                 title = name,

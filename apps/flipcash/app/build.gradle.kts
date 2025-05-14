@@ -119,6 +119,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":apps:flipcash:shared:currency-selection:ui"))
     implementation(project(":apps:flipcash:shared:permissions"))
+    implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:purchase"))
     implementation(project(":apps:flipcash:features:scanner"))
@@ -130,6 +131,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:deposit"))
     implementation(project(":apps:flipcash:features:myaccount"))
     implementation(project(":apps:flipcash:features:backupkey"))
+    implementation(project(":apps:flipcash:features:shareapp"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))

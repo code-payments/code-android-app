@@ -36,7 +36,7 @@ import com.getcode.ui.utils.widthOrZero
 @Composable
 internal fun ScannerNavigationBar(
     modifier: Modifier = Modifier,
-    state: com.flipcash.app.session.SessionState = com.flipcash.app.session.SessionState(),
+    state: SessionState = SessionState(),
     onAction: (ScannerDecorItem) -> Unit = { }
 ) {
     Row(

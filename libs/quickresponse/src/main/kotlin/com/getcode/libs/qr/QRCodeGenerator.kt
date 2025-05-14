@@ -20,6 +20,7 @@ import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.core.graphics.createBitmap
 
 class QRCodeGenerator @Inject constructor() {
     fun generate(url: String, size: Int): Bitmap? {
@@ -33,50 +34,13 @@ class QRCodeGenerator @Inject constructor() {
     }
 }
 
-@Composable
-fun rememberQrBitmapPainter(
-    content: String,
-    size: Dp = 150.dp,
-    padding: Dp = 0.dp
-): BitmapPainter {
-
-    val density = LocalDensity.current
-    val sizePx = with(density) { size.roundToPx() }
-    val paddingPx = with(density) { padding.roundToPx() }
-
-    var bitmap by remember(content) {
-        mutableStateOf<Bitmap?>(null)
-    }
-
-    LaunchedEffect(bitmap) {
-        if (bitmap != null) return@LaunchedEffect
-
-        launch(Dispatchers.IO) {
-            bitmap = generateQr(
-                url = content,
-                size = sizePx,
-                padding = paddingPx,
-            )
-        }
-    }
-
-    return remember(bitmap) {
-        val currentBitmap = bitmap ?: Bitmap.createBitmap(
-            sizePx, sizePx,
-            Bitmap.Config.ARGB_8888,
-        ).apply { eraseColor(Color.TRANSPARENT) }
-
-        BitmapPainter(currentBitmap.asImageBitmap())
-    }
-}
-
-private fun generateQr(
+internal fun generateQr(
     url: String,
     size: Int,
     padding: Int,
     contentColor: Int = Color.BLACK,
     spaceColor: Int = Color.WHITE,
-    ): Bitmap {
+): Bitmap {
     val qrCodeWriter = QRCodeWriter()
 
     val encodeHints = mutableMapOf<EncodeHintType, Any?>()
@@ -96,11 +60,7 @@ private fun generateQr(
     val matrixWidth = bitmapMatrix?.width ?: size
     val matrixHeight = bitmapMatrix?.height ?: size
 
-    val newBitmap = Bitmap.createBitmap(
-        bitmapMatrix?.width ?: size,
-        bitmapMatrix?.height ?: size,
-        Bitmap.Config.ARGB_8888,
-    )
+    val newBitmap = createBitmap(bitmapMatrix?.width ?: size, bitmapMatrix?.height ?: size)
 
     val pixels = IntArray(matrixWidth * matrixHeight)
 

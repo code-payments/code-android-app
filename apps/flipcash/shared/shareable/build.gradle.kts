@@ -4,6 +4,7 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
+    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
@@ -29,6 +30,10 @@ android {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
+
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {
@@ -37,7 +42,13 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
+
     implementation(Libs.androidx_localbroadcastmanager)
 
     implementation(project(":apps:flipcash:core"))
+
+    implementation(project(":ui:resources"))
+    implementation(project(":ui:theme"))
 }

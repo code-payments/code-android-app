@@ -15,6 +15,8 @@ import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.app.shareable.LocalShareController
+import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.services.LocalBillingClient
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.user.UserManager
@@ -71,15 +73,15 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var exchange: Exchange
-//
-//    @Inject
-//    lateinit var paymentController: PaymentController
-//
+
     @Inject
     lateinit var billing: BillingClient
 
     @Inject
     lateinit var permissionChecker: PermissionChecker
+
+    @Inject
+    lateinit var shareController: ShareSheetController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,9 +99,9 @@ class MainActivity : FragmentActivity() {
                 LocalRouter provides router,
                 LocalUserManager provides userManager,
                 LocalSessionController provides sessionController,
-//                LocalPaymentController provides paymentController,
                 LocalBillingClient provides billing,
                 LocalPermissionChecker provides permissionChecker,
+                LocalShareController provides shareController
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

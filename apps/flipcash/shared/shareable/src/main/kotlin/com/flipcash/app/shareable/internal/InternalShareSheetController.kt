@@ -6,7 +6,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.shareable.ShareResult
@@ -15,6 +17,7 @@ import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LIN
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_SHARE_CASH_LINK
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareablePendingData
+import com.flipcash.core.R
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
@@ -67,6 +70,8 @@ internal class InternalShareSheetController(
 
                     onShared?.invoke(ShareResult.NotShared)
                 }
+
+                Shareable.DownloadLink -> Unit
             }
         }
     }
@@ -96,6 +101,10 @@ internal class InternalShareSheetController(
                     IntentFilter(ACTION_CASH_LINK_SHARED)
                 )
             }
+
+            Shareable.DownloadLink -> {
+                shareDownloadLink()
+            }
         }
     }
 
@@ -108,6 +117,7 @@ internal class InternalShareSheetController(
         val text = "${amount.formatted()} $url"
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TITLE, "Send ${amount.formatted(truncated = true)}")
             putExtra(Intent.EXTRA_TEXT, text)
             type = "text/plain"
         }
@@ -126,9 +136,26 @@ internal class InternalShareSheetController(
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val share = Intent.createChooser(intent, "Share via").apply {
+        val share = Intent.createChooser(intent, null).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
             putExtra(Intent.EXTRA_CHOSEN_COMPONENT_INTENT_SENDER, pi.intentSender)
+        }
+
+        context.startActivity(share)
+    }
+
+    private fun shareDownloadLink() {
+        val shareRef = resources.getString(R.string.app_download_link_share_ref)
+        val url = resources.getString(R.string.app_download_link_with_ref, shareRef)
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TITLE, "Get the Flipcash App")
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
 
         context.startActivity(share)

@@ -44,11 +44,18 @@ data class Fiat(
     )
 
     // Formatting
-    fun formatted(suffix: String? = null, truncated: Boolean = false): String {
+    fun formatted(suffix: String? = null, truncate: Boolean = false): String {
+        val shouldTruncate = if (truncate) {
+            val fractionalPart = decimalValue - decimalValue.toLong()
+            fractionalPart == 0.0
+        } else {
+            false
+        }
+
         val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
-            minimumFractionDigits = if (truncated) 0 else 2
-            maximumFractionDigits = if (truncated) 0 else 2
-            roundingMode = if (truncated) RoundingMode.DOWN.ordinal else RoundingMode.HALF_DOWN.ordinal
+            minimumFractionDigits = if (shouldTruncate) 0 else 2
+            maximumFractionDigits = if (shouldTruncate) 0 else 2
+            roundingMode = if (truncate) RoundingMode.DOWN.ordinal else RoundingMode.HALF_DOWN.ordinal
             (this as android.icu.text.DecimalFormat).decimalFormatSymbols = decimalFormatSymbols.apply {
                 currencySymbol = ""
             }
