@@ -33,12 +33,14 @@ import com.flipcash.services.modals.ModalManager
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
+import com.getcode.ui.core.RestrictionType
 import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import dev.bmcreations.tipkit.TipScaffold
@@ -51,6 +53,8 @@ fun App(
     tipsEngine: TipsEngine,
 ) {
     val router = LocalRouter.currentOrThrow
+
+    val viewModel = getActivityScopedViewModel<HomeViewModel>()
 
     // We are obtaining deep link here to handle a login request while already logged in to
     // present the option for the user to switch accounts
@@ -126,36 +130,32 @@ fun App(
 
                                     LaunchedEffect(loginRequest) {
                                         loginRequest?.let { entropy ->
-//                                            homeViewModel.handleLoginEntropy(
-//                                                entropy,
-//                                                onSwitchAccounts = {
-//                                                    loginRequest = null
-//                                                    context.getActivity()?.let {
-//                                                        homeViewModel.logout(it) {
-//                                                            codeNavigator.replaceAll(
-//                                                                ScreenRegistry.get(
-//                                                                    NavScreenProvider.Login.Home(
-//                                                                        entropy
-//                                                                    )
-//                                                                )
-//                                                            )
-//                                                        }
-//                                                    }
-//                                                },
-//                                                onCancel = {
-//                                                    loginRequest = null
-//                                                }
-//                                            )
+                                            viewModel.handleLoginEntropy(
+                                                entropy,
+                                                onSwitchAccount = {
+                                                    loginRequest = null
+                                                    codeNavigator.replaceAll(
+                                                        ScreenRegistry.get(
+                                                            NavScreenProvider.Login.Home(
+                                                                entropy
+                                                            )
+                                                        )
+                                                    )
+                                                },
+                                                onCancel = {
+                                                    loginRequest = null
+                                                }
+                                            )
                                         }
                                     }
 
                                     LaunchedEffect(userState.isTimelockUnlocked) {
                                         if (userState.isTimelockUnlocked) {
-//                                            codeNavigator.replaceAll(
-//                                                ScreenRegistry.get(
-//                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
-//                                                )
-//                                            )
+                                            codeNavigator.replaceAll(
+                                                ScreenRegistry.get(
+                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
+                                                )
+                                            )
                                         }
                                     }
 
