@@ -13,14 +13,12 @@ import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.QueryOptions
-import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -37,14 +35,16 @@ class ActivityFeedCoordinator @Inject constructor(
     private val pagingConfig = PagingConfig(pageSize = 20)
 
     @OptIn(ExperimentalPagingApi::class)
-    private val _messages: Flow<PagingData<ActivityFeedMessage>> by lazy {
-        Pager(
-            config = pagingConfig,
-            remoteMediator = FeedRemoteMediator(activityFeedController, dataSource)
-        ) {
-            dataSource.observe()
-        }.flow.map { page -> page.map { entity -> mapper.map(entity) } }
-    }
+    private val _messages: Flow<PagingData<ActivityFeedMessage>> = userManager.state
+        .filter { it.authState.canAccessAuthenticatedApis }
+        .flatMapLatest {
+            Pager(
+                config = pagingConfig,
+                remoteMediator = FeedRemoteMediator(activityFeedController, dataSource)
+            ) {
+                dataSource.observe()
+            }.flow.map { page -> page.map { entity -> mapper.map(entity) } }
+        }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ActivityFeedMessage>> = userManager.state
