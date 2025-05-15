@@ -21,6 +21,10 @@
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
     <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
 
+    <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Flipcash. Alternatively you can log in manually by entering the 12 words in the Flipcash Log In screen.</string>
+    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to all the funds you have in Flipcash. Do not share this image with anyone else. Keep it secure and safe.</string>
+
+
     <string name="title_badge_no_connection">No Connection</string>
 
     <string name="title_give">Give</string>

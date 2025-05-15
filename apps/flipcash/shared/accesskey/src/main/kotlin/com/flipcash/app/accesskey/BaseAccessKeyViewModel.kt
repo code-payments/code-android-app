@@ -41,6 +41,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 import com.getcode.theme.R as themeR
+import androidx.core.graphics.createBitmap
 
 
 data class AccessKeyUiModel(
@@ -162,10 +163,7 @@ abstract class BaseAccessKeyViewModel(
             resources.getDrawable(R.drawable.ic_flipcash_logo_access_key)
                 ?.toBitmap(logoWidth.roundToInt(), logoHeight)!!
 
-        val imageOut = Bitmap.createBitmap(
-            targetWidth, targetHeight,
-            Bitmap.Config.ARGB_8888
-        ).applyCanvas {
+        val imageOut = createBitmap(targetWidth, targetHeight).applyCanvas {
             val accessBgActualWidth =
                 accessKeyBg.getScaledWidth(resources.displayMetrics)
 
