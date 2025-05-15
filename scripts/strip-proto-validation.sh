@@ -35,11 +35,13 @@ find "${root}"/definitions/$target/protos/src/main/proto -name "*.proto" -type f
     ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 done
 
-# 3. add a newline after all trailing } brackets
-#find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '{gsub(/}/, \"}\n\"); print}' {} > tmp && mv tmp {}" \;
-
-# 4. strip validate import statement
+# 3. strip validate import statement
 find "${root}"/definitions/$target/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk -v RS='' '{gsub(/import \"validate\/validate.proto\";/, \"\"); print}' {} > tmp && mv tmp {}" \;
 
-# 5. add a newline after all trailing } brackets
-#find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '{gsub(/}/, \"}\n\"); print}' {} > tmp && mv tmp {}" \;
+# 4. Preserve custom opencode namespacing
+if [ "$target" = "opencode" ]; then
+  find "${root}/definitions/$target/protos/src/main/proto" -name "*.proto" -type f -exec sh -c "awk '{gsub(/];/, \"];\n\n\"); gsub(/option java_package = \"com\.codeinc\.gen\./, \"option java_package = \\\"com.codeinc.opencode.gen.\"); print}' {} > tmp && mv tmp {}" \;
+fi
+
+# 5. Remove lines containing only ;
+find "${root}/definitions/$target/protos/src/main/proto" -name "*.proto" -type f -exec sh -c "awk '!/^[[:space:]]*;[[:space:]]*$/ {print}' {} > tmp && mv tmp {}" \;

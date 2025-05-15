@@ -6,7 +6,7 @@ import kotlin.time.Duration.Companion.hours
 
 data class Limits(
     // Date from which the limits are computed
-    val sinceDate : Long,
+    val sinceDate: Long,
 
     // Date at which the limits were fetched
     val fetchDate: Long,
@@ -16,14 +16,16 @@ data class Limits(
     // Buy limits keyed by currency
     private val buyLimits: Map<CurrencyCode, BuyLimit>,
 
-    ) {
+    // The amount of USD transacted since the consumption timestamp
+    val amountUsdTransactedSinceConsumption: Fiat
+) {
     val isStale: Boolean
         get() {
             val now = System.currentTimeMillis()
             return now - fetchDate > 1.hours.inWholeMilliseconds
         }
 
-    fun sendLimitFor(currencyCode: CurrencyCode) : SendLimit? {
+    fun sendLimitFor(currencyCode: CurrencyCode): SendLimit? {
         return sendLimits[currencyCode]
     }
 
@@ -37,6 +39,7 @@ data class Limits(
             fetchDate = Instant.DISTANT_PAST.toEpochMilliseconds(),
             sendLimits = emptyMap(),
             buyLimits = emptyMap(),
+            amountUsdTransactedSinceConsumption = Fiat.Zero
         )
 
         fun newInstance(
@@ -44,6 +47,7 @@ data class Limits(
             fetchDate: Long,
             sendLimits: Map<String, TransactionService.SendLimit>,
             buyLimits: Map<String, TransactionService.BuyModuleLimit>,
+            usdTransactedSinceConsumption: Double
         ): Limits {
             val sends = sendLimits
                 .mapNotNull { (k, v) ->
@@ -74,6 +78,7 @@ data class Limits(
                 fetchDate = fetchDate,
                 sendLimits = sends,
                 buyLimits = buys,
+                amountUsdTransactedSinceConsumption = Fiat(usdTransactedSinceConsumption)
             )
         }
     }

@@ -199,6 +199,8 @@ message GetLimitsResponse {
     map<string, MicroPaymentLimit> micro_payment_limits_by_currency = 4;
     // Buy module limits keyed by currency
     map<string, BuyModuleLimit> buy_module_limits_by_currency = 5;
+    // The amount of USD transacted since the consumption timestamp
+    double usd_transacted = 6;
 }
 message CanWithdrawToAccountRequest {
    common.v1.SolanaAccountId account = 1;

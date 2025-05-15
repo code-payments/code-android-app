@@ -133,7 +133,7 @@ class UserManager @Inject constructor(
         associate()
     }
 
-    fun didDetectUnlockedAccount() {
+    private fun didDetectUnlockedAccount() {
         _state.update {
             if (!it.isTimelockUnlocked) {
                 it.copy(isTimelockUnlocked = true)
