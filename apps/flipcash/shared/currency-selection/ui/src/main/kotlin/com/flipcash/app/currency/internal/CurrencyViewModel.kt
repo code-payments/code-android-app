@@ -116,26 +116,28 @@ class CurrencyViewModel @Inject constructor(
         recents: List<Currency>,
         searchString: String
     ): List<CurrencyListItem> = buildList {
+        val sortedCurrencies = currencies.sortedBy { it.name }
+        val sortedRecents = recents.sortedBy { it.name }
         val isSearch = searchString.isNotBlank()
 
         // Add title based on search state
         val titleRes = when {
             isSearch -> R.string.title_results
-            recents.isNotEmpty() -> R.string.title_recentCurrencies
+            sortedRecents.isNotEmpty() -> R.string.title_recentCurrencies
             else -> R.string.title_otherCurrencies
         }
         add(CurrencyListItem.TitleItem(resources.getString(titleRes)))
 
         // Add recent currencies (only if not searching)
         if (!isSearch && recents.isNotEmpty()) {
-            recents.forEach { currency ->
+            sortedRecents.forEach { currency ->
                 add(CurrencyListItem.RegionCurrencyItem(currency, isRecent = true))
             }
             // Add "Other Currencies" title if there are recent currencies
             add(CurrencyListItem.TitleItem(resources.getString(R.string.title_otherCurrencies)))
         }
 
-        currencies
+        sortedCurrencies
             .filter {
                 searchString.isEmpty() ||
                         it.name.contains(searchString, ignoreCase = true) ||
