@@ -45,12 +45,13 @@ class BillController @Inject constructor(
         onError: (Throwable) -> Unit,
     ) = transactionManager.attemptGrabFromSender(owner, payload, onGrabbed, onError)
 
-    fun createGiftCard(
+    fun fundGiftCard(
+        giftCard: GiftCardAccount,
         amount: LocalFiat,
         owner: AccountCluster,
-        onCreated: (GiftCardAccount) -> Unit,
+        onFunded: (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
-    ) = transactionManager.createGiftCard(amount, owner, onCreated, onError)
+    ) = transactionManager.fundGiftCard(giftCard, amount, owner, onFunded, onError)
 
     fun receiveGiftCard(
         entropy: String,

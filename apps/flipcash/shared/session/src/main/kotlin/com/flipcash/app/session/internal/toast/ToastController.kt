@@ -23,21 +23,24 @@ class ToastController @Inject constructor(
 
     fun showIfNeeded(
         style: PresentationStyle,
+        override: Boolean = false
     ): Boolean {
         val billState = billController.state.value
         val bill = billState.bill ?: return false
 
-        if (style is PresentationStyle.Pop || billState.showToast) {
-            show(
-                amount = bill.metadata.amount,
-                isDeposit = when (style) {
-                    PresentationStyle.Slide -> true
-                    PresentationStyle.Pop -> false
-                    else -> false
-                },
-            )
+        if (!override) {
+            if (style is PresentationStyle.Pop || billState.showToast) {
+                show(
+                    amount = bill.metadata.amount,
+                    isDeposit = when (style) {
+                        PresentationStyle.Slide -> true
+                        PresentationStyle.Pop -> false
+                        else -> false
+                    },
+                )
 
-            return true
+                return true
+            }
         }
 
         return false

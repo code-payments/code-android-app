@@ -16,7 +16,6 @@ import kotlinx.coroutines.cancel
 internal class ReceiveGiftCardTransactor(
     private val accountController: AccountController,
     private val transactionController: TransactionController,
-    private val scope: CoroutineScope,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
 ) {
@@ -70,8 +69,6 @@ internal class ReceiveGiftCardTransactor(
     fun dispose() {
         owner = null
         giftCardAccount = null
-
-        scope.cancel()
     }
 }
 

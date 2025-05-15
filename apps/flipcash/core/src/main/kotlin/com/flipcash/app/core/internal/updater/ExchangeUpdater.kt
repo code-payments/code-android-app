@@ -18,6 +18,7 @@ class ExchangeUpdater @Inject constructor(
         frequency: Duration,
         startIn: Duration,
     ) {
+        stop()
         updater = fixedRateTimer(
             name = "update exchange rates",
             initialDelay = startIn.inWholeMilliseconds,

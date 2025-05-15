@@ -6,19 +6,16 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.flipcash.app.core.android.IntentUtils
-import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LINK_SHARED
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_SHARE_CASH_LINK
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareablePendingData
-import com.flipcash.core.R
-import com.getcode.opencode.controllers.BalanceController
+import com.flipcash.shared.shareable.R
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.LocalFiat
@@ -33,7 +30,6 @@ internal class InternalShareSheetController(
     private val context: Context,
     private val clipboardManager: ClipboardManager,
     private val resources: ResourceHelper,
-    private val balanceController: BalanceController,
 ) : ShareSheetController {
 
     private var isChecking = false
@@ -52,18 +48,14 @@ internal class InternalShareSheetController(
                 is Shareable.CashLink -> {
                     // if it was shared with an app, return successfully
                     if (sharedWithApp != null) {
-                        val pendingAmount = shareable.pendingData?.amount
-                        pendingAmount?.let { balanceController.subtract(it) }
                         onShared?.invoke(ShareResult.SharedToApp(sharedWithApp!!))
                         return
                     }
 
                     if (clipboardManager.hasPrimaryClip()) {
                         val clippedText = clipboardManager.primaryClip?.getItemAt(0)?.text
-                        val pendingAmount = shareable.pendingData?.amount
                         val pendingEntropy = shareable.pendingData?.entropy.orEmpty()
                         if (clippedText?.contains(pendingEntropy) == true) {
-                            pendingAmount?.let { balanceController.subtract(it) }
                             onShared?.invoke(ShareResult.CopiedToClipboard)
                         }
                     }
@@ -79,7 +71,10 @@ internal class InternalShareSheetController(
     private val shareResultReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val packageName = intent.getStringExtra(Intent.EXTRA_CHOSEN_COMPONENT)
-            sharedWithApp = packageName
+            if (packageName != null) {
+                sharedWithApp = packageName
+                onShared?.invoke(ShareResult.SharedToApp(packageName))
+            }
         }
     }
 
@@ -117,7 +112,10 @@ internal class InternalShareSheetController(
         val text = "${amount.formatted()} $url"
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TITLE, "Send ${amount.formatted(truncated = true)}")
+            putExtra(
+                Intent.EXTRA_TITLE,
+                resources.getString(R.string.title_shareCashLink, amount.formatted(truncated = true))
+            )
             putExtra(Intent.EXTRA_TEXT, text)
             type = "text/plain"
         }
@@ -149,7 +147,8 @@ internal class InternalShareSheetController(
         val url = resources.getString(R.string.app_download_link_with_ref, shareRef)
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TITLE, "Get the Flipcash App")
+            putExtra(Intent.EXTRA_TITLE,
+                resources.getString(R.string.title_shareDownloadLink))
             putExtra(Intent.EXTRA_TEXT, url)
             type = "text/plain"
         }
@@ -162,6 +161,7 @@ internal class InternalShareSheetController(
     }
 
     override fun reset() {
+        println("share sheet reset")
         sharedWithApp = null
         isChecking = false
         onShared = null

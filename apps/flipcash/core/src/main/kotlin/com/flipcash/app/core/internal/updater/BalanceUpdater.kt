@@ -18,6 +18,7 @@ class BalanceUpdater @Inject constructor(
         frequency: Duration,
         startIn: Duration,
     ) {
+        stop()
         updater = fixedRateTimer(
             name = "update balance",
             initialDelay = startIn.inWholeMilliseconds,

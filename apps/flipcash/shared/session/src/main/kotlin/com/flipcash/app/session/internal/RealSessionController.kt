@@ -24,6 +24,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
@@ -238,9 +239,8 @@ class RealSessionController @Inject constructor(
                             nonce = nonce
                         )
 
-                        shareGiftCard(bill.amount, owner) {
-                            presentBillToUser(data.codeData.toList(), bill, vibrate)
-                        }
+                        presentBillToUser(data.codeData.toList(), bill, vibrate)
+                        shareGiftCard(bill.amount, owner)
                     }
                 }
             }
@@ -281,38 +281,62 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun shareGiftCard(amount: LocalFiat, owner: AccountCluster, onCreated: () -> Unit) {
-        billController.createGiftCard(
-            amount = amount,
-            owner = owner,
-            onCreated = { giftCard ->
-                onCreated()
-                scope.launch {
-                    delay(500)
-                    shareSheetController.onShared = { result ->
-                        when (result) {
-                            ShareResult.CopiedToClipboard -> {
-                                cancelSend(PresentationStyle.Pop)
-                                bringActivityFeedCurrent()
-                            }
-                            is ShareResult.SharedToApp -> {
-                                cancelSend(PresentationStyle.Pop)
-                                bringActivityFeedCurrent()
-                            }
-                            ShareResult.NotShared -> cancelSend()
+    private fun shareGiftCard(amount: LocalFiat, owner: AccountCluster) {
+        val giftCard = GiftCardAccount.create()
+
+        val initiateFunding = { amt: LocalFiat, resetShareController: Boolean ->
+            billController.fundGiftCard(
+                giftCard = giftCard,
+                amount = amt,
+                owner = owner,
+                onFunded = {
+                    toastController.show(it)
+                    bringActivityFeedCurrent()
+                    if (resetShareController) {
+                        shareSheetController.reset()
+                    }
+                },
+                onError = {
+                    cancelSend()
+                    TopBarManager.showMessage(
+                        title = resources.getString(R.string.error_title_failedToCreateGiftCard),
+                        message = resources.getString(R.string.error_description_failedToCreateGiftCard)
+                    )
+                }
+            )
+        }
+
+        scope.launch {
+            shareSheetController.onShared = { result ->
+                when (result) {
+                    ShareResult.CopiedToClipboard -> {
+                        // pop the bill out as if grabbed/sent, but don't toast until funded
+                        cancelSend(PresentationStyle.Pop, overrideToast = true)
+                        initiateFunding(amount, true)
+                    }
+                    is ShareResult.SharedToApp -> {
+                        if (!giftCard.funded) {
+                            println("Gift card not funded - funding now")
+                            // pop the bill out as if grabbed/sent, but don't toast until funded
+                            cancelSend(PresentationStyle.Pop, overrideToast = true)
+                            giftCard.fund()
+                            initiateFunding(amount, false)
+                        } else {
+                            println("Gift card already funded - showing toast")
+                            // due to android lifecycles, we need to await
+                            // the return to the app before showing the toast
+                            // This is facilitated via ShareSheetController.checkForShare()
+                            toastController.show(amount)
+                            shareSheetController.reset()
                         }
                     }
-                    val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
-                    shareSheetController.present(shareable)
+                    ShareResult.NotShared -> cancelSend()
                 }
-            },
-            onError = {
-                TopBarManager.showMessage(
-                    title = resources.getString(R.string.error_title_failedToCreateGiftCard),
-                    message = resources.getString(R.string.error_description_failedToCreateGiftCard)
-                )
             }
-        )
+            val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
+            delay(500)
+            shareSheetController.present(shareable)
+        }
     }
 
     override fun onCodeScan(code: ScannableKikCode) {
@@ -482,18 +506,20 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    override fun cancelSend(style: PresentationStyle) {
+    override fun cancelSend(style: PresentationStyle, overrideToast: Boolean) {
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
         scope.launch {
-            val shown = toastController.showIfNeeded(style)
+            val shown = toastController.showIfNeeded(style, overrideToast)
             _state.update { it.copy(presentationStyle = style) }
             billController.reset(showToast = shown)
 
             if (shown) {
                 delay(5.seconds)
             }
-            shareSheetController.reset()
+            if (!overrideToast) {
+                shareSheetController.reset()
+            }
             billController.reset()
         }
     }

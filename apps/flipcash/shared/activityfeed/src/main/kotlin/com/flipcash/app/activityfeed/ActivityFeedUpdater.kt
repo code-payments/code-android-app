@@ -15,6 +15,7 @@ class ActivityFeedUpdater @Inject constructor(
         frequency: Duration,
         startIn: Duration,
     ) {
+        stop()
         updater = fixedRateTimer(
             name = "update activity feed",
             initialDelay = startIn.inWholeMilliseconds,

@@ -90,4 +90,7 @@
 
     <string name="subtitle_scanThisQRCode">Scan this QR code with your phone\'s camera to download the Flipcash app</string>
     <string name="subtitle_scanToDownload">Scan to download the\nFlipcash app</string>
+
+    <string name="title_shareDownloadLink">Get the Flipcash App</string>
+    <string name="title_shareCashLink">Send %1$s</string>
 </resources>

@@ -111,12 +111,12 @@ class TransactionController @Inject constructor(
     }
 
     suspend fun remoteSend(
+        giftCard: GiftCardAccount,
         amount: LocalFiat,
         owner: AccountCluster,
         rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
-        val giftCard = GiftCardAccount.create()
         val intent = IntentRemoteSend.create(
             amount = amount,
             sourceCluster = owner,

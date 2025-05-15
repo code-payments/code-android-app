@@ -43,6 +43,8 @@ class BillTransactionManager @Inject constructor(
     private var giftTransactor: SendGiftCardTransactor? = null
     private var receiveTransactor: ReceiveGiftCardTransactor? = null
 
+    val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     fun awaitGrabFromRecipient(
         amount: LocalFiat,
         owner: AccountCluster,
@@ -52,7 +54,6 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         giveTransactor?.dispose()
-        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val payload = GiveBillTransactor(messagingController, transactionController, scope).also {
             giveTransactor = it
         }.with(amount, owner)
@@ -85,7 +86,6 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         grabTransactor?.dispose()
-        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         grabTransactor =
             GrabBillTransactor(messagingController, transactionController, scope).apply {
                 with(owner, payload)
@@ -120,22 +120,32 @@ class BillTransactionManager @Inject constructor(
         }
     }
 
-    fun createGiftCard(
+    fun fundGiftCard(
+        giftCard: GiftCardAccount,
         amount: LocalFiat,
         owner: AccountCluster,
-        onCreated: (GiftCardAccount) -> Unit,
+        onFunded: (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         giftTransactor?.dispose()
-        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        giftTransactor = SendGiftCardTransactor(transactionController, scope).apply {
-            with(amount, owner)
+        giftTransactor = SendGiftCardTransactor(transactionController).apply {
+            with(giftCard, amount, owner)
         }
 
         scope.launch {
             giftTransactor?.start()
-                ?.onSuccess { onCreated(it) }
-                ?.onFailure { onError(it) }
+                ?.onSuccess {
+                    onFunded(amount)
+                    balanceController.subtract(amount)
+                    transactionController.updateLimits(owner, force = true)
+                    giftTransactor?.dispose()
+                    giftTransactor = null
+                }?.onFailure {
+                    ErrorUtils.handleError(it)
+                    onError(it)
+                    giftTransactor?.dispose()
+                    giftTransactor = null
+                }
         }
     }
 
@@ -146,11 +156,9 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         receiveTransactor?.dispose()
-        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         receiveTransactor = ReceiveGiftCardTransactor(
             accountController = accountController,
             transactionController = transactionController,
-            scope = scope,
             mnemonicManager = mnemonicManager,
             giftCardManager = giftCardManager
         ).apply {
@@ -159,8 +167,11 @@ class BillTransactionManager @Inject constructor(
 
         scope.launch {
             receiveTransactor?.start()
-                ?.onSuccess { onReceived(it) }
-                ?.onFailure {
+                ?.onSuccess {
+                    onReceived(it)
+                    receiveTransactor?.dispose()
+                    receiveTransactor = null
+                }?.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
                     receiveTransactor?.dispose()

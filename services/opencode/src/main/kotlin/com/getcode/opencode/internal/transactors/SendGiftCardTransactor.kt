@@ -10,6 +10,7 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.trace
@@ -18,8 +19,8 @@ import kotlinx.coroutines.cancel
 
 internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
-    private val scope: CoroutineScope,
 ) {
+    private var giftCardAccount: GiftCardAccount? = null
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
     private var payload: OpenCodePayload? = null
@@ -27,7 +28,8 @@ internal class SendGiftCardTransactor(
 
     private var rendezvousKey: KeyPair? = null
 
-    fun with(amount: LocalFiat, owner: AccountCluster): List<Byte> {
+    fun with(giftCard: GiftCardAccount, amount: LocalFiat, owner: AccountCluster): List<Byte> {
+        this.giftCardAccount = giftCard
         this.amount = amount
         this.owner = owner
 
@@ -42,23 +44,24 @@ internal class SendGiftCardTransactor(
         }.codeData.toList()
     }
 
-    suspend fun start(): Result<GiftCardAccount> {
+    suspend fun start(): Result<IntentRemoteSend> {
         val ownerKey = owner
             ?: return Result.failure(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val rendezvous = rendezvousKey
             ?: return Result.failure(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
-
+        val giftCard = giftCardAccount
+            ?: return Result.failure(GiveTransactorError.Other(message = "No gift card account. Did you call with() first?"))
 
         return transactionController.remoteSend(
             rendezvous = rendezvous.toPublicKey(),
             owner = ownerKey,
-            amount = amount!!
+            amount = amount!!,
+            giftCard = giftCard
         ).map { it as IntentRemoteSend }
-            .map { it.giftCardAccount }
             .onFailure {
                 trace(
                     tag = "SendTrx",
-                    message = "Failed to create a gift card account",
+                    message = "Failed to fund a gift card account",
                     error = it
                 )
             }
@@ -70,8 +73,6 @@ internal class SendGiftCardTransactor(
         payload = null
         data = null
         rendezvousKey = null
-
-        scope.cancel()
     }
 
     sealed class SendTransactorError(

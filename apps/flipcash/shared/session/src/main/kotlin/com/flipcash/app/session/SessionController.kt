@@ -25,7 +25,7 @@ interface SessionController {
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(bill: Bill, vibrate: Boolean = false)
-    fun cancelSend(style: PresentationStyle = PresentationStyle.Slide)
+    fun cancelSend(style: PresentationStyle = PresentationStyle.Slide, overrideToast: Boolean = false)
     fun onCodeScan(code: ScannableKikCode)
     fun openCashLink(cashLink: String?)
 }

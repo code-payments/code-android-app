@@ -8,6 +8,13 @@ data class GiftCardAccount(
     val mnemonic: MnemonicPhrase,
     val cluster: AccountCluster,
 ) {
+    var funded: Boolean = false
+        private set
+
+    fun fund() {
+        funded = true
+    }
+
     companion object {
         fun create(mnemonic: MnemonicPhrase? = null): GiftCardAccount {
             val phrase = mnemonic ?: MnemonicPhrase.generate()

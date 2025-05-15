@@ -4,7 +4,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.internal.InternalShareSheetController
-import com.getcode.opencode.controllers.BalanceController
 import com.getcode.util.resources.ResourceHelper
 import dagger.Module
 import dagger.Provides
@@ -24,11 +23,9 @@ object ShareModule {
         context: Context,
         clipboardManager: ClipboardManager,
         resources: ResourceHelper,
-        balanceController: BalanceController,
     ): ShareSheetController = InternalShareSheetController(
         context = context,
         clipboardManager = clipboardManager,
         resources = resources,
-        balanceController = balanceController
     )
 }
