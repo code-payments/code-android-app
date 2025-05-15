@@ -50,7 +50,6 @@ internal fun CurrencySelectionModalContent(viewModel: CurrencyViewModel) {
     ) {
         LaunchedEffect(Unit) {
             snapshotFlow { state.searchState.text }
-                .onEach { println("text=$it") }
                 .launchIn(this)
         }
         SearchBar(

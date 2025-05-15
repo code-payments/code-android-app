@@ -110,7 +110,11 @@ class RealSessionController @Inject constructor(
     }
 
     override fun onAppInForeground() {
-        println("onAppInForeground")
+        trace(
+            tag = "Session",
+            message = "onAppInForeground",
+            type = TraceType.Process,
+        )
         startPolling()
         updateUserFlags()
         requestAirdrop()
@@ -312,17 +316,31 @@ class RealSessionController @Inject constructor(
                     ShareResult.CopiedToClipboard -> {
                         // pop the bill out as if grabbed/sent, but don't toast until funded
                         cancelSend(PresentationStyle.Pop, overrideToast = true)
+                        trace(
+                            tag = "Session",
+                            message = "Cash link copied to clipboard",
+                            metadata = {
+                                "amount" to amount
+                            },
+                            type = TraceType.User,
+                        )
                         initiateFunding(amount, true)
                     }
                     is ShareResult.SharedToApp -> {
                         if (!giftCard.funded) {
-                            println("Gift card not funded - funding now")
+                            trace(
+                                tag = "Session",
+                                message = "Cash link shared with ${result.to}",
+                                metadata = {
+                                    "amount" to amount
+                                },
+                                type = TraceType.User,
+                            )
                             // pop the bill out as if grabbed/sent, but don't toast until funded
                             cancelSend(PresentationStyle.Pop, overrideToast = true)
                             giftCard.fund()
                             initiateFunding(amount, false)
                         } else {
-                            println("Gift card already funded - showing toast")
                             // due to android lifecycles, we need to await
                             // the return to the app before showing the toast
                             // This is facilitated via ShareSheetController.checkForShare()

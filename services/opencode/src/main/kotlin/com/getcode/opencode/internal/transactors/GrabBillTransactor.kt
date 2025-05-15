@@ -35,10 +35,6 @@ internal class GrabBillTransactor(
             payload = data
         ).fold(
             onSuccess = {
-                println("""
-                    polling for metadata:
-                    rendezvous: ${data.rendezvous.toPublicKey().base58()} (${data.rendezvous.publicKeyBytes.size})
-                """.trimIndent())
                 transactionController.pollIntentMetadata(
                     owner = ownerKey.authority.keyPair,
                     intentId = data.rendezvous.toPublicKey()

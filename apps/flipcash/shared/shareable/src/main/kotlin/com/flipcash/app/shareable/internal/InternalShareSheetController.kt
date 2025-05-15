@@ -161,7 +161,6 @@ internal class InternalShareSheetController(
     }
 
     override fun reset() {
-        println("share sheet reset")
         sharedWithApp = null
         isChecking = false
         onShared = null

@@ -124,7 +124,6 @@ class PassphraseCredentialManager @Inject constructor(
         }
 
         // Store metadata
-        println("storing metadata for ${userId.base58}")
         val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = true)
         storeMetadata(metadata, isSelected = true)
         updateUserManager(userId, AuthState.LoggedIn)

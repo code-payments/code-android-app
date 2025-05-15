@@ -83,7 +83,6 @@ class CurrencyViewModel @Inject constructor(
             .filter { it.fromUser }
             .map { it.currency }
             .onEach { selected ->
-                println("selected => ${selected.code}, kind=${stateFlow.value.kind}")
                 val kind = stateFlow.value.kind ?: return@onEach
                 preferredCurrencyController.updateSelection(kind, selected)
             }.onEach { dispatchEvent(Event.OnSelectedCurrencyChanged) }
