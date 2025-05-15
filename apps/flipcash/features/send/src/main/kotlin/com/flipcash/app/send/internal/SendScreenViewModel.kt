@@ -105,7 +105,7 @@ internal class SendScreenViewModel @Inject constructor(
         val isOverBalance = enteredInUsdc > balanceInUsdc
         if (isOverBalance || conversionRate == Rate.ignore) {
             TopBarManager.showMessage(
-                resources.getString(R.string.error_title_insuffiecientFunds),
+                resources.getString(R.string.error_title_insufficientFunds),
                 resources.getString(R.string.error_description_insufficientFunds)
             )
         }
