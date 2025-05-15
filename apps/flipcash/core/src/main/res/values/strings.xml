@@ -9,7 +9,7 @@
     <string name="action_tryDifferentFlipcashAccount">Try a Different Flipcash Account</string>
 
     <string name="title_finalizeAccountCreationWithWelcomeBonus">Pay %1$s, Get %2$s</string>
-    <string name="subtitle_finalizeAccountCreationWithWelcomeBonus">Pay %1$s to create your Flipcash account and get %2$s in your wallet.  You can withdraw these funds to your bank account at any time</string>
+    <string name="subtitle_finalizeAccountCreationWithWelcomeBonus">For a limited time new accounts will receive a free welcome bonus of $20 of stablecoins</string>
     <string name="title_finalizeAccountCreationWithoutBonus">Pay %1$s</string>
     <string name="subtitle_finalizeAccountCreationWithoutBonus">Pay %1$s to create your Flipcash account</string>
 
