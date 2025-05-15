@@ -13,6 +13,9 @@
     <string name="title_finalizeAccountCreationWithoutBonus">Pay %1$s</string>
     <string name="subtitle_finalizeAccountCreationWithoutBonus">Pay %1$s to create your Flipcash account</string>
 
+    <string name="title_logoutAndLoginConfirmation">You\'re currently logged into an account</string>
+    <string name="subtitle_logoutAndLoginConfirmation">Please ensure you have saved your Access Key before proceeding. Would you like to logout and login with a new account?</string>
+
     <string name="action_purchaseAccount">Buy Your Account</string>
 
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>

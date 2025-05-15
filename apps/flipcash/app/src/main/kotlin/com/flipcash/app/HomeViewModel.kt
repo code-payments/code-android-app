@@ -28,7 +28,8 @@ class HomeViewModel @Inject constructor(
         if (entropy != userManager.entropy) {
             BottomBarManager.showMessage(
                 BottomBarManager.BottomBarMessage(
-                    title = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
+                    title = resources.getString(R.string.title_logoutAndLoginConfirmation),
+                    subtitle = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
                     positiveText = resources.getString(R.string.action_logIn),
                     tertiaryText = resources.getString(R.string.action_cancel),
                     isDismissible = false,
