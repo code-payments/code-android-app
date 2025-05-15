@@ -2,7 +2,6 @@ package com.flipcash.app.give.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.money.FormatUtils
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.features.give.R
 import com.getcode.manager.TopBarManager
@@ -68,7 +67,7 @@ internal class GiveScreenViewModel @Inject constructor(
 
                 if (maxForGive != null) {
                     if ((amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                            ?: 0.0) < maxForGive.first
+                            ?: 0.0) <= maxForGive.first
                     ) {
                         return false
                     }
@@ -107,7 +106,7 @@ internal class GiveScreenViewModel @Inject constructor(
         if (isOverBalance || conversionRate == Rate.ignore) {
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_insuffiecientFunds),
-                resources.getString(R.string.error_description_insuffiecientFunds)
+                resources.getString(R.string.error_description_insufficientFunds)
             )
         }
         isOverBalance
