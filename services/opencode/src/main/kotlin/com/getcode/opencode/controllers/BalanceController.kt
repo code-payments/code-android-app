@@ -101,9 +101,16 @@ class BalanceController @Inject constructor(
         localizedBalance.value = fiat
     }
 
-    suspend fun fetchBalance(): Result<Fiat> {
+    suspend fun fetchBalance() {
         val owner = cluster.value
-            ?: return Result.failure(IllegalStateException("Missing owner while fetching balance"))
+        if (owner == null) {
+            trace(
+                tag = "Balance",
+                message = "Missing owner while fetching balance",
+                type = TraceType.Error
+            )
+            return
+        }
 
         trace(
             tag = "Balance",
@@ -111,8 +118,10 @@ class BalanceController @Inject constructor(
             type = TraceType.Process
         )
 
-        return accountController.getAccounts(owner)
-            .recover { error ->
+        retryable(
+            maxRetries = 3,
+            call = suspend { accountController.getAccounts(owner) }
+        )?.recoverCatching { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
                     val createResult = accountController.createUserAccount(owner)
@@ -126,14 +135,13 @@ class BalanceController @Inject constructor(
                     throw error
                 }
             }
-
-            .map { accounts ->
+            ?.map { accounts ->
                 if (accounts.values.any { it.unusable }) {
                     onTimelockUnlocked()
                 }
                 retrieveBalanceFromAccounts(accounts)
             }
-            .onSuccess { newBalance ->
+            ?.onSuccess { newBalance ->
                 trace(
                     tag = "Balance",
                     message = "Updated balance is ${newBalance.formatted()} USD",
