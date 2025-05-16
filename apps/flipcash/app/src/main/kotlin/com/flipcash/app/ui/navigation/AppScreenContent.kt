@@ -27,7 +27,7 @@ import com.flipcash.app.shareapp.ShareAppScreen
 fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
         register<NavScreenProvider.Login.Home> {
-            LoginRouter(it.seed)
+            LoginRouter(it.seed, it.fromDeeplink)
         }
 
         register<NavScreenProvider.Login.SeedInput> {

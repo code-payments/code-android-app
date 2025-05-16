@@ -73,6 +73,7 @@ class AuthManager @Inject constructor(
 
     private suspend fun softLogin(entropyB64: String): Result<ID> {
         if (softLoginDisabled) return Result.failure(Throwable("Disabled"))
+        println("entropyB64: $entropyB64")
         return login(entropyB64, isSoftLogin = true)
     }
 

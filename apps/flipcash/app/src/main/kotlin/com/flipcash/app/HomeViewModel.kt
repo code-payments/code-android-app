@@ -25,6 +25,8 @@ class HomeViewModel @Inject constructor(
         onSwitchAccount: () -> Unit,
         onCancel: () -> Unit,
     ) {
+        // If currently logged in, and the login request comes for a different account
+        // present a confirmation dialog to switch accounts
         if (entropy != userManager.entropy) {
             BottomBarManager.showMessage(
                 BottomBarManager.BottomBarMessage(

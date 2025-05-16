@@ -75,6 +75,7 @@ abstract class BaseAccessKeyViewModel(
     }
 
     private fun initWithEntropy(entropyB64: String) {
+        println("initWithEntropy: $entropyB64")
         if (uiFlow.value.entropyB64 == entropyB64) return
         val words = mnemonicManager.fromEntropyBase64(entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")
@@ -199,7 +200,7 @@ abstract class BaseAccessKeyViewModel(
 
             drawBitmap(
                 imageLogo,
-                ((targetWidth - logoWidth) / 2).toFloat(),
+                ((targetWidth - logoWidth) / 2),
                 logoTopOffset.toFloat(),
                 null
             )

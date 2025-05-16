@@ -3,13 +3,14 @@ package com.flipcash.app.core
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.ui.core.RestrictionType
 
 sealed class NavScreenProvider : ScreenProvider {
     data class AppRestricted(val restrictionType: RestrictionType) : NavScreenProvider()
 
     sealed class Login {
-        data class Home(val seed: String? = null) : NavScreenProvider()
+        data class Home(val seed: String? = null, val fromDeeplink: Boolean = false) : NavScreenProvider()
         data object SeedInput : NavScreenProvider()
     }
 
@@ -22,7 +23,7 @@ sealed class NavScreenProvider : ScreenProvider {
         data object Purchase : NavScreenProvider()
         data object AccessKey : NavScreenProvider()
     }
-
+//    https://app.flipcash.com/login?data=NtNLaUA7mqB2VVDnzXFCGB
     sealed interface HomeScreen {
         data class Scanner(val deeplink: DeeplinkType? = null) : NavScreenProvider()
         data object Give : NavScreenProvider()
@@ -34,6 +35,12 @@ sealed class NavScreenProvider : ScreenProvider {
         sealed class Menu {
             data object Root : NavScreenProvider()
             data object Deposit : NavScreenProvider()
+
+            sealed class Withdrawal {
+                data object Amount : NavScreenProvider()
+                data class Confirmation(val amount: LocalFiat) : NavScreenProvider()
+            }
+
             data object Withdraw : NavScreenProvider()
 
             sealed class MyAccount {

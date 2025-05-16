@@ -8,11 +8,15 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.router.Router
+import com.flipcash.services.user.AuthState
+import com.flipcash.services.user.UserManager
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
-internal class AppRouter : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+internal class AppRouter(
+    private val userManager: UserManager,
+) : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
@@ -22,7 +26,13 @@ internal class AppRouter : Router, CoroutineScope by CoroutineScope(Dispatchers.
         return deeplink?.let {
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
-                is DeeplinkType.Login -> listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                is DeeplinkType.Login -> {
+                    if (userManager.authState is AuthState.LoggedIn) {
+                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                    } else {
+                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home(type.entropy, true)))
+                    }
+                }
                 is DeeplinkType.CashLink -> listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
             }
         } ?: emptyList()

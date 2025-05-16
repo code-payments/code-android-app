@@ -22,7 +22,10 @@ import kotlinx.parcelize.Parcelize
 import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
-class LoginRouter(private val seed: String? = null) : Screen, Parcelable {
+class LoginRouter(
+    private val seed: String? = null,
+    private val fromDeeplink: Boolean = false,
+) : Screen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -50,7 +53,7 @@ class LoginRouter(private val seed: String? = null) : Screen, Parcelable {
 
         LaunchedEffect(seed) {
             if (seed != null) {
-                vm.dispatchEvent(LoginViewModel.Event.LogIn(seed))
+                vm.dispatchEvent(LoginViewModel.Event.LogIn(seed, fromDeeplink))
             }
         }
 

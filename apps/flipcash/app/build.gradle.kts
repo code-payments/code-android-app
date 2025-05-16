@@ -135,6 +135,7 @@ dependencies {
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))
+    implementation(project(":libs:logging"))
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:messaging"))

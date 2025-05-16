@@ -33,6 +33,7 @@ import com.flipcash.app.ui.navigation.AppScreenContent
 import com.flipcash.app.ui.navigation.MainRoot
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
+import com.flipcash.services.user.AuthState
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
@@ -65,17 +66,16 @@ fun App(
     // present the option for the user to switch accounts
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }
     var loginRequest by remember { mutableStateOf<String?>(null) }
-
+    val userManager = LocalUserManager.currentOrThrow
     DeepLinkListener {
         val type = router.processType(it)
-        if (type is DeeplinkType.Login) {
+        if (type is DeeplinkType.Login && userManager.authState is AuthState.LoggedIn) {
             loginRequest = type.entropy
             return@DeepLinkListener
         }
         deepLink = it
     }
 
-    val userManager = LocalUserManager.currentOrThrow
     val session = LocalSessionController.currentOrThrow
     val userState by userManager.state.collectAsState()
 
@@ -141,7 +141,8 @@ fun App(
                                     }
                                 }
 
-                                LaunchedEffect(loginRequest) {
+                                LaunchedEffect(loginRequest, codeNavigator.lastItem) {
+                                    if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
                                     loginRequest?.let { entropy ->
                                         viewModel.handleLoginEntropy(
                                             entropy,
@@ -149,9 +150,7 @@ fun App(
                                                 loginRequest = null
                                                 codeNavigator.replaceAll(
                                                     ScreenRegistry.get(
-                                                        NavScreenProvider.Login.Home(
-                                                            entropy
-                                                        )
+                                                        NavScreenProvider.Login.Home(entropy)
                                                     )
                                                 )
                                             },
