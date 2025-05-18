@@ -21,6 +21,10 @@ import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.send.SendScreen
 import com.flipcash.app.shareapp.ShareAppScreen
+import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
+import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
+import com.flipcash.app.withdrawal.WithdrawalEntryScreen
+import com.flipcash.app.withdrawal.WithdrawalFlow
 
 
 @Composable
@@ -84,6 +88,19 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.HomeScreen.Menu.Deposit> {
             DepositScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount> {
+            WithdrawalFlow.start()
+            WithdrawalEntryScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Menu.Withdrawal.Destination> {
+            WithdrawalDestinationScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Menu.Withdrawal.Confirmation> {
+            WithdrawalConfirmationScreen()
         }
 
         register<NavScreenProvider.HomeScreen.Menu.MyAccount.Root> {

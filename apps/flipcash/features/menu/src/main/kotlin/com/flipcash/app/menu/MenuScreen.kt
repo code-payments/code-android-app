@@ -63,6 +63,14 @@ class MenuScreen : ModalScreen, Parcelable {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
+                .filterIsInstance<MenuScreenViewModel.Event.OnWithdrawClicked>()
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount)) }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
                 .filterIsInstance<MenuScreenViewModel.Event.OnMyAccountClicked>()
                 .onEach {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.Root)) }

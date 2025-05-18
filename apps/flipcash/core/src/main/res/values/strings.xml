@@ -45,6 +45,8 @@
     <string name="title_depositUsdc">Deposit USDC</string>
     <string name="title_withdrawUsdc">Withdraw USDC</string>
 
+    <string name="title_withdraw">Withdraw</string>
+
     <string name="error_title_selectCredential">Something went wrong</string>
     <string name="error_description_selectCredential">Failed to restore selected account. Please try again</string>
 
@@ -100,4 +102,13 @@
 
     <string name="title_shareDownloadLink">Get the Flipcash App</string>
     <string name="title_shareCashLink">Send %1$s</string>
+
+    <string name="title_enterAddress">Enter address</string>
+    <string name="subtitle_whereWithdrawUsdcTo">Where would you like to withdraw %1$s of USDC to?</string>
+
+    <string name="error_title_destinationAccountNotInitialized">Destination Account Not Initialized</string>
+    <string name="error_description_destinationAccountNotInitialized">Please make sure the address you’re withdrawing to has been initialized by your wallet provider. A quick way to do this is to make sure there is already some USDC in the address you’re trying to withdraw to</string>
+    <string name="action_withdraw">Withdraw</string>
+
+    <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
 </resources>

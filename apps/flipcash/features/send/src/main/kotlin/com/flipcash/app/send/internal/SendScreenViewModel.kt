@@ -111,6 +111,7 @@ internal class SendScreenViewModel @Inject constructor(
         }
         isOverBalance
     }
+
     val checkSendLimit: () -> Boolean = {
         val amount = stateFlow.value.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
         val currency = stateFlow.value.currencyModel

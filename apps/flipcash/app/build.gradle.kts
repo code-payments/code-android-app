@@ -132,6 +132,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:myaccount"))
     implementation(project(":apps:flipcash:features:backupkey"))
     implementation(project(":apps:flipcash:features:shareapp"))
+    implementation(project(":apps:flipcash:features:withdrawal"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))

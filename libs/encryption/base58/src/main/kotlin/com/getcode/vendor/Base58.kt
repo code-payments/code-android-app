@@ -135,12 +135,12 @@ object Base58 {
      */
     @Throws(AddressFormatException::class)
     fun decode(input: String): ByteArray {
-        if (input.length == 0) {
+        if (input.isEmpty()) {
             return ByteArray(0)
         }
         // Convert the base58-encoded ASCII chars to a base58 byte sequence (base58 digits).
         val input58 = ByteArray(input.length)
-        for (i in 0 until input.length) {
+        for (i in input.indices) {
             val c = input[i]
             val digit = if (c.toInt() < 128) INDEXES[c.toInt()] else -1
             if (digit < 0) {

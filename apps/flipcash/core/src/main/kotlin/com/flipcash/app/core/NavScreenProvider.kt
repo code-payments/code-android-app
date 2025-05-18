@@ -38,10 +38,9 @@ sealed class NavScreenProvider : ScreenProvider {
 
             sealed class Withdrawal {
                 data object Amount : NavScreenProvider()
-                data class Confirmation(val amount: LocalFiat) : NavScreenProvider()
+                data object Destination : NavScreenProvider()
+                data object Confirmation : NavScreenProvider()
             }
-
-            data object Withdraw : NavScreenProvider()
 
             sealed class MyAccount {
                 data object Root : NavScreenProvider()

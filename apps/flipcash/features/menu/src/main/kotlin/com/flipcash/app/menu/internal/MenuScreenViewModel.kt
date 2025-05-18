@@ -28,7 +28,7 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(Deposit)
-//    add(Withdraw)
+    add(Withdraw)
     add(MyAccount)
 //    add(AppSettings)
     add(SwitchAccount)
