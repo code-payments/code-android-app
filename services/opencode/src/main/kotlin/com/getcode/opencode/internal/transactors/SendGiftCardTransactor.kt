@@ -28,20 +28,20 @@ internal class SendGiftCardTransactor(
 
     private var rendezvousKey: KeyPair? = null
 
-    fun with(giftCard: GiftCardAccount, amount: LocalFiat, owner: AccountCluster): List<Byte> {
+    fun with(giftCard: GiftCardAccount, amount: LocalFiat, owner: AccountCluster) {
         this.giftCardAccount = giftCard
         this.amount = amount
         this.owner = owner
 
-        return OpenCodePayload(
+        val payloadInfo = OpenCodePayload(
             kind = PayloadKind.Cash,
             value = amount.converted,
             nonce = nonce
-        ).also {
-            payload = it
-            rendezvousKey = it.rendezvous
-            data = it.codeData.toList()
-        }.codeData.toList()
+        )
+
+        payload = payloadInfo
+        rendezvousKey = payloadInfo.rendezvous
+        data = payloadInfo.codeData.toList()
     }
 
     suspend fun start(): Result<IntentRemoteSend> {

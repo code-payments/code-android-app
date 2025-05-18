@@ -54,29 +54,36 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         giveTransactor?.dispose()
-        val payload = GiveBillTransactor(messagingController, transactionController, scope).also {
-            giveTransactor = it
-        }.with(amount, owner)
+        giveTransactor = null
 
         scope.launch {
-            giveTransactor?.start()
-                ?.onSuccess {
+            val transactor = GiveBillTransactor(messagingController, transactionController, scope).apply {
+                with(amount, owner)
+            }
+
+            giveTransactor = transactor
+
+            presentBillForGive(onTimeout)
+            present(transactor.data)
+
+            transactor.start()
+                .onSuccess {
                     onGrabbed()
                     balanceController.subtract(amount)
                     transactionController.updateLimits(owner, force = true)
-                    giveTransactor?.dispose()
-                    giveTransactor = null
-                }
-                ?.onFailure {
+                    transactor.dispose()
+                    if (giveTransactor == transactor) {
+                        giveTransactor = null
+                    }
+                }.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
-                    giveTransactor?.dispose()
-                    giveTransactor = null
+                    transactor.dispose()
+                    if (giveTransactor == transactor) {
+                        giveTransactor = null
+                    }
                 }
         }
-
-        presentBillForGive(onTimeout)
-        present(payload)
     }
 
     fun attemptGrabFromSender(
@@ -86,14 +93,17 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         grabTransactor?.dispose()
-        grabTransactor =
-            GrabBillTransactor(messagingController, transactionController, scope).apply {
+        grabTransactor = null
+
+        scope.launch {
+            val transactor = GrabBillTransactor(messagingController, transactionController, scope).apply {
                 with(owner, payload)
             }
 
-        scope.launch {
-            grabTransactor?.start()
-                ?.onSuccess { metadata ->
+            grabTransactor = transactor
+
+            transactor.start()
+                .onSuccess { metadata ->
                     trace(
                         tag = "Bill",
                         message = "attemptGrabFromSender: ReceivePublicPayment => ${metadata.exchangeData}"
@@ -108,14 +118,17 @@ class BillTransactionManager @Inject constructor(
                     onGrabbed(amount)
                     balanceController.add(amount)
                     transactionController.updateLimits(owner, force = true)
-                    grabTransactor?.dispose()
-                    grabTransactor = null
-                }
-                ?.onFailure {
+                    transactor.dispose()
+                    if (grabTransactor == transactor) {
+                        grabTransactor = null
+                    }
+                }.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
-                    grabTransactor?.dispose()
-                    grabTransactor = null
+                    transactor.dispose()
+                    if (grabTransactor == transactor) {
+                        grabTransactor = null
+                    }
                 }
         }
     }
@@ -128,23 +141,30 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         giftTransactor?.dispose()
-        giftTransactor = SendGiftCardTransactor(transactionController).apply {
-            with(giftCard, amount, owner)
-        }
+        giftTransactor = null
 
         scope.launch {
-            giftTransactor?.start()
-                ?.onSuccess {
+            val transactor = SendGiftCardTransactor(transactionController).apply {
+                with(giftCard, amount, owner)
+            }
+            giftTransactor = transactor
+
+            transactor.start()
+                .onSuccess {
                     onFunded(amount)
                     balanceController.subtract(amount)
                     transactionController.updateLimits(owner, force = true)
-                    giftTransactor?.dispose()
-                    giftTransactor = null
-                }?.onFailure {
+                    transactor.dispose()
+                    if (giftTransactor == transactor) {
+                        giftTransactor = null
+                    }
+                }.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
-                    giftTransactor?.dispose()
-                    giftTransactor = null
+                    transactor.dispose()
+                    if (giftTransactor == transactor) {
+                        giftTransactor = null
+                    }
                 }
         }
     }
@@ -156,26 +176,34 @@ class BillTransactionManager @Inject constructor(
         onError: (Throwable) -> Unit,
     ) {
         receiveTransactor?.dispose()
-        receiveTransactor = ReceiveGiftCardTransactor(
-            accountController = accountController,
-            transactionController = transactionController,
-            mnemonicManager = mnemonicManager,
-            giftCardManager = giftCardManager
-        ).apply {
-            with(owner, entropy)
-        }
+        receiveTransactor = null
 
         scope.launch {
+            val transactor = ReceiveGiftCardTransactor(
+                accountController = accountController,
+                transactionController = transactionController,
+                mnemonicManager = mnemonicManager,
+                giftCardManager = giftCardManager
+            ).apply {
+                with(owner, entropy)
+            }
+
+            receiveTransactor = transactor
+
             receiveTransactor?.start()
                 ?.onSuccess {
                     onReceived(it)
-                    receiveTransactor?.dispose()
-                    receiveTransactor = null
+                    transactor.dispose()
+                    if (receiveTransactor == transactor) {
+                        receiveTransactor = null
+                    }
                 }?.onFailure {
                     ErrorUtils.handleError(it)
                     onError(it)
-                    receiveTransactor?.dispose()
-                    receiveTransactor = null
+                    transactor.dispose()
+                    if (receiveTransactor == transactor) {
+                        receiveTransactor = null
+                    }
                 }
         }
     }

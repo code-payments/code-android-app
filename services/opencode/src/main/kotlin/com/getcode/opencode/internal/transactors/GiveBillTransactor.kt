@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
@@ -23,26 +24,29 @@ internal class GiveBillTransactor(
 ) {
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
-    private var payload: OpenCodePayload? = null
-    private var data: List<Byte>? = null
 
     private var rendezvousKey: KeyPair? = null
     private var receivingAccount: PublicKey? = null
 
-    fun with(amount: LocalFiat, owner: AccountCluster): List<Byte> {
+    private var payload: OpenCodePayload = OpenCodePayload.Empty
+    var data: List<Byte> = emptyList()
+        private set
+
+    fun with(amount: LocalFiat, owner: AccountCluster) {
         this.amount = amount
         this.owner = owner
 
         receivingAccount = null
-        return OpenCodePayload(
+
+        val payloadInfo = OpenCodePayload(
             kind = PayloadKind.Cash,
             value = amount.converted,
             nonce = nonce
-        ).also {
-            payload = it
-            rendezvousKey = it.rendezvous
-            data = it.codeData.toList()
-        }.codeData.toList()
+        )
+
+        payload = payloadInfo
+        rendezvousKey = payloadInfo.rendezvous
+        data = payloadInfo.codeData.toList()
     }
 
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
@@ -92,8 +96,8 @@ internal class GiveBillTransactor(
 
     fun dispose() {
         owner = null
-        payload = null
-        data = null
+        payload = OpenCodePayload.Empty
+        data = emptyList()
         rendezvousKey = null
         receivingAccount = null
 

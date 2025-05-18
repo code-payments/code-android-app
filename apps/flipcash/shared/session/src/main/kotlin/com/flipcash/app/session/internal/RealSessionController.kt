@@ -391,6 +391,7 @@ class RealSessionController @Inject constructor(
 
         when (codePayload.kind) {
             PayloadKind.Cash -> onCashScanned(codePayload)
+            PayloadKind.Unknown -> Unit
         }
     }
 

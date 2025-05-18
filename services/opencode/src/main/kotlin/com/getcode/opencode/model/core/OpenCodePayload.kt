@@ -58,10 +58,13 @@ data class OpenCodePayload(
         const val OFFSET_QUARKS = 2
         const val OFFSET_NONCE = 10
 
+        val Empty = OpenCodePayload(PayloadKind.Unknown, Fiat.Zero)
+
         fun fromList(list: List<Byte>): OpenCodePayload {
             val kind = PayloadKind.entries.find { it.value == list[0].toInt() } ?: PayloadKind.Cash
 
             val value = when (kind) {
+                PayloadKind.Unknown -> Fiat.Zero
                 PayloadKind.Cash -> {
                     // grab currency
                     val currencyIndex = list[1].byteToUnsignedInt()
@@ -82,6 +85,7 @@ data class OpenCodePayload(
 
 
 enum class PayloadKind(val value: Int) {
+    Unknown(-1),
     Cash(0),
 //    GiftCard(1),
 //    RequestPayment(2),

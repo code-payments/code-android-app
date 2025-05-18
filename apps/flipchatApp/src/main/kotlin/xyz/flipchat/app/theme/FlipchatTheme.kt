@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.getcode.theme.Alert
+import com.getcode.theme.BannerSuccess
 import com.getcode.theme.BetaIndicator
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
@@ -16,6 +17,7 @@ import com.getcode.theme.DesignSystem
 import com.getcode.theme.Error
 import com.getcode.theme.Gray50
 import com.getcode.theme.TextMain
+import com.getcode.theme.Warning
 import com.getcode.theme.White
 import com.getcode.theme.codeTypography
 
@@ -53,7 +55,10 @@ private val colors = ColorScheme(
     trackColor = Color(0xFF241A4B),
     cashBill = CashBill,
     cashBillDecorColor = CashBillDecor,
-    betaIndicator = BetaIndicator
+    betaIndicator = BetaIndicator,
+    bannerError = Error,
+    bannerWarning = Warning,
+    bannerSuccess = BannerSuccess,
 )
 
 @Composable

@@ -3,21 +3,21 @@ package com.flipcash.app.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.getcode.theme.BannerSuccess
 import com.getcode.theme.BetaIndicator
 import com.getcode.theme.BrandAccent
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandIndicator
-import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
 import com.getcode.theme.BrandSlideToConfirm
-import com.getcode.theme.BrandSubtle
 import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.Error
 import com.getcode.theme.Gray50
 import com.getcode.theme.Success
 import com.getcode.theme.TextError
+import com.getcode.theme.Warning
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
@@ -58,7 +58,10 @@ private val colors = with(ColorSpec) {
         trackColor = BrandSlideToConfirm,
         cashBill = cashBill,
         cashBillDecorColor = secondaryText,
-        betaIndicator = BetaIndicator
+        betaIndicator = BetaIndicator,
+        bannerError = Error,
+        bannerWarning = Warning,
+        bannerSuccess = BannerSuccess,
     )
 }
 
