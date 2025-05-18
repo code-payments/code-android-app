@@ -10,7 +10,7 @@ import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.PublicKey
 
-internal class IntentTransfer(
+internal class IntentWithdraw(
     override val id: PublicKey,
     private val sourceCluster: AccountCluster,
     private val destination: PublicKey,
@@ -24,7 +24,7 @@ internal class IntentTransfer(
                     .setSource(sourceCluster.vaultPublicKey.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
                     .setIsRemoteSend(false)
-                    .setIsWithdrawal(false) // false for code<->code transfers
+                    .setIsWithdrawal(true)
                     .setExchangeData(amount.asExchangeData())
             )
             .build()
@@ -36,14 +36,14 @@ internal class IntentTransfer(
             sourceCluster: AccountCluster,
             destination: PublicKey,
             rendezvous: PublicKey,
-        ): IntentTransfer {
+        ): IntentWithdraw {
             val transfer = ActionPublicTransfer.newInstance(
                 sourceCluster = sourceCluster,
                 destination = destination,
                 amount = amount.usdc
             )
 
-            return IntentTransfer(
+            return IntentWithdraw(
                 id = rendezvous,
                 sourceCluster = sourceCluster,
                 destination = destination,
@@ -54,4 +54,8 @@ internal class IntentTransfer(
             )
         }
     }
+}
+
+sealed class IntentPublicTransferException: Exception() {
+    class BalanceMismatchException: IntentPublicTransferException()
 }

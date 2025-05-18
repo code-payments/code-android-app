@@ -2,15 +2,18 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
+import com.getcode.opencode.internal.extensions.generate
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
+import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.datetime.Clock
+import org.kin.sdk.base.tools.Base58
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
@@ -104,10 +108,28 @@ class TransactionController @Inject constructor(
             sourceCluster = owner,
             destination = destination,
             rendezvous = rendezvous,
-
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)
+    }
+
+    suspend fun withdraw(
+        amount: LocalFiat,
+        owner: AccountCluster,
+        destination: PublicKey,
+        scope: CoroutineScope = this.scope,
+    ): Result<IntentType> {
+        val intent = IntentWithdraw.create(
+            amount = amount,
+            sourceCluster = owner,
+            destination = destination,
+            rendezvous = PublicKey.generate(),
+        )
+
+        return submitIntent(scope, intent, owner.authority.keyPair)
+            .onSuccess {
+                eventBus.send(Events.FetchBalance())
+            }
     }
 
     suspend fun remoteSend(
@@ -164,7 +186,7 @@ class TransactionController @Inject constructor(
         owner: KeyPair,
     ): Result<TransactionMetadata> = repository.getIntentMetadata(intentId, owner)
 
-    suspend fun <T: TransactionMetadata> pollIntentMetadata(
+    suspend fun <T : TransactionMetadata> pollIntentMetadata(
         intentId: PublicKey,
         owner: KeyPair,
         maxAttempts: Int = 10,
@@ -196,7 +218,9 @@ class TransactionController @Inject constructor(
             .map {
                 try {
                     val result = repository.getIntentMetadata(intentId, owner)
-                    Result.success(result.getOrNull() ?: throw IllegalStateException("No metadata received"))
+                    Result.success(
+                        result.getOrNull() ?: throw IllegalStateException("No metadata received")
+                    )
                 } catch (e: Exception) {
                     Result.failure(e)
                 }
@@ -219,6 +243,25 @@ class TransactionController @Inject constructor(
             }.mapNotNull { it as? T }
             .map { Result.success(it) }
             .catch { emit(Result.failure(it)) }
-            .firstOrNull() ?: Result.failure(IllegalStateException("Never received the desired metadata"))
+            .firstOrNull()
+            ?: Result.failure(IllegalStateException("Never received the desired metadata"))
+    }
+
+    suspend fun checkWithdrawalAvailability(
+        address: String,
+    ): Result<WithdrawalAvailability> {
+        val result: Result<PublicKey> = runCatching {
+            val decoded = Base58.decode(address)
+            val isValid = decoded.size == 32
+            if (isValid) PublicKey(decoded.toList()) else throw IllegalArgumentException("Invalid address")
+        }
+
+        result.exceptionOrNull()?.let {
+            return Result.failure(it)
+        }
+
+        return repository.withdrawalAvailability(
+            destination = result.getOrNull()!!
+        )
     }
 }

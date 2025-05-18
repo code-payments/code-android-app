@@ -139,10 +139,10 @@ class TransactionApi @Inject constructor(
      * The RPC indicates if a withdrawal is possible, and how it should be performed.
      */
     fun canWithdrawToAccount(
-        account: KeyPair
+        destination: PublicKey,
     ): Flow<CanWithdrawToAccountResponse> {
         val request = CanWithdrawToAccountRequest.newBuilder()
-            .setAccount(account.asSolanaAccountId())
+            .setAccount(destination.asSolanaAccountId())
             .build()
 
         return api::canWithdrawToAccount

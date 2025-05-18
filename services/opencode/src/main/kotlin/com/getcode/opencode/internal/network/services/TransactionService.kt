@@ -31,6 +31,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.decodeBase58
 import com.getcode.utils.trace
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
@@ -139,16 +140,17 @@ internal class TransactionService @Inject constructor(
     }
 
     suspend fun withdrawalAvailability(
-        account: KeyPair
+        destination: PublicKey,
     ): Result<WithdrawalAvailability> {
         return networkOracle.managedApiRequest(
-            call = { api.canWithdrawToAccount(account) },
+            call = { api.canWithdrawToAccount(destination) },
             handleResponse = { response ->
                 val availability = WithdrawalAvailability.newInstance(
-                    destination = account.publicKeyBytes.toPublicKey(),
+                    destination = destination,
                     isValid = response.isValidPaymentDestination,
                     kind = WithdrawalAvailability.Kind.tryValueOf(response.accountType.name)
-                        ?: WithdrawalAvailability.Kind.Unknown
+                        ?: WithdrawalAvailability.Kind.Unknown,
+                    requiresInitialization = response.requiresInitialization,
                 )
 
                 Result.success(availability)

@@ -11,7 +11,15 @@ data class WithdrawalAvailability(
     val kind: Kind,
 
     val hasResolvedDestination: Boolean,
-    val resolvedDestination: PublicKey
+    val resolvedDestination: PublicKey,
+
+    /**
+     * Token account requires initialization before the withdrawal can occur.
+     * Server has chosen not to subsidize the fees. The response is guaranteed
+     * to have set is_valid_payment_destination = false in this case.
+     *
+     */
+    val requiresInitialization: Boolean,
 ) {
     enum class Kind {
         Unknown,
@@ -33,7 +41,8 @@ data class WithdrawalAvailability(
         fun newInstance(
             destination: PublicKey,
             isValid: Boolean,
-            kind: Kind
+            kind: Kind,
+            requiresInitialization: Boolean,
         ): WithdrawalAvailability {
             val hasResolvedDestination: Boolean
             val resolvedDestination: PublicKey
@@ -59,7 +68,8 @@ data class WithdrawalAvailability(
                 isValid = isValid,
                 kind = kind,
                 hasResolvedDestination = hasResolvedDestination,
-                resolvedDestination = resolvedDestination
+                resolvedDestination = resolvedDestination,
+                requiresInitialization = if (isValid) false else requiresInitialization,
             )
         }
     }

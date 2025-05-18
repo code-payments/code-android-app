@@ -34,8 +34,8 @@ internal class InternalTransactionRepository @Inject constructor(
     ): Result<Limits> = service.getLimits(owner, consumedSince)
 
     override suspend fun withdrawalAvailability(
-        account: Ed25519.KeyPair
-    ): Result<WithdrawalAvailability> = service.withdrawalAvailability(account)
+        destination: PublicKey,
+    ): Result<WithdrawalAvailability> = service.withdrawalAvailability(destination)
 
     override suspend fun airdrop(
         type: AirdropType,

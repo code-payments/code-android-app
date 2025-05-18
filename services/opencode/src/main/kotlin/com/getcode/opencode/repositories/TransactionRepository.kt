@@ -30,7 +30,7 @@ interface TransactionRepository {
     ): Result<Limits>
 
     suspend fun withdrawalAvailability(
-        account: KeyPair
+        destination: PublicKey
     ): Result<WithdrawalAvailability>
 
     suspend fun airdrop(
