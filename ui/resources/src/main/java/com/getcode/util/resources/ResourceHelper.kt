@@ -53,4 +53,39 @@ sealed interface ResourceType {
     }
 }
 
-val LocalResources = staticCompositionLocalOf<ResourceHelper?> { null }
+val LocalResources = staticCompositionLocalOf<ResourceHelper> { NoOpResources }
+
+private object NoOpResources : ResourceHelper {
+    override fun getString(resourceId: Int): String = ""
+
+    override fun getString(resourceId: Int, vararg formatArgs: Any): String = ""
+
+    override fun getRawResource(resourceId: Int): String = ""
+
+    override fun getQuantityString(
+        id: Int,
+        quantity: Int,
+        vararg formatArgs: Any,
+        default: String
+    ): String = ""
+
+    override fun getDimension(dimenId: Int, default: Float): Float = 0f
+
+    override fun getDimensionPixelSize(dimenId: Int, default: Int): Int = 0
+
+    override fun getDir(name: String, mode: Int): File? = null
+
+    override val displayMetrics: DisplayMetrics
+        get() = TODO("Not yet implemented")
+
+    override fun getDrawable(drawableResId: Int): Drawable? = null
+
+    override fun getIdentifier(name: String, type: ResourceType): Int? = null
+
+    override fun getFont(fontResId: Int): Typeface? = null
+
+    override fun getOfKinSuffix(): String = ""
+
+    override fun getKinSuffix(): String = ""
+
+}
