@@ -180,7 +180,7 @@ class Dimensions(
     val none: Dp = 0.dp,
     val border: Dp = 1.dp,
     val thickBorder: Dp = 2.dp,
-    val modalHeightRatio: Float = 0.94f,
+    val modalHeightRatio: Float = 0.925f,
     val inset: Dp,
     val screenWidth: Dp = Dp.Unspecified,
     val screenHeight: Dp = Dp.Unspecified,
