@@ -42,9 +42,11 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
+import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.scaled
 import com.getcode.util.resources.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -55,19 +57,20 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val bottomBarMessage by barMessages.bottomBar.collectAsState()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
+    val animationScale by rememberAnimationScale()
     val onClose: suspend (fromAction: Boolean) -> Unit = { fromAction ->
         bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
         bottomBarVisibleState.targetState = false
-        bottomBarMessage?.onClose?.invoke(fromAction)
 
-        delay(100)
+        delay(300.scaled(animationScale))
         BottomBarManager.setMessageShown(bottomBarMessageDismissId)
+        bottomBarMessage?.onClose?.invoke(fromAction)
     }
 
     // handle changes in visible state
     LaunchedEffect(bottomBarVisibleState) {
         if (!bottomBarVisibleState.targetState && !bottomBarVisibleState.currentState) {
-            delay(50)
+            delay(50.scaled(animationScale))
             bottomBarVisibleState.targetState = bottomBarMessage != null
 
             if (bottomBarMessageDismissId == bottomBarMessage?.id) {
@@ -123,11 +126,11 @@ fun BottomBarContainer(barMessages: BarMessages) {
         visibleState = bottomBarVisibleState,
         enter = slideInVertically(
             initialOffsetY = { it / 2 },
-            animationSpec = tween(300)
+            animationSpec = tween(300.scaled(animationScale).toInt())
         ),
         exit = slideOutVertically(
             targetOffsetY = { it },
-            animationSpec = tween(300)
+            animationSpec = tween(300.scaled(animationScale).toInt())
         ),
     ) {
         val closeWith: (fromAction: Boolean) -> Unit = { fromAction ->
@@ -156,9 +159,11 @@ fun BottomBarView(
             modifier = Modifier
                 .background(
                     when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
+                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                         BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
+                        BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
+                        BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerSuccess
                     }
                 )
                 .padding(top = CodeTheme.dimens.inset)
@@ -197,6 +202,8 @@ fun BottomBarView(
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
+                            BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
+                            BottomBarManager.BottomBarMessageType.SUCCESS -> Color.Black
                         },
                         buttonState = when (action.style) {
                             BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
@@ -220,6 +227,8 @@ fun BottomBarView(
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary
+                            BottomBarManager.BottomBarMessageType.SUCCESS -> White
+                            BottomBarManager.BottomBarMessageType.WARNING -> White
                         },
                         text = stringResource(R.string.action_cancel)
                     )

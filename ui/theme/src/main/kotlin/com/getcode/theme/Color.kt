@@ -27,8 +27,10 @@ val Gray50 = Color(0x803C3C3C)
 val DashEffect = Color(0xFF303137)
 
 val Alert = Color(0xFFFF8383)
+val Info = Color(0xFF565C86)
 val Warning = Color(0xFFf1ab1f)
 val Success = Color(0xFF87D300)
+val BannerSuccess = Color(0xFF0F5020)
 val Error = Color(0xFFA42D2D)
 
 val CashBill = Color(red = 44, green = 42, blue = 65)
