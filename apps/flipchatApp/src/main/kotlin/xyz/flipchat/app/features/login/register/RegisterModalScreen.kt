@@ -13,7 +13,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.FullScreenModalScreen
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.keyboardAsState
+import com.getcode.ui.utils.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize

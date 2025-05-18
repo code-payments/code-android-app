@@ -54,6 +54,7 @@ import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.constrain
 import com.getcode.ui.core.measured
+import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -152,9 +153,9 @@ fun TextInput(
     }
 
     val focusManager = LocalFocusManager.current
-    val keyboardState by keyboardAsState()
-    LaunchedEffect(keyboardState) {
-        if (!keyboardState) {
+    val keyboardController = rememberKeyboardController()
+    LaunchedEffect(keyboardController.visible) {
+        if (!keyboardController.visible) {
             focusManager.clearFocus(true)
         }
     }
@@ -210,20 +211,4 @@ private fun DecoratorBox(
         }
         trailingIcon?.invoke()
     }
-}
-
-@Composable
-fun keyboardAsState(): State<Boolean> {
-    val keyboardState = remember { mutableStateOf(false) }
-    val view = LocalView.current
-    val viewTreeObserver = view.viewTreeObserver
-    DisposableEffect(viewTreeObserver) {
-        val listener = ViewTreeObserver.OnGlobalLayoutListener {
-            keyboardState.value = ViewCompat.getRootWindowInsets(view)
-                ?.isVisible(WindowInsetsCompat.Type.ime()) ?: true
-        }
-        viewTreeObserver.addOnGlobalLayoutListener(listener)
-        onDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener) }
-    }
-    return keyboardState
 }

@@ -9,12 +9,16 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 @Deprecated(
@@ -37,7 +41,8 @@ fun keyboardAsState(): State<Boolean> {
 
 class KeyboardController(
     private val view: View,
-    private val softwareController: SoftwareKeyboardController?
+    private val softwareController: SoftwareKeyboardController?,
+    private val coroutineScope: CoroutineScope,
 ) {
     var visible by mutableStateOf(false)
         private set
@@ -48,6 +53,16 @@ class KeyboardController(
 
     fun hide() {
         softwareController?.hide()
+    }
+
+    fun hideIfVisible(block: () -> Unit = { }) {
+        coroutineScope.launch {
+            if (visible) {
+                hide()
+                delay(300)
+            }
+            block()
+        }
     }
 
     // Internal setup for visibility tracking
@@ -70,8 +85,9 @@ class KeyboardController(
 fun rememberKeyboardController(): KeyboardController {
     val view = LocalView.current
     val softwareController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
     val keyboardController = remember(view, softwareController) {
-        KeyboardController(view, softwareController)
+        KeyboardController(view, softwareController, scope)
     }
 
     // Trigger visibility tracking
