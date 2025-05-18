@@ -219,6 +219,7 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
                                     title = context.getString(R.string.prompt_title_wroteThemDown),
                                     subtitle = context
                                         .getString(R.string.prompt_description_wroteThemDown),
+                                    showScrim = true,
                                     positiveText = context
                                         .getString(R.string.action_yesWroteThemDown),
                                     negativeText = "",
@@ -298,6 +299,7 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
                     title = context.getString(R.string.prompt_title_exitAccountCreation),
                     subtitle = context
                         .getString(R.string.prompt_description_exitAccountCreation),
+                    showScrim = true,
                     positiveText = context.getString(R.string.action_exit),
                     negativeText = "",
                     tertiaryText = context.getString(R.string.action_cancel),

@@ -95,6 +95,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_deleteAccount),
+                        showScrim = true,
                         subtitle = resources.getString(R.string.prompt_description_deleteAccount),
                         positiveText = resources.getString(R.string.action_deleteAccount),
                         tertiaryText = resources.getString(R.string.action_cancel),
@@ -144,6 +145,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_viewAccessKey),
                         subtitle = resources.getString(R.string.prompt_description_viewAccessKey),
+                        showScrim = true,
                         positiveText = resources.getString(R.string.action_viewAccessKey),
                         negativeText = resources.getString(R.string.action_cancel),
                         onPositive = { dispatchEvent(Event.OnViewAccessKey) },

@@ -67,6 +67,7 @@ internal class BalanceViewModel @Inject constructor(
                     BottomBarManager.BottomBarMessage(
                         title = title,
                         subtitle = resources.getString(R.string.prompt_description_cancelTransfer),
+                        showScrim = true,
                         positiveText = resources.getString(R.string.action_cancelTransfer),
                         onPositive = { dispatchEvent(Event.CancelTransfer(vault = metadata.creator)) },
                         negativeText = resources.getString(R.string.action_nevermind)

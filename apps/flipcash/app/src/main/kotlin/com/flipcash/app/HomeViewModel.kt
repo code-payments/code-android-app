@@ -35,6 +35,7 @@ class HomeViewModel @Inject constructor(
                     positiveText = resources.getString(R.string.action_logIn),
                     tertiaryText = resources.getString(R.string.action_cancel),
                     isDismissible = false,
+                    showScrim = true,
                     onPositive = {
                         viewModelScope.launch {
                             delay(150) // wait for dismiss

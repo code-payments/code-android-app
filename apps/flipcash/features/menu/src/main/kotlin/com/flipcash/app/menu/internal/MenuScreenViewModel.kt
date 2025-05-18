@@ -122,6 +122,7 @@ internal class MenuScreenViewModel @Inject constructor(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_logout),
                         subtitle = resources.getString(R.string.prompt_description_logout),
+                        showScrim = true,
                         positiveText = resources.getString(R.string.action_logout),
                         tertiaryText = resources.getString(R.string.action_cancel),
                         onPositive = {

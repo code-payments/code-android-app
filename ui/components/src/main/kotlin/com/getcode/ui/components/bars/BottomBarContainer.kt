@@ -1,12 +1,17 @@
 package com.getcode.ui.components.bars
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -121,22 +127,37 @@ fun BottomBarContainer(barMessages: BarMessages) {
         }
     }
 
-    AnimatedVisibility(
-        modifier = Modifier.fillMaxSize(),
-        visibleState = bottomBarVisibleState,
-        enter = slideInVertically(
-            initialOffsetY = { it / 2 },
-            animationSpec = tween(300.scaled(animationScale).toInt())
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = tween(300.scaled(animationScale).toInt())
-        ),
-    ) {
-        val closeWith: (fromAction: Boolean) -> Unit = { fromAction ->
-            scope.launch { onClose(fromAction) }
+    AnimatedContent(
+        modifier = Modifier.fillMaxSize()
+            .clipToBounds(),
+        targetState = bottomBarVisibleState.targetState,
+        transitionSpec = {
+            slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) togetherWith slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        },
+        label = "BottomBarAnimation"
+    ) { isVisible ->
+        if (isVisible) {
+            val closeWith: (fromAction: Boolean) -> Unit = { fromAction ->
+                scope.launch { onClose(fromAction) }
+            }
+            BottomBarView(
+                bottomBarMessage = bottomBarMessage,
+                onClose = closeWith,
+                onBackPressed = { closeWith(false) }
+            )
         }
-        BottomBarView(bottomBarMessage = bottomBarMessage, closeWith, onBackPressed = { closeWith(false)})
     }
 }
 
@@ -153,19 +174,12 @@ fun BottomBarView(
     }
 
     Box(
+        modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
             modifier = Modifier
-                .background(
-                    when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
-                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
-                        BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
-                        BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
-                        BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerSuccess
-                    }
-                )
+                .background(bottomBarMessage.type.backgroundColor())
                 .padding(top = CodeTheme.dimens.inset)
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .windowInsetsPadding(WindowInsets.navigationBars),
@@ -238,4 +252,13 @@ fun BottomBarView(
             }
         }
     }
+}
+
+@Composable
+private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = when (this) {
+    BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
+    BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
+    BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
+    BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
+    BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerSuccess
 }

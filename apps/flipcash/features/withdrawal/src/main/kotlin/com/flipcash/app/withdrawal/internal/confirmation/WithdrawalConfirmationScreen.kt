@@ -61,6 +61,7 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                         title = resources.getString(R.string.success_title_withdrawalComplete),
                         subtitle = resources.getString(R.string.success_description_withdrawalComplete),
                         showCancel = false,
+                        showScrim = true,
                         type = BottomBarManager.BottomBarMessageType.SUCCESS,
                         actions = listOf(
                             BottomBarAction(
