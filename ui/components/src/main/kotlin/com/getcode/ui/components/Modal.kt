@@ -36,10 +36,10 @@ fun Modal(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x3)
+                .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2)
                 .windowInsetsPadding(WindowInsets.navigationBars),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
         ) {
             content()
         }

@@ -2,7 +2,6 @@ package com.flipcash.app.scanner.internal
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,7 +11,6 @@ import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.money.formatted
 import com.flipcash.features.scanner.R
 import com.getcode.opencode.compose.LocalExchange
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.components.Modal
@@ -28,7 +26,6 @@ internal fun ReceivedFundsConfirmation(
     val exchange = LocalExchange.current
     Modal {
         Text(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
             style = CodeTheme.typography.textLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
