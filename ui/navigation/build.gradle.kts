@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
@@ -21,7 +23,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = Versions.java
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"

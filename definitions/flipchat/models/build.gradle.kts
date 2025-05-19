@@ -24,7 +24,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(Versions.java.toInt())
 }
 
 android {

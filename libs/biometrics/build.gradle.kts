@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 buildscript {
     repositories {
@@ -34,7 +35,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = Versions.java
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"

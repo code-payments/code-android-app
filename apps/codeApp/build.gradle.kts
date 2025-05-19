@@ -1,4 +1,5 @@
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id(Plugins.android_application)
@@ -94,7 +95,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = Versions.java
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn"
         )
