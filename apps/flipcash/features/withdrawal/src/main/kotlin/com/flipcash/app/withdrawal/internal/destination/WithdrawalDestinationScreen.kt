@@ -89,12 +89,9 @@ private fun WithdrawalDestinationScreenContent(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             Text(
-                text = stringResource(
-                    R.string.subtitle_whereWithdrawUsdcTo,
-                    state.amountEntryState.formattedAmount
-                ),
+                text = stringResource(R.string.subtitle_whereWithdrawUsdcTo),
                 style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain
+                color = CodeTheme.colors.textSecondary
             )
 
             Column(
