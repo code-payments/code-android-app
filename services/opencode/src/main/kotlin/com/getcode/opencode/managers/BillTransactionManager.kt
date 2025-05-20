@@ -194,8 +194,9 @@ class BillTransactionManager @Inject constructor(
             receiveTransactor = transactor
 
             receiveTransactor?.start()
-                ?.onSuccess {
-                    onReceived(it)
+                ?.onSuccess { amount ->
+                    onReceived(amount)
+                    balanceController.add(amount)
                     transactor.dispose()
                     if (receiveTransactor == transactor) {
                         receiveTransactor = null
