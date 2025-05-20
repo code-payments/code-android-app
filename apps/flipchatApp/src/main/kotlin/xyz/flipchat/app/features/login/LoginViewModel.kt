@@ -64,7 +64,7 @@ class LoginViewModel @Inject constructor(
                         TopBarManager.showMessage(
                             TopBarManager.TopBarMessage(
                                 title = "Create Account Failed",
-                                message = it.message ?: "Something went wrong"
+                                message = it.localizedMessage ?: "Something went wrong"
                             )
                         )
                     }.onSuccessWithDelay(2.seconds) {

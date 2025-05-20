@@ -56,7 +56,7 @@ class RegisterDisplayNameViewModel @Inject constructor(
                 }
             }
             .onResult(
-                onError = { dispatchEvent(Event.OnError(it.message ?: "Something went wrong")) },
+                onError = { dispatchEvent(Event.OnError(it.localizedMessage ?: "Something went wrong")) },
                 onSuccess = { dispatchEvent(Event.OnSuccess) }
             )
             .launchIn(viewModelScope)

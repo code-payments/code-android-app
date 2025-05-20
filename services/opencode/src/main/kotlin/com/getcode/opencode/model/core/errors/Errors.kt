@@ -8,9 +8,9 @@ sealed class CodeAccountCheckError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class NotFound : CodeAccountCheckError()
-    class UnlockedTimelockAccount : CodeAccountCheckError()
-    class Unrecognized : CodeAccountCheckError()
+    class NotFound : CodeAccountCheckError("Not found")
+    class UnlockedTimelockAccount : CodeAccountCheckError("Unlocked timelock account")
+    class Unrecognized : CodeAccountCheckError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : CodeAccountCheckError()
 }
 
@@ -18,8 +18,8 @@ sealed class GetAccountsError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class NotFound : GetAccountsError()
-    class Unrecognized : GetAccountsError()
+    class NotFound : GetAccountsError("Not found")
+    class Unrecognized : GetAccountsError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : GetAccountsError()
 }
 
@@ -30,13 +30,13 @@ sealed class LinkAccountsError(
     /**
      * The action has been denied (eg. owner account not phone verified)
      */
-    class Denied : LinkAccountsError()
+    class Denied : LinkAccountsError("Denied")
 
     /**
      * An account being linked is not valid
      */
-    class InvalidAccount : LinkAccountsError()
-    class Unrecognized : LinkAccountsError()
+    class InvalidAccount : LinkAccountsError("Invalid account")
+    class Unrecognized : LinkAccountsError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : LinkAccountsError()
 }
 
@@ -47,8 +47,8 @@ sealed class GetRatesError(
     /**
      * No currency data is available for the requested timestamp.
      */
-    class MissingData : GetRatesError()
-    class Unrecognized : GetRatesError()
+    class MissingData : GetRatesError("Missing data")
+    class Unrecognized : GetRatesError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : GetRatesError()
 }
 
@@ -70,7 +70,7 @@ sealed class AckMessagesError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unrecognized : AckMessagesError()
+    class Unrecognized : AckMessagesError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : AckMessagesError()
 }
 
@@ -78,8 +78,8 @@ sealed class SendMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class NoActiveStream : SendMessageError()
-    class Unrecognized : SendMessageError()
+    class NoActiveStream : SendMessageError("No active stream")
+    class Unrecognized : SendMessageError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : SendMessageError()
 }
 
@@ -148,8 +148,8 @@ sealed class GetIntentMetadataError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class NotFound : GetIntentMetadataError()
-    class Unrecognized : GetIntentMetadataError()
+    class NotFound : GetIntentMetadataError("Not found")
+    class Unrecognized : GetIntentMetadataError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : GetIntentMetadataError()
 }
 
@@ -157,7 +157,7 @@ sealed class GetLimitsError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unrecognized : GetIntentMetadataError()
+    class Unrecognized : GetIntentMetadataError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : GetIntentMetadataError()
 }
 
@@ -172,9 +172,9 @@ sealed class AirdropError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unavailable: AirdropError()
-    class AlreadyClaimed: AirdropError()
-    class Unrecognized: AirdropError()
+    class Unavailable: AirdropError("Unavailable")
+    class AlreadyClaimed: AirdropError("Already claimed")
+    class Unrecognized: AirdropError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : AirdropError()
 }
 
@@ -182,10 +182,10 @@ sealed class VoidGiftCardError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Denied: VoidGiftCardError()
-    class NotFound: VoidGiftCardError()
-    class AlreadyClaimed: VoidGiftCardError()
-    class Unrecognized: VoidGiftCardError()
+    class Denied: VoidGiftCardError("Denied")
+    class NotFound: VoidGiftCardError("Not found")
+    class AlreadyClaimed: VoidGiftCardError("Already claimed")
+    class Unrecognized: VoidGiftCardError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : VoidGiftCardError()
 }
 

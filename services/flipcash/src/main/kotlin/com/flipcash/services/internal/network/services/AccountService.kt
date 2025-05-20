@@ -67,7 +67,6 @@ internal class AccountService @Inject constructor(
 
                     else -> Result.failure(LoginError.Other())
                 }
-
             },
             onFailure = { cause ->
                 Result.failure(LoginError.Other(cause = cause))
