@@ -32,6 +32,7 @@ import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.MetadataBuilder
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
@@ -88,7 +89,15 @@ internal class GooglePlayBillingClient(
         billingResult: BillingResult,
         purchases: MutableList<Purchase>?
     ) {
-        printLog("onPurchasesUpdated c=${billingResult.responseCode} m=${billingResult.debugMessage}; p=${purchases?.count()}")
+        printLog(
+            message = "onPurchasesUpdated",
+            metadata = {
+                "code" to billingResult.responseCode
+                "message" to billingResult.debugMessage
+                "purchases" to purchases?.count()
+            }
+        )
+
         if (billingResult.responseCode == BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
                 completePurchase(purchase)
@@ -178,8 +187,6 @@ internal class GooglePlayBillingClient(
         printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
         if (!item.isAcknowledged) {
             scope.launch {
-                printLog("onPurchaseComplete for ${item.purchaseToken}")
-
                 val details = productDetails[item.products.first()]
                 val product = item.products.first()
                 val receipt = Receipt(item.purchaseToken)
@@ -187,7 +194,16 @@ internal class GooglePlayBillingClient(
                     ?.let { priceMicros -> priceMicros / 1_000_000.0 } ?: 0.0
                 val currencyCode = CurrencyCode.tryValueOf(details?.oneTimePurchaseOfferDetails?.priceCurrencyCode) ?: CurrencyCode.USD
 
-                printLog("product=$product, $receipt=$receipt, price=$price, currency=${currencyCode.name}")
+                printLog(
+                    message = "completing purchase",
+                    metadata = {
+                        "token" to item.purchaseToken
+                        "product" to product
+                        "receipt" to receipt
+                        "price" to price
+                        "currency" to currencyCode.name
+                    }
+                )
 
                 purchaseRepository.onPurchaseCompleted(
                     owner = userManager.accountCluster?.authority?.keyPair!!,
@@ -429,5 +445,10 @@ internal class GooglePlayBillingClient(
         }
     }
 
-    private fun printLog(message: String) = println("GPBC $message")
+    private fun printLog(message: String, metadata: MetadataBuilder.() -> Unit = {}) = trace(
+        tag = TAG,
+        message = message,
+        type = TraceType.Process,
+        metadata = metadata
+    )
 }
