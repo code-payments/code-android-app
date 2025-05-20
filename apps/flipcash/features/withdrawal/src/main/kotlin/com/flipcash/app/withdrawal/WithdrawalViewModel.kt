@@ -283,8 +283,10 @@ internal class WithdrawalViewModel @Inject constructor(
                 }
                 clipboard
             }
-            .mapNotNull { text -> runCatching { Base58.decode(text) }.getOrNull() }
-            .filter { address ->
+            .mapNotNull { text -> runCatching { Base58.decode(text) }
+                .onFailure { dispatchEvent(Event.UpdateClipboardCheckState(loading = false)) }
+                .getOrNull()
+            }.filter { address ->
                 val length = address.size
                 if (length != 32) {
                     dispatchEvent(Event.UpdateClipboardCheckState(loading = false))
@@ -312,29 +314,6 @@ internal class WithdrawalViewModel @Inject constructor(
                 }
             )
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnAvailabilityChecked>()
-            .mapNotNull { it.availability }
-            .distinctUntilChanged()
-            .filter { it.requiresInitialization }
-            .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.error_title_destinationAccountNotInitialized),
-                        subtitle = resources.getString(R.string.error_description_destinationAccountNotInitialized),
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_ok),
-                                    onClick = {}
-                                )
-                            )
-                        },
-                        showCancel = false
-                    )
-                )
-            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnWithdraw>()

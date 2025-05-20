@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -86,7 +87,7 @@ private fun WithdrawalDestinationScreenContent(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = CodeTheme.dimens.inset,),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             Text(
                 text = stringResource(R.string.subtitle_whereWithdrawUsdcTo),
@@ -95,7 +96,7 @@ private fun WithdrawalDestinationScreenContent(
             )
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x1),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 TextInput(
@@ -120,25 +121,32 @@ private fun WithdrawalDestinationScreenContent(
                                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Up)
                     }
                 ) { availability ->
-                    if (availability != null && availability.isValid) {
+                    if (availability != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Image(
-                                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
-                                painter = painterResource(R.drawable.ic_checked_green),
-                                contentDescription = ""
-                            )
+                            Box(
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Image(
+                                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                                    painter = if (availability.isValid) painterResource(R.drawable.ic_checked_green) else painterResource(
+                                        R.drawable.ic_xmark_red
+                                    ),
+                                    contentDescription = ""
+                                )
+                            }
 
                             Text(
-                                text = if (availability.hasResolvedDestination) {
-                                    stringResource(id = R.string.subtitle_validOwnerAccount)
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                                text = if (availability.requiresInitialization) {
+                                    stringResource(R.string.error_title_destinationAccountNotInitialized)
                                 } else {
-                                    stringResource(id = R.string.subtitle_validTokenAccount)
+                                    stringResource(id = R.string.subtitle_validAddress)
                                 },
-                                color = CodeTheme.colors.success,
+                                color = if (availability.isValid) CodeTheme.colors.success else CodeTheme.colors.errorText,
                                 style = CodeTheme.typography.caption
                             )
                         }

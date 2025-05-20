@@ -83,8 +83,7 @@ private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (
             Text(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
-                    .weight(1f)
-                    .padding(top = CodeTheme.dimens.grid.x1),
+                    .weight(1f),
                 text = state.depositAddress,
                 color = White,
                 style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),

@@ -142,7 +142,6 @@ fun App(
                                 }
 
                                 LaunchedEffect(loginRequest) {
-                                    println("loginRequest: $loginRequest")
                                     if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
                                     loginRequest?.let { entropy ->
                                         viewModel.handleLoginEntropy(
