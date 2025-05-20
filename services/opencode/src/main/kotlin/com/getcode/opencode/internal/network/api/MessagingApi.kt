@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.common.v1.Model
-import com.codeinc.opencode.gen.messaging.v1.MessagingGrpc
+import com.codeinc.opencode.gen.messaging.v1.MessagingGrpcKt
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -11,10 +11,9 @@ import com.getcode.opencode.internal.network.extensions.asRendezvousKey
 import com.getcode.opencode.internal.network.extensions.sign
 import com.google.protobuf.ByteString
 import io.grpc.ManagedChannel
-import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
@@ -23,7 +22,7 @@ internal class MessagingApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = MessagingGrpc.newStub(managedChannel).withWaitForReady()
+    private val api = MessagingGrpcKt.MessagingCoroutineStub(managedChannel).withWaitForReady()
 
     /**
      * Opens a stream of messages. Messages are routed using the public key of a rendezvous keypair
@@ -76,9 +75,7 @@ internal class MessagingApi @Inject constructor(
             .apply { setSignature(sign(rendezvous)) }
             .build()
 
-        return api::openMessageStream
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return api.openMessageStream(request)
     }
 
     /**
@@ -117,9 +114,9 @@ internal class MessagingApi @Inject constructor(
      * @see openMessageStream
      */
     fun openMessageStreamWithKeepAlive(
-        observer: StreamObserver<MessagingService.OpenMessageStreamWithKeepAliveResponse>
-    ): StreamObserver<MessagingService.OpenMessageStreamWithKeepAliveRequest> {
-        return api.openMessageStreamWithKeepAlive(observer)
+        requestFlow: Flow<MessagingService.OpenMessageStreamWithKeepAliveRequest>,
+    ): Flow<MessagingService.OpenMessageStreamWithKeepAliveResponse> {
+        return api.openMessageStreamWithKeepAlive(requestFlow)
     }
 
     /**
@@ -133,43 +130,39 @@ internal class MessagingApi @Inject constructor(
      *
      * @see openMessageStream
      */
-    fun pollMessages(
+    suspend fun pollMessages(
         rendezvous: KeyPair
-    ): Flow<MessagingService.PollMessagesResponse> {
+    ): MessagingService.PollMessagesResponse {
         val request = MessagingService.PollMessagesRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply { setSignature(sign(rendezvous)) }
             .build()
 
-        return api::pollMessages
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) { api.pollMessages(request) }
     }
 
     /**
      * Acks one or more messages that have been successfully delivered to the client.
      */
-    fun ackMessages(
+    suspend fun ackMessages(
         rendezvous: KeyPair,
         messageIds: List<MessagingService.MessageId> = emptyList()
-    ): Flow<MessagingService.AckMesssagesResponse> {
+    ): MessagingService.AckMesssagesResponse {
         val request = MessagingService.AckMessagesRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .addAllMessageIds(messageIds)
             .build()
 
-        return api::ackMessages
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {  api.ackMessages(request) }
     }
 
     /**
      * Sends a message
      */
-    fun sendMessage(
+    suspend fun sendMessage(
         message: MessagingService.Message.Builder,
         rendezvous: KeyPair,
-    ): Flow<MessagingService.SendMessageResponse> {
+    ): MessagingService.SendMessageResponse {
         val signature = ByteArrayOutputStream().let {
             message.buildPartial().writeTo(it)
             val signed = Ed25519.sign(it.toByteArray(), rendezvous)
@@ -182,8 +175,6 @@ internal class MessagingApi @Inject constructor(
             .setSignature(signature)
             .build()
 
-        return api::sendMessage
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) { api.sendMessage(request) }
     }
 }

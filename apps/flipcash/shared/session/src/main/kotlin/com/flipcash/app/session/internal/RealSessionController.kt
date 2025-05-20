@@ -359,22 +359,12 @@ class RealSessionController @Inject constructor(
 
     override fun onCodeScan(code: ScannableKikCode) {
         if (billController.state.value.bill != null) {
-            trace(
-                tag = "Session",
-                message = "Already showing a bill",
-                type = TraceType.Silent
-            )
             return
         }
 
         val payload = (code as? ScannableKikCode.RemoteKikCode)?.payloadId?.toList() ?: return
         val codePayload = OpenCodePayload.fromList(payload)
         if (scannedRendezvous.contains(codePayload.rendezvous.publicKey)) {
-            trace(
-                tag = "Session",
-                message = "Nonce previously received: ${codePayload.nonce.hexEncodedString()}",
-                type = TraceType.Silent
-            )
             return
         }
 
@@ -526,8 +516,6 @@ class RealSessionController @Inject constructor(
     }
 
     override fun cancelSend(style: PresentationStyle, overrideToast: Boolean) {
-        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
-
         scope.launch {
             val shown = toastController.showIfNeeded(style, overrideToast)
             _state.update { it.copy(presentationStyle = style) }

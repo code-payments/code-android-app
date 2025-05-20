@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.transactors
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -16,11 +17,14 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 internal class GiveBillTransactor(
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
+    private val exchange: Exchange,
 ) {
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
@@ -47,6 +51,24 @@ internal class GiveBillTransactor(
         payload = payloadInfo
         rendezvousKey = payloadInfo.rendezvous
         data = payloadInfo.codeData.toList()
+    }
+
+    fun with(payload: OpenCodePayload, owner: AccountCluster) {
+        this.owner = owner
+
+        receivingAccount = null
+
+        payload.fiat?.let { native ->
+            this.amount = LocalFiat(
+                usdc = native.convertingTo(exchange.rateToUsd(native.currencyCode)!!),
+                converted = native,
+                rate = exchange.rateFor(native.currencyCode)!!
+            )
+        }
+
+        this.payload = payload
+        rendezvousKey = payload.rendezvous
+        data = payload.codeData.toList()
     }
 
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
@@ -100,8 +122,6 @@ internal class GiveBillTransactor(
         data = emptyList()
         rendezvousKey = null
         receivingAccount = null
-
-        messagingController.cancelAwaitForBillGrab()
 
         scope.cancel()
     }

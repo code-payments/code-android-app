@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api
 
-import com.codeinc.opencode.gen.account.v1.AccountGrpc
+import com.codeinc.opencode.gen.account.v1.AccountGrpcKt
 import com.codeinc.opencode.gen.account.v1.AccountService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
@@ -9,8 +9,7 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 internal class AccountApi @Inject constructor(
@@ -18,7 +17,7 @@ internal class AccountApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = AccountGrpc.newStub(managedChannel).withWaitForReady()
+    private val api = AccountGrpcKt.AccountCoroutineStub(managedChannel).withWaitForReady()
 
     /**
      * Returns whether an owner account is a Code account. This hints
@@ -28,17 +27,17 @@ internal class AccountApi @Inject constructor(
      * @param owner The owner account to check against.
      * @return The [AccountService.IsCodeAccountResponse]
      */
-    fun isCodeAccount(
+    suspend fun isCodeAccount(
         owner: KeyPair,
-    ): Flow<AccountService.IsCodeAccountResponse> {
+    ): AccountService.IsCodeAccountResponse {
         val request = AccountService.IsCodeAccountRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return api::isCodeAccount
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.isCodeAccount(request)
+        }
     }
 
     /**
@@ -50,17 +49,17 @@ internal class AccountApi @Inject constructor(
      *
      * @return The [AccountService.GetTokenAccountInfosResponse]
      */
-    fun getTokenAccounts(
+    suspend fun getTokenAccounts(
         owner: KeyPair
-    ): Flow<AccountService.GetTokenAccountInfosResponse> {
+    ): AccountService.GetTokenAccountInfosResponse {
         val request = AccountService.GetTokenAccountInfosRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return api::getTokenAccountInfos
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.getTokenAccountInfos(request)
+        }
     }
 
     /**
@@ -76,19 +75,18 @@ internal class AccountApi @Inject constructor(
      * @return The [AccountService.LinkAdditionalAccountsResponse]
      *
      */
-    fun linkAdditionalAccounts(
+    suspend fun linkAdditionalAccounts(
         owner: KeyPair,
         swapAuthority: KeyPair
-    ): Flow<AccountService.LinkAdditionalAccountsResponse> {
+    ): AccountService.LinkAdditionalAccountsResponse {
         val request = AccountService.LinkAdditionalAccountsRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .setSwapAuthority(swapAuthority.asSolanaAccountId())
             .apply { addAllSignatures(listOf(sign(owner), sign(swapAuthority))) }
             .build()
 
-        return api::linkAdditionalAccounts
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.linkAdditionalAccounts(request)
+        }
     }
-
 }

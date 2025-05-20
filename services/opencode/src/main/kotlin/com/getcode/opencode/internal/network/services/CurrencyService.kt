@@ -2,24 +2,22 @@ package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.network.api.CurrencyApi
-import com.getcode.opencode.internal.network.core.NetworkOracle
-import com.getcode.opencode.internal.network.managedApiRequest
+import com.getcode.opencode.model.core.errors.GetRatesError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.opencode.model.core.errors.GetRatesError
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 internal class CurrencyService @Inject constructor(
     private val api: CurrencyApi,
-    private val networkOracle: NetworkOracle,
 ) {
     suspend fun getRates(
         from: Instant?
     ): Result<Map<CurrencyCode, Rate>> {
-        return networkOracle.managedApiRequest(
-            call = { api.getAllRates(from?.toEpochMilliseconds()) },
-            handleResponse = { response ->
+        return runCatching {
+            api.getAllRates(from?.toEpochMilliseconds())
+        }.fold(
+            onSuccess = { response ->
                 when (response.result) {
                     CurrencyService.GetAllRatesResponse.Result.OK -> {
                         val rates = response.ratesMap
@@ -37,7 +35,7 @@ internal class CurrencyService @Inject constructor(
                     else -> Result.failure(GetRatesError.Other())
                 }
             },
-            onOtherError = { cause ->
+            onFailure = { cause ->
                 Result.failure(GetRatesError.Other(cause = cause))
             }
         )

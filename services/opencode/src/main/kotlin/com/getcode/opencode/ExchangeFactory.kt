@@ -29,7 +29,7 @@ object ExchangeFactory {
         val api = CurrencyApi(module.provideManagedChannel(context, config))
         val locale = localeModule.bindLocaleHelper(context)
         val resources = AndroidResources(context)
-        val service = CurrencyService(api, module.provideNetworkOracle())
+        val service = CurrencyService(api)
         return module.providesExchange(service, resources, locale)
     }
 }

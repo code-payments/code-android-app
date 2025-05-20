@@ -5,6 +5,7 @@ import com.bugsnag.android.Bugsnag
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.manager.TopBarManager
+import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
 import io.reactivex.rxjava3.exceptions.UndeliverableException
@@ -29,14 +30,23 @@ object ErrorUtils {
     )
 
     fun handleError(throwable: Throwable) {
-        if (isNetworkError(throwable) || isRuntimeError(throwable)) return
+        if (isNetworkError(throwable)) return
 
         val throwableCause: Throwable =
             if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException || throwable is CodeServerError))
                 throwable.cause ?: throwable
             else throwable
 
+        if (throwableCause is StatusRuntimeException) {
+            when (throwableCause.status) {
+                Status.UNAVAILABLE -> return
+                Status.CANCELLED -> return
+            }
+        }
+
         Timber.e(throwable)
+
+        if (isRuntimeError(throwable)) return
 
         if ((isDisplayErrors && !isSuppressibleError(throwable))) {
 

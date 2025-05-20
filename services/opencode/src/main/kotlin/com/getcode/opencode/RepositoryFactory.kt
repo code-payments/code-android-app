@@ -27,7 +27,7 @@ object RepositoryFactory {
         )
 
         val api = AccountApi(module.provideManagedChannel(context, config))
-        val service = AccountService(api, module.provideNetworkOracle())
+        val service = AccountService(api)
         return module.providesAccountRepository(service)
     }
 
@@ -65,7 +65,7 @@ object RepositoryFactory {
         )
 
         val api = MessagingApi(module.provideManagedChannel(context, config))
-        val service = MessagingService(api, module.provideNetworkOracle())
+        val service = MessagingService(api)
         return module.providesMessagingRepository(service)
     }
 
@@ -81,7 +81,7 @@ object RepositoryFactory {
 
         val api = TransactionApi(module.provideManagedChannel(context, config))
         val mapper = TransactionMetadataMapper()
-        val service = TransactionService(api, module.provideNetworkOracle(), mapper)
+        val service = TransactionService(api, mapper)
         return module.providesTransactionRepository(service)
     }
 }

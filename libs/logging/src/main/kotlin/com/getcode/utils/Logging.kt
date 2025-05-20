@@ -79,9 +79,9 @@ fun trace(
         TraceType.Log -> tree.d(message)
         TraceType.Navigation -> tree.d(message)
         TraceType.Network -> tree.i(message)
-        TraceType.Process -> tree.i(message)
+        TraceType.Process -> tree.d(message)
         TraceType.Silent -> tree.d(message)
-        TraceType.StateChange -> tree.i(message)
+        TraceType.StateChange -> tree.d(message)
         TraceType.User -> tree.d(message)
     }
 

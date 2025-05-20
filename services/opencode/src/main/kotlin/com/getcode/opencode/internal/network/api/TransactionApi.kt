@@ -1,14 +1,11 @@
 package com.getcode.opencode.internal.network.api
 
-import com.codeinc.opencode.gen.common.v1.Model
-import com.codeinc.opencode.gen.transaction.v2.TransactionGrpc
+import com.codeinc.opencode.gen.transaction.v2.TransactionGrpcKt
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.AirdropRequest
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.AirdropResponse
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.CanWithdrawToAccountRequest
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.CanWithdrawToAccountResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptResponse
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetIntentMetadataRequest
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetIntentMetadataResponse
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetLimitsRequest
@@ -21,21 +18,15 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asIntentId
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.extensions.asProtobufExchangeData
 import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
+import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
-import com.getcode.opencode.model.core.bytes
 import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
-import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
-import java.util.UUID
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class TransactionApi @Inject constructor(
@@ -43,7 +34,7 @@ class TransactionApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = TransactionGrpc.newStub(managedChannel).withWaitForReady()
+    private val api = TransactionGrpcKt.TransactionCoroutineStub(managedChannel).withWaitForReady()
 
     /**
      * The mechanism for client and server to agree upon a set of
@@ -80,9 +71,9 @@ class TransactionApi @Inject constructor(
      * * Client will close the stream
      */
     fun submitIntent(
-        observer: StreamObserver<SubmitIntentResponse>
-    ): StreamObserver<SubmitIntentRequest> {
-        return api.submitIntent(observer)
+        requestFlow: Flow<SubmitIntentRequest>,
+    ): Flow<SubmitIntentResponse> {
+        return api.submitIntent(requestFlow)
     }
 
     /**
@@ -94,19 +85,19 @@ class TransactionApi @Inject constructor(
      * @param owner The verified owner account public key when not signing with the rendezvous
      * key. Only owner accounts involved in the intent can access the metadata.
      */
-    fun getIntentMetadata(
+    suspend fun getIntentMetadata(
         intentId: PublicKey,
         owner: KeyPair,
-    ): Flow<GetIntentMetadataResponse> {
+    ): GetIntentMetadataResponse {
         val request = GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.asIntentId())
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return api::getIntentMetadata
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.getIntentMetadata(request)
+        }
     }
 
     /**
@@ -119,35 +110,35 @@ class TransactionApi @Inject constructor(
      * limit calculation. Clients should set this to the start of the current day in
      * the client's current time zone (because server has no knowledge of this atm).
      */
-    fun getLimits(
+    suspend fun getLimits(
         owner: KeyPair,
         consumedSince: Long,
-    ): Flow<GetLimitsResponse> {
+    ): GetLimitsResponse {
         val request = GetLimitsRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .setConsumedSince(consumedSince.asProtobufTimestamp())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return api::getLimits
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.getLimits(request)
+        }
     }
 
     /**
      * Provides hints to clients for submitting withdraw intents.
      * The RPC indicates if a withdrawal is possible, and how it should be performed.
      */
-    fun canWithdrawToAccount(
+    suspend fun canWithdrawToAccount(
         destination: PublicKey,
-    ): Flow<CanWithdrawToAccountResponse> {
+    ): CanWithdrawToAccountResponse {
         val request = CanWithdrawToAccountRequest.newBuilder()
             .setAccount(destination.asSolanaAccountId())
             .build()
 
-        return api::canWithdrawToAccount
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.canWithdrawToAccount(request)
+        }
     }
 
     /**
@@ -156,75 +147,19 @@ class TransactionApi @Inject constructor(
      * @param type The type of airdrop to claim
      * @param destination The owner account to airdrop Kin to
      */
-    fun airdrop(
+    suspend fun airdrop(
         type: AirdropType,
         destination: KeyPair,
-    ): Flow<AirdropResponse> {
+    ): AirdropResponse {
         val request = AirdropRequest.newBuilder()
             .setAirdropType(TransactionService.AirdropType.forNumber(type.ordinal))
             .setOwner(destination.asSolanaAccountId())
             .apply { setSignature(sign(destination)) }
             .build()
 
-        return api::airdrop
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
-    }
-
-    /**
-     * Performs an on-chain swap. The high-level flow mirrors [submitIntent] closely. However,
-     * due to the time-sensitive nature and unreliability of swaps, they do not fit within the
-     * broader intent system. This results in a few key differences:
-     *
-     * - Transactions are submitted on a best-effort basis outside of the Code Sequencer within
-     * the RPC handler
-     * - Balance changes are applied after the transaction has finalized
-     * - Transactions use recent blockhashes over a nonce
-     *
-     * [submitIntent] also operates on VM virtual instructions, whereas [swap] uses Solana transactions.
-     *
-     * The transaction will have the following instruction format:
-     * 1. ComputeBudget::SetComputeUnitLimit
-     * 2. ComputeBudget::SetComputeUnitPrice
-     * 3. SwapValidator::PreSwap
-     * 4. Dynamic swap instruction
-     * 5. SwapValidator::PostSwap
-     *
-     * > NOTE: Currently limited to swapping USDC to Kin.
-     * > Kin is deposited into the token account derived from the VM deposit PDA of the owner account.
-     *
-     */
-    fun swap(
-        observer: StreamObserver<TransactionService.SwapResponse>
-    ): StreamObserver<TransactionService.SwapRequest> {
-        return api.swap(observer)
-    }
-
-    /**
-     * Called whenever a user attempts to use a fiat
-     * onramp to purchase crypto for use in Code.
-     *
-     * @param owner The owner account invoking the buy module
-     * @param purchaseAmount The amount being purchased
-     * @param nonce A nonce value unique to the purchase. If it's included in a memo for the
-     * transaction for the deposit to the owner, then purchase_amount will be used
-     * for display values. Otherwise, the amount will be inferred from the transaction.
-     */
-    fun declareFiatOnrampPurchaseAttempt(
-        owner: KeyPair,
-        purchaseAmount: ExchangeData.WithoutRate,
-        nonce: UUID
-    ): Flow<DeclareFiatOnrampPurchaseAttemptResponse> {
-        val request = DeclareFiatOnrampPurchaseAttemptRequest.newBuilder()
-            .setOwner(owner.asSolanaAccountId())
-            .setPurchaseAmount(purchaseAmount.asProtobufExchangeData())
-            .setNonce(Model.UUID.newBuilder().setValue(nonce.bytes.toByteString()))
-            .apply { setSignature(sign(owner)) }
-            .build()
-
-        return api::declareFiatOnrampPurchaseAttempt
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.airdrop(request)
+        }
     }
 
     /**
@@ -235,18 +170,18 @@ class TransactionApi @Inject constructor(
      * NOTE: The RPC is idempotent. If the user already claimed/voided the gift card, or
      * it is close to or is auto-returned, then OK will be returned.
      */
-    fun voidGiftCard(
+    suspend fun voidGiftCard(
         owner: KeyPair,
         giftCardVault: PublicKey,
-    ): Flow<VoidGiftCardResponse> {
+    ): VoidGiftCardResponse {
         val request = VoidGiftCardRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .setGiftCardVault(giftCardVault.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return api::voidGiftCard
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
+        return withContext(Dispatchers.IO) {
+            api.voidGiftCard(request)
+        }
     }
 }

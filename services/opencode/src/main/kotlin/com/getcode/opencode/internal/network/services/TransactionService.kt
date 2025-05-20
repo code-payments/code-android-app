@@ -4,36 +4,31 @@ import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRequest
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
+import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
-import com.getcode.opencode.internal.extensions.toPublicKey
-import com.getcode.opencode.solana.intents.IntentType
-import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.internal.network.api.TransactionApi
-import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.extensions.toModel
-import com.getcode.opencode.internal.network.managedApiRequest
-import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
+import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
-import com.getcode.opencode.observers.BidirectionalStreamReference
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.diff
+import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.decodeBase58
 import com.getcode.utils.trace
-import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -46,7 +41,6 @@ typealias OcpIntentStreamReference = BidirectionalStreamReference<SubmitIntentRe
 
 internal class TransactionService @Inject constructor(
     private val api: TransactionApi,
-    private val networkOracle: NetworkOracle,
     private val metadataMapper: TransactionMetadataMapper,
 ) {
     suspend fun submitIntent(
@@ -58,7 +52,8 @@ internal class TransactionService @Inject constructor(
             tag = "SubmitIntent",
             message = "Opening stream."
         )
-        val streamReference = OcpIntentStreamReference(scope)
+        val streamReference = OcpIntentStreamReference(scope, "submitIntent")
+
         streamReference.retain()
 
         scope.launch {
@@ -82,9 +77,10 @@ internal class TransactionService @Inject constructor(
         intentId: PublicKey,
         owner: KeyPair
     ): Result<TransactionMetadata> {
-        return networkOracle.managedApiRequest(
-            call = { api.getIntentMetadata(intentId, owner) },
-            handleResponse = { response ->
+        return runCatching {
+            api.getIntentMetadata(intentId, owner)
+        }.fold(
+            onSuccess = { response ->
                 when (response.result) {
                     TransactionService.GetIntentMetadataResponse.Result.OK -> {
                         Result.success(metadataMapper.map(response.metadata))
@@ -101,7 +97,7 @@ internal class TransactionService @Inject constructor(
                     else -> Result.failure(GetIntentMetadataError.Other())
                 }
             },
-            onOtherError = { error ->
+            onFailure = { error ->
                 Result.failure(GetIntentMetadataError.Other(cause = error))
             }
         )
@@ -111,9 +107,10 @@ internal class TransactionService @Inject constructor(
         owner: KeyPair,
         consumedSince: Instant,
     ): Result<Limits> {
-        return networkOracle.managedApiRequest(
-            call = { api.getLimits(owner, consumedSince.toEpochMilliseconds()) },
-            handleResponse = { response ->
+        return runCatching {
+            api.getLimits(owner, consumedSince.toEpochMilliseconds())
+        }.fold(
+            onSuccess = { response ->
                 when (response.result) {
                     TransactionService.GetLimitsResponse.Result.OK -> {
                         val limits = Limits.newInstance(
@@ -133,7 +130,7 @@ internal class TransactionService @Inject constructor(
                     else -> Result.failure(GetLimitsError.Other())
                 }
             },
-            onOtherError = { error ->
+            onFailure = { error ->
                 Result.failure(GetLimitsError.Other(cause = error))
             }
         )
@@ -142,9 +139,10 @@ internal class TransactionService @Inject constructor(
     suspend fun withdrawalAvailability(
         destination: PublicKey,
     ): Result<WithdrawalAvailability> {
-        return networkOracle.managedApiRequest(
-            call = { api.canWithdrawToAccount(destination) },
-            handleResponse = { response ->
+        return runCatching {
+            api.canWithdrawToAccount(destination)
+        }.fold(
+            onSuccess = { response ->
                 val availability = WithdrawalAvailability.newInstance(
                     destination = destination,
                     isValid = response.isValidPaymentDestination,
@@ -155,9 +153,9 @@ internal class TransactionService @Inject constructor(
 
                 Result.success(availability)
             },
-            onOtherError = { error ->
+            onFailure = { error ->
                 Result.failure(WithdrawalAvailabilityError.Other(cause = error))
-            },
+            }
         )
     }
 
@@ -165,20 +163,21 @@ internal class TransactionService @Inject constructor(
         type: AirdropType,
         destination: KeyPair,
     ): Result<ExchangeData.WithRate> {
-        return networkOracle.managedApiRequest(
-            call = { api.airdrop(type, destination) },
-            handleResponse = { response ->
+        return runCatching {
+            api.airdrop(type, destination)
+        }.fold(
+            onSuccess = { response ->
                 when (response.result) {
-                    TransactionService.AirdropResponse.Result.OK -> {
-                        Result.success(response.exchangeData.toModel())
-                    }
+                    TransactionService.AirdropResponse.Result.OK -> Result.success(response.exchangeData.toModel())
                     TransactionService.AirdropResponse.Result.UNAVAILABLE -> Result.failure(AirdropError.Unavailable())
                     TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> Result.failure(AirdropError.AlreadyClaimed())
                     TransactionService.AirdropResponse.Result.UNRECOGNIZED -> Result.failure(AirdropError.Unrecognized())
                     else -> Result.failure(AirdropError.Other())
                 }
             },
-            onOtherError = { error -> Result.failure(AirdropError.Other(cause = error)) }
+            onFailure = { error ->
+                Result.failure(AirdropError.Other(cause = error))
+            }
         )
     }
 
@@ -186,9 +185,10 @@ internal class TransactionService @Inject constructor(
         owner: KeyPair,
         giftCardVault: PublicKey,
     ): Result<Unit> {
-        return networkOracle.managedApiRequest(
-            call = { api.voidGiftCard(owner, giftCardVault) },
-            handleResponse = { response ->
+        return runCatching {
+            api.voidGiftCard(owner, giftCardVault)
+        }.fold(
+            onSuccess = { response ->
                 when (response.result) {
                     TransactionService.VoidGiftCardResponse.Result.OK -> Result.success(Unit)
                     TransactionService.VoidGiftCardResponse.Result.DENIED -> Result.failure(VoidGiftCardError.Denied())
@@ -198,8 +198,8 @@ internal class TransactionService @Inject constructor(
                     else -> Result.failure(VoidGiftCardError.Other())
                 }
             },
-            onOtherError = { cause ->
-                Result.failure(VoidGiftCardError.Other(cause = cause))
+            onFailure = { error ->
+                Result.failure(VoidGiftCardError.Other(cause = error))
             }
         )
     }
@@ -208,78 +208,49 @@ internal class TransactionService @Inject constructor(
         streamRef: OcpIntentStreamReference,
         intent: IntentType,
         owner: KeyPair,
-    ): Result<IntentType> = suspendCancellableCoroutine { cont ->
-        try {
-            // Initialize stream without cancelling existing one prematurely
-            val streamObserver = api.submitIntent(object : StreamObserver<SubmitIntentResponse> {
-                override fun onNext(value: SubmitIntentResponse?) {
-                    when (value?.responseCase) {
-                        SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS -> {
-                            handleServerParameters(
-                                intent = intent,
-                                stream = streamRef.stream,
-                                serverParameters = value.serverParameters.serverParametersList
-                            )
-                        }
-
-                        SubmitIntentResponse.ResponseCase.SUCCESS -> {
-                            streamRef.stream?.onCompleted()
-                            if (!cont.isCompleted) {
-                                cont.resume(Result.success(intent))
-                            }
-                        }
-
-                        SubmitIntentResponse.ResponseCase.ERROR -> {
-                            val errors = handleErrors(intent, value.error.errorDetailsList)
-                            trace(
-                                tag = "SubmitIntent",
-                                message = "Error: ${errors.joinToString("\n")}",
-                                type = TraceType.Error
-                            )
-                            streamRef.stream?.onCompleted()
-                            if (!cont.isCompleted) {
-                                cont.resume(Result.failure(SubmitIntentError.typed(value.error)))
-                            }
-                        }
-
-                        SubmitIntentResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
-                        else -> Unit
-                    }
-                }
-
-                override fun onError(t: Throwable?) {
-                    t?.printStackTrace()
-                    if (!cont.isCompleted) {
-                        cont.resume(Result.failure(SubmitIntentError.Other(cause = t)))
-                    }
-                    streamRef.cancel()
-                }
-
-                override fun onCompleted() {
-                    trace(
-                        tag = "SubmitIntent",
-                        message = "Completed",
-                        type = TraceType.Silent
+    ): Result<IntentType> = openBidirectionalStream(
+        streamRef = streamRef,
+        apiCall = api::submitIntent,
+        initialRequest = { intent.requestToSubmitActions(owner) },
+        responseHandler = { response, onResult, requestChannel ->
+            when (val result = response.responseCase) {
+                SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS -> {
+                    handleServerParameters(
+                        intent = intent,
+                        onResult = onResult,
+                        requestChannel = requestChannel,
+                        serverParameters = response.serverParameters.serverParametersList
                     )
                 }
-            })
 
-            // Set stream only after initialization
-            streamRef.stream = streamObserver
-            streamRef.stream?.onNext(intent.requestToSubmitActions(owner))
-        } catch (e: Exception) {
-            if (!cont.isCompleted) {
-                ErrorUtils.handleError(e)
-                cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
+                SubmitIntentResponse.ResponseCase.SUCCESS -> {
+                    streamRef.complete()
+                    onResult(Result.success(intent))
+                }
+
+                SubmitIntentResponse.ResponseCase.ERROR -> {
+                    val errors = handleErrors(intent, response.error.errorDetailsList)
+                    trace(
+                        tag = "SubmitIntent",
+                        message = "Error: ${errors.joinToString("\n")}",
+                        type = TraceType.Error
+                    )
+                    streamRef.complete()
+                    onResult(Result.failure(SubmitIntentError.typed(response.error)))
+                }
+
+                SubmitIntentResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
+                else -> Unit
             }
         }
-    }
+    )
 }
 
 private fun handleServerParameters(
     intent: IntentType,
-    stream: StreamObserver<SubmitIntentRequest>?,
     serverParameters: List<TransactionService.ServerParameter>,
+    requestChannel: (SubmitIntentRequest) -> Unit,
+    onResult: (Result<IntentType>) -> Unit,
 ) {
     try {
         intent.apply(serverParameters.map { p -> ServerParameter.newInstance(p) })
@@ -291,7 +262,7 @@ private fun handleServerParameters(
         )
 
         val submitSignatures = intent.requestToSubmitSignatures()
-        stream?.onNext(submitSignatures)
+        requestChannel(submitSignatures)
     } catch (e: Exception) {
         if (BuildConfig.DEBUG) {
             e.printStackTrace()
@@ -301,7 +272,7 @@ private fun handleServerParameters(
             message = "Received ${serverParameters.size} parameters but failed to apply them: ${e.javaClass.simpleName} ${e.message})",
             type = TraceType.Silent
         )
-        stream?.onError(SubmitIntentError.Other(cause = e))
+        onResult(Result.failure(SubmitIntentError.Other(cause = e)))
     }
 }
 

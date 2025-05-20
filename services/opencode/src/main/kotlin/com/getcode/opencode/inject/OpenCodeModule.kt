@@ -5,16 +5,14 @@ import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository
 import com.getcode.opencode.internal.domain.repositories.InternalEventRepository
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
-import com.getcode.opencode.internal.network.core.NetworkOracle
-import com.getcode.opencode.internal.network.core.NetworkOracleImpl
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
@@ -26,7 +24,6 @@ import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.hoc081098.channeleventbus.ChannelEventBus
 import dagger.Module
 import dagger.Provides
@@ -53,11 +50,6 @@ object OpenCodeModule {
         resources = resources,
         locale = locale,
     )
-
-    @Provides
-    fun provideNetworkOracle(): NetworkOracle {
-        return NetworkOracleImpl()
-    }
 
     @Singleton
     @OpenCodeProtocol
@@ -89,6 +81,7 @@ object OpenCodeModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .apply {
                 if (BuildConfig.DEBUG) {
                     this.intercept(LoggingClientInterceptor())

@@ -1,7 +1,6 @@
 package com.flipcash.services.internal.network.api
 
-import com.codeinc.flipcash.gen.account.v1.AccountGrpc
-import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService
+import com.codeinc.flipcash.gen.account.v1.AccountGrpcKt
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asPublicKey
 import com.flipcash.services.internal.network.extensions.asUserId
@@ -12,8 +11,10 @@ import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
 import com.google.protobuf.Timestamp
 import io.grpc.ManagedChannel
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService
 
 class AccountApi @Inject constructor(
     @FlipcashManagedChannel
@@ -21,49 +22,52 @@ class AccountApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
 
     private val api
-        get() = AccountGrpc.newStub(managedChannel).withWaitForReady()
+        get() = AccountGrpcKt.AccountCoroutineStub(managedChannel).withWaitForReady()
 
     /**
      * Registers a new user, bound to the provided PublicKey.
      * If the PublicKey is already in use, the previous user account is returned.
      */
-    fun register(owner: KeyPair): Flow<RpcAccountService.RegisterResponse> {
+    suspend fun register(owner: KeyPair): RpcAccountService.RegisterResponse {
         val request = RpcAccountService.RegisterRequest.newBuilder()
             .setPublicKey(owner.asPublicKey())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return api::register
-            .callAsCancellableFlow(request)
+        return withContext(Dispatchers.IO) {
+            api.register(request)
+        }
     }
 
     /**
      * Retrieves the UserId (and in the future, potentially other information)
      * required for 'recovering' an account.
      */
-    fun login(owner: KeyPair): Flow<RpcAccountService.LoginResponse> {
+    suspend fun login(owner: KeyPair): RpcAccountService.LoginResponse {
         val request = RpcAccountService.LoginRequest.newBuilder()
             .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
             .apply { setAuth(authenticate(owner)) }
             .build()
 
-        return api::login
-            .callAsCancellableFlow(request)
+        return withContext(Dispatchers.IO) {
+            api.login(request)
+        }
     }
 
     /**
      * Gets user-specific flags.
      */
-    fun getUserFlags(
+    suspend fun getUserFlags(
         userId: ID,
         owner: KeyPair,
-    ): Flow<RpcAccountService.GetUserFlagsResponse> {
+    ): RpcAccountService.GetUserFlagsResponse {
         val request = RpcAccountService.GetUserFlagsRequest.newBuilder()
             .setUserId(userId.asUserId())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
-        return api::getUserFlags
-            .callAsCancellableFlow(request)
+        return withContext(Dispatchers.IO) {
+            api.getUserFlags(request)
+        }
     }
 }

@@ -2,40 +2,20 @@ package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.domain.mapping.MessageMapper
+import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
+import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.network.api.MessagingApi
-import com.getcode.opencode.internal.network.core.DEFAULT_STREAM_TIMEOUT
-import com.getcode.opencode.internal.network.core.INFINITE_STREAM_TIMEOUT
-import com.getcode.opencode.internal.network.core.NetworkOracle
 import com.getcode.opencode.internal.network.extensions.clientPongWith
 import com.getcode.opencode.internal.network.extensions.openMessageStreamRequest
-import com.getcode.opencode.internal.network.extensions.toId
 import com.getcode.opencode.internal.network.extensions.toPublicKey
-import com.getcode.opencode.internal.network.managedApiRequest
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.AckMessagesError
 import com.getcode.opencode.model.core.errors.PollMessagesError
 import com.getcode.opencode.model.core.errors.SendMessageError
-import com.getcode.opencode.model.messaging.Message
-import com.getcode.opencode.observers.BidirectionalStreamReference
 import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.base58
-import com.getcode.utils.decodeBase58
 import com.getcode.utils.trace
-import io.grpc.Status
-import io.grpc.StatusRuntimeException
-import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 import com.codeinc.opencode.gen.messaging.v1.MessagingService as RpcMessagingService
 
@@ -43,7 +23,6 @@ typealias OcpMessageStreamReference = BidirectionalStreamReference<RpcMessagingS
 
 internal class MessagingService @Inject constructor(
     private val api: MessagingApi,
-    private val networkOracle: NetworkOracle,
 ) {
     fun openMessageStreamWithKeepAlive(
         scope: CoroutineScope,
@@ -51,161 +30,145 @@ internal class MessagingService @Inject constructor(
         onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit,
     ): OcpMessageStreamReference {
         trace("Message Opening stream.")
-        val streamReference = OcpMessageStreamReference(scope)
+        val streamReference = OcpMessageStreamReference(scope, "messaging")
+
         streamReference.retain()
         streamReference.timeoutHandler = {
             trace("Message Stream timed out")
-            openMessageStream(
-                rendezvous = rendezvous,
-                streamRef = streamReference,
-                onEvent = onEvent
-            )
+            streamReference.coroutineScope.launch {
+                openMessageStream(
+                    scope = scope,
+                    rendezvous = rendezvous,
+                    streamRef = streamReference,
+                    onEvent = onEvent
+                )
+            }
         }
 
-        openMessageStream(rendezvous, streamReference, onEvent)
+        streamReference.coroutineScope.launch {
+            openMessageStream(scope, rendezvous, streamReference, onEvent)
+        }
 
         return streamReference
     }
 
-    private fun openMessageStream(
+
+    private suspend fun openMessageStream(
+        scope: CoroutineScope,
         rendezvous: KeyPair,
         streamRef: OcpMessageStreamReference,
         onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit
     ) {
-        try {
-            streamRef.cancel()
-            streamRef.stream =
-                api.openMessageStreamWithKeepAlive(object :
-                    StreamObserver<RpcMessagingService.OpenMessageStreamWithKeepAliveResponse> {
-                    override fun onNext(value: RpcMessagingService.OpenMessageStreamWithKeepAliveResponse?) {
-                        val result = value?.responseOrPingCase
-                        if (result == null) {
-                            trace(
-                                message = "Message Stream Server sent empty message. This is unexpected.",
-                                type = TraceType.Error
-                            )
-                            return
-                        }
-
-                        when (result) {
-                            RpcMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
-                                onEvent(Result.success(value.response.messagesList))
-                            }
-
-                            RpcMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.PING -> {
-                                val stream = streamRef.stream ?: return
-                                val request =
-                                    RpcMessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
-                                        .setPong(clientPongWith(System.currentTimeMillis()))
-                                        .build()
-
-
-                                streamRef.receivedPing(updatedTimeout = value.ping.pingDelay.seconds * 1_000L)
-                                stream.onNext(request)
-                                trace("Pong Message Stream Server timestamp: ${value.ping.timestamp}")
-                            }
-
-                            RpcMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSEORPING_NOT_SET -> Unit
-                        }
-                    }
-
-                    override fun onError(t: Throwable?) {
-                        val statusException = t as? StatusRuntimeException
-                        if (statusException?.status?.code == Status.Code.UNAVAILABLE) {
-                            trace("Message Stream Reconnecting keepalive stream...")
-                            openMessageStream(
-                                rendezvous,
-                                streamRef,
-                                onEvent
-                            )
-                        } else {
-                            t?.printStackTrace()
-                        }
-                    }
-
-                    override fun onCompleted() {
-
-                    }
-                })
-
-            streamRef.coroutineScope.launch {
-                val request = RpcMessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
+        openBidirectionalStream(
+            streamRef = streamRef,
+            apiCall = api::openMessageStreamWithKeepAlive,
+            initialRequest = {
+                MessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
                     .setRequest(openMessageStreamRequest(rendezvous))
                     .build()
+            },
+            reconnectOnUnavailable = true,
+            reconnectOnCancelled = true,
+            reconnectHandler = {
+                streamRef.coroutineScope.launch {
+                    openMessageStream(scope, rendezvous, streamRef, onEvent)
+                }
+            },
+            responseHandler = { response, onResult, requestChannel ->
+                when (val result = response.responseOrPingCase) {
+                    MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
+                        onResult(Result.success(response.response.messagesList))
+                    }
 
-                streamRef.stream?.onNext(request)
-                trace("Message Stream Initiating a connection...")
+                    MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.PING -> {
+                        val request =
+                            MessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
+                                .setPong(clientPongWith(System.currentTimeMillis()))
+                                .build()
+
+                        streamRef.receivedPing(updatedTimeout = response.ping.pingDelay.seconds * 1_000L)
+                        requestChannel(request)
+                        trace(
+                            message = "Pong Message Stream Server timestamp: ${response.ping.timestamp}",
+                        )
+                    }
+
+                    MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSEORPING_NOT_SET -> {
+                        trace(
+                            message = "Message Stream Server sent empty message. This is unexpected.",
+                            type = TraceType.Error,
+                        )
+                    }
+                }
             }
-        } catch (e: Exception) {
-            if (e is IllegalStateException && e.message == "call already half-closed") {
-                // ignore
-            } else {
-                ErrorUtils.handleError(e)
-            }
-        }
+        ).fold(
+            onFailure = { onEvent(Result.failure(it)) },
+            onSuccess = { onEvent(Result.success(it)) }
+        )
     }
 
     suspend fun pollMessages(
         rendezvous: KeyPair,
     ): Result<List<MessagingService.Message>> {
-        return networkOracle.managedApiRequest(
-            call = { api.pollMessages(rendezvous) },
-            handleResponse = { response ->
-                Result.success(response.messagesList)
-            },
-            onOtherError = { error ->
-                Result.failure(PollMessagesError.Other(cause = error))
-            }
-        )
+        return runCatching { api.pollMessages(rendezvous) }
+            .fold(
+                onSuccess = { response ->
+                    Result.success(response.messagesList)
+                },
+                onFailure = {
+                    return Result.failure(PollMessagesError.Other(cause = it))
+                }
+            )
     }
 
     suspend fun ackMessages(
         rendezvous: KeyPair,
         messageIds: List<MessagingService.MessageId> = emptyList(),
     ): Result<Unit> {
-        return networkOracle.managedApiRequest(
-            call = { api.ackMessages(rendezvous, messageIds) },
-            handleResponse = { response ->
-                when (response.result) {
-                    RpcMessagingService.AckMesssagesResponse.Result.OK -> Result.success(Unit)
-                    RpcMessagingService.AckMesssagesResponse.Result.UNRECOGNIZED -> {
-                        Result.failure(AckMessagesError.Unrecognized())
-                    }
+        return runCatching { api.ackMessages(rendezvous, messageIds) }
+            .fold(
+                onSuccess = { response ->
+                    when (response.result) {
+                        RpcMessagingService.AckMesssagesResponse.Result.OK -> Result.success(Unit)
+                        RpcMessagingService.AckMesssagesResponse.Result.UNRECOGNIZED -> {
+                            Result.failure(AckMessagesError.Unrecognized())
+                        }
 
-                    else -> Result.failure(AckMessagesError.Other())
+                        else -> Result.failure(AckMessagesError.Other())
+                    }
+                },
+                onFailure = { error ->
+                    Result.failure(PollMessagesError.Other(cause = error))
                 }
-            },
-            onOtherError = { error ->
-                Result.failure(PollMessagesError.Other(cause = error))
-            }
-        )
+            )
     }
 
     suspend fun sendMessage(
         rendezvous: KeyPair,
         message: RpcMessagingService.Message.Builder,
     ): Result<PublicKey> {
-        return networkOracle.managedApiRequest(
-            call = { api.sendMessage(rendezvous = rendezvous, message = message) },
-            handleResponse = { response ->
-                when (response.result) {
-                    RpcMessagingService.SendMessageResponse.Result.OK -> {
-                        Result.success(response.messageId.toPublicKey())
-                    }
-                    RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
-                        Result.failure(SendMessageError.Unrecognized())
-                    }
+        return runCatching { api.sendMessage(rendezvous = rendezvous, message = message) }
+            .fold(
+                onSuccess = { response ->
+                    when (response.result) {
+                        RpcMessagingService.SendMessageResponse.Result.OK -> {
+                            Result.success(response.messageId.toPublicKey())
+                        }
 
-                    RpcMessagingService.SendMessageResponse.Result.NO_ACTIVE_STREAM -> {
-                        Result.failure(SendMessageError.NoActiveStream())
-                    }
+                        RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
+                            Result.failure(SendMessageError.Unrecognized())
+                        }
 
-                    else -> Result.failure(SendMessageError.Other())
+                        RpcMessagingService.SendMessageResponse.Result.NO_ACTIVE_STREAM -> {
+                            Result.failure(SendMessageError.NoActiveStream())
+                        }
+
+                        else -> Result.failure(SendMessageError.Other())
+                    }
+                },
+                onFailure = { error ->
+                    Result.failure(SendMessageError.Other(cause = error))
                 }
-            },
-            onOtherError = { error ->
-                Result.failure(SendMessageError.Other(cause = error))
-            }
-        )
+            )
     }
 }
