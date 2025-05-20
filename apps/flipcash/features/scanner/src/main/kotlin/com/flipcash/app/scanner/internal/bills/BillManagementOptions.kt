@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -99,6 +100,20 @@ internal fun BillManagementOptions(
                                 text = label
                             )
                         }
+                    }
+                }
+            }
+
+            if (primaryAction == null && secondaryAction == null) {
+                Pill(
+                    modifier = Modifier.alpha(0f),
+                    contentPadding = PaddingValues(15.dp),
+                    backgroundColor = CodeTheme.colors.action,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.size(18.dp))
                     }
                 }
             }

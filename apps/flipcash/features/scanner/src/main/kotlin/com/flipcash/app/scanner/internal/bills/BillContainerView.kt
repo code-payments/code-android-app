@@ -39,6 +39,7 @@ import com.flipcash.app.scanner.internal.DecorView
 import com.flipcash.app.scanner.internal.ReceivedFundsConfirmation
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.app.session.PresentationStyle
 import com.flipcash.features.scanner.R
 import com.getcode.manager.TopBarManager
 import com.getcode.ui.biometrics.LocalBiometricsState
@@ -183,8 +184,7 @@ internal fun BillContainer(
         val showManagementOptions by remember(updatedBillState) {
             derivedStateOf {
                 billDismissState.targetValue == DismissValue.Default &&
-                        updatedBillState.valuation != null &&
-                        !updatedBillState.hideBillButtons
+                        updatedBillState.valuation != null
             }
         }
 
@@ -195,11 +195,11 @@ internal fun BillContainer(
             contentPadding = PaddingValues(bottom = managementHeight),
             bill = updatedBillState.bill,
             transitionSpec = {
-                if (updatedState.presentationStyle is com.flipcash.app.session.PresentationStyle.Slide) {
+                if (updatedState.presentationStyle is PresentationStyle.Slide) {
                     AnimationUtils.animationBillEnterGive
                 } else {
                     AnimationUtils.animationBillEnterGrabbed
-                } togetherWith if (updatedState.presentationStyle is com.flipcash.app.session.PresentationStyle.Slide) {
+                } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
                     AnimationUtils.animationBillExitReturned
                 } else {
                     AnimationUtils.animationBillExitGrabbed
