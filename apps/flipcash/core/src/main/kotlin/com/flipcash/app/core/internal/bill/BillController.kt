@@ -38,6 +38,8 @@ class BillController @Inject constructor(
         onError: (Throwable) -> Unit,
     ) = transactionManager.awaitGrabFromRecipient(amount, owner, present, onGrabbed, onTimeout, onError)
 
+    fun cancelAwaitForGrab() = transactionManager.cancelAwaitForGrab()
+
     fun attemptGrab(
         owner: AccountCluster,
         payload: OpenCodePayload,

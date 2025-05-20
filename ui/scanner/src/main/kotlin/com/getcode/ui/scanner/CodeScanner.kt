@@ -35,6 +35,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.internal.CameraGestureController
+import com.getcode.ui.scanner.internal.FocusIndicator
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
@@ -196,7 +197,7 @@ fun CodeScanner(
 
     AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-    com.getcode.ui.scanner.internal.FocusIndicator(autoFocusPoint) {
+    FocusIndicator(autoFocusPoint) {
         autoFocusPoint = Offset.Unspecified
     }
 

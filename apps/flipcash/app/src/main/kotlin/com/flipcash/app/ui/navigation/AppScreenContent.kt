@@ -8,7 +8,7 @@ import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.currency.CurrencySelectionModal
 import com.flipcash.app.deposit.DepositScreen
-import com.flipcash.app.give.GiveScreen
+import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.lab.LabScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.router.LoginRouter
@@ -19,7 +19,6 @@ import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
-import com.flipcash.app.send.SendScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
@@ -58,12 +57,16 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             ScannerScreen(it.deeplink)
         }
 
-        register<NavScreenProvider.HomeScreen.Give> {
-            GiveScreen()
-        }
+//        register<NavScreenProvider.HomeScreen.Give> {
+//            CashScreen()
+//        }
+//
+//        register<NavScreenProvider.HomeScreen.Send> {
+//            SendScreen()
+//        }
 
-        register<NavScreenProvider.HomeScreen.Send> {
-            SendScreen()
+        register<NavScreenProvider.HomeScreen.Cash> {
+            CashScreen()
         }
 
         register<NavScreenProvider.HomeScreen.Balance> {

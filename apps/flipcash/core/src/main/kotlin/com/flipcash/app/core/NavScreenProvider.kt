@@ -10,7 +10,9 @@ sealed class NavScreenProvider : ScreenProvider {
     data class AppRestricted(val restrictionType: RestrictionType) : NavScreenProvider()
 
     sealed class Login {
-        data class Home(val seed: String? = null, val fromDeeplink: Boolean = false) : NavScreenProvider()
+        data class Home(val seed: String? = null, val fromDeeplink: Boolean = false) :
+            NavScreenProvider()
+
         data object SeedInput : NavScreenProvider()
     }
 
@@ -23,14 +25,17 @@ sealed class NavScreenProvider : ScreenProvider {
         data object Purchase : NavScreenProvider()
         data object AccessKey : NavScreenProvider()
     }
-//    https://app.flipcash.com/login?data=NtNLaUA7mqB2VVDnzXFCGB
+
     sealed interface HomeScreen {
         data class Scanner(val deeplink: DeeplinkType? = null) : NavScreenProvider()
-        data object Give : NavScreenProvider()
-        data object Send : NavScreenProvider()
+        // Combined into a single Cash screen
+        data object Cash : NavScreenProvider()
+
+//        data object Give : NavScreenProvider()
+//        data object Send : NavScreenProvider()
         data object Balance : NavScreenProvider()
 
-        data object ShareApp: NavScreenProvider()
+        data object ShareApp : NavScreenProvider()
 
         sealed class Menu {
             data object Root : NavScreenProvider()

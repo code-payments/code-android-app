@@ -219,6 +219,11 @@ class BillTransactionManager @Inject constructor(
         }
     }
 
+    fun cancelAwaitForGrab() {
+        giveTransactor?.dispose()
+        giveTransactor = null
+    }
+
     fun reset() {
         cancelBillTimeout()
         giveTransactor?.dispose()

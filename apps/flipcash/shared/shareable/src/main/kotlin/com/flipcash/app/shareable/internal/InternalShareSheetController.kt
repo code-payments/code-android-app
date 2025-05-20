@@ -57,6 +57,7 @@ internal class InternalShareSheetController(
                         val pendingEntropy = shareable.pendingData?.entropy.orEmpty()
                         if (clippedText?.contains(pendingEntropy) == true) {
                             onShared?.invoke(ShareResult.CopiedToClipboard)
+                            return
                         }
                     }
 

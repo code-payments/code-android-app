@@ -9,8 +9,10 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
+import com.flipcash.app.core.money.formatted
 import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
+import com.flipcash.app.session.SessionState
 import com.flipcash.app.session.internal.toast.ToastController
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
@@ -77,9 +79,9 @@ class RealSessionController @Inject constructor(
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val _state = MutableStateFlow(com.flipcash.app.session.SessionState())
+    private val _state = MutableStateFlow(SessionState())
 
-    override val state: StateFlow<com.flipcash.app.session.SessionState>
+    override val state: StateFlow<SessionState>
         get() = _state.asStateFlow()
 
     override val billState: StateFlow<BillState>
@@ -214,6 +216,7 @@ class RealSessionController @Inject constructor(
                             )
                         }
                     }
+
                     Bill.Kind.cash -> {
                         if (bill.didReceive) {
                             // Don't show action buttons for received cash
@@ -227,24 +230,27 @@ class RealSessionController @Inject constructor(
                             // Allow cancelling pending outgoing cash bills
                             billController.update {
                                 it.copy(
-                                    primaryAction = BillState.Action.Cancel(
+                                    primaryAction = BillState.Action.Send(
+                                        action = {
+                                            billController.cancelAwaitForGrab()
+
+                                            shareGiftCard(bill.amount, owner) {
+                                                trace(
+                                                    tag = "Session",
+                                                    message = "Cash link not sent. Restarting awaiting grab",
+                                                    type = TraceType.User,
+                                                )
+                                                awaitBillGrab(bill, owner, vibrate)
+                                            }
+                                        }
+                                    ),
+                                    secondaryAction = BillState.Action.Cancel(
                                         action = { cancelSend() }
                                     ),
-                                    secondaryAction = null,
                                 )
                             }
                         }
                         awaitBillGrab(bill, owner, vibrate)
-                    }
-                    Bill.Kind.remote -> {
-                        val data = OpenCodePayload(
-                            kind = PayloadKind.Cash,
-                            value = bill.amount.converted,
-                            nonce = nonce
-                        )
-
-                        presentBillToUser(data.codeData.toList(), bill, vibrate)
-                        shareGiftCard(bill.amount, owner)
                     }
                 }
             }
@@ -285,7 +291,9 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun shareGiftCard(amount: LocalFiat, owner: AccountCluster) {
+    private fun shareGiftCard(
+        amount: LocalFiat, owner: AccountCluster, restartBillGrabber: () -> Unit
+    ) {
         val giftCard = GiftCardAccount.create()
 
         val initiateFunding = { amt: LocalFiat, resetShareController: Boolean ->
@@ -326,6 +334,7 @@ class RealSessionController @Inject constructor(
                         )
                         initiateFunding(amount, true)
                     }
+
                     is ShareResult.SharedToApp -> {
                         if (!giftCard.funded) {
                             trace(
@@ -348,7 +357,10 @@ class RealSessionController @Inject constructor(
                             shareSheetController.reset()
                         }
                     }
-                    ShareResult.NotShared -> cancelSend()
+
+                    ShareResult.NotShared -> {
+                        restartBillGrabber()
+                    }
                 }
             }
             val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
@@ -475,6 +487,8 @@ class RealSessionController @Inject constructor(
     }
 
     private fun presentBillToUser(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+        if (billController.state.value.bill != null) return
+
         if (bill.didReceive) {
             billController.update {
                 it.copy(

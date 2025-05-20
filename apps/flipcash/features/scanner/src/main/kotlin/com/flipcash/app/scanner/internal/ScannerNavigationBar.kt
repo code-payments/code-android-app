@@ -48,19 +48,19 @@ internal fun ScannerNavigationBar(
     ) {
         BottomBarAction(
             modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_give),
+            label = stringResource(R.string.action_cash),
             painter = painterResource(R.drawable.ic_tip_card),
             badgeCount = 0,
-            onClick = { onAction(ScannerDecorItem.Give) }
+            onClick = { onAction(ScannerDecorItem.Cash) }
         )
 
-        BottomBarAction(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_send),
-            painter = painterResource(R.drawable.ic_send_outlined),
-            badgeCount = 0,
-            onClick = { onAction(ScannerDecorItem.Send) },
-        )
+//        BottomBarAction(
+//            modifier = Modifier.weight(1f),
+//            label = stringResource(R.string.action_send),
+//            painter = painterResource(R.drawable.ic_send_outlined),
+//            badgeCount = 0,
+//            onClick = { onAction(ScannerDecorItem.Send) },
+//        )
 
         BottomBarAction(
             modifier = Modifier.weight(1f),

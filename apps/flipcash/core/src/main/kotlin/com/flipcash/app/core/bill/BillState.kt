@@ -20,9 +20,6 @@ data class BillState(
     val primaryAction: Action?,
     val secondaryAction: Action?,
 ) {
-    val hideBillButtons: Boolean
-        get() = primaryAction == null && secondaryAction == null
-
     val canSwipeToDismiss: Boolean
         get() = bill?.canSwipeToDismiss ?: false
 
@@ -51,7 +48,7 @@ data class BillState(
             override val label: String
                 @Composable get() = stringResource(R.string.action_send)
             override val asset: Painter
-                @Composable get() = painterResource(id = R.drawable.ic_remote_send)
+                @Composable get() = painterResource(id = R.drawable.ic_send_outlined)
         }
 
         data class Share(override val action: () -> Unit): Action {
@@ -85,7 +82,7 @@ sealed interface Bill {
     val data: List<Byte>
 
     enum class Kind {
-        cash, remote, airdrop
+        cash, airdrop
     }
 
     val canSwipeToDismiss: Boolean
