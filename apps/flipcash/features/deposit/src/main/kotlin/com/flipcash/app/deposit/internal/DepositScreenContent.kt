@@ -43,7 +43,7 @@ private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (
                     .fillMaxWidth(),
                 text = stringResource(R.string.subtitle_howToDeposit),
                 color = CodeTheme.colors.textSecondary,
-                style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center,),
+                style = CodeTheme.typography.textSmall,
             )
         },
         bottomBar = {
