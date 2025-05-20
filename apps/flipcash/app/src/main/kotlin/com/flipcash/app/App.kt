@@ -150,7 +150,7 @@ fun App(
                                             onSwitchAccount = {
                                                 codeNavigator.replaceAll(
                                                     ScreenRegistry.get(
-                                                        NavScreenProvider.Login.Home(entropy)
+                                                        NavScreenProvider.Login.Home(entropy, fromDeeplink = true)
                                                     )
                                                 )
                                             },

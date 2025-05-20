@@ -44,6 +44,7 @@ class HomeViewModel @Inject constructor(
                                 text = resources.getString(R.string.action_logIn),
                                 onClick = {
                                     viewModelScope.launch {
+                                        delay(150) // wait for dismiss
                                         authManager.logoutAndSwitchAccount(entropy)
                                             .onSuccess { onSwitchAccount() }
                                             .onFailure {
