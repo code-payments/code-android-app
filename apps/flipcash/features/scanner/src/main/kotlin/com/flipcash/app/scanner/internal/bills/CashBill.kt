@@ -296,6 +296,14 @@ internal fun CashBill(
                         contentDescription = "",
                     )
                     Spacer(modifier = Modifier.weight(1f))
+                    // 2000
+                    Lines(
+                        count = 2,
+                        spacing = geometry.lineSpacing
+                    )
+
+                    Spacer(modifier = Modifier.weight(0.5f))
+
                     // 2008
                     Lines(
                         modifier = Modifier
