@@ -33,6 +33,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.MetadataBuilder
+import com.getcode.utils.SuppressibleException
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
@@ -183,7 +184,7 @@ internal class GooglePlayBillingClient(
         client.launchBillingFlow(activity, billingFlowParams)
     }
 
-    private fun completePurchase(item: Purchase) {
+    private fun completePurchase(item: Purchase, isFromRestore: Boolean = false) {
         printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
         if (!item.isAcknowledged) {
             scope.launch {
@@ -216,7 +217,8 @@ internal class GooglePlayBillingClient(
                 ).onSuccess {
                     acknowledgeOrConsume(item)
                 }.onFailure {
-                    ErrorUtils.handleError(it)
+                    val cause = if (isFromRestore) SuppressibleException(it) else it
+                    ErrorUtils.handleError(cause)
                     _eventFlow.emit(
                         IapPaymentEvent.OnError(
                             item.products.firstOrNull() ?: "NONE",
@@ -330,7 +332,7 @@ internal class GooglePlayBillingClient(
 
     private val restorePurchasesListener = PurchasesResponseListener { _, purchases ->
         printLog("restore ${purchases.count()}")
-        purchases.onEach { completePurchase(it) }
+        purchases.onEach { completePurchase(it, isFromRestore = true) }
     }
 
     private val clientStateListener = object : BillingClientStateListener {
