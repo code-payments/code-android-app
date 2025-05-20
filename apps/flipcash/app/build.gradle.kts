@@ -121,6 +121,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":apps:flipcash:shared:currency-selection:ui"))
+    implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:features:login"))

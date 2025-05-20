@@ -125,27 +125,6 @@
             <meta-data android:name="photopicker_activity:0:required" android:value="" />
         </service>
 
-<!--        <service-->
-<!--            android:name=".notifications.FcNotificationService"-->
-<!--            android:exported="false">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.google.firebase.MESSAGING_EVENT" />-->
-<!--            </intent-filter>-->
-<!--        </service>-->
-
-<!--        <receiver-->
-<!--            android:name=".notifications.FcNotificationReceiver"-->
-<!--            android:enabled="true"-->
-<!--            android:exported="false" />-->
-
-<!--        <meta-data-->
-<!--            android:name="com.google.firebase.messaging.default_notification_icon"-->
-<!--            android:resource="@drawable/flipchat_logo" />-->
-
-<!--        <meta-data-->
-<!--            android:name="com.google.firebase.messaging.default_notification_color"-->
-<!--            android:value="#FF362774" />-->
-
        <meta-data
            android:name="com.bugsnag.android.API_KEY"
            android:value="${BUGSNAG_API_KEY}" />
