@@ -141,22 +141,20 @@ fun App(
                                     }
                                 }
 
-                                LaunchedEffect(loginRequest, codeNavigator.lastItem) {
+                                LaunchedEffect(loginRequest) {
+                                    println("loginRequest: $loginRequest")
                                     if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
                                     loginRequest?.let { entropy ->
                                         viewModel.handleLoginEntropy(
                                             entropy,
                                             onSwitchAccount = {
-                                                loginRequest = null
                                                 codeNavigator.replaceAll(
                                                     ScreenRegistry.get(
                                                         NavScreenProvider.Login.Home(entropy)
                                                     )
                                                 )
                                             },
-                                            onCancel = {
-                                                loginRequest = null
-                                            }
+                                            onDismissed = { loginRequest = null }
                                         )
                                     }
                                 }

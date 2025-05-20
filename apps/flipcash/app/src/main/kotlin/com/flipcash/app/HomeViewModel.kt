@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.android.app.R
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -23,7 +24,7 @@ class HomeViewModel @Inject constructor(
     fun handleLoginEntropy(
         entropy: String,
         onSwitchAccount: () -> Unit,
-        onCancel: () -> Unit,
+        onDismissed: () -> Unit,
     ) {
         // If currently logged in, and the login request comes for a different account
         // present a confirmation dialog to switch accounts
@@ -35,31 +36,32 @@ class HomeViewModel @Inject constructor(
                     positiveText = resources.getString(R.string.action_logIn),
                     tertiaryText = resources.getString(R.string.action_cancel),
                     isDismissible = false,
+                    showCancel = true,
                     showScrim = true,
-                    onPositive = {
-                        viewModelScope.launch {
-                            delay(150) // wait for dismiss
-                            authManager.logoutAndSwitchAccount(entropy)
-                                .onSuccess { onSwitchAccount() }
-                                .onFailure {
-                                    TopBarManager.showMessage(
-                                        TopBarManager.TopBarMessage(
-                                            title = resources.getString(R.string.error_title_failedToLogOut),
-                                            message = resources.getString(R.string.error_description_failedToLogOut),
-                                        )
-                                    )
+                    actions = buildList {
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_logIn),
+                                onClick = {
+                                    viewModelScope.launch {
+                                        authManager.logoutAndSwitchAccount(entropy)
+                                            .onSuccess { onSwitchAccount() }
+                                            .onFailure {
+                                                TopBarManager.showMessage(
+                                                    TopBarManager.TopBarMessage(
+                                                        title = resources.getString(R.string.error_title_failedToLogOut),
+                                                        message = resources.getString(R.string.error_description_failedToLogOut),
+                                                    )
+                                                )
+                                            }
+                                    }
                                 }
-                        }
+                            )
+                        )
                     },
-                    onTertiary = onCancel
+                    onClose = { onDismissed() }
                 )
             )
-        }
-    }
-
-    private fun onSwitchAccounts() {
-        viewModelScope.launch {
-            authManager.logout()
         }
     }
 }
