@@ -86,13 +86,13 @@ jobs:
           encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
 
       - name: Setup BugSnag API Key
-        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCHAT_BUGSNAG_API_KEY }}\" > ./local.properties
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\" > ./local.properties
 
       - name: Setup Google Cloud Project Number
         run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
 
       - name: Setup Mixpanel API Key
-        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
         run: bundle exec fastlane android flipcash_tests
