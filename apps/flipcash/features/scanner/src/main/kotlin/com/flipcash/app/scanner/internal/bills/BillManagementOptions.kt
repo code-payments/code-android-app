@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.bill.BillState
 import com.getcode.theme.CodeTheme
@@ -108,7 +109,7 @@ internal fun BillManagementOptions(
                 Pill(
                     modifier = Modifier.alpha(0f),
                     contentPadding = PaddingValues(15.dp),
-                    backgroundColor = CodeTheme.colors.action,
+                    backgroundColor = Color.Transparent,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
