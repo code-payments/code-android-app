@@ -113,6 +113,11 @@ android {
     }
 }
 
+versioning {
+    excludeBuildTypes = "debug"
+    keepOriginalBundleFile = true
+}
+
 bugsnag {
     apiKey = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
     variants {
