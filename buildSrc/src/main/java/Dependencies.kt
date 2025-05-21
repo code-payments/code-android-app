@@ -55,7 +55,7 @@ object Versions {
     const val androidx_activity = "1.7.2"
     const val androidx_annotation = "1.7.1"
     const val androidx_biometrics = "1.2.0-alpha05"
-    const val androidx_camerax = "1.3.2"
+    const val androidx_camerax = "1.4.2"
     const val androidx_credentials = "1.5.0"
     const val androidx_core = "1.13.1"
     const val androidx_constraint_layout = "2.1.3"
