@@ -1,8 +1,12 @@
 package com.flipcash.app.scanner.internal
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
@@ -21,13 +28,17 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.xxl
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.Pill
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.widthOrZero
@@ -37,6 +48,8 @@ import com.getcode.ui.utils.widthOrZero
 internal fun ScannerNavigationBar(
     modifier: Modifier = Modifier,
     state: SessionState = SessionState(),
+    billState: BillState = BillState.Default,
+    isPaused: Boolean = false,
     onAction: (ScannerDecorItem) -> Unit = { }
 ) {
     Row(
@@ -47,7 +60,6 @@ internal fun ScannerNavigationBar(
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
         BottomBarAction(
-            modifier = Modifier.weight(1f),
             label = stringResource(R.string.action_cash),
             painter = painterResource(R.drawable.ic_tip_card),
             badgeCount = 0,
@@ -63,11 +75,32 @@ internal fun ScannerNavigationBar(
 //        )
 
         BottomBarAction(
-            modifier = Modifier.weight(1f),
             label = stringResource(R.string.action_balance),
             painter = painterResource(R.drawable.ic_balance),
             badgeCount = state.notificationUnreadCount,
             onClick = { onAction(ScannerDecorItem.Balance) },
+            toast = {
+                AnimatedVisibility(
+                    visible = billState.showToast && billState.toast != null,
+                    enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
+                            fadeIn(animationSpec = tween(500, 100)),
+                    exit = if (!isPaused)
+                        slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
+                                fadeOut(animationSpec = tween(500, 100))
+                    else fadeOut(animationSpec = tween(0)),
+                ) {
+                    val toast by remember(billState.toast) {
+                        derivedStateOf { billState.toast }
+                    }
+                    Pill(
+                        text = toast?.formattedAmount.orEmpty(),
+                        textStyle = CodeTheme.typography.textSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        shape = CodeTheme.shapes.xxl,
+                    )
+                }
+            }
         )
     }
 }
@@ -81,30 +114,36 @@ private fun BottomBarAction(
     ),
     painter: Painter,
     imageSize: Dp = CodeTheme.dimens.staticGrid.x10,
+    toast: @Composable () -> Unit = { },
     badgeCount: Int = 0,
     onClick: (() -> Unit)?,
 ) {
-    BottomBarAction(
+    Column(
         modifier = modifier,
-        label = label,
-        contentPadding = contentPadding,
-        painter = painter,
-        imageSize = imageSize,
-        badge = {
-            Badge(
-                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
-                count = badgeCount,
-                color = CodeTheme.colors.indicator,
-                enterTransition = scaleIn(
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        delayMillis = 1000
-                    )
-                ) + fadeIn()
-            )
-        },
-        onClick = onClick
-    )
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        toast()
+        BottomBarAction(
+            label = label,
+            contentPadding = contentPadding,
+            painter = painter,
+            imageSize = imageSize,
+            badge = {
+                Badge(
+                    modifier = Modifier.padding(top = 6.dp, end = 1.dp),
+                    count = badgeCount,
+                    color = CodeTheme.colors.indicator,
+                    enterTransition = scaleIn(
+                        animationSpec = tween(
+                            durationMillis = 300,
+                            delayMillis = 1000
+                        )
+                    ) + fadeIn()
+                )
+            },
+            onClick = onClick
+        )
+    }
 }
 
 @Composable

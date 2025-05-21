@@ -4,8 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -27,7 +25,6 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,14 +33,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
-import com.getcode.ui.components.Pill
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.utils.network.LocalNetworkObserver
@@ -100,30 +95,6 @@ internal fun DecorView(
         }
 
         Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-            AnimatedVisibility(
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(end = CodeTheme.dimens.grid.x5),
-                visible = billState.showToast && billState.toast != null,
-                enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
-                        fadeIn(animationSpec = tween(500, 100)),
-                exit = if (!isPaused)
-                    slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
-                            fadeOut(animationSpec = tween(500, 100))
-                else fadeOut(animationSpec = tween(0)),
-            ) {
-                val toast by remember(billState.toast) {
-                    derivedStateOf { billState.toast }
-                }
-                Pill(
-                    text = toast?.formattedAmount.orEmpty(),
-                    textStyle = CodeTheme.typography.textSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    shape = CodeTheme.shapes.xxl,
-                )
-            }
-
             val networkState by LocalNetworkObserver.current.state.collectAsState()
 
             AnimatedVisibility(
@@ -163,6 +134,8 @@ internal fun DecorView(
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(bottom = CodeTheme.dimens.grid.x3),
                 state = state,
+                billState = billState,
+                isPaused = isPaused,
                 onAction = onAction
             )
         }
