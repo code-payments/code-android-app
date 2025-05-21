@@ -1,4 +1,4 @@
-package com.flipcash.app.ui.navigation
+package com.flipcash.app.internal.ui.navigation
 
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -28,7 +28,7 @@ import com.flipcash.app.withdrawal.WithdrawalFlow
 
 
 @Composable
-fun AppScreenContent(content: @Composable () -> Unit) {
+internal fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
         register<NavScreenProvider.Login.Home> {
             LoginRouter(it.seed, it.fromDeeplink)

@@ -15,6 +15,7 @@ import com.flipcash.app.appsettings.LocalAppSettings
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.internal.ui.App
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router

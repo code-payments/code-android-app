@@ -1,4 +1,4 @@
-package com.flipcash.app.theme
+package com.flipcash.app.internal.ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -67,7 +67,7 @@ private val colors = with(ColorSpec) {
 }
 
 @Composable
-fun FlipcashTheme(content: @Composable () -> Unit) {
+internal fun FlipcashTheme(content: @Composable () -> Unit) {
     DesignSystem(
         colorScheme = colors,
         // override code type system to make screen title's slightly bigger

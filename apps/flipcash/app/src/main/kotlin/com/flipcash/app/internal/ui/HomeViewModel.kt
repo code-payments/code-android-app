@@ -1,4 +1,4 @@
-package com.flipcash.app
+package com.flipcash.app.internal.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,11 +15,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(
+internal class HomeViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
@@ -27,6 +28,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val requireBiometrics = appSettingsCoordinator.observeValue(AppSettingValue.BiometricsRequired)
+        .take(1)
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettingValue.BiometricsRequired.default)
 
     fun onMissingBiometrics() {

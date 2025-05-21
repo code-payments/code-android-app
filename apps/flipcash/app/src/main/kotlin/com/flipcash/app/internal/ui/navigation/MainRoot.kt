@@ -1,4 +1,4 @@
-package com.flipcash.app.ui.navigation
+package com.flipcash.app.internal.ui.navigation
 
 import android.os.Parcelable
 import androidx.compose.animation.core.animateFloatAsState
@@ -30,13 +30,11 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.android.app.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.utils.metadata
 import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.delay
@@ -46,7 +44,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
