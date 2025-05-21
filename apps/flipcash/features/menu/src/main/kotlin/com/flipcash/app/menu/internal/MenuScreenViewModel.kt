@@ -3,6 +3,7 @@ package com.flipcash.app.menu.internal
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.screen.Screen
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -63,7 +64,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
-        data class OpenScreen(val screen: Screen) : Event
+        data class OpenScreen(val screen: NavScreenProvider) : Event
         data object OnSwitchAccountsClicked : Event
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event

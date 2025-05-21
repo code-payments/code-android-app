@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -19,6 +20,7 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.utils.ErrorUtils
@@ -40,6 +42,10 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         mutableStateOf(false)
     }
 
+    var deepLinkSaved by remember(deepLink) {
+        mutableStateOf(deepLink)
+    }
+
     var cameraStarted by remember {
         mutableStateOf(state.autoStartCamera == true)
     }
@@ -48,15 +54,29 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         session.onCameraScanning(previewing)
     }
 
-    LaunchedEffect(deepLink) {
-        deepLink ?: return@LaunchedEffect
-        when (deepLink) {
+    val focusManager = LocalFocusManager.current
+    val biometricsState = LocalBiometricsState.current
+
+    LaunchedEffect(
+        biometricsState,
+        previewing,
+        deepLinkSaved
+    ) {
+        if (previewing) {
+            focusManager.clearFocus()
+        }
+
+        val deeplink = deepLinkSaved ?: return@LaunchedEffect
+        if (!biometricsState.passed) return@LaunchedEffect
+        when (deeplink) {
             is DeeplinkType.CashLink -> {
-                session.openCashLink(deepLink.entropy)
+                session.openCashLink(deeplink.entropy)
             }
 
             is DeeplinkType.Login -> Unit
         }
+
+        deepLinkSaved = null
     }
 
     BillContainer(

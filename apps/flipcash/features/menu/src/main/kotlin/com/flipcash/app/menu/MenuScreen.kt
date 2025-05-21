@@ -38,7 +38,7 @@ class MenuScreen : ModalScreen, Parcelable {
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<MenuScreenViewModel.Event.OpenScreen>()
-                .map { it.screen }
+                .map { ScreenRegistry.get(it.screen) }
                 .onEach { navigator.push(it) }
                 .launchIn(this)
         }

@@ -21,7 +21,7 @@ internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_depositUsdc)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Deposit)
+        NavScreenProvider.HomeScreen.Menu.Deposit
     )
 }
 
@@ -32,7 +32,7 @@ internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = stringResource(R.string.title_withdrawUsdc)
 
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount)
+        NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount
     )
 }
 
@@ -42,7 +42,7 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_myAccount)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.Root)
+        NavScreenProvider.HomeScreen.Menu.MyAccount.Root
     )
 }
 
@@ -52,7 +52,7 @@ internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_appSettings)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.AppSettings)
+        NavScreenProvider.HomeScreen.Menu.AppSettings
     )
 }
 
@@ -70,7 +70,7 @@ internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_betaFlags)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Lab)
+        NavScreenProvider.HomeScreen.Menu.Lab
     )
 }
 
