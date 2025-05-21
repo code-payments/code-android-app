@@ -115,7 +115,7 @@ object Versions {
     const val voyager = "1.1.0-beta03"
     const val protobuf_plugin = "0.9.4"
 
-    const val sodium_bindings = "0.9.0"
+    const val sodium_bindings = "0.9.2"
 
     const val desugaring = "2.1.2"
 
@@ -137,7 +137,7 @@ object Classpath {
 
     const val crashlytics_gradle =
         "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
-    const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.+"
+    const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.2.0"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
