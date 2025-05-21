@@ -123,6 +123,7 @@ bugsnag {
         release {
             apiKey = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
             autoUploadBundle = false
+            autoCreateBuild = false
         }
         debug {
             enabled = false
