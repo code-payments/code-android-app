@@ -44,7 +44,7 @@ dependencies {
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(project(":libs:opengraph"))
-    implementation(project(":libs:requests"))
+//    implementation(project(":libs:requests"))
     implementation(project(":libs:vibrator:public"))
     api(project(":ui:core"))
     implementation(project(":ui:emojis"))

@@ -148,7 +148,6 @@ dependencies {
     implementation(project(":libs:network:connectivity:bindings"))
     implementation(project(":libs:permissions:bindings"))
     implementation(project(":libs:quickresponse"))
-    implementation(project(":libs:requests"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:components"))
     implementation(project(":ui:scanner"))

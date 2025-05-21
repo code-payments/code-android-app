@@ -10,7 +10,6 @@ object Android {
     const val minSdkVersion = 24
     const val targetSdkVersion = 35
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    const val buildToolsVersion = "35.0.0"
 }
 
 sealed class Packaging(
@@ -334,7 +333,7 @@ object Libs {
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
     const val bugsnag = "com.bugsnag:bugsnag-android:6.13.0"
 
-    const val cloudy = "com.github.skydoves:cloudy:0.1.2"
+    const val cloudy = "com.github.skydoves:cloudy:0.2.7"
 
     const val sodium_bindings =
         "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
