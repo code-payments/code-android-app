@@ -43,6 +43,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     divider = White10,
     dividerVariant = White05,
     trackColor = BrandSlideToConfirm,
+    toggleUncheckedTrackColor = BrandToggleUncheckedTrackColor,
     cashBill = CashBill,
     cashBillDecorColor = CashBillDecor,
     betaIndicator = BetaIndicator,
@@ -122,6 +123,7 @@ class ColorScheme(
     textMain: Color,
     textSecondary: Color,
     trackColor: Color,
+    toggleUncheckedTrackColor: Color,
     cashBill: Color,
     cashBillDecorColor: Color,
     betaIndicator: Color,
@@ -179,6 +181,8 @@ class ColorScheme(
         private set
     var trackColor by mutableStateOf(trackColor)
         private set
+    var toggleUncheckedTrackColor by mutableStateOf(toggleUncheckedTrackColor)
+        private set
     var cashBillColor by mutableStateOf(cashBill)
         private set
     var cashBillDecorColor by mutableStateOf(cashBillDecorColor)
@@ -219,6 +223,7 @@ class ColorScheme(
         divider = other.divider
         dividerVariant = other.dividerVariant
         trackColor = other.trackColor
+        toggleUncheckedTrackColor = other.toggleUncheckedTrackColor
         cashBillColor = other.cashBillColor
         cashBillDecorColor = other.cashBillDecorColor
         betaIndicator = other.betaIndicator
@@ -253,6 +258,7 @@ class ColorScheme(
         divider = divider,
         dividerVariant = dividerVariant,
         trackColor = trackColor,
+        toggleUncheckedTrackColor = toggleUncheckedTrackColor,
         cashBill = cashBillColor,
         cashBillDecorColor = cashBillDecorColor,
         betaIndicator = betaIndicator,

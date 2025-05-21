@@ -8,6 +8,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.features.menu.R
@@ -18,7 +20,9 @@ internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = painterResource(R.drawable.ic_menu_deposit)
     override val name: String
         @Composable get() = stringResource(R.string.title_depositUsdc)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnDepositClicked
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Deposit)
+    )
 }
 
 internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
@@ -27,7 +31,9 @@ internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_withdrawUsdc)
 
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnWithdrawClicked
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount)
+    )
 }
 
 internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
@@ -35,7 +41,9 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = painterResource(R.drawable.ic_menu_account)
     override val name: String
         @Composable get() = stringResource(R.string.title_myAccount)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnMyAccountClicked
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.Root)
+    )
 }
 
 internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
@@ -43,7 +51,9 @@ internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = painterResource(R.drawable.ic_settings_outline)
     override val name: String
         @Composable get() = stringResource(R.string.title_appSettings)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnAppSettingsClicked
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.AppSettings)
+    )
 }
 
 internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() {
@@ -59,7 +69,9 @@ internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = rememberVectorPainter(Icons.Filled.Science)
     override val name: String
         @Composable get() = stringResource(R.string.title_betaFlags)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnLabsClicked
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Lab)
+    )
 }
 
 internal data object LogOut : FullMenuItem<MenuScreenViewModel.Event>() {

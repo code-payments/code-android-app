@@ -2,6 +2,8 @@ package com.flipcash.app.session.internal
 
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.activityfeed.ActivityFeedUpdater
+import com.flipcash.app.appsettings.AppSettingValue
+import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
@@ -9,7 +11,6 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
-import com.flipcash.app.core.money.formatted
 import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
@@ -31,7 +32,6 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -76,6 +76,7 @@ class RealSessionController @Inject constructor(
     private val shareSheetController: ShareSheetController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
+    private val appSettingsCoordinator: AppSettingsCoordinator
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -108,6 +109,11 @@ class RealSessionController @Inject constructor(
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
             .onEach { billingClient.connect() }
+            .launchIn(scope)
+
+        appSettingsCoordinator
+            .observeValue(AppSettingValue.CameraStartByDefault)
+            .onEach { autoStart -> _state.update { it.copy(autoStartCamera = autoStart) } }
             .launchIn(scope)
     }
 

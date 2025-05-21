@@ -4,7 +4,7 @@ import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NotificationMetadata
-import com.getcode.opencode.internal.domain.mapper.Mapper
+import com.getcode.opencode.mapper.Mapper
 import com.getcode.utils.base58
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

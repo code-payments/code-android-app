@@ -113,4 +113,14 @@
     <string name="action_withdraw">Withdraw</string>
 
     <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
+
+    <string name="title_requireBiometrics">Require Biometrics</string>
+    <string name="description_requireBiometricsNoneEnrolled">No biometrics currently enrolled</string>
+    <string name="title_biometricAuthentication">Biometric Authentication</string>
+    <string name="description_biometricAuthentication">Place your finger on the sensor or look at the front camera to authenticate.</string>
+    <string name="action_biometricsClickToAuthenticate">Click to authenticate</string>
+    <string name="error_title_missingBiometrics">Biometrics Removed</string>
+    <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
+
+    <string name="action_unlockCode">Unlock Flipcash</string>
 </resources>

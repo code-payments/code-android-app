@@ -17,7 +17,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -107,7 +106,7 @@ fun SettingsRow(
                 .padding(vertical = CodeTheme.dimens.grid.x5)
                 .fillMaxWidth()
                 .wrapContentHeight(),
-            verticalAlignment = CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
             val imageMod = Modifier
                 .padding(end = CodeTheme.dimens.inset)
@@ -125,7 +124,7 @@ fun SettingsRow(
                 Spacer(modifier = imageMod)
             }
             Text(
-                modifier = Modifier.align(CenterVertically),
+                modifier = Modifier.align(Alignment.CenterVertically),
                 text = title,
                 style = CodeTheme.typography.textLarge.copy(
                     fontWeight = FontWeight.Bold

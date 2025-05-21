@@ -10,7 +10,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.flipcash.android.app.BuildConfig
+import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.appsettings.LocalAppSettings
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router
@@ -83,6 +87,12 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var shareController: ShareSheetController
 
+    @Inject
+    lateinit var appSettingsCoordinator: AppSettingsCoordinator
+
+    @Inject
+    lateinit var featureFlagController: FeatureFlagController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -101,7 +111,9 @@ class MainActivity : FragmentActivity() {
                 LocalSessionController provides sessionController,
                 LocalBillingClient provides billing,
                 LocalPermissionChecker provides permissionChecker,
-                LocalShareController provides shareController
+                LocalShareController provides shareController,
+                LocalAppSettings provides appSettingsCoordinator,
+                LocalFeatureFlags provides featureFlagController,
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

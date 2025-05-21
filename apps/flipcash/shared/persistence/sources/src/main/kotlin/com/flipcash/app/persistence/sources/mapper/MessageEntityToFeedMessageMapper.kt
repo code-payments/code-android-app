@@ -4,7 +4,7 @@ import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
-import com.getcode.opencode.internal.domain.mapper.Mapper
+import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat

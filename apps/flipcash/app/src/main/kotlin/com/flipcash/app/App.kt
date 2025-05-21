@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
@@ -34,6 +35,7 @@ import com.flipcash.app.ui.navigation.MainRoot
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
 import com.flipcash.services.user.AuthState
+import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
@@ -42,6 +44,10 @@ import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
+import com.getcode.ui.biometrics.BiometricsState
+import com.getcode.ui.biometrics.LocalBiometricsState
+import com.getcode.ui.biometrics.rememberBiometricsState
+import com.getcode.ui.biometrics.views.BiometricsBlockingView
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
@@ -61,6 +67,15 @@ fun App(
     val router = LocalRouter.currentOrThrow
 
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
+    val requireBiometrics by viewModel.requireBiometrics.collectAsStateWithLifecycle()
+    val biometricsState = rememberBiometricsState(
+        requireBiometrics = requireBiometrics,
+        onError = { error ->
+            if (error == BiometricsError.NoBiometrics) {
+                viewModel.onMissingBiometrics()
+            }
+        }
+    )
 
     // We are obtaining deep link here to handle a login request while already logged in to
     // present the option for the user to switch accounts
@@ -94,7 +109,7 @@ fun App(
         AppScreenContent {
             TipScaffold(tipsEngine = tipsEngine) {
                 ScrimSupport {
-                    AppNavHost {
+                    AppNavHost(biometricsState) {
                         val codeNavigator = LocalCodeNavigator.current
                         CodeScaffold { innerPaddingModifier ->
                             Navigator(
@@ -149,7 +164,10 @@ fun App(
                                             onSwitchAccount = {
                                                 codeNavigator.replaceAll(
                                                     ScreenRegistry.get(
-                                                        NavScreenProvider.Login.Home(entropy, fromDeeplink = true)
+                                                        NavScreenProvider.Login.Home(
+                                                            entropy,
+                                                            fromDeeplink = true
+                                                        )
                                                     )
                                                 )
                                             },
@@ -189,6 +207,7 @@ fun App(
             }
         }
 
+        BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
         TopBarContainer(barManager.barMessages)
         BottomBarContainer(barManager.barMessages)
     }
@@ -196,7 +215,10 @@ fun App(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun AppNavHost(content: @Composable () -> Unit) {
+private fun AppNavHost(
+    biometricsState: BiometricsState,
+    content: @Composable () -> Unit
+) {
     var combinedNavigator by remember {
         mutableStateOf<CombinedNavigator?>(null)
     }
@@ -209,7 +231,10 @@ private fun AppNavHost(content: @Composable () -> Unit) {
                 combinedNavigator = CombinedNavigator(sheetNav)
             }
             combinedNavigator?.let {
-                CompositionLocalProvider(LocalCodeNavigator provides it) {
+                CompositionLocalProvider(
+                    LocalCodeNavigator provides it,
+                    LocalBiometricsState provides biometricsState,
+                ) {
                     SheetSlideTransition(navigator = it)
                 }
             }
@@ -221,7 +246,10 @@ private fun AppNavHost(content: @Composable () -> Unit) {
             combinedNavigator = CombinedNavigator(sheetNav)
         }
         combinedNavigator?.let {
-            CompositionLocalProvider(LocalCodeNavigator provides it) {
+            CompositionLocalProvider(
+                LocalCodeNavigator provides it,
+                LocalBiometricsState provides biometricsState,
+            ) {
                 content()
             }
         }

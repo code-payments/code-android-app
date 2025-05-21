@@ -37,9 +37,9 @@ class MenuScreen : ModalScreen, Parcelable {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<MenuScreenViewModel.Event.OnLabsClicked>()
-                .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Lab)) }
+                .filterIsInstance<MenuScreenViewModel.Event.OpenScreen>()
+                .map { it.screen }
+                .onEach { navigator.push(it) }
                 .launchIn(this)
         }
 
@@ -50,30 +50,6 @@ class MenuScreen : ModalScreen, Parcelable {
                 .onEach {
                     navigator.hide()
                     navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(it))) }
-                .launchIn(this)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<MenuScreenViewModel.Event.OnDepositClicked>()
-                .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Deposit)) }
-                .launchIn(this)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<MenuScreenViewModel.Event.OnWithdrawClicked>()
-                .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount)) }
-                .launchIn(this)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<MenuScreenViewModel.Event.OnMyAccountClicked>()
-                .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.Root)) }
                 .launchIn(this)
         }
     }

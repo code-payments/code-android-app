@@ -2,6 +2,7 @@ package com.flipcash.app.inject
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.biometric.BiometricManager
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.android.app.BuildConfig
 import com.flipcash.app.core.android.VersionInfo
@@ -61,10 +62,9 @@ object AppModule {
         mixpanelAPI: MixpanelAPI
     ): FlipcashAnalyticsService = FlipcashAnalyticsManager(mixpanelAPI)
 
-//
-//    @Singleton
-//    @Provides
-//    fun providesBetaController(
-//        @ApplicationContext context: Context
-//    ): Labs = LabsController(context)
+    @Provides
+    @Singleton
+    fun providesBiometricsManager(
+        @ApplicationContext context: Context
+    ): BiometricManager = BiometricManager.from(context)
 }

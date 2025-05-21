@@ -7,7 +7,7 @@ import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.NotificationState
-import com.getcode.opencode.internal.domain.mapper.Mapper
+import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat

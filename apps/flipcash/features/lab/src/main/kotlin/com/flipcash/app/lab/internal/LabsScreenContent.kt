@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.features.lab.R
@@ -21,7 +22,7 @@ import com.getcode.ui.components.SettingsSwitchRow
 @Composable
 internal fun LabsScreenContent() {
     val betaFlagsController = LocalFeatureFlags.current
-    val betaFlags by betaFlagsController.observe().collectAsState()
+    val betaFlags by betaFlagsController.observe().collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

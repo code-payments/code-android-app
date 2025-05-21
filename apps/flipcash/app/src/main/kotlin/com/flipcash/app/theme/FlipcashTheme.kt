@@ -56,6 +56,7 @@ private val colors = with(ColorSpec) {
         divider = White10,
         dividerVariant = White05,
         trackColor = BrandSlideToConfirm,
+        toggleUncheckedTrackColor = secondaryText,
         cashBill = cashBill,
         cashBillDecorColor = secondaryText,
         betaIndicator = BetaIndicator,

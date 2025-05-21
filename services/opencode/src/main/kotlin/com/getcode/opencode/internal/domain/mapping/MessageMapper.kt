@@ -1,14 +1,15 @@
 package com.getcode.opencode.internal.domain.mapping
 
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
-import com.getcode.opencode.internal.domain.mapper.Mapper
+import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.internal.network.extensions.toMessageKind
 import com.getcode.opencode.model.messaging.MessageKind
 import javax.inject.Inject
 import com.getcode.opencode.model.messaging.Message as ProtocolMessage
 import com.getcode.solana.keys.Signature as SolanaSig
 
-internal class MessageMapper @Inject constructor(): Mapper<MessagingService.Message, ProtocolMessage> {
+internal class MessageMapper @Inject constructor():
+    Mapper<MessagingService.Message, ProtocolMessage> {
     override fun map(from: MessagingService.Message): ProtocolMessage {
         val signature =
             SolanaSig(

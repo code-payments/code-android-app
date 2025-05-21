@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.SystemGreen
 import com.getcode.theme.White
 import com.getcode.ui.core.addIf
@@ -27,13 +28,13 @@ object CodeToggleSwitchDefaults {
             disabledCheckedThumbColor = White.copy(ContentAlpha.disabled),
             disabledUncheckedThumbColor = White.copy(ContentAlpha.disabled),
             disabledCheckedTrackColor = SystemGreen.copy(ContentAlpha.disabled),
-            disabledUncheckedTrackColor = Color(0xFF201D2F).copy(ContentAlpha.disabled),
+            disabledUncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(ContentAlpha.disabled),
             checkedThumbColor = White,
             uncheckedThumbColor = White,
             checkedTrackColor = SystemGreen,
             checkedTrackAlpha = 1f,
             uncheckedTrackAlpha = 1f,
-            uncheckedTrackColor = Color(0xFF201D2F)
+            uncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor
         )
 }
 

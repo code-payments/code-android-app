@@ -48,6 +48,7 @@ dependencies {
     implementation(Libs.compose_ui)
 
     implementation(project(":apps:flipcash:shared:activityfeed"))
+    implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:core"))
     implementation(project(":services:flipcash"))

@@ -53,6 +53,7 @@ private val colors = ColorScheme(
     divider = FC_Secondary,
     dividerVariant = FC_Tertiary,
     trackColor = Color(0xFF241A4B),
+    toggleUncheckedTrackColor = Color(0xFF241A4B),
     cashBill = CashBill,
     cashBillDecorColor = CashBillDecor,
     betaIndicator = BetaIndicator,

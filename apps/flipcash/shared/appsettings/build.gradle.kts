@@ -6,11 +6,10 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
-    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.features.scanner"
+    namespace = "${Android.flipcashNamespace}.shared.appsettings"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -35,7 +34,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-        compose = true
     }
 }
 
@@ -45,30 +43,15 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
-    implementation(Libs.timber)
+    implementation(platform(Libs.firebase_bom))
+    implementation(Libs.firebase_messaging)
+    implementation(Libs.bugsnag)
 
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
-    implementation(Libs.compose_foundation)
-    implementation(Libs.compose_material)
-    implementation(Libs.compose_materialIconsExtended)
-    implementation(Libs.compose_activities)
 
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:shared:appsettings"))
-    implementation(project(":apps:flipcash:shared:session"))
-
-    implementation(project(":libs:datetime"))
-    implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-    implementation(project(":libs:permissions:bindings"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:biometrics"))
-    implementation(project(":ui:core"))
-    implementation(project(":ui:components"))
-    implementation(project(":ui:navigation"))
-    implementation(project(":ui:resources"))
-    implementation(project(":ui:scanner"))
-    implementation(project(":ui:theme"))
-    implementation(Libs.rinku_compose)
+
+    implementation(Libs.androidx_datastore)
 }

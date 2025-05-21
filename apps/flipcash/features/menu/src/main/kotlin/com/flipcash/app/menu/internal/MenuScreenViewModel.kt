@@ -1,6 +1,7 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
+import cafe.adriel.voyager.core.screen.Screen
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
@@ -30,7 +31,7 @@ private val FullMenuList = buildList {
     add(Deposit)
     add(Withdraw)
     add(MyAccount)
-//    add(AppSettings)
+    add(AppSettings)
     add(SwitchAccount)
     add(Labs)
     add(LogOut)
@@ -62,12 +63,8 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
-        data object OnDepositClicked : Event
-        data object OnWithdrawClicked : Event
-        data object OnMyAccountClicked : Event
-        data object OnAppSettingsClicked : Event
+        data class OpenScreen(val screen: Screen) : Event
         data object OnSwitchAccountsClicked : Event
-        data object OnLabsClicked : Event
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
@@ -182,13 +179,9 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
-                Event.OnDepositClicked,
-                Event.OnWithdrawClicked,
-                Event.OnMyAccountClicked,
-                Event.OnAppSettingsClicked,
                 Event.OnLogOutClicked,
                 Event.OnSwitchAccountsClicked,
-                Event.OnLabsClicked,
+                is Event.OpenScreen,
                 Event.OnLoggedOutCompletely,
                 is Event.OnSwitchAccountTo -> { state -> state }
             }
