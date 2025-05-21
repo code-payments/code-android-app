@@ -80,7 +80,7 @@ object ErrorUtils {
                 throwable.cause is StatusRuntimeException
 
     private fun isSuppressibleError(throwable: Throwable): Boolean =
-        throwable is SQLException || throwable is net.sqlcipher.SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException
+        throwable is SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException
 }
 
 data class SuppressibleException(override val message: String, override val cause: Throwable? = null) : Throwable(message, cause) {

@@ -12,8 +12,6 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
-        buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
     }
 
@@ -61,6 +59,5 @@ dependencies {
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_crashlytics)
     implementation(Libs.grpc_kotlin)
-    implementation(Libs.sqlcipher)
     implementation(project(":libs:messaging"))
 }

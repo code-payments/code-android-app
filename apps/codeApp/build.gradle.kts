@@ -31,7 +31,6 @@ android {
         applicationId = Android.codeNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
-        buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")

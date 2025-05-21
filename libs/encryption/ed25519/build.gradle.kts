@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id(Plugins.android_library)
 }
@@ -7,15 +9,25 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
-        buildToolsVersion = Android.buildToolsVersion
-        ndkVersion = "27.2.12479018"
+        ndkVersion = "28.1.13356709"
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++11"
             }
         }
     }
+
+    compileOptions {
+        sourceCompatibility(Versions.java)
+        targetCompatibility(Versions.java)
+    }
+
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(Versions.java))
+        }
+    }
+
     externalNativeBuild {
         cmake {
             path = file("CMakeLists.txt")

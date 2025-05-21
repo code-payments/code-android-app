@@ -13,8 +13,6 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
-        buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
         consumerProguardFiles("consumer-rules.pro")
@@ -91,7 +89,6 @@ dependencies {
     implementation(Libs.androidx_paging_runtime)
 
     ksp(Libs.androidx_room_compiler)
-    implementation(Libs.sqlcipher)
 
     implementation(Libs.fingerprint_pro)
 

@@ -10,7 +10,7 @@ object Android {
     const val minSdkVersion = 24
     const val targetSdkVersion = 35
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    const val buildToolsVersion = "34.0.0"
+    const val buildToolsVersion = "35.0.0"
 }
 
 sealed class Packaging(
@@ -49,7 +49,7 @@ object Versions {
     private const val ksp = "2.0.1"
     const val kotlin_ksp = "$kotlin-$ksp"
 
-    const val android_gradle_build_tools = "8.7.1"
+    const val android_gradle_build_tools = "8.9.1"
     const val google_services = "4.4.2"
 
     const val androidx_appcompat = "1.7.0"
@@ -88,7 +88,7 @@ object Versions {
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
-    const val firebase_bom: String = "33.1.0"
+    const val firebase_bom: String = "33.13.0"
     const val crashlytics_gradle: String = "3.0.2"
     const val play_service_auth = "21.0.0"
     const val play_service_auth_phone = "18.0.2"
@@ -332,7 +332,7 @@ object Libs {
     const val markwon_ext_strikethrough = "io.noties.markwon:ext-strikethrough:${Versions.markwon}"
 
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
-    const val bugsnag = "com.bugsnag:bugsnag-android:5.+"
+    const val bugsnag = "com.bugsnag:bugsnag-android:6.13.0"
 
     const val cloudy = "com.github.skydoves:cloudy:0.1.2"
 
