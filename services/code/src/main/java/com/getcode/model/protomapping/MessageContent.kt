@@ -75,7 +75,7 @@ operator fun MessageContent.Companion.invoke(
             val peerPublicKey =
                 encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
 
-            val data = EncryptedData(
+            val data = com.getcode.model.EncryptedData(
                 peerPublicKey = peerPublicKey,
                 nonce = encryptedContent.nonce.toByteArray().toList(),
                 encryptedData = encryptedContent.encryptedPayload.toByteArray().toList(),

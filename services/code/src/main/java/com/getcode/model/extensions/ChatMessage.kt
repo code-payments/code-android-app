@@ -3,6 +3,7 @@ package com.getcode.model.extensions
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.decryptMessageUsingNaClBox
 
 fun ChatMessage.decryptingUsing(keyPair: Ed25519.KeyPair): ChatMessage {
     return ChatMessage(

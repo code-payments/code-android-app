@@ -21,7 +21,6 @@ import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,7 +58,7 @@ class AuthManager @Inject constructor(
                 is LookupResult.ExistingAccountFound -> {
                     val token = result.entropy
                     softLogin(token)
-                        .onSuccess { LibsodiumInitializer.initializeWithCallback(onInitialized) }
+                        .onSuccess { onInitialized() }
                         .onFailure(ErrorUtils::handleError)
                 }
                 LookupResult.NoAccountFound -> Unit

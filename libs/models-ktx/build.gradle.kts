@@ -43,8 +43,13 @@ dependencies {
     implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:currency"))
+    api(project(":libs:models"))
     implementation(Libs.kotlinx_serialization_json)
 
     implementation(Libs.androidx_room_runtime)
     implementation(Libs.androidx_room_ktx)
+
+    implementation(Libs.sodium_bindings)
+
+    implementation(project(":definitions:code:models"))
 }

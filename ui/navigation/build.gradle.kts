@@ -36,7 +36,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":libs:models"))
     implementation(project(":ui:core"))
     implementation(project(":ui:theme"))
 

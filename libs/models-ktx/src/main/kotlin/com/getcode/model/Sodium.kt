@@ -1,9 +1,8 @@
-package com.flipcash.services.internal.extensions
+package com.getcode.model
 
 import android.util.Base64
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.model.core.errors.SodiumError
 import com.getcode.solana.keys.PrivateKey
 import com.getcode.solana.keys.PublicKey
 import com.ionspin.kotlin.crypto.box.Box
@@ -14,8 +13,8 @@ import com.ionspin.kotlin.crypto.signature.Signature
  * key to be formatted this way to work correctly.
  * A good example of this would Sodium and the box
  * `seal` and `open` functions.
- */
-internal val KeyPair.encryptionPrivateKey: PrivateKey?
+*/
+val KeyPair.encryptionPrivateKey: PrivateKey?
     get() {
         if (seed.isNullOrEmpty()) return null
 
@@ -23,7 +22,7 @@ internal val KeyPair.encryptionPrivateKey: PrivateKey?
         return PrivateKey(bytes.toList())
     }
 
-internal val PrivateKey.curvePrivate: Result<PublicKey>
+val PrivateKey.curvePrivate: Result<PublicKey>
     get() {
         val localBytes = bytes
 
@@ -35,7 +34,7 @@ internal val PrivateKey.curvePrivate: Result<PublicKey>
         return Result.success(result.getOrNull()!!.toPublicKey())
     }
 
-internal val PublicKey.curvePublic: Result<PublicKey>
+val PublicKey.curvePublic: Result<PublicKey>
     get() {
         val localBytes = bytes
 
@@ -46,7 +45,7 @@ internal val PublicKey.curvePublic: Result<PublicKey>
         return Result.success(result.getOrNull()!!.toPublicKey())
     }
 
-internal fun PublicKey.Companion.shared(publicKey: PublicKey, privateKey: PublicKey): Result<PublicKey> {
+fun PublicKey.Companion.shared(publicKey: PublicKey, privateKey: PublicKey): Result<PublicKey> {
     val pubKeyBytes = publicKey.bytes.map { it.toUByte() }.toUByteArray()
     val secretKeyBytes = privateKey.bytes.map { it.toUByte() }.toUByteArray()
     val result = runCatching { Box.beforeNM(pubKeyBytes, secretKeyBytes) }
@@ -57,11 +56,11 @@ internal fun PublicKey.Companion.shared(publicKey: PublicKey, privateKey: Public
     return Result.success(result.getOrNull()!!.toPublicKey())
 }
 
-internal fun PublicKey.Companion.fromUbytes(bytes: List<UByte>): PublicKey {
+fun PublicKey.Companion.fromUbytes(bytes: List<UByte>): PublicKey {
     return PublicKey(bytes.map { it.toByte() })
 }
 
-internal fun String.boxSeal(privateKey: PrivateKey, publicKey: PublicKey, nonce: List<Byte>): Result<List<Byte>> {
+fun String.boxSeal(privateKey: PrivateKey, publicKey: PublicKey, nonce: List<Byte>): Result<List<Byte>> {
     val publicCurve = publicKey.curvePublic.getOrThrow()
     val privateCurve = privateKey.curvePrivate.getOrThrow()
 
@@ -84,7 +83,7 @@ internal fun String.boxSeal(privateKey: PrivateKey, publicKey: PublicKey, nonce:
     return Result.success(encrypted.getOrNull()!!.map { it.toByte() })
 }
 
-internal fun List<Byte>.boxOpen(privateKey: PrivateKey, publicKey: PublicKey, nonce: List<Byte>): Result<List<Byte>> {
+fun List<Byte>.boxOpen(privateKey: PrivateKey, publicKey: PublicKey, nonce: List<Byte>): Result<List<Byte>> {
     val publicCurve = publicKey.curvePublic.getOrThrow()
     val privateCurve = privateKey.curvePrivate.getOrThrow()
 
@@ -103,4 +102,9 @@ internal fun List<Byte>.boxOpen(privateKey: PrivateKey, publicKey: PublicKey, no
     return Result.success(decrypted.getOrNull()!!.map { it.toByte() })
 }
 
-internal fun PublicKey.Companion.generate(): PublicKey = Ed25519.createSeed32().toPublicKey()
+sealed class SodiumError {
+    data class ConversionToCurveFailed(val root: Throwable? = null): Throwable(cause = root)
+    data class SharedKeyFailed(val root: Throwable? = null): Throwable(cause = root)
+    data class EncryptionFailed(val root: Throwable? = null): Throwable(cause = root)
+    data class DecryptionFailed(val root: Throwable? = null): Throwable(cause = root)
+}

@@ -75,7 +75,7 @@ dependencies {
     api(project(":libs:encryption:sha512"))
     api(project(":libs:encryption:utils"))
     api(project(":libs:logging"))
-    api(project(":libs:models"))
+    api(project(":libs:models-ktx"))
     api(project(":libs:network:exchange"))
     api(project(":libs:network:connectivity:public"))
 

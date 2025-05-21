@@ -63,8 +63,6 @@ dependencies {
 
     api(project(":libs:analytics"))
 
-    api(Libs.sodium_bindings)
-
     implementation(Libs.inject)
 
     implementation(Libs.kotlinx_coroutines_core)

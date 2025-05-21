@@ -82,6 +82,7 @@ include(
         ":libs:logging",
         ":libs:messaging",
         ":libs:models",
+        ':libs:models-ktx',
         ":libs:network:exchange",
         ":libs:opengraph",
 
