@@ -6,11 +6,13 @@ import com.flipcash.services.user.UserManager
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class NotificationService: FirebaseMessagingService(), CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     @Inject
