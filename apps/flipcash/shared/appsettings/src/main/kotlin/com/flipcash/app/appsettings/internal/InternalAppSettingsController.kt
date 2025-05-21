@@ -52,13 +52,13 @@ class InternalAppSettingsController(
     )
 
     override fun observe(setting: AppSettingValue): Flow<Boolean> = appSettings.data.map { prefs ->
-        prefs[setting.booleanPreferenceKey] ?: false
+        prefs[setting.booleanPreferenceKey] ?: setting.default
     }.stateIn(dataScope, started = SharingStarted.Eagerly, setting.default)
 
     override suspend fun get(setting: AppSettingValue): Boolean {
         return appSettings.data.map { prefs ->
             prefs[setting.booleanPreferenceKey]
-        }.firstOrNull() ?: false
+        }.firstOrNull() ?: setting.default
     }
 
     override fun update(setting: AppSettingValue, value: Boolean, fromUser: Boolean) {
