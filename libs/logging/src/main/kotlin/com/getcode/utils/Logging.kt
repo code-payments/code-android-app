@@ -3,6 +3,8 @@ package com.getcode.utils
 import android.annotation.SuppressLint
 import com.bugsnag.android.BreadcrumbType
 import com.bugsnag.android.Bugsnag
+import com.google.firebase.crashlytics.CustomKeysAndValues
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
 import kotlin.time.Duration
 import kotlin.time.measureTime
@@ -87,13 +89,13 @@ fun trace(
 
     val metadataMap = metadata { metadata() }
 
-    if (Bugsnag.isStarted()) {
-        val breadcrumb = if (tag != null) {
-            "$tagBlock $message"
-        } else {
-            message
-        }
+    val breadcrumb = if (tag != null) {
+        "$tagBlock $message"
+    } else {
+        message
+    }
 
+    if (Bugsnag.isStarted()) {
         val breadcrumbType = type.toBugsnagBreadcrumbType()
         if (breadcrumbType != null) {
             Bugsnag.leaveBreadcrumb(
@@ -102,6 +104,18 @@ fun trace(
                 breadcrumbType
             )
         }
+    }
+
+    if (FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled) {
+        FirebaseCrashlytics.getInstance().log(breadcrumb)
+        FirebaseCrashlytics.getInstance().setCustomKeys(
+            CustomKeysAndValues.Builder()
+                .apply {
+                    metadataMap.entries.onEach {
+                        putString(it.key, it.value.toString())
+                    }
+                }.build()
+        )
     }
 
     error?.let(ErrorUtils::handleError)
