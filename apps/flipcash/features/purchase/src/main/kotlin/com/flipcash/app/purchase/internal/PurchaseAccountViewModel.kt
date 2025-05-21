@@ -135,7 +135,6 @@ internal class PurchaseAccountViewModel @Inject constructor(
 
         stateFlow
             .mapNotNull { it.costOfAccount }
-            .map { it.amount to (CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD) }
             .map { (amount, currency) -> Fiat(amount, currency) }
             .onEach { dispatchEvent(Event.OnPriceFormatted(it.formatted(truncate = true))) }
             .launchIn(viewModelScope)

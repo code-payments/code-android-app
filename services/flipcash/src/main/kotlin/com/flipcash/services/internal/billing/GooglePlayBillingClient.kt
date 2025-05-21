@@ -35,6 +35,7 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.utils.MetadataBuilder
 import com.getcode.utils.SuppressibleException
 import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -48,7 +49,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import kotlin.math.pow
 import com.android.billingclient.api.BillingClient as GooglePlayBillingClient
 
@@ -126,30 +129,32 @@ internal class GooglePlayBillingClient(
     override fun hasPaidFor(product: IapProduct) =
         purchases[product.productId] == PurchaseState.PURCHASED
 
-    override fun costOf(product: IapProduct): ProductPrice? {
-        printLog("checking cost of ${product.productId} in ${productDetails.entries}")
-        var details = productDetails[product.productId]
+    override suspend fun costOf(product: IapProduct): ProductPrice? {
+        return costOf(product.productId)
+    }
+
+    private suspend fun costOf(productId: String, emitError: Boolean = true): ProductPrice? {
+        printLog("checking cost of $productId in ${productDetails.entries}")
+        var details = productDetails[productId]
         if (details == null) {
-            queryProduct(product)
-            details = productDetails[product.productId]
+            queryProduct(productId)
+            details = productDetails[productId]
         }
 
-        if (details == null) {
-            scope.launch {
-                _eventFlow.emit(
-                    IapPaymentEvent.OnError(
-                        product.productId,
-                        Throwable("Unable to resolve product details for ${product.productId}")
-                    )
+        if (details == null && emitError) {
+            _eventFlow.emit(
+                IapPaymentEvent.OnError(
+                    productId,
+                    Throwable("Unable to resolve product details for $productId")
                 )
-            }
+            )
             return null
         }
 
-        return details.oneTimePurchaseOfferDetails?.let {
+        return details?.oneTimePurchaseOfferDetails?.let {
             ProductPrice(
                 amount = it.priceAmountMicros / 1_000_000.0,
-                currency = it.priceCurrencyCode
+                currency = CurrencyCode.tryValueOf(it.priceCurrencyCode) ?: CurrencyCode.USD
             )
         }
     }
@@ -157,7 +162,7 @@ internal class GooglePlayBillingClient(
     override suspend fun purchase(activity: Activity, product: IapProduct) {
         var details = productDetails[product.productId]
         if (details == null) {
-            queryProduct(product)
+            queryProduct(product.productId)
             details = productDetails[product.productId]
         }
 
@@ -188,21 +193,30 @@ internal class GooglePlayBillingClient(
         printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
         if (!item.isAcknowledged) {
             scope.launch {
-                val details = productDetails[item.products.first()]
-                val product = item.products.first()
+                val productId = item.products.first()
+                // ignore cache and requery the product for updated details
+                val purchasePrice = retryable { costOf(productId, emitError = false) }
+
+                if (purchasePrice == null) {
+                    _eventFlow.emit(
+                        IapPaymentEvent.OnError(
+                            productId,
+                            Throwable("Unable to resolve purchase details for $productId")
+                        )
+                    )
+                    return@launch
+                }
+
                 val receipt = Receipt(item.purchaseToken)
-                val price = details?.oneTimePurchaseOfferDetails?.priceAmountMicros
-                    ?.let { priceMicros -> priceMicros / 1_000_000.0 } ?: 0.0
-                val currencyCode = CurrencyCode.tryValueOf(details?.oneTimePurchaseOfferDetails?.priceCurrencyCode) ?: CurrencyCode.USD
 
                 printLog(
-                    message = "completing purchase",
+                    message = "completing purchasen",
                     metadata = {
                         "token" to item.purchaseToken
-                        "product" to product
+                        "product" to productId
                         "receipt" to receipt
-                        "price" to price
-                        "currency" to currencyCode.name
+                        "price" to purchasePrice.amount
+                        "currency" to purchasePrice.currency.name
                     }
                 )
 
@@ -210,9 +224,9 @@ internal class GooglePlayBillingClient(
                     owner = userManager.accountCluster?.authority?.keyPair!!,
                     receipt = receipt,
                     metadata = IapMetadata(
-                        product = product,
-                        amount = price,
-                        currency = currencyCode
+                        product = productId,
+                        amount = purchasePrice.amount,
+                        currency = purchasePrice.currency
                     )
                 ).onSuccess {
                     acknowledgeOrConsume(item)
@@ -293,15 +307,17 @@ internal class GooglePlayBillingClient(
     }
 
     private fun queryProducts() {
-        IapProduct.entries.onEach { product -> queryProduct(product) }
+        scope.launch {
+            IapProduct.entries.onEach { product -> queryProduct(product.productId) }
+        }
     }
 
-    private fun queryProduct(product: IapProduct) {
+    private suspend fun queryProduct(productId: String): ProductDetails? = suspendCancellableCoroutine { cont ->
         val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 ImmutableList.of(
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(product.productId)
+                        .setProductId(productId)
                         .setProductType(GooglePlayBillingClient.ProductType.INAPP)
                         .build()
                 )
@@ -311,10 +327,13 @@ internal class GooglePlayBillingClient(
         client.queryProductDetailsAsync(
             queryProductDetailsParams
         ) { result, productDetailsList ->
-            printLog("QUERY ${product.productId} ${result.debugMessage}")
-            printLog("products for ${product.productId} = ${productDetailsList.count()}")
+            printLog("QUERY $productId ${result.debugMessage}")
+            printLog("products for $productId = ${productDetailsList.count()}")
             if (productDetailsList.isNotEmpty()) {
-                productDetails[product.productId] = productDetailsList.first()
+                productDetails[productId] = productDetailsList.first()
+                cont.resume(productDetailsList.first())
+            } else {
+                cont.resume(null)
             }
         }
     }

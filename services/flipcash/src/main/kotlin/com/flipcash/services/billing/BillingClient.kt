@@ -2,6 +2,7 @@ package com.flipcash.services.billing
 
 import android.app.Activity
 import com.android.billingclient.api.BillingResult
+import com.getcode.opencode.model.financial.CurrencyCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,7 @@ class IapPaymentError(val code: Int, override val message: String): Throwable(me
 
 data class ProductPrice(
     val amount: Double,
-    val currency: String
+    val currency: CurrencyCode
 )
 interface BillingClient {
     val eventFlow: SharedFlow<IapPaymentEvent>
@@ -32,7 +33,7 @@ interface BillingClient {
     fun connect()
     fun disconnect()
     fun hasPaidFor(product: IapProduct): Boolean
-    fun costOf(product: IapProduct): ProductPrice?
+    suspend fun costOf(product: IapProduct): ProductPrice?
     suspend fun purchase(activity: Activity, product: IapProduct)
 }
 
@@ -51,7 +52,7 @@ object StubBillingClient: BillingClient {
     override fun connect() = Unit
     override fun disconnect() = Unit
     override fun hasPaidFor(product: IapProduct): Boolean = false
-    override fun costOf(product: IapProduct): ProductPrice? = null
+    override suspend fun costOf(product: IapProduct): ProductPrice? = null
     override suspend fun purchase(activity: Activity, product: IapProduct) {
         delay(1.seconds)
         _eventFlow.emit(IapPaymentEvent.OnSuccess(product.productId))
