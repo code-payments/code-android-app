@@ -9,7 +9,7 @@ android {
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
-        ndkVersion = "23.1.7779620"
+        ndkVersion = "27.2.12479018"
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++11"
