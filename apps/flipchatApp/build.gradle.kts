@@ -12,7 +12,7 @@ plugins {
     id(Plugins.google_services)
     id(Plugins.firebase_crashlytics)
     id(Plugins.firebase_perf)
-    id(Plugins.bugsnag)
+    id(Plugins.bugsnag_android_gradle)
     id(Plugins.secrets_gradle_plugin)
     id(Plugins.versioning_gradle_plugin)
     id(Plugins.jetbrains_compose_compiler)

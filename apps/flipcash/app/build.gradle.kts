@@ -1,3 +1,5 @@
+import com.bugsnag.gradle.dsl.debug
+import com.bugsnag.gradle.dsl.release
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -12,7 +14,7 @@ plugins {
     id(Plugins.google_services)
     id(Plugins.firebase_crashlytics)
     id(Plugins.firebase_perf)
-    id(Plugins.bugsnag)
+    id(Plugins.bugsnag_gradle)
     id(Plugins.secrets_gradle_plugin)
     id(Plugins.versioning_gradle_plugin)
     id(Plugins.jetbrains_compose_compiler)
@@ -106,6 +108,18 @@ android {
         resources.excludes.add("**/*.proto")
         resources.excludes.add("META-INF/LICENSE.md")
         resources.excludes.add("META-INF/LICENSE-notice.md")
+    }
+}
+
+bugsnag {
+    apiKey = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
+    variants {
+        release {
+            autoUploadBundle = true
+        }
+        debug {
+            enabled = false
+        }
     }
 }
 

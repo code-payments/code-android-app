@@ -136,7 +136,8 @@ object Classpath {
 
     const val crashlytics_gradle =
         "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
-    const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.2.0"
+    const val bugsnag_android_gradle_plugin = "com.bugsnag:bugsnag-android-gradle-plugin:8.2.0"
+    const val bugsnag_gradle_plugin = "com.bugsnag:bugsnag-gradle-plugin:0.4.0"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
@@ -156,7 +157,8 @@ object Plugins {
     const val google_services = "com.google.gms.google-services"
     const val firebase_crashlytics = "com.google.firebase.crashlytics"
     const val firebase_perf = "com.google.firebase.firebase-perf"
-    const val bugsnag = "com.bugsnag.android.gradle"
+    const val bugsnag_android_gradle = "com.bugsnag.android.gradle"
+    const val bugsnag_gradle = "com.bugsnag.gradle"
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
     const val versioning_gradle_plugin = "de.nanogiants.android-versioning"
