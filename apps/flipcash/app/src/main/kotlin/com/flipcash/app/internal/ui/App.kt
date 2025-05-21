@@ -78,6 +78,12 @@ internal fun App(
         }
     )
 
+    OnLifecycleEvent { _, event ->
+        if (event == Lifecycle.Event.ON_RESUME) {
+            viewModel.onResume()
+        }
+    }
+
     // We are obtaining deep link here to handle a login request while already logged in to
     // present the option for the user to switch accounts
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }

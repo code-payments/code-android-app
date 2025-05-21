@@ -13,6 +13,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
@@ -27,9 +28,20 @@ internal class HomeViewModel @Inject constructor(
     private val appSettingsCoordinator: AppSettingsCoordinator
 ) : ViewModel() {
 
-    val requireBiometrics = appSettingsCoordinator.observeValue(AppSettingValue.BiometricsRequired)
-        .take(1)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettingValue.BiometricsRequired.default)
+    private val _requireBiometrics = MutableStateFlow<Boolean?>(null)
+    val requireBiometrics = _requireBiometrics.stateIn(
+        viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null
+    )
+
+    init {
+        checkBiometrics()
+    }
+
+    fun onResume() {
+        checkBiometrics()
+    }
 
     fun onMissingBiometrics() {
         // biometrics required by user, but now not enrolled
@@ -83,6 +95,12 @@ internal class HomeViewModel @Inject constructor(
                     onClose = { onDismissed() }
                 )
             )
+        }
+    }
+
+    private fun checkBiometrics() {
+        viewModelScope.launch {
+            _requireBiometrics.value = appSettingsCoordinator.get(AppSettingValue.BiometricsRequired)
         }
     }
 }
