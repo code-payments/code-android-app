@@ -39,6 +39,8 @@ android {
         buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipcash.versionName}\"")
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+
+        manifestPlaceholders["BUGSNAG_API_KEY"] = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
     }
 
     signingConfigs {
@@ -123,7 +125,7 @@ bugsnag {
     variants {
         release {
             autoUploadBundle = false
-            autoCreateRelease = false
+            autoCreateBuild = false
         }
         debug {
             enabled = false

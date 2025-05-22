@@ -37,6 +37,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Code"
         tools:targetApi="tiramisu">
+
+        <meta-data
+            android:name="com.bugsnag.android.API_KEY"
+            android:value="${BUGSNAG_API_KEY}" />
+
         <activity
             android:name="com.flipcash.app.MainActivity"
             android:exported="true"
