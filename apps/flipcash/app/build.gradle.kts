@@ -119,11 +119,10 @@ versioning {
 }
 
 bugsnag {
+    apiKey = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
     variants {
         release {
-            apiKey = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
-            autoUploadBundle = false
-            autoCreateBuild = false
+            autoUploadBundle = true
         }
         debug {
             enabled = false
