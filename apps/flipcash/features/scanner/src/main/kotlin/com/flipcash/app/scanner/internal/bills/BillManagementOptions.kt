@@ -39,7 +39,7 @@ internal fun BillManagementOptions(
     ) {
         Row(
             modifier = Modifier
-                .padding(bottom = 30.dp)
+                .padding(bottom = CodeTheme.dimens.grid.x6)
                 .align(Alignment.BottomCenter),
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8)
         ) {
