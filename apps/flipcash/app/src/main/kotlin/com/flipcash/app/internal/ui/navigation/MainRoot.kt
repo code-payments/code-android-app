@@ -60,7 +60,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
         val userManager = LocalUserManager.currentOrThrow
         var showLoading by remember { mutableStateOf(false) }
         val router = LocalRouter.currentOrThrow
-        var showLogo by remember { mutableStateOf(true) }
+        var showLogo by remember { mutableStateOf(false) }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -76,10 +76,12 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
-                        contentDescription = null,
-                    )
+                    if (showLogo) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
+                            contentDescription = null,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.requiredHeight(CodeTheme.dimens.inset))
@@ -113,13 +115,16 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                         AuthState.LoggedInAwaitingUser -> {
                             delay(1.5.seconds)
                             showLoading = true
+                            showLogo = true
                         }
 
                         AuthState.LoggedIn -> {
                             showLogo = false
                         }
 
-                        else -> Unit
+                        else -> {
+                            showLogo = true
+                        }
                     }
 
                     if (screens != null) {
