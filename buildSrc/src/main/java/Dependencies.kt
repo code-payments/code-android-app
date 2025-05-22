@@ -28,7 +28,7 @@ sealed class Packaging(
     object Flipcash: Packaging(
         majorVersion = 0,
         minorVersion = 2,
-        patchVersion = 0,
+        patchVersion = 1,
     )
 
     object Flipchat: Packaging(
