@@ -110,14 +110,13 @@ internal class InternalShareSheetController(
     ) {
         val url = Linkify.cashLink(giftCardAccount.entropy)
 
-        val text = "${amount.formatted()} $url"
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(
                 Intent.EXTRA_TITLE,
                 resources.getString(R.string.title_shareCashLink, amount.formatted(truncated = true))
             )
-            putExtra(Intent.EXTRA_TEXT, text)
+            putExtra(Intent.EXTRA_TEXT, url)
             type = "text/plain"
         }
 
