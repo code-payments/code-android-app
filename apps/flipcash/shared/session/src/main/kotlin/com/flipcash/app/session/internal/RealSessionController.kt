@@ -22,6 +22,7 @@ import com.flipcash.core.R
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -46,6 +47,7 @@ import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -301,51 +303,88 @@ class RealSessionController @Inject constructor(
         amount: LocalFiat, owner: AccountCluster, restartBillGrabber: () -> Unit
     ) {
         val giftCard = GiftCardAccount.create()
-
-        val initiateFunding = { amt: LocalFiat, resetShareController: Boolean ->
-            billController.fundGiftCard(
-                giftCard = giftCard,
-                amount = amt,
-                owner = owner,
-                onFunded = {
-                    toastController.show(it)
-                    bringActivityFeedCurrent()
-                    if (resetShareController) {
-                        shareSheetController.reset()
-                    }
-                },
-                onError = {
-                    cancelSend()
-                    TopBarManager.showMessage(
-                        title = resources.getString(R.string.error_title_failedToCreateGiftCard),
-                        message = resources.getString(R.string.error_description_failedToCreateGiftCard)
-                    )
-                }
-            )
-        }
+        val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
 
         scope.launch {
             shareSheetController.onShared = { result ->
                 when (result) {
                     ShareResult.CopiedToClipboard -> {
-                        // pop the bill out as if grabbed/sent, but don't toast until funded
-                        cancelSend(PresentationStyle.Pop, overrideToast = true)
+                        presentShareConfirmationModal(
+                            giftCard, owner, amount, result,
+                            onDidNotShare = restartBillGrabber,
+                            reshare = {
+                                scope.launch { shareSheetController.present(shareable) }
+                            }
+                        )
+                    }
+
+                    is ShareResult.SharedToApp -> {
+                        presentShareConfirmationModal(
+                            giftCard, owner, amount, result,
+                            onDidNotShare = restartBillGrabber,
+                            reshare = {
+                                scope.launch { shareSheetController.present(shareable) }
+                            }
+                        )
+                    }
+
+                    ShareResult.NotShared -> {
+                        restartBillGrabber()
+                    }
+                }
+            }
+            delay(500)
+            shareSheetController.present(shareable)
+        }
+    }
+
+    private fun presentShareConfirmationModal(
+        giftCard: GiftCardAccount,
+        owner: AccountCluster,
+        amount: LocalFiat,
+        shareResult: ShareResult,
+        onDidNotShare: () -> Unit,
+        reshare: () -> Unit,
+    ) {
+        billController.cancelAwaitForGrab()
+
+        val handleConfirmationOrTimeout = { didConfirm: Boolean ->
+            when (shareResult) {
+                ShareResult.CopiedToClipboard -> {
+                    // pop the bill out as if grabbed/sent, but don't toast until funded
+                    cancelSend(PresentationStyle.Pop, overrideToast = true)
+                    trace(
+                        tag = "Session",
+                        message = "Cash link copied to clipboard",
+                        metadata = {
+                            "amount" to amount
+                        },
+                        type = TraceType.User,
+                    )
+                    initiateGiftCardFunding(giftCard, owner, amount, true)
+                    vibrator.vibrate()
+                }
+                ShareResult.NotShared -> Unit
+                is ShareResult.SharedToApp -> {
+                    if (!didConfirm) {
+                        // user never confirmed the send, treat as so
                         trace(
                             tag = "Session",
-                            message = "Cash link copied to clipboard",
+                            message = "Cash link shared with ${shareResult.to}",
                             metadata = {
                                 "amount" to amount
                             },
                             type = TraceType.User,
                         )
-                        initiateFunding(amount, true)
-                    }
-
-                    is ShareResult.SharedToApp -> {
+                        // pop the bill out as if grabbed/sent, but don't toast until funded
+                        cancelSend(PresentationStyle.Pop, overrideToast = true)
+                        giftCard.fund()
+                        initiateGiftCardFunding(giftCard, owner, amount, false)
+                    } else {
                         if (!giftCard.funded) {
                             trace(
                                 tag = "Session",
-                                message = "Cash link shared with ${result.to}",
+                                message = "Cash link shared with ${shareResult.to}",
                                 metadata = {
                                     "amount" to amount
                                 },
@@ -354,7 +393,7 @@ class RealSessionController @Inject constructor(
                             // pop the bill out as if grabbed/sent, but don't toast until funded
                             cancelSend(PresentationStyle.Pop, overrideToast = true)
                             giftCard.fund()
-                            initiateFunding(amount, false)
+                            initiateGiftCardFunding(giftCard, owner, amount, false)
                         } else {
                             // due to android lifecycles, we need to await
                             // the return to the app before showing the toast
@@ -363,16 +402,82 @@ class RealSessionController @Inject constructor(
                             shareSheetController.reset()
                         }
                     }
-
-                    ShareResult.NotShared -> {
-                        restartBillGrabber()
-                    }
                 }
             }
-            val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
-            delay(500)
-            shareSheetController.present(shareable)
         }
+        scope.launch {
+            delay(2.5.seconds)
+
+            BottomBarManager.showMessage(
+                BottomBarManager.BottomBarMessage(
+                    title = resources.getString(R.string.prompt_title_didYouSendLink),
+                    subtitle = resources.getString(R.string.prompt_description_didYouSendLink),
+                    positiveText = resources.getString(R.string.action_yes),
+                    negativeText = resources.getString(R.string.action_noTryAgain),
+                    tertiaryText = resources.getString(R.string.action_cancelSend),
+                    actions = buildList {
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_yes),
+                                onClick = {
+                                    handleConfirmationOrTimeout(true)
+                                },
+                            )
+                        )
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_noTryAgain),
+                                style = BottomBarManager.BottomBarButtonStyle.Filled50,
+                                onClick = reshare
+                            )
+                        )
+                    },
+                    onPositive = {
+
+                    },
+                    onNegative = reshare,
+                    onTertiary = onDidNotShare,
+                    onClose = { fromAction ->
+                        if (!fromAction) {
+                            handleConfirmationOrTimeout(false)
+                        } else {
+                            onDidNotShare()
+                        }
+                    },
+                    type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
+                    isDismissible = false,
+                    showCancel = true,
+                    timeoutSeconds = 60
+                )
+            )
+        }
+    }
+
+    private fun initiateGiftCardFunding(
+        giftCard: GiftCardAccount,
+        owner: AccountCluster,
+        amount: LocalFiat,
+        resetShareController: Boolean
+    ) {
+        billController.fundGiftCard(
+            giftCard = giftCard,
+            amount = amount,
+            owner = owner,
+            onFunded = {
+                toastController.show(it)
+                bringActivityFeedCurrent()
+                if (resetShareController) {
+                    shareSheetController.reset()
+                }
+            },
+            onError = {
+                cancelSend()
+                TopBarManager.showMessage(
+                    title = resources.getString(R.string.error_title_failedToCreateGiftCard),
+                    message = resources.getString(R.string.error_description_failedToCreateGiftCard)
+                )
+            }
+        )
     }
 
     override fun onCodeScan(code: ScannableKikCode) {

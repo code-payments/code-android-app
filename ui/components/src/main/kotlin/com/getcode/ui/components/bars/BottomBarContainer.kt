@@ -231,7 +231,7 @@ fun BottomBarView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .rememberedClickable {
-                                onClose(false)
+                                onClose(true)
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x3),
                         style = CodeTheme.typography.textMedium,

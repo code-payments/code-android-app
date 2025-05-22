@@ -123,4 +123,7 @@
     <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
 
     <string name="action_unlockCode">Unlock Flipcash</string>
+
+    <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance.</string>
+
 </resources>
