@@ -11,11 +11,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -60,8 +62,9 @@ internal fun ScannerNavigationBar(
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
         BottomBarAction(
+            modifier = Modifier.weight(1f),
             label = stringResource(R.string.action_cash),
-            painter = painterResource(R.drawable.ic_tip_card),
+            painter = painterResource(R.drawable.ic_cash_bill),
             badgeCount = 0,
             onClick = { onAction(ScannerDecorItem.Cash) }
         )
@@ -75,6 +78,7 @@ internal fun ScannerNavigationBar(
 //        )
 
         BottomBarAction(
+            modifier = Modifier.weight(1f),
             label = stringResource(R.string.action_balance),
             painter = painterResource(R.drawable.ic_balance),
             badgeCount = state.notificationUnreadCount,
@@ -119,7 +123,7 @@ private fun BottomBarAction(
     onClick: (() -> Unit)?,
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.width(IntrinsicSize.Max),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         toast()
