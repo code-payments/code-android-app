@@ -110,7 +110,7 @@ class BillTransactionManager @Inject constructor(
                 .onSuccess { metadata ->
                     trace(
                         tag = "Bill",
-                        message = "attemptGrabFromSender: ReceivePublicPayment => ${metadata.exchangeData}"
+                        message = "attemptGrabFromSender: ${metadata.javaClass.simpleName} => ${metadata.exchangeData}"
                     )
 
                     val amount = LocalFiat(metadata.exchangeData)
@@ -220,6 +220,7 @@ class BillTransactionManager @Inject constructor(
     }
 
     fun cancelAwaitForGrab() {
+        cancelBillTimeout()
         giveTransactor?.dispose()
         giveTransactor = null
     }

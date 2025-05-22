@@ -16,6 +16,11 @@ sealed interface TransactionMetadata {
      */
     data object OpenAccounts: TransactionMetadata
 
+    sealed interface PublicPayment {
+        val source: PublicKey
+        val exchangeData: ExchangeData.WithRate
+    }
+
     /**
      * Send a payment to a destination account publicly.
      *
@@ -35,11 +40,11 @@ sealed interface TransactionMetadata {
      * @param isWithdrawal Is the payment a withdrawal?
      */
     data class SendPublicPayment(
-        val source: PublicKey,
+        override val source: PublicKey,
         val destination: PublicKey,
-        val exchangeData: ExchangeData.WithRate,
+        override val exchangeData: ExchangeData.WithRate,
         val isWithdrawal: Boolean
-    ): TransactionMetadata
+    ): TransactionMetadata, PublicPayment
 
     /**
      * Receives funds into a user-owned account publicly. All use cases of this intent close the
@@ -52,9 +57,8 @@ sealed interface TransactionMetadata {
      * Action Specification (Remote Send):
      * actions = [NoPrivacyWithdrawAction(REMOTE_SEND_GIFT_CARD, TEMPORARY_INCOMING[latest_index], quarks)]
      * ```
-     * <p>
      *
-     * <b>TODO:</b> This requires a new implementation for the VM
+     * <p>
      *
      * @param source The remote send gift card to receive funds from
      * @param quarks The exact amount of Kin in quarks being received
@@ -65,11 +69,11 @@ sealed interface TransactionMetadata {
      * SubmitIntent will disallow this being set.
      */
     data class ReceivePublicPayment(
-        val source: PublicKey,
+        override val source: PublicKey,
         val quarks: Long,
         val isRemoteSend: Boolean = true,
-        val exchangeData: ExchangeData.WithRate,
-    ): TransactionMetadata
+        override val exchangeData: ExchangeData.WithRate,
+    ): TransactionMetadata, PublicPayment
 
     data object Unknown: TransactionMetadata
 }

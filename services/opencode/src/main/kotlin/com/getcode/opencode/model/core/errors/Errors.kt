@@ -11,7 +11,7 @@ sealed class CodeAccountCheckError(
     class NotFound : CodeAccountCheckError("Not found")
     class UnlockedTimelockAccount : CodeAccountCheckError("Unlocked timelock account")
     class Unrecognized : CodeAccountCheckError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : CodeAccountCheckError()
+    data class Other(override val cause: Throwable? = null) : CodeAccountCheckError(message = cause?.message, cause = cause)
 }
 
 sealed class GetAccountsError(
@@ -20,7 +20,7 @@ sealed class GetAccountsError(
 ) : CodeServerError(message, cause) {
     class NotFound : GetAccountsError("Not found")
     class Unrecognized : GetAccountsError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetAccountsError()
+    data class Other(override val cause: Throwable? = null) : GetAccountsError(message = cause?.message, cause = cause)
 }
 
 sealed class LinkAccountsError(
@@ -37,7 +37,7 @@ sealed class LinkAccountsError(
      */
     class InvalidAccount : LinkAccountsError("Invalid account")
     class Unrecognized : LinkAccountsError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : LinkAccountsError()
+    data class Other(override val cause: Throwable? = null) : LinkAccountsError(message = cause?.message, cause = cause)
 }
 
 sealed class GetRatesError(
@@ -49,21 +49,21 @@ sealed class GetRatesError(
      */
     class MissingData : GetRatesError("Missing data")
     class Unrecognized : GetRatesError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetRatesError()
+    data class Other(override val cause: Throwable? = null) : GetRatesError(message = cause?.message, cause = cause)
 }
 
 sealed class OpenMessageStreamError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    data class Other(override val cause: Throwable? = null) : OpenMessageStreamError()
+    data class Other(override val cause: Throwable? = null) : OpenMessageStreamError(message = cause?.message, cause = cause)
 }
 
 sealed class PollMessagesError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    data class Other(override val cause: Throwable? = null) : PollMessagesError()
+    data class Other(override val cause: Throwable? = null) : PollMessagesError(message = cause?.message, cause = cause)
 }
 
 sealed class AckMessagesError(
@@ -71,7 +71,7 @@ sealed class AckMessagesError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class Unrecognized : AckMessagesError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : AckMessagesError()
+    data class Other(override val cause: Throwable? = null) : AckMessagesError(message = cause?.message, cause = cause)
 }
 
 sealed class SendMessageError(
@@ -80,7 +80,7 @@ sealed class SendMessageError(
 ) : CodeServerError(message, cause) {
     class NoActiveStream : SendMessageError("No active stream")
     class Unrecognized : SendMessageError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : SendMessageError()
+    data class Other(override val cause: Throwable? = null) : SendMessageError(message = cause?.message, cause = cause)
 }
 
 enum class DeniedReason {
@@ -111,8 +111,8 @@ sealed class SubmitIntentError(
     data class Denied(private val reasons: List<DeniedReason>) :
         SubmitIntentError(message = reasons.joinToString())
 
-    class Unrecognized : SubmitIntentError()
-    data class Other(override val cause: Throwable? = null) : SubmitIntentError()
+    class Unrecognized : SubmitIntentError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : SubmitIntentError(message = cause?.message, cause = cause)
 
     companion object {
         fun typed(proto: SubmitIntentResponse.Error): SubmitIntentError {
@@ -150,7 +150,7 @@ sealed class GetIntentMetadataError(
 ) : CodeServerError(message, cause) {
     class NotFound : GetIntentMetadataError("Not found")
     class Unrecognized : GetIntentMetadataError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError()
+    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError(message = cause?.message, cause = cause)
 }
 
 sealed class GetLimitsError(
@@ -158,14 +158,14 @@ sealed class GetLimitsError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class Unrecognized : GetIntentMetadataError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError()
+    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError(message = cause?.message, cause = cause)
 }
 
 sealed class WithdrawalAvailabilityError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    data class Other(override val cause: Throwable? = null) : WithdrawalAvailabilityError()
+    data class Other(override val cause: Throwable? = null) : WithdrawalAvailabilityError(message = cause?.message, cause = cause)
 }
 
 sealed class AirdropError(
@@ -175,7 +175,7 @@ sealed class AirdropError(
     class Unavailable: AirdropError("Unavailable")
     class AlreadyClaimed: AirdropError("Already claimed")
     class Unrecognized: AirdropError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : AirdropError()
+    data class Other(override val cause: Throwable? = null) : AirdropError(message = cause?.message, cause = cause)
 }
 
 sealed class VoidGiftCardError(
@@ -186,6 +186,6 @@ sealed class VoidGiftCardError(
     class NotFound: VoidGiftCardError("Not found")
     class AlreadyClaimed: VoidGiftCardError("Already claimed")
     class Unrecognized: VoidGiftCardError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : VoidGiftCardError()
+    data class Other(override val cause: Throwable? = null) : VoidGiftCardError(message = cause?.message, cause = cause)
 }
 

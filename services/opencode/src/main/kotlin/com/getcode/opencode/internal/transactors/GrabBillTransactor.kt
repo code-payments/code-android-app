@@ -24,7 +24,7 @@ internal class GrabBillTransactor(
         this.payload = payload
     }
 
-    suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
+    suspend fun start(): Result<TransactionMetadata.PublicPayment> {
         val ownerKey = owner ?: return Result.failure(GrabTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val destination = ownerKey.vaultPublicKey
         val data = payload

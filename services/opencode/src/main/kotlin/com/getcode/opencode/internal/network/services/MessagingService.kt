@@ -75,7 +75,7 @@ internal class MessagingService @Inject constructor(
                 }
             },
             responseHandler = { response, onResult, requestChannel ->
-                when (val result = response.responseOrPingCase) {
+                when (response.responseOrPingCase) {
                     MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
                         onResult(Result.success(response.response.messagesList))
                     }
@@ -97,6 +97,12 @@ internal class MessagingService @Inject constructor(
                         trace(
                             message = "Message Stream Server sent empty message. This is unexpected.",
                             type = TraceType.Error,
+                        )
+                    }
+
+                    else -> {
+                        trace(
+                            message = "Pong Message Stream sent null response. This is unexpected.",
                         )
                     }
                 }
