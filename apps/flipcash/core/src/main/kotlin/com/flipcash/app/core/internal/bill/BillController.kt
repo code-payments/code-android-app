@@ -25,7 +25,9 @@ class BillController @Inject constructor(
     }
 
     fun reset(showToast: Boolean = false) {
-        _state.update { BillState.Default.copy(showToast = showToast) }
+        _state.update { state ->
+            BillState.Default.copy(showToast = showToast, toast = state.toast)
+        }
         transactionManager.reset()
     }
 
