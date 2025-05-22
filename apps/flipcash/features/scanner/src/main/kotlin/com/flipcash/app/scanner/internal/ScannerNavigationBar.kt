@@ -25,6 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
@@ -158,6 +160,8 @@ private fun BottomBarAction(
         vertical = CodeTheme.dimens.grid.x2
     ),
     painter: Painter,
+    iconColor: Color = Color.White,
+    textColor: Color = Color.White,
     imageSize: Dp = CodeTheme.dimens.staticGrid.x10,
     badge: @Composable () -> Unit = { },
     onClick: (() -> Unit)?,
@@ -179,11 +183,13 @@ private fun BottomBarAction(
                         .padding(contentPadding)
                         .size(imageSize),
                     painter = painter,
+                    colorFilter = ColorFilter.tint(iconColor),
                     contentDescription = null,
                 )
                 Text(
                     text = label,
-                    style = CodeTheme.typography.textSmall
+                    style = CodeTheme.typography.textSmall,
+                    color = textColor
                 )
             }
 
