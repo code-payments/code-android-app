@@ -26,6 +26,7 @@ import java.security.SecureRandom
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
+import kotlin.time.Duration.Companion.seconds
 
 
 internal class InternalShareSheetController(
@@ -40,13 +41,17 @@ internal class InternalShareSheetController(
     private var isChecking = false
         set(value) {
             field = value
-            if (!value) {
-                checkingTimer?.cancel()
-                checkingTimer = null
-            } else {
-                checkingTimer = Timer().schedule((1000 * 30).toLong()) {
+            if (value) {
+                // only allow isChecking to remain true for 30s,
+                // to ensure this doesn't remain true for an extended period of time while
+                // the user is sending the cash link in their desired app target and then returning back
+                // at a later time.
+                checkingTimer = Timer().schedule(30.seconds.inWholeMilliseconds) {
                     isChecking = false
                 }
+            } else {
+                checkingTimer?.cancel()
+                checkingTimer = null
             }
         }
     override val isCheckingForShare: Boolean

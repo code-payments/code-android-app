@@ -7,9 +7,10 @@ import com.getcode.opencode.model.financial.LocalFiat
 
 
 sealed interface ShareResult {
+    sealed interface ActionTaken
     data object NotShared: ShareResult
-    data object CopiedToClipboard: ShareResult
-    data class SharedToApp(val to: String): ShareResult
+    data object CopiedToClipboard: ShareResult, ActionTaken
+    data class SharedToApp(val to: String): ShareResult, ActionTaken
 }
 
 sealed interface Shareable {

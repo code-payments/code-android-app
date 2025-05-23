@@ -187,10 +187,12 @@ dependencies {
     implementation(Libs.androidx_lifecycle_runtime)
     implementation(Libs.androidx_lifecycle_viewmodel)
     implementation(Libs.androidx_navigation_ui)
+    implementation(Libs.androidx_work)
+    implementation("androidx.webkit:webkit:1.13.0")
 
     //hilt dependency injection
     implementation(Libs.hilt)
-    implementation("androidx.webkit:webkit:1.13.0")
+    implementation(Libs.hilt_worker)
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 

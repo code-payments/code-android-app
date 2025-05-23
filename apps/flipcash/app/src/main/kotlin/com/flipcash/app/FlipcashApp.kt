@@ -2,6 +2,8 @@ package com.flipcash.app
 
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -26,7 +28,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
-class FlipcashApp : Application(), SingletonImageLoader.Factory {
+class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject
     lateinit var authManager: AuthManager
@@ -36,6 +38,15 @@ class FlipcashApp : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var preferredCurrencyController: PreferredCurrencyController
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
 
     override fun onCreate() {
         super.onCreate()

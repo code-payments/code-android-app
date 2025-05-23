@@ -6,11 +6,10 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
-    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.shared.session"
+    namespace = "${Android.flipcashNamespace}.shared.workers"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -30,29 +29,20 @@ android {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
-
-    buildFeatures {
-        compose = true
-    }
 }
 
 dependencies {
+    implementation(Libs.androidx_work)
+    implementation(Libs.kotlinx_serialization_json)
+
     implementation(Libs.inject)
     implementation(Libs.hilt)
+    implementation(Libs.hilt_worker)
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
-
-    implementation(project(":apps:flipcash:shared:activityfeed"))
-    implementation(project(":apps:flipcash:shared:appsettings"))
-    implementation(project(":apps:flipcash:shared:shareable"))
-    implementation(project(":apps:flipcash:shared:workers"))
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":services:flipcash"))
-    implementation(project(":libs:datetime"))
-    implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-    implementation(project(":libs:vibrator:bindings"))
+
 }

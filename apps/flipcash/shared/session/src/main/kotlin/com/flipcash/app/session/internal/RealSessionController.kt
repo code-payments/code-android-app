@@ -14,15 +14,17 @@ import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
+import com.flipcash.app.session.internal.share.CashLinkConfirmationManager
+import com.flipcash.app.session.internal.share.ShareConfirmationResult
 import com.flipcash.app.session.internal.toast.ToastController
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.app.workers.WorkCoordinator
 import com.flipcash.core.R
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -47,7 +49,6 @@ import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,7 +79,9 @@ class RealSessionController @Inject constructor(
     private val shareSheetController: ShareSheetController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
-    appSettingsCoordinator: AppSettingsCoordinator
+    appSettingsCoordinator: AppSettingsCoordinator,
+    private val cashLinkConfirmationManager: CashLinkConfirmationManager,
+    private val workCoordinator: WorkCoordinator,
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -310,24 +313,86 @@ class RealSessionController @Inject constructor(
         scope.launch {
             shareSheetController.onShared = { result ->
                 when (result) {
-                    ShareResult.CopiedToClipboard -> {
-                        presentShareConfirmationModal(
-                            giftCard, owner, amount, result,
-                            onDidNotShare = restartBillGrabber,
-                            reshare = {
-                                scope.launch { shareSheetController.present(shareable) }
-                            }
-                        )
-                    }
+                    is ShareResult.ActionTaken -> {
+                        scope.launch {
+                            delay(2.5.seconds)
+                            // schedule gift card funding if no user action is taken
+                            // in confirmation modal
+                            workCoordinator.scheduleGiftCardFunding(giftCard, amount)
 
-                    is ShareResult.SharedToApp -> {
-                        presentShareConfirmationModal(
-                            giftCard, owner, amount, result,
-                            onDidNotShare = restartBillGrabber,
-                            reshare = {
-                                scope.launch { shareSheetController.present(shareable) }
+                            val confirmResult = cashLinkConfirmationManager.confirm(result)
+
+                            shareSheetController.reset()
+
+                            when (confirmResult) {
+                                ShareConfirmationResult.Cancelled -> {
+                                    // user selected cancel, thus dismissing the share modal
+                                    // and making the bill visible again. Restart the
+                                    // grabber to allow grabbing the visible bill.
+                                    restartBillGrabber()
+                                    workCoordinator.cancelGiftCardFunding(giftCard)
+                                }
+                                is ShareConfirmationResult.Confirmed -> {
+                                    if (confirmResult.didConfirm) {
+                                        // is user explicity confirmed,
+                                        // cancel the scheduled funding to allow immediate funding
+                                        workCoordinator.cancelGiftCardFunding(giftCard)
+                                    }
+
+                                    when (result) {
+                                        ShareResult.CopiedToClipboard -> {
+                                            // pop the bill out as if grabbed/sent, but don't toast until funded
+                                            cancelSend(PresentationStyle.Pop, overrideToast = true)
+                                            trace(
+                                                tag = "Session",
+                                                message = "Cash link copied to clipboard",
+                                                metadata = {
+                                                    "amount" to amount
+                                                },
+                                                type = TraceType.User,
+                                            )
+                                            initiateGiftCardFunding(giftCard, owner, amount, true)
+                                            vibrator.vibrate()
+                                        }
+
+                                        is ShareResult.SharedToApp -> {
+                                            if (!giftCard.funded) {
+                                                trace(
+                                                    tag = "Session",
+                                                    message = "Cash link shared with ${result.to}",
+                                                    metadata = {
+                                                        "amount" to amount
+                                                    },
+                                                    type = TraceType.User,
+                                                )
+                                                // pop the bill out as if grabbed/sent, but don't toast until funded
+                                                cancelSend(
+                                                    PresentationStyle.Pop,
+                                                    overrideToast = true
+                                                )
+                                                giftCard.fund()
+                                                initiateGiftCardFunding(
+                                                    giftCard,
+                                                    owner,
+                                                    amount,
+                                                    false
+                                                )
+                                            } else {
+                                                // due to android lifecycles, we need to await
+                                                // the return to the app before showing the toast
+                                                // This is facilitated via ShareSheetController.checkForShare()
+                                                toastController.show(amount)
+                                            }
+                                        }
+                                    }
+                                }
+                                ShareConfirmationResult.TryAgain -> {
+                                    workCoordinator.cancelGiftCardFunding(giftCard)
+                                    // user selected try again, re-present share modal
+                                    shareSheetController.present(shareable)
+                                }
                             }
-                        )
+                        }
                     }
 
                     ShareResult.NotShared -> {
@@ -335,113 +400,7 @@ class RealSessionController @Inject constructor(
                     }
                 }
             }
-            delay(500)
             shareSheetController.present(shareable)
-        }
-    }
-
-    private fun presentShareConfirmationModal(
-        giftCard: GiftCardAccount,
-        owner: AccountCluster,
-        amount: LocalFiat,
-        shareResult: ShareResult,
-        onDidNotShare: () -> Unit,
-        reshare: () -> Unit,
-    ) {
-        billController.cancelAwaitForGrab()
-
-        val handleConfirmationOrTimeout = { didConfirm: Boolean ->
-            when (shareResult) {
-                ShareResult.CopiedToClipboard -> {
-                    // pop the bill out as if grabbed/sent, but don't toast until funded
-                    cancelSend(PresentationStyle.Pop, overrideToast = true)
-                    trace(
-                        tag = "Session",
-                        message = "Cash link copied to clipboard",
-                        metadata = {
-                            "amount" to amount
-                        },
-                        type = TraceType.User,
-                    )
-                    initiateGiftCardFunding(giftCard, owner, amount, true)
-                    vibrator.vibrate()
-                }
-                ShareResult.NotShared -> Unit
-                is ShareResult.SharedToApp -> {
-                    if (!didConfirm) {
-                        // user never confirmed the send, treat as so
-                        trace(
-                            tag = "Session",
-                            message = "Cash link shared with ${shareResult.to}",
-                            metadata = {
-                                "amount" to amount
-                            },
-                            type = TraceType.User,
-                        )
-                        // pop the bill out as if grabbed/sent, but don't toast until funded
-                        cancelSend(PresentationStyle.Pop, overrideToast = true)
-                        giftCard.fund()
-                        initiateGiftCardFunding(giftCard, owner, amount, false)
-                    } else {
-                        if (!giftCard.funded) {
-                            trace(
-                                tag = "Session",
-                                message = "Cash link shared with ${shareResult.to}",
-                                metadata = {
-                                    "amount" to amount
-                                },
-                                type = TraceType.User,
-                            )
-                            // pop the bill out as if grabbed/sent, but don't toast until funded
-                            cancelSend(PresentationStyle.Pop, overrideToast = true)
-                            giftCard.fund()
-                            initiateGiftCardFunding(giftCard, owner, amount, false)
-                        } else {
-                            // due to android lifecycles, we need to await
-                            // the return to the app before showing the toast
-                            // This is facilitated via ShareSheetController.checkForShare()
-                            toastController.show(amount)
-                            shareSheetController.reset()
-                        }
-                    }
-                }
-            }
-        }
-        scope.launch {
-            delay(2.5.seconds)
-
-            BottomBarManager.showMessage(
-                BottomBarManager.BottomBarMessage(
-                    title = resources.getString(R.string.prompt_title_didYouSendLink),
-                    subtitle = resources.getString(R.string.prompt_description_didYouSendLink),
-                    actions = buildList {
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_yes),
-                                onClick = {
-                                    handleConfirmationOrTimeout(true)
-                                },
-                            )
-                        )
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_noTryAgain),
-                                style = BottomBarManager.BottomBarButtonStyle.Filled50,
-                                onClick = reshare
-                            )
-                        )
-                    },
-                    onClose = { selection ->
-                        if (selection.index == -1) {
-                            onDidNotShare()
-                        }
-                    },
-                    type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
-                    isDismissible = false,
-                    showCancel = true,
-                    timeoutSeconds = 60
-                )
-            )
         }
     }
 
