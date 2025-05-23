@@ -32,15 +32,7 @@ internal class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _requireBiometrics = MutableStateFlow<Boolean?>(null)
-    val requireBiometrics = _requireBiometrics
-        .map {
-            if (it == true) {
-                !shareSheetController.isCheckingForShare
-            } else {
-                it
-            }
-        }
-        .stateIn(
+    val requireBiometrics = _requireBiometrics.stateIn(
         viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = null
@@ -111,7 +103,7 @@ internal class HomeViewModel @Inject constructor(
 
     private fun checkBiometrics() {
         viewModelScope.launch {
-            _requireBiometrics.value = appSettingsCoordinator.get(AppSettingValue.BiometricsRequired)
+            _requireBiometrics.value = !shareSheetController.isCheckingForShare && appSettingsCoordinator.get(AppSettingValue.BiometricsRequired)
         }
     }
 }
