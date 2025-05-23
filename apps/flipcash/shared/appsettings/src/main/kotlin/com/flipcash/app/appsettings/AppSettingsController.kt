@@ -7,5 +7,6 @@ interface AppSettingsController {
     fun observe(setting: AppSettingValue): Flow<Boolean>
     suspend fun get(setting: AppSettingValue): Boolean
     fun update(setting: AppSettingValue, value: Boolean, fromUser: Boolean = true)
+    fun reset()
 }
 

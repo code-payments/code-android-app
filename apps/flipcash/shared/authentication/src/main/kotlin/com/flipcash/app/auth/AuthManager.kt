@@ -2,6 +2,7 @@ package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
 import com.bugsnag.android.Bugsnag
+import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.persistence.PersistenceProvider
@@ -37,6 +38,7 @@ class AuthManager @Inject constructor(
     private val balanceController: BalanceController,
     private val persistence: PersistenceProvider,
     private val featureFlagController: FeatureFlagController,
+    private val appSettings: AppSettingsCoordinator,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
@@ -179,6 +181,7 @@ class AuthManager @Inject constructor(
         balanceController.reset()
         persistence.close()
         featureFlagController.reset()
+        appSettings.reset()
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

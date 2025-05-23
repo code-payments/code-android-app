@@ -23,6 +23,8 @@ class AppSettingsCoordinator @Inject constructor(
 
     suspend fun get(setting: AppSettingValue): Boolean = controller.get(setting)
     fun update(setting: AppSettingValue, value: Boolean, fromUser: Boolean = true) = controller.update(setting, value, fromUser)
+
+    fun reset() = controller.reset()
 }
 
 val LocalAppSettings = staticCompositionLocalOf<AppSettingsCoordinator> { error("No AppSettingsCoordinator provided") }

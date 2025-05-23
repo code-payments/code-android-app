@@ -72,4 +72,10 @@ class InternalAppSettingsController(
             }
         }
     }
+
+    override fun reset() {
+        dataScope.launch {
+            appSettings.edit { it.clear() }
+        }
+    }
 }

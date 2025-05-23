@@ -49,6 +49,7 @@ dependencies {
     implementation(Libs.androidx_credentials_play_auth)
     implementation(Libs.androidx_datastore)
 
+    implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:persistence:provider"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":services:flipcash"))
