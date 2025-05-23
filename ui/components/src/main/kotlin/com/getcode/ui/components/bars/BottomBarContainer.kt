@@ -44,7 +44,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastForEachIndexed
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -64,13 +66,13 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()
-    val onClose: suspend (fromAction: Boolean) -> Unit = { fromAction ->
+    val onClose: suspend (selection: SelectedBottomBarAction) -> Unit = { selection ->
         bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
         bottomBarVisibleState.targetState = false
 
         delay(300.scaled(animationScale))
         BottomBarManager.setMessageShown(bottomBarMessageDismissId)
-        bottomBarMessage?.onClose?.invoke(fromAction)
+        bottomBarMessage?.onClose?.invoke(selection)
     }
 
     // handle changes in visible state
@@ -89,7 +91,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
     LaunchedEffect(bottomBarMessage) {
         bottomBarMessage?.timeoutSeconds?.let {
             delay(it * 1000L)
-            onClose(false)
+            onClose(SelectedBottomBarAction(-1))
         }
     }
 
@@ -107,7 +109,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             if (it.isDismissible) {
-                                scope.launch { onClose(false) }
+                                scope.launch { onClose(SelectedBottomBarAction(-1)) }
                             }
                         }
                 )
@@ -119,7 +121,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             .rememberedClickable(indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
-                                scope.launch { onClose(false) }
+                                scope.launch { onClose(SelectedBottomBarAction(-1)) }
                             }
                     )
                 }
@@ -149,13 +151,13 @@ fun BottomBarContainer(barMessages: BarMessages) {
         label = "BottomBarAnimation"
     ) { isVisible ->
         if (isVisible) {
-            val closeWith: (fromAction: Boolean) -> Unit = { fromAction ->
-                scope.launch { onClose(fromAction) }
+            val closeWith: (selection: SelectedBottomBarAction) -> Unit = { selection ->
+                scope.launch { onClose(selection) }
             }
             BottomBarView(
                 bottomBarMessage = bottomBarMessage,
                 onClose = closeWith,
-                onBackPressed = { closeWith(false) }
+                onBackPressed = { closeWith(SelectedBottomBarAction(-1)) }
             )
         }
     }
@@ -164,7 +166,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
 @Composable
 fun BottomBarView(
     bottomBarMessage: BottomBarManager.BottomBarMessage?,
-    onClose: (fromAction: Boolean) -> Unit,
+    onClose: (selection: SelectedBottomBarAction) -> Unit,
     onBackPressed: () -> Unit
 ) {
     bottomBarMessage ?: return
@@ -201,12 +203,12 @@ fun BottomBarView(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
-                bottomBarMessage.actions.fastForEach { action ->
+                bottomBarMessage.actions.fastForEachIndexed { index, action ->
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             action.onClick()
-                            onClose(true)
+                            onClose(SelectedBottomBarAction(index))
                         },
                         textColor = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {
@@ -231,7 +233,7 @@ fun BottomBarView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .rememberedClickable {
-                                onClose(true)
+                                onClose(SelectedBottomBarAction(-1))
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x3),
                         style = CodeTheme.typography.textMedium,

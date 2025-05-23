@@ -11,6 +11,16 @@ data class BottomBarAction(
 )
 
 /**
+ * Represents an action related to a selected bottom bar item.
+ *
+ * @property index The index of the selected bottom bar item.
+ * If index is -1, that means no action was selected or cancel was.
+ */
+data class SelectedBottomBarAction(
+    val index: Int,
+)
+
+/**
  * Class responsible for managing BottomBar messages to show on the screen
  */
 object BottomBarManager {
@@ -19,7 +29,7 @@ object BottomBarManager {
         val subtitle: String = "",
         val actions: List<BottomBarAction> = emptyList(),
         val showCancel: Boolean = true,
-        val onClose: (fromAction: Boolean) -> Unit = {},
+        val onClose: (selection: SelectedBottomBarAction) -> Unit = { },
         val type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
         val isDismissible: Boolean = true,
         val showScrim: Boolean = false,
@@ -86,7 +96,7 @@ object BottomBarManager {
             onPositive: () -> Unit,
             onNegative: () -> Unit = {},
             onTertiary: () -> Unit = {},
-            onClose: (fromAction: Boolean) -> Unit = {},
+            onClose: (selection: SelectedBottomBarAction) -> Unit = { },
             type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
             isDismissible: Boolean = true,
             showScrim: Boolean = false,

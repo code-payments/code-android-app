@@ -78,7 +78,7 @@ class RealSessionController @Inject constructor(
     private val shareSheetController: ShareSheetController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
-    private val appSettingsCoordinator: AppSettingsCoordinator
+    appSettingsCoordinator: AppSettingsCoordinator
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -300,7 +300,9 @@ class RealSessionController @Inject constructor(
     }
 
     private fun shareGiftCard(
-        amount: LocalFiat, owner: AccountCluster, restartBillGrabber: () -> Unit
+        amount: LocalFiat,
+        owner: AccountCluster,
+        restartBillGrabber: () -> Unit
     ) {
         val giftCard = GiftCardAccount.create()
         val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
@@ -412,9 +414,6 @@ class RealSessionController @Inject constructor(
                 BottomBarManager.BottomBarMessage(
                     title = resources.getString(R.string.prompt_title_didYouSendLink),
                     subtitle = resources.getString(R.string.prompt_description_didYouSendLink),
-                    positiveText = resources.getString(R.string.action_yes),
-                    negativeText = resources.getString(R.string.action_noTryAgain),
-                    tertiaryText = resources.getString(R.string.action_cancelSend),
                     actions = buildList {
                         add(
                             BottomBarAction(
@@ -432,15 +431,8 @@ class RealSessionController @Inject constructor(
                             )
                         )
                     },
-                    onPositive = {
-
-                    },
-                    onNegative = reshare,
-                    onTertiary = onDidNotShare,
-                    onClose = { fromAction ->
-                        if (!fromAction) {
-                            handleConfirmationOrTimeout(false)
-                        } else {
+                    onClose = { selection ->
+                        if (selection.index == -1) {
                             onDidNotShare()
                         }
                     },
