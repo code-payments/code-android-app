@@ -9,7 +9,9 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        ndkVersion = "28.1.13356709"
+        // temporarily bump this down until we create
+        // JNI bindings for scanning
+        ndkVersion = "23.1.7779620" // "28.1.13356709"
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++11"
