@@ -14,12 +14,12 @@ import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
-import com.flipcash.app.session.internal.share.CashLinkConfirmationManager
-import com.flipcash.app.session.internal.share.ShareConfirmationResult
 import com.flipcash.app.session.internal.toast.ToastController
+import com.flipcash.app.shareable.ShareConfirmationResult
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.app.workers.WorkCoordinator
 import com.flipcash.core.R
 import com.flipcash.services.billing.BillingClient
@@ -77,10 +77,11 @@ class RealSessionController @Inject constructor(
     private val exchangeUpdater: ExchangeUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
     private val shareSheetController: ShareSheetController,
+    private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
     appSettingsCoordinator: AppSettingsCoordinator,
-    private val cashLinkConfirmationManager: CashLinkConfirmationManager,
+
     private val workCoordinator: WorkCoordinator,
 ) : SessionController {
 
@@ -320,9 +321,12 @@ class RealSessionController @Inject constructor(
                             // in confirmation modal
                             workCoordinator.scheduleGiftCardFunding(giftCard, amount)
 
-                            val confirmResult = cashLinkConfirmationManager.confirm(result)
-
-                            shareSheetController.reset()
+                            // remain isChecking state until confirmation
+                            shareSheetController.reset(setChecked = true)
+                            // confirm the result of the share
+                            val confirmResult = shareConfirmationController.confirm(shareable, result)
+                            // reset isChecking after confirmation
+                            shareSheetController.reset(setChecked = false)
 
                             when (confirmResult) {
                                 ShareConfirmationResult.Cancelled -> {
@@ -333,11 +337,7 @@ class RealSessionController @Inject constructor(
                                     workCoordinator.cancelGiftCardFunding(giftCard)
                                 }
                                 is ShareConfirmationResult.Confirmed -> {
-                                    if (confirmResult.didConfirm) {
-                                        // is user explicity confirmed,
-                                        // cancel the scheduled funding to allow immediate funding
-                                        workCoordinator.cancelGiftCardFunding(giftCard)
-                                    }
+                                    workCoordinator.cancelGiftCardFunding(giftCard)
 
                                     when (result) {
                                         ShareResult.CopiedToClipboard -> {
@@ -356,33 +356,16 @@ class RealSessionController @Inject constructor(
                                         }
 
                                         is ShareResult.SharedToApp -> {
-                                            if (!giftCard.funded) {
-                                                trace(
-                                                    tag = "Session",
-                                                    message = "Cash link shared with ${result.to}",
-                                                    metadata = {
-                                                        "amount" to amount
-                                                    },
-                                                    type = TraceType.User,
-                                                )
-                                                // pop the bill out as if grabbed/sent, but don't toast until funded
-                                                cancelSend(
-                                                    PresentationStyle.Pop,
-                                                    overrideToast = true
-                                                )
-                                                giftCard.fund()
-                                                initiateGiftCardFunding(
-                                                    giftCard,
-                                                    owner,
-                                                    amount,
-                                                    false
-                                                )
-                                            } else {
-                                                // due to android lifecycles, we need to await
-                                                // the return to the app before showing the toast
-                                                // This is facilitated via ShareSheetController.checkForShare()
-                                                toastController.show(amount)
-                                            }
+                                            trace(
+                                                tag = "Session",
+                                                message = "Cash link shared with ${result.to}",
+                                                metadata = {
+                                                    "amount" to amount
+                                                },
+                                                type = TraceType.User,
+                                            )
+                                            initiateGiftCardFunding(giftCard, owner, amount, true)
+                                            vibrator.vibrate()
                                         }
                                     }
                                 }

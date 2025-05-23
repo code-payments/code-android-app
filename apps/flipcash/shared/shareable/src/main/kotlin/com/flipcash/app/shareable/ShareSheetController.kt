@@ -38,7 +38,7 @@ interface ShareSheetController {
     var onShared: ((ShareResult) -> Unit)?
     fun checkForShare()
     suspend fun present(shareable: Shareable)
-    fun reset()
+    fun reset(setChecked: Boolean = false)
 
     companion object {
         const val ACTION_SHARE_CASH_LINK = "com.flipcash.app.ACTION_SHARE_CASH_LINK"
@@ -51,7 +51,7 @@ private object NoOpController: ShareSheetController {
     override var onShared: ((ShareResult) -> Unit)? = null
     override fun checkForShare() = Unit
     override suspend fun present(shareable: Shareable) = Unit
-    override fun reset() = Unit
+    override fun reset(setChecked: Boolean) = Unit
 }
 
 val LocalShareController: ProvidableCompositionLocal<ShareSheetController> = staticCompositionLocalOf { NoOpController }

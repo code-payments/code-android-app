@@ -68,7 +68,9 @@ fun BottomBarContainer(barMessages: BarMessages) {
 
         delay(300.scaled(animationScale))
         BottomBarManager.setMessageShown(bottomBarMessageDismissId)
-        if (!fromTimeout) {
+        if (fromTimeout) {
+            bottomBarMessage?.onTimeout?.invoke()
+        } else {
             bottomBarMessage?.onClose?.invoke(selection)
         }
     }
@@ -89,7 +91,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
     LaunchedEffect(bottomBarMessage) {
         bottomBarMessage?.timeoutSeconds?.let {
             delay(it * 1000L)
-            bottomBarMessage?.onTimeout?.invoke()
+            onClose(SelectedBottomBarAction(-1), true)
         }
     }
 

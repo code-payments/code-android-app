@@ -22,7 +22,7 @@ class WorkCoordinator @Inject constructor(
     fun scheduleGiftCardFunding(
         giftCardAccount: GiftCardAccount,
         amount: LocalFiat,
-        initialDelay: Duration = 60.seconds,
+        initialDelay: Duration = 70.seconds,
     ) {
         val request = OneTimeWorkRequestBuilder<GiftCardFundingWorker>()
             .setInitialDelay(initialDelay.inWholeMilliseconds, TimeUnit.MILLISECONDS)

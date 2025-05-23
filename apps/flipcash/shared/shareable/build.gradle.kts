@@ -48,7 +48,7 @@ dependencies {
     implementation(Libs.androidx_localbroadcastmanager)
 
     implementation(project(":apps:flipcash:core"))
-
+    implementation(project(":libs:messaging"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
 }

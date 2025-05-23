@@ -40,18 +40,21 @@ internal class InternalShareSheetController(
 
     private var isChecking = false
         set(value) {
+            val tmp = field
             field = value
-            if (value) {
-                // only allow isChecking to remain true for 30s,
-                // to ensure this doesn't remain true for an extended period of time while
-                // the user is sending the cash link in their desired app target and then returning back
-                // at a later time.
-                checkingTimer = Timer().schedule(30.seconds.inWholeMilliseconds) {
-                    isChecking = false
+            if (tmp != value) {
+                if (value) {
+                    // only allow isChecking to remain true for 30s,
+                    // to ensure this doesn't remain true for an extended period of time while
+                    // the user is sending the cash link in their desired app target and then returning back
+                    // at a later time.
+                    checkingTimer = Timer().schedule(30.seconds.inWholeMilliseconds) {
+                        isChecking = false
+                    }
+                } else {
+                    checkingTimer?.cancel()
+                    checkingTimer = null
                 }
-            } else {
-                checkingTimer?.cancel()
-                checkingTimer = null
             }
         }
     override val isCheckingForShare: Boolean
@@ -184,9 +187,12 @@ internal class InternalShareSheetController(
         context.startActivity(share)
     }
 
-    override fun reset() {
+    override fun reset(setChecked: Boolean) {
+        pendingShareable = null
         sharedWithApp = null
-        isChecking = false
+        if (isChecking != setChecked) {
+            isChecking = setChecked
+        }
         onShared = null
         LocalBroadcastManager.getInstance(context).unregisterReceiver(shareResultReceiver)
     }
