@@ -2,13 +2,10 @@ package com.getcode.ui.components.bars
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -43,7 +40,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
@@ -51,10 +47,10 @@ import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.core.rememberAnimationScale
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.scaled
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.util.resources.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -66,13 +62,15 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()
-    val onClose: suspend (selection: SelectedBottomBarAction) -> Unit = { selection ->
+    val onClose: suspend (selection: SelectedBottomBarAction, fromTimeout: Boolean) -> Unit = { selection, fromTimeout ->
         bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
         bottomBarVisibleState.targetState = false
 
         delay(300.scaled(animationScale))
         BottomBarManager.setMessageShown(bottomBarMessageDismissId)
-        bottomBarMessage?.onClose?.invoke(selection)
+        if (!fromTimeout) {
+            bottomBarMessage?.onClose?.invoke(selection)
+        }
     }
 
     // handle changes in visible state
@@ -91,7 +89,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
     LaunchedEffect(bottomBarMessage) {
         bottomBarMessage?.timeoutSeconds?.let {
             delay(it * 1000L)
-            onClose(SelectedBottomBarAction(-1))
+            bottomBarMessage?.onTimeout?.invoke()
         }
     }
 
@@ -109,7 +107,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             if (it.isDismissible) {
-                                scope.launch { onClose(SelectedBottomBarAction(-1)) }
+                                scope.launch { onClose(SelectedBottomBarAction(-1), false) }
                             }
                         }
                 )
@@ -121,7 +119,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                             .rememberedClickable(indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
-                                scope.launch { onClose(SelectedBottomBarAction(-1)) }
+                                scope.launch { onClose(SelectedBottomBarAction(-1), false) }
                             }
                     )
                 }
@@ -152,7 +150,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
     ) { isVisible ->
         if (isVisible) {
             val closeWith: (selection: SelectedBottomBarAction) -> Unit = { selection ->
-                scope.launch { onClose(selection) }
+                scope.launch { onClose(selection, false) }
             }
             BottomBarView(
                 bottomBarMessage = bottomBarMessage,

@@ -68,8 +68,6 @@ internal class HomeViewModel @Inject constructor(
                 BottomBarManager.BottomBarMessage(
                     title = resources.getString(R.string.title_logoutAndLoginConfirmation),
                     subtitle = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
-                    positiveText = resources.getString(R.string.action_logIn),
-                    tertiaryText = resources.getString(R.string.action_cancel),
                     isDismissible = false,
                     showCancel = true,
                     showScrim = true,
@@ -103,7 +101,8 @@ internal class HomeViewModel @Inject constructor(
 
     private fun checkBiometrics() {
         viewModelScope.launch {
-            _requireBiometrics.value = !shareSheetController.isCheckingForShare && appSettingsCoordinator.get(AppSettingValue.BiometricsRequired)
+            _requireBiometrics.value = !shareSheetController.isCheckingForShare &&
+                    appSettingsCoordinator.get(AppSettingValue.BiometricsRequired)
         }
     }
 }
