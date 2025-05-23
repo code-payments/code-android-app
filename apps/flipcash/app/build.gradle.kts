@@ -148,6 +148,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:workers"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:purchase"))
     implementation(project(":apps:flipcash:features:scanner"))
