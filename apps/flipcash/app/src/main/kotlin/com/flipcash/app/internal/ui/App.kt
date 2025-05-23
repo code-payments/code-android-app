@@ -33,6 +33,7 @@ import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.internal.ui.theme.FlipcashTheme
 import com.flipcash.app.internal.ui.navigation.AppScreenContent
 import com.flipcash.app.internal.ui.navigation.MainRoot
+import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
 import com.flipcash.services.user.AuthState

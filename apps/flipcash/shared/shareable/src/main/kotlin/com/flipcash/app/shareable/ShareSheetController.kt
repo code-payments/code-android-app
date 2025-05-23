@@ -33,6 +33,7 @@ sealed interface ShareablePendingData {
 }
 
 interface ShareSheetController {
+    val isCheckingForShare: Boolean
     var onShared: ((ShareResult) -> Unit)?
     fun checkForShare()
     suspend fun present(shareable: Shareable)
@@ -45,6 +46,7 @@ interface ShareSheetController {
 }
 
 private object NoOpController: ShareSheetController {
+    override val isCheckingForShare: Boolean = false
     override var onShared: ((ShareResult) -> Unit)? = null
     override fun checkForShare() = Unit
     override suspend fun present(shareable: Shareable) = Unit

@@ -23,6 +23,9 @@ import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import java.security.SecureRandom
+import java.util.Timer
+import java.util.TimerTask
+import kotlin.concurrent.schedule
 
 
 internal class InternalShareSheetController(
@@ -32,7 +35,23 @@ internal class InternalShareSheetController(
     private val resources: ResourceHelper,
 ) : ShareSheetController {
 
+    private var checkingTimer: TimerTask? = null
+
     private var isChecking = false
+        set(value) {
+            field = value
+            if (!value) {
+                checkingTimer?.cancel()
+                checkingTimer = null
+            } else {
+                checkingTimer = Timer().schedule((1000 * 30).toLong()) {
+                    isChecking = false
+                }
+            }
+        }
+    override val isCheckingForShare: Boolean
+        get() = isChecking
+
     private var sharedWithApp: String? = null
 
     private var pendingShareable: Shareable? = null

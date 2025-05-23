@@ -6,6 +6,7 @@ import com.flipcash.android.app.R
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -15,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -25,11 +27,20 @@ internal class HomeViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
-    private val appSettingsCoordinator: AppSettingsCoordinator
+    private val appSettingsCoordinator: AppSettingsCoordinator,
+    private val shareSheetController: ShareSheetController,
 ) : ViewModel() {
 
     private val _requireBiometrics = MutableStateFlow<Boolean?>(null)
-    val requireBiometrics = _requireBiometrics.stateIn(
+    val requireBiometrics = _requireBiometrics
+        .map {
+            if (it == true) {
+                !shareSheetController.isCheckingForShare
+            } else {
+                it
+            }
+        }
+        .stateIn(
         viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = null
