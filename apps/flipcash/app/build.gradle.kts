@@ -123,8 +123,8 @@ versioning {
 bugsnag {
     variants {
         release {
-            autoUploadBundle = false
-            autoCreateBuild = false
+            autoUploadBundle = true
+            autoCreateBuild = true
         }
         debug {
             enabled = false
