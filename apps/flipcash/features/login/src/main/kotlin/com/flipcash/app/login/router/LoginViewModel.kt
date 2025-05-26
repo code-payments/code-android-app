@@ -67,7 +67,7 @@ class LoginViewModel @Inject constructor(
                                 message = it.localizedMessage ?: "Something went wrong"
                             )
                         )
-                    }.onSuccessWithDelay(2.seconds) {
+                    }.onSuccess {
                         dispatchEvent(Event.OnAccountCreated)
                     }
             }
