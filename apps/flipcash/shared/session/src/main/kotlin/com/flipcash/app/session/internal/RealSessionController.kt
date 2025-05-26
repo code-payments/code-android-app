@@ -541,6 +541,7 @@ class RealSessionController @Inject constructor(
                     bill = Bill.Cash(amount = amount, didReceive = true),
                     vibrate = true
                 )
+                checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
             onError = {
