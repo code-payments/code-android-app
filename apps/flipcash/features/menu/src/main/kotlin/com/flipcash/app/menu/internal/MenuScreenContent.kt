@@ -62,14 +62,14 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
                         contentDescription = "",
                         modifier = Modifier
-                            .requiredHeight(CodeTheme.dimens.staticGrid.x7)
-                            .wrapContentWidth()
                             .rememberedClickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
                                 viewModel.dispatchEvent(MenuScreenViewModel.Event.OnLogoTapped)
-                            },
+                            }.requiredHeight(CodeTheme.dimens.staticGrid.x7)
+                            .wrapContentWidth()
+                            .padding(horizontal = CodeTheme.dimens.grid.x3),
                     )
                 },
                 titleAlignment = Alignment.CenterHorizontally,
