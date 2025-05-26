@@ -27,6 +27,7 @@ import com.getcode.utils.ErrorUtils
 import timber.log.Timber
 import java.util.Timer
 import kotlin.concurrent.schedule
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 internal fun Scanner(deepLink: DeeplinkType?) {
@@ -35,6 +36,10 @@ internal fun Scanner(deepLink: DeeplinkType?) {
     val state by session.state.collectAsState()
     val billState by session.billState.collectAsState()
 
+    val sheetLifecycleHandler = rememberSheetAutoResign()
+    LaunchedEffect(sheetLifecycleHandler) {
+        sheetLifecycleHandler.handle()
+    }
 
     var isPaused by remember { mutableStateOf(false) }
 
@@ -120,16 +125,11 @@ internal fun Scanner(deepLink: DeeplinkType?) {
             Lifecycle.Event.ON_PAUSE -> {
                 Timber.d("onPause")
                 isPaused = true
-//                session.startSheetDismissTimer {
-//                    Timber.d("hiding from timeout")
-//                    navigator.hide()
-//                }
             }
 
             Lifecycle.Event.ON_RESUME -> {
                 Timber.d("onResume")
                 isPaused = false
-//                session.stopSheetDismissTimer()
             }
 
             else -> Unit
