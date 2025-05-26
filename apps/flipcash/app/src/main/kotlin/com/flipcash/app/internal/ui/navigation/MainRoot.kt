@@ -104,7 +104,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
 
                     trace(
                         tag = "AuthStateRouter",
-                        message = "Handling auth state change during app launch",
+                        message = "Handling auth state change during app launch => $state",
                         metadata = {
                             "state" to state
                         }

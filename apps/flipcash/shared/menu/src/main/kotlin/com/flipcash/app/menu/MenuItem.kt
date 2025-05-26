@@ -2,6 +2,7 @@ package com.flipcash.app.menu
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
+import com.flipcash.app.featureflags.FeatureFlag
 import java.util.UUID
 
 sealed interface MenuItem<T> {
@@ -16,16 +17,20 @@ sealed interface MenuItem<T> {
     val action: T
 
     val isStaffOnly: Boolean
+
+    val featureFlag: FeatureFlag?
 }
 
 abstract class FullMenuItem<T>(
     override val id: Any = UUID.randomUUID().toString(),
-    override val isStaffOnly: Boolean = false
+    override val isStaffOnly: Boolean = false,
+    override val featureFlag: FeatureFlag? = null
 ) : MenuItem<T>
 
 
 abstract class StaffMenuItem<T>(
     override val id: Any = UUID.randomUUID().toString(),
-    override val isStaffOnly: Boolean = true
+    override val isStaffOnly: Boolean = true,
+    override val featureFlag: FeatureFlag? = null
 ) : MenuItem<T>
 

@@ -6,6 +6,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.menu.R
@@ -21,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -55,6 +57,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
+        val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
     )
@@ -62,6 +65,7 @@ internal class MenuScreenViewModel @Inject constructor(
     sealed interface Event {
         data object OnLogoTapped: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
+        data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: NavScreenProvider) : Event
@@ -84,6 +88,11 @@ internal class MenuScreenViewModel @Inject constructor(
         featureFlags.observeOverride()
             .filter { userManager.authState is AuthState.LoggedIn }
             .onEach { dispatchEvent(Event.OnBetaFeaturesUnlocked(it)) }
+            .launchIn(viewModelScope)
+
+        featureFlags.observe()
+            .filter { userManager.authState is AuthState.LoggedIn }
+            .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -148,11 +157,33 @@ internal class MenuScreenViewModel @Inject constructor(
     internal companion object {
         private const val TAP_THRESHOLD = 6
 
-        private fun buildItemList(isStaff: Boolean, overrode: Boolean): List<MenuItem<Event>> {
+        private fun buildItemList(
+            isStaff: Boolean,
+            overrode: Boolean,
+            flags: List<BetaFeature> = emptyList(),
+        ): List<MenuItem<Event>> {
             return if (isStaff || overrode) {
                 FullMenuList
+                    .filter { item ->
+                        val flagForItem = item.featureFlag
+                        if (flagForItem != null) {
+                            val match = flags.find { it.flag.key == flagForItem.key }
+                            match?.enabled == true
+                        } else {
+                            true
+                        }
+                    }
             } else {
                 FullMenuList.filterNot { it.isStaffOnly }
+                    .filter { item ->
+                        val flagForItem = item.featureFlag
+                        if (flagForItem != null) {
+                            val match = flags.find { it.flag.key == flagForItem.key }
+                            match?.enabled == true
+                        } else {
+                            true
+                        }
+                    }
             }
         }
 
@@ -165,7 +196,11 @@ internal class MenuScreenViewModel @Inject constructor(
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
                         unlockedBetaFeaturesManually = event.unlocked,
-                        items = buildItemList(state.isStaff, event.unlocked)
+                        items = buildItemList(
+                            isStaff = state.isStaff,
+                            overrode = event.unlocked,
+                            flags = state.flags
+                        )
                     )
                 }
 
@@ -176,7 +211,11 @@ internal class MenuScreenViewModel @Inject constructor(
                 is Event.OnStaffUserDetermined -> { state ->
                     state.copy(
                         isStaff = event.staff,
-                        items = buildItemList(event.staff, state.unlockedBetaFeaturesManually)
+                        items = buildItemList(
+                            isStaff = event.staff,
+                            overrode = state.unlockedBetaFeaturesManually,
+                            flags = state.flags
+                        )
                     )
                 }
 
@@ -185,6 +224,17 @@ internal class MenuScreenViewModel @Inject constructor(
                 is Event.OpenScreen,
                 Event.OnLoggedOutCompletely,
                 is Event.OnSwitchAccountTo -> { state -> state }
+
+                is Event.OnFeatureFlagsUpdated -> { state ->
+                    state.copy(
+                        items = buildItemList(
+                            isStaff = state.isStaff,
+                            overrode = state.unlockedBetaFeaturesManually,
+                            flags = event.flags
+                        ),
+                        flags = event.flags
+                    )
+                }
             }
         }
     }

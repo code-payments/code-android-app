@@ -14,6 +14,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -43,6 +45,7 @@ class PassphraseCredentialManager @Inject constructor(
     private val accountController: AccountController,
     private val userManager: UserManager,
     private val mnemonicManager: MnemonicManager,
+    private val featureFlags: FeatureFlagController,
 ) {
     companion object {
         private val temporaryEntropyKey = stringPreferencesKey("temporaryEntropy")
@@ -126,7 +129,6 @@ class PassphraseCredentialManager @Inject constructor(
         // Store metadata
         val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = true)
         storeMetadata(metadata, isSelected = true)
-        updateUserManager(userId, AuthState.LoggedIn)
 
         return Result.success(metadata)
     }
@@ -160,7 +162,6 @@ class PassphraseCredentialManager @Inject constructor(
 
         val selectedMetadata = getSelectedMetadata()
         if (selectedMetadata != null) {
-            updateUserManager(selectedMetadata.id, AuthState.LoggedIn)
             return Result.success(selectedMetadata)
         }
 
@@ -179,10 +180,6 @@ class PassphraseCredentialManager @Inject constructor(
                     )
 
                 storeMetadata(metadata, isSelected = true)
-                updateUserManager(
-                    Base58.decode(existingCredential.password).toList(),
-                    AuthState.LoggedIn
-                )
 
                 credentialLookupCache.clear()
 
@@ -196,7 +193,6 @@ class PassphraseCredentialManager @Inject constructor(
 
                 val metadata = AccountMetadata(userId, entropy, isUnregistered = false)
                 storeMetadata(metadata, isSelected = true)
-                updateUserManager(Base58.decode(userId).toList(), AuthState.LoggedIn)
                 return Result.success(metadata)
             }
         }
@@ -219,7 +215,6 @@ class PassphraseCredentialManager @Inject constructor(
 
         val metadata = AccountMetadata(userIdStr, entropy, isUnregistered = false)
         storeMetadata(metadata, isSelected = true)
-        updateUserManager(userIdBytes, AuthState.LoggedIn)
 
         return Result.success(metadata)
     }
@@ -310,6 +305,8 @@ class PassphraseCredentialManager @Inject constructor(
         entropy: String,
         expectedUserId: String? = null
     ): PasswordCredential? {
+        if (!featureFlags.get(FeatureFlag.CredentialManager)) return null
+
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(
                 GetPasswordOption(
@@ -331,6 +328,7 @@ class PassphraseCredentialManager @Inject constructor(
         } catch (e: Exception) {
             null
         }
+
     }
 
     private suspend fun storeCredential(
@@ -338,6 +336,8 @@ class PassphraseCredentialManager @Inject constructor(
         userId: ID,
         overwrite: Boolean = false,
     ): Result<Unit> {
+        if (!featureFlags.get(FeatureFlag.CredentialManager)) return Result.failure(Throwable("Credential manager is force disabled"))
+
         val id = userId.base58
         val phrase = mnemonicManager.fromEntropyBase64(entropy)
         val credentialId = phrase.toCredentialId()

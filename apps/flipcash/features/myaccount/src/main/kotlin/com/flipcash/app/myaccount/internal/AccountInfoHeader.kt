@@ -35,7 +35,7 @@ internal fun AccountInfoHeader(
     Box(
         modifier = modifier
             .border(
-                color = CodeTheme.colors.textSecondary,
+                color = CodeTheme.colors.border,
                 shape = CodeTheme.shapes.small,
                 width = CodeTheme.dimens.border
             )

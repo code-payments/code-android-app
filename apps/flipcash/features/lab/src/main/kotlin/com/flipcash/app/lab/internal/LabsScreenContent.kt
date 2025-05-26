@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +65,11 @@ internal fun LabsScreenContent() {
 }
 
 private val FeatureFlag.title: String
-    get() = ""
+    get() = when (this) {
+        is FeatureFlag.CredentialManager -> "Credential Manager"
+    }
 
 private val FeatureFlag.message: String
-    get() = ""
+    get() = when (this) {
+        FeatureFlag.CredentialManager -> "When enabled, you will gain the ability to utilize Google's Password Manager for storing and recovering access keys for easier login experience."
+    }

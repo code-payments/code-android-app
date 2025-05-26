@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -36,6 +35,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.login.seed.SeedInputUiModel
 import com.flipcash.app.login.seed.SeedInputViewModel
 import com.flipcash.features.login.R
@@ -49,7 +50,6 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.keyboardAsState
-import com.getcode.util.permissions.notificationPermissionCheck
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -57,7 +57,6 @@ import kotlinx.coroutines.launch
 internal fun SeedInputContent(viewModel: SeedInputViewModel) {
     val navigator: CodeNavigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
-    val context = LocalContext.current
     SeedInputContent(
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
@@ -75,8 +74,8 @@ private fun SeedInputContent(
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
-
-    val notificationPermissionCheck = notificationPermissionCheck(isShowError = false) { }
+    val featureFlags = LocalFeatureFlags.current
+    val restoreEnabled by featureFlags.observe(FeatureFlag.CredentialManager).collectAsState()
 
     val keyboardVisible by keyboardAsState()
     val ime = LocalSoftwareKeyboardController.current
@@ -161,22 +160,24 @@ private fun SeedInputContent(
                 buttonState = ButtonState.Filled,
             )
 
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .clickable {
-                        composeScope.launch {
-                            if (keyboardVisible) {
-                                ime?.hide()
-                                delay(500.scaled(animationScale))
+            if (restoreEnabled) {
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable {
+                            composeScope.launch {
+                                if (keyboardVisible) {
+                                    ime?.hide()
+                                    delay(500.scaled(animationScale))
+                                }
+                                onRestore()
                             }
-                            onRestore()
-                        }
-                    },
-                text = "Recover Existing Account",
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary
-            )
+                        },
+                    text = "Recover Existing Account",
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary
+                )
+            }
         }
     }
 

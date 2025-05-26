@@ -10,6 +10,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.features.menu.R
@@ -62,6 +63,7 @@ internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() 
     override val name: String
         @Composable get() = stringResource(R.string.title_switchAccounts)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnSwitchAccountsClicked
+    override val featureFlag: FeatureFlag = FeatureFlag.CredentialManager
 }
 
 internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {

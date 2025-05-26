@@ -78,15 +78,18 @@ internal class InternalFeatureFlagController @Inject constructor(
     }
 
     override fun observe(): StateFlow<List<BetaFeature>> = betaFlags.data.map { prefs ->
-        FeatureFlag.entries.filterNot { it.launched }.map {
-            val value = if (it.launched) {
-                it.default
-            } else {
-                prefs[it.booleanPreferenceKey] ?: it.default
-            }
+        FeatureFlag.entries
+            .filterNot { it.launched }
+            .filter { it.visible }
+            .map {
+                val value = if (it.launched) {
+                    it.default
+                } else {
+                    prefs[it.booleanPreferenceKey] ?: it.default
+                }
 
-            BetaFeature(it, value)
-        }
+                BetaFeature(it, value)
+            }
     }.stateIn(
         dataScope,
         started = SharingStarted.Eagerly,

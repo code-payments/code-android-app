@@ -55,7 +55,6 @@ fun rememberBiometricsState(
     }
 
     LaunchedEffect(checkBiometrics, requireBiometrics, canAuthenticate) {
-        println("canAuth=$canAuthenticate")
         if (checkBiometrics && requireBiometrics == true && canAuthenticate) {
             Biometrics.prompt(context)
                 .onFailure {

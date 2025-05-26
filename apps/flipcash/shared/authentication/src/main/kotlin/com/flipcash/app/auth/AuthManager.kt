@@ -124,15 +124,12 @@ class AuthManager @Inject constructor(
         return credentialManager.login(entropyB64, isFromSelection)
             .onSuccess { account ->
                 persistence.openDatabase(entropyB64)
-                // TODO: this will move to post IAP check
-                userManager.accountCluster?.let {
-                    balanceController.onUserLoggedIn(it) }
-
                 userManager.set(accountId = account.id)
 
                 accountController.getUserFlags()
                     .onSuccess { flags ->
                         userManager.set(flags)
+                        userManager.set(if (flags.isRegistered) AuthState.LoggedIn else AuthState.Registered())
                     }.onFailure {
                         taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
                         userManager.set(authState = AuthState.Registered())

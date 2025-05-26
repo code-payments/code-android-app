@@ -52,6 +52,7 @@ dependencies {
     implementation(Libs.compose_materialIconsExtended)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
