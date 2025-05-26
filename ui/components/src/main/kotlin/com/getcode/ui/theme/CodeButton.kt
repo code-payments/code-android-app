@@ -223,7 +223,7 @@ fun getRipple(
     bounded = true,
     color = when (buttonState) {
         ButtonState.Bordered -> White
-        ButtonState.Filled -> CodeTheme.colors.brandLight
+        ButtonState.Filled -> CodeTheme.colors.textSecondary
         ButtonState.Filled50 -> White50
         ButtonState.Subtle -> White
     }
@@ -261,7 +261,7 @@ fun getButtonColors(
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = Transparent,
                 disabledContentColor = Transparent,
-                contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.brandLight } else Color.White.copy(
+                contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.textSecondary } else Color.White.copy(
                     0.30f
                 )
             )

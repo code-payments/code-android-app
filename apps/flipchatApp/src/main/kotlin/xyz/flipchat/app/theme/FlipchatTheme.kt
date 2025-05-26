@@ -50,6 +50,7 @@ private val colors = ColorScheme(
     success = FC_Accent,
     textMain = TextMain,
     textSecondary = FC_TextWithPrimary,
+    border = BrandLight,
     divider = FC_Secondary,
     dividerVariant = FC_Tertiary,
     trackColor = Color(0xFF241A4B),

@@ -54,6 +54,7 @@ private val colors = with(ColorSpec) {
         success = Success,
         textMain = Color.White,
         textSecondary = secondaryText,
+        border = secondaryText,
         divider = White10,
         dividerVariant = White05,
         trackColor = BrandSlideToConfirm,
