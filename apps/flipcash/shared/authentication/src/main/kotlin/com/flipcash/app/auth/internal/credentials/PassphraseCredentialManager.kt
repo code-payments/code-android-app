@@ -119,6 +119,17 @@ class PassphraseCredentialManager @Inject constructor(
         // Store credential
         storeCredential(entropy, userId)
 
+        // Store metadata
+        val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = true)
+        storeMetadata(metadata, isSelected = false)
+
+        return Result.success(metadata)
+    }
+
+    suspend fun onAccountPurchased(): Result<AccountMetadata> {
+        val userId = userManager.accountId!!
+        val entropy = userManager.entropy.orEmpty()
+
         // remove temporary states
         storage.edit {
             it.remove(temporaryEntropyKey)
@@ -127,7 +138,7 @@ class PassphraseCredentialManager @Inject constructor(
         }
 
         // Store metadata
-        val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = true)
+        val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = false)
         storeMetadata(metadata, isSelected = true)
 
         return Result.success(metadata)
@@ -136,6 +147,7 @@ class PassphraseCredentialManager @Inject constructor(
     suspend fun lookup(): LookupResult {
         val selectedAccountId =
             storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+
         val existingAccount = selectedAccountId?.let { id ->
             storage.data.map { it[entropyKey(id)] }.firstOrNull()
         }
@@ -162,6 +174,7 @@ class PassphraseCredentialManager @Inject constructor(
 
         val selectedMetadata = getSelectedMetadata()
         if (selectedMetadata != null) {
+            storeMetadata(selectedMetadata, isSelected = true)
             return Result.success(selectedMetadata)
         }
 

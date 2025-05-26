@@ -173,13 +173,13 @@ internal class PurchaseAccountViewModel @Inject constructor(
                 }
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
             .onEach {
-                accountController.getUserFlags()
+                authManager.onAccountPurchased()
                     .onSuccess {
-                        userManager.set(it)
                         dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
                         delay(2.seconds)
                         dispatchEvent(Event.OnAccountCreated)
-                    }.onFailure {
+                    }
+                    .onFailure {
                         dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
                         delay(2.seconds)
                         dispatchEvent(Event.OnAccountCreated)

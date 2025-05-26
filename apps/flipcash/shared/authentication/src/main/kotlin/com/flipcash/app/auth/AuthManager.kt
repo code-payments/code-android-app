@@ -103,6 +103,13 @@ class AuthManager @Inject constructor(
             }.map { Unit }
     }
 
+    suspend fun onAccountPurchased(): Result<Unit> {
+        return credentialManager.onAccountPurchased()
+            .onSuccess {
+                accountController.getUserFlags().onSuccess { userManager.set(it) }
+            }.map { Unit }
+    }
+
     suspend fun login(
         entropyB64: String,
         isSoftLogin: Boolean = false,
@@ -128,6 +135,7 @@ class AuthManager @Inject constructor(
 
                 accountController.getUserFlags()
                     .onSuccess { flags ->
+                        println("flags: $flags")
                         userManager.set(flags)
                         userManager.set(if (flags.isRegistered) AuthState.LoggedIn else AuthState.Registered())
                     }.onFailure {
