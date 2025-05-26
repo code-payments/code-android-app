@@ -43,6 +43,9 @@
     <string name="error_title_failedToCreateGiftCard">Something Went Wrong</string>
     <string name="error_description_failedToCreateGiftCard">Failed to create a cashlink. Please try again</string>
 
+    <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 24 hours. Please ask them to send the cash again.</string>
+
+
     <string name="title_depositUsdc">Deposit</string>
     <string name="title_withdrawUsdc">Withdraw</string>
 
