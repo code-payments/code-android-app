@@ -28,13 +28,10 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class CashScreen: ModalScreen, NamedScreen, Parcelable {
+class CashScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
-
-    override val name: String
-        @Composable get() = stringResource(R.string.title_cash)
 
     @Composable
     override fun ModalContent() {
@@ -58,7 +55,6 @@ class CashScreen: ModalScreen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 endContent = {

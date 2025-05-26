@@ -17,8 +17,8 @@ import com.getcode.utils.network.LocalNetworkObserver
 
 @Composable
 fun AmountWithKeypad(
-    modifier: Modifier = Modifier,
     amountAnimatedModel: AmountAnimatedInputUiModel,
+    modifier: Modifier = Modifier,
     prefix: String = "",
     placeholder: String = "",
     currencyFlag: Int? = null,
