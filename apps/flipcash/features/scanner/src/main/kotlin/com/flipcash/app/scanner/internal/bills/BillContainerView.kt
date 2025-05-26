@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.scanner.internal.DecorView
-import com.flipcash.app.scanner.internal.ReceivedFundsConfirmation
+import com.flipcash.app.scanner.internal.ui.components.DecorView
+import com.flipcash.app.scanner.internal.ui.modals.ReceivedFundsConfirmation
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.PresentationStyle

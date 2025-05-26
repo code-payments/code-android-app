@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal
+package com.flipcash.app.scanner.internal.ui.modals
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth

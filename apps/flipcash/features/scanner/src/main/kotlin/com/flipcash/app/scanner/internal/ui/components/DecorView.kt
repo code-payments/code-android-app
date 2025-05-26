@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal
+package com.flipcash.app.scanner.internal.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -35,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
