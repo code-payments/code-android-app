@@ -25,6 +25,7 @@ import com.getcode.theme.codeTypography
 
 private object ColorSpec {
     val primary = Color(0xFF001A0C)
+    val primaryLight = Color(0xFF09550B)
     val secondaryText = Color(115, 129, 121)
     val cashBill = Color(0xFF06450F)
 }
@@ -32,7 +33,7 @@ private object ColorSpec {
 private val colors = with(ColorSpec) {
     ColorScheme(
         brand = primary,
-        brandLight = secondaryText,
+        brandLight = primaryLight,
         brandSubtle = secondaryText,
         brandMuted = BrandMuted,
         brandDark = BrandDark,

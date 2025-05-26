@@ -62,6 +62,9 @@
     <string name="error_title_failedToCancelTransfer">Something went wrong</string>
     <string name="error_description_failedToCancelTransfer">We were unable to cancel your transfer. Please try again</string>
 
+    <string name="error_title_failedToCancelCashLink">Something went wrong</string>
+    <string name="error_description_failedToCancelCashLink">We were unable to cancel your cash link. Please try cancelling it from your transaction history</string>
+
     <string name="prompt_title_cancelTransferNoAmount">Cancel Transfer?</string>
     <string name="prompt_title_cancelTransferWithAmount">Cancel %1$s Transfer?</string>
     <string name="prompt_description_cancelTransfer">The money will be returned to your wallet</string>
@@ -71,7 +74,7 @@
     <string name="subtitle_ofUsdSuffix">of USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
-    <string name="error_description_alreadyCollected">This cash was already collected by someone else.</string>
+    <string name="error_description_alreadyCollected">This cash was already collected</string>
     <string name="error_title_alreadyCollectedBySomeone">Cash Already Collected</string>
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
@@ -123,7 +126,7 @@
     <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
 
     <string name="action_unlockCode">Unlock Flipcash</string>
-
+    <string name="action_noCancelSend">No, Cancel Send</string>
     <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance.</string>
 
 </resources>

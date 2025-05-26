@@ -11,6 +11,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.time.Duration
 
 
 internal class InternalShareConfirmationController(
@@ -23,12 +24,15 @@ internal class InternalShareConfirmationController(
         shareResult: ShareResult.ActionTaken
     ): ShareConfirmationResult {
         return when (shareable) {
-            is Shareable.CashLink -> confirmCashLink(shareResult)
+            is Shareable.CashLink -> confirmCashLink(shareResult, shareable.autoConfirmationAfter)
             is Shareable.DownloadLink -> ShareConfirmationResult.Confirmed(shareResult)
         }
     }
 
-    private suspend fun confirmCashLink(shareResult: ShareResult.ActionTaken): ShareConfirmationResult =
+    private suspend fun confirmCashLink(
+        shareResult: ShareResult.ActionTaken,
+        timeout: Duration
+    ): ShareConfirmationResult =
         suspendCancellableCoroutine { cont ->
             billController.cancelAwaitForGrab()
 
@@ -49,22 +53,15 @@ internal class InternalShareConfirmationController(
                         )
                         add(
                             BottomBarAction(
-                                text = resources.getString(R.string.action_noTryAgain),
-                                style = BottomBarManager.BottomBarButtonStyle.Filled50,
+                                text = resources.getString(R.string.action_noCancelSend),
+                                style = BottomBarManager.BottomBarButtonStyle.Text,
                                 onClick = {
                                     if (cont.isActive) {
-                                        cont.resume(ShareConfirmationResult.TryAgain)
+                                        cont.resume(ShareConfirmationResult.Cancelled)
                                     }
                                 }
                             )
                         )
-                    },
-                    onClose = { selection ->
-                        if (selection.index == -1) {
-                            if (cont.isActive) {
-                                cont.resume(ShareConfirmationResult.Cancelled)
-                            }
-                        }
                     },
                     onTimeout = {
                         if (cont.isActive) {
@@ -79,8 +76,8 @@ internal class InternalShareConfirmationController(
                     },
                     type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
                     isDismissible = false,
-                    showCancel = true,
-                    timeoutSeconds = 60
+                    showCancel = false,
+                    timeoutSeconds = timeout.inWholeSeconds.toInt(),
                 )
             )
         }

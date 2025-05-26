@@ -214,16 +214,21 @@ fun BottomBarView(
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.error
                                 BottomBarManager.BottomBarButtonStyle.Filled50 -> Color.White
+                                BottomBarManager.BottomBarButtonStyle.Text -> Color.White
                             }
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
-                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                             BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
+                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> when(action.style) {
+                                BottomBarManager.BottomBarButtonStyle.Text -> Color.White
+                                else -> Color.Black
+                            }
                             BottomBarManager.BottomBarMessageType.SUCCESS -> Color.Black
                         },
                         buttonState = when (action.style) {
                             BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
                             BottomBarManager.BottomBarButtonStyle.Filled50 -> ButtonState.Filled50
+                            BottomBarManager.BottomBarButtonStyle.Text -> ButtonState.Subtle
                         },
                         text = action.text
                     )
@@ -248,8 +253,6 @@ fun BottomBarView(
                         },
                         text = stringResource(R.string.action_cancel)
                     )
-                } else {
-                    Spacer(Modifier.height(CodeTheme.dimens.inset))
                 }
             }
         }

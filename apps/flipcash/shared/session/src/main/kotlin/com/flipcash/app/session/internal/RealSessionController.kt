@@ -27,6 +27,7 @@ import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -61,7 +62,9 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
+import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
 
 class RealSessionController @Inject constructor(
@@ -80,9 +83,8 @@ class RealSessionController @Inject constructor(
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
+    private val balanceController: BalanceController,
     appSettingsCoordinator: AppSettingsCoordinator,
-
-    private val workCoordinator: WorkCoordinator,
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -309,40 +311,45 @@ class RealSessionController @Inject constructor(
         restartBillGrabber: () -> Unit
     ) {
         val giftCard = GiftCardAccount.create()
-        val shareable = Shareable.CashLink(giftCardAccount = giftCard, amount = amount)
+        val shareable = Shareable.CashLink(
+            giftCardAccount = giftCard,
+            amount = amount,
+            autoConfirmationAfter = 60.seconds
+        )
 
         scope.launch {
             shareSheetController.onShared = { result ->
                 when (result) {
                     is ShareResult.ActionTaken -> {
-                        scope.launch {
-                            delay(2.5.seconds)
-                            // schedule gift card funding if no user action is taken
-                            // in confirmation modal
-                            workCoordinator.scheduleGiftCardFunding(giftCard, amount)
+                        scope.launch action@{
+                            // immediately fund the gift card
+                            val fundingResult = initiateGiftCardFunding(giftCard, owner, amount)
+                            if (fundingResult.isFailure) {
+                                return@action
+                            }
 
                             // remain isChecking state until confirmation
                             shareSheetController.reset(setChecked = true)
+
+                            delay(2.5.seconds)
+
                             // confirm the result of the share
                             val confirmResult = shareConfirmationController.confirm(shareable, result)
+
                             // reset isChecking after confirmation
                             shareSheetController.reset(setChecked = false)
 
                             when (confirmResult) {
                                 ShareConfirmationResult.Cancelled -> {
-                                    // user selected cancel, thus dismissing the share modal
-                                    // and making the bill visible again. Restart the
-                                    // grabber to allow grabbing the visible bill.
-                                    restartBillGrabber()
-                                    workCoordinator.cancelGiftCardFunding(giftCard)
+                                    // user selected cancel, dismiss everything back to camera
+                                    cancelGiftCard(owner, giftCard)
                                 }
-                                is ShareConfirmationResult.Confirmed -> {
-                                    workCoordinator.cancelGiftCardFunding(giftCard)
 
+                                is ShareConfirmationResult.Confirmed -> {
                                     when (result) {
                                         ShareResult.CopiedToClipboard -> {
-                                            // pop the bill out as if grabbed/sent, but don't toast until funded
-                                            cancelSend(PresentationStyle.Pop, overrideToast = true)
+                                            cancelSend(PresentationStyle.Pop)
+                                            vibrator.vibrate()
                                             trace(
                                                 tag = "Session",
                                                 message = "Cash link copied to clipboard",
@@ -351,11 +358,11 @@ class RealSessionController @Inject constructor(
                                                 },
                                                 type = TraceType.User,
                                             )
-                                            initiateGiftCardFunding(giftCard, owner, amount, true)
-                                            vibrator.vibrate()
                                         }
 
                                         is ShareResult.SharedToApp -> {
+                                            cancelSend(PresentationStyle.Pop)
+                                            vibrator.vibrate()
                                             trace(
                                                 tag = "Session",
                                                 message = "Cash link shared with ${result.to}",
@@ -364,15 +371,8 @@ class RealSessionController @Inject constructor(
                                                 },
                                                 type = TraceType.User,
                                             )
-                                            initiateGiftCardFunding(giftCard, owner, amount, true)
-                                            vibrator.vibrate()
                                         }
                                     }
-                                }
-                                ShareConfirmationResult.TryAgain -> {
-                                    workCoordinator.cancelGiftCardFunding(giftCard)
-                                    // user selected try again, re-present share modal
-                                    shareSheetController.present(shareable)
                                 }
                             }
                         }
@@ -387,12 +387,11 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun initiateGiftCardFunding(
+    private suspend fun initiateGiftCardFunding(
         giftCard: GiftCardAccount,
         owner: AccountCluster,
         amount: LocalFiat,
-        resetShareController: Boolean
-    ) {
+    ): Result<LocalFiat> = suspendCancellableCoroutine { cont ->
         billController.fundGiftCard(
             giftCard = giftCard,
             amount = amount,
@@ -400,9 +399,8 @@ class RealSessionController @Inject constructor(
             onFunded = {
                 toastController.show(it)
                 bringActivityFeedCurrent()
-                if (resetShareController) {
-                    shareSheetController.reset()
-                }
+                shareSheetController.reset()
+                cont.resume(Result.success(it))
             },
             onError = {
                 cancelSend()
@@ -410,8 +408,29 @@ class RealSessionController @Inject constructor(
                     title = resources.getString(R.string.error_title_failedToCreateGiftCard),
                     message = resources.getString(R.string.error_description_failedToCreateGiftCard)
                 )
+                cont.resume(Result.failure(it))
             }
         )
+    }
+
+    private suspend fun cancelGiftCard(
+        owner: AccountCluster,
+        giftCard: GiftCardAccount
+    ) {
+        transactionController.cancelRemoteSend(
+            vault = giftCard.cluster.vaultPublicKey,
+            owner = owner,
+        ).onFailure {
+            TopBarManager.showMessage(
+                title = resources.getString(R.string.error_title_failedToCancelCashLink),
+                message = resources.getString(R.string.error_description_failedToCancelCashLink)
+            )
+            cancelSend()
+        }.onSuccess {
+            balanceController.fetchBalance()
+            checkPendingItemsInFeed()
+            cancelSend()
+        }
     }
 
     override fun onCodeScan(code: ScannableKikCode) {

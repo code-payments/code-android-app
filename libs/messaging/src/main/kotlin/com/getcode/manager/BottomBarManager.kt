@@ -109,7 +109,7 @@ object BottomBarManager {
     }
 
     enum class BottomBarButtonStyle {
-        Filled, Filled50
+        Filled, Filled50, Text
     }
 
 }

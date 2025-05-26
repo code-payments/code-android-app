@@ -4,6 +4,8 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 
 sealed interface ShareResult {
@@ -18,6 +20,7 @@ sealed interface Shareable {
     data class CashLink(
         val giftCardAccount: GiftCardAccount,
         val amount: LocalFiat,
+        val autoConfirmationAfter: Duration = 60.seconds,
         override val pendingData: ShareablePendingData.CashLink? = null
     ): Shareable
 

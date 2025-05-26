@@ -2,7 +2,6 @@ package com.flipcash.app.workers
 
 import android.content.Context
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.flipcash.app.workers.internal.GiftCardFundingWorker
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -18,7 +17,6 @@ import kotlin.time.Duration.Companion.seconds
 class WorkCoordinator @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-
     fun scheduleGiftCardFunding(
         giftCardAccount: GiftCardAccount,
         amount: LocalFiat,
