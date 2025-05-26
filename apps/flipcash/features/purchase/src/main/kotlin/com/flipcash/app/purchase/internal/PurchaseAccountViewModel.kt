@@ -148,14 +148,18 @@ internal class PurchaseAccountViewModel @Inject constructor(
             .onEach { (activity, product) ->
                 viewModelScope.launch {
                     delay(300)
+                    dispatchEvent(Event.OnCreatingChanged(true))
                     billingClient.purchase(activity, product)
                 }
             }
             .flatMapLatest { billingClient.eventFlow }
             .mapNotNull { event ->
                 when (event) {
-                    IapPaymentEvent.OnCancelled -> null
+                    IapPaymentEvent.OnCancelled -> {
+                        dispatchEvent(Event.OnCreatingChanged(creating = false, created = false))
+                    }
                     is IapPaymentEvent.OnError -> {
+                        dispatchEvent(Event.OnCreatingChanged(creating = false, created = false))
                         TopBarManager.showMessage(
                             TopBarManager.TopBarMessage(
                                 resources.getString(R.string.error_title_failedToPurchaseItem),
@@ -169,8 +173,6 @@ internal class PurchaseAccountViewModel @Inject constructor(
                 }
             }.filterIsInstance<IapPaymentEvent.OnSuccess>()
             .onEach {
-                dispatchEvent(Event.OnCreatingChanged(true))
-                delay(2.seconds)
                 accountController.getUserFlags()
                     .onSuccess {
                         userManager.set(it)
