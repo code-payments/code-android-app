@@ -47,30 +47,42 @@ internal class MyAccountScreenViewModel @Inject constructor(
         val showAccountInfo: Boolean = false,
         val accountId: String? = null,
         val publicKey: String? = null,
+        val pushToken: String? = null,
         val items: List<MenuItem<Event>> = FullMenuList
     )
 
     internal sealed interface Event {
-        data class OnUserAssociated(val userId: String?, val publicKey: String?) : Event
+        data class OnUserAssociated(
+            val userId: String?,
+            val publicKey: String?,
+            val pushToken: String? = null
+        ) : Event
+
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
-        data object OnTitleClicked: Event
+        data object OnTitleClicked : Event
         data class ToggleAccountInfo(val show: Boolean) : Event
         data object OnAccessKeyClicked : Event
-        data object OnViewAccessKey: Event
+        data object OnViewAccessKey : Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
         data object CopyPublicKey : Event
         data object CopyAccountId : Event
+        data object CopyPushToken : Event
     }
 
     init {
         userManager.state
-            .map { it.accountId to it.cluster }
-            .onEach { (id, cluster) ->
-                val userId = id?.base58
-                val publicKey = cluster?.authorityPublicKey?.base58()
+            .onEach {
+                val userId = it.accountId?.base58
+                val publicKey = it.cluster?.authorityPublicKey?.base58()
 
-                dispatchEvent(Event.OnUserAssociated(userId, publicKey))
+                dispatchEvent(
+                    Event.OnUserAssociated(
+                        userId = userId,
+                        publicKey = publicKey,
+                        pushToken = it.pushToken
+                    )
+                )
             }.launchIn(viewModelScope)
 
         combine(
@@ -139,6 +151,16 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.CopyPushToken>()
+            .mapNotNull { stateFlow.value.pushToken }
+            .onEach {
+                clipboardManager.setText(
+                    text = it,
+                    label = resources.getString(R.string.title_clipboardLabelPushToken)
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnAccessKeyClicked>()
             .onEach {
                 BottomBarManager.showMessage(
@@ -161,12 +183,14 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     state.copy(
                         accountId = event.userId,
                         publicKey = event.publicKey,
+                        pushToken = event.pushToken
                     )
                 }
 
                 Event.OnViewAccessKey,
                 Event.CopyPublicKey,
                 Event.CopyAccountId,
+                Event.CopyPushToken,
                 Event.OnTitleClicked,
                 Event.OnDeleteAccountClicked,
                 Event.OnAccountDeleted,

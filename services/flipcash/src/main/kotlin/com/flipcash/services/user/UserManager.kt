@@ -12,6 +12,8 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.core.uuid
 import com.getcode.services.opencode.BuildConfig
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.ktx.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,11 +78,16 @@ class UserManager @Inject constructor(
         val accountId: ID? = null,
         val flags: UserFlags? = null,
         val isTimelockUnlocked: Boolean = false,
+        val pushToken: String? = null,
     )
 
     init {
         balanceController.onTimelockUnlocked = {
             didDetectUnlockedAccount()
+        }
+
+        Firebase.messaging.token.addOnSuccessListener { token ->
+            set(pushToken = token)
         }
     }
 
@@ -131,6 +138,10 @@ class UserManager @Inject constructor(
         }
 
         associate()
+    }
+
+    fun set(pushToken: String?) {
+        _state.update { it.copy(pushToken = pushToken) }
     }
 
     private fun didDetectUnlockedAccount() {

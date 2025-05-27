@@ -198,6 +198,7 @@ class AuthManager @Inject constructor(
         val pushToken = Firebase.messaging.token() ?: return
         pushController.addToken(pushToken)
             .onSuccess {
+                userManager.set(pushToken = pushToken)
                 trace("push token updated", type = TraceType.Silent)
             }.onFailure {
                 trace(message = "Failure updating push token", error = it)

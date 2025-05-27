@@ -47,15 +47,26 @@ internal fun AccountInfoHeader(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
         ) {
-            CopyableTextEntry(
-                label = "Public Key",
-                value = state.publicKey.orEmpty()
-            ) { dispatch(MyAccountScreenViewModel.Event.CopyPublicKey) }
+            if (!state.publicKey.isNullOrEmpty()) {
+                CopyableTextEntry(
+                    label = "Public Key",
+                    value = state.publicKey
+                ) { dispatch(MyAccountScreenViewModel.Event.CopyPublicKey) }
+            }
 
-            CopyableTextEntry(
-                label = "Account ID",
-                value = state.accountId.orEmpty()
-            ) { dispatch(MyAccountScreenViewModel.Event.CopyAccountId) }
+            if (!state.accountId.isNullOrEmpty()) {
+                CopyableTextEntry(
+                    label = "Account ID",
+                    value = state.accountId
+                ) { dispatch(MyAccountScreenViewModel.Event.CopyAccountId) }
+            }
+
+            if (!state.pushToken.isNullOrEmpty()) {
+                CopyableTextEntry(
+                    label = "Push Token",
+                    value = state.pushToken
+                ) { dispatch(MyAccountScreenViewModel.Event.CopyPushToken) }
+            }
 
             BetaIndicator(
                 modifier = Modifier.align(Alignment.End)

@@ -103,6 +103,7 @@
     <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
     <string name="title_clipboardLabelPublicKey">Public Key</string>
     <string name="title_clipboardLabelAccountId">Account ID</string>
+    <string name="title_clipboardLabelPushToken">Push Token</string>
 
     <string name="prompt_description_viewAccessKey">Your Access Key will grant access to your Flipcash account. Keep it private and safe.</string>
 
