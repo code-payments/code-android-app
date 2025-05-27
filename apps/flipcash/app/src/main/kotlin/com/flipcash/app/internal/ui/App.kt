@@ -160,6 +160,8 @@ internal fun App(
                                             if (screenSet.isNotEmpty()) {
                                                 codeNavigator.replaceAll(screenSet)
                                             }
+
+                                            deepLink = null
                                         }
                                     }
                                 }
