@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class RealSessionController @Inject constructor(
@@ -611,4 +612,4 @@ class RealSessionController @Inject constructor(
 }
 
 private val AIRDROP_INITIAL_DELAY = 1.seconds
-private val CASH_LINK_CONFIRMATION_DELAY = 1.seconds
+private val CASH_LINK_CONFIRMATION_DELAY = 500.milliseconds
