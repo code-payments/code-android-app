@@ -47,7 +47,7 @@ internal fun BillManagementOptions(
                 Pill(
                     modifier = Modifier
                         .rememberedClickable(enabled = !isSending) { primaryAction.action() },
-                    contentPadding = PaddingValues(15.dp),
+                    contentPadding = PaddingValues(16.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
                     Box {
@@ -84,7 +84,7 @@ internal fun BillManagementOptions(
                 Pill(
                     modifier = Modifier
                         .rememberedClickable(enabled = isInteractable) { secondaryAction.action() },
-                    contentPadding = PaddingValues(15.dp),
+                    contentPadding = PaddingValues(16.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
                     Row(
@@ -93,7 +93,7 @@ internal fun BillManagementOptions(
                         Image(
                             painter = secondaryAction.asset,
                             contentDescription = "",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         secondaryAction.label?.let { label ->
                             Text(
@@ -108,7 +108,7 @@ internal fun BillManagementOptions(
             if (primaryAction == null && secondaryAction == null) {
                 Pill(
                     modifier = Modifier.alpha(0f),
-                    contentPadding = PaddingValues(15.dp),
+                    contentPadding = PaddingValues(16.dp),
                     backgroundColor = Color.Transparent,
                 ) {
                     Row(

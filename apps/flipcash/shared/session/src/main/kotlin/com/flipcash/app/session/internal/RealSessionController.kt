@@ -11,6 +11,8 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.session.PresentationStyle
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
@@ -84,6 +86,7 @@ class RealSessionController @Inject constructor(
     private val billingClient: BillingClient,
     private val balanceController: BalanceController,
     appSettingsCoordinator: AppSettingsCoordinator,
+    featureFlagController: FeatureFlagController,
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -120,6 +123,10 @@ class RealSessionController @Inject constructor(
         appSettingsCoordinator
             .observeValue(AppSettingValue.CameraStartByDefault)
             .onEach { autoStart -> _state.update { it.copy(autoStartCamera = autoStart) } }
+            .launchIn(scope)
+
+        featureFlagController.observe(FeatureFlag.VibrateOnScan)
+            .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
     }
 
@@ -443,6 +450,10 @@ class RealSessionController @Inject constructor(
         val codePayload = OpenCodePayload.fromList(payload)
         if (scannedRendezvous.contains(codePayload.rendezvous.publicKey)) {
             return
+        }
+
+        if (state.value.vibrateOnScan) {
+            vibrator.tick()
         }
 
         scannedRendezvous.add(codePayload.rendezvous.publicKey)

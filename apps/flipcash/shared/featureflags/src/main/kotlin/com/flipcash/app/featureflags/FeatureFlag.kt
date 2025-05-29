@@ -15,8 +15,15 @@ sealed interface FeatureFlag {
         override val visible: Boolean = BuildConfig.DEBUG
     }
 
+    data object VibrateOnScan: FeatureFlag {
+        override val key: String = "scan_debug_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible = true
+    }
+
     companion object {
-        val entries: List<FeatureFlag> = listOf(CredentialManager)
+        val entries: List<FeatureFlag> = listOf(CredentialManager, VibrateOnScan)
     }
 }
 

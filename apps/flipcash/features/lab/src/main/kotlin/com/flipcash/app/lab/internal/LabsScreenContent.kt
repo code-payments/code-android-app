@@ -67,9 +67,11 @@ internal fun LabsScreenContent() {
 private val FeatureFlag.title: String
     get() = when (this) {
         is FeatureFlag.CredentialManager -> "Credential Manager"
+        FeatureFlag.VibrateOnScan -> "Vibrate on Scan"
     }
 
 private val FeatureFlag.message: String
     get() = when (this) {
         FeatureFlag.CredentialManager -> "When enabled, you will gain the ability to utilize Google's Password Manager for storing and recovering access keys for easier login experience."
+        FeatureFlag.VibrateOnScan -> "If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill."
     }
