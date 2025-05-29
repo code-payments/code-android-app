@@ -60,7 +60,7 @@ class TransactionController @Inject constructor(
         if (areLimitsStale || force) {
             val since = Clock.System.now()
             trace(
-                tag = "TRX",
+                tag = "Transactions",
                 message = "updating limits from $since",
                 type = TraceType.Process
             )
@@ -71,7 +71,7 @@ class TransactionController @Inject constructor(
                 _limits.value = it
             }.onFailure {
                 trace(
-                    tag = "TRX",
+                    tag = "Transactions",
                     message = "Failed to update limits",
                     error = it
                 )
@@ -88,7 +88,7 @@ class TransactionController @Inject constructor(
             destination = destination
         ).onSuccess {
             trace(
-                tag = "TRX",
+                tag = "Transactions",
                 message = "Airdrop was successful.",
                 type = TraceType.Process
             )
@@ -147,6 +147,14 @@ class TransactionController @Inject constructor(
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)
+            .onFailure {
+                trace(
+                    tag = "Transactions",
+                    message = "Failed to fund cash link",
+                    error = it,
+                    type = TraceType.Process
+                )
+            }
     }
 
     suspend fun cancelRemoteSend(
@@ -154,11 +162,19 @@ class TransactionController @Inject constructor(
         vault: PublicKey,
     ): Result<Unit> {
         trace(
-            tag = "TRX",
+            tag = "Transactions",
             message = "Canceling remote send for vault ${vault.bytes.base64}",
             type = TraceType.User
         )
         return repository.voidGiftCard(owner.authority.keyPair, vault)
+            .onFailure {
+                trace(
+                    tag = "Transactions",
+                    message = "Failed to cancel cash link",
+                    error = it,
+                    type = TraceType.Process
+                )
+            }
     }
 
     suspend fun receiveRemotely(
@@ -197,7 +213,7 @@ class TransactionController @Inject constructor(
 
         if (debugLogs) {
             trace(
-                tag = "opencodescan",
+                tag = "CodeScan",
                 message = "pollIntentMetadata: start",
                 type = TraceType.Process
             )
@@ -209,7 +225,7 @@ class TransactionController @Inject constructor(
             .onEach {
                 if (debugLogs) {
                     trace(
-                        tag = "opencodescan",
+                        tag = "CodeScan",
                         message = "pollIntentMetadata: [$it] fetch data",
                         type = TraceType.Process
                     )
@@ -231,7 +247,7 @@ class TransactionController @Inject constructor(
                     onSuccess = { metadata ->
                         if (debugLogs) {
                             trace(
-                                tag = "opencodescan",
+                                tag = "CodeScan",
                                 message = "pollIntentMetadata: took ${attemptCount.get()} attempts",
                                 type = TraceType.Process
                             )

@@ -429,10 +429,6 @@ class RealSessionController @Inject constructor(
             vault = giftCard.cluster.vaultPublicKey,
             owner = owner,
         ).onFailure {
-            TopBarManager.showMessage(
-                title = resources.getString(R.string.error_title_failedToCancelCashLink),
-                message = resources.getString(R.string.error_description_failedToCancelCashLink)
-            )
             cancelSend()
         }.onSuccess {
             balanceController.fetchBalance()
