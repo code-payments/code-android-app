@@ -26,6 +26,7 @@ class LoginRouter(
     private val seed: String? = null,
     private val fromDeeplink: Boolean = false,
 ) : Screen, Parcelable {
+
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -61,7 +62,10 @@ class LoginRouter(
             isCreatingAccount = state.creatingAccount,
             isLoggingIn = state.loggingIn,
             createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
-            login = { navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput)) }
+            login = { navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput)) },
+            isLabsOpen = state.betaOptionsVisible,
+            onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
+            openBetaFlags = { navigator.push(ScreenRegistry.get(NavScreenProvider.Login.Lab)) }
         )
     }
 }

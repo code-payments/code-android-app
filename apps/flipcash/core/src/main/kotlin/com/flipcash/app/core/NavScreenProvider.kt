@@ -14,6 +14,8 @@ sealed class NavScreenProvider : ScreenProvider {
             NavScreenProvider()
 
         data object SeedInput : NavScreenProvider()
+
+        data object Lab : NavScreenProvider()
     }
 
     sealed interface Permissions {

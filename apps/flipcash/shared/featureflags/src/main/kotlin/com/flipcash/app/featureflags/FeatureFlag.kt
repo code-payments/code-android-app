@@ -7,12 +7,14 @@ sealed interface FeatureFlag {
     val default: Boolean
     val launched: Boolean
     val visible: Boolean
+    val persistLogOut: Boolean
 
     data object CredentialManager: FeatureFlag {
         override val key: String = "credential_manager_enabled"
         override val default: Boolean = false
         override val launched: Boolean = false
-        override val visible: Boolean = BuildConfig.DEBUG
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = true
     }
 
     data object VibrateOnScan: FeatureFlag {
@@ -20,6 +22,7 @@ sealed interface FeatureFlag {
         override val default: Boolean = false
         override val launched: Boolean = false
         override val visible = true
+        override val persistLogOut: Boolean = false
     }
 
     companion object {

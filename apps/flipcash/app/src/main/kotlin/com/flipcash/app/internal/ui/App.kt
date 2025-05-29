@@ -17,7 +17,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
@@ -28,12 +27,11 @@ import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.app.router.LocalRouter
-import com.flipcash.app.session.LocalSessionController
-import com.flipcash.app.internal.ui.theme.FlipcashTheme
 import com.flipcash.app.internal.ui.navigation.AppScreenContent
 import com.flipcash.app.internal.ui.navigation.MainRoot
-import com.flipcash.app.shareable.LocalShareController
+import com.flipcash.app.internal.ui.theme.FlipcashTheme
+import com.flipcash.app.router.LocalRouter
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
 import com.flipcash.services.user.AuthState

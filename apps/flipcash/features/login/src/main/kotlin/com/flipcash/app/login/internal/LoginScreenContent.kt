@@ -42,8 +42,11 @@ import com.getcode.view.LoadingSuccessState
 internal fun LoginRouterScreenContent(
     isCreatingAccount: LoadingSuccessState = LoadingSuccessState(),
     isLoggingIn: LoadingSuccessState = LoadingSuccessState(),
+    isLabsOpen: Boolean,
     createAccount: () -> Unit,
     login: () -> Unit,
+    onLogoTapped: () -> Unit,
+    openBetaFlags: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -57,7 +60,8 @@ internal fun LoginRouterScreenContent(
 
             Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally),
+                    .align(Alignment.CenterHorizontally)
+                    .noRippleClickable(enabled = !isLabsOpen) { onLogoTapped() },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
@@ -134,6 +138,18 @@ internal fun LoginRouterScreenContent(
                         }
                 }
             )
+        }
+
+        if (isLabsOpen) {
+            IconButton(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(top = CodeTheme.dimens.grid.x2),
+                onClick = openBetaFlags
+            ) {
+                Icon(Icons.Filled.Science, contentDescription = null, tint = Color.White)
+            }
         }
     }
 }

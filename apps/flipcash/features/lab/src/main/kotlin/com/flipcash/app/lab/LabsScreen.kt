@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.lab.internal.LabsScreenContent
@@ -20,7 +21,7 @@ import kotlinx.parcelize.Parcelize
 
 
 @Parcelize
-class LabScreen: ModalScreen, NamedScreen, Parcelable {
+class LabsModal: ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -41,6 +42,35 @@ class LabScreen: ModalScreen, NamedScreen, Parcelable {
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
                 isInModal = true,
+                onBackIconClicked = navigator::pop
+            )
+
+            LabsScreenContent()
+        }
+    }
+}
+
+@Parcelize
+class LabsScreen: Screen, NamedScreen, Parcelable {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(R.string.title_betaFlags)
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AppBarWithTitle(
+                title = name,
+                titleAlignment = Alignment.CenterHorizontally,
+                backButton = true,
                 onBackIconClicked = navigator::pop
             )
 

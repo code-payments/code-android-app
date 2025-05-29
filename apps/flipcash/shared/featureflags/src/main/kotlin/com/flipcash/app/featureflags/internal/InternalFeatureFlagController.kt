@@ -109,7 +109,13 @@ internal class InternalFeatureFlagController @Inject constructor(
 
     override fun reset() {
         dataScope.launch {
-            betaFlags.edit { it.clear() }
+            betaFlags.edit { prefs ->
+                FeatureFlag.entries.map { it to it.booleanPreferenceKey }
+                    .filterNot { it.first.persistLogOut }
+                    .onEach { prefs.remove(it.second) }
+
+                prefs.remove(betaOverrideKey)
+            }
         }
     }
 }
