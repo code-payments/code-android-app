@@ -159,6 +159,8 @@ fun BottomBarContainer(barMessages: BarMessages) {
                 onClose = closeWith,
                 onBackPressed = { closeWith(SelectedBottomBarAction(-1)) }
             )
+        } else {
+            Spacer(Modifier.fillMaxWidth())
         }
     }
 }
