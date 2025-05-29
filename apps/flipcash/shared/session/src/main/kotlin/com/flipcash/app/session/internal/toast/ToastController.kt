@@ -19,6 +19,10 @@ import kotlin.time.Duration.Companion.seconds
 class ToastController @Inject constructor(
     private val billController: BillController
 ) {
+    companion object {
+        val INITIAL_DELAY = 500.milliseconds
+        val SHOW_DELAY = 5.seconds
+    }
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun showIfNeeded(
@@ -49,7 +53,7 @@ class ToastController @Inject constructor(
     fun show(
         amount: LocalFiat,
         isDeposit: Boolean = false,
-        initialDelay: Duration = 500.milliseconds
+        initialDelay: Duration = INITIAL_DELAY
     ) {
         if (amount.converted.doubleValue == 0.0) {
             return
@@ -64,7 +68,7 @@ class ToastController @Inject constructor(
                 )
             }
 
-            delay(5.seconds)
+            delay(SHOW_DELAY)
 
             billController.update {
                 it.copy(
@@ -73,11 +77,10 @@ class ToastController @Inject constructor(
             }
 
             // wait for animation to run
-            delay(500.milliseconds)
+            delay(INITIAL_DELAY)
             billController.update {
                 it.copy(toast = null)
             }
         }
-
     }
 }

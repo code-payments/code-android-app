@@ -175,7 +175,7 @@ class RealSessionController @Inject constructor(
                         toastController.show(
                             amount = amount,
                             isDeposit = true,
-                            initialDelay = 1.seconds
+                            initialDelay = AIRDROP_INITIAL_DELAY
                         )
                     }
                 }
@@ -330,7 +330,7 @@ class RealSessionController @Inject constructor(
                             shareSheetController.reset(setChecked = true)
 
                             // delay _slightly_ before presenting confirmation
-                            delay(2.5.seconds)
+                            delay(CASH_LINK_CONFIRMATION_DELAY)
 
                             // confirm the result of the share
                             val confirmResult = shareConfirmationController.confirm(shareable, result)
@@ -591,7 +591,7 @@ class RealSessionController @Inject constructor(
             billController.reset(showToast = shown)
 
             if (shown) {
-                delay(5.seconds)
+                delay(ToastController.SHOW_DELAY)
             }
             if (!overrideToast) {
                 shareSheetController.reset()
@@ -600,3 +600,6 @@ class RealSessionController @Inject constructor(
         }
     }
 }
+
+private val AIRDROP_INITIAL_DELAY = 1.seconds
+private val CASH_LINK_CONFIRMATION_DELAY = 1.seconds
