@@ -21,8 +21,8 @@
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
     <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>
 
-    <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Flipcash. Alternatively you can log in manually by entering the 12 words in the Flipcash Log In screen.</string>
-    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to all the funds you have in Flipcash. Do not share this image with anyone else. Keep it secure and safe.</string>
+    <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Flipcash. Alternatively you can log in manually by entering the 12 words in the Flipcash Log In screen</string>
+    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to all the funds you have in Flipcash. Do not share this image with anyone else. Keep it secure and safe</string>
 
     <string name="title_badge_no_connection">No Connection</string>
 
@@ -41,9 +41,9 @@
     <string name="error_description_sendLimitReached">Flipcash is designed for small, every day transactions. Your daily send limit will increase tomorrow</string>
 
     <string name="error_title_failedToCreateGiftCard">Something Went Wrong</string>
-    <string name="error_description_failedToCreateGiftCard">Failed to create a cashlink. Please try again</string>
+    <string name="error_description_failedToCreateGiftCard">Please try again later</string>
 
-    <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 24 hours. Please ask them to send the cash again.</string>
+    <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 24 hours. Please ask them to send the cash again</string>
 
 
     <string name="title_depositUsdc">Deposit</string>
@@ -65,9 +65,6 @@
     <string name="error_title_failedToCancelTransfer">Something went wrong</string>
     <string name="error_description_failedToCancelTransfer">We were unable to cancel your transfer. Please try again</string>
 
-    <string name="error_title_failedToCancelCashLink">Something went wrong</string>
-    <string name="error_description_failedToCancelCashLink">We were unable to cancel your cash link. Please try cancelling it from your transaction history</string>
-
     <string name="prompt_title_cancelTransferNoAmount">Cancel Transfer?</string>
     <string name="prompt_title_cancelTransferWithAmount">Cancel %1$s Transfer?</string>
     <string name="prompt_description_cancelTransfer">The money will be returned to your wallet</string>
@@ -77,8 +74,7 @@
     <string name="subtitle_ofUsdSuffix">of USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
-    <string name="error_description_alreadyCollected">This cash was already collected</string>
-    <string name="error_title_alreadyCollectedBySomeone">Cash Already Collected</string>
+    <string name="error_description_alreadyCollected">This cash has already been collected or was cancelled by the sender</string>
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
 
@@ -98,14 +94,14 @@
     <string name="error_title_failedToDeleteAccount">Something went wrong</string>
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
-    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC to your Deposit Address below. Tap to copy.</string>
+    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC to your Deposit Address below. Tap to copy</string>
 
     <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
     <string name="title_clipboardLabelPublicKey">Public Key</string>
     <string name="title_clipboardLabelAccountId">Account ID</string>
     <string name="title_clipboardLabelPushToken">Push Token</string>
 
-    <string name="prompt_description_viewAccessKey">Your Access Key will grant access to your Flipcash account. Keep it private and safe.</string>
+    <string name="prompt_description_viewAccessKey">Your Access Key will grant access to your Flipcash account. Keep it private and safe</string>
 
     <string name="subtitle_scanThisQRCode">Scan this QR code with your phone\'s camera to download the Flipcash app</string>
     <string name="subtitle_scanToDownload">Scan to download the\nFlipcash app</string>
@@ -124,13 +120,13 @@
     <string name="title_requireBiometrics">Require Biometrics</string>
     <string name="description_requireBiometricsNoneEnrolled">No biometrics currently enrolled</string>
     <string name="title_biometricAuthentication">Biometric Authentication</string>
-    <string name="description_biometricAuthentication">Place your finger on the sensor or look at the front camera to authenticate.</string>
+    <string name="description_biometricAuthentication">Place your finger on the sensor or look at the front camera to authenticate</string>
     <string name="action_biometricsClickToAuthenticate">Click to authenticate</string>
     <string name="error_title_missingBiometrics">Biometrics Removed</string>
-    <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
+    <string name="error_description_missingBiometrics">Biometrics are no longer available on your device</string>
 
     <string name="action_unlockCode">Unlock Flipcash</string>
     <string name="action_noCancelSend">No, Cancel Send</string>
-    <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance.</string>
+    <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance</string>
 
 </resources>
