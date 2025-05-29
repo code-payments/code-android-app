@@ -20,7 +20,6 @@ import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
-import com.flipcash.app.workers.WorkCoordinator
 import com.flipcash.core.R
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
@@ -97,7 +96,6 @@ class RealSessionController @Inject constructor(
         get() = billController.state
 
     private val scannedRendezvous = mutableListOf<String>()
-    private val openedLinks = mutableListOf<String>()
 
     init {
         userManager.state
@@ -241,7 +239,6 @@ class RealSessionController @Inject constructor(
                                 )
                             }
                         } else {
-                            // Allow cancelling pending outgoing cash bills
                             billController.update {
                                 it.copy(
                                     primaryAction = BillState.Action.Send(
@@ -258,6 +255,7 @@ class RealSessionController @Inject constructor(
                                             }
                                         }
                                     ),
+                                    // Allow cancelling pending outgoing cash bills
                                     secondaryAction = BillState.Action.Cancel(
                                         action = { cancelSend() }
                                     ),
@@ -331,6 +329,7 @@ class RealSessionController @Inject constructor(
                             // remain isChecking state until confirmation
                             shareSheetController.reset(setChecked = true)
 
+                            // delay _slightly_ before presenting confirmation
                             delay(2.5.seconds)
 
                             // confirm the result of the share
@@ -474,16 +473,7 @@ class RealSessionController @Inject constructor(
             return
         }
 
-        if (openedLinks.contains(entropy)) {
-            trace(
-                tag = "Session",
-                message = "Cash link previously opened: $entropy",
-            )
-            return
-        }
-
         // TODO: analytics
-        openedLinks.add(entropy)
 
         billController.receiveGiftCard(
             entropy = entropy,
