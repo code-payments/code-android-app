@@ -349,6 +349,8 @@ class RealSessionController @Inject constructor(
                                         ShareResult.CopiedToClipboard -> {
                                             cancelSend(PresentationStyle.Pop)
                                             vibrator.vibrate()
+                                            toastController.show(amount)
+                                            bringActivityFeedCurrent()
                                             trace(
                                                 tag = "Session",
                                                 message = "Cash link copied to clipboard",
@@ -362,6 +364,8 @@ class RealSessionController @Inject constructor(
                                         is ShareResult.SharedToApp -> {
                                             cancelSend(PresentationStyle.Pop)
                                             vibrator.vibrate()
+                                            toastController.show(amount)
+                                            bringActivityFeedCurrent()
                                             trace(
                                                 tag = "Session",
                                                 message = "Cash link shared with ${result.to}",
@@ -396,8 +400,6 @@ class RealSessionController @Inject constructor(
             amount = amount,
             owner = owner,
             onFunded = {
-                toastController.show(it)
-                bringActivityFeedCurrent()
                 shareSheetController.reset()
                 cont.resume(Result.success(it))
             },
