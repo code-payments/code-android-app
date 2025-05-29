@@ -13,4 +13,6 @@ interface ShareableConfirmationController {
         shareable: Shareable,
         shareResult: ShareResult.ActionTaken
     ): ShareConfirmationResult
+
+    fun reset()
 }

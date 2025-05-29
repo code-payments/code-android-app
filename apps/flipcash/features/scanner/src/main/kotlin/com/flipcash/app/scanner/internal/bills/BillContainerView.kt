@@ -5,6 +5,8 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -195,14 +197,14 @@ internal fun BillContainer(
             contentPadding = PaddingValues(bottom = managementHeight),
             bill = updatedBillState.bill,
             transitionSpec = {
-                if (updatedState.presentationStyle is PresentationStyle.Slide) {
-                    AnimationUtils.animationBillEnterGive
-                } else {
-                    AnimationUtils.animationBillEnterGrabbed
-                } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
-                    AnimationUtils.animationBillExitReturned
-                } else {
-                    AnimationUtils.animationBillExitGrabbed
+                when (updatedState.presentationStyle) {
+                    PresentationStyle.Hidden -> EnterTransition.None
+                    PresentationStyle.Pop -> AnimationUtils.animationBillEnterGrabbed
+                    PresentationStyle.Slide -> AnimationUtils.animationBillEnterGive
+                } togetherWith when (updatedState.presentationStyle) {
+                    PresentationStyle.Hidden -> ExitTransition.None
+                    PresentationStyle.Pop -> AnimationUtils.animationBillExitGrabbed
+                    PresentationStyle.Slide -> AnimationUtils.animationBillExitReturned
                 }
             }
         )

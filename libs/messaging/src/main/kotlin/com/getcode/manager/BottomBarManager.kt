@@ -102,7 +102,6 @@ object BottomBarManager {
     enum class BottomBarMessageType {
         DESTRUCTIVE,
         WARNING,
-        @Deprecated("This is no longer necessary with the VM and balance deductions are handled intelligently")
         REMOTE_SEND,
         THEMED,
         SUCCESS,

@@ -131,6 +131,18 @@ class RealSessionController @Inject constructor(
             .launchIn(scope)
     }
 
+    /**
+     * Called when the app enters the foreground.
+     *
+     * This function performs several actions to ensure the app is up-to-date and ready for user interaction:
+     * 1. Starts polling for updates (e.g., balance, exchange rates, activity feed).
+     * 2. Updates user flags.
+     * 3. Requests an airdrop if applicable.
+     * 4. Checks for pending items in the activity feed.
+     * 5. Brings the activity feed to the current state.
+     * 6. Checks for any pending share actions via the share sheet.
+     * 7. If the user is registered, connects to the billing client.
+     */
     override fun onAppInForeground() {
         trace(
             tag = "Session",
@@ -143,11 +155,32 @@ class RealSessionController @Inject constructor(
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
+        if (userManager.authState.isAtLeastRegistered) {
+            billingClient.connect()
+        }
     }
 
+    /**
+     * Called when the application enters the background.
+     * This function stops polling for updates, disconnects the billing client,
+     * and clears any pending UI elements related to bills or sharing if certain conditions are met.
+     *
+     * Specifically, it clears the bottom bar, cancels any pending bill grab actions, and cancels
+     * any ongoing send operations if:
+     * - The share sheet is not currently checking for a share action, OR
+     * - There is an active bill and it has not yet been received.
+     */
     override fun onAppInBackground() {
         stopPolling()
         billingClient.disconnect()
+
+        val bill = billController.state.value.bill
+        //
+        if (!shareSheetController.isCheckingForShare || (bill != null && !bill.didReceive)) {
+            BottomBarManager.clear()
+            billController.cancelAwaitForGrab()
+            cancelSend()
+        }
     }
 
     private fun startPolling() {
@@ -471,6 +504,8 @@ class RealSessionController @Inject constructor(
     }
 
     override fun openCashLink(cashLink: String?) {
+        BottomBarManager.clear()
+
         val entropy = cashLink?.trim()?.replace("\n", "") ?: return
         val owner = userManager.accountCluster ?: return
 
@@ -489,7 +524,6 @@ class RealSessionController @Inject constructor(
             entropy = entropy,
             owner = owner,
             onReceived = {
-                BottomBarManager.clear()
                 showBill(
                     bill = Bill.Cash(amount = it, didReceive = true),
                     vibrate = true
@@ -519,7 +553,6 @@ class RealSessionController @Inject constructor(
                             resources.getString(R.string.error_description_failedToCollect)
                         )
                     }
-
                 }
             }
         )
@@ -593,6 +626,7 @@ class RealSessionController @Inject constructor(
             vibrator.vibrate()
         }
     }
+
 
     override fun cancelSend(style: PresentationStyle, overrideToast: Boolean) {
         scope.launch {
