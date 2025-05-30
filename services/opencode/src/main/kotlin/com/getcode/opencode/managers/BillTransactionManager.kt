@@ -7,7 +7,10 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.transactors.GrabBillTransactor
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
+import com.getcode.opencode.internal.transactors.GiveBillTransactor.GiveTransactorError
+import com.getcode.opencode.internal.transactors.GrabTransactorError
 import com.getcode.opencode.internal.transactors.ReceiveGiftCardTransactor
+import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.internal.transactors.SendGiftCardTransactor
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -79,7 +82,6 @@ class BillTransactionManager @Inject constructor(
 //                        transactionController.updateLimits(owner, force = true)
 //                    }
                 }.onFailure {
-                    ErrorUtils.handleError(it)
                     onError(it)
                     transactor.dispose()
                     if (giveTransactor == transactor) {
@@ -125,7 +127,6 @@ class BillTransactionManager @Inject constructor(
 //                        transactionController.updateLimits(owner, force = true)
 //                    }
                 }.onFailure {
-                    ErrorUtils.handleError(it)
                     onError(it)
                     transactor.dispose()
                     if (grabTransactor == transactor) {
@@ -202,7 +203,6 @@ class BillTransactionManager @Inject constructor(
                         receiveTransactor = null
                     }
                 }?.onFailure {
-                    ErrorUtils.handleError(it)
                     onError(it)
                     transactor.dispose()
                     if (receiveTransactor == transactor) {

@@ -83,9 +83,9 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
         }
 
         Firebase.initialize(this)
-        Firebase.crashlytics.setCrashlyticsCollectionEnabled(BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG)
+        Firebase.crashlytics.isCrashlyticsCollectionEnabled = BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG
         MnemonicCache.init(this)
-        authManager.init { trace("NaCl init") }
+        authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         trace("app onCreate end")

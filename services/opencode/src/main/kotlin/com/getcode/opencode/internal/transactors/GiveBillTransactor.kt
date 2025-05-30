@@ -15,6 +15,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -25,7 +26,7 @@ internal class GiveBillTransactor(
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
     private val exchange: Exchange,
-) {
+): Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
 
@@ -73,11 +74,11 @@ internal class GiveBillTransactor(
 
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
         val ownerKey = owner
-            ?: return Result.failure(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
+            ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val rendezvous = rendezvousKey
-            ?: return Result.failure(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
+            ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
         val transferRequest = messagingController.awaitRequestToGrabBill(scope, rendezvous)
-            ?: return Result.failure(GiveTransactorError.Other(message = "No message received"))
+            ?: return logAndFail(GiveTransactorError.Other(message = "No message received"))
 
         // 1. Validate that destination hasn't been tampered with by
         // verifying the signature matches one that has been signed
@@ -86,7 +87,7 @@ internal class GiveBillTransactor(
         val isValid = rendezvous.verify(transferRequest.signature.byteArray, data)
 
         if (!isValid) {
-            return Result.failure(GiveTransactorError.DestinationSignatureInvalidException())
+            return logAndFail(GiveTransactorError.DestinationSignatureInvalidException())
         }
 
         // 2. Send the funds to destination
@@ -95,7 +96,7 @@ internal class GiveBillTransactor(
             // transaction for each instance of SendTransaction.
             // Completion will be called by the first invocation
             // of this function.
-            return Result.failure(GiveTransactorError.DuplicateTransferException())
+            return logAndFail(GiveTransactorError.DuplicateTransferException())
         }
 
         receivingAccount = transferRequest.account
@@ -113,7 +114,13 @@ internal class GiveBillTransactor(
                     owner = ownerKey.authority.keyPair,
                     intentId = it.id
                 )
-            }, onFailure = { Result.failure(it) })
+            }, onFailure = {
+                if (it !is GiveTransactorError)  {
+                    ErrorUtils.handleError(it)
+                }
+                logAndFail(it)
+            }
+        )
     }
 
     fun dispose() {
@@ -130,11 +137,11 @@ internal class GiveBillTransactor(
         override val message: String? = null,
         override val cause: Throwable? = null
     ) : CodeServerError(message, cause) {
-        class DuplicateTransferException : GiveTransactorError()
-        class DestinationSignatureInvalidException : GiveTransactorError()
+        class DuplicateTransferException : GiveTransactorError(message = "Duplicate Transfer")
+        class DestinationSignatureInvalidException : GiveTransactorError(message = "Destination signature invalid")
         data class Other(
             override val message: String? = null,
             override val cause: Throwable? = null
-        ) : GiveTransactorError()
+        ) : GiveTransactorError(message, cause)
     }
 }

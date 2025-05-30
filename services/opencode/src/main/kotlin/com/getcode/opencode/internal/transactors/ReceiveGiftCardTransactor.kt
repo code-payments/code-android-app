@@ -10,6 +10,7 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
@@ -18,7 +19,7 @@ internal class ReceiveGiftCardTransactor(
     private val transactionController: TransactionController,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
-) {
+): Transactor<ReceiveGiftTransactorError>("Transactor::Receive") {
     private var owner: AccountCluster? = null
     private var giftCardAccount: GiftCardAccount? = null
 
@@ -29,8 +30,8 @@ internal class ReceiveGiftCardTransactor(
     }
 
     suspend fun start(): Result<LocalFiat> {
-        val ownerKey = owner ?: return Result.failure(ReceiveGiftTransactorError.Other(message = "No owner key. Did you call with() first?"))
-        val giftCard = giftCardAccount ?: return Result.failure(
+        val ownerKey = owner ?: return logAndFail(ReceiveGiftTransactorError.Other(message = "No owner key. Did you call with() first?"))
+        val giftCard = giftCardAccount ?: return logAndFail(
             ReceiveGiftTransactorError.Other(
                 message = "No gift card account. Did you call with() first?"
             )
@@ -39,18 +40,18 @@ internal class ReceiveGiftCardTransactor(
         // before we can receive the gift card
         // we need to determine the balance of it
         val accounts = accountController.getAccounts(giftCard.cluster)
-            .getOrElse { return Result.failure(ReceiveGiftTransactorError.FailedToQuery()) }
+            .getOrElse { return logAndFail(ReceiveGiftTransactorError.FailedToQuery()) }
             .takeIf { it.isNotEmpty() }
-            ?: return Result.failure(ReceiveGiftTransactorError.FailedToQuery())
+            ?: return logAndFail(ReceiveGiftTransactorError.FailedToQuery())
 
         val info = accounts.values.first()
 
         if (info.claimState == AccountInfo.ClaimState.Claimed) {
-            return Result.failure(ReceiveGiftTransactorError.AlreadyClaimed())
+            return logAndFail(ReceiveGiftTransactorError.AlreadyClaimed())
         }
 
         if (info.claimState == AccountInfo.ClaimState.Expired || info.claimState == AccountInfo.ClaimState.Unknown) {
-            return Result.failure(ReceiveGiftTransactorError.Expired())
+            return logAndFail(ReceiveGiftTransactorError.Expired())
         }
 
         val exchangeData = info.originalExchangeData
@@ -62,7 +63,12 @@ internal class ReceiveGiftCardTransactor(
             owner = ownerKey
         ).fold(
             onSuccess = { Result.success(amount) },
-            onFailure = { Result.failure(it) }
+            onFailure = {
+                if (it !is ReceiveGiftTransactorError)  {
+                    ErrorUtils.handleError(it)
+                }
+                logAndFail(it)
+            }
         )
     }
 
@@ -76,12 +82,12 @@ sealed class ReceiveGiftTransactorError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class FailedToQuery: GrabTransactorError()
-    class AlreadyClaimed: GrabTransactorError()
-    class Expired: GrabTransactorError()
+    class FailedToQuery: GrabTransactorError(message = "Failed to query account")
+    class AlreadyClaimed: GrabTransactorError(message = "Already claimed")
+    class Expired: GrabTransactorError(message = "Expired")
 
     data class Other(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError()
+    ) : GrabTransactorError(message, cause)
 }

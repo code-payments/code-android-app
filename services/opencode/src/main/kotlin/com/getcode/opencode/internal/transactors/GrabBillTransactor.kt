@@ -8,6 +8,7 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.solana.keys.base58
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
@@ -15,7 +16,7 @@ internal class GrabBillTransactor(
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
-) {
+): Transactor<GrabTransactorError>("Transactor::Grab") {
     private var owner: AccountCluster? = null
     private var payload: OpenCodePayload? = null
 
@@ -25,10 +26,10 @@ internal class GrabBillTransactor(
     }
 
     suspend fun start(): Result<TransactionMetadata.PublicPayment> {
-        val ownerKey = owner ?: return Result.failure(GrabTransactorError.Other(message = "No owner key. Did you call with() first?"))
+        val ownerKey = owner ?: return logAndFail(GrabTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val destination = ownerKey.vaultPublicKey
         val data = payload
-            ?: return Result.failure(GrabTransactorError.Other(message = "No payload found. Did you call with() first?"))
+            ?: return logAndFail(GrabTransactorError.Other(message = "No payload found. Did you call with() first?"))
 
         return messagingController.sendRequestToGrabBill(
             destination = destination,
@@ -39,7 +40,13 @@ internal class GrabBillTransactor(
                     owner = ownerKey.authority.keyPair,
                     intentId = data.rendezvous.toPublicKey()
                 )
-            }, onFailure = { Result.failure(it) })
+            }, onFailure = {
+                if (it !is GrabTransactorError)  {
+                    ErrorUtils.handleError(it)
+                }
+                logAndFail(it)
+            }
+        )
     }
 
     fun dispose() {
@@ -57,5 +64,5 @@ sealed class GrabTransactorError(
     data class Other(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError()
+    ) : GrabTransactorError(message, cause)
 }

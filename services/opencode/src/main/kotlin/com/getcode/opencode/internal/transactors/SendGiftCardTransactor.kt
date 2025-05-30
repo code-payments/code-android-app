@@ -13,13 +13,15 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlin.math.log
 
 internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
-) {
+): Transactor<SendGiftCardTransactor.SendTransactorError>("Transactor::Send") {
     private var giftCardAccount: GiftCardAccount? = null
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
@@ -46,11 +48,11 @@ internal class SendGiftCardTransactor(
 
     suspend fun start(): Result<IntentRemoteSend> {
         val ownerKey = owner
-            ?: return Result.failure(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
+            ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val rendezvous = rendezvousKey
-            ?: return Result.failure(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
+            ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
         val giftCard = giftCardAccount
-            ?: return Result.failure(GiveTransactorError.Other(message = "No gift card account. Did you call with() first?"))
+            ?: return logAndFail(GiveTransactorError.Other(message = "No gift card account. Did you call with() first?"))
 
         return transactionController.remoteSend(
             rendezvous = rendezvous.toPublicKey(),
@@ -58,13 +60,16 @@ internal class SendGiftCardTransactor(
             amount = amount!!,
             giftCard = giftCard
         ).map { it as IntentRemoteSend }
-            .onFailure {
-                trace(
-                    tag = "SendTrx",
-                    message = "Failed to fund a gift card account",
-                    error = it
-                )
-            }
+            .fold(
+                onSuccess = { Result.success(it) },
+                onFailure = {
+                    if (it !is SendTransactorError)  {
+                        ErrorUtils.handleError(it)
+                    }
+                    logAndFail(it)
+                }
+            )
+
     }
 
     fun dispose() {
@@ -82,6 +87,6 @@ internal class SendGiftCardTransactor(
         data class Other(
             override val message: String? = null,
             override val cause: Throwable? = null
-        ) : SendTransactorError()
+        ) : SendTransactorError(message, cause)
     }
 }
