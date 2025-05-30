@@ -34,8 +34,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @Singleton
+@OptIn(ExperimentalAtomicApi::class)
 class BalanceController @Inject constructor(
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
@@ -46,6 +49,8 @@ class BalanceController @Inject constructor(
     private val _rawBalance = MutableStateFlow(Fiat.Zero)
     private val localizedBalance = MutableStateFlow(LocalFiat.Zero)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
+
+    private val fetching = AtomicBoolean(false)
 
     var onTimelockUnlocked: (() -> Unit) = { }
 
@@ -91,13 +96,23 @@ class BalanceController @Inject constructor(
             }.launchIn(scope)
     }
 
-    fun add(fiat: LocalFiat) {
-        _rawBalance.value += fiat.usdc
+    suspend fun add(fiat: LocalFiat) {
+        if (_rawBalance.value.doubleValue == 0.0) {
+            // attempt to fetch prior to append
+            fetchBalance()
+        } else {
+            _rawBalance.value += fiat.usdc
+        }
         localizedBalance.value = fiat
     }
 
-    fun subtract(fiat: LocalFiat) {
-        _rawBalance.value = (_rawBalance.value - fiat.usdc).coerceAtLeast(Fiat.Zero)
+    suspend fun subtract(fiat: LocalFiat) {
+        if (_rawBalance.value.doubleValue == 0.0) {
+            // attempt to fetch prior to append
+            fetchBalance()
+        } else {
+            _rawBalance.value = (_rawBalance.value - fiat.usdc).coerceAtLeast(Fiat.Zero)
+        }
         localizedBalance.value = fiat
     }
 
@@ -112,16 +127,18 @@ class BalanceController @Inject constructor(
             return
         }
 
-        trace(
-            tag = "Balance",
-            message = "Fetching Balance",
-            type = TraceType.Process
-        )
+        if (!fetching.load()) {
+            fetching.store(true)
+            trace(
+                tag = "Balance",
+                message = "Fetching Balance",
+                type = TraceType.Process
+            )
 
-        retryable(
-            maxRetries = 3,
-            call = suspend { accountController.getAccounts(owner) }
-        )?.recoverCatching { error ->
+            retryable(
+                maxRetries = 3,
+                call = suspend { accountController.getAccounts(owner) }
+            )?.recoverCatching { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
                     val createResult = accountController.createUserAccount(owner)
@@ -134,26 +151,32 @@ class BalanceController @Inject constructor(
                 } else {
                     throw error
                 }
-            }
-            ?.map { accounts ->
+            }?.map { accounts ->
                 if (accounts.values.any { it.unusable }) {
                     onTimelockUnlocked()
                 }
                 retrieveBalanceFromAccounts(accounts)
-            }
-            ?.onSuccess { newBalance ->
+            }?.onSuccess { newBalance ->
                 trace(
                     tag = "Balance",
                     message = "Updated balance is ${newBalance.formatted()} USD",
                     type = TraceType.Process
                 )
                 _rawBalance.update { newBalance }
+                fetching.store(false)
+            }?.onFailure {
+                fetching.store(false)
             }
+        }
     }
 
     private fun retrieveBalanceFromAccounts(accounts: Map<PublicKey, AccountInfo>): Fiat {
         var balance = Fiat.Zero
-        timedTrace("parsing balance from accounts") {
+        timedTrace(
+            tag = "Balance",
+            message = "parsing balance from accounts",
+            type = TraceType.Process,
+        ) {
             for ((_, info) in accounts) {
                 if (info.accountType == AccountType.Primary) {
                     balance += info.balance
