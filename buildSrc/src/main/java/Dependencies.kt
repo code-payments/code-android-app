@@ -13,25 +13,35 @@ object Android {
 }
 
 sealed class Packaging(
-    majorVersion: Int,
-    minorVersion: Int,
-    patchVersion: Int,
+    majorVersion: String,
+    minorVersion: String,
+    patchVersion: String,
 ) {
+    constructor(
+        majorVersion: Int,
+        minorVersion: Int,
+        patchVersion: Int
+    ) : this(
+        majorVersion = majorVersion.toString(),
+        minorVersion = minorVersion.toString(),
+        patchVersion = patchVersion.toString()
+    )
+
     val versionName = "$majorVersion.$minorVersion.$patchVersion"
 
-    object Code: Packaging(
+    object Code : Packaging(
         majorVersion = 2,
         minorVersion = 1,
         patchVersion = 14,
     )
 
-    object Flipcash: Packaging(
+    object Flipcash : Packaging(
         majorVersion = 2025, // release year
         minorVersion = 5, // release month
         patchVersion = 8, // cycle in minor version
     )
 
-    object Flipchat: Packaging(
+    object Flipchat : Packaging(
         majorVersion = 1,
         minorVersion = 0,
         patchVersion = 10,
@@ -181,10 +191,13 @@ object Libs {
     const val androidx_constraint_layout =
         "androidx.constraintlayout:constraintlayout:${Versions.androidx_constraint_layout}"
 
-    const val androidx_credentials = "androidx.credentials:credentials:${Versions.androidx_credentials}"
-    const val androidx_credentials_play_auth = "androidx.credentials:credentials-play-services-auth:${Versions.androidx_credentials}"
+    const val androidx_credentials =
+        "androidx.credentials:credentials:${Versions.androidx_credentials}"
+    const val androidx_credentials_play_auth =
+        "androidx.credentials:credentials-play-services-auth:${Versions.androidx_credentials}"
 
-    const val androidx_localbroadcastmanager = "androidx.localbroadcastmanager:localbroadcastmanager:1.0.0"
+    const val androidx_localbroadcastmanager =
+        "androidx.localbroadcastmanager:localbroadcastmanager:1.0.0"
     const val androidx_lifecycle_runtime =
         "androidx.lifecycle:lifecycle-runtime-ktx:${Versions.androidx_lifecycle}"
     const val androidx_navigation_fragment =
@@ -293,8 +306,10 @@ object Libs {
     const val play_service_auth_phone =
         "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
 
-    const val google_play_billing_runtime = "com.android.billingclient:billing:${Versions.google_play_billing}"
-    const val google_play_billing_ktx = "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
+    const val google_play_billing_runtime =
+        "com.android.billingclient:billing:${Versions.google_play_billing}"
+    const val google_play_billing_ktx =
+        "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
 
     const val grpc_okhttp = "io.grpc:grpc-okhttp:${Versions.grpc_okhttp}"
     const val grpc_kotlin = "io.grpc:grpc-kotlin-stub:${Versions.grpc_kotlin}"
