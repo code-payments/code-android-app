@@ -41,6 +41,7 @@ import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.xxl
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.Pill
@@ -48,7 +49,6 @@ import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.widthOrZero
 
-@Preview
 @Composable
 internal fun ScannerNavigationBar(
     modifier: Modifier = Modifier,
@@ -79,6 +79,7 @@ internal fun ScannerNavigationBar(
 //            badgeCount = 0,
 //            onClick = { onAction(ScannerDecorItem.Send) },
 //        )
+
 
         BottomBarAction(
             modifier = Modifier.weight(1f),
@@ -114,12 +115,12 @@ internal fun ScannerNavigationBar(
 
 @Composable
 private fun BottomBarAction(
-    modifier: Modifier = Modifier,
+    painter: Painter,
     label: String,
+    modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(
         vertical = CodeTheme.dimens.grid.x2
     ),
-    painter: Painter,
     imageSize: Dp = CodeTheme.dimens.staticGrid.x10,
     toast: @Composable () -> Unit = { },
     badgeCount: Int = 0,
@@ -217,5 +218,13 @@ private fun BottomBarAction(
                 y = -(heightOrZero(badgePlaceable) / 3)
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewNavBar() {
+    DesignSystem {
+        ScannerNavigationBar {  }
     }
 }
