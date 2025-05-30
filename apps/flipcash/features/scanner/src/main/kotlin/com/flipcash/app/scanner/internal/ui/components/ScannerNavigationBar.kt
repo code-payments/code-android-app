@@ -84,7 +84,7 @@ internal fun ScannerNavigationBar(
         BottomBarAction(
             modifier = Modifier.weight(1f),
             label = stringResource(R.string.action_balance),
-            painter = painterResource(R.drawable.ic_balance),
+            painter = painterResource(R.drawable.ic_flipcash_balance),
             badgeCount = state.notificationUnreadCount,
             onClick = { onAction(ScannerDecorItem.Balance) },
             toast = {

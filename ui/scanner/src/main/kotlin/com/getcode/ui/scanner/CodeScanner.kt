@@ -26,10 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.asFlow
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.getcode.libs.biometrics.Biometrics
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
@@ -71,7 +71,7 @@ fun CodeScanner(
     }
 
     val preview = remember {
-        Preview.Builder().build().apply { setSurfaceProvider(previewView.surfaceProvider) }
+        Preview.Builder().build().apply { surfaceProvider = previewView.surfaceProvider }
     }
 
     val cameraSelector = remember {
