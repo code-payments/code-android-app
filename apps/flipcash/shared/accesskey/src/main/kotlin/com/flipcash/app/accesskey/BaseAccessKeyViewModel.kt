@@ -134,7 +134,7 @@ abstract class BaseAccessKeyViewModel(
                     destination = destination,
                     name = {
                         val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
-                        "Flipchat-Recovery-${date.format(Date())}.png"
+                        "Flipcash-Recovery-${date.format(Date())}.png"
                     }
                 )
                 if (result) {
@@ -161,7 +161,7 @@ abstract class BaseAccessKeyViewModel(
             ?.toBitmap(812, 1353)!!
 
         val imageLogo =
-            resources.getDrawable(R.drawable.ic_flipcash_logo_access_key)
+            resources.getDrawable(R.drawable.ic_flipcash_logo)
                 ?.toBitmap(logoWidth.roundToInt(), logoHeight)!!
 
         val imageOut = createBitmap(targetWidth, targetHeight).applyCanvas {
