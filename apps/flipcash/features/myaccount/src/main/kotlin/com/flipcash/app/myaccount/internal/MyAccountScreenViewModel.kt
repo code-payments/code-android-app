@@ -8,6 +8,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.myaccount.R
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.solana.keys.base58
@@ -168,9 +169,13 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         title = resources.getString(R.string.prompt_title_viewAccessKey),
                         subtitle = resources.getString(R.string.prompt_description_viewAccessKey),
                         showScrim = true,
-                        positiveText = resources.getString(R.string.action_viewAccessKey),
-                        negativeText = resources.getString(R.string.action_cancel),
-                        onPositive = { dispatchEvent(Event.OnViewAccessKey) },
+                        showCancel = true,
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_viewAccessKey),
+                                onClick = { dispatchEvent(Event.OnViewAccessKey) }
+                            )
+                        ),
                     )
                 )
             }.launchIn(viewModelScope)

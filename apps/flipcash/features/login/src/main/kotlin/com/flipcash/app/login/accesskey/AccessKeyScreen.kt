@@ -50,6 +50,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.features.login.R
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -220,12 +221,16 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
                                     subtitle = context
                                         .getString(R.string.prompt_description_wroteThemDown),
                                     showScrim = true,
-                                    positiveText = context
-                                        .getString(R.string.action_yesWroteThemDown),
-                                    negativeText = "",
-                                    tertiaryText = context.getString(R.string.action_cancel),
-                                    onPositive = { onSkipClick() },
-                                    onNegative = {}
+                                    showCancel = true,
+                                    actions = listOf(
+                                        BottomBarAction(
+                                            text = context
+                                                .getString(R.string.action_wroteThemDownInstead)
+                                        ) {
+                                            onSkipClick()
+
+                                        }
+                                    )
                                 )
                             )
                         },
@@ -300,12 +305,17 @@ internal fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel, onComple
                     subtitle = context
                         .getString(R.string.prompt_description_exitAccountCreation),
                     showScrim = true,
-                    positiveText = context.getString(R.string.action_exit),
-                    negativeText = "",
-                    tertiaryText = context.getString(R.string.action_cancel),
-                    onPositive = { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home())) },
+                    showCancel = true,
+                    actions = listOf(
+                        BottomBarAction(
+                            text = context
+                                .getString(R.string.action_exit)
+                        ) {
+                            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+
+                        }
+                    ),
                     type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
-                    onNegative = {}
                 )
             )
         }
