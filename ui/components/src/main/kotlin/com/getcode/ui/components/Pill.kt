@@ -64,8 +64,8 @@ fun Pill(
             .wrapContentSize()
             .clip(shape)
             .background(backgroundColor)
-            .then(modifier)
-            .padding(contentPadding),
+            .padding(contentPadding)
+            .then(modifier),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             content()

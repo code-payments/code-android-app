@@ -58,7 +58,7 @@ internal fun BillManagementOptions(
                             Image(
                                 painter = primaryAction.asset,
                                 contentDescription = "",
-                                modifier = Modifier.width(22.dp)
+                                modifier = Modifier.width(24.dp)
                             )
                             primaryAction.label?.let { label ->
                                 Text(

@@ -7,7 +7,7 @@ import java.util.*
 data class BottomBarAction(
     val text: String,
     val style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
-    val onClick: () -> Unit
+    val onClick: () -> Unit = { }
 )
 
 /**
