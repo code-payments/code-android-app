@@ -331,10 +331,9 @@ enum class CurrencyCode {
                     val locale = currency.getClosestLocale()
                     try {
                         val currencyInstance = Currency.getInstance(currency.name)
-                        val symbol = currencyInstance.getSymbol(locale)
-                        if (symbol != null) {
-                            put(currency, setOf(symbol))
-                        }
+                        val symbol = currencyInstance.symbol
+                        val localeSymbol = currencyInstance.getSymbol(locale)
+                        put(currency, setOf(symbol, localeSymbol))
                     } catch (e: IllegalArgumentException) {
                         // Skip currencies with no valid symbol
                     }
