@@ -1,13 +1,7 @@
 package com.getcode.ui.components.text
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -18,7 +12,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -39,27 +32,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
-import com.getcode.ui.components.text.AmountSizeStore.remember
 import com.getcode.ui.components.text.NumberInputHelper.Companion.DECIMAL_SEPARATOR
 import com.getcode.ui.components.text.NumberInputHelper.Companion.GROUPING_SEPARATOR
+import com.getcode.ui.components.text.animated.AnimatedPlaceholderDigit
+import com.getcode.ui.components.text.animated.Digit
+import com.getcode.ui.components.text.animated.NormalizedPrefixText
 import java.util.Timer
-import kotlin.collections.HashMap
 import kotlin.concurrent.schedule
 
 interface AmountInputViewModel {
@@ -92,7 +89,6 @@ internal fun AmountTextAnimated(
     val density = LocalDensity.current
 
     val staticX5 = CodeTheme.dimens.staticGrid.x5
-    val staticX8 = CodeTheme.dimens.staticGrid.x8
 
     // Initialize visibility states based on uiModel
     val initialAmount = uiModel.amountData.amount
@@ -289,7 +285,7 @@ internal fun AmountTextAnimated(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = CodeTheme.dimens.grid.x2)
-            .height(IntrinsicSize.Max),
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -303,18 +299,14 @@ internal fun AmountTextAnimated(
             Image(
                 modifier = Modifier
                     .requiredSize(CodeTheme.dimens.grid.x7)
-                    .clip(CircleShape)
-                    .align(Alignment.CenterVertically),
-                painter = painterResource(
-                    currencyResId
-                ),
+                    .clip(CircleShape),
+                painter = painterResource(currencyResId),
                 contentDescription = ""
             )
             if (isClickable) {
                 Image(
                     modifier = Modifier
-                        .width(CodeTheme.dimens.grid.x4)
-                        .align(Alignment.CenterVertically),
+                        .width(CodeTheme.dimens.grid.x4),
                     painter = painterResource(R.drawable.ic_dropdown),
                     contentDescription = ""
                 )
@@ -329,68 +321,71 @@ internal fun AmountTextAnimated(
                 .width(CodeTheme.dimens.grid.x1)
         )
 
-        Text(
-            modifier = Modifier.fillMaxHeight(),
-            text = amountPrefix,
-            fontSize = textSize,
-            fontWeight = FontWeight.Bold
-        )
 
-        AnimatedPlaceholderDigit(
-            modifier = Modifier.fillMaxHeight(),
-            text = firstDigit,
-            digitVisible = digitVisibility[0],
-            placeholder = placeholder,
-            placeholderVisible = zeroVisibility,
-            fontSize = textSize,
-            density = density,
-            placeholderEnter = zeroEnter,
-            placeholderExit = zeroExit,
-            placeholderColor = Color.White
-        )
-
-        for (i in 1 until maxDigits) {
-            Digit(
-                modifier = Modifier.fillMaxHeight(),
-                isVisible = getComma(i = i),
-                text = GROUPING_SEPARATOR.toString(),
-                fontSize = textSize,
-                density = density,
-            )
-            Digit(
-                modifier = Modifier.fillMaxHeight(),
-                isVisible = digitVisibility[i],
-                text = getValue(0, i) ?: getLastValue(0, i) ?: "",
-                fontSize = textSize,
-                density = density
-            )
-        }
-
-        Digit(
-            modifier = Modifier.fillMaxHeight(),
-            isVisible = decimalPointVisibility,
-            text = DECIMAL_SEPARATOR.toString(),
-            fontSize = textSize,
-            density = density,
-            enter = decimalEnter,
-            exit = decimalExit,
-        )
-
-        for (i in 0 until totalDecimals) {
+        NormalizedPrefixText(
+            amountPrefix = amountPrefix,
+            textStyle = textStyle,
+            textSize = textSize,
+        ) {
             AnimatedPlaceholderDigit(
-                text = getValue(1, i) ?: getLastValue(1, i) ?: "0",
-                digitVisible = digitDecimalVisibility[i],
-                placeholderVisible = digitDecimalZeroVisibility[i],
-                placeholder = "0",
+                modifier = Modifier.fillMaxHeight(),
+                text = firstDigit,
+                digitVisible = digitVisibility[0],
+                placeholder = placeholder,
+                placeholderVisible = zeroVisibility,
                 fontSize = textSize,
                 density = density,
-                placeholderEnter = decimalZeroEnter,
-                placeholderExit = decimalZeroExit,
+                placeholderEnter = zeroEnter,
+                placeholderExit = zeroExit,
+                placeholderColor = Color.White
             )
+
+            for (i in 1 until maxDigits) {
+                Digit(
+                    modifier = Modifier.fillMaxHeight(),
+                    isVisible = getComma(i = i),
+                    text = GROUPING_SEPARATOR.toString(),
+                    fontSize = textSize,
+                    density = density,
+                )
+                Digit(
+                    modifier = Modifier.fillMaxHeight(),
+                    isVisible = digitVisibility[i],
+                    text = getValue(0, i) ?: getLastValue(0, i) ?: "",
+                    fontSize = textSize,
+                    density = density
+                )
+            }
+
+            Digit(
+                modifier = Modifier.fillMaxHeight(),
+                isVisible = decimalPointVisibility,
+                text = DECIMAL_SEPARATOR.toString(),
+                fontSize = textSize,
+                density = density,
+                enter = decimalEnter,
+                exit = decimalExit,
+            )
+
+            for (i in 0 until totalDecimals) {
+                AnimatedPlaceholderDigit(
+                    text = getValue(1, i) ?: getLastValue(1, i) ?: "0",
+                    digitVisible = digitDecimalVisibility[i],
+                    placeholderVisible = digitDecimalZeroVisibility[i],
+                    placeholder = "0",
+                    fontSize = textSize,
+                    density = density,
+                    placeholderEnter = decimalZeroEnter,
+                    placeholderExit = decimalZeroExit,
+                    modifier = Modifier.fillMaxHeight(),
+                )
+            }
         }
 
         Text(
-            modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3),
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(end = CodeTheme.dimens.grid.x3),
             text = amountSuffix.ifEmpty { " " },
             fontSize = textSize,
             fontWeight = FontWeight.Bold,
@@ -403,144 +398,6 @@ internal fun AmountTextAnimated(
                 }
             }
         )
-    }
-}
-
-private fun defaultDigitEnter(initialOffsetY: Int): EnterTransition {
-    return (slideInVertically(
-        initialOffsetY = { initialOffsetY },
-        animationSpec = tween(
-            durationMillis = 300,
-            delayMillis = 80,
-            easing = LinearOutSlowInEasing
-        )
-    ) + fadeIn())
-}
-
-@Composable
-private fun defaultDigitExit(targetOffsetY: Int): ExitTransition {
-    return fadeOut() + slideOutVertically(
-        targetOffsetY = { targetOffsetY },
-        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)
-    )
-}
-
-@Composable
-private fun Digit(
-    isVisible: Boolean,
-    text: String,
-    fontSize: TextUnit,
-    density: Density,
-    modifier: Modifier = Modifier,
-    enter: EnterTransition? = null,
-    exit: ExitTransition? = null,
-    color: Color = Color.White,
-) {
-    val staticX4 = CodeTheme.dimens.staticGrid.x4
-    val defaultEnter = defaultDigitEnter(initialOffsetY = with(density) { -(staticX4).roundToPx() })
-    val enterTransition = remember(enter) {
-        enter ?: defaultEnter
-    }
-
-    val defaultExit = defaultDigitExit(targetOffsetY = with(density) { -(staticX4).roundToPx() })
-    val exitTransition = remember(exit) {
-        exit ?: defaultExit
-    }
-
-    Row(
-        modifier = modifier,
-    ) {
-        AnimatedContent(
-            targetState = isVisible,
-            transitionSpec = { enterTransition togetherWith exitTransition }
-        ) { visible ->
-            if (visible) {
-                Text(
-                    text = text,
-                    fontSize = fontSize,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-            } else {
-                Spacer(modifier = Modifier)
-            }
-        }
-    }
-}
-
-
-private enum class PlaceholderState {
-    Digit, Placeholder, None
-}
-
-@Composable
-private fun AnimatedPlaceholderDigit(
-    text: String,
-    placeholder: String,
-    digitVisible: Boolean,
-    placeholderVisible: Boolean,
-    fontSize: TextUnit,
-    density: Density,
-    modifier: Modifier = Modifier,
-    placeholderEnter: EnterTransition,
-    placeholderExit: ExitTransition,
-    placeholderColor: Color = Color.White.copy(alpha = .2f),
-) {
-    val targetState = when {
-        digitVisible -> PlaceholderState.Digit
-        placeholderVisible -> PlaceholderState.Placeholder
-        else -> PlaceholderState.None
-    }
-
-    val staticX4 = CodeTheme.dimens.staticGrid.x4
-    val digitEnter = defaultDigitEnter(initialOffsetY = with(density) { -(staticX4).roundToPx() })
-    val digitExit = defaultDigitExit(targetOffsetY = with(density) { -(staticX4).roundToPx() })
-
-    AnimatedContent(
-        targetState = targetState,
-        transitionSpec = {
-            when {
-                // Placeholder -> Digit: Placeholder exits, Digit enters
-                initialState == PlaceholderState.Placeholder&& targetState == PlaceholderState.Digit -> {
-                    digitEnter togetherWith placeholderExit
-                }
-                // Digit -> Placeholder: Digit exits, Placeholder enters
-                initialState == PlaceholderState.Digit&& targetState == PlaceholderState.Placeholder -> {
-                    placeholderEnter togetherWith digitExit
-                }
-
-                // None -> Placeholder: None exits, Placeholder enters
-                initialState == PlaceholderState.None && targetState == PlaceholderState.Placeholder -> {
-                    placeholderEnter togetherWith ExitTransition.None
-                }
-
-                else -> {
-                    EnterTransition.None togetherWith ExitTransition.None
-                }
-            }
-        },
-        modifier = modifier
-    ) { state ->
-        when (state) {
-            PlaceholderState.Digit -> {
-                Text(
-                    text = text,
-                    fontSize = fontSize,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-            PlaceholderState.Placeholder -> {
-                Text(
-                    text = placeholder,
-                    fontSize = fontSize,
-                    fontWeight = FontWeight.Bold,
-                    color = placeholderColor
-                )
-            }
-
-            PlaceholderState.None -> Unit
-        }
     }
 }
 
