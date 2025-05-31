@@ -46,6 +46,7 @@ import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
+import com.getcode.theme.White50
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.scaled
@@ -216,13 +217,13 @@ fun BottomBarView(
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.error
                                 BottomBarManager.BottomBarButtonStyle.Filled50 -> Color.White
-                                BottomBarManager.BottomBarButtonStyle.Text -> Color.White
+                                BottomBarManager.BottomBarButtonStyle.Text -> White50
                             }
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                             BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> when(action.style) {
-                                BottomBarManager.BottomBarButtonStyle.Text -> Color.White
+                                BottomBarManager.BottomBarButtonStyle.Text -> White50
                                 else -> Color.Black
                             }
                             BottomBarManager.BottomBarMessageType.SUCCESS -> Color.Black
@@ -247,11 +248,11 @@ fun BottomBarView(
                         textAlign = TextAlign.Center,
                         color = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
-                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White
+                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White50
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary
-                            BottomBarManager.BottomBarMessageType.SUCCESS -> White
-                            BottomBarManager.BottomBarMessageType.WARNING -> White
+                            BottomBarManager.BottomBarMessageType.SUCCESS -> White50
+                            BottomBarManager.BottomBarMessageType.WARNING -> White50
                         },
                         text = stringResource(R.string.action_cancel)
                     )
