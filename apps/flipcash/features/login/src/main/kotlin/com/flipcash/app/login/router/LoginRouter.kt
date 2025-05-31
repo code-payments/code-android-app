@@ -48,7 +48,7 @@ class LoginRouter(
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
                 .onEach { delay(1.333.seconds) }
-                .onEach { navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())) }
+                .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())) }
                 .launchIn(this)
         }
 
