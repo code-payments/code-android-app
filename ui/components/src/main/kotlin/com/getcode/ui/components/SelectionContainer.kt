@@ -1,7 +1,10 @@
 package com.getcode.ui.components
 
 import android.widget.Toast
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +34,12 @@ class SelectionContainerState(val words: String = "") {
 
     val scale : State<Float>
         @Composable get() = animateFloatAsState(
-        targetValue = if (shown) 1.2f else 1f,
-        label = "access key scale"
+            targetValue = if (shown) 1.2f else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            ),
+            label = "access key scale"
     )
 }
 
