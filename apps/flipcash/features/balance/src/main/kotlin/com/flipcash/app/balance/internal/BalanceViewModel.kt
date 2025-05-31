@@ -9,6 +9,7 @@ import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.money.formatted
 import com.flipcash.features.balance.R
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.BalanceController
@@ -68,8 +69,24 @@ internal class BalanceViewModel @Inject constructor(
                         title = title,
                         subtitle = resources.getString(R.string.prompt_description_cancelTransfer),
                         showScrim = true,
-                        positiveText = resources.getString(R.string.action_cancelTransfer),
-                        onPositive = { dispatchEvent(Event.CancelTransfer(vault = metadata.creator)) },
+                        showCancel = false,
+                        actions = buildList {
+                            add(
+                                BottomBarAction(
+                                    style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                    text = resources.getString(R.string.action_cancelTransfer),
+                                ) {
+                                    dispatchEvent(Event.CancelTransfer(vault = metadata.creator))
+                                }
+                            )
+
+                            add(
+                                BottomBarAction(
+                                    style = BottomBarManager.BottomBarButtonStyle.Text,
+                                    text = resources.getString(R.string.action_nevermind),
+                                )
+                            )
+                        },
                     )
                 )
             }.launchIn(viewModelScope)
