@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import com.getcode.opencode.internal.extensions.getClosestLocale
 import java.util.Currency
+import java.util.Locale
 
 enum class CurrencyCode {
     AED,
@@ -331,12 +332,10 @@ enum class CurrencyCode {
                     val locale = currency.getClosestLocale()
                     try {
                         val currencyInstance = Currency.getInstance(currency.name)
-                        val symbol = currencyInstance.symbol
+                        val usSymbol = currencyInstance.getSymbol(Locale.US)
                         val localeSymbol = currencyInstance.getSymbol(locale)
-                        when (currency) {
-                            JPY -> put(currency, setOf(symbol))
-                            else -> put(currency, setOf(symbol, localeSymbol))
-                        }
+
+                        put(currency, setOf(usSymbol, localeSymbol))
                     } catch (e: IllegalArgumentException) {
                         // Skip currencies with no valid symbol
                     }
