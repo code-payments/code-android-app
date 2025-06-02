@@ -38,10 +38,10 @@ internal class InternalEventRepository @Inject constructor(
             }
         }
 
-        eventBus.handle(Events.RequestFirstAirdrop) {
+        eventBus.handle(Events.RequestWelcomeBonus) {
             scope.launch {
                 transactionController.airdrop(
-                    type = AirdropType.GetFirstCrypto,
+                    type = AirdropType.WelcomeBonus,
                     destination = it.owner.authority.keyPair
                 )
             }

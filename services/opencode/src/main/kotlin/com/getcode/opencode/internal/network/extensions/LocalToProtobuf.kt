@@ -1,14 +1,8 @@
 package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
-import com.codeinc.opencode.gen.common.v1.domain
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
-import com.codeinc.opencode.gen.messaging.v1.clientRejectedPayment
-import com.codeinc.opencode.gen.messaging.v1.codeScanned
-import com.codeinc.opencode.gen.messaging.v1.intentSubmitted
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
-import com.codeinc.opencode.gen.messaging.v1.requestToReceiveBill
-import com.codeinc.opencode.gen.messaging.v1.webhookCalled
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
@@ -148,57 +142,9 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
         .setId(id.asMessageId())
 
     when (kind) {
-        is MessageKind.ClientRejectedPayment -> {
-            builder.clientRejectedPayment = clientRejectedPayment {
-                intentId = kind.intentId.asIntentId()
-            }
-        }
-
-        is MessageKind.CodeScanned -> {
-            builder.codeScanned = codeScanned {
-                timestamp = kind.timestamp.asProtobufTimestamp()
-            }
-        }
-
-        is MessageKind.IntentSubmitted -> {
-            builder.intentSubmitted = intentSubmitted {
-                intentId = kind.intentId.asIntentId()
-                if (kind.metadata != null) {
-                    metadata = kind.metadata.asProtobufMetadata()
-                }
-            }
-        }
         is MessageKind.RequestToGrabBill -> {
             builder.requestToGrabBill = requestToGrabBill {
                 requestorAccount = kind.requestor.asSolanaAccountId()
-            }
-        }
-        is MessageKind.RequestToReceiveBill -> {
-            builder.requestToReceiveBill = requestToReceiveBill {
-                requestorAccount = kind.requestor.asSolanaAccountId()
-                when (val exchange = kind.exchangeData) {
-                    is ExchangeData.WithRate -> {
-                        exact = exchange.asProtobufExchangeData()
-                    }
-                    is ExchangeData.WithoutRate -> {
-                        partial = exchange.asProtobufExchangeData()
-                    }
-
-                    ExchangeData.Unset -> Unit
-                }
-                if (kind.domainVerification != null) {
-                    domain = domain {
-                        value = kind.domainVerification.domain.urlString
-                    }
-                    verifier = kind.domainVerification.verifier.asSolanaAccountId()
-                    rendezvousKey = kind.domainVerification.rendezvous.asRendezvousKey()
-                    signature = Model.Signature.newBuilder().sign(kind.domainVerification.signature)
-                }
-            }
-        }
-        is MessageKind.WebhookCalled -> {
-            builder.webhookCalled = webhookCalled {
-                timestamp = kind.timestamp.asProtobufTimestamp()
             }
         }
 

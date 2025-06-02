@@ -7,8 +7,4 @@ import com.getcode.solana.keys.PublicKey
 interface AccountRepository {
     suspend fun isCodeAccount(owner: KeyPair): Result<Boolean>
     suspend fun getAccounts(owner: KeyPair): Result<Map<PublicKey, AccountInfo>>
-    suspend fun linkAdditionalAccounts(
-        owner: KeyPair,
-        accountToLink: KeyPair,
-    ): Result<Unit>
 }

@@ -17,9 +17,4 @@ internal class InternalAccountRepository @Inject constructor(
     override suspend fun getAccounts(
         owner: Ed25519.KeyPair
     ): Result<Map<PublicKey, AccountInfo>> = service.getAccounts(owner)
-
-    override suspend fun linkAdditionalAccounts(
-        owner: Ed25519.KeyPair,
-        accountToLink: Ed25519.KeyPair
-    ): Result<Unit> = service.linkAdditionalAccounts(owner, accountToLink)
 }

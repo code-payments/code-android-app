@@ -61,32 +61,4 @@ internal class AccountApi @Inject constructor(
             api.getTokenAccountInfos(request)
         }
     }
-
-    /**
-     * Allows a client to declare additional accounts to
-     * be tracked and used within Code. The accounts declared in this RPC are not
-     * managed by Code (ie. not a Timelock account), created externally and cannot
-     * be linked automatically (ie. authority derived off user 12 words).
-     *
-     * @param owner The owner account to link to
-     * @param swapAuthority The authority account derived off the user's 12 words, which contains
-     * the USDC ATA (and potentially others in the future) that will be used in swaps.
-     *
-     * @return The [AccountService.LinkAdditionalAccountsResponse]
-     *
-     */
-    suspend fun linkAdditionalAccounts(
-        owner: KeyPair,
-        swapAuthority: KeyPair
-    ): AccountService.LinkAdditionalAccountsResponse {
-        val request = AccountService.LinkAdditionalAccountsRequest.newBuilder()
-            .setOwner(owner.asSolanaAccountId())
-            .setSwapAuthority(swapAuthority.asSolanaAccountId())
-            .apply { addAllSignatures(listOf(sign(owner), sign(swapAuthority))) }
-            .build()
-
-        return withContext(Dispatchers.IO) {
-            api.linkAdditionalAccounts(request)
-        }
-    }
 }

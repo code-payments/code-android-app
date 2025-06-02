@@ -288,6 +288,7 @@ val AccountInfo.displayName: String
         AccountType.Primary -> "Primary"
         AccountType.RemoteSend -> "Remote Send"
         AccountType.Swap -> "Swap (USDC)"
+        AccountType.AssociatedToken -> "ATA"
     }
 
 // An account is deemed unuseable in Code if the management

@@ -24,7 +24,7 @@ class ServerParameter(
 
                         // PublicKey will be `nil` for .thirdParty fee payments
                         val optionalDestination = PublicKey(
-                            param.codeDestination.value.toByteArray().toList()
+                            param.destination.value.toByteArray().toList()
                         )
                         FeePayment(optionalDestination)
                     }

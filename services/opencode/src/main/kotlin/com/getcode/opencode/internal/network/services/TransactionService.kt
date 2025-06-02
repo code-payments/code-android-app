@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.network.services
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRequest
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v2.feeAmountOrNull
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
@@ -117,7 +118,6 @@ internal class TransactionService @Inject constructor(
                             sinceDate = consumedSince.toEpochMilliseconds(),
                             fetchDate = System.currentTimeMillis(),
                             sendLimits = response.sendLimitsByCurrencyMap,
-                            buyLimits = response.buyModuleLimitsByCurrencyMap,
                             usdTransactedSinceConsumption = response.usdTransacted
                         )
                         Result.success(limits)
@@ -149,6 +149,7 @@ internal class TransactionService @Inject constructor(
                     kind = WithdrawalAvailability.Kind.tryValueOf(response.accountType.name)
                         ?: WithdrawalAvailability.Kind.Unknown,
                     requiresInitialization = response.requiresInitialization,
+                    feeAmount = response.feeAmountOrNull?.toModel()
                 )
 
                 Result.success(availability)

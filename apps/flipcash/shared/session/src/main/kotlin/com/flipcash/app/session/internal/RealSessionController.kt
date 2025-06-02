@@ -210,7 +210,7 @@ class RealSessionController @Inject constructor(
             scope.launch {
                 userManager.accountCluster?.let {
                     transactionController.airdrop(
-                        type = AirdropType.GetFirstCrypto,
+                        type = AirdropType.WelcomeBonus,
                         destination = it.authority.keyPair
                     ).onSuccess { amount ->
                         toastController.show(

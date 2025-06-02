@@ -1,6 +1,8 @@
 package com.getcode.opencode.model.transactions
 
 import com.getcode.opencode.internal.solana.extensions.newInstance
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -20,6 +22,8 @@ data class WithdrawalAvailability(
      *
      */
     val requiresInitialization: Boolean,
+
+    val feeAmount: Fiat?
 ) {
     enum class Kind {
         Unknown,
@@ -43,6 +47,7 @@ data class WithdrawalAvailability(
             isValid: Boolean,
             kind: Kind,
             requiresInitialization: Boolean,
+            feeAmount: ExchangeData.WithoutRate?,
         ): WithdrawalAvailability {
             val hasResolvedDestination: Boolean
             val resolvedDestination: PublicKey
@@ -63,6 +68,8 @@ data class WithdrawalAvailability(
                 }
             }
 
+            val feeCurrencyCode = (CurrencyCode.tryValueOf(feeAmount?.currencyCode) ?: CurrencyCode.USD)
+
             return WithdrawalAvailability(
                 destination = destination,
                 isValid = isValid,
@@ -70,6 +77,7 @@ data class WithdrawalAvailability(
                 hasResolvedDestination = hasResolvedDestination,
                 resolvedDestination = resolvedDestination,
                 requiresInitialization = if (isValid) false else requiresInitialization,
+                feeAmount = feeAmount?.let { Fiat(feeAmount.nativeAmount, feeCurrencyCode) }
             )
         }
     }

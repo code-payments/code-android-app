@@ -13,8 +13,6 @@ data class Limits(
 
     // Remaining send limits keyed by currency
     private val sendLimits: Map<CurrencyCode, SendLimit>,
-    // Buy limits keyed by currency
-    private val buyLimits: Map<CurrencyCode, BuyLimit>,
 
     // The amount of USD transacted since the consumption timestamp
     val amountUsdTransactedSinceConsumption: Fiat
@@ -29,16 +27,11 @@ data class Limits(
         return sendLimits[currencyCode]
     }
 
-    fun buyLimitFor(currencyCode: CurrencyCode): BuyLimit? {
-        return buyLimits[currencyCode]
-    }
-
     companion object {
         val Empty = Limits(
             sinceDate = Instant.DISTANT_PAST.toEpochMilliseconds(),
             fetchDate = Instant.DISTANT_PAST.toEpochMilliseconds(),
             sendLimits = emptyMap(),
-            buyLimits = emptyMap(),
             amountUsdTransactedSinceConsumption = Fiat.Zero
         )
 
@@ -46,7 +39,6 @@ data class Limits(
             sinceDate: Long,
             fetchDate: Long,
             sendLimits: Map<String, TransactionService.SendLimit>,
-            buyLimits: Map<String, TransactionService.BuyModuleLimit>,
             usdTransactedSinceConsumption: Double
         ): Limits {
             val sends = sendLimits
@@ -61,23 +53,10 @@ data class Limits(
                     code to limit
                 }.toMap()
 
-            val buys = buyLimits
-                .mapValues { (_, v) ->
-                    BuyLimit(
-                        min = v.minPerTransaction.toDouble(),
-                        max = v.maxPerTransaction.toDouble()
-                    )
-                }
-                .mapNotNull { (k, limit) ->
-                    val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
-                    code to limit
-                }.toMap()
-
             return Limits(
                 sinceDate = sinceDate,
                 fetchDate = fetchDate,
                 sendLimits = sends,
-                buyLimits = buys,
                 amountUsdTransactedSinceConsumption = Fiat(usdTransactedSinceConsumption)
             )
         }

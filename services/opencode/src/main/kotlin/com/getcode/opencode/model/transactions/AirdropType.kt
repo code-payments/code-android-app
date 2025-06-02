@@ -2,6 +2,8 @@ package com.getcode.opencode.model.transactions
 
 enum class AirdropType {
     Unknown,
-    GiveFirstCrypto,
-    GetFirstCrypto,
+    /** Reward for onboarding another user */
+    OnboardingBonus,
+    /** Airdrop for getting a user started with first crypto balance */
+    WelcomeBonus
 }

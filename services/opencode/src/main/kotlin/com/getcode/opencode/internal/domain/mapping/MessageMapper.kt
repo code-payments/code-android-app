@@ -21,11 +21,6 @@ internal class MessageMapper @Inject constructor():
             signature = signature,
             kind = when(from.kindCase) {
                 MessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL -> from.requestToGrabBill.toMessageKind()
-                MessagingService.Message.KindCase.REQUEST_TO_RECEIVE_BILL -> from.requestToReceiveBill.toMessageKind()
-                MessagingService.Message.KindCase.CODE_SCANNED -> from.codeScanned.toMessageKind()
-                MessagingService.Message.KindCase.CLIENT_REJECTED_PAYMENT -> from.clientRejectedPayment.toMessageKind()
-                MessagingService.Message.KindCase.INTENT_SUBMITTED -> from.intentSubmitted.toMessageKind()
-                MessagingService.Message.KindCase.WEBHOOK_CALLED -> from.webhookCalled.toMessageKind()
                 MessagingService.Message.KindCase.KIND_NOT_SET -> MessageKind.Unknown
                 else -> MessageKind.Unknown
             }

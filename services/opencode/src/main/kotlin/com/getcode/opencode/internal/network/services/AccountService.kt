@@ -67,30 +67,5 @@ internal class AccountService @Inject constructor(
             }
         )
     }
-
-    suspend fun linkAdditionalAccounts(
-        owner: KeyPair,
-        accountToLink: KeyPair,
-    ): Result<Unit> {
-        return runCatching {
-            api.linkAdditionalAccounts(owner, accountToLink)
-        }.fold(
-            onSuccess = { response ->
-                when (response.result) {
-                    AccountService.LinkAdditionalAccountsResponse.Result.OK -> Result.success(Unit)
-                    AccountService.LinkAdditionalAccountsResponse.Result.DENIED -> Result.failure(
-                        LinkAccountsError.Denied())
-                    AccountService.LinkAdditionalAccountsResponse.Result.INVALID_ACCOUNT -> Result.failure(
-                        LinkAccountsError.InvalidAccount())
-                    AccountService.LinkAdditionalAccountsResponse.Result.UNRECOGNIZED -> Result.failure(
-                        LinkAccountsError.Unrecognized())
-                    else -> Result.failure(LinkAccountsError.Other())
-                }
-            },
-            onFailure = { cause ->
-                Result.failure(LinkAccountsError.Other(cause = cause))
-            }
-        )
-    }
 }
 
