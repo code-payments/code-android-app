@@ -47,18 +47,24 @@ internal fun BillManagementOptions(
                 Pill(
                     modifier = Modifier
                         .rememberedClickable(enabled = !isSending) { primaryAction.action() },
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(0.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
-                    Box {
+                    Box(
+                        modifier = Modifier.padding(
+                            vertical = 12.dp,
+                            horizontal = 16.dp
+                        )
+                    ) {
                         Row(
-                            modifier = Modifier.alpha(if (!isSending) 1f else 0f),
+                            modifier = Modifier
+                                .alpha(if (!isSending) 1f else 0f),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Image(
                                 painter = primaryAction.asset,
                                 contentDescription = "",
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                             primaryAction.label?.let { label ->
                                 Text(
@@ -84,10 +90,11 @@ internal fun BillManagementOptions(
                 Pill(
                     modifier = Modifier
                         .rememberedClickable(enabled = isInteractable) { secondaryAction.action() },
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(0.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
                     Row(
+                        modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
