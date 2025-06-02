@@ -10,6 +10,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
@@ -22,7 +23,7 @@ internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_depositUsdc)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.Deposit
+        NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming)
     )
 }
 
@@ -33,7 +34,7 @@ internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = stringResource(R.string.title_withdrawUsdc)
 
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount
+        NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Outgoing)
     )
 }
 

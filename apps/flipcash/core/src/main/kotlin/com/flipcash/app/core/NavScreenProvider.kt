@@ -3,6 +3,7 @@ package com.flipcash.app.core
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.ui.core.RestrictionType
 
@@ -41,12 +42,16 @@ sealed class NavScreenProvider : ScreenProvider {
 
         sealed class Menu {
             data object Root : NavScreenProvider()
-            data object Deposit : NavScreenProvider()
 
-            sealed class Withdrawal {
-                data object Amount : NavScreenProvider()
-                data object Destination : NavScreenProvider()
-                data object Confirmation : NavScreenProvider()
+            data object Transfers {
+                data class Learn(val direction: TransferDirection) : NavScreenProvider()
+                data object Deposit : NavScreenProvider()
+
+                sealed class Withdrawal {
+                    data object Amount : NavScreenProvider()
+                    data object Destination : NavScreenProvider()
+                    data object Confirmation : NavScreenProvider()
+                }
             }
 
             sealed class MyAccount {

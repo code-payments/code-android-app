@@ -4,6 +4,8 @@ import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.menu.internal.MenuScreenContent
@@ -15,10 +17,15 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
 class MenuScreen : ModalScreen, Parcelable {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     @Composable
     override fun ModalContent() {
         val viewModel = getViewModel<MenuScreenViewModel>()

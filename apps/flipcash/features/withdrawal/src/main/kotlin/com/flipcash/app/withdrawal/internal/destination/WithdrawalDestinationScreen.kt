@@ -54,7 +54,7 @@ internal fun WithdrawalDestinationScreen(viewModel: WithdrawalViewModel) {
         viewModel.eventFlow
             .filterIsInstance<WithdrawalViewModel.Event.OnDestinationConfirmed>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Withdrawal.Confirmation))
+                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Confirmation))
             }.launchIn(this)
     }
 }

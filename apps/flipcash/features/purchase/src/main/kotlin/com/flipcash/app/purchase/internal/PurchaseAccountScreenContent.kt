@@ -26,12 +26,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.features.purchase.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -113,35 +115,8 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                Image(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colorStops = arrayOf(
-                                    0.43f to Color(0xFF0B2D17),
-                                    0.67f to Color(0xFF053209),
-                                ),
-                            ),
-                            shape = CircleShape
-                        )
-                        .drawBehind {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(42,92,34),
-                                        Color(0x00FFFFFF),
-                                    ),
-                                    center = Offset(size.width * 0.25f, size.height * 0.25f),
-                                    radius = size.width * 0.5f,
-                                ),
-                                radius = size.width / 2,
-                            )
-                        }
-                        .padding(CodeTheme.dimens.grid.x6),
-                    imageVector = Icons.Default.CheckCircleOutline,
-                    colorFilter = ColorFilter.tint(Color.White),
-                    contentDescription = null,
+                BrandedGradientIcon(
+                    painter = rememberVectorPainter(Icons.Default.CheckCircleOutline)
                 )
 
                 if (state.hasProduct) {

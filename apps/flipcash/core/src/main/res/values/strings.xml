@@ -88,7 +88,7 @@
     <string name="prompt_description_deleteAccount">This will permanently delete your Flipcash account</string>
     <string name="action_deleteAccount">Delete Account</string>
 
-    <string name="error_title_failedToLogOut">Something went wrong</string>
+    <string name="error_title_failedToLogOut">Something Went wrong</string>
     <string name="error_description_failedToLogOut">We were unable to log you out. Please try again</string>
 
     <string name="error_title_failedToDeleteAccount">Something went wrong</string>
@@ -130,4 +130,15 @@
     <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance</string>
 
     <string name="subtitle_startCameraToScan">You need to start your camera to grab cash</string>
+
+    <string name="title_learnToDeposit">You can deposit funds from your bank account into Flipcash</string>
+    <string name="action_learnHowToDepositFunds">Learn How to Deposit Funds</string>
+    <string name="action_depositFundsNow">Deposit Funds Now</string>
+
+    <string name="title_learnToWithdraw">You can withdraw your funds at any time, and move them into your bank account</string>
+    <string name="action_learnHowToWithdrawFunds">Learn How to Withdraw Funds</string>
+    <string name="action_withdrawFundsNow">Withdraw Funds Now</string>
+
+    <string name="error_title_failedToOpenExternalLink">Something Went Wrong</string>
+    <string name="error_description_failedToOpenExternalLink">We were unable to open the link on this device. Please try again later</string>
 </resources>

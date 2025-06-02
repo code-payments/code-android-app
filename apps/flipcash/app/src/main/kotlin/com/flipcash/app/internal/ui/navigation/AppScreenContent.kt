@@ -22,6 +22,7 @@ import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
+import com.flipcash.app.transfers.TransferInformationalScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
@@ -99,20 +100,24 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             LabsModal()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Deposit> {
+        register<NavScreenProvider.HomeScreen.Menu.Transfers.Learn> {
+            TransferInformationalScreen(it.direction)
+        }
+
+        register<NavScreenProvider.HomeScreen.Menu.Transfers.Deposit> {
             DepositScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Withdrawal.Amount> {
+        register<NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Amount> {
             WithdrawalFlow.start()
             WithdrawalEntryScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Withdrawal.Destination> {
+        register<NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Destination> {
             WithdrawalDestinationScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Withdrawal.Confirmation> {
+        register<NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Confirmation> {
             WithdrawalConfirmationScreen()
         }
 

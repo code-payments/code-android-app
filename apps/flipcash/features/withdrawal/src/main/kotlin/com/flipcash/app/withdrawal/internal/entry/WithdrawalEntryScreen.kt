@@ -40,7 +40,7 @@ internal fun WithdrawalEntryScreen(viewModel: WithdrawalViewModel) {
             .onEach {
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.Menu.Withdrawal.Destination
+                        NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Destination
                     )
                 )
             }.launchIn(this)
