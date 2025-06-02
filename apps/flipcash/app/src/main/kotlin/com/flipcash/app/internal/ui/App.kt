@@ -164,7 +164,7 @@ internal fun App(
                                     }
                                 }
 
-                                LaunchedEffect(loginRequest) {
+                                LaunchedEffect(loginRequest, codeNavigator.lastItem) {
                                     if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
                                     loginRequest?.let { entropy ->
                                         viewModel.handleLoginEntropy(
