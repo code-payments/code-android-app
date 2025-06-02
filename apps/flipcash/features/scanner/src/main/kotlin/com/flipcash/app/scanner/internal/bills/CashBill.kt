@@ -1,5 +1,6 @@
 package com.flipcash.app.scanner.internal.bills
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
@@ -76,7 +77,8 @@ private object CashBillDefaults {
 
     val PunchColor: Color
         @Composable get() =
-            Color.Black.copy(0.15f).compositeOver(BillColor.copy(CodeBackgroundOpacity))
+            Color.Black.copy(0.15f)
+                .compositeOver(BillColor.copy(CodeBackgroundOpacity))
 
     const val SecurityStripCount = 3
 
@@ -141,6 +143,7 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
         )
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CashBill(
@@ -149,7 +152,7 @@ internal fun CashBill(
     amount: LocalFiat,
 ) {
     val exchange = LocalExchange.current
-    BoxWithConstraints(
+    Box(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
             .padding(

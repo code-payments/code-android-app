@@ -31,8 +31,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(Deposit)
     add(Withdraw)
+    add(Deposit)
     add(MyAccount)
     add(AppSettings)
     add(SwitchAccount)
