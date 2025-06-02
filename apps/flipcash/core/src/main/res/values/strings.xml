@@ -129,4 +129,5 @@
     <string name="action_noCancelSend">No, Cancel Send</string>
     <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance</string>
 
+    <string name="subtitle_startCameraToScan">You need to start your camera to grab cash</string>
 </resources>
