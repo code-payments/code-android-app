@@ -98,11 +98,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
                 cameraGesturesEnabled = true,
                 invertedDragZoomEnabled = true,
                 onPreviewStateChanged = { previewing = it },
-                onCodeScanned = {
-                    if (previewing) {
-                        session.onCodeScan(it)
-                    }
-                },
+                onCodeScanned = session::onCodeScan,
                 onError = { ErrorUtils.handleError(it) }
             )
         },
