@@ -333,7 +333,10 @@ enum class CurrencyCode {
                         val currencyInstance = Currency.getInstance(currency.name)
                         val symbol = currencyInstance.symbol
                         val localeSymbol = currencyInstance.getSymbol(locale)
-                        put(currency, setOf(symbol, localeSymbol))
+                        when (currency) {
+                            JPY -> put(currency, setOf(symbol))
+                            else -> put(currency, setOf(symbol, localeSymbol))
+                        }
                     } catch (e: IllegalArgumentException) {
                         // Skip currencies with no valid symbol
                     }
