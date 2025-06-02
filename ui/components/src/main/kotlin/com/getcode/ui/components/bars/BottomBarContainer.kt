@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -63,18 +64,19 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()
-    val onClose: suspend (selection: SelectedBottomBarAction, fromTimeout: Boolean) -> Unit = { selection, fromTimeout ->
-        bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
-        bottomBarVisibleState.targetState = false
+    val onClose: suspend (selection: SelectedBottomBarAction, fromTimeout: Boolean) -> Unit =
+        { selection, fromTimeout ->
+            bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
+            bottomBarVisibleState.targetState = false
 
-        delay(300.scaled(animationScale))
-        BottomBarManager.setMessageShown(bottomBarMessageDismissId)
-        if (fromTimeout) {
-            bottomBarMessage?.onTimeout?.invoke()
-        } else {
-            bottomBarMessage?.onClose?.invoke(selection)
+            delay(300.scaled(animationScale))
+            BottomBarManager.setMessageShown(bottomBarMessageDismissId)
+            if (fromTimeout) {
+                bottomBarMessage?.onTimeout?.invoke()
+            } else {
+                bottomBarMessage?.onClose?.invoke(selection)
+            }
         }
-    }
 
     // handle changes in visible state
     LaunchedEffect(bottomBarVisibleState) {
@@ -96,7 +98,10 @@ fun BottomBarContainer(barMessages: BarMessages) {
         }
     }
 
-    val scrimAlpha by animateFloatAsState(if (bottomBarMessage?.showScrim == true) 1f else 0f, label = "scrim visibility")
+    val scrimAlpha by animateFloatAsState(
+        if (bottomBarMessage?.showScrim == true) 1f else 0f,
+        label = "scrim visibility"
+    )
 
     if (bottomBarVisibleState.targetState && bottomBarMessage != null) {
         bottomBarMessage?.let {
@@ -106,7 +111,8 @@ fun BottomBarContainer(barMessages: BarMessages) {
                         .fillMaxSize()
                         .alpha(scrimAlpha)
                         .background(Black40)
-                        .rememberedClickable(indication = null,
+                        .rememberedClickable(
+                            indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             if (it.isDismissible) {
@@ -119,7 +125,8 @@ fun BottomBarContainer(barMessages: BarMessages) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .rememberedClickable(indication = null,
+                            .rememberedClickable(
+                                indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
                                 scope.launch { onClose(SelectedBottomBarAction(-1), false) }
@@ -131,7 +138,8 @@ fun BottomBarContainer(barMessages: BarMessages) {
     }
 
     AnimatedContent(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
             .clipToBounds(),
         targetState = bottomBarVisibleState.targetState,
         transitionSpec = {
@@ -184,7 +192,13 @@ fun BottomBarView(
     ) {
         Column(
             modifier = Modifier
-                .background(bottomBarMessage.type.backgroundColor())
+                .background(
+                    bottomBarMessage.type.backgroundColor(),
+                    CodeTheme.shapes.medium.copy(
+                        bottomStart = CornerSize(0),
+                        bottomEnd = CornerSize(0)
+                    )
+                )
                 .padding(top = CodeTheme.dimens.inset)
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .windowInsetsPadding(WindowInsets.navigationBars),
@@ -222,10 +236,11 @@ fun BottomBarView(
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                             BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
-                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> when(action.style) {
+                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
                                 else -> Color.Black
                             }
+
                             BottomBarManager.BottomBarMessageType.SUCCESS -> Color.Black
                         },
                         buttonState = when (action.style) {
