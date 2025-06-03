@@ -7,6 +7,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -164,7 +165,11 @@ internal fun App(
                                     }
                                 }
 
-                                LaunchedEffect(loginRequest, codeNavigator.lastItem, userManager.authState) {
+                                LaunchedEffect(
+                                    loginRequest,
+                                    codeNavigator.lastItem,
+                                    userManager.authState
+                                ) {
                                     if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
                                     if (userManager.authState !is AuthState.LoggedIn) return@LaunchedEffect
                                     loginRequest?.let { entropy ->

@@ -358,8 +358,8 @@ object Libs {
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 
     const val haze = "dev.chrisbanes.haze:haze:0.7.3"
-    const val rinku = "dev.theolm:rinku:1.1.0"
-    const val rinku_compose = "dev.theolm:rinku-compose-ext:1.1.0"
+    const val rinku = "dev.theolm:rinku:1.4.0"
+    const val rinku_compose = "dev.theolm:rinku-compose-ext:1.4.0"
 
     const val eventBus = "io.github.hoc081098:channel-event-bus:${Versions.eventBus}"
 }
