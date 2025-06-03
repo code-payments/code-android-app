@@ -176,6 +176,7 @@ internal fun App(
                                         viewModel.handleLoginEntropy(
                                             entropy,
                                             onSwitchAccount = {
+                                                loginRequest = null
                                                 codeNavigator.replaceAll(
                                                     ScreenRegistry.get(
                                                         NavScreenProvider.Login.Home(
