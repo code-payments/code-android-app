@@ -113,7 +113,7 @@ internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: 
         ) {
             Spacer(Modifier.weight(1f))
             Image(
-                painter = painterResource(R.drawable.ic_home_bill_image),
+                painter = painterResource(R.drawable.ic_camera_request),
                 contentDescription = "",
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.grid.x8)
