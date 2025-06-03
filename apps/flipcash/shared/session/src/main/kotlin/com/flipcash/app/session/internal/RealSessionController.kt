@@ -13,7 +13,9 @@ import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.session.PresentationStyle
+import com.flipcash.app.session.BillDeterminationResult
+import com.flipcash.app.session.Grabbed
+import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
 import com.flipcash.app.session.internal.toast.ToastController
@@ -180,7 +182,7 @@ class RealSessionController @Inject constructor(
         if (!shareSheetController.isCheckingForShare || (bill != null && !bill.didReceive)) {
             BottomBarManager.clear()
             billController.cancelAwaitForGrab()
-            dismissBill()
+            dismissBill(PutInWallet)
         }
     }
 
@@ -299,7 +301,7 @@ class RealSessionController @Inject constructor(
                                     ),
                                     // Allow cancelling pending outgoing cash bills
                                     secondaryAction = BillState.Action.Cancel(
-                                        action = { dismissBill() }
+                                        action = { dismissBill(PutInWallet) }
                                     ),
                                 )
                             }
@@ -317,19 +319,19 @@ class RealSessionController @Inject constructor(
             owner = owner,
             onGrabbed = {
                 toastController.enqueue(bill.amount, isDeposit = false)
-                dismissBill(PresentationStyle.Pop)
+                dismissBill(Grabbed)
                 vibrator.vibrate()
                 bringActivityFeedCurrent()
             },
             onTimeout = {
-                dismissBill(style = PresentationStyle.Slide)
+                dismissBill(action = PutInWallet)
 //                analytics.billTimeoutReached(
 //                    bill.amount.kin,
 //                    bill.amount.rate.currency,
 //                    CodeAnalyticsManager.BillPresentationStyle.Slide
 //                )
             },
-            onError = { dismissBill(style = PresentationStyle.Slide) },
+            onError = { dismissBill(action = PutInWallet) },
             present = { data ->
                 if (!bill.didReceive) {
                     trace(
@@ -391,7 +393,7 @@ class RealSessionController @Inject constructor(
                                     when (result) {
                                         ShareResult.CopiedToClipboard -> {
                                             toastController.enqueue(amount)
-                                            dismissBill(PresentationStyle.Pop)
+                                            dismissBill(Grabbed)
                                             vibrator.vibrate()
                                             bringActivityFeedCurrent()
                                             trace(
@@ -406,7 +408,7 @@ class RealSessionController @Inject constructor(
 
                                         is ShareResult.SharedToApp -> {
                                             toastController.enqueue(amount)
-                                            dismissBill(PresentationStyle.Pop)
+                                            dismissBill(Grabbed)
                                             vibrator.vibrate()
                                             bringActivityFeedCurrent()
                                             trace(
@@ -447,7 +449,7 @@ class RealSessionController @Inject constructor(
                 cont.resume(Result.success(it))
             },
             onError = {
-                dismissBill()
+                dismissBill(PutInWallet)
                 TopBarManager.showMessage(
                     title = resources.getString(R.string.error_title_failedToCreateGiftCard),
                     message = resources.getString(R.string.error_description_failedToCreateGiftCard)
@@ -465,11 +467,11 @@ class RealSessionController @Inject constructor(
             vault = giftCard.cluster.vaultPublicKey,
             owner = owner,
         ).onFailure {
-            dismissBill()
+            dismissBill(PutInWallet)
         }.onSuccess {
             balanceController.fetchBalance()
             checkPendingItemsInFeed()
-            dismissBill()
+            dismissBill(PutInWallet)
         }
     }
 
@@ -598,10 +600,10 @@ class RealSessionController @Inject constructor(
             }
         }
 
-        val style: PresentationStyle =
-            if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
+        val style: BillDeterminationResult =
+            if (bill.didReceive) Grabbed else PutInWallet
 
-        _state.update { it.copy(presentationStyle = style) }
+        _state.update { it.copy(billResult = style) }
         billController.update {
             it.copy(
                 bill = Bill.Cash(
@@ -614,7 +616,7 @@ class RealSessionController @Inject constructor(
             )
         }
 
-        if (style is PresentationStyle.Visible) {
+        if (style is BillDeterminationResult.ActedUpon) {
 //            analytics.billShown(
 //                bill.amountFloored.kin,
 //                bill.amountFloored.rate.currency,
@@ -631,11 +633,11 @@ class RealSessionController @Inject constructor(
     }
 
 
-    override fun dismissBill(style: PresentationStyle) {
+    override fun dismissBill(action: BillDeterminationResult) {
         scope.launch {
+            _state.update { it.copy(billResult = action) }
             billController.reset()
             toastController.consumeQueue()
-            _state.update { it.copy(presentationStyle = style) }
             shareSheetController.reset()
         }
     }

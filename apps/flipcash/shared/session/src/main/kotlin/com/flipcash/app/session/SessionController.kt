@@ -3,19 +3,20 @@ package com.flipcash.app.session
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.flow.StateFlow
 
-sealed interface PresentationStyle {
-    data object Hidden : PresentationStyle
-    sealed interface Visible
-
-    data object Pop : PresentationStyle, Visible
-    data object Slide : PresentationStyle, Visible
+sealed interface BillDeterminationResult {
+    data object None : BillDeterminationResult
+    sealed interface ActedUpon
 }
+
+data object Grabbed : BillDeterminationResult, ActedUpon
+data object PutInWallet : BillDeterminationResult, ActedUpon
 
 interface SessionController {
     val state: StateFlow<SessionState>
@@ -25,7 +26,7 @@ interface SessionController {
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(bill: Bill, vibrate: Boolean = false)
-    fun dismissBill(style: PresentationStyle = PresentationStyle.Slide)
+    fun dismissBill(action: BillDeterminationResult)
     fun onCodeScan(code: ScannableKikCode)
     fun openCashLink(cashLink: String?)
 }
@@ -38,7 +39,7 @@ data class SessionState(
     val showNetworkOffline: Boolean = false,
     val autoStartCamera: Boolean? = true,
     val isCameraScanEnabled: Boolean = true,
-    val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
+    val billResult: BillDeterminationResult = BillDeterminationResult.None,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val notificationUnreadCount: Int = 0,

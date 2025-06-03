@@ -40,7 +40,9 @@ import com.flipcash.app.scanner.internal.ui.components.DecorView
 import com.flipcash.app.scanner.internal.ui.modals.ReceivedFundsConfirmation
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.LocalSessionController
-import com.flipcash.app.session.PresentationStyle
+import com.flipcash.app.session.BillDeterminationResult
+import com.flipcash.app.session.Grabbed
+import com.flipcash.app.session.PutInWallet
 import com.flipcash.features.scanner.R
 import com.getcode.manager.TopBarManager
 import com.getcode.ui.biometrics.LocalBiometricsState
@@ -51,7 +53,6 @@ import com.getcode.ui.utils.AnimationUtils
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
-import com.getcode.utils.base58
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -149,7 +150,7 @@ internal fun BillContainer(
                     val canDismiss =
                         it == DismissValue.DismissedToEnd && updatedBillState.canSwipeToDismiss
                     if (canDismiss) {
-                        session.dismissBill()
+                        session.dismissBill(PutInWallet)
                         dismissed = true
                     }
                     canDismiss
@@ -197,14 +198,14 @@ internal fun BillContainer(
             contentPadding = PaddingValues(bottom = managementHeight),
             bill = updatedBillState.bill,
             transitionSpec = {
-                when (updatedState.presentationStyle) {
-                    PresentationStyle.Hidden -> EnterTransition.None
-                    PresentationStyle.Pop -> AnimationUtils.animationBillEnterGrabbed
-                    PresentationStyle.Slide -> AnimationUtils.animationBillEnterGive
-                } togetherWith when (updatedState.presentationStyle) {
-                    PresentationStyle.Hidden -> ExitTransition.None
-                    PresentationStyle.Pop -> AnimationUtils.animationBillExitGrabbed
-                    PresentationStyle.Slide -> AnimationUtils.animationBillExitReturned
+                when (updatedState.billResult) {
+                    BillDeterminationResult.None -> EnterTransition.None
+                    Grabbed -> AnimationUtils.animationBillEnterGrabbed
+                    PutInWallet -> AnimationUtils.animationBillEnterGive
+                } togetherWith when (updatedState.billResult) {
+                    BillDeterminationResult.None -> ExitTransition.None
+                    Grabbed -> AnimationUtils.animationBillExitGrabbed
+                    PutInWallet -> AnimationUtils.animationBillExitReturned
                 }
             }
         )
@@ -240,7 +241,7 @@ internal fun BillContainer(
             }
 
             BackHandler(canCancel) {
-                session.dismissBill()
+                session.dismissBill(PutInWallet)
             }
         }
 
@@ -257,7 +258,7 @@ internal fun BillContainer(
                 ) {
                     ReceivedFundsConfirmation(
                         bill = updatedBillState.bill as Bill.Cash,
-                        onClaim = { session.dismissBill() }
+                        onClaim = { session.dismissBill(PutInWallet) }
                     )
                 }
             }
