@@ -1,7 +1,6 @@
 package com.flipcash.app.scanner.internal.bills
 
 import android.Manifest
-import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -52,6 +51,7 @@ import com.getcode.ui.utils.AnimationUtils
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
+import com.getcode.utils.base58
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -67,7 +67,7 @@ internal fun BillContainer(
 ) {
     val session = LocalSessionController.currentOrThrow
 
-    val context = LocalContext.current as Activity
+    val context = LocalContext.current
     val onPermissionResult = { result: PermissionResult ->
         session.onCameraPermissionResult(result)
         if (result == PermissionResult.ShouldShowRationale) {
@@ -137,7 +137,7 @@ internal fun BillContainer(
         val updatedState by rememberUpdatedState(state)
         val updatedBillState by rememberUpdatedState(billState)
 
-        var dismissed by remember {
+        var dismissed by remember(updatedBillState.bill) {
             mutableStateOf(false)
         }
 
@@ -149,7 +149,7 @@ internal fun BillContainer(
                     val canDismiss =
                         it == DismissValue.DismissedToEnd && updatedBillState.canSwipeToDismiss
                     if (canDismiss) {
-                        session.cancelSend()
+                        session.dismissBill()
                         dismissed = true
                     }
                     canDismiss
@@ -240,7 +240,7 @@ internal fun BillContainer(
             }
 
             BackHandler(canCancel) {
-                session.cancelSend()
+                session.dismissBill()
             }
         }
 
@@ -257,7 +257,7 @@ internal fun BillContainer(
                 ) {
                     ReceivedFundsConfirmation(
                         bill = updatedBillState.bill as Bill.Cash,
-                        onClaim = { session.cancelSend() }
+                        onClaim = { session.dismissBill() }
                     )
                 }
             }

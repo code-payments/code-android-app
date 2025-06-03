@@ -2,7 +2,6 @@ package com.flipcash.app.session.internal.toast
 
 import com.flipcash.app.core.bill.BillToast
 import com.flipcash.app.core.internal.bill.BillController
-import com.flipcash.app.session.PresentationStyle
 import com.getcode.opencode.model.financial.LocalFiat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,36 +20,22 @@ class ToastController @Inject constructor(
 ) {
     companion object {
         val INITIAL_DELAY = 500.milliseconds
-        val SHOW_DELAY = 5.seconds
+        val SHOW_DELAY = 3.seconds
     }
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val toastQueue = mutableListOf<ToastRequest>()
+    private var isConsumingQueue = false
 
-    fun showIfNeeded(
-        style: PresentationStyle,
-        override: Boolean = false
-    ): Boolean {
-        val billState = billController.state.value
-        val bill = billState.bill ?: return false
+    val hasToasts: Boolean
+        get() = toastQueue.isNotEmpty()
 
-        if (!override) {
-            if (style is PresentationStyle.Pop || billState.showToast) {
-                show(
-                    amount = bill.metadata.amount,
-                    isDeposit = when (style) {
-                        PresentationStyle.Slide -> true
-                        PresentationStyle.Pop -> false
-                        else -> false
-                    },
-                )
+    private data class ToastRequest(
+        val amount: LocalFiat,
+        val isDeposit: Boolean,
+        val initialDelay: Duration = INITIAL_DELAY
+    )
 
-                return true
-            }
-        }
-
-        return false
-    }
-
-    fun show(
+    fun enqueue(
         amount: LocalFiat,
         isDeposit: Boolean = false,
         initialDelay: Duration = INITIAL_DELAY
@@ -59,28 +44,67 @@ class ToastController @Inject constructor(
             return
         }
 
-        scope.launch {
-            delay(initialDelay)
+        synchronized(toastQueue) {
+            // Check for matching toast (same amount, opposite isDeposit)
+            val matchingToast = toastQueue.find { toast ->
+                toast.amount.converted.doubleValue == amount.converted.doubleValue &&
+                        toast.isDeposit != isDeposit
+            }
+
+            if (matchingToast != null) {
+                // Cancel matching toast
+                toastQueue.remove(matchingToast)
+            } else {
+                // Enqueue new toast
+                toastQueue.add(ToastRequest(amount, isDeposit, initialDelay))
+            }
+        }
+    }
+
+    fun clear() {
+        synchronized(toastQueue) {
+            toastQueue.clear()
+            if (isConsumingQueue) {
+                scope.launch {
+                    billController.update {
+                        it.copy(showToast = false, toast = null)
+                    }
+                }
+            }
+        }
+    }
+
+    suspend fun consumeQueue() {
+        isConsumingQueue = true
+        while (hasToasts) {
+            val toast = synchronized(toastQueue) { toastQueue.removeFirstOrNull() } ?: continue
+
+            // Wait for bill animation to finish
+            // before showing the toast
+            delay(toast.initialDelay)
             billController.update {
                 it.copy(
                     showToast = true,
-                    toast = BillToast(amount = amount.converted, isDeposit = isDeposit)
+                    toast = BillToast(amount = toast.amount.converted, isDeposit = toast.isDeposit)
                 )
             }
 
+            // Wait for display duration
             delay(SHOW_DELAY)
-
             billController.update {
-                it.copy(
-                    showToast = false
-                )
+                it.copy(showToast = false)
             }
 
-            // wait for animation to run
+            // Wait for animation to complete
             delay(INITIAL_DELAY)
             billController.update {
                 it.copy(toast = null)
             }
+
+            if (hasToasts) {
+                delay(1.seconds)
+            }
         }
+        isConsumingQueue = false
     }
 }

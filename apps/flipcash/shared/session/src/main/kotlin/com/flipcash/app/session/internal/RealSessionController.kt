@@ -174,12 +174,13 @@ class RealSessionController @Inject constructor(
         stopPolling()
         billingClient.disconnect()
 
+        toastController.clear()
+
         val bill = billController.state.value.bill
-        //
         if (!shareSheetController.isCheckingForShare || (bill != null && !bill.didReceive)) {
             BottomBarManager.clear()
             billController.cancelAwaitForGrab()
-            cancelSend()
+            dismissBill()
         }
     }
 
@@ -213,7 +214,7 @@ class RealSessionController @Inject constructor(
                         type = AirdropType.WelcomeBonus,
                         destination = it.authority.keyPair
                     ).onSuccess { amount ->
-                        toastController.show(
+                        toastController.enqueue(
                             amount = amount,
                             isDeposit = true,
                             initialDelay = AIRDROP_INITIAL_DELAY
@@ -298,7 +299,7 @@ class RealSessionController @Inject constructor(
                                     ),
                                     // Allow cancelling pending outgoing cash bills
                                     secondaryAction = BillState.Action.Cancel(
-                                        action = { cancelSend() }
+                                        action = { dismissBill() }
                                     ),
                                 )
                             }
@@ -315,19 +316,20 @@ class RealSessionController @Inject constructor(
             amount = bill.amount,
             owner = owner,
             onGrabbed = {
-                cancelSend(PresentationStyle.Pop)
+                toastController.enqueue(bill.amount, isDeposit = false)
+                dismissBill(PresentationStyle.Pop)
                 vibrator.vibrate()
                 bringActivityFeedCurrent()
             },
             onTimeout = {
-                cancelSend(style = PresentationStyle.Slide)
+                dismissBill(style = PresentationStyle.Slide)
 //                analytics.billTimeoutReached(
 //                    bill.amount.kin,
 //                    bill.amount.rate.currency,
 //                    CodeAnalyticsManager.BillPresentationStyle.Slide
 //                )
             },
-            onError = { cancelSend(style = PresentationStyle.Slide) },
+            onError = { dismissBill(style = PresentationStyle.Slide) },
             present = { data ->
                 if (!bill.didReceive) {
                     trace(
@@ -388,9 +390,9 @@ class RealSessionController @Inject constructor(
                                 is ShareConfirmationResult.Confirmed -> {
                                     when (result) {
                                         ShareResult.CopiedToClipboard -> {
-                                            cancelSend(PresentationStyle.Pop)
+                                            toastController.enqueue(amount)
+                                            dismissBill(PresentationStyle.Pop)
                                             vibrator.vibrate()
-                                            toastController.show(amount)
                                             bringActivityFeedCurrent()
                                             trace(
                                                 tag = "Session",
@@ -403,9 +405,9 @@ class RealSessionController @Inject constructor(
                                         }
 
                                         is ShareResult.SharedToApp -> {
-                                            cancelSend(PresentationStyle.Pop)
+                                            toastController.enqueue(amount)
+                                            dismissBill(PresentationStyle.Pop)
                                             vibrator.vibrate()
-                                            toastController.show(amount)
                                             bringActivityFeedCurrent()
                                             trace(
                                                 tag = "Session",
@@ -445,7 +447,7 @@ class RealSessionController @Inject constructor(
                 cont.resume(Result.success(it))
             },
             onError = {
-                cancelSend()
+                dismissBill()
                 TopBarManager.showMessage(
                     title = resources.getString(R.string.error_title_failedToCreateGiftCard),
                     message = resources.getString(R.string.error_description_failedToCreateGiftCard)
@@ -463,11 +465,11 @@ class RealSessionController @Inject constructor(
             vault = giftCard.cluster.vaultPublicKey,
             owner = owner,
         ).onFailure {
-            cancelSend()
+            dismissBill()
         }.onSuccess {
             balanceController.fetchBalance()
             checkPendingItemsInFeed()
-            cancelSend()
+            dismissBill()
         }
     }
 
@@ -570,6 +572,7 @@ class RealSessionController @Inject constructor(
             payload = payload,
             onGrabbed = { amount ->
                 BottomBarManager.clear()
+                toastController.enqueue(amount, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(amount = amount, didReceive = true),
                     vibrate = true
@@ -628,19 +631,12 @@ class RealSessionController @Inject constructor(
     }
 
 
-    override fun cancelSend(style: PresentationStyle, overrideToast: Boolean) {
+    override fun dismissBill(style: PresentationStyle) {
         scope.launch {
-            val shown = toastController.showIfNeeded(style, overrideToast)
-            _state.update { it.copy(presentationStyle = style) }
-            billController.reset(showToast = shown)
-
-            if (shown) {
-                delay(ToastController.SHOW_DELAY)
-            }
-            if (!overrideToast) {
-                shareSheetController.reset()
-            }
             billController.reset()
+            toastController.consumeQueue()
+            _state.update { it.copy(presentationStyle = style) }
+            shareSheetController.reset()
         }
     }
 }
