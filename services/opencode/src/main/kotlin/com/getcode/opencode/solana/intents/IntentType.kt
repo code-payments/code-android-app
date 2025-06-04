@@ -78,13 +78,6 @@ abstract class IntentType {
     }
 }
 
-class ActionGroup {
-    var actions: List<ActionType> = listOf()
-        set(value) {
-            field = value.numberActions()
-        }
-}
-
 sealed interface CompactMessageArgs {
 
     data class Transfer(

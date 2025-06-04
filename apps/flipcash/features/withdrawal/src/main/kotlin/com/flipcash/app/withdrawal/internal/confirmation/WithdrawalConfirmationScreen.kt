@@ -29,12 +29,16 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.withdrawal.WithdrawalViewModel
+import com.flipcash.app.withdrawal.internal.components.DestinationBox
+import com.flipcash.app.withdrawal.internal.components.TransactionReceipt
 import com.flipcash.features.withdrawal.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.compose.LocalExchange
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
@@ -110,7 +114,11 @@ private fun WithdrawalConfirmationScreenContent(
         ) {
             TransferInfo(
                 amount = state.amountEntryState.selectedAmount,
-                destination = state.destinationState.textFieldState.text.toString()
+                destination = state.destinationState.textFieldState.text.toString(),
+                fee = state.destinationState.availability?.feeAmount,
+                onLearnMoreClicked = {
+                    dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
+                }
             )
         }
     }
@@ -119,61 +127,28 @@ private fun WithdrawalConfirmationScreenContent(
 @Composable
 private fun TransferInfo(
     amount: LocalFiat,
+    fee: Fiat?,
     destination: String,
-    modifier: Modifier = Modifier
+    onLearnMoreClicked: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = CodeTheme.dimens.border,
-                    color = CodeTheme.colors.brandLight,
-                    shape = CodeTheme.shapes.medium
-                )
-                .background(Color(0xFF071F10), CodeTheme.shapes.medium)
-                .padding(
-                    horizontal = CodeTheme.dimens.grid.x4,
-                    vertical = CodeTheme.dimens.grid.x12
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            val exchange = LocalExchange.current
-            AmountArea(
-                amountText = amount.formatted(),
-                isAltCaption = false,
-                isAltCaptionKinIcon = false,
-                isClickable = false,
-                currencyResId = exchange.getFlagByCurrency(amount.converted.currencyCode.name),
-            )
-        }
+        TransactionReceipt(
+            amount = amount,
+            fee = fee,
+            onLearnMoreClicked = onLearnMoreClicked
+        )
 
         Image(
             imageVector = Icons.Default.ArrowDownward,
-            colorFilter = ColorFilter.tint(CodeTheme.colors.brandLight),
+            colorFilter = ColorFilter.tint(CodeTheme.colors.border),
             contentDescription = ""
         )
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = CodeTheme.dimens.border,
-                    color = CodeTheme.colors.brandLight,
-                    shape = CodeTheme.shapes.medium
-                )
-                .background(Color(0xFF071F10), CodeTheme.shapes.medium)
-                .padding(CodeTheme.dimens.grid.x4),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = destination,
-                style = CodeTheme.typography.textLarge.copy(textAlign = TextAlign.Center)
-            )
-        }
+        DestinationBox(destination = destination)
     }
 }

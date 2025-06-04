@@ -9,6 +9,9 @@ import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.financial.Fee
+import com.getcode.opencode.model.financial.FeeType
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.AirdropType
@@ -117,12 +120,16 @@ class TransactionController @Inject constructor(
         amount: LocalFiat,
         owner: AccountCluster,
         destination: PublicKey,
+        destinationOwner: PublicKey,
+        fee: Fiat? = null,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
         val intent = IntentWithdraw.create(
             amount = amount,
+            fee = fee?.let { Fee(it, FeeType.WithdrawalCreateOnSend) },
             sourceCluster = owner,
             destination = destination,
+            destinationOwner = destinationOwner,
             rendezvous = PublicKey.generate(),
         )
 

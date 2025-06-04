@@ -62,17 +62,14 @@ suspend fun <Request, Response, StreamRef : BidirectionalStreamReference<*, *>, 
                         reconnectOnUnavailable && statusCode == Status.Code.UNAVAILABLE -> {
                             trace("Reconnecting stream due to UNAVAILABLE status...")
                             reconnectHandler?.invoke()
-                        } else -> {
-                            if (reconnectOnUnavailable || reconnectOnDeadlineExceeded || reconnectOnCancelled) {
-                                trace(
-                                    message = "Stream error: ${t.message}",
-                                    type = TraceType.Error
-                                )
-                                onError(t)
-                                if (cont.isActive) {
-                                    cont.resume(null as ResultType)
-                                }
-                            }
+                        }
+                        else -> {
+                            trace(
+                                message = "Stream error: ${t.message}",
+                                type = TraceType.Error
+                            )
+                            onError(t)
+                            if (cont.isActive) cont.resume(Result.failure<ResultType>(t) as ResultType)
                         }
                     }
                 }.collect { value ->

@@ -35,7 +35,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -44,7 +43,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
 
 internal data class AmountEntryState(
@@ -52,22 +50,7 @@ internal data class AmountEntryState(
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val confirmingAmount: LoadingSuccessState = LoadingSuccessState(),
     val selectedAmount: LocalFiat = LocalFiat.Zero,
-) {
-    val formattedAmount: String
-        get() {
-            val isUsd = currencyModel.code == CurrencyCode.USD
-
-            return if (isUsd) {
-                selectedAmount.converted.formatted(truncate = true)
-            } else {
-                selectedAmount.converted.formatted(
-                    suffix = selectedAmount.converted.currencyCode.name.uppercase(),
-                    truncate = true
-                )
-            }
-        }
-
-}
+)
 
 internal data class DestinationState(
     val textFieldState: TextFieldState = TextFieldState(),
@@ -148,6 +131,8 @@ internal class WithdrawalViewModel @Inject constructor(
             val loading: Boolean = false,
             val success: Boolean = false
         ) : Event
+
+        data object OnLearnAboutFee: Event
 
         data object OnWithdraw : Event
         data object OnWithdrawalConfirmed : Event
@@ -325,6 +310,27 @@ internal class WithdrawalViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnLearnAboutFee>()
+            .onEach {
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = resources.getString(R.string.prompt_title_learnAboutWithdrawalFee),
+                        subtitle = resources.getString(R.string.prompt_description_learnAboutWithdrawalFee),
+                        showScrim = false,
+                        showCancel = false,
+                        actions = buildList {
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_ok),
+                                )
+                            )
+                        },
+                        type = BottomBarManager.BottomBarMessageType.INFO
+                    )
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnWithdraw>()
             .onEach {
                 BottomBarManager.showMessage(
@@ -350,9 +356,12 @@ internal class WithdrawalViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.UpdateWithdrawalState(loading = true)) }
             .mapNotNull {
                 val amount = stateFlow.value.amountEntryState.selectedAmount
-                val destination = stateFlow.value.destinationState.availability?.resolvedDestination
+                val rawDestination = stateFlow.value.destinationState.availability?.destination
+                val resolvedDestination = stateFlow.value.destinationState.availability?.resolvedDestination
+                val fee = stateFlow.value.destinationState.availability?.feeAmount
+
                 val owner = userManager.accountCluster
-                if (destination == null || owner == null) {
+                if (resolvedDestination == null || owner == null || rawDestination == null) {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     TopBarManager.showMessage(
                         resources.getString(R.string.error_title_failedWithdrawal),
@@ -363,7 +372,9 @@ internal class WithdrawalViewModel @Inject constructor(
 
                 transactionController.withdraw(
                     amount = amount,
-                    destination = destination,
+                    fee = fee,
+                    destination = resolvedDestination,
+                    destinationOwner = rawDestination,
                     owner = owner,
                 )
             }.onResult(
@@ -403,7 +414,8 @@ internal class WithdrawalViewModel @Inject constructor(
                         )
                     )
                 }
-//                B4B7G3PdWuB7ytJowiWmU5dLXMH5anuTfzvExfr96gNS
+
+                Event.OnLearnAboutFee,
                 Event.OnWithdrawalConfirmed,
                 Event.OnWithdrawSuccessful,
                 Event.PasteFromClipboard,
@@ -464,7 +476,7 @@ internal class WithdrawalViewModel @Inject constructor(
                     val destinationState = state.destinationState
                     state.copy(
                         destinationState = destinationState.copy(
-                            availability = event.availability
+                            availability = event.availability,
                         )
                     )
                 }
