@@ -102,7 +102,7 @@ object BottomBarManager {
     enum class BottomBarMessageType {
         DESTRUCTIVE,
         WARNING,
-        REMOTE_SEND,
+        INFO,
         THEMED,
         SUCCESS,
     }
@@ -110,5 +110,4 @@ object BottomBarManager {
     enum class BottomBarButtonStyle {
         Filled, Filled50, Text
     }
-
 }

@@ -584,7 +584,7 @@ class SessionController @Inject constructor(
 
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
         cashLinkManager.cancelSend()
-        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
+        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.INFO)
 
         scope.launch {
             val shown = showToastIfNeeded(style)
@@ -1705,7 +1705,7 @@ class SessionController @Inject constructor(
                             vibrator.vibrate()
                         }
                     },
-                    type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
+                    type = BottomBarManager.BottomBarMessageType.INFO,
                     isDismissible = false,
                     timeoutSeconds = 60
                 )

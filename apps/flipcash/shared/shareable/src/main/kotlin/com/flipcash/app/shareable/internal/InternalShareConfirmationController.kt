@@ -30,7 +30,7 @@ internal class InternalShareConfirmationController(
     }
 
     override fun reset() {
-        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
+        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.INFO)
     }
 
     private suspend fun confirmCashLink(
@@ -78,7 +78,7 @@ internal class InternalShareConfirmationController(
                             )
                         }
                     },
-                    type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
+                    type = BottomBarManager.BottomBarMessageType.INFO,
                     isDismissible = false,
                     showCancel = false,
                     timeoutSeconds = timeout.inWholeSeconds.toInt(),

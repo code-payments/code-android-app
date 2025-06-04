@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -236,7 +235,7 @@ fun BottomBarView(
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                             BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
-                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> when (action.style) {
+                            BottomBarManager.BottomBarMessageType.INFO -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
                                 else -> Color.Black
                             }
@@ -263,7 +262,7 @@ fun BottomBarView(
                         textAlign = TextAlign.Center,
                         color = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
-                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White50
+                            BottomBarManager.BottomBarMessageType.INFO -> White50
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary
                             BottomBarManager.BottomBarMessageType.SUCCESS -> White50
@@ -280,7 +279,7 @@ fun BottomBarView(
 @Composable
 private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = when (this) {
     BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
-    BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
+    BottomBarManager.BottomBarMessageType.INFO -> CodeTheme.colors.brandLight
     BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
     BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
     BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerSuccess
