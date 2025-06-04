@@ -121,8 +121,8 @@ class BillTransactionManager @Inject constructor(
                         message = "Grabbed ${amount.converted.formatted()} from sender"
                     )
                     onGrabbed(amount)
-//                    balanceController.add(amount)
-//                    transactionController.updateLimits(owner, force = true)
+                    balanceController.add(amount)
+                    transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     onError(it)
                     transactor.dispose()
