@@ -71,6 +71,8 @@ internal object FlipcashModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .keepAliveWithoutCalls(true)
             .apply {
                 if (BuildConfig.DEBUG) {
                     this.intercept(LoggingClientInterceptor())
