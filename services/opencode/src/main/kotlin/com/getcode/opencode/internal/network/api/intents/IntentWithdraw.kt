@@ -19,7 +19,7 @@ internal class IntentWithdraw(
     override val id: PublicKey,
     private val sourceCluster: AccountCluster,
     private val destination: PublicKey,
-    private val destinationOwner: PublicKey,
+    private val destinationOwner: PublicKey?,
     private val amount: LocalFiat,
     override val actionGroup: ActionGroup,
 ) : IntentType() {
@@ -29,7 +29,11 @@ internal class IntentWithdraw(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
                     .setSource(sourceCluster.vaultPublicKey.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
-                    .setDestinationOwner(destinationOwner.asSolanaAccountId())
+                    .apply {
+                        if (this@IntentWithdraw.destinationOwner != null) {
+                            setDestinationOwner(this@IntentWithdraw.destinationOwner.asSolanaAccountId())
+                        }
+                    }
                     .setIsRemoteSend(false)
                     .setIsWithdrawal(true)
                     .setExchangeData(amount.asExchangeData())
@@ -42,7 +46,7 @@ internal class IntentWithdraw(
             amount: LocalFiat,
             sourceCluster: AccountCluster,
             destination: PublicKey,
-            destinationOwner: PublicKey,
+            destinationOwner: PublicKey?,
             rendezvous: PublicKey,
             fee: Fee? = null,
         ): IntentWithdraw {

@@ -36,7 +36,7 @@ internal fun WithdrawalEntryScreen(viewModel: WithdrawalViewModel) {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<WithdrawalViewModel.Event.OnAmountConfirmed>()
+            .filterIsInstance<WithdrawalViewModel.Event.OnAmountAccepted>()
             .onEach {
                 navigator.push(
                     ScreenRegistry.get(

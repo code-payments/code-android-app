@@ -120,7 +120,7 @@ class TransactionController @Inject constructor(
         amount: LocalFiat,
         owner: AccountCluster,
         destination: PublicKey,
-        destinationOwner: PublicKey,
+        destinationOwner: PublicKey?,
         fee: Fiat? = null,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {

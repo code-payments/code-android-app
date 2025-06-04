@@ -21,7 +21,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -38,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -251,7 +251,7 @@ internal class WithdrawalViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAmountConfirmed>()
             .map { stateFlow.value.amountEntryState.amountAnimatedModel }
-            .filter { !(checkBalanceLimit()) }
+            .filterNot { checkBalanceLimit() }
             .onEach { data ->
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
                 val rate = exchange.entryRate
@@ -361,9 +361,10 @@ internal class WithdrawalViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.UpdateWithdrawalState(loading = true)) }
             .mapNotNull {
                 val amount = stateFlow.value.amountEntryState.selectedAmount
-                val rawDestination = stateFlow.value.destinationState.availability?.destination
-                val resolvedDestination = stateFlow.value.destinationState.availability?.resolvedDestination
-                val fee = stateFlow.value.destinationState.availability?.feeAmount
+                val withdrawalChecks = stateFlow.value.destinationState.availability
+                val rawDestination = withdrawalChecks?.destination
+                val resolvedDestination = withdrawalChecks?.resolvedDestination
+                val fee = withdrawalChecks?.feeAmount
 
                 val owner = userManager.accountCluster
                 if (resolvedDestination == null || owner == null || rawDestination == null) {
@@ -379,7 +380,8 @@ internal class WithdrawalViewModel @Inject constructor(
                     amount = amount,
                     fee = fee,
                     destination = resolvedDestination,
-                    destinationOwner = rawDestination,
+                    // only provide the destination account if we are dealing with an owner account (unresolved)
+                    destinationOwner = rawDestination.takeIf { !withdrawalChecks.hasResolvedDestination },
                     owner = owner,
                 )
             }.onResult(
