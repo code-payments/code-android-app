@@ -118,7 +118,8 @@
     <string name="prompt_description_confirmWithdrawal">Withdrawals are irreversible and cannot be undone once initiated</string>
     <string name="prompt_title_learnAboutWithdrawalFee">What Is This Fee?</string>
     <string name="prompt_description_learnAboutWithdrawalFee">The account you’re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you’re withdrawing</string>
-
+    <string name="error_title_withdrawalTooSmall">Withdrawal Amount Too Small</string>
+    <string name="error_description_withdrawalTooSmall">Your withdrawal amount is too small to cover the one time fee. Please try a different amount</string>
     <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
 
     <string name="title_requireBiometrics">Require Biometrics</string>

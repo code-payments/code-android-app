@@ -2,17 +2,13 @@ package com.flipcash.app.withdrawal.internal.confirmation
 
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.runtime.Composable
@@ -20,14 +16,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.core.money.formatted
+import com.flipcash.app.withdrawal.WithdrawalEntryScreen
+import com.flipcash.app.withdrawal.WithdrawalFlow
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.app.withdrawal.internal.components.DestinationBox
 import com.flipcash.app.withdrawal.internal.components.TransactionReceipt
@@ -35,12 +30,10 @@ import com.flipcash.features.withdrawal.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.minus
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -70,7 +63,6 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                         actions = listOf(
                             BottomBarAction(
                                 text = resources.getString(R.string.action_ok),
-                                onClick = {}
                             )
                         ),
                         onClose = {
@@ -79,6 +71,32 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                     )
                 )
             }.launchIn(this)
+    }
+
+    LaunchedEffect(state.amountEntryState, state.destinationState) {
+        val amount = state.amountEntryState.selectedAmount
+        val fee = state.destinationState.availability?.feeAmount
+        if (amount.usdc - (fee ?: Fiat.Zero) < Fiat.Zero) {
+            BottomBarManager.showMessage(
+                BottomBarManager.BottomBarMessage(
+                    title = resources.getString(R.string.error_title_withdrawalTooSmall),
+                    subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
+                    showScrim = false,
+                    showCancel = false,
+                    actions = buildList {
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_ok),
+                            )
+                        )
+                    },
+                    onClose = {
+                        WithdrawalFlow.start()
+                        navigator.popUntil { it is WithdrawalEntryScreen }
+                    }
+                )
+            )
+        }
     }
 }
 

@@ -21,6 +21,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -132,11 +133,13 @@ internal class WithdrawalViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
-        data object OnLearnAboutFee: Event
+        data object OnLearnAboutFee : Event
+
+        data object OnWithdrawalTooSmall : Event
 
         data object OnWithdraw : Event
         data object OnWithdrawalConfirmed : Event
-        data object OnWithdrawSuccessful: Event
+        data object OnWithdrawSuccessful : Event
     }
 
     val checkBalanceLimit: () -> Boolean = {
@@ -206,7 +209,8 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterIsInstance<Event.OnNumberPressed>()
             .map { it.number }
             .onEach { number ->
-                numberInputHelper.fractionUnits = stateFlow.value.amountEntryState.currencyModel.fractionUnits
+                numberInputHelper.fractionUnits =
+                    stateFlow.value.amountEntryState.currencyModel.fractionUnits
                 numberInputHelper.maxLength = 10 // 1 billion dollars
                 numberInputHelper.onNumber(number)
                 dispatchEvent(Event.OnEnteredNumberChanged())
@@ -277,9 +281,10 @@ internal class WithdrawalViewModel @Inject constructor(
                 }
                 clipboard
             }
-            .mapNotNull { text -> runCatching { Base58.decode(text) }
-                .onFailure { dispatchEvent(Event.UpdateClipboardCheckState(loading = false)) }
-                .getOrNull()
+            .mapNotNull { text ->
+                runCatching { Base58.decode(text) }
+                    .onFailure { dispatchEvent(Event.UpdateClipboardCheckState(loading = false)) }
+                    .getOrNull()
             }.filter { address ->
                 val length = address.size
                 if (length != 32) {
@@ -416,6 +421,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 }
 
                 Event.OnLearnAboutFee,
+                Event.OnWithdrawalTooSmall,
                 Event.OnWithdrawalConfirmed,
                 Event.OnWithdrawSuccessful,
                 Event.PasteFromClipboard,
