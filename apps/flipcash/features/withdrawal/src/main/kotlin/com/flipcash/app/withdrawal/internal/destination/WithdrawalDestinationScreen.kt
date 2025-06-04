@@ -141,10 +141,12 @@ private fun WithdrawalDestinationScreenContent(
 
                             Text(
                                 modifier = Modifier.align(Alignment.CenterVertically),
-                                text = if (availability.requiresInitialization) {
-                                    stringResource(R.string.error_title_destinationAccountNotInitialized)
-                                } else {
-                                    stringResource(id = R.string.subtitle_validAddress)
+                                text = when {
+                                    availability.isValid -> stringResource(id = R.string.subtitle_validAddress)
+                                    !availability.hasResolvedDestination -> {
+                                        stringResource(R.string.error_title_destinationAccountNotInitialized)
+                                    }
+                                    else -> stringResource(R.string.error_title_invalidAddress)
                                 },
                                 color = if (availability.isValid) CodeTheme.colors.success else CodeTheme.colors.errorText,
                                 style = CodeTheme.typography.caption
