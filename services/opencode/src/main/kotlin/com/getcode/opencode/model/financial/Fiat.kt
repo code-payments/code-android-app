@@ -49,7 +49,7 @@ data class Fiat(
             val decimalDigits = java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
             minimumFractionDigits = if (shouldTruncate) 0 else decimalDigits
             maximumFractionDigits = if (shouldTruncate) 0 else decimalDigits
-            roundingMode = if (truncate) RoundingMode.DOWN.ordinal else RoundingMode.HALF_DOWN.ordinal
+            roundingMode = RoundingMode.DOWN.ordinal
             (this as android.icu.text.DecimalFormat).decimalFormatSymbols = decimalFormatSymbols.apply {
                 currencySymbol = ""
             }
