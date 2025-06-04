@@ -46,8 +46,9 @@ data class NetworkState(
     }
 }
 
-class NetworkObserverStub : NetworkConnectivityListener {
-    override val isConnected: Boolean = false
-    override val type: ConnectionType = ConnectionType.Unknown
-    override val state: StateFlow<NetworkState> = MutableStateFlow(NetworkState.Default).asStateFlow()
+class NetworkObserverStub(
+    override val isConnected: Boolean = true,
+    override val type: ConnectionType = ConnectionType.Wifi,
+) : NetworkConnectivityListener {
+    override val state: StateFlow<NetworkState> = MutableStateFlow(NetworkState.Default.copy(connected = isConnected, type = type)).asStateFlow()
 }
