@@ -8,7 +8,7 @@ import java.util.Locale
 
 @Serializable
 data class Fiat(
-    val quarks: ULong,
+    val quarks: Long, // Changed from ULong to Long to support negative values
     val currencyCode: CurrencyCode = CurrencyCode.USD
 ) : Comparable<Fiat> {
 
@@ -18,19 +18,18 @@ data class Fiat(
     val doubleValue: Double
         get() = decimalValue
 
+    val isNegative: Boolean
+        get() = quarks < 0
+
     constructor(fiat: Double, currencyCode: CurrencyCode = CurrencyCode.USD) : this(
-        quarks = (fiat * MULTIPLIER).toULong(),
+        quarks = (fiat * MULTIPLIER).toLong(),
         currencyCode = currencyCode
-    ) {
-        require(fiat >= 0) { "Fiat value must be non-negative" }
-    }
+    )
 
     constructor(fiat: Int, currencyCode: CurrencyCode = CurrencyCode.USD) : this(
-        quarks = (fiat * MULTIPLIER).toULong(),
+        quarks = (fiat * MULTIPLIER).toLong(),
         currencyCode = currencyCode
-    ) {
-        require(fiat >= 0) { "Fiat value must be non-negative" }
-    }
+    )
 
     constructor(stringAmount: String, currencyCode: CurrencyCode = CurrencyCode.USD) : this(
         fiat = parseStringToDouble(stringAmount),
@@ -89,7 +88,6 @@ data class Fiat(
             }
             val amount = formatter.parse(stringAmount)?.toDouble()
                 ?: throw IllegalArgumentException("Invalid amount format: $stringAmount")
-            require(amount > 0) { "Amount must be positive: $stringAmount" }
             return amount
         }
     }
@@ -103,21 +101,20 @@ operator fun Fiat.plus(other: Fiat): Fiat {
 
 operator fun Fiat.minus(other: Fiat): Fiat {
     require(currencyCode == other.currencyCode) { "Cannot subtract different currencies" }
-    require(this >= other) { "Result would be negative" }
     return Fiat(quarks = this.quarks - other.quarks, currencyCode = currencyCode)
 }
 
 operator fun Fiat.times(rhs: Int): Fiat {
-    return Fiat(quarks = this.quarks * rhs.toULong(), currencyCode = currencyCode)
+    return Fiat(quarks = this.quarks * rhs, currencyCode = currencyCode)
 }
 
-operator fun Fiat.div(rhs: Int): Int {
-    return (this.quarks / rhs.toULong()).toInt()
+operator fun Fiat.div(rhs: Int): Fiat {
+    return Fiat(quarks = this.quarks / rhs, currencyCode = currencyCode)
 }
 
 fun Number.toFiat(currencyCode: CurrencyCode = CurrencyCode.USD): Fiat = when (this) {
     is Int -> Fiat(this, currencyCode)
-    is Long -> Fiat(this.toULong(), currencyCode)
+    is Long -> Fiat(this, currencyCode)
     is Double -> Fiat(this, currencyCode)
     else -> throw IllegalArgumentException("Unsupported number type")
 }

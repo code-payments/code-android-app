@@ -102,10 +102,6 @@ internal class OpenCodeExchange @Inject constructor(
 
     override fun getFlagByCurrency(currencyCode: String?): Int? {
         currencyCode ?: return null
-        if (currencyCode == "KIN") return R.drawable.ic_currency_kin
-        if (currencyCode == "XAF") return R.drawable.ic_currency_xaf
-        if (currencyCode == "XOF") return R.drawable.ic_currency_xof
-
         return CurrencyCode.tryValueOf(currencyCode)?.let { currency ->
             currency.getRegion()?.name
         }?.let { regionName ->

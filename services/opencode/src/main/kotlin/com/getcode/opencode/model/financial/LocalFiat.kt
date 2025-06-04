@@ -11,7 +11,7 @@ data class LocalFiat(
 ) {
     @Throws(Exception::class)
     constructor(exchangeData: ExchangeData.WithRate): this(
-        usdc = Fiat(exchangeData.quarks.toULong(), CurrencyCode.USD),
+        usdc = Fiat(exchangeData.quarks, CurrencyCode.USD),
         converted = Fiat(
             fiat = exchangeData.nativeAmount,
             currencyCode = CurrencyCode.tryValueOf(exchangeData.currencyCode) ?: throw IllegalArgumentException("CurrencyCode provided is invalid => ${exchangeData.currencyCode}")

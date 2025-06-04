@@ -94,7 +94,7 @@ data class DeepLinkRequest(
                     // optional fees
                     val fees = container.decode<List<ProvidedFee>>("fees").orEmpty()
 
-                    val fiat = Fiat(currencyCode = currencyCode, quarks = amount.toULong())
+                    val fiat = Fiat(currencyCode = currencyCode, quarks = amount.toLong())
 
                     Timber.d("fiat=${fiat.quarks}, fees=$fees")
                     return baseRequest.copy(

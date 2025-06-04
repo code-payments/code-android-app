@@ -23,7 +23,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
             text = from.localizedText,
             amount = from.paymentAmountOrNull?.let {
                 LocalFiat(
-                    usdc = Fiat(quarks = it.quarks.toULong()),
+                    usdc = Fiat(quarks = it.quarks),
                     converted = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
                     rate = Rate.ignore
                 )

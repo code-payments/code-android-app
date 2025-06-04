@@ -114,7 +114,7 @@ data class AccountInfo(
                 owner = owner,
                 authority = authority,
                 balanceSource = balanceSource,
-                balance = Fiat(info.balance.toULong()),
+                balance = Fiat(info.balance),
                 managementState = managementState,
                 blockchainState = blockchainState,
                 claimState = claimState,

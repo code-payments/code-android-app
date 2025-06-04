@@ -71,7 +71,7 @@ data class OpenCodePayload(
                     val currency = CurrencyCode.entries.toList()[currencyIndex]
 
                     val quarks = list.subList(2, OFFSET_NONCE).toByteArray().byteArrayToLong()
-                    Fiat(currencyCode = currency, quarks = quarks.toULong())
+                    Fiat(currencyCode = currency, quarks = quarks)
                 }
             }
 
