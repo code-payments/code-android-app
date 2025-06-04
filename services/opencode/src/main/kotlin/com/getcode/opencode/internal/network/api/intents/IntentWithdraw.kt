@@ -61,7 +61,6 @@ internal class IntentWithdraw(
                 if (fee != null) {
                     add(
                         ActionFeePayment.newInstance(
-                            index = 1,
                             fee = fee,
                             source = sourceCluster,
                         )

@@ -13,13 +13,13 @@ class ActionGroupBuilder {
 
     // Build the ActionGroup instance
     fun build(): ActionGroup {
-        return ActionGroup(actions)
+        return ActionGroup(actions.numberActions())
     }
 }
 
 // ActionGroup class
 class ActionGroup(actions: List<ActionType> = emptyList()) {
-    var actions: List<ActionType> = actions
+    var actions: List<ActionType> = actions.numberActions()
         set(value) {
             field = value.numberActions()
         }

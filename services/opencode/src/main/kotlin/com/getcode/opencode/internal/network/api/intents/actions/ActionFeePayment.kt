@@ -62,12 +62,11 @@ internal class ActionFeePayment(
 
     internal companion object {
         fun newInstance(
-            index: Int,
             fee: Fee,
             source: AccountCluster,
         ): ActionFeePayment {
             return ActionFeePayment(
-                id = index,
+                id = 0,
                 signer = source.authority.keyPair,
                 fee = fee,
                 source = source,
