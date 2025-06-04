@@ -528,7 +528,7 @@ class RealSessionController @Inject constructor(
             entropy = entropy,
             owner = owner,
             onReceived = {
-                toastController.enqueue(it, isDeposit = false)
+                toastController.enqueue(it)
                 showBill(
                     bill = Bill.Cash(amount = it, didReceive = true),
                     vibrate = true
