@@ -392,7 +392,7 @@ class RealSessionController @Inject constructor(
                                 is ShareConfirmationResult.Confirmed -> {
                                     when (result) {
                                         ShareResult.CopiedToClipboard -> {
-                                            toastController.enqueue(amount)
+                                            toastController.enqueue(amount, isDeposit = false)
                                             dismissBill(Grabbed)
                                             vibrator.vibrate()
                                             bringActivityFeedCurrent()
@@ -407,7 +407,7 @@ class RealSessionController @Inject constructor(
                                         }
 
                                         is ShareResult.SharedToApp -> {
-                                            toastController.enqueue(amount)
+                                            toastController.enqueue(amount, isDeposit = false)
                                             dismissBill(Grabbed)
                                             vibrator.vibrate()
                                             bringActivityFeedCurrent()
@@ -528,7 +528,7 @@ class RealSessionController @Inject constructor(
             entropy = entropy,
             owner = owner,
             onReceived = {
-                toastController.enqueue(it)
+                toastController.enqueue(it, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(amount = it, didReceive = true),
                     vibrate = true

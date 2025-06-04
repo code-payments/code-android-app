@@ -37,7 +37,7 @@ class ToastController @Inject constructor(
 
     fun enqueue(
         amount: LocalFiat,
-        isDeposit: Boolean = false,
+        isDeposit: Boolean,
         initialDelay: Duration = INITIAL_DELAY
     ) {
         if (amount.converted.doubleValue == 0.0) {
