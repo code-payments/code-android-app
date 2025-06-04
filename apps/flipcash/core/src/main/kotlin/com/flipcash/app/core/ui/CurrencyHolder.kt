@@ -8,4 +8,7 @@ data class CurrencyHolder(
 ) {
     val code: CurrencyCode?
         get() = selected?.code?.let { CurrencyCode.tryValueOf(it) }
+
+    val fractionUnits: Int
+        get() = selected?.fractionUnits ?: 2
 }

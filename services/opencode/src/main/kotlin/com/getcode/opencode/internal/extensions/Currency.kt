@@ -13,7 +13,8 @@ fun Currency.Companion.fromCode(code: CurrencyCode, resources: ResourceHelper): 
         code = currencyJava.currencyCode,
         name = currencyJava.displayName,
         resId = resId,
-        symbol = code.singleCharacterCurrencySymbol.orEmpty()
+        symbol = code.singleCharacterCurrencySymbol.orEmpty(),
+        fractionUnits = currencyJava.defaultFractionDigits,
     )
 }
 

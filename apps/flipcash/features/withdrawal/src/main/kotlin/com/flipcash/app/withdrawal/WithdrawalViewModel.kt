@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 internal data class AmountEntryState(
@@ -202,6 +203,13 @@ internal class WithdrawalViewModel @Inject constructor(
             dispatchEvent(Event.OnCurrencyChanged(it))
         }.launchIn(viewModelScope)
 
+        eventFlow
+            .filterIsInstance<Event.OnCurrencyChanged>()
+            .map { it.currency }
+            .onEach {
+                numberInputHelper.fractionUnits = it.fractionUnits
+            }.launchIn(viewModelScope)
+
         exchange.observeEntryRate()
             .onEach {
                 // reset when entry rate changes
@@ -213,7 +221,8 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterIsInstance<Event.OnNumberPressed>()
             .map { it.number }
             .onEach { number ->
-                numberInputHelper.maxLength = 10 // 1 billion Kin
+                numberInputHelper.fractionUnits = stateFlow.value.amountEntryState.currencyModel.fractionUnits
+                numberInputHelper.maxLength = 10 // 1 billion dollars
                 numberInputHelper.onNumber(number)
                 dispatchEvent(Event.OnEnteredNumberChanged())
             }.launchIn(viewModelScope)

@@ -22,7 +22,7 @@ fun AmountWithKeypad(
     prefix: String = "",
     placeholder: String = "",
     currencyFlag: Int? = null,
-    allowDecimals: Boolean = true,
+    decimalPlaces: Int = 2,
     hint: String = "",
     isError: Boolean = false,
     isClickable: Boolean = false,
@@ -60,6 +60,7 @@ fun AmountWithKeypad(
                 onClick = { onAmountClicked.invoke() },
                 networkState = networkState,
                 textStyle = CodeTheme.typography.displayLarge,
+                decimalPlaces = decimalPlaces
             )
         }
 
@@ -71,7 +72,7 @@ fun AmountWithKeypad(
             onNumber = onNumberPressed,
             onClear = onBackspace,
             onDecimal = onDecimal,
-            isDecimal = allowDecimals,
+            isDecimal = decimalPlaces > 0,
         )
     }
 }

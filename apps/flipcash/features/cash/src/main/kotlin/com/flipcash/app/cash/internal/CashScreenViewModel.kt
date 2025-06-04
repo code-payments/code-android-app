@@ -166,10 +166,18 @@ internal class CashScreenViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnCurrencyChanged>()
+            .map { it.model }
+            .onEach {
+                numberInputHelper.fractionUnits = it.fractionUnits
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnNumberPressed>()
             .map { it.number }
             .onEach { number ->
-                numberInputHelper.maxLength = 10 // 1 billion Kin
+                numberInputHelper.fractionUnits = stateFlow.value.currencyModel.fractionUnits
+                numberInputHelper.maxLength = 10 // 1 billion dollars
                 numberInputHelper.onNumber(number)
                 dispatchEvent(Event.OnEnteredNumberChanged())
             }.launchIn(viewModelScope)
@@ -244,6 +252,7 @@ internal class CashScreenViewModel @Inject constructor(
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            println("event: $event")
             when (event) {
                 is Event.OnBalanceChanged -> { state ->
                     state.copy(balance = event.balance)

@@ -37,12 +37,6 @@ data class Fiat(
         currencyCode = currencyCode
     )
 
-    // Fee calculation
-    fun calculateFee(bps: Int): Fiat = Fiat(
-        quarks = (quarks * bps.toULong()) / 10000u,
-        currencyCode = currencyCode
-    )
-
     // Formatting
     fun formatted(suffix: String? = null, truncate: Boolean = false): String {
         val shouldTruncate = if (truncate) {
@@ -53,8 +47,9 @@ data class Fiat(
         }
 
         val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
-            minimumFractionDigits = if (shouldTruncate) 0 else 2
-            maximumFractionDigits = if (shouldTruncate) 0 else 2
+            val decimalDigits = java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
+            minimumFractionDigits = if (shouldTruncate) 0 else decimalDigits
+            maximumFractionDigits = if (shouldTruncate) 0 else decimalDigits
             roundingMode = if (truncate) RoundingMode.DOWN.ordinal else RoundingMode.HALF_DOWN.ordinal
             (this as android.icu.text.DecimalFormat).decimalFormatSymbols = decimalFormatSymbols.apply {
                 currencySymbol = ""

@@ -12,7 +12,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 
 val Currency.Companion.Kin: Currency
-    get() = Currency(CurrencyCode.KIN.name, "Kin", R.drawable.ic_currency_kin, "K", 1.00)
+    get() = Currency(CurrencyCode.KIN.name, "Kin", R.drawable.ic_currency_kin, "K", 1.00,)
 
 @get:DrawableRes
 val CurrencyCode.flagResId: Int?

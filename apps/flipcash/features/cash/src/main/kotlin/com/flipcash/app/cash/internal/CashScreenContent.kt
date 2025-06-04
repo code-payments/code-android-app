@@ -36,6 +36,7 @@ internal fun GiveScreenContent(viewModel: CashScreenViewModel) {
             currencyFlag = state.currencyModel.selected?.resId,
             prefix = state.currencyModel.selected?.symbol.orEmpty(),
             placeholder = "0",
+            decimalPlaces = state.currencyModel.fractionUnits,
             hint = if (state.isError) {
                 stringResource(
                     R.string.subtitle_giveCashHintLimitExceeded,

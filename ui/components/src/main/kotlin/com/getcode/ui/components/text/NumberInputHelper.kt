@@ -1,8 +1,6 @@
 package com.getcode.ui.components.text
 
 import java.text.DecimalFormatSymbols
-import java.text.NumberFormat
-import java.util.*
 import kotlin.math.min
 
 
@@ -10,7 +8,11 @@ class NumberInputHelper {
     private var amountText = ""
     var amount: Double = 0.0
     var maxLength: Int = 9
-    var isDecimalAllowed: Boolean = true
+
+    var fractionUnits: Int = 2
+
+    private val isDecimalAllowed: Boolean
+        get() = fractionUnits > 0
 
     fun reset() {
         amount = 0.0
@@ -19,14 +21,21 @@ class NumberInputHelper {
 
     fun onNumber(v: Int) {
         val s = amountText.split(DECIMAL_SEPARATOR)
-        if (s.size == 1 && s[0].length >= maxLength ||
-            s.size > 1 && s[1].length >= 2
-        ) {
+        if (s.size == 1 && s[0].length >= maxLength) {
+            println("not appending $v - max length reached")
             return
-        } else if (amountText == CONST_ZERO) {
+        }
+        if (s.size > 1 && s[1].length >= fractionUnits) {
+            println("not appending $v - max decimal length reached ($fractionUnits)")
+            return
+        }
+
+        if (amountText == CONST_ZERO) {
             amountText = ""
         }
+
         amountText += v
+
         applyValue()
     }
 
@@ -64,27 +73,25 @@ class NumberInputHelper {
     }
 
     private fun applyValue() {
-        val format: NumberFormat = NumberFormat.getInstance(Locale.getDefault())
-        amount = format.parse(amountText)?.toDouble() ?: 0.0
+        amount = amountText.toDoubleOrNull() ?: 0.0
     }
 
     private fun formatAmount(amount: Double): String {
         return if (amount % 1 == 0.0 && !amountText.contains(DECIMAL_SEPARATOR)) {
             String.format("%,.0f", amount)
         } else {
-            String.format("%,.2f", amount)
+            String.format("%,.${fractionUnits}f", amount)
         }
     }
 
     private fun formatAmountForAnimation(amount: Double, includeCommas: Boolean = true): AmountAnimatedData {
         val isContainsDot = amountText.contains(DECIMAL_SEPARATOR)
         val decimalLength = min(
-            amountText.split(DECIMAL_SEPARATOR).getOrNull(1)?.length ?: 0, 2
+            amountText.split(DECIMAL_SEPARATOR).getOrNull(1)?.length ?: 0, fractionUnits
         )
         return when (decimalLength) {
-            2 -> String.format("%,.2f", amount)
-            1 -> String.format("%,.1f", amount)
-            else -> String.format("%,.0f", amount).let { if (isContainsDot) "$it$DECIMAL_SEPARATOR" else it }
+            0 -> String.format("%,.0f", amount).let { if (isContainsDot) "$it$DECIMAL_SEPARATOR" else it }
+            else ->  String.format("%,.${decimalLength}f", amount)
         }.let {
             val amountWithoutCommas = it.replace(GROUPING_SEPARATOR.toString(), "")
             val lengthWithoutCommas = amountWithoutCommas.length

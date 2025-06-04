@@ -74,6 +74,7 @@ private fun WithdrawalEntryScreenContent(
             } else {
                 stringResource(R.string.subtitle_giveCashHint, state.balance.converted.formatted())
             },
+            decimalPlaces = entryState.currencyModel.fractionUnits,
             isClickable = true,
             onAmountClicked = {
                 navigator.push(

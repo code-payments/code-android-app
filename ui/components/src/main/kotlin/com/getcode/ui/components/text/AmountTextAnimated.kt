@@ -167,67 +167,67 @@ internal fun AmountTextAnimated(
 
         updateIsZero()
 
-        if (isDecimal) {
+        if (isDecimal && totalDecimals > 0) {
             decimalPointVisibility = true
             when (length2) {
                 0 -> {
-                    digitDecimalZeroVisibility[0] = true
-                    digitDecimalZeroVisibility[1] = true
+                    for (i in 0 until totalDecimals) {
+                        digitDecimalZeroVisibility[i] = true
+                    }
                 }
-
-                1 -> {
-                    digitDecimalZeroVisibility[0] = false
-                    digitDecimalVisibility[0] = true
-                }
-
-                2 -> {
-                    digitDecimalZeroVisibility[length2 - 1] = false
-                    digitDecimalVisibility[length2 - 1] = true
-                    digitDecimalZeroVisibility[0] = false
-                    digitDecimalVisibility[0] = true
+                else -> {
+                    for (i in 0 until totalDecimals) {
+                        if (i < length2) {
+                            digitDecimalZeroVisibility[i] = false
+                            digitDecimalVisibility[i] = true
+                        } else {
+                            digitDecimalZeroVisibility[i] = true
+                            digitDecimalVisibility[i] = false
+                        }
+                    }
                 }
             }
         } else {
             decimalPointVisibility = false
-            digitDecimalZeroVisibility[0] = false
-            digitDecimalVisibility[0] = false
-            digitDecimalZeroVisibility[1] = false
-            digitDecimalVisibility[1] = false
+            if (totalDecimals > 0) {
+                for (i in 0 until totalDecimals) {
+                    digitDecimalZeroVisibility[i] = false
+                    digitDecimalVisibility[i] = false
+                }
+            }
         }
     }
 
     fun onErase() {
         adjustFont(length1)
-        if (amountSplit.size < 2) {
+        if (amountSplit.size < 2 || totalDecimals == 0) {
             updateIsZero()
-
             decimalPointVisibility = false
-            digitDecimalZeroVisibility[0] = false
-            digitDecimalZeroVisibility[1] = false
-            digitDecimalVisibility[0] = false
-            digitDecimalVisibility[1] = false
+            if (totalDecimals > 0) {
+                for (i in 0 until totalDecimals) {
+                    digitDecimalZeroVisibility[i] = false
+                    digitDecimalVisibility[i] = false
+                }
+            }
         } else {
             decimalPointVisibility = amountSplit[1].isNotEmpty() || isDecimal
             when (amountSplit[1].length) {
                 0 -> {
-                    digitDecimalZeroVisibility[0] = decimalPointVisibility
-                    digitDecimalZeroVisibility[1] = decimalPointVisibility
-                    digitDecimalVisibility[0] = false
-                    digitDecimalVisibility[1] = false
+                    for (i in 0 until totalDecimals) {
+                        digitDecimalZeroVisibility[i] = decimalPointVisibility
+                        digitDecimalVisibility[i] = false
+                    }
                 }
-
-                1 -> {
-                    digitDecimalZeroVisibility[0] = false
-                    digitDecimalVisibility[0] = true
-                    digitDecimalZeroVisibility[1] = true
-                    digitDecimalVisibility[1] = false
-                }
-
-                2 -> {
-                    digitDecimalZeroVisibility[0] = false
-                    digitDecimalVisibility[0] = true
-                    digitDecimalZeroVisibility[1] = false
-                    digitDecimalVisibility[1] = true
+                else -> {
+                    for (i in 0 until totalDecimals) {
+                        if (i < amountSplit[1].length) {
+                            digitDecimalZeroVisibility[i] = false
+                            digitDecimalVisibility[i] = true
+                        } else {
+                            digitDecimalZeroVisibility[i] = true
+                            digitDecimalVisibility[i] = false
+                        }
+                    }
                 }
             }
         }

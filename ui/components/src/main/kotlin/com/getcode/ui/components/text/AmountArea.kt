@@ -19,6 +19,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.bolded
 import com.getcode.ui.components.ConnectionStatus
 import com.getcode.ui.components.R
@@ -43,6 +44,7 @@ fun AmountArea(
     isClickable: Boolean = true,
     isLoading: Boolean = false,
     isAnimated: Boolean = false,
+    decimalPlaces: Int = 2,
     textStyle: TextStyle = CodeTheme.typography.displayMedium.bolded(),
     uiModel: AmountAnimatedInputUiModel? = null,
     networkState: NetworkState = LocalNetworkObserver.current.state.value,
@@ -73,6 +75,7 @@ fun AmountArea(
                         amountSuffix = amountSuffix.orEmpty(),
                         textStyle = textStyle,
                         isClickable = isClickable,
+                        totalDecimals = decimalPlaces,
                     )
                 }
             }
@@ -131,25 +134,29 @@ private val networkStateValues = NetworkStateProvider().values
 @Preview
 @Composable
 fun AmountPreview() {
-    AmountArea(
-        amountPrefix = "prefix",
-        amountText = "$12.34 of Kin",
-        amountSuffix = "suffix",
-        captionText = "The value of kin fluctuates",
-        currencyResId = R.drawable.ic_flag_ca,
-        networkState = networkStateValues.last(),
-    )
+    DesignSystem {
+        AmountArea(
+            amountPrefix = "prefix",
+            amountText = "$12.34 of Kin",
+            amountSuffix = "suffix",
+            captionText = "The value of kin fluctuates",
+            currencyResId = R.drawable.ic_flag_ca,
+            networkState = networkStateValues.last(),
+        )
+    }
 }
 
 @Preview
 @Composable
 fun AmountPreviewDisconnected() {
-    AmountArea(
-        amountPrefix = "prefix",
-        amountText = "$12.34 of Kin",
-        amountSuffix = "suffix",
-        captionText = "The value of kin fluctuates",
-        currencyResId = R.drawable.ic_flag_ca,
-        networkState = networkStateValues.first(),
-    )
+    DesignSystem {
+        AmountArea(
+            amountPrefix = "prefix",
+            amountText = "$12.34 of Kin",
+            amountSuffix = "suffix",
+            captionText = "The value of kin fluctuates",
+            currencyResId = R.drawable.ic_flag_ca,
+            networkState = networkStateValues.first(),
+        )
+    }
 }

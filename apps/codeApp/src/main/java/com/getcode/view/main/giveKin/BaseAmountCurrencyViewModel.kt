@@ -188,7 +188,7 @@ abstract class BaseAmountCurrencyViewModel(
             selectedCurrency = selectedCurrency,
         )
 
-        numberInputHelper.isDecimalAllowed = selectedCurrency != Currency.Kin
+        numberInputHelper.fractionUnits = if (selectedCurrency != Currency.Kin) 2 else 0
 
         val amountModelN =
             getAmountUiFormattedModel(amountUiModel, selectedCurrency, amount, formattedString)
