@@ -22,13 +22,13 @@ val contributorsSigningConfig = ContributorsSignatory(rootProject)
 
 android {
     // static namespace
-    namespace = Android.codeNamespace
+    namespace = Gradle.codeNamespace
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
         versionCode = versioning.getVersionCode()
         versionName = Packaging.Code.versionName
-        applicationId = Android.codeNamespace
+        applicationId = Gradle.codeNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
@@ -54,14 +54,14 @@ android {
 
     buildTypes {
         getByName("release") {
-            resValue("string", "applicationId", Android.codeNamespace)
+            resValue("string", "applicationId", Gradle.codeNamespace)
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
-            resValue("string", "applicationId", "${Android.codeNamespace}.dev")
+            resValue("string", "applicationId", "${Gradle.codeNamespace}.dev")
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanStrictOrNull() ?: false

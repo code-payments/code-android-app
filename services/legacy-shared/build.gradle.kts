@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.services.common"
+    namespace = "${Gradle.codeNamespace}.services.common"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

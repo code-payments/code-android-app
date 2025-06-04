@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.permissions"
+    namespace = "${Gradle.codeNamespace}.libs.permissions"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

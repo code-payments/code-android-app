@@ -1,11 +1,9 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id(Plugins.android_library)
 }
 
 android {
-    namespace = "${Android.codeNamespace}.ed25519"
+    namespace = "${Gradle.codeNamespace}.ed25519"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

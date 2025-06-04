@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.ui.scanner"
+    namespace = "${Gradle.codeNamespace}.ui.scanner"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

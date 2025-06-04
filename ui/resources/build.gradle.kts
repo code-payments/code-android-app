@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.util.resources"
+    namespace = "${Gradle.codeNamespace}.util.resources"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

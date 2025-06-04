@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.shared.notifications"
+    namespace = "${Gradle.flipcashNamespace}.shared.notifications"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

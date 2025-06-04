@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.search"
+    namespace = "${Gradle.codeNamespace}.libs.search"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

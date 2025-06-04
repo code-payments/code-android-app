@@ -1,5 +1,4 @@
 import org.apache.tools.ant.taskdefs.condition.Os
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id(Plugins.android_library)
@@ -29,7 +28,7 @@ kotlin {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.service.models"
+    namespace = "${Gradle.codeNamespace}.service.models"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

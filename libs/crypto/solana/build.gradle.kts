@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.vendor.solana"
+    namespace = "${Gradle.codeNamespace}.vendor.solana"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.util.datetime"
+    namespace = "${Gradle.codeNamespace}.util.datetime"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

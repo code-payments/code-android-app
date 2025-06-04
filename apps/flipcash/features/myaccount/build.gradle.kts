@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.features.myaccount"
+    namespace = "${Gradle.flipcashNamespace}.features.myaccount"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

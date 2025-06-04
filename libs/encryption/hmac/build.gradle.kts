@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.encryption.hmac"
+    namespace = "${Gradle.codeNamespace}.encryption.hmac"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

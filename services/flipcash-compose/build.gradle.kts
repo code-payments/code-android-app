@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.services.flipcash.compose"
+    namespace = "${Gradle.codeNamespace}.services.flipcash.compose"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

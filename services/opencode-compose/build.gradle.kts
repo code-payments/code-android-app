@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.services.opencode.compose"
+    namespace = "${Gradle.codeNamespace}.services.opencode.compose"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

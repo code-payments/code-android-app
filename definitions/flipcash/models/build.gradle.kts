@@ -28,7 +28,7 @@ kotlin {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.defs.models"
+    namespace = "${Gradle.flipcashNamespace}.defs.models"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

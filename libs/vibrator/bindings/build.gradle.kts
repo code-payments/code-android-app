@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.util.vibration"
+    namespace = "${Gradle.codeNamespace}.util.vibration"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

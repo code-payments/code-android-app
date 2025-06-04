@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.models"
+    namespace = "${Gradle.codeNamespace}.libs.models"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

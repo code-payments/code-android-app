@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.features.balance"
+    namespace = "${Gradle.flipcashNamespace}.features.balance"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

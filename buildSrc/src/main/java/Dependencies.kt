@@ -1,17 +1,5 @@
 @file:Suppress("ConstPropertyName")
 
-
-object Android {
-    const val codeNamespace = "com.getcode"
-    const val flipchatNamespace = "xyz.flipchat"
-    const val flipcashNamespace = "com.flipcash"
-
-    const val compileSdkVersion = 35
-    const val minSdkVersion = 24
-    const val targetSdkVersion = 35
-    const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-}
-
 object Versions {
     const val java = "17"
     const val kotlin = "2.1.20"

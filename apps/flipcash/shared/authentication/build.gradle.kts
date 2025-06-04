@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.shared.authentication"
+    namespace = "${Gradle.flipcashNamespace}.shared.authentication"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.shared.flags"
+    namespace = "${Gradle.flipcashNamespace}.shared.flags"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

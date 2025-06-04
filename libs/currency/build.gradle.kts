@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.currency"
+    namespace = "${Gradle.codeNamespace}.libs.currency"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

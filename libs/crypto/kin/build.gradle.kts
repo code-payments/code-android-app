@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.vendor.kin"
+    namespace = "${Gradle.codeNamespace}.vendor.kin"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

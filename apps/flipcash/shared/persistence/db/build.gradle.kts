@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipcashNamespace}.shared.persistence.db"
+    namespace = "${Gradle.flipcashNamespace}.shared.persistence.db"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

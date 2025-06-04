@@ -19,7 +19,7 @@ plugins {
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
-val appNamespace = "${Android.flipchatNamespace}.app"
+val appNamespace = "${Gradle.flipchatNamespace}.app"
 
 android {
     // static namespace

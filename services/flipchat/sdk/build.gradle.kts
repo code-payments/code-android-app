@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipchatNamespace}.services.sdk"
+    namespace = "${Gradle.flipchatNamespace}.services.sdk"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

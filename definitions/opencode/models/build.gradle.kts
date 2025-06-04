@@ -28,7 +28,7 @@ kotlin {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.defs.opencode.models"
+    namespace = "${Gradle.codeNamespace}.defs.opencode.models"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

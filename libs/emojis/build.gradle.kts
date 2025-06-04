@@ -1,4 +1,3 @@
-import kotlinx.serialization.Serializable
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -25,7 +24,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.emojis"
+    namespace = "${Gradle.codeNamespace}.libs.emojis"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

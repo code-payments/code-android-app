@@ -1,11 +1,3 @@
-import kotlinx.serialization.Serializable
-import java.net.URL
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 buildscript {
@@ -25,7 +17,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.analytics"
+    namespace = "${Gradle.codeNamespace}.libs.analytics"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
