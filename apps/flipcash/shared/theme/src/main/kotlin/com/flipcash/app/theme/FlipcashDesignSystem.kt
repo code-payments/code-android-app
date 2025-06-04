@@ -1,4 +1,4 @@
-package com.flipcash.app.internal.ui.theme
+package com.flipcash.app.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -21,6 +21,7 @@ import com.getcode.theme.Warning
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
+import com.getcode.theme.White20
 import com.getcode.theme.codeTypography
 
 private object ColorSpec {
@@ -54,7 +55,7 @@ private val colors = with(ColorSpec) {
         success = Success,
         textMain = Color.White,
         textSecondary = secondaryText,
-        border = secondaryText,
+        border = White20,
         divider = White10,
         dividerVariant = White05,
         trackColor = BrandSlideToConfirm,
@@ -69,7 +70,7 @@ private val colors = with(ColorSpec) {
 }
 
 @Composable
-internal fun FlipcashTheme(content: @Composable () -> Unit) {
+fun FlipcashDesignSystem(content: @Composable () -> Unit) {
     DesignSystem(
         colorScheme = colors,
         // override code type system to make screen title's slightly bigger
@@ -79,3 +80,4 @@ internal fun FlipcashTheme(content: @Composable () -> Unit) {
         content = content
     )
 }
+

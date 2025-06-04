@@ -25,6 +25,7 @@ include(
         ":apps:flipcash:shared:router",
         ":apps:flipcash:shared:session",
         ":apps:flipcash:shared:shareable",
+        ":apps:flipcash:shared:theme",
         ":apps:flipcash:shared:transfers",
         ":apps:flipcash:shared:workers",
         // flipcash features

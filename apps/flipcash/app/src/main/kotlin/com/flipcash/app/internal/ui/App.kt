@@ -7,7 +7,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,9 +29,9 @@ import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.internal.ui.navigation.AppScreenContent
 import com.flipcash.app.internal.ui.navigation.MainRoot
-import com.flipcash.app.internal.ui.theme.FlipcashTheme
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
 import com.flipcash.services.user.AuthState
@@ -101,7 +100,7 @@ internal fun App(
     val session = LocalSessionController.currentOrThrow
     val userState by userManager.state.collectAsState()
 
-    FlipcashTheme {
+    FlipcashDesignSystem {
         // save download QR early
         rememberQrBitmapPainter(
             content = stringResource(
