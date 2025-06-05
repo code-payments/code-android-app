@@ -380,8 +380,8 @@ internal class WithdrawalViewModel @Inject constructor(
                     amount = amount,
                     fee = fee,
                     destination = resolvedDestination,
-                    // only provide the destination account if we are dealing with an owner account (unresolved)
-                    destinationOwner = rawDestination.takeIf { !withdrawalChecks.hasResolvedDestination },
+                    // only provide the destination account if we are dealing with an owner account
+                    destinationOwner = rawDestination.takeUnless { withdrawalChecks.kind == WithdrawalAvailability.Kind.TokenAccount },
                     owner = owner,
                 )
             }.onResult(
