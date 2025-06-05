@@ -21,8 +21,9 @@ data object PutInWallet : BillDeterminationResult, ActedUpon
 interface SessionController {
     val state: StateFlow<SessionState>
     val billState: StateFlow<BillState>
-    fun onAppInForeground()
+    fun onAppInForeground(checkForAirdrops: Boolean = true)
     fun onAppInBackground()
+    fun onCameraVisible()
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(bill: Bill, vibrate: Boolean = false)

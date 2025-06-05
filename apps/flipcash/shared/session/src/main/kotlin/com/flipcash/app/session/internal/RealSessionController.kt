@@ -32,12 +32,15 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
@@ -88,8 +91,9 @@ class RealSessionController @Inject constructor(
     private val toastController: ToastController,
     private val billingClient: BillingClient,
     private val balanceController: BalanceController,
+    private val exchange: Exchange,
+    private val featureFlagController: FeatureFlagController,
     appSettingsCoordinator: AppSettingsCoordinator,
-    featureFlagController: FeatureFlagController,
 ) : SessionController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -113,7 +117,7 @@ class RealSessionController @Inject constructor(
             .mapNotNull { it.authState }
             .filter { it.canAccessAuthenticatedApis }
             .distinctUntilChanged()
-            .onEach { onAppInForeground() }
+            .onEach { onAppInForeground(false) }
             .launchIn(scope)
 
         userManager.state
@@ -145,7 +149,7 @@ class RealSessionController @Inject constructor(
      * 6. Checks for any pending share actions via the share sheet.
      * 7. If the user is registered, connects to the billing client.
      */
-    override fun onAppInForeground() {
+    override fun onAppInForeground(checkForAirdrops: Boolean) {
         trace(
             tag = "Session",
             message = "onAppInForeground",
@@ -153,7 +157,9 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
-        requestAirdrop()
+        if (checkForAirdrops) {
+            checkForAirdrops()
+        }
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -208,7 +214,7 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun requestAirdrop() {
+    private fun checkForAirdrops() {
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 userManager.accountCluster?.let {
@@ -216,13 +222,30 @@ class RealSessionController @Inject constructor(
                         type = AirdropType.WelcomeBonus,
                         destination = it.authority.keyPair
                     ).onSuccess { amount ->
-                        toastController.enqueue(
-                            amount = amount,
-                            isDeposit = true,
-                            initialDelay = AIRDROP_INITIAL_DELAY
-                        )
+                        presentWelcomeBonus(amount)
                     }
                 }
+            }
+        }
+    }
+
+    private fun presentWelcomeBonus(amount: LocalFiat) {
+        scope.launch {
+            val presentWithBill = featureFlagController.get(FeatureFlag.WelcomeBonusBill)
+            toastController.enqueue(
+                amount = amount,
+                isDeposit = true,
+                initialDelay = if (presentWithBill) ToastController.INITIAL_DELAY else AIRDROP_INITIAL_DELAY
+            )
+
+            if (presentWithBill) {
+                delay(1.seconds)
+                showBill(
+                    bill = Bill.Cash(amount = amount, didReceive = true),
+                    vibrate = true
+                )
+            } else {
+                toastController.consumeQueue()
             }
         }
     }
@@ -241,6 +264,10 @@ class RealSessionController @Inject constructor(
                 feedCoordinator.fetchSinceLatest(count)
             }
         }
+    }
+
+    override fun onCameraVisible() {
+        checkForAirdrops()
     }
 
     override fun onCameraScanning(scanning: Boolean) {
@@ -531,6 +558,12 @@ class RealSessionController @Inject constructor(
         entropy: String,
         claimIfOwned: Boolean
     ) {
+        trace(
+            tag = "Session",
+            message = "Claiming gift card: $entropy",
+            type = TraceType.Silent
+        )
+
         billController.receiveGiftCard(
             entropy = entropy,
             owner = owner,

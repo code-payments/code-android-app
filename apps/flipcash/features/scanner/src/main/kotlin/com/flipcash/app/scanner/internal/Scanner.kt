@@ -10,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
@@ -22,6 +24,7 @@ import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.ui.core.onVisible
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.utils.ErrorUtils
 import timber.log.Timber
@@ -47,7 +50,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         mutableStateOf(false)
     }
 
-    var deepLinkSaved by remember(deepLink) {
+    var deepLinkSaved by remember {
         mutableStateOf(deepLink)
     }
 
@@ -84,7 +87,17 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         deepLinkSaved = null
     }
 
+    var wasVisibleYet by remember { mutableStateOf(false) }
+
     BillContainer(
+        modifier = Modifier.onVisible {
+            if (it) {
+                if (!wasVisibleYet) {
+                    wasVisibleYet = true
+                    session.onCameraVisible()
+                }
+            }
+        },
         isPaused = isPaused,
         isCameraReady = previewing,
         isCameraStarted = cameraStarted,

@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,7 +36,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -404,4 +408,16 @@ fun Modifier.dashedBorder(
         color = dashColor,
         style = Stroke(width = strokeWidth.toPx(), pathEffect = pathEffect)
     )
+}
+
+fun Modifier.onVisible(onVisibilityChanged: (Boolean) -> Unit) = composed {
+    val isVisible by remember { derivedStateOf { mutableStateOf(false) } }
+    LaunchedEffect(isVisible.value) { onVisibilityChanged.invoke(isVisible.value) }
+    this.onGloballyPositioned { layoutCoordinates ->
+        isVisible.value = layoutCoordinates.parentLayoutCoordinates?.let {
+            val parentBounds = it.boundsInWindow()
+            val childBounds = layoutCoordinates.boundsInWindow()
+            parentBounds.overlaps(childBounds)
+        } ?: false
+    }
 }

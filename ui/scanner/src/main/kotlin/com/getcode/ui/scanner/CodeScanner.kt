@@ -37,6 +37,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.internal.CameraGestureController
 import com.getcode.ui.scanner.internal.FocusIndicator
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
@@ -47,7 +48,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import java.util.concurrent.Executors
 
 @SuppressLint("ClickableViewAccessibility")
@@ -187,7 +187,7 @@ fun CodeScanner(
     LaunchedEffect(previewView) {
         previewView.previewStreamState.asFlow()
             .distinctUntilChanged()
-            .onEach { Timber.d(it.name) }
+            .onEach { trace(tag = "CodeScanner", message = it.name, type = TraceType.Silent) }
             .onEach { streamState = it }
             .onEach {
                 val streaming = it == PreviewView.StreamState.STREAMING
