@@ -138,6 +138,7 @@ internal class WithdrawalViewModel @Inject constructor(
         data object OnWithdrawalTooSmall : Event
 
         data object OnWithdraw : Event
+        data object ConfirmWithdrawal : Event
         data object OnWithdrawalConfirmed : Event
         data object OnWithdrawSuccessful : Event
     }
@@ -343,25 +344,16 @@ internal class WithdrawalViewModel @Inject constructor(
                 val fee = withdrawalChecks?.feeAmount
                 if (amount.usdc - (fee ?: Fiat.Zero) < Fiat.Zero) {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
-                    BottomBarManager.showMessage(
-                        BottomBarManager.BottomBarMessage(
-                            title = resources.getString(R.string.error_title_withdrawalTooSmall),
-                            subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
-                            showScrim = false,
-                            showCancel = false,
-                            actions = buildList {
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_ok),
-                                        onClick = { dispatchEvent(Event.OnWithdrawalTooSmall) }
-                                    )
-                                )
-                            }
-                        )
-                    )
+                    dispatchEvent(Event.OnWithdrawalTooSmall)
                     return@onEach
                 }
 
+                dispatchEvent(Event.ConfirmWithdrawal)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ConfirmWithdrawal>()
+            .onEach {
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_confirmWithdrawal),
@@ -370,7 +362,7 @@ internal class WithdrawalViewModel @Inject constructor(
                         actions = buildList {
                             add(
                                 BottomBarAction(
-                                    text = resources.getString(R.string.action_withdraw),
+                                    text = resources.getString(R.string.action_confirmWithdraw),
                                     onClick = { dispatchEvent(Event.OnWithdrawalConfirmed) }
                                 )
                             )
@@ -378,7 +370,8 @@ internal class WithdrawalViewModel @Inject constructor(
                         showCancel = true
                     )
                 )
-            }.launchIn(viewModelScope)
+            }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnWithdrawalConfirmed>()
@@ -448,6 +441,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
                 Event.OnLearnAboutFee,
                 Event.OnWithdrawalTooSmall,
+                Event.ConfirmWithdrawal,
                 Event.OnWithdrawalConfirmed,
                 Event.OnWithdrawSuccessful,
                 Event.PasteFromClipboard,
