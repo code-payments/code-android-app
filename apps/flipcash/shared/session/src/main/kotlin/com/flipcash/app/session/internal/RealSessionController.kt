@@ -25,6 +25,8 @@ import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.core.R
+import com.flipcash.services.analytics.AnalyticsEvent
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
@@ -91,8 +93,8 @@ class RealSessionController @Inject constructor(
     private val toastController: ToastController,
     private val billingClient: BillingClient,
     private val balanceController: BalanceController,
-    private val exchange: Exchange,
     private val featureFlagController: FeatureFlagController,
+    private val analytics: FlipcashAnalyticsService,
     appSettingsCoordinator: AppSettingsCoordinator,
 ) : SessionController {
 
@@ -345,6 +347,7 @@ class RealSessionController @Inject constructor(
             amount = bill.amount,
             owner = owner,
             onGrabbed = {
+                analytics.transfer(AnalyticsEvent.GiveBill, bill.amount)
                 toastController.enqueue(bill.amount, isDeposit = false)
                 dismissBill(Grabbed)
                 vibrator.vibrate()
@@ -358,7 +361,15 @@ class RealSessionController @Inject constructor(
 //                    CodeAnalyticsManager.BillPresentationStyle.Slide
 //                )
             },
-            onError = { dismissBill(action = PutInWallet) },
+            onError = {
+                analytics.transfer(
+                    event = AnalyticsEvent.GiveBill,
+                    amount = bill.amount,
+                    successful = false,
+                    error = it
+                )
+                dismissBill(action = PutInWallet)
+            },
             present = { data ->
                 if (!bill.didReceive) {
                     trace(
@@ -405,7 +416,8 @@ class RealSessionController @Inject constructor(
                             delay(CASH_LINK_CONFIRMATION_DELAY)
 
                             // confirm the result of the share
-                            val confirmResult = shareConfirmationController.confirm(shareable, result)
+                            val confirmResult =
+                                shareConfirmationController.confirm(shareable, result)
 
                             // reset isChecking after confirmation
                             shareSheetController.reset(setChecked = false)
@@ -423,6 +435,7 @@ class RealSessionController @Inject constructor(
                                             dismissBill(Grabbed)
                                             vibrator.vibrate()
                                             bringActivityFeedCurrent()
+                                            analytics.transfer(AnalyticsEvent.SentCashLink(clipboard = true), amount)
                                             trace(
                                                 tag = "Session",
                                                 message = "Cash link copied to clipboard",
@@ -438,6 +451,7 @@ class RealSessionController @Inject constructor(
                                             dismissBill(Grabbed)
                                             vibrator.vibrate()
                                             bringActivityFeedCurrent()
+                                            analytics.transfer(AnalyticsEvent.SentCashLink(app = result.to), amount)
                                             trace(
                                                 tag = "Session",
                                                 message = "Cash link shared with ${result.to}",
@@ -549,7 +563,6 @@ class RealSessionController @Inject constructor(
             return
         }
 
-        // TODO: analytics
         claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
     }
 
@@ -569,6 +582,7 @@ class RealSessionController @Inject constructor(
             owner = owner,
             claimIfOwned = claimIfOwned,
             onReceived = {
+                analytics.transfer(AnalyticsEvent.ClaimedCashLink, amount = it)
                 toastController.enqueue(it, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(amount = it, didReceive = true),
@@ -578,6 +592,15 @@ class RealSessionController @Inject constructor(
                 bringActivityFeedCurrent()
             },
             onError = { cause ->
+                if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
+                    analytics.transfer(
+                        AnalyticsEvent.ClaimedCashLink,
+                        amount = null,
+                        successful = false,
+                        error = cause
+                    )
+                }
+
                 when (cause) {
                     is ReceiveGiftTransactorError.UsersGiftCard -> {
                         // present confirmation to claim (cancel) own gift card
@@ -609,6 +632,7 @@ class RealSessionController @Inject constructor(
                             }
                         )
                     }
+
                     is ReceiveGiftTransactorError.AlreadyClaimed -> {
                         BottomBarManager.showError(
                             resources.getString(R.string.error_title_alreadyCollected),
@@ -645,6 +669,7 @@ class RealSessionController @Inject constructor(
             owner = owner,
             payload = payload,
             onGrabbed = { amount ->
+                analytics.transfer(AnalyticsEvent.GrabBill, amount)
                 BottomBarManager.clear()
                 toastController.enqueue(amount, isDeposit = true)
                 showBill(
@@ -655,6 +680,12 @@ class RealSessionController @Inject constructor(
                 bringActivityFeedCurrent()
             },
             onError = {
+                analytics.transfer(
+                    event = AnalyticsEvent.GrabBill,
+                    fiat = payload.fiat,
+                    successful = false,
+                    error = it
+                )
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
             }

@@ -9,6 +9,8 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.features.withdrawal.R
+import com.flipcash.services.analytics.AnalyticsEvent
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -68,6 +70,7 @@ internal class WithdrawalViewModel @Inject constructor(
     transactionController: TransactionController,
     clipboardManager: ClipboardManager,
     activityFeedCoordinator: ActivityFeedCoordinator,
+    analytics: FlipcashAnalyticsService
 ) : BaseViewModel2<WithdrawalViewModel.State, WithdrawalViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -403,6 +406,12 @@ internal class WithdrawalViewModel @Inject constructor(
                 )
             }.onResult(
                 onError = {
+                    analytics.transfer(
+                        event = AnalyticsEvent.Withdrawal,
+                        amount = stateFlow.value.amountEntryState.selectedAmount,
+                        successful = false,
+                        error = it,
+                    )
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedWithdrawal),
@@ -410,6 +419,10 @@ internal class WithdrawalViewModel @Inject constructor(
                     )
                 },
                 onSuccess = {
+                    analytics.transfer(
+                        AnalyticsEvent.Withdrawal,
+                        amount = stateFlow.value.amountEntryState.selectedAmount
+                    )
                     viewModelScope.launch {
                         coroutineScope {
                             activityFeedCoordinator.fetchSinceLatest()

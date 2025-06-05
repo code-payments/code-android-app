@@ -38,7 +38,6 @@ data class SeedInputUiModel(
 
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
-    private val analytics: FlipcashAnalyticsService,
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
