@@ -235,6 +235,8 @@ class PassphraseCredentialManager @Inject constructor(
     suspend fun logout(): Result<Unit> {
         storage.edit {
             it.remove(selectedAccountIdKey)
+            it.remove(temporaryUserIdKey)
+            it.remove(temporaryEntropyKey)
         }
 
         return Result.success(Unit)

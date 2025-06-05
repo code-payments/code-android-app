@@ -52,8 +52,6 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    private fun readResolve(): Any = this
-
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
@@ -165,7 +163,6 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
             AuthState.LoggedOut,
             AuthState.Unknown -> {
                 val screens = router.processDestination(deepLink())
-
                 screens.ifEmpty {
                     listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                 }

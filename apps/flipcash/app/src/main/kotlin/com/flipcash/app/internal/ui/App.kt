@@ -92,7 +92,6 @@ internal fun App(
         val type = router.processType(it)
         if (type is DeeplinkType.Login) {
             loginRequest = type.entropy
-            return@DeepLinkListener
         }
         deepLink = it
     }
@@ -170,7 +169,13 @@ internal fun App(
                                     userManager.authState
                                 ) {
                                     if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
-                                    if (userManager.authState !is AuthState.LoggedIn) return@LaunchedEffect
+                                    if (userManager.authState !is AuthState.LoggedIn) {
+                                        // reset login request here
+                                        // if we are not currently logged in, then the deeplink
+                                        // is most likely being processed in [MainRoot] during launch
+                                        loginRequest = null
+                                        return@LaunchedEffect
+                                    }
                                     loginRequest?.let { entropy ->
                                         viewModel.handleLoginEntropy(
                                             entropy,
