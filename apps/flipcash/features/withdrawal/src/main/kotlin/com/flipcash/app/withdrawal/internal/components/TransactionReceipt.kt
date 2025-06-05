@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -28,7 +29,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.getcode.opencode.compose.ExchangeStub
@@ -120,7 +124,7 @@ private fun LineItems(
         if (amount.rate.currency != CurrencyCode.USD) {
             LineItem(
                 modifier = Modifier.fillMaxWidth(),
-                label = AnnotatedString("Converted to USDC"),
+                label = AnnotatedString("Converted to USD"),
                 amount = amount.usdc.formatted()
             )
         }
@@ -134,7 +138,7 @@ private fun LineItems(
                     )
                 ) {
                     Image(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Outlined.Info,
                         modifier = Modifier.fillMaxSize(),
                         contentDescription = "",
                         colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary)
@@ -144,7 +148,9 @@ private fun LineItems(
             LineItem(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onLearnMoreClicked),
                 label = buildAnnotatedString {
-                    append("Less one time fee")
+                    withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                        append("Less one time fee")
+                    }
                     append(" ")
                     appendInlineContent("icon")
                 },

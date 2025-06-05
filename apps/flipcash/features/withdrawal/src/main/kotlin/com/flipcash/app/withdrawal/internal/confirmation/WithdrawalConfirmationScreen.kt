@@ -32,7 +32,6 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.minus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -73,30 +72,30 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
             }.launchIn(this)
     }
 
-    LaunchedEffect(state.amountEntryState, state.destinationState) {
-        val amount = state.amountEntryState.selectedAmount
-        val fee = state.destinationState.availability?.feeAmount
-        if (amount.usdc - (fee ?: Fiat.Zero) < Fiat.Zero) {
-            BottomBarManager.showMessage(
-                BottomBarManager.BottomBarMessage(
-                    title = resources.getString(R.string.error_title_withdrawalTooSmall),
-                    subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
-                    showScrim = false,
-                    showCancel = false,
-                    actions = buildList {
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_ok),
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<WithdrawalViewModel.Event.OnWithdrawalTooSmall>()
+            .onEach {
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = resources.getString(R.string.error_title_withdrawalTooSmall),
+                        subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
+                        showScrim = false,
+                        showCancel = false,
+                        actions = buildList {
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_ok),
+                                )
                             )
-                        )
-                    },
-                    onClose = {
-                        WithdrawalFlow.start()
-                        navigator.popUntil { it is WithdrawalEntryScreen }
-                    }
+                        },
+                        onClose = {
+                            WithdrawalFlow.start()
+                            navigator.popUntil { it is WithdrawalEntryScreen }
+                        }
+                    )
                 )
-            )
-        }
+            }.launchIn(this)
     }
 }
 

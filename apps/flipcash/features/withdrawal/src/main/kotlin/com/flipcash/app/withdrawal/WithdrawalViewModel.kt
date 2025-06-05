@@ -20,6 +20,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -337,6 +338,30 @@ internal class WithdrawalViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnWithdraw>()
             .onEach {
+                val amount = stateFlow.value.amountEntryState.selectedAmount
+                val withdrawalChecks = stateFlow.value.destinationState.availability
+                val fee = withdrawalChecks?.feeAmount
+                if (amount.usdc - (fee ?: Fiat.Zero) < Fiat.Zero) {
+                    dispatchEvent(Event.UpdateWithdrawalState(loading = false))
+                    BottomBarManager.showMessage(
+                        BottomBarManager.BottomBarMessage(
+                            title = resources.getString(R.string.error_title_withdrawalTooSmall),
+                            subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
+                            showScrim = false,
+                            showCancel = false,
+                            actions = buildList {
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_ok),
+                                        onClick = { dispatchEvent(Event.OnWithdrawalTooSmall) }
+                                    )
+                                )
+                            }
+                        )
+                    )
+                    return@onEach
+                }
+
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_confirmWithdrawal),
