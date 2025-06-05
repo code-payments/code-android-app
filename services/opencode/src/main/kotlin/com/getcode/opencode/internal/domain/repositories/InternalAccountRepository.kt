@@ -15,6 +15,7 @@ internal class InternalAccountRepository @Inject constructor(
     ): Result<Boolean> = service.isCodeAccount(owner)
 
     override suspend fun getAccounts(
-        owner: Ed25519.KeyPair
-    ): Result<Map<PublicKey, AccountInfo>> = service.getAccounts(owner)
+        accountOwner: Ed25519.KeyPair,
+        requestingOwner: Ed25519.KeyPair,
+    ): Result<Map<PublicKey, AccountInfo>> = service.getAccounts(accountOwner, requestingOwner)
 }

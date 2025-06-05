@@ -90,7 +90,12 @@ data class AccountInfo(
      */
     val createdAt: Long?,
 
-    ) {
+    /**
+     * For REMOTE_SEND_GIFT_CARD, if requesting_owner was provided, was
+     * requesting_owner the issuer of the account.
+     */
+    val isGiftCardIssuer: Boolean
+) {
     companion object {
         fun newInstance(info: AccountService.TokenAccountInfo): AccountInfo? {
             val accountType =
@@ -120,7 +125,8 @@ data class AccountInfo(
                 claimState = claimState,
                 originalExchangeData = exchangeData,
                 mint = info.mint.toPublicKey(),
-                createdAt = info.createdAt.seconds * 1000L
+                createdAt = info.createdAt.seconds * 1000L,
+                isGiftCardIssuer = info.isGiftCardIssuer
             )
         }
     }

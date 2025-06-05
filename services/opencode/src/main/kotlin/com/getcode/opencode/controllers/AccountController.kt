@@ -3,6 +3,7 @@ package com.getcode.opencode.controllers
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountInfo
+import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.solana.keys.PublicKey
@@ -26,7 +27,13 @@ class AccountController @Inject constructor(
             .map { it.id.bytes }
     }
 
-    suspend fun getAccounts(owner: AccountCluster): Result<Map<PublicKey, AccountInfo>> {
-        return accountRepository.getAccounts(owner.authority.keyPair)
+    suspend fun getAccounts(
+        accountOwner: AccountCluster,
+        requestingOwner: AccountCluster
+    ): Result<Map<PublicKey, AccountInfo>> {
+        return accountRepository.getAccounts(
+            accountOwner = accountOwner.authority.keyPair,
+            requestingOwner = requestingOwner.authority.keyPair
+        )
     }
 }

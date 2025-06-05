@@ -28,6 +28,7 @@ import com.flipcash.core.R
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
@@ -522,10 +523,18 @@ class RealSessionController @Inject constructor(
         }
 
         // TODO: analytics
+        claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
+    }
 
+    private fun claimGiftCard(
+        owner: AccountCluster,
+        entropy: String,
+        claimIfOwned: Boolean
+    ) {
         billController.receiveGiftCard(
             entropy = entropy,
             owner = owner,
+            claimIfOwned = claimIfOwned,
             onReceived = {
                 toastController.enqueue(it, isDeposit = true)
                 showBill(
@@ -537,6 +546,36 @@ class RealSessionController @Inject constructor(
             },
             onError = { cause ->
                 when (cause) {
+                    is ReceiveGiftTransactorError.UsersGiftCard -> {
+                        // present confirmation to claim (cancel) own gift card
+                        BottomBarManager.showMessage(
+                            title = resources.getString(R.string.prompt_title_collectOwnCash),
+                            subtitle = resources.getString(R.string.prompt_description_collectOwnCash),
+                            isDismissible = false,
+                            actions = buildList {
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_dontCollect),
+                                    )
+                                )
+
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_collect),
+                                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                                        onClick = {
+                                            claimGiftCard(
+                                                owner = owner,
+                                                entropy = entropy,
+                                                // confirmed claim of own cash link
+                                                claimIfOwned = true
+                                            )
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
                     is ReceiveGiftTransactorError.AlreadyClaimed -> {
                         BottomBarManager.showError(
                             resources.getString(R.string.error_title_alreadyCollected),

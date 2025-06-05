@@ -161,6 +161,7 @@ class BillTransactionManager @Inject constructor(
     fun receiveGiftCard(
         owner: AccountCluster,
         entropy: String,
+        claimIfOwned: Boolean,
         onReceived: (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
@@ -178,7 +179,7 @@ class BillTransactionManager @Inject constructor(
 
             receiveTransactor = transactor
 
-            receiveTransactor?.start()
+            receiveTransactor?.start(claimIfOwned)
                 ?.onSuccess { amount ->
                     onReceived(amount)
                     balanceController.add(amount)

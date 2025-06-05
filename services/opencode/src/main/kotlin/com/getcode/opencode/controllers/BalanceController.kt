@@ -137,13 +137,13 @@ class BalanceController @Inject constructor(
 
             retryable(
                 maxRetries = 3,
-                call = suspend { accountController.getAccounts(owner) }
+                call = suspend { accountController.getAccounts(owner, owner) }
             )?.recoverCatching { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
                     val createResult = accountController.createUserAccount(owner)
                     if (createResult.isSuccess) {
-                        accountController.getAccounts(owner)
+                        accountController.getAccounts(owner, owner)
                             .getOrElse { throw it }
                     } else {
                         throw createResult.exceptionOrNull() ?: Exception("Account creation failed")

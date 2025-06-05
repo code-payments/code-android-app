@@ -159,4 +159,9 @@
 
     <string name="error_title_failedToOpenExternalLink">Something Went Wrong</string>
     <string name="error_description_failedToOpenExternalLink">We were unable to open the link on this device. Please try again later</string>
+
+    <string name="prompt_title_collectOwnCash">Collect Your Own Cash?</string>
+    <string name="prompt_description_collectOwnCash">You tapped to collect the cash you sent. Are you sure you want to collect it yourself?</string>
+    <string name="action_dontCollect">Don\'t Collect</string>
+    <string name="action_collect">Collect</string>
 </resources>

@@ -44,17 +44,28 @@ internal class AccountApi @Inject constructor(
      * Returns token account metadata relevant to the Code owner
      * account.
      *
-     * @param owner The owner account, which can also be thought of as a parent account for this
-     *   RPC that links to one or more token accounts.
+     * @param accountOwner The owner account to fetch balances for, which can also be thought of as a
+     *   parent account for this RPC that links to one or more token accounts.
+     * @param requestingOwner A requesting owner account that is requesting the balance for owner. Additional
+     *   metadata that is considered private will be provided, if applicable. An example
+     *   use case includes a user owner account requesting account info for a gift card
+     *   owner account.
      *
-     * @return The [AccountService.GetTokenAccountInfosResponse]
+     * @return The [AccountService.GetTokenAccountInfosResponse] for the owner account.
      */
     suspend fun getTokenAccounts(
-        owner: KeyPair
+        accountOwner: KeyPair,
+        requestingOwner: KeyPair,
     ): AccountService.GetTokenAccountInfosResponse {
         val request = AccountService.GetTokenAccountInfosRequest.newBuilder()
-            .setOwner(owner.asSolanaAccountId())
-            .apply { setSignature(sign(owner)) }
+            .setOwner(accountOwner.asSolanaAccountId())
+            .setRequestingOwner(requestingOwner.asSolanaAccountId())
+            .apply {
+                val ownerSig = sign(accountOwner)
+                val requestingOwnerSig = sign(requestingOwner)
+                setSignature(ownerSig)
+                setRequestingOwnerSignature(requestingOwnerSig)
+            }
             .build()
 
         return withContext(Dispatchers.IO) {

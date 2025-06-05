@@ -36,10 +36,11 @@ internal class AccountService @Inject constructor(
     }
 
     suspend fun getAccounts(
-        owner: KeyPair
+        accountOwner: KeyPair,
+        requestingOwner: KeyPair,
     ): Result<Map<PublicKey, AccountInfo>> {
         return runCatching {
-            api.getTokenAccounts(owner)
+            api.getTokenAccounts(accountOwner, requestingOwner)
         }.fold(
             onSuccess = { response ->
                 when (response.result) {

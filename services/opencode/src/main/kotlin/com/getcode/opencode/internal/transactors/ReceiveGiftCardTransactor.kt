@@ -29,7 +29,7 @@ internal class ReceiveGiftCardTransactor(
         giftCardAccount = giftCardManager.createGiftCard(mnemonic)
     }
 
-    suspend fun start(): Result<LocalFiat> {
+    suspend fun start(claimIfOwned: Boolean): Result<LocalFiat> {
         val ownerKey = owner ?: return logAndFail(ReceiveGiftTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val giftCard = giftCardAccount ?: return logAndFail(
             ReceiveGiftTransactorError.Other(
@@ -39,8 +39,10 @@ internal class ReceiveGiftCardTransactor(
 
         // before we can receive the gift card
         // we need to determine the balance of it
-        val accounts = accountController.getAccounts(giftCard.cluster)
-            .getOrElse { return logAndFail(ReceiveGiftTransactorError.FailedToQuery()) }
+        val accounts = accountController.getAccounts(
+            accountOwner = giftCard.cluster,
+            requestingOwner = ownerKey
+        ).getOrElse { return logAndFail(ReceiveGiftTransactorError.FailedToQuery()) }
             .takeIf { it.isNotEmpty() }
             ?: return logAndFail(ReceiveGiftTransactorError.FailedToQuery())
 
@@ -52,6 +54,10 @@ internal class ReceiveGiftCardTransactor(
 
         if (info.claimState == AccountInfo.ClaimState.Expired || info.claimState == AccountInfo.ClaimState.Unknown) {
             return logAndFail(ReceiveGiftTransactorError.Expired())
+        }
+
+        if (info.isGiftCardIssuer && !claimIfOwned) {
+            return Result.failure(ReceiveGiftTransactorError.UsersGiftCard())
         }
 
         val exchangeData = info.originalExchangeData
@@ -84,6 +90,7 @@ sealed class ReceiveGiftTransactorError(
 ) : CodeServerError(message, cause) {
     class FailedToQuery: GrabTransactorError(message = "Failed to query account")
     class AlreadyClaimed: GrabTransactorError(message = "Already claimed")
+    class UsersGiftCard: GrabTransactorError(message = "User is gift card issuer")
     class Expired: GrabTransactorError(message = "Expired")
 
     data class Other(

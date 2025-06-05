@@ -88,6 +88,32 @@ object BottomBarManager {
         }
     }
 
+    fun showMessage(
+        title: String,
+        subtitle: String,
+        actions: List<BottomBarAction>,
+        showCancel: Boolean = false,
+        isDismissible: Boolean = true,
+        showScrim: Boolean = false,
+        type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
+        timeoutSeconds: Int? = null,
+        onClose: (SelectedBottomBarAction) -> Unit = { }
+    ) {
+        showMessage(
+            BottomBarMessage(
+                title = title,
+                subtitle = subtitle,
+                showCancel = showCancel,
+                type = type,
+                actions = actions,
+                isDismissible = isDismissible,
+                showScrim = showScrim,
+                onClose = onClose,
+                timeoutSeconds = timeoutSeconds,
+            )
+        )
+    }
+
     /**
      * This replaces the error messaging from [TopBarManager] into a simpler, easy-to-reach
      * bottom anchored error message.
