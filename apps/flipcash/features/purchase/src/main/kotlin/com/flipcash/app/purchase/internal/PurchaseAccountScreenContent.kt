@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -19,6 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -30,15 +34,23 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.ui.BrandedGradientIcon
+import com.flipcash.app.purchase.PurchaseAccountScreen
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.purchase.R
+import com.flipcash.services.billing.IapProduct
+import com.flipcash.services.billing.ProductPrice
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.measured
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeButtonSpacer
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.getActivity
@@ -48,9 +60,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
+internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
     val navigator = LocalCodeNavigator.current
-    val context = LocalContext.current
     val permissions = LocalPermissionChecker.current
 
     val state by viewModel.stateFlow.collectAsState()
@@ -75,13 +86,22 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
             }.launchIn(this)
     }
 
+    PurchaseAccountScreenContent(state, viewModel::dispatchEvent)
+}
+
+@Composable
+private fun PurchaseAccountScreenContent(
+    state: PurchaseAccountViewModel.State,
+    dispatchEvent: (PurchaseAccountViewModel.Event) -> Unit
+) {
+    val context = LocalContext.current
     CodeScaffold(
         bottomBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                    .padding(bottom = CodeTheme.dimens.grid.x1)
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
@@ -95,9 +115,12 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
                     text = stringResource(R.string.action_purchaseAccount),
                 ) {
                     context.getActivity()?.let { activity ->
-                        viewModel.dispatchEvent(PurchaseAccountViewModel.Event.BuyAccount(activity))
+                        dispatchEvent(PurchaseAccountViewModel.Event.BuyAccount(activity))
                     }
                 }
+                CodeButtonSpacer(
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     ) { padding ->
@@ -139,5 +162,39 @@ internal fun PurchaseAccountScreenContent(viewModel: PurchaseAccountViewModel) {
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_WelcomeBonus_Usd() {
+    FlipcashDesignSystem {
+        PurchaseAccountScreenContent(
+            state = PurchaseAccountViewModel.State(
+                productToBuy = IapProduct.CreateAccountWithWelcomeBonus,
+                costOfAccount = ProductPrice(
+                    amount = 20.00,
+                    currency = CurrencyCode.USD
+                ),
+                formattedCost = "$20"
+            ),
+        ) { }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_NoBonus_Usd() {
+    FlipcashDesignSystem {
+        PurchaseAccountScreenContent(
+            state = PurchaseAccountViewModel.State(
+                productToBuy = IapProduct.CreateAccount,
+                costOfAccount = ProductPrice(
+                    amount = 20.00,
+                    currency = CurrencyCode.USD
+                ),
+                formattedCost = "$20"
+            ),
+        ) { }
     }
 }

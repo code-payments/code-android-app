@@ -31,6 +31,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeButtonSpacer
 import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.cameraPermissionCheck
 import com.getcode.util.permissions.notificationPermissionCheck
@@ -136,6 +137,11 @@ internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset),
+            )
+            CodeButtonSpacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = CodeTheme.dimens.grid.x2)
             )
         }
     }
