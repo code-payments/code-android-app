@@ -2,8 +2,9 @@ package com.flipcash.app.login.router
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.core.internal.extensions.onSuccessWithDelay
-import com.getcode.manager.TopBarManager
+import com.flipcash.features.login.R
+import com.getcode.manager.BottomBarManager
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.encodeBase64
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
@@ -17,11 +18,11 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import org.kin.sdk.base.tools.Base58
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
+    private val resources: ResourceHelper,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -61,11 +62,9 @@ class LoginViewModel @Inject constructor(
                 authManager.createAccount()
                     .onFailure {
                         dispatchEvent(Event.CreateFailed)
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                title = "Create Account Failed",
-                                message = it.localizedMessage ?: "Something went wrong"
-                            )
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_createAccountFailed),
+                            message = it.localizedMessage ?: resources.getString(R.string.error_description_createAccountFailed)
                         )
                     }.onSuccess {
                         dispatchEvent(Event.OnAccountCreated)
@@ -83,22 +82,18 @@ class LoginViewModel @Inject constructor(
                     Base58.decode(seed)
                 }.onFailure {
                     dispatchEvent(Event.LogInFailed)
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            title = "Login Failed",
-                            message = "Something went wrong"
-                        )
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_loginFailed),
+                        message = resources.getString(R.string.error_description_loginFailed),
                     )
                     return@mapNotNull null
                 }.getOrNull()
 
                 val entropyB64 = entropy?.encodeBase64()
                 if (seed.isBlank() || entropy?.size != 16) {
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            title = "Login Failed",
-                            message = "Something went wrong"
-                        )
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_loginFailed),
+                        message = resources.getString(R.string.error_description_loginFailed),
                     )
                     return@mapNotNull null
                 }
@@ -124,11 +119,9 @@ class LoginViewModel @Inject constructor(
                     isFromSelection = true
                 ).onFailure {
                     dispatchEvent(Event.LogInFailed)
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            title = "Login Failed",
-                            message = it.localizedMessage ?: "Something went wrong"
-                        )
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_loginFailed),
+                        message = it.localizedMessage ?: resources.getString(R.string.error_description_loginFailed),
                     )
                 }.onSuccess {
                     dispatchEvent(Event.LoggedInSuccessfully)

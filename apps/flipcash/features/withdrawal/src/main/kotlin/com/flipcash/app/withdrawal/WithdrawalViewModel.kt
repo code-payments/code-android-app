@@ -12,7 +12,6 @@ import com.flipcash.features.withdrawal.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -159,9 +158,9 @@ internal class WithdrawalViewModel @Inject constructor(
 
         val isOverBalance = enteredInUsdc > balanceInUsdc
         if (isOverBalance || conversionRate == Rate.ignore) {
-            TopBarManager.showMessage(
-                resources.getString(R.string.error_title_insufficientFunds),
-                resources.getString(R.string.error_description_insufficientFunds)
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_insufficientFunds),
+                message = resources.getString(R.string.error_description_insufficientFunds)
             )
         }
         isOverBalance
@@ -369,9 +368,9 @@ internal class WithdrawalViewModel @Inject constructor(
                 val owner = userManager.accountCluster
                 if (resolvedDestination == null || owner == null || rawDestination == null) {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
-                    TopBarManager.showMessage(
-                        resources.getString(R.string.error_title_failedWithdrawal),
-                        resources.getString(R.string.error_description_failedWithdrawal)
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_failedWithdrawal),
+                        message = resources.getString(R.string.error_description_failedWithdrawal)
                     )
                     return@mapNotNull null
                 }
@@ -387,9 +386,9 @@ internal class WithdrawalViewModel @Inject constructor(
             }.onResult(
                 onError = {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
-                    TopBarManager.showMessage(
-                        resources.getString(R.string.error_title_failedWithdrawal),
-                        resources.getString(R.string.error_description_failedWithdrawal)
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_failedWithdrawal),
+                        message = resources.getString(R.string.error_description_failedWithdrawal)
                     )
                 },
                 onSuccess = {

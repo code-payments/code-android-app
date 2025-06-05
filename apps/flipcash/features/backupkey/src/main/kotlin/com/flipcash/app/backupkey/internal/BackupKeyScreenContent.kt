@@ -4,7 +4,6 @@ import android.Manifest
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -42,9 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.features.backupkey.R
-import com.getcode.manager.TopBarManager
+import com.getcode.manager.BottomBarAction
+import com.getcode.manager.BottomBarManager
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
 import com.getcode.ui.components.Cloudy
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
@@ -73,14 +71,16 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
         isStoragePermissionGranted = result == PermissionResult.Granted
 
         if (!isStoragePermissionGranted) {
-            TopBarManager.showMessage(
-                TopBarManager.TopBarMessage(
-                    title = context.getString(R.string.error_title_failedToSave),
-                    message = context.getString(R.string.error_description_failedToSave),
-                    type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = context.getString(R.string.action_openSettings),
-                    secondaryAction = { context.launchAppSettings() }
-                )
+            BottomBarManager.showError(
+                title = context.getString(R.string.error_title_failedToSave),
+                message = context.getString(R.string.error_description_failedToSave),
+                additionalActions = listOf(
+                    BottomBarAction(
+                        text = context.getString(R.string.action_openSettings),
+                        style = BottomBarManager.BottomBarButtonStyle.Filled50,
+                        onClick = { context.launchAppSettings() }
+                    )
+                ),
             )
         }
     }

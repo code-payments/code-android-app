@@ -52,7 +52,6 @@ import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.login.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -84,14 +83,16 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: ()
         isStoragePermissionGranted = result == PermissionResult.Granted
 
         if (!isStoragePermissionGranted) {
-            TopBarManager.showMessage(
-                TopBarManager.TopBarMessage(
-                    title = context.getString(R.string.error_title_failedToSave),
-                    message = context.getString(R.string.error_description_failedToSave),
-                    type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = context.getString(R.string.action_openSettings),
-                    secondaryAction = { context.launchAppSettings() }
-                )
+            BottomBarManager.showError(
+                title = context.getString(R.string.error_title_failedToSave),
+                message = context.getString(R.string.error_description_failedToSave),
+                additionalActions = listOf(
+                    BottomBarAction(
+                        text = context.getString(R.string.action_openSettings),
+                        style = BottomBarManager.BottomBarButtonStyle.Filled50,
+                        onClick = { context.launchAppSettings() }
+                    )
+                ),
             )
         }
     }

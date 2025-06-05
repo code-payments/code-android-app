@@ -11,7 +11,6 @@ import com.flipcash.features.login.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.permissions.PermissionChecker
@@ -91,7 +90,7 @@ class SeedInputViewModel @Inject constructor(
             authManager.login(entropyB64, isFromSelection = isRestore)
                 .onFailure {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
-                        TopBarManager.showMessage(
+                        BottomBarManager.showError(
                             getString(R.string.error_title_timelockUnlocked),
                             getString(R.string.error_description_timelockUnlocked)
                         )
@@ -131,7 +130,7 @@ class SeedInputViewModel @Inject constructor(
              when (error) {
                  is SelectCredentialError.UserCancelled -> { /* no op */ }
                  else -> {
-                     TopBarManager.showMessage(
+                     BottomBarManager.showError(
                          getString(R.string.error_title_selectCredential),
                          getString(R.string.error_description_selectCredential)
                      )

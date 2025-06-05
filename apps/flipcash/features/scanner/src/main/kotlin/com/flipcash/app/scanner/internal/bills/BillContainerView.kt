@@ -36,15 +36,16 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.scanner.internal.ui.components.DecorView
 import com.flipcash.app.scanner.internal.ui.modals.ReceivedFundsConfirmation
-import com.flipcash.app.scanner.internal.ScannerDecorItem
-import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.features.scanner.R
-import com.getcode.manager.TopBarManager
+import com.getcode.manager.BottomBarAction
+import com.getcode.manager.BottomBarManager
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.core.measured
 import com.getcode.ui.scanner.views.CameraDisabledView
@@ -72,13 +73,16 @@ internal fun BillContainer(
     val onPermissionResult = { result: PermissionResult ->
         session.onCameraPermissionResult(result)
         if (result == PermissionResult.ShouldShowRationale) {
-            TopBarManager.showMessage(
-                TopBarManager.TopBarMessage(
-                    title = context.getString(R.string.action_allowCameraAccess),
-                    message = context.getString(R.string.error_description_cameraAccessRequired),
-                    type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = context.getString(R.string.action_openSettings),
-                    secondaryAction = { context.launchAppSettings() }
+            BottomBarManager.showError(
+                title = context.getString(R.string.action_allowCameraAccess),
+                message = context.getString(R.string.error_description_cameraAccessRequired),
+                additionalActions = listOf(
+                    BottomBarAction(
+                        text = context.getString(R.string.action_openSettings),
+                        style = BottomBarManager.BottomBarButtonStyle.Filled50,
+                        onClick = { context.launchAppSettings() }
+
+                    )
                 )
             )
         }

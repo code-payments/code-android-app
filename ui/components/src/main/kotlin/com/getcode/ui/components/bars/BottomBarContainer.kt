@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -40,13 +41,16 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White50
+import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.scaled
@@ -219,14 +223,39 @@ fun BottomBarView(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
-                bottomBarMessage.actions.fastForEachIndexed { index, action ->
+                val okText = stringResource(R.string.action_ok)
+                val actions by remember(bottomBarMessage.actions) {
+                    derivedStateOf {
+                        if (bottomBarMessage.type == BottomBarManager.BottomBarMessageType.ERROR) {
+                            buildList {
+                                // error's pass additional actions
+                                add(BottomBarAction(okText))
+                                addAll(bottomBarMessage.actions)
+                            }
+                        } else {
+                            bottomBarMessage.actions
+                        }
+                    }
+                }
+
+                actions.fastForEachIndexed { index, action ->
                     CodeButton(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
+                            .addIf(index == actions.lastIndex) {
+                                Modifier.padding(
+                                    bottom = when (action.style) {
+                                        BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.dimens.grid.x2
+                                        BottomBarManager.BottomBarButtonStyle.Filled50 -> CodeTheme.dimens.grid.x2
+                                        BottomBarManager.BottomBarButtonStyle.Text -> 0.dp
+                                    }
+                                )
+                            },
                         onClick = {
                             action.onClick()
                             onClose(SelectedBottomBarAction(index))
                         },
                         textColor = when (bottomBarMessage.type) {
+                            BottomBarManager.BottomBarMessageType.ERROR,
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.error
                                 BottomBarManager.BottomBarButtonStyle.Filled50 -> Color.White
@@ -261,6 +290,7 @@ fun BottomBarView(
                         style = CodeTheme.typography.textMedium,
                         textAlign = TextAlign.Center,
                         color = when (bottomBarMessage.type) {
+                            BottomBarManager.BottomBarMessageType.ERROR,
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                             BottomBarManager.BottomBarMessageType.INFO -> White50
 
@@ -278,7 +308,9 @@ fun BottomBarView(
 
 @Composable
 private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = when (this) {
+    BottomBarManager.BottomBarMessageType.ERROR,
     BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
+
     BottomBarManager.BottomBarMessageType.INFO -> CodeTheme.colors.brandLight
     BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
     BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning

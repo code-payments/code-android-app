@@ -10,7 +10,6 @@ import com.flipcash.features.myaccount.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
@@ -118,11 +117,9 @@ internal class MyAccountScreenViewModel @Inject constructor(
                                 authManager.deleteAndLogout()
                                     .onSuccess { dispatchEvent(Event.OnAccountDeleted) }
                                     .onFailure {
-                                        TopBarManager.showMessage(
-                                            TopBarManager.TopBarMessage(
-                                                title = resources.getString(R.string.error_title_failedToDeleteAccount),
-                                                message = resources.getString(R.string.error_description_failedToDeleteAccount),
-                                            )
+                                        BottomBarManager.showError(
+                                            title = resources.getString(R.string.error_title_failedToDeleteAccount),
+                                            message = resources.getString(R.string.error_description_failedToDeleteAccount),
                                         )
                                     }
                             }

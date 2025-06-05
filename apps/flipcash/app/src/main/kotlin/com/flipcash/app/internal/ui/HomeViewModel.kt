@@ -10,15 +10,12 @@ import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,7 +46,7 @@ internal class HomeViewModel @Inject constructor(
     fun onMissingBiometrics() {
         // biometrics required by user, but now not enrolled
         // show a top bar error and let them in
-        TopBarManager.showMessage(
+        BottomBarManager.showError(
             resources.getString(R.string.error_title_missingBiometrics),
             resources.getString(R.string.error_description_missingBiometrics)
         )
@@ -81,11 +78,9 @@ internal class HomeViewModel @Inject constructor(
                                         authManager.logoutAndSwitchAccount(entropy)
                                             .onSuccess { onSwitchAccount() }
                                             .onFailure {
-                                                TopBarManager.showMessage(
-                                                    TopBarManager.TopBarMessage(
-                                                        title = resources.getString(R.string.error_title_failedToLogOut),
-                                                        message = resources.getString(R.string.error_description_failedToLogOut),
-                                                    )
+                                                BottomBarManager.showError(
+                                                    title = resources.getString(R.string.error_title_failedToLogOut),
+                                                    message = resources.getString(R.string.error_description_failedToLogOut),
                                                 )
                                             }
                                     }

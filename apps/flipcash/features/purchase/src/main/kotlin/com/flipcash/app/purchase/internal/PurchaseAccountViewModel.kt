@@ -12,10 +12,7 @@ import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
 import com.flipcash.services.billing.ProductPrice
-import com.flipcash.services.controllers.AccountController
-import com.flipcash.services.user.UserManager
-import com.getcode.manager.TopBarManager
-import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -36,8 +33,6 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 internal class PurchaseAccountViewModel @Inject constructor(
     private val authManager: AuthManager,
-    private val accountController: AccountController,
-    private val userManager: UserManager,
     billingClient: BillingClient,
     resources: ResourceHelper,
 ) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
@@ -160,11 +155,9 @@ internal class PurchaseAccountViewModel @Inject constructor(
                     }
                     is IapPaymentEvent.OnError -> {
                         dispatchEvent(Event.OnCreatingChanged(creating = false, created = false))
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                resources.getString(R.string.error_title_failedToPurchaseItem),
-                                resources.getString(R.string.error_description_failedToPurchaseItem)
-                            )
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToPurchaseItem),
+                            message = resources.getString(R.string.error_description_failedToPurchaseItem)
                         )
                         null
                     }

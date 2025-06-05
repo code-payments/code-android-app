@@ -1,7 +1,6 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.screen.Screen
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.android.VersionInfo
@@ -13,7 +12,6 @@ import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -22,7 +20,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -140,11 +137,9 @@ internal class MenuScreenViewModel @Inject constructor(
                                         dispatchEvent(Event.OnLoggedOutCompletely)
                                     }
                                     .onFailure {
-                                        TopBarManager.showMessage(
-                                            TopBarManager.TopBarMessage(
-                                                title = resources.getString(R.string.error_title_failedToLogOut),
-                                                message = resources.getString(R.string.error_description_failedToLogOut),
-                                            )
+                                        BottomBarManager.showError(
+                                            title = resources.getString(R.string.error_title_failedToLogOut),
+                                            message = resources.getString(R.string.error_description_failedToLogOut),
                                         )
                                     }
                             }

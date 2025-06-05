@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.features.cash.R
-import com.getcode.manager.TopBarManager
+import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -104,7 +104,7 @@ internal class CashScreenViewModel @Inject constructor(
 
         val isOverBalance = enteredInUsdc > balanceInUsdc
         if (isOverBalance || conversionRate == Rate.ignore) {
-            TopBarManager.showMessage(
+            BottomBarManager.showError(
                 resources.getString(R.string.error_title_insufficientFunds),
                 resources.getString(R.string.error_description_insufficientFunds)
             )
@@ -119,7 +119,7 @@ internal class CashScreenViewModel @Inject constructor(
         val isOverLimit = amount > sendLimit.nextTransaction
         if (isOverLimit) {
             val currencySymbol = currency.selected?.symbol ?: "$"
-            TopBarManager.showMessage(
+            BottomBarManager.showError(
                 resources.getString(R.string.error_title_giveLimitReached),
                 resources.getString(R.string.error_description_giveLimitReached)
                     .replaceParam(

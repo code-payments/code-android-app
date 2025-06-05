@@ -29,7 +29,6 @@ import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
@@ -450,7 +449,7 @@ class RealSessionController @Inject constructor(
             },
             onError = {
                 dismissBill(PutInWallet)
-                TopBarManager.showMessage(
+                BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_failedToCreateGiftCard),
                     message = resources.getString(R.string.error_description_failedToCreateGiftCard)
                 )
@@ -539,21 +538,21 @@ class RealSessionController @Inject constructor(
             onError = { cause ->
                 when (cause) {
                     is ReceiveGiftTransactorError.AlreadyClaimed -> {
-                        TopBarManager.showMessage(
+                        BottomBarManager.showError(
                             resources.getString(R.string.error_title_alreadyCollected),
                             resources.getString(R.string.error_description_alreadyCollected)
                         )
                     }
 
                     is ReceiveGiftTransactorError.Expired -> {
-                        TopBarManager.showMessage(
+                        BottomBarManager.showError(
                             resources.getString(R.string.error_title_linkExpired),
                             resources.getString(R.string.error_description_linkExpired)
                         )
                     }
 
                     else -> {
-                        TopBarManager.showMessage(
+                        BottomBarManager.showError(
                             resources.getString(R.string.error_title_failedToCollect),
                             resources.getString(R.string.error_description_failedToCollect)
                         )

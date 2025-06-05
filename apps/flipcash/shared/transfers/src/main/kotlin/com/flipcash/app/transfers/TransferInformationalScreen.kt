@@ -22,7 +22,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.shared.transfers.R
-import com.getcode.manager.TopBarManager
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
@@ -83,7 +83,7 @@ class TransferInformationalScreen(
                                 }
                             )
                         } catch (_: Exception) {
-                            TopBarManager.showMessage(
+                            BottomBarManager.showError(
                                 title = context.getString(R.string.error_title_failedToOpenExternalLink),
                                 message = context.getString(R.string.error_description_failedToOpenExternalLink)
                             )

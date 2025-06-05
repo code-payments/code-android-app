@@ -27,7 +27,7 @@ object BottomBarManager {
     data class BottomBarMessage(
         val title: String = "",
         val subtitle: String = "",
-        val actions: List<BottomBarAction>,
+        val actions: List<BottomBarAction> = emptyList(),
         val showCancel: Boolean,
         val onClose: (selection: SelectedBottomBarAction) -> Unit = { },
         val onTimeout: () -> Unit = { },
@@ -88,6 +88,39 @@ object BottomBarManager {
         }
     }
 
+    /**
+     * This replaces the error messaging from [TopBarManager] into a simpler, easy-to-reach
+     * bottom anchored error message.
+     *
+     * Errors are type of [BottomBarMessage] that are by design ALWAYS:
+     * - Dismissible
+     * - Scrimmed
+     * - Timeout-able
+     * - Include "OK" button
+     *
+     * Additional [BottomBarAction]'s can be included via [additionalActions] and dismiss callbacks
+     * are available via [onDismiss].
+     */
+    fun showError(
+        title: String,
+        message: String,
+        additionalActions: List<BottomBarAction> = emptyList(),
+        onDismiss: () -> Unit = { },
+    ) {
+        showMessage(
+            BottomBarMessage(
+                title = title,
+                subtitle = message,
+                showCancel = false,
+                actions = additionalActions,
+                type = BottomBarMessageType.ERROR,
+                isDismissible = true,
+                showScrim = true,
+                onClose = { onDismiss() }
+            )
+        )
+    }
+
     fun setMessageShown(messageId: Long) {
         _messages.update { currentMessages ->
             currentMessages.filterNot { it.id == messageId }
@@ -101,6 +134,7 @@ object BottomBarManager {
 
     enum class BottomBarMessageType {
         DESTRUCTIVE,
+        ERROR,
         WARNING,
         INFO,
         THEMED,

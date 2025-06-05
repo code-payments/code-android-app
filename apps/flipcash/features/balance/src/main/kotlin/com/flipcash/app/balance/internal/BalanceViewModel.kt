@@ -11,7 +11,6 @@ import com.flipcash.features.balance.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.model.financial.LocalFiat
@@ -24,7 +23,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -102,7 +100,7 @@ internal class BalanceViewModel @Inject constructor(
                 )
             }.onResult(
                 onError = {
-                    TopBarManager.showMessage(
+                    BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedToCancelTransfer),
                         message = resources.getString(R.string.error_description_failedToCancelTransfer),
                     )
