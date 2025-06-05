@@ -23,7 +23,11 @@ data class BiometricsState(
     val request: () -> Unit = { },
 ) {
     val isAwaitingAuthentication: Boolean
-        get() = (checking || !passed) && isSupported && hasEnrolled
+        get() {
+            if (!isSupported) return false
+            if (!hasEnrolled) return false
+            return checking || !passed
+        }
 }
 
 @Composable

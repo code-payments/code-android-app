@@ -131,8 +131,6 @@ class UserManager @Inject constructor(
             )
         }
 
-//        set(if (userFlags?.isRegistered == true) AuthState.LoggedIn else AuthState.Unregistered)
-
         if (userFlags?.isRegistered == true) {
             accountCluster?.let { eventBus.send(Events.OnLoggedIn(accountCluster!!)) }
         }
