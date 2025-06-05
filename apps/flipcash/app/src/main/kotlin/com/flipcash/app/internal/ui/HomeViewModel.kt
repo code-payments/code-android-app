@@ -53,6 +53,8 @@ internal class HomeViewModel @Inject constructor(
         appSettingsCoordinator.update(setting = AppSettingValue.BiometricsRequired, value = false, fromUser = false)
     }
 
+    private var loginRequest: String? = null
+
     fun handleLoginEntropy(
         entropy: String,
         onSwitchAccount: () -> Unit,
@@ -61,37 +63,53 @@ internal class HomeViewModel @Inject constructor(
         // If currently logged in, and the login request comes for a different account
         // present a confirmation dialog to switch accounts
         if (entropy != userManager.entropy) {
-            BottomBarManager.showMessage(
-                BottomBarManager.BottomBarMessage(
-                    title = resources.getString(R.string.title_logoutAndLoginConfirmation),
-                    subtitle = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
-                    isDismissible = false,
-                    showCancel = true,
-                    showScrim = true,
-                    actions = buildList {
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_logIn),
-                                onClick = {
-                                    viewModelScope.launch {
-                                        delay(150) // wait for dismiss
-                                        authManager.logoutAndSwitchAccount(entropy)
-                                            .onSuccess { onSwitchAccount() }
-                                            .onFailure {
-                                                BottomBarManager.showError(
-                                                    title = resources.getString(R.string.error_title_failedToLogOut),
-                                                    message = resources.getString(R.string.error_description_failedToLogOut),
-                                                )
-                                            }
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    onClose = { onDismissed() }
-                )
-            )
+            // debounce login request to ensure only one is present or handled at a time
+            if (loginRequest != entropy) {
+                loginRequest = entropy
+                presentSwitchConfirmation(entropy, onSwitchAccount, onDismissed)
+            }
         }
+    }
+
+    private fun presentSwitchConfirmation(
+        entropy: String,
+        onSwitchAccount: () -> Unit,
+        onDismissed: () -> Unit) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_logoutAndLoginConfirmation),
+                subtitle = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
+                isDismissible = false,
+                showCancel = true,
+                showScrim = true,
+                actions = buildList {
+                    add(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_logIn),
+                            onClick = {
+                                viewModelScope.launch {
+                                    delay(150) // wait for dismiss
+                                    authManager.logoutAndSwitchAccount(entropy)
+                                        .onSuccess {
+                                            onSwitchAccount()
+                                        }
+                                        .onFailure {
+                                            BottomBarManager.showError(
+                                                title = resources.getString(R.string.error_title_failedToLogOut),
+                                                message = resources.getString(R.string.error_description_failedToLogOut),
+                                            )
+                                        }
+                                }
+                            }
+                        )
+                    )
+                },
+                onClose = {
+                    loginRequest = null
+                    onDismissed()
+                }
+            )
+        )
     }
 
     private fun checkBiometrics() {
