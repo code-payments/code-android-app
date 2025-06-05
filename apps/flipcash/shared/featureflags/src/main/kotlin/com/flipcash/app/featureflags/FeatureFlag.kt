@@ -1,6 +1,6 @@
 package com.flipcash.app.featureflags
 
-import com.flipcash.shared.flags.BuildConfig
+import com.flipcash.app.ksp.annotations.FeatureFlagMarker
 
 sealed interface FeatureFlag {
     val key: String
@@ -9,6 +9,7 @@ sealed interface FeatureFlag {
     val visible: Boolean
     val persistLogOut: Boolean
 
+    @FeatureFlagMarker
     data object CredentialManager: FeatureFlag {
         override val key: String = "credential_manager_enabled"
         override val default: Boolean = false
@@ -17,6 +18,7 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = true
     }
 
+    @FeatureFlagMarker
     data object VibrateOnScan: FeatureFlag {
         override val key: String = "scan_debug_enabled"
         override val default: Boolean = false
@@ -26,7 +28,8 @@ sealed interface FeatureFlag {
     }
 
     companion object {
-        val entries: List<FeatureFlag> = listOf(CredentialManager, VibrateOnScan)
+        val entries: List<FeatureFlag>
+            get() = FeatureFlagEntries.entries
     }
 }
 

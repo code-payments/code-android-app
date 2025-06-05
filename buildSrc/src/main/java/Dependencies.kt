@@ -169,6 +169,8 @@ object Libs {
     const val androidx_work = "androidx.work:work-runtime:${Versions.androidx_work}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
 
+    const val ksp_symbol_processing = "com.google.devtools.ksp:symbol-processing-api:${Versions.kotlin_ksp}"
+
     const val coil3 = "io.coil-kt.coil3:coil-compose:${Versions.compose_coil}"
     const val coil3_network = "io.coil-kt.coil3:coil-network-okhttp:${Versions.compose_coil}"
 

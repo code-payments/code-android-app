@@ -16,6 +16,7 @@ include(
         ":apps:flipcash:shared:currency-selection:core",
         ":apps:flipcash:shared:currency-selection:ui",
         ":apps:flipcash:shared:featureflags",
+        ":apps:flipcash:shared:ksp",
         ":apps:flipcash:shared:menu",
         ":apps:flipcash:shared:notifications",
         ":apps:flipcash:shared:permissions",
