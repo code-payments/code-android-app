@@ -126,7 +126,7 @@ class TransactionController @Inject constructor(
     ): Result<IntentType> {
         val intent = IntentWithdraw.create(
             amount = amount,
-            fee = fee?.let { Fee(it, FeeType.WithdrawalCreateOnSend) },
+            fee = fee?.let { Fee(it, FeeType.CreateOnSendWithdrawal) },
             sourceCluster = owner,
             destination = destination,
             destinationOwner = destinationOwner,

@@ -6,5 +6,5 @@ data class Fee(
 )
 
 sealed interface FeeType {
-    data object WithdrawalCreateOnSend: FeeType
+    data object CreateOnSendWithdrawal: FeeType
 }

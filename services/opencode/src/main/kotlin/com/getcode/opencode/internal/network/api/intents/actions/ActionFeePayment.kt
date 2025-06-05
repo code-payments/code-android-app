@@ -22,7 +22,7 @@ internal class ActionFeePayment(
         val configs = serverParameter?.configs ?: return emptyList()
 
         val destination = when (fee.type) {
-            FeeType.WithdrawalCreateOnSend -> {
+            FeeType.CreateOnSendWithdrawal -> {
                 (serverParameter?.parameter as? ServerParameter.Parameter.FeePayment)?.publicKey
                     ?: return emptyList()
             }
@@ -51,7 +51,7 @@ internal class ActionFeePayment(
                     .setSource(source.vaultPublicKey.asSolanaAccountId())
                     .setType(
                         when (fee.type) {
-                            FeeType.WithdrawalCreateOnSend -> TransactionService.FeePaymentAction.FeeType.WITHDRAWAL_CREATE_ON_SEND
+                            FeeType.CreateOnSendWithdrawal -> TransactionService.FeePaymentAction.FeeType.CREATE_ON_SEND_WITHDRAWAL
                         }
                     )
                     .setAuthority(source.authority.keyPair.asSolanaAccountId())

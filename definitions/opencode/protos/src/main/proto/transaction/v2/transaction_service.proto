@@ -409,7 +409,7 @@ message FeePaymentAction {
     FeeType type = 1;
     enum FeeType {
         UNKNOWN                   = 0;
-        WITHDRAWAL_CREATE_ON_SEND = 1; // Server-defined fee for creating an external ATA for withdrawals on send
+        CREATE_ON_SEND_WITHDRAWAL = 1; // Server-defined fee for creating an external ATA on withdrawals on send
     }
     // The public key of the private key that has authority over source
     common.v1.SolanaAccountId authority = 2;
@@ -464,7 +464,7 @@ message NoPrivacyWithdrawServerParameter {
 message FeePaymentServerParameter {
     // The destination account where OCP fee payments should be sent. This will
     // only be set when the corresponding FeePaymentAction.Type:
-    // - WITHDRAWAL_CREATE_ON_SEND
+    // - CREATE_ON_SEND_WITHDRAWAL
     common.v1.SolanaAccountId destination = 1;
 }
 //
