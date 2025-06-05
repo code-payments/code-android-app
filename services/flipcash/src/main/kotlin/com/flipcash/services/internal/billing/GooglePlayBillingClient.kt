@@ -121,7 +121,6 @@ internal class GooglePlayBillingClient(
 
     override fun disconnect() {
         runCatching {
-            client.endConnection()
             _stateFlow.update { BillingClientState.Disconnected }
         }
     }
