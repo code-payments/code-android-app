@@ -2,6 +2,7 @@ package com.flipcash.app.permissions.internal
 
 import android.Manifest
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +25,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.shared.permissions.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeButtonSpacer
@@ -128,6 +132,7 @@ internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: 
                 text = stringResource(R.string.permissions_description_camera),
                 style = CodeTheme.typography.textMedium
                     .copy(textAlign = TextAlign.Center),
+                color = CodeTheme.colors.textMain,
             )
             Spacer(Modifier.weight(1f))
             CodeButton(
@@ -167,10 +172,12 @@ internal fun NotificationScreenContent(onGranted: () -> Unit) {
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(Modifier.weight(1f))
             Image(
                 painter = painterResource(id = R.drawable.ic_notification_request),
                 contentDescription = "",
@@ -187,6 +194,7 @@ internal fun NotificationScreenContent(onGranted: () -> Unit) {
                 text = stringResource(R.string.permissions_description_push),
                 style = CodeTheme.typography.textMedium
                     .copy(textAlign = TextAlign.Center),
+                color = CodeTheme.colors.textMain,
             )
 
             Spacer(Modifier.weight(1f))
@@ -211,6 +219,29 @@ internal fun NotificationScreenContent(onGranted: () -> Unit) {
                 text = stringResource(R.string.action_notNow),
                 buttonState = ButtonState.Subtle,
             )
+        }
+    }
+}
+
+@Composable
+@Preview
+private fun PreviewCameraPermissionScreen() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            CameraPermissionScreenContent(
+                onGranted = {},
+                onNotGranted = {}
+            )
+        }
+    }
+}
+
+@Composable
+@Preview
+private fun PreviewNotificationPermissionScreen() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            NotificationScreenContent { }
         }
     }
 }

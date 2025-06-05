@@ -23,13 +23,3 @@ class NotificationPermissionScreen(private val fromOnboarding: Boolean = false):
         )
     }
 }
-
-@Composable
-@Preview(showSystemUi = true, showBackground = true)
-private fun PreviewNotificationPermissionScreen() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            NotificationScreenContent { }
-        }
-    }
-}

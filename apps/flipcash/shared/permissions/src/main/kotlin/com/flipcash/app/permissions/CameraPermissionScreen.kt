@@ -18,14 +18,3 @@ class CameraPermissionScreen(private val fromOnboarding: Boolean = false): Scree
         )
     }
 }
-
-@Composable
-@Preview(showSystemUi = true, showBackground = true)
-private fun PreviewCameraPermissionScreen() {
-    DesignSystem {
-        CameraPermissionScreenContent(
-            onGranted = {},
-            onNotGranted = {}
-        )
-    }
-}
