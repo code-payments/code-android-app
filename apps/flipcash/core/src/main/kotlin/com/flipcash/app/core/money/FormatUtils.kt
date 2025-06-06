@@ -1,6 +1,7 @@
 package com.flipcash.app.core.money
 
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import java.text.NumberFormat
 import java.util.*
@@ -39,6 +40,6 @@ fun Int.withCommas(): String {
     return this.toString().reversed().chunked(3).joinToString(",").reversed()
 }
 
-fun LocalFiat.formatted(suffix: String? = null, truncated: Boolean = false): String {
-    return converted.formatted(suffix, truncated)
+fun LocalFiat.formatted(formatting: Fiat.Formatting = Fiat.Formatting.None, suffix: String? = null): String {
+    return converted.formatted(formatting = formatting, suffix = suffix)
 }

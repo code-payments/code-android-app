@@ -36,9 +36,18 @@ data class Fiat(
         currencyCode = currencyCode
     )
 
+    sealed interface Formatting {
+        data object Truncated: Formatting
+        data object None: Formatting
+        data class Length(val decimalPlaces: Int): Formatting
+    }
+
     // Formatting
-    fun formatted(suffix: String? = null, truncate: Boolean = false): String {
-        val shouldTruncate = if (truncate) {
+    fun formatted(
+        formatting: Formatting = Formatting.None,
+        suffix: String? = null,
+    ): String {
+        val shouldTruncate = if (formatting is Formatting.Truncated) {
             val fractionalPart = decimalValue - decimalValue.toLong()
             fractionalPart == 0.0
         } else {
@@ -47,8 +56,15 @@ data class Fiat(
 
         val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
             val decimalDigits = java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
-            minimumFractionDigits = if (shouldTruncate) 0 else decimalDigits
-            maximumFractionDigits = if (shouldTruncate) 0 else decimalDigits
+            val preferredDigits = when (formatting) {
+                is Formatting.Length -> formatting.decimalPlaces
+                Formatting.None -> decimalDigits
+                Formatting.Truncated -> {
+                    if (shouldTruncate) 0 else decimalDigits
+                }
+            }
+            minimumFractionDigits = preferredDigits
+            maximumFractionDigits = preferredDigits
             roundingMode = RoundingMode.DOWN.ordinal
             (this as android.icu.text.DecimalFormat).decimalFormatSymbols = decimalFormatSymbols.apply {
                 currencySymbol = ""
@@ -66,7 +82,7 @@ data class Fiat(
     }
 
     // String representation
-    override fun toString(): String = formatted(null)
+    override fun toString(): String = formatted()
 
     // Currency conversion
     fun convertingTo(rate: Rate): Fiat = Fiat(

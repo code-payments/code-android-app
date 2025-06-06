@@ -131,7 +131,7 @@ internal class PurchaseAccountViewModel @Inject constructor(
         stateFlow
             .mapNotNull { it.costOfAccount }
             .map { (amount, currency) -> Fiat(amount, currency) }
-            .onEach { dispatchEvent(Event.OnPriceFormatted(it.formatted(truncate = true))) }
+            .onEach { dispatchEvent(Event.OnPriceFormatted(it.formatted(formatting = Fiat.Formatting.Truncated))) }
             .launchIn(viewModelScope)
 
         eventFlow

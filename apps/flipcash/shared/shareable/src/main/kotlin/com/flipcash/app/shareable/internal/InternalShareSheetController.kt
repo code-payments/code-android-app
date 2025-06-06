@@ -18,6 +18,7 @@ import com.flipcash.app.shareable.ShareablePendingData
 import com.flipcash.shared.shareable.R
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -142,11 +143,11 @@ internal class InternalShareSheetController(
             action = Intent.ACTION_SEND
             putExtra(
                 Intent.EXTRA_TITLE,
-                resources.getString(R.string.title_shareCashLink, amount.formatted(truncated = true))
+                resources.getString(R.string.title_shareCashLink, amount.formatted(Fiat.Formatting.Truncated))
             )
             putExtra(
                 Intent.EXTRA_SUBJECT,
-                resources.getString(R.string.title_shareCashLink, amount.formatted(truncated = true))
+                resources.getString(R.string.title_shareCashLink, amount.formatted(Fiat.Formatting.Truncated))
             )
             putExtra(Intent.EXTRA_TEXT, text)
             type = "text/plain"
