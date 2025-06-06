@@ -36,11 +36,36 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = true
     }
 
+    @FeatureFlagMarker
+    data object TransactionDetails: FeatureFlag {
+        override val key: String = "transaction_details_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
     }
 }
+
+val FeatureFlag.title: String
+    get() = when (this) {
+        is FeatureFlag.CredentialManager -> "Credential Manager"
+        FeatureFlag.VibrateOnScan -> "Vibrate on Scan"
+        FeatureFlag.WelcomeBonusBill -> "Receive Welcome Bonus as a Bill"
+        FeatureFlag.TransactionDetails -> "Transaction Details"
+    }
+
+val FeatureFlag.message: String
+    get() = when (this) {
+        FeatureFlag.CredentialManager -> "When enabled, you will gain the ability to utilize Google's Password Manager for storing and recovering access keys for easier login experience"
+        FeatureFlag.VibrateOnScan -> "When enabled, the device will vibrate once to indicate that the camera has registered the code on the bill"
+        FeatureFlag.WelcomeBonusBill -> "When enabled, the welcome bonus after creating an account will be presented as a bill that will be placed in your wallet instead of simply toasting"
+        FeatureFlag.TransactionDetails -> "When enabled, you'll gain the ability to view details of each transaction from the balance screen"
+    }
 
 
 

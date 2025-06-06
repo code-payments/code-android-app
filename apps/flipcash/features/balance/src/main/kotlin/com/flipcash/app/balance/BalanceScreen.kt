@@ -53,7 +53,7 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
             BalanceScreenContent(viewModel)
 
             RepeatOnLifecycle(Lifecycle.State.RESUMED) {
-                viewModel.dispatchEvent(BalanceViewModel.Event.UpdateFeed)
+                viewModel.dispatchEvent(BalanceViewModel.Event.ResetSelections)
             }
         }
     }
@@ -62,5 +62,4 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
 @Composable
 fun PreloadBalance() {
     val viewModel = getActivityScopedViewModel<BalanceViewModel>()
-    viewModel.dispatchEvent(BalanceViewModel.Event.UpdateFeed)
 }

@@ -59,9 +59,9 @@ internal fun BalanceScreenContent(viewModel: BalanceViewModel) {
                         .fillParentMaxWidth()
                         .animateItem(),
                     message = message,
-                    onCancelRequested = {
-                        viewModel.dispatchEvent(BalanceViewModel.Event.OnCancelRequested(message))
-                    }
+                    canViewDetails = state.canViewDetails,
+                    isExpanded = state.expandedItem == message.id,
+                    dispatch = viewModel::dispatchEvent
                 )
 
                 if (index < feed.itemCount - 1) {

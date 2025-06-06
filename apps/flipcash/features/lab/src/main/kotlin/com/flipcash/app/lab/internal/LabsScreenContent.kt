@@ -14,6 +14,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.featureflags.message
+import com.flipcash.app.featureflags.title
 import com.flipcash.features.lab.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SettingsSwitchRow
@@ -63,17 +65,3 @@ internal fun LabsScreenContent() {
         }
     }
 }
-
-private val FeatureFlag.title: String
-    get() = when (this) {
-        is FeatureFlag.CredentialManager -> "Credential Manager"
-        FeatureFlag.VibrateOnScan -> "Vibrate on Scan"
-        FeatureFlag.WelcomeBonusBill -> "Receive Welcome Bonus as a Bill"
-    }
-
-private val FeatureFlag.message: String
-    get() = when (this) {
-        FeatureFlag.CredentialManager -> "When enabled, you will gain the ability to utilize Google's Password Manager for storing and recovering access keys for easier login experience"
-        FeatureFlag.VibrateOnScan -> "When enabled, the device will vibrate once to indicate that the camera has registered the code on the bill"
-        FeatureFlag.WelcomeBonusBill -> "When enabled, the welcome bonus after creating an account will be presented as a bill that will be placed in your wallet instead of simply toasting"
-    }

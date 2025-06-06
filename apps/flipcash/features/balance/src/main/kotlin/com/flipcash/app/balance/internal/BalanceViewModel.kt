@@ -7,12 +7,15 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.money.formatted
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.balance.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
@@ -31,6 +34,7 @@ internal class BalanceViewModel @Inject constructor(
     balanceController: BalanceController,
     feedCoordinator: ActivityFeedCoordinator,
     transactionController: TransactionController,
+    featureFlags: FeatureFlagController,
     userManager: UserManager,
     resources: ResourceHelper,
 ) : BaseViewModel2<BalanceViewModel.State, BalanceViewModel.Event>(
@@ -39,11 +43,15 @@ internal class BalanceViewModel @Inject constructor(
 ) {
     data class State(
         val balance: LocalFiat? = null,
+        val canViewDetails: Boolean = false,
+        val expandedItem: ID? = null,
     )
 
     sealed interface Event {
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
-        data object UpdateFeed : Event
+        data class OnTransactionDetailsEnabled(val enabled: Boolean): Event
+        data class ViewDetails(val id: ID?): Event
+        data object ResetSelections : Event
         data class OnCancelRequested(val message: ActivityFeedMessage) : Event
         data class CancelTransfer(val vault: PublicKey) : Event
     }
@@ -52,6 +60,16 @@ internal class BalanceViewModel @Inject constructor(
         balanceController.balance
             .onEach { dispatchEvent(Event.OnBalanceUpdated(it)) }
             .launchIn(viewModelScope)
+
+        featureFlags.observe(FeatureFlag.TransactionDetails)
+            .onEach { dispatchEvent(Event.OnTransactionDetailsEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ResetSelections>()
+            .onEach {
+                dispatchEvent(Event.ViewDetails(null))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnCancelRequested>()
@@ -120,10 +138,19 @@ internal class BalanceViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.UpdateFeed -> { state -> state }
+                Event.ResetSelections -> { state -> state }
                 is Event.OnCancelRequested -> { state -> state }
                 is Event.CancelTransfer -> { state -> state }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
+                is Event.OnTransactionDetailsEnabled -> { state -> state.copy(canViewDetails = event.enabled) }
+                is Event.ViewDetails -> { state ->
+                    val currentlyExpanded = state.expandedItem
+                    if (currentlyExpanded == event.id) {
+                        state.copy(expandedItem = null)
+                    } else {
+                        state.copy(expandedItem = event.id)
+                    }
+                }
             }
         }
     }
