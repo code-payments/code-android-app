@@ -25,7 +25,6 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 LocalFiat(
                     usdc = Fiat(quarks = it.quarks),
                     converted = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
-                    rate = Rate.ignore
                 )
             },
             timestamp = Instant.fromEpochSeconds(from.ts.seconds, 0),

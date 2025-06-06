@@ -1,9 +1,13 @@
 package com.flipcash.app.persistence
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.getcode.utils.TraceType
@@ -15,12 +19,21 @@ import org.kin.sdk.base.tools.subByteArray
     entities = [
         MessageEntity::class
     ],
-    version = 1,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
+    ],
+    version = 2,
 )
 //@TypeConverters(Converters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
+
+    class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM messages")
+        }
+    }
 
     companion object {
         private var instance: FlipcashDatabase? = null

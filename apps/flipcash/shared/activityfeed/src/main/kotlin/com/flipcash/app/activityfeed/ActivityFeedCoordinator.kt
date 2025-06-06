@@ -86,7 +86,7 @@ class ActivityFeedCoordinator @Inject constructor(
             queryOptions = QueryOptions(
                 limit = count,
                 token = latest?.id,
-                descending = false
+                descending = latest == null,
             )
         ).onSuccess { dataSource.upsert(it) }.map { Unit }
     }

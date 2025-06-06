@@ -26,8 +26,8 @@ class SingleNotificationToEntityMapper @Inject constructor(
 
         val (usdc, native, currency, fx) = from.amount?.let { amount ->
             AmountHolder(
-                usdc = amount.usdc.quarks.toLong(),
-                native = amount.converted.quarks.toLong(),
+                usdc = amount.usdc.quarks,
+                native = amount.converted.quarks,
                 currency = amount.converted.currencyCode.name,
                 fx = amount.rate.fx
             )

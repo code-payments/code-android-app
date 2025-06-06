@@ -19,8 +19,6 @@ class FeedRemoteMediator(
     private val dataSource: MessageDataSource,
 ): RemoteMediator<Int, MessageEntity>() {
 
-    private var lastResult = listOf<ActivityFeedNotification>()
-
     override suspend fun initialize(): InitializeAction {
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
@@ -44,20 +42,13 @@ class FeedRemoteMediator(
 
             val queryOptions = QueryOptions(
                 token = loadKey,
-                limit = state.config.pageSize
+                limit = state.config.pageSize,
             )
 
             val notifications = controller.queryNotificationsFor(
                 ActivityFeedType.TransactionHistory,
                 queryOptions
             ).getOrNull().orEmpty()
-
-            if (notifications.isEmpty() || lastResult.any { it.id == notifications.firstOrNull()?.id.orEmpty() }) {
-                lastResult = emptyList()
-                return MediatorResult.Success(true)
-            }
-
-            lastResult = notifications
 
             withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {

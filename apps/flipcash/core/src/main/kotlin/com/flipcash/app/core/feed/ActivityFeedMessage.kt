@@ -1,5 +1,8 @@
 package com.flipcash.app.core.feed
 
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
@@ -14,7 +17,18 @@ data class ActivityFeedMessage(
     val timestamp: Instant,
     val state: MessageState,
     val metadata: MessageMetadata?
-)
+) {
+    val isTransaction: Boolean
+        get() = amount != null
+
+    val canCancel: Boolean
+        get() {
+            metadata ?: return false
+            val metadata =
+                (metadata as? MessageMetadata.SentUsdc) ?: return false
+            return metadata.canCancel
+        }
+}
 
 enum class MessageState {
     UNKNOWN,

@@ -1,0 +1,74 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "6f0e1586aaf4ec500c89b06fb990e7f2",
+    "entities": [
+      {
+        "tableName": "messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `text` TEXT NOT NULL, `amountUsdc` INTEGER, `amountNative` INTEGER, `nativeCurrency` TEXT, `rate` REAL, `state` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `metadata` TEXT, PRIMARY KEY(`idBase58`))",
+        "fields": [
+          {
+            "fieldPath": "idBase58",
+            "columnName": "idBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountUsdc",
+            "columnName": "amountUsdc",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "amountNative",
+            "columnName": "amountNative",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nativeCurrency",
+            "columnName": "nativeCurrency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rate",
+            "columnName": "rate",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metadata",
+            "columnName": "metadata",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "idBase58"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6f0e1586aaf4ec500c89b06fb990e7f2')"
+    ]
+  }
+}
