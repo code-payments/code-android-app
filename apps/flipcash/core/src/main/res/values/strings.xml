@@ -42,12 +42,11 @@
 
     <string name="error_title_insufficientFunds">Insufficient Funds</string>
     <string name="error_description_insufficientFunds">You do not have enough funds to complete this transaction. You can deposit more funds in Settings</string>
-    <string name="error_description_giveLimitReached">Flipcash is designed for small, every day transactions. Your daily give limit will increase tomorrow</string>
     <string name="subtitle_giveCashHint">Enter up to %1$s</string>
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
 
-    <string name="error_title_sendLimitReached">Daily Limit Reached</string>
-    <string name="error_description_sendLimitReached">Flipcash is designed for small, every day transactions. Your daily send limit will increase tomorrow</string>
+    <string name="error_title_sendLimitReached">Transaction Limit Reached</string>
+    <string name="error_description_sendLimitReached">Flipcash is designed for small, every day transactions. Send limits reset daily</string>
 
     <string name="error_title_failedToCreateGiftCard">Something Went Wrong</string>
     <string name="error_description_failedToCreateGiftCard">Please try again later</string>
