@@ -21,6 +21,7 @@ buildscript {
         classpath(Classpath.kotlin_serialization_plugin)
         classpath(Classpath.protobuf_plugin)
         classpath(Classpath.versioning_gradle_plugin)
+        classpath(Classpath.androidx_room_gradle_plugin)
     }
 }
 

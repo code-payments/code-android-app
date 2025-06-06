@@ -5,6 +5,7 @@ plugins {
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_ksp)
     id(Plugins.kotlin_serialization)
+    id(Plugins.androidx_room)
 }
 
 android {
@@ -13,12 +14,6 @@ android {
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
-            }
-        }
     }
 
     kotlinOptions {
@@ -33,6 +28,10 @@ android {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
+    }
+
+    room {
+        schemaDirectory("$projectDir/schemas")
     }
 }
 

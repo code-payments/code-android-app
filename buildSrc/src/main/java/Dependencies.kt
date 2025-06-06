@@ -25,7 +25,7 @@ object Versions {
     const val androidx_navigation = "2.8.0"
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"
-    const val androidx_room = "2.7.0"
+    const val androidx_room = "2.7.1"
     const val androidx_work = "2.10.1"
     const val sqlcipher = "4.5.1@aar"
 
@@ -104,6 +104,7 @@ object Classpath {
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
     const val versioning_gradle_plugin = "de.nanogiants:android-versioning:2.4.0"
+    const val androidx_room_gradle_plugin =  "androidx.room:room-gradle-plugin:${Versions.androidx_room}"
 }
 
 object Plugins {
@@ -125,6 +126,7 @@ object Plugins {
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
     const val versioning_gradle_plugin = "de.nanogiants.android-versioning"
     const val jetbrains_compose_compiler = "org.jetbrains.kotlin.plugin.compose"
+    const val androidx_room = "androidx.room"
 }
 
 object Libs {
