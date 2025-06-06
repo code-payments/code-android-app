@@ -22,6 +22,15 @@ data class LocalFiat(
         ),
     )
 
+    constructor(usdc: Fiat, converted: Fiat): this(
+        usdc = usdc,
+        converted = converted,
+        rate = Rate(
+            fx = converted.decimalValue / usdc.decimalValue,
+            currency = converted.currencyCode
+        )
+    )
+
     companion object {
         val Zero = LocalFiat(
             usdc = Fiat(0),
