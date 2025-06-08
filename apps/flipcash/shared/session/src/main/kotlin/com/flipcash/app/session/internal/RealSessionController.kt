@@ -34,16 +34,15 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -240,15 +239,27 @@ class RealSessionController @Inject constructor(
                 initialDelay = if (presentWithBill) ToastController.INITIAL_DELAY else AIRDROP_INITIAL_DELAY
             )
 
-            if (presentWithBill) {
-                delay(1.seconds)
-                showBill(
-                    bill = Bill.Cash(amount = amount, didReceive = true),
-                    vibrate = true
-                )
-            } else {
+            if (!presentWithBill) {
+                // consume the toast immediately
                 toastController.consumeQueue()
+                return@launch
             }
+
+            delay(1.seconds)
+            val payloadInfo = OpenCodePayload(
+                kind = PayloadKind.Cash,
+                value = amount.converted,
+                nonce = nonce
+            )
+
+            val bill = Bill.Cash(
+                data = payloadInfo.codeData.toList(),
+                amount = amount,
+                didReceive = true,
+                confirmationDelay = 500.milliseconds
+            )
+
+            presentBillToUser(data = payloadInfo.codeData.toList(), bill = bill)
         }
     }
 
@@ -692,7 +703,7 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun presentBillToUser(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+    private fun presentBillToUser(data : List<Byte>, bill: Bill, isVibrate: Boolean = false) {
         if (billController.state.value.bill != null) return
 
         if (bill.didReceive) {
@@ -707,15 +718,16 @@ class RealSessionController @Inject constructor(
             if (bill.didReceive) Grabbed else PutInWallet
 
         _state.update { it.copy(billResult = style) }
+
         billController.update {
             it.copy(
                 bill = Bill.Cash(
                     data = data,
                     amount = bill.amount,
-                    didReceive = bill.didReceive
+                    didReceive = bill.didReceive,
+                    confirmationDelay = bill.confirmationDelay,
                 ),
                 valuation = PaymentValuation(bill.amount.converted),
-                showToast = bill.didReceive
             )
         }
 

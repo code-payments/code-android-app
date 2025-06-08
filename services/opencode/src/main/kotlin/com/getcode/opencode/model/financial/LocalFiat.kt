@@ -2,8 +2,12 @@ package com.getcode.opencode.model.financial
 
 import com.getcode.opencode.model.transactions.ExchangeData
 import kotlinx.serialization.Serializable
+import javax.annotation.concurrent.Immutable
+
+typealias Usd = Fiat
 
 @Serializable
+@Immutable
 data class LocalFiat(
     val usdc: Fiat,
     val converted: Fiat,
@@ -29,6 +33,12 @@ data class LocalFiat(
             fx = converted.decimalValue / usdc.decimalValue,
             currency = converted.currencyCode
         )
+    )
+
+    constructor(usdc: Usd): this(
+        usdc = usdc,
+        converted = usdc,
+        rate = Rate.oneToOne
     )
 
     companion object {

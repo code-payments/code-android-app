@@ -253,7 +253,7 @@ internal fun BillContainer(
         AnimatedVisibility(
             modifier = Modifier.align(BottomCenter),
             visible = (updatedBillState.bill as? Bill.Cash)?.didReceive ?: false,
-            enter = AnimationUtils.modalEnter,
+            enter = AnimationUtils.modalEnter(billState.confirmationDelayMillis),
             exit = AnimationUtils.modalExit,
         ) {
             if (updatedBillState.bill != null) {

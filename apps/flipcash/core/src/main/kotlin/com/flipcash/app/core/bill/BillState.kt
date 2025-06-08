@@ -10,6 +10,7 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
+import kotlin.time.Duration
 
 data class BillState(
     val bill: Bill?,
@@ -22,6 +23,9 @@ data class BillState(
 ) {
     val canSwipeToDismiss: Boolean
         get() = bill?.canSwipeToDismiss ?: false
+
+    val confirmationDelayMillis: Int
+        get() = (bill?.confirmationDelay ?: Duration.ZERO).inWholeMilliseconds.toInt()
 
     companion object {
         val Default = BillState(
@@ -78,6 +82,7 @@ data class BillState(
 
 sealed interface Bill {
     val didReceive: Boolean
+    val confirmationDelay: Duration
     val amount: LocalFiat
     val data: List<Byte>
 
@@ -105,6 +110,7 @@ sealed interface Bill {
     data class Cash(
         override val amount: LocalFiat,
         override val didReceive: Boolean = false,
+        override val confirmationDelay: Duration = Duration.ZERO,
         override val data: List<Byte> = emptyList(),
         val kind: Kind = Kind.cash,
     ) : Bill {

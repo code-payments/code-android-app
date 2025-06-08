@@ -41,28 +41,34 @@ object AnimationUtils {
         targetScale = 1.1f
     )
 
-    val modalEnter: EnterTransition = slideInVertically(
-        initialOffsetY = { it },
-        animationSpec = tween(durationMillis = ModalAnimationSpeed.Normal.duration, delayMillis = ModalAnimationSpeed.Normal.delay)
-    )
+    fun modalEnter(additionalDelay: Int = 0): EnterTransition = with(ModalAnimationSpeed.Normal(additionalDelay)) {
+        slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = tween(durationMillis = duration, delayMillis = delay)
+        )
+    }
 
-    val modalEnterSlow: EnterTransition = slideInVertically(
-        initialOffsetY = { it },
-        animationSpec = tween(durationMillis = ModalAnimationSpeed.Slow.duration, delayMillis = ModalAnimationSpeed.Slow.delay)
-    )
+    fun modalEnterSlow(additionalDelay: Int = 0): EnterTransition = with(ModalAnimationSpeed.Slow(additionalDelay)) {
+        slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = tween(durationMillis = duration, delayMillis = delay)
+        )
+    }
 
-    val modalEnterFast: EnterTransition = slideInVertically(
-        initialOffsetY = { it },
-        animationSpec = tween(durationMillis = ModalAnimationSpeed.Fast.duration, delayMillis = ModalAnimationSpeed.Fast.delay)
-    )
+    fun modalEnterFast(additionalDelay: Int = 0): EnterTransition = with(ModalAnimationSpeed.Fast(additionalDelay)) {
+        slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = tween(durationMillis = duration, delayMillis = delay)
+        )
+    }
 
     val modalExit: ExitTransition = slideOutVertically(targetOffsetY = { it })
 
-    fun <S> modalAnimationSpec(speed: ModalAnimationSpeed = ModalAnimationSpeed.Normal): AnimatedContentTransitionScope<S>.() -> ContentTransform = {
+    fun <S> modalAnimationSpec(speed: ModalAnimationSpeed = ModalAnimationSpeed.Normal()): AnimatedContentTransitionScope<S>.() -> ContentTransform = {
         when (speed) {
-            ModalAnimationSpeed.Fast -> modalEnterFast
-            ModalAnimationSpeed.Normal -> modalEnter
-            ModalAnimationSpeed.Slow -> modalEnterSlow
+            is ModalAnimationSpeed.Fast -> modalEnterFast(speed.additionalDelay)
+            is ModalAnimationSpeed.Normal -> modalEnter(speed.additionalDelay)
+            is ModalAnimationSpeed.Slow -> modalEnterSlow(speed.additionalDelay)
         }  togetherWith modalExit
     }
 
@@ -93,11 +99,27 @@ object AnimationUtils {
     }
 }
 
-sealed class ModalAnimationSpeed(
-    val duration: Int,
+sealed interface ModalAnimationSpeed {
+    val duration: Int
     val delay: Int
-) {
-    data object Slow : ModalAnimationSpeed(750, 750)
-    data object Normal: ModalAnimationSpeed(450, 450)
-    data object Fast: ModalAnimationSpeed(200, 200)
+
+    data class Slow(val additionalDelay: Int = 0) : ModalAnimationSpeed {
+        override val duration: Int
+            get() = 750
+        override val delay: Int
+            get() = 750 + additionalDelay
+    }
+    data class Normal(val additionalDelay: Int = 0): ModalAnimationSpeed {
+        override val duration: Int
+            get() = 450
+        override val delay: Int
+            get() = 450 + additionalDelay
+    }
+    data class Fast(val additionalDelay: Int = 0): ModalAnimationSpeed {
+        override val duration: Int
+            get() = 200
+        override val delay: Int
+            get() = 200 + additionalDelay
+
+    }
 }
