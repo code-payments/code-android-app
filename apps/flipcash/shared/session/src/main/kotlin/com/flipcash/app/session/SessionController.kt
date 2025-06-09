@@ -25,7 +25,7 @@ interface SessionController {
     fun onAppInBackground()
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
-    fun showBill(bill: Bill, vibrate: Boolean = false)
+    fun showBill(bill: Bill)
     fun dismissBill(action: BillDeterminationResult)
     fun onCodeScan(code: ScannableKikCode)
     fun openCashLink(cashLink: String?)

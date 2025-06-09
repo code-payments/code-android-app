@@ -306,7 +306,7 @@ class RealSessionController @Inject constructor(
         _state.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
     }
 
-    override fun showBill(bill: Bill, vibrate: Boolean) {
+    override fun showBill(bill: Bill) {
         if (bill.amount.converted.doubleValue == 0.0) return
         val owner = userManager.accountCluster ?: return
 
@@ -350,7 +350,7 @@ class RealSessionController @Inject constructor(
                                                     message = "Cash link not sent. Restarting awaiting grab",
                                                     type = TraceType.User,
                                                 )
-                                                awaitBillGrab(bill, owner, vibrate)
+                                                awaitBillGrab(bill, owner)
                                             }
                                         }
                                     ),
@@ -361,14 +361,14 @@ class RealSessionController @Inject constructor(
                                 )
                             }
                         }
-                        awaitBillGrab(bill, owner, vibrate)
+                        awaitBillGrab(bill, owner)
                     }
                 }
             }
         }
     }
 
-    private fun awaitBillGrab(bill: Bill, owner: AccountCluster, vibrate: Boolean) {
+    private fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
         billController.awaitGrab(
             amount = bill.amount,
             owner = owner,
@@ -407,7 +407,7 @@ class RealSessionController @Inject constructor(
                         type = TraceType.User,
                     )
                 }
-                presentBillToUser(data, bill, vibrate)
+                presentBillToUser(data, bill)
             },
         )
     }
@@ -612,7 +612,6 @@ class RealSessionController @Inject constructor(
                 toastController.enqueue(it, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(amount = it, didReceive = true),
-                    vibrate = true
                 )
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
@@ -700,7 +699,6 @@ class RealSessionController @Inject constructor(
                 toastController.enqueue(amount, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(amount = amount, didReceive = true),
-                    vibrate = true
                 )
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
@@ -718,7 +716,7 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun presentBillToUser(data : List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+    private fun presentBillToUser(data : List<Byte>, bill: Bill) {
         if (billController.state.value.bill != null) return
 
         if (bill.didReceive) {
@@ -727,6 +725,8 @@ class RealSessionController @Inject constructor(
                     valuation = PaymentValuation(bill.amount.converted),
                 )
             }
+
+            vibrator.vibrate()
         }
 
         val style: BillDeterminationResult =
@@ -755,10 +755,6 @@ class RealSessionController @Inject constructor(
 //                    PresentationStyle.Slide -> CodeAnalyticsManager.BillPresentationStyle.Slide
 //                }
 //            )
-        }
-
-        if (isVibrate) {
-            vibrator.vibrate()
         }
     }
 
