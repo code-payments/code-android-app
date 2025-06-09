@@ -91,7 +91,11 @@ class PassphraseCredentialManager @Inject constructor(
             )
         }
 
-        val userId = backendResult.getOrNull()!!
+        val userId = backendResult.getOrNull()
+
+        if (userId == null) {
+            return Result.failure(Throwable("No user id returned"))
+        }
 
         storage.edit { preferences ->
             preferences[temporaryUserIdKey] = userId.base58
