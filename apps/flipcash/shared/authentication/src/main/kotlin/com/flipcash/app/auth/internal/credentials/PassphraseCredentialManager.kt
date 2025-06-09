@@ -113,32 +113,48 @@ class PassphraseCredentialManager @Inject constructor(
     }
 
     suspend fun presentSaveOption(): Result<AccountMetadata> {
-        val userId = userManager.accountId!!
-        val entropy = userManager.entropy.orEmpty()
+        val tempUserId = storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+        val entropy = storage.data.map { it[temporaryEntropyKey] }.firstOrNull()
+
+        if (tempUserId == null) {
+            return Result.failure(Throwable("No user id found"))
+        }
+
+        if (entropy == null) {
+            return Result.failure(Throwable("No entropy found"))
+        }
+
+        val accountId = Base58.decode(tempUserId).toList()
 
         // Store credential
-        storeCredential(entropy, userId)
+        storeCredential(entropy, accountId)
 
         // Store metadata
-        val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = true)
+        val metadata = AccountMetadata.createFromId(accountId, entropy, isUnregistered = true)
         storeMetadata(metadata, isSelected = false)
 
         return Result.success(metadata)
     }
 
     suspend fun onAccountPurchased(): Result<AccountMetadata> {
-        val userId = userManager.accountId!!
-        val entropy = userManager.entropy.orEmpty()
+        val tempUserId = storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+        val entropy = storage.data.map { it[temporaryEntropyKey] }.firstOrNull().orEmpty()
+
+        val accountId = runCatching { Base58.decode(tempUserId.orEmpty()).toList() }.getOrNull()
+
+        if (accountId == null) {
+            return Result.failure(Throwable("No user id found"))
+        }
 
         // remove temporary states
         storage.edit {
             it.remove(temporaryEntropyKey)
             it.remove(temporaryUserIdKey)
-            it.remove(seenAccessKeyKey(userId.base58))
+            it.remove(seenAccessKeyKey(accountId.base58))
         }
 
         // Store metadata
-        val metadata = AccountMetadata.createFromId(userId, entropy, isUnregistered = false)
+        val metadata = AccountMetadata.createFromId(accountId, entropy, isUnregistered = false)
         storeMetadata(metadata, isSelected = true)
 
         return Result.success(metadata)
