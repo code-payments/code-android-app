@@ -179,7 +179,6 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
-        checkForAirdrops()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -251,7 +250,7 @@ class RealSessionController @Inject constructor(
 
     private fun presentWelcomeBonus(amount: LocalFiat) {
         scope.launch {
-            val presentWithBill = false
+            val presentWithBill = featureFlagController.get(FeatureFlag.WelcomeBonusBill)
             toastController.enqueue(
                 amount = amount,
                 isDeposit = true,

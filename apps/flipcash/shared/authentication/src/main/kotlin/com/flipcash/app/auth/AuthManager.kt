@@ -102,6 +102,7 @@ class AuthManager @Inject constructor(
     suspend fun onAccountPurchased(): Result<Unit> {
         return credentialManager.onAccountPurchased()
             .onSuccess {
+                userManager.set(AuthState.LoggedIn)
                 accountController.getUserFlags().onSuccess { userManager.set(it) }
             }.map { Unit }
     }
