@@ -108,6 +108,8 @@ class RealSessionController @Inject constructor(
 
     private val scannedRendezvous = mutableListOf<String>()
 
+    private var welcomeBonus: LocalFiat? = null
+
     init {
         userManager.state
             .map { it.isTimelockUnlocked }
@@ -118,7 +120,7 @@ class RealSessionController @Inject constructor(
             .mapNotNull { it.authState }
             .filter { it.canAccessAuthenticatedApis }
             .distinctUntilChanged()
-            .onEach { onAppInForeground(false) }
+            .onEach { onAppInForeground() }
             .launchIn(scope)
 
         userManager.state
@@ -150,7 +152,7 @@ class RealSessionController @Inject constructor(
      * 6. Checks for any pending share actions via the share sheet.
      * 7. If the user is registered, connects to the billing client.
      */
-    override fun onAppInForeground(checkForAirdrops: Boolean) {
+    override fun onAppInForeground() {
         trace(
             tag = "Session",
             message = "onAppInForeground",
@@ -158,9 +160,7 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
-        if (checkForAirdrops) {
-            checkForAirdrops()
-        }
+        checkForAirdrops()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -215,7 +215,7 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun checkForAirdrops() {
+    private fun checkForAirdrops(onAirdropReceived: (LocalFiat) -> Unit = {}) {
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 userManager.accountCluster?.let {
@@ -223,7 +223,8 @@ class RealSessionController @Inject constructor(
                         type = AirdropType.WelcomeBonus,
                         destination = it.authority.keyPair
                     ).onSuccess { amount ->
-                        presentWelcomeBonus(amount)
+                        welcomeBonus = amount
+                        onAirdropReceived(amount)
                     }
                 }
             }
@@ -280,7 +281,14 @@ class RealSessionController @Inject constructor(
     }
 
     override fun onCameraVisible() {
-        checkForAirdrops()
+        if (welcomeBonus != null) {
+            presentWelcomeBonus(welcomeBonus!!)
+            welcomeBonus = null
+        } else {
+            checkForAirdrops {
+                presentWelcomeBonus(it)
+            }
+        }
     }
 
     override fun onCameraScanning(scanning: Boolean) {
