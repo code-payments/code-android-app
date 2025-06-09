@@ -82,8 +82,6 @@ class AuthManager @Inject constructor(
         return credentialManager.createAccount()
             .onSuccess { entropy ->
                 persistence.openDatabase(entropy)
-            }.onFailure {
-                userManager.clear()
             }.map { Unit }
     }
 
@@ -98,8 +96,6 @@ class AuthManager @Inject constructor(
         return credentialManager.presentSaveOption()
             .onSuccess {
                 accountController.getUserFlags().onSuccess { userManager.set(it) }
-            }.onFailure {
-                userManager.clear()
             }.map { Unit }
     }
 
