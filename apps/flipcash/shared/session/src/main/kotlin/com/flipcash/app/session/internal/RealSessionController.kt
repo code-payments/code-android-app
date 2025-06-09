@@ -41,7 +41,6 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
@@ -58,12 +57,10 @@ import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -72,7 +69,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -183,6 +179,7 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
+        checkForAirdrops()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -254,7 +251,7 @@ class RealSessionController @Inject constructor(
 
     private fun presentWelcomeBonus(amount: LocalFiat) {
         scope.launch {
-            val presentWithBill = featureFlagController.get(FeatureFlag.WelcomeBonusBill)
+            val presentWithBill = false
             toastController.enqueue(
                 amount = amount,
                 isDeposit = true,
@@ -282,6 +279,7 @@ class RealSessionController @Inject constructor(
             )
 
             presentBillToUser(data = payloadInfo.codeData.toList(), bill = bill)
+            feedCoordinator.fetchSinceLatest()
         }
     }
 
