@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.visibility.VisibilityInfo
+import com.getcode.ui.core.visibility.VisibilityTrackerElement
 
 inline fun Modifier.addIf(
     predicate: Boolean,
@@ -410,14 +412,7 @@ fun Modifier.dashedBorder(
     )
 }
 
-fun Modifier.onVisible(onVisibilityChanged: (Boolean) -> Unit) = composed {
-    val isVisible by remember { derivedStateOf { mutableStateOf(false) } }
-    LaunchedEffect(isVisible.value) { onVisibilityChanged.invoke(isVisible.value) }
-    this.onGloballyPositioned { layoutCoordinates ->
-        isVisible.value = layoutCoordinates.parentLayoutCoordinates?.let {
-            val parentBounds = it.boundsInWindow()
-            val childBounds = layoutCoordinates.boundsInWindow()
-            parentBounds.overlaps(childBounds)
-        } ?: false
-    }
-}
+fun Modifier.trackVisibility(
+    thresholdPercentage: Float = 0.5f,
+    onVisibilityChanged: (VisibilityInfo) -> Unit,
+): Modifier = this then VisibilityTrackerElement(thresholdPercentage, onVisibilityChanged)
