@@ -176,10 +176,17 @@ class PassphraseCredentialManager @Inject constructor(
             return LookupResult.ExistingAccountFound(existingAccount)
         }
 
-        val temporaryAccount = storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+        val temporaryAccount = storage.data.map { it[temporaryEntropyKey] }.firstOrNull()
         if (temporaryAccount != null) {
-            val seenAccessKey = storage.data.map { it[seenAccessKeyKey(temporaryAccount)] }.firstOrNull() ?: false
-            return LookupResult.TemporaryAccountCreated(temporaryAccount, seenAccessKey)
+            val entropy = storage.data.map { it[temporaryEntropyKey] }.firstOrNull()
+            if (entropy != null) {
+                val seenAccessKey =
+                    storage.data.map { it[seenAccessKeyKey(temporaryAccount)] }.firstOrNull() ?: false
+                return LookupResult.TemporaryAccountCreated(
+                    entropy = entropy,
+                    seenAccessKey = seenAccessKey
+                )
+            }
         }
 
         return LookupResult.NoAccountFound
