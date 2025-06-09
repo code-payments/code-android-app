@@ -56,6 +56,7 @@ fun CodeScanner(
     scanningEnabled: Boolean,
     cameraGesturesEnabled: Boolean,
     invertedDragZoomEnabled: Boolean,
+    modifier: Modifier = Modifier,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (ScannableKikCode) -> Unit,
     onError: (Throwable) -> Unit = { },
@@ -195,7 +196,7 @@ fun CodeScanner(
             }.launchIn(this)
     }
 
-    AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+    AndroidView(factory = { previewView }, modifier = modifier.fillMaxSize())
 
     FocusIndicator(autoFocusPoint) {
         autoFocusPoint = Offset.Unspecified

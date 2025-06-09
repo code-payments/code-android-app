@@ -23,7 +23,6 @@ interface SessionController {
     val billState: StateFlow<BillState>
     fun onAppInForeground()
     fun onAppInBackground()
-    fun onCameraVisible()
     fun onCameraScanning(scanning: Boolean)
     fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(bill: Bill, vibrate: Boolean = false)
@@ -39,7 +38,7 @@ data class SessionState(
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val autoStartCamera: Boolean? = true,
-    val isCameraScanEnabled: Boolean = true,
+    val isCameraUp: Boolean? = null,
     val billResult: BillDeterminationResult = BillDeterminationResult.None,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,

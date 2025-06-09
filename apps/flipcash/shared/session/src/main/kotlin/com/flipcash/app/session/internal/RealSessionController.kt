@@ -29,6 +29,7 @@ import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -57,16 +58,21 @@ import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -108,9 +114,15 @@ class RealSessionController @Inject constructor(
 
     private val scannedRendezvous = mutableListOf<String>()
 
-    private var welcomeBonus: LocalFiat? = null
-
     init {
+        // reset state on logouts
+        userManager.state
+            .map { it.authState }
+            .filterIsInstance<AuthState.LoggedOut>()
+            .onEach {
+                _state.update { SessionState() }
+            }.launchIn(scope)
+
         userManager.state
             .map { it.isTimelockUnlocked }
             .onEach { _state.update { it.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) } }
@@ -138,6 +150,18 @@ class RealSessionController @Inject constructor(
         featureFlagController.observe(FeatureFlag.VibrateOnScan)
             .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
+
+        state
+            .map { it.isCameraUp }
+            .distinctUntilChanged() // Emit only when value changes
+            .scan(Pair(null as Boolean?, null as Boolean?)) { previousPair, current ->
+                Pair(previousPair.second, current)
+            }
+            .mapNotNull { (previous, current) ->
+                if (previous == null && current != null) current else null
+            }
+            .onEach { checkForAirdrops() }
+            .launchIn(scope)
     }
 
     /**
@@ -146,7 +170,6 @@ class RealSessionController @Inject constructor(
      * This function performs several actions to ensure the app is up-to-date and ready for user interaction:
      * 1. Starts polling for updates (e.g., balance, exchange rates, activity feed).
      * 2. Updates user flags.
-     * 3. Requests an airdrop if applicable.
      * 4. Checks for pending items in the activity feed.
      * 5. Brings the activity feed to the current state.
      * 6. Checks for any pending share actions via the share sheet.
@@ -160,7 +183,6 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
-        checkForAirdrops()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -215,7 +237,7 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun checkForAirdrops(onAirdropReceived: (LocalFiat) -> Unit = {}) {
+    private fun checkForAirdrops() {
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 userManager.accountCluster?.let {
@@ -223,8 +245,7 @@ class RealSessionController @Inject constructor(
                         type = AirdropType.WelcomeBonus,
                         destination = it.authority.keyPair
                     ).onSuccess { amount ->
-                        welcomeBonus = amount
-                        onAirdropReceived(amount)
+                        presentWelcomeBonus(amount)
                     }
                 }
             }
@@ -280,19 +301,8 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    override fun onCameraVisible() {
-        if (welcomeBonus != null) {
-            presentWelcomeBonus(welcomeBonus!!)
-            welcomeBonus = null
-        } else {
-            checkForAirdrops {
-                presentWelcomeBonus(it)
-            }
-        }
-    }
-
     override fun onCameraScanning(scanning: Boolean) {
-        _state.update { it.copy(isCameraScanEnabled = scanning) }
+        _state.update { it.copy(isCameraUp = scanning) }
     }
 
     override fun onCameraPermissionResult(result: PermissionResult) {

@@ -46,7 +46,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
     var isPaused by remember { mutableStateOf(false) }
 
     var previewing by remember {
-        mutableStateOf(false)
+        mutableStateOf<Boolean?>(null)
     }
 
     var deepLinkSaved by remember {
@@ -60,33 +60,19 @@ internal fun Scanner(deepLink: DeeplinkType?) {
     val focusManager = LocalFocusManager.current
     val biometricsState = LocalBiometricsState.current
 
-    var visibilityInfo by remember { mutableStateOf<VisibilityInfo?>(null) }
-
-    LaunchedEffect(
-        biometricsState,
-        visibilityInfo,
-    ) {
-        if (!biometricsState.passed) return@LaunchedEffect
-        val viz = visibilityInfo ?: return@LaunchedEffect
-        if (viz.isVisible) {
-            session.onCameraVisible()
-        }
-    }
-
-    LaunchedEffect(previewing) {
-        session.onCameraScanning(previewing)
-    }
-
     LaunchedEffect(
         biometricsState,
         previewing,
         deepLinkSaved
     ) {
-        if (previewing) {
+        if (previewing == true) {
             focusManager.clearFocus()
         }
 
         if (!biometricsState.passed) return@LaunchedEffect
+        if (previewing != null) {
+            session.onCameraScanning(previewing == true)
+        }
         val deeplink = deepLinkSaved ?: return@LaunchedEffect
 
         when (deeplink) {
@@ -101,12 +87,8 @@ internal fun Scanner(deepLink: DeeplinkType?) {
     }
 
     BillContainer(
-        modifier = Modifier.fillMaxSize().trackVisibility(
-            thresholdPercentage = 1f,
-            onVisibilityChanged = { visibilityInfo = it }
-        ),
         isPaused = isPaused,
-        isCameraReady = previewing,
+        isCameraReady = previewing == true,
         isCameraStarted = cameraStarted,
         onStartCamera = { cameraStarted = true },
         onAction = {
@@ -114,7 +96,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         },
         scannerView = {
             CodeScanner(
-                scanningEnabled = previewing,
+                scanningEnabled = previewing == true,
                 cameraGesturesEnabled = true,
                 invertedDragZoomEnabled = true,
                 onPreviewStateChanged = { previewing = it },
