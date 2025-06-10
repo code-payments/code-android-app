@@ -764,7 +764,6 @@ class RealSessionController @Inject constructor(
             _state.update { it.copy(billResult = action) }
             billController.reset()
             toastController.consumeQueue()
-            shareSheetController.reset()
         }
     }
 }
