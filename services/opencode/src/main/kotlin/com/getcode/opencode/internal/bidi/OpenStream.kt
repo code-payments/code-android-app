@@ -22,7 +22,7 @@ suspend fun <Request, Response, StreamRef : BidirectionalStreamReference<*, *>, 
     reconnectOnDeadlineExceeded: Boolean = false,
     reconnectOnCancelled: Boolean = false,
     reconnectHandler: (() -> Unit)? = null,
-    responseHandler: suspend (Response, (ResultType) -> Unit, (Request) -> Unit) -> Unit
+    responseHandler: suspend (response: Response, onResult: (ResultType) -> Unit, requestChannel: (Request) -> Unit) -> Unit
 ): ResultType {
     return suspendCancellableCoroutine { cont ->
         try {

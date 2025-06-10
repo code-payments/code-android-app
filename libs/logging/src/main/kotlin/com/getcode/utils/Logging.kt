@@ -7,6 +7,7 @@ import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
 import kotlin.time.Duration
+import kotlin.time.TimeSource
 import kotlin.time.measureTime
 
 sealed interface TraceType {
@@ -153,19 +154,33 @@ suspend fun <T> timedTraceSuspend(
     metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null,
     onComplete: (T, Duration) -> Unit = { _, _ -> },
-    block: suspend () -> T
+    block: suspend (onStep: (String) -> Unit) -> T
 ): T {
     var result: T
+    val breadcrumbs = mutableMapOf<String, Duration>()
+    val clock = TimeSource.Monotonic // Use monotonic clock for precise timing
+    val startMark = clock.markNow() // Mark the start of the operation
+    var previousMark = startMark
+
     val time = measureTime {
-        result = block()
+        result = block {stepName ->
+            val currentMark = clock.markNow()
+            val stepDuration = currentMark - previousMark
+            breadcrumbs[stepName] = stepDuration
+            previousMark = currentMark
+        }
     }
 
     val timedMetadata: MetadataBuilder.() -> Unit = {
         // Add the original metadata
         metadata()
-        "duration" to time.inWholeMilliseconds
+        breadcrumbs.entries.onEach {
+            it.key to it.value.inWholeMilliseconds
+        }
+        "total duration" to time.inWholeMilliseconds
     }
 
+    println("metadata=${ metadata { timedMetadata() }}")
     trace(message = message, tag = tag, type = type, metadata = timedMetadata, error = error)
     onComplete(result, time)
     return result

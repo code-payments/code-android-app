@@ -9,8 +9,11 @@ import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.timedTrace
+import com.getcode.utils.timedTraceSuspend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
@@ -37,45 +40,60 @@ internal class ReceiveGiftCardTransactor(
             )
         )
 
+        return timedTraceSuspend("Gift card claim processing") { onStep ->
+
         // before we can receive the gift card
         // we need to determine the balance of it
         val accounts = accountController.getAccounts(
             accountOwner = giftCard.cluster,
             requestingOwner = ownerKey
-        ).getOrElse { return logAndFail(ReceiveGiftTransactorError.FailedToQuery()) }
-            .takeIf { it.isNotEmpty() }
-            ?: return logAndFail(ReceiveGiftTransactorError.FailedToQuery())
-
-        val info = accounts.values.first()
-
-        if (info.claimState == AccountInfo.ClaimState.Claimed) {
-            return logAndFail(ReceiveGiftTransactorError.AlreadyClaimed())
-        }
-
-        if (info.claimState == AccountInfo.ClaimState.Expired || info.claimState == AccountInfo.ClaimState.Unknown) {
-            return logAndFail(ReceiveGiftTransactorError.Expired())
-        }
-
-        if (info.isGiftCardIssuer && !claimIfOwned) {
-            return Result.failure(ReceiveGiftTransactorError.UsersGiftCard())
-        }
-
-        val exchangeData = info.originalExchangeData
-        val amount = LocalFiat(exchangeData)
-
-        return transactionController.receiveRemotely(
-            giftCard = giftCard,
-            amount = amount,
-            owner = ownerKey
-        ).fold(
-            onSuccess = { Result.success(amount) },
-            onFailure = {
-                if (it !is ReceiveGiftTransactorError)  {
-                    ErrorUtils.handleError(it)
-                }
-                logAndFail(it)
+        ).getOrElse {
+            onStep("account query")
+            return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
+        }.takeIf { it.isNotEmpty() }
+            ?: run {
+                onStep("account query")
+                return@timedTraceSuspend  logAndFail(ReceiveGiftTransactorError.FailedToQuery())
             }
-        )
+
+            onStep("account query")
+            val info = accounts.values.first()
+
+            if (info.claimState == AccountInfo.ClaimState.Claimed) {
+                onStep("pre-claim checks")
+                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.AlreadyClaimed())
+            }
+
+            if (info.claimState == AccountInfo.ClaimState.Expired || info.claimState == AccountInfo.ClaimState.Unknown) {
+                onStep("pre-claim checks")
+                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.Expired())
+            }
+
+            if (info.isGiftCardIssuer && !claimIfOwned) {
+                onStep("pre-claim checks")
+                return@timedTraceSuspend Result.failure(ReceiveGiftTransactorError.UsersGiftCard())
+            }
+
+            val exchangeData = info.originalExchangeData
+            val amount = LocalFiat(exchangeData)
+
+            return@timedTraceSuspend transactionController.receiveRemotely(
+                giftCard = giftCard,
+                amount = amount,
+                owner = ownerKey
+            ).fold(
+                onSuccess = {
+                    onStep("intent")
+                    Result.success(amount) },
+                onFailure = {
+                    onStep("intent")
+                    if (it !is ReceiveGiftTransactorError) {
+                        ErrorUtils.handleError(it)
+                    }
+                    logAndFail(it)
+                }
+            )
+        }
     }
 
     fun dispose() {

@@ -241,7 +241,6 @@ internal class TransactionService @Inject constructor(
                 }
 
                 SubmitIntentResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
-                else -> Unit
             }
         }
     )
