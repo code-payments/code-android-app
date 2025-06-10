@@ -71,6 +71,9 @@ class UserManager @Inject constructor(
     val authState: AuthState
         get() = _state.value.authState
 
+    val isRegistered: Boolean
+        get() = _state.value.flags?.isRegistered == true
+
     data class State(
         val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,

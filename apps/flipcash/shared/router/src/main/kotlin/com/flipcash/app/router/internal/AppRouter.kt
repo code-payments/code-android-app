@@ -27,15 +27,21 @@ internal class AppRouter(
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
                 is DeeplinkType.Login -> {
-                    if (userManager.authState is AuthState.LoggedIn) {
+                    if (userManager.authState is AuthState.LoggedIn && userManager.isRegistered) {
                         listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
                     } else {
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home(type.entropy, true)))
                     }
                 }
-                is DeeplinkType.CashLink -> listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                is DeeplinkType.CashLink -> {
+                    if (userManager.authState is AuthState.LoggedIn && userManager.isRegistered) {
+                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                    } else {
+                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    }
+                }
             }
-        } ?: emptyList()
+        }.orEmpty()
     }
 
     override fun processType(deeplink: DeepLink?): DeeplinkType? {
