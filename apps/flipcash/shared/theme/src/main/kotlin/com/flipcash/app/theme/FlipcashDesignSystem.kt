@@ -15,7 +15,6 @@ import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.Error
 import com.getcode.theme.Gray50
-import com.getcode.theme.Success
 import com.getcode.theme.TextError
 import com.getcode.theme.Warning
 import com.getcode.theme.White
@@ -24,14 +23,14 @@ import com.getcode.theme.White10
 import com.getcode.theme.White20
 import com.getcode.theme.codeTypography
 
-private object ColorSpec {
+object FlipcashColorSpec {
     val primary = Color(0xFF001A0C)
     val primaryLight = Color(0xFF09550B)
     val secondaryText = Color(115, 129, 121)
     val cashBill = Color(0xFF06450F)
 }
 
-private val colors = with(ColorSpec) {
+private val colors = with(FlipcashColorSpec) {
     ColorScheme(
         brand = primary,
         brandLight = primaryLight,

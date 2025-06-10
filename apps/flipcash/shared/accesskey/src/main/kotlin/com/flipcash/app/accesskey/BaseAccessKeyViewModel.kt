@@ -42,6 +42,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import com.getcode.theme.R as themeR
 import androidx.core.graphics.createBitmap
+import com.flipcash.app.theme.FlipcashColorSpec
 
 
 data class AccessKeyUiModel(
@@ -170,7 +171,7 @@ abstract class BaseAccessKeyViewModel(
 
             if (drawBackground) {
                 val paintBackground = Paint()
-                paintBackground.color = Brand.toAGColor()
+                paintBackground.color = FlipcashColorSpec.primary.toAGColor()
                 paintBackground.style = Paint.Style.FILL
                 drawPaint(paintBackground)
             }
