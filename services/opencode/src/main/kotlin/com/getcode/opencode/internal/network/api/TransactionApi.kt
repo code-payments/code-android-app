@@ -34,7 +34,7 @@ class TransactionApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = TransactionGrpcKt.TransactionCoroutineStub(managedChannel).withWaitForReady()
+    private val api = TransactionGrpcKt.TransactionCoroutineStub(managedChannel)
 
     /**
      * The mechanism for client and server to agree upon a set of

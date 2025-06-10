@@ -17,8 +17,7 @@ class PushApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
 
-    private val api
-        get() = PushGrpcKt.PushCoroutineStub(managedChannel).withWaitForReady()
+    private val api = PushGrpcKt.PushCoroutineStub(managedChannel)
 
     /**
      * Adds a push token associated with a user.

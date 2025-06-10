@@ -17,8 +17,7 @@ internal class CurrencyApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = CurrencyGrpcKt.CurrencyCoroutineStub(managedChannel).withWaitForReady()
-
+    private val api = CurrencyGrpcKt.CurrencyCoroutineStub(managedChannel)
     /**
      * Returns the exchange rates for the core mint token against all available currencies
      *

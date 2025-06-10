@@ -10,14 +10,17 @@ import com.getcode.opencode.internal.network.extensions.sign
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class AccountApi @Inject constructor(
     @OpenCodeManagedChannel
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = AccountGrpcKt.AccountCoroutineStub(managedChannel).withWaitForReady()
+    private val api = AccountGrpcKt.AccountCoroutineStub(managedChannel)
 
     /**
      * Returns whether an owner account is a Code account. This hints

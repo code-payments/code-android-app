@@ -6,7 +6,6 @@ import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.core.errors.CodeAccountCheckError
 import com.getcode.opencode.model.core.errors.GetAccountsError
-import com.getcode.opencode.model.core.errors.LinkAccountsError
 import com.getcode.solana.keys.PublicKey
 import javax.inject.Inject
 

@@ -22,8 +22,7 @@ class ActivityFeedApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
 
-    private val api
-        get() = ActivityFeedGrpcKt.ActivityFeedCoroutineStub(managedChannel).withWaitForReady()
+    private val api = ActivityFeedGrpcKt.ActivityFeedCoroutineStub(managedChannel)
 
     /**
      * Gets the latest [maxItems] notifications in a user's activity feed.

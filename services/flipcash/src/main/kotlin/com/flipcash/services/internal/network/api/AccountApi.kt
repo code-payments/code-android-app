@@ -21,8 +21,7 @@ class AccountApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
 
-    private val api
-        get() = AccountGrpcKt.AccountCoroutineStub(managedChannel).withWaitForReady()
+    private val api = AccountGrpcKt.AccountCoroutineStub(managedChannel)
 
     /**
      * Registers a new user, bound to the provided PublicKey.

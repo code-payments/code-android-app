@@ -22,7 +22,7 @@ internal class MessagingApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = MessagingGrpcKt.MessagingCoroutineStub(managedChannel).withWaitForReady()
+    private val api = MessagingGrpcKt.MessagingCoroutineStub(managedChannel)
 
     /**
      * Opens a stream of messages. Messages are routed using the public key of a rendezvous keypair
