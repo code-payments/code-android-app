@@ -8,7 +8,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.features.purchase.BuildConfig
 import com.flipcash.features.purchase.R
-import com.flipcash.app.billing.BillingClientState
+import com.flipcash.app.billing.BillingClientConnection
 import com.flipcash.app.billing.IapPaymentEvent
 import com.flipcash.app.billing.IapProduct
 import com.flipcash.app.billing.ProductPrice
@@ -43,6 +43,7 @@ internal class PurchaseAccountViewModel @Inject constructor(
         internal val productToBuy: IapProduct? = null,
         internal val costOfAccount: ProductPrice? = null,
         private val formattedCost: String = "",
+        val isPurchasePending: Boolean = false,
         val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val hasProduct: Boolean
@@ -105,12 +106,13 @@ internal class PurchaseAccountViewModel @Inject constructor(
         data class OnPriceFormatted(val cost: String) : Event
         data class BuyAccount(val activity: Activity) : Event
         data class OnCreatingChanged(val creating: Boolean, val created: Boolean = false) : Event
+        data class OnPurchasePending(val pending: Boolean): Event
         data object OnAccountCreated : Event
     }
 
     init {
         billingClient.state
-            .filter { it == BillingClientState.Connected }
+            .filter { it.connectionState == BillingClientConnection.Connected }
             .onEach {
                 val receivedWelcomeBonus =
                     billingClient.hasPaidFor(IapProduct.CreateAccountWithWelcomeBonus)
@@ -126,6 +128,13 @@ internal class PurchaseAccountViewModel @Inject constructor(
                         cost = cost
                     )
                 )
+            }.launchIn(viewModelScope)
+
+        billingClient.state
+            .filter { it.connectionState == BillingClientConnection.Connected }
+            .map { it.isPurchasePending }
+            .onEach {
+                dispatchEvent(Event.OnPurchasePending(it))
             }.launchIn(viewModelScope)
 
         stateFlow
@@ -200,6 +209,8 @@ internal class PurchaseAccountViewModel @Inject constructor(
                         )
                     )
                 }
+
+                is Event.OnPurchasePending -> { state -> state.copy(isPurchasePending = event.pending) }
             }
         }
     }

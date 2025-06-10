@@ -22,6 +22,7 @@ import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
 import com.flipcash.app.billing.BillingClient
+import com.flipcash.app.billing.BillingClientConnection
 import com.flipcash.app.billing.BillingClientState
 import com.flipcash.app.billing.IapPaymentError
 import com.flipcash.app.billing.IapPaymentEvent
@@ -75,7 +76,12 @@ internal class GooglePlayBillingClient(
     private val _eventFlow: MutableSharedFlow<IapPaymentEvent> = MutableSharedFlow()
     override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
 
-    private val _stateFlow = MutableStateFlow(BillingClientState.Disconnected)
+    private val _stateFlow = MutableStateFlow(
+        BillingClientState(
+            connectionState = BillingClientConnection.Disconnected,
+            isPurchasePending = false
+        )
+    )
     override val state: StateFlow<BillingClientState>
         get() = _stateFlow.asStateFlow()
 
@@ -111,19 +117,30 @@ internal class GooglePlayBillingClient(
         } else if (billingResult.responseCode == BillingResponseCode.USER_CANCELED) {
             // Handle an error caused by a user canceling the purchase flow.
             scope.launch { _eventFlow.emit(IapPaymentEvent.OnCancelled) }
+        } else if (purchases != null && billingResult.responseCode == BillingResponseCode.ERROR && _stateFlow.value.isPurchasePending) {
+            // pending transaction resulted in an error
+            scope.launch {
+                _stateFlow.update { it.copy(isPurchasePending = false) }
+                _eventFlow.emit(
+                    IapPaymentEvent.OnError(
+                        purchases.maxBy { it.purchaseTime }.products.firstOrNull() ?: "NONE",
+                        Throwable("Pending purchase failed with ${billingResult.debugMessage}")
+                    )
+                )
+            }
         }
     }
 
     override fun connect() {
         if (_stateFlow.value.canConnect()) {
-            _stateFlow.update { BillingClientState.Connecting }
+            _stateFlow.update { it.copy(connectionState = BillingClientConnection.Connecting) }
             client.startConnection(clientStateListener)
         }
     }
 
     override fun disconnect() {
         runCatching {
-            _stateFlow.update { BillingClientState.Disconnected }
+            _stateFlow.update { it.copy(connectionState = BillingClientConnection.Disconnected) }
         }
     }
 
@@ -155,7 +172,8 @@ internal class GooglePlayBillingClient(
         return details?.oneTimePurchaseOfferDetails?.let {
             ProductPrice(
                 amount = it.priceAmountMicros / 1_000_000.0,
-                currency = CurrencyCode.Companion.tryValueOf(it.priceCurrencyCode) ?: CurrencyCode.USD
+                currency = CurrencyCode.Companion.tryValueOf(it.priceCurrencyCode)
+                    ?: CurrencyCode.USD
             )
         }
     }
@@ -192,6 +210,12 @@ internal class GooglePlayBillingClient(
 
     private fun completePurchase(item: Purchase, isFromRestore: Boolean = false) {
         printLog("complete purchase ${item.orderId} ack=${item.isAcknowledged}")
+        if (item.purchaseState == Purchase.PurchaseState.PENDING) {
+            printLog("purchase state is pending; awaiting for purchase confirmation")
+            _stateFlow.update { it.copy(isPurchasePending = true) }
+            return
+        }
+
         if (!item.isAcknowledged) {
             scope.launch {
                 val productId = item.products.first()
@@ -319,31 +343,32 @@ internal class GooglePlayBillingClient(
         }
     }
 
-    private suspend fun queryProduct(productId: String): ProductDetails? = suspendCancellableCoroutine { cont ->
-        val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                ImmutableList.of(
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productId)
-                        .setProductType(ProductType.INAPP)
-                        .build()
+    private suspend fun queryProduct(productId: String): ProductDetails? =
+        suspendCancellableCoroutine { cont ->
+            val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(
+                    ImmutableList.of(
+                        QueryProductDetailsParams.Product.newBuilder()
+                            .setProductId(productId)
+                            .setProductType(ProductType.INAPP)
+                            .build()
+                    )
                 )
-            )
-            .build()
+                .build()
 
-        client.queryProductDetailsAsync(
-            queryProductDetailsParams
-        ) { result, productDetailsList ->
-            printLog("QUERY $productId ${result.debugMessage}")
-            printLog("products for $productId = ${productDetailsList.count()}")
-            if (productDetailsList.isNotEmpty()) {
-                productDetails[productId] = productDetailsList.first()
-                cont.resume(productDetailsList.first())
-            } else {
-                cont.resume(null)
+            client.queryProductDetailsAsync(
+                queryProductDetailsParams
+            ) { result, productDetailsList ->
+                printLog("QUERY $productId ${result.debugMessage}")
+                printLog("products for $productId = ${productDetailsList.count()}")
+                if (productDetailsList.isNotEmpty()) {
+                    productDetails[productId] = productDetailsList.first()
+                    cont.resume(productDetailsList.first())
+                } else {
+                    cont.resume(null)
+                }
             }
         }
-    }
 
     private fun restorePurchases() {
         val queryPurchasesParams = QueryPurchasesParams.newBuilder()
@@ -370,18 +395,18 @@ internal class GooglePlayBillingClient(
                 printLog("connected!")
                 retryAttempt = 0 // Reset retry count
 
-                _stateFlow.update { BillingClientState.Connected }
+                _stateFlow.update { it.copy(connectionState = BillingClientConnection.Connected) }
                 queryProducts()
                 restorePurchases()
             } else {
-                _stateFlow.update { BillingClientState.Failed }
+                _stateFlow.update { it.copy(connectionState = BillingClientConnection.Failed) }
                 handleConnectionFailure(billingResult)
             }
         }
 
         override fun onBillingServiceDisconnected() {
             printLog("connection lost")
-            _stateFlow.update { BillingClientState.ConnectionLost }
+            _stateFlow.update { it.copy(connectionState = BillingClientConnection.ConnectionLost) }
             retryBillingConnection()
         }
     }

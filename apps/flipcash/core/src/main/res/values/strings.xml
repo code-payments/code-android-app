@@ -24,6 +24,7 @@
     <string name="subtitle_logoutAndLoginConfirmation">Please ensure you have saved your Access Key before proceeding. Would you like to logout and login with a new account?</string>
 
     <string name="action_purchaseAccount">Buy Your Account</string>
+    <string name="title_purchaseAccountPending">Purchase Pending</string>
 
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
     <string name="error_description_failedToPurchaseItem">Something went wrong during payment. Please try again later</string>

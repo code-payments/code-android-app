@@ -42,7 +42,12 @@ object StubBillingClient: BillingClient {
     private val _eventFlow: MutableSharedFlow<IapPaymentEvent> = MutableSharedFlow()
     override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
 
-    private val _stateFlow = MutableStateFlow(BillingClientState.Disconnected)
+    private val _stateFlow = MutableStateFlow(
+        BillingClientState(
+            connectionState = BillingClientConnection.Disconnected,
+            isPurchasePending = false
+        )
+    )
     override val state: StateFlow<BillingClientState> = _stateFlow.asStateFlow()
 
     data class State(

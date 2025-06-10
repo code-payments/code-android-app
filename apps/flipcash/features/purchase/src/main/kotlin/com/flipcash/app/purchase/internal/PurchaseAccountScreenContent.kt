@@ -93,10 +93,14 @@ private fun PurchaseAccountScreenContent(
                     modifier = Modifier
                         .fillMaxWidth(),
                     buttonState = ButtonState.Filled,
-                    enabled = state.hasProduct,
+                    enabled = state.hasProduct && !state.isPurchasePending,
                     isLoading = state.creatingAccount.loading,
                     isSuccess = state.creatingAccount.success,
-                    text = stringResource(R.string.action_purchaseAccount),
+                    text = if (state.isPurchasePending) {
+                        stringResource(R.string.title_purchaseAccountPending)
+                    } else {
+                        stringResource(R.string.action_purchaseAccount)
+                    },
                 ) {
                     context.getActivity()?.let { activity ->
                         dispatchEvent(PurchaseAccountViewModel.Event.BuyAccount(activity))
@@ -145,6 +149,13 @@ private fun PurchaseAccountScreenContent(
                     CodeCircularProgressIndicator()
                 }
             }
+
+            if (state.isPurchasePending) {
+                CodeCircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                        .padding(bottom = CodeTheme.dimens.inset)
+                )
+            }
         }
     }
 }
@@ -178,6 +189,24 @@ private fun Preview_NoBonus_Usd() {
                     currency = CurrencyCode.USD
                 ),
                 formattedCost = "$20"
+            ),
+        ) { }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_Pending() {
+    FlipcashDesignSystem {
+        PurchaseAccountScreenContent(
+            state = PurchaseAccountViewModel.State(
+                productToBuy = IapProduct.CreateAccount,
+                costOfAccount = ProductPrice(
+                    amount = 20.00,
+                    currency = CurrencyCode.USD
+                ),
+                formattedCost = "$20",
+                isPurchasePending = true
             ),
         ) { }
     }
