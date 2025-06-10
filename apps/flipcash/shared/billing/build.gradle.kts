@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.shared.session"
+    namespace = "${Gradle.flipcashNamespace}.shared.billing"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -32,6 +32,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -42,19 +43,28 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
+    implementation(Libs.timber)
+
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
+    implementation(Libs.compose_foundation)
+    implementation(Libs.compose_material)
+    implementation(Libs.compose_materialIconsExtended)
 
-    implementation(project(":apps:flipcash:shared:activityfeed"))
-    implementation(project(":apps:flipcash:shared:appsettings"))
-    implementation(project(":apps:flipcash:shared:billing"))
-    implementation(project(":apps:flipcash:shared:featureflags"))
-    implementation(project(":apps:flipcash:shared:shareable"))
-    implementation(project(":apps:flipcash:shared:workers"))
+    implementation(Libs.androidx_datastore)
+
+    api(Libs.google_play_billing_runtime)
+    api(Libs.google_play_billing_ktx)
+
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":services:flipcash"))
+    implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-    implementation(project(":libs:vibrator:bindings"))
+    implementation(project(":ui:analytics"))
+    implementation(project(":ui:core"))
+    implementation(project(":ui:components"))
+    implementation(project(":ui:navigation"))
+    implementation(project(":ui:resources"))
+    implementation(project(":ui:theme"))
+    implementation(Libs.rinku_compose)
 }

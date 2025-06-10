@@ -1,6 +1,7 @@
-package com.flipcash.services.billing
+package com.flipcash.app.billing
 
 import android.app.Activity
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.android.billingclient.api.BillingResult
 import com.getcode.opencode.model.financial.CurrencyCode
 import kotlinx.coroutines.delay
@@ -58,3 +59,5 @@ object StubBillingClient: BillingClient {
         _eventFlow.emit(IapPaymentEvent.OnSuccess(product.productId))
     }
 }
+
+val LocalBillingClient = staticCompositionLocalOf<BillingClient> { StubBillingClient }

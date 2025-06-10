@@ -1,4 +1,4 @@
-package com.flipcash.services.billing
+package com.flipcash.app.billing
 
 enum class BillingClientState {
     Disconnected,

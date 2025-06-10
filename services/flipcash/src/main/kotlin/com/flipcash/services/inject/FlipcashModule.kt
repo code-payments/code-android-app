@@ -1,11 +1,8 @@
 package com.flipcash.services.inject
 
 import android.content.Context
-import com.flipcash.services.analytics.FlipcashAnalyticsService
-import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
-import com.flipcash.services.internal.billing.GooglePlayBillingClient
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
 import com.flipcash.services.internal.network.services.AccountService
@@ -20,16 +17,12 @@ import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
-import com.flipcash.services.user.UserManager
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ActivityComponent
-import dagger.hilt.android.components.ActivityRetainedComponent
-import dagger.hilt.android.qualifiers.ActivityContext
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.grpc.ManagedChannel
@@ -103,13 +96,4 @@ internal object FlipcashModule {
     internal fun providesPushRepository(
         service: PushService,
     ): PushRepository = InternalPushRepository(service)
-
-    @Provides
-    @Singleton
-    internal fun providesBillingClient(
-        @ApplicationContext context: Context,
-        repository: PurchaseRepository,
-        userManager: UserManager,
-        analytics: FlipcashAnalyticsService
-    ): BillingClient = GooglePlayBillingClient(context, userManager, repository, analytics)
 }

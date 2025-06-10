@@ -1,4 +1,4 @@
-package com.flipcash.services.internal.billing
+package com.flipcash.app.billing.internal
 
 import android.app.Activity
 import android.content.Context
@@ -6,6 +6,8 @@ import android.os.Handler
 import android.os.Looper
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient.BillingResponseCode
+import com.android.billingclient.api.BillingClient.ProductType
+import com.android.billingclient.api.BillingClient.newBuilder
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
@@ -13,34 +15,26 @@ import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
-import com.android.billingclient.api.Purchase.PurchaseState
 import com.android.billingclient.api.PurchasesResponseListener
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
+import com.flipcash.app.billing.BillingClient
+import com.flipcash.app.billing.BillingClientState
+import com.flipcash.app.billing.IapPaymentError
+import com.flipcash.app.billing.IapPaymentEvent
+import com.flipcash.app.billing.IapProduct
+import com.flipcash.app.billing.ProductPrice
 import com.flipcash.services.analytics.FlipcashAnalyticsService
-import com.flipcash.services.billing.BillingClient
-import com.flipcash.services.billing.BillingClientState
-import com.flipcash.services.billing.IapPaymentError
-import com.flipcash.services.billing.IapPaymentEvent
-import com.flipcash.services.billing.IapProduct
-import com.flipcash.services.billing.ProductPrice
-import com.flipcash.services.internal.extensions.asPublicKey
+import com.flipcash.services.controllers.PurchaseController
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
-import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.MetadataBuilder
-import com.getcode.utils.SuppressibleException
-import com.getcode.utils.TraceType
-import com.getcode.utils.network.retryable
-import com.getcode.utils.trace
-import com.google.common.collect.ImmutableList
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,14 +47,19 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import com.getcode.utils.SuppressibleException
+import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
+import com.getcode.utils.trace
+import com.google.common.collect.ImmutableList
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlin.coroutines.resume
 import kotlin.math.pow
-import com.android.billingclient.api.BillingClient as GooglePlayBillingClient
 
 internal class GooglePlayBillingClient(
     @ApplicationContext context: Context,
     private val userManager: UserManager,
-    private val purchaseRepository: PurchaseRepository,
+    private val purchases: PurchaseController,
     private val analytics: FlipcashAnalyticsService,
 ) : BillingClient, PurchasesUpdatedListener {
 
@@ -80,7 +79,7 @@ internal class GooglePlayBillingClient(
     override val state: StateFlow<BillingClientState>
         get() = _stateFlow.asStateFlow()
 
-    private val client = GooglePlayBillingClient.newBuilder(context)
+    private val client = newBuilder(context)
         .setListener(this)
         .enablePendingPurchases(
             PendingPurchasesParams.newBuilder()
@@ -90,7 +89,7 @@ internal class GooglePlayBillingClient(
         .build()
 
     private val productDetails = mutableMapOf<String, ProductDetails>()
-    private val purchases = mutableMapOf<String, Int>()
+    private val _purchases = mutableMapOf<String, Int>()
 
     override fun onPurchasesUpdated(
         billingResult: BillingResult,
@@ -129,7 +128,7 @@ internal class GooglePlayBillingClient(
     }
 
     override fun hasPaidFor(product: IapProduct) =
-        purchases[product.productId] == PurchaseState.PURCHASED
+        _purchases[product.productId] == Purchase.PurchaseState.PURCHASED
 
     override suspend fun costOf(product: IapProduct): ProductPrice? {
         return costOf(product.productId)
@@ -156,7 +155,7 @@ internal class GooglePlayBillingClient(
         return details?.oneTimePurchaseOfferDetails?.let {
             ProductPrice(
                 amount = it.priceAmountMicros / 1_000_000.0,
-                currency = CurrencyCode.tryValueOf(it.priceCurrencyCode) ?: CurrencyCode.USD
+                currency = CurrencyCode.Companion.tryValueOf(it.priceCurrencyCode) ?: CurrencyCode.USD
             )
         }
     }
@@ -224,8 +223,7 @@ internal class GooglePlayBillingClient(
 
 
                 val owner = userManager.accountCluster?.authority?.keyPair!!
-                purchaseRepository.onPurchaseCompleted(
-                    owner = owner,
+                purchases.onPurchaseCompleted(
                     receipt = receipt,
                     metadata = IapMetadata(
                         product = productId,
@@ -261,7 +259,7 @@ internal class GooglePlayBillingClient(
             }
         }
 
-        purchases[item.products.first()] = item.purchaseState
+        _purchases[item.products.first()] = item.purchaseState
     }
 
     private fun acknowledgeOrConsume(item: Purchase) {
@@ -327,7 +325,7 @@ internal class GooglePlayBillingClient(
                 ImmutableList.of(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(productId)
-                        .setProductType(GooglePlayBillingClient.ProductType.INAPP)
+                        .setProductType(ProductType.INAPP)
                         .build()
                 )
             )
@@ -349,7 +347,7 @@ internal class GooglePlayBillingClient(
 
     private fun restorePurchases() {
         val queryPurchasesParams = QueryPurchasesParams.newBuilder()
-            .setProductType(GooglePlayBillingClient.ProductType.INAPP)
+            .setProductType(ProductType.INAPP)
             .build()
 
         client.queryPurchasesAsync(

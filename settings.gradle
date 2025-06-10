@@ -13,6 +13,7 @@ include(
         ":apps:flipcash:shared:appsettings",
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",
+        ":apps:flipcash:shared:billing",
         ":apps:flipcash:shared:currency-selection:core",
         ":apps:flipcash:shared:currency-selection:ui",
         ":apps:flipcash:shared:featureflags",

@@ -4,6 +4,7 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.activityfeed.ActivityFeedUpdater
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
@@ -27,7 +28,6 @@ import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.core.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
-import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager

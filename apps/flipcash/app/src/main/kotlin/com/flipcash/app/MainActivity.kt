@@ -12,6 +12,8 @@ import androidx.fragment.app.FragmentActivity
 import com.flipcash.android.app.BuildConfig
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.appsettings.LocalAppSettings
+import com.flipcash.app.billing.BillingClient
+import com.flipcash.app.billing.LocalBillingClient
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
@@ -22,8 +24,6 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.ShareSheetController
-import com.flipcash.services.LocalBillingClient
-import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.exchange.Exchange
