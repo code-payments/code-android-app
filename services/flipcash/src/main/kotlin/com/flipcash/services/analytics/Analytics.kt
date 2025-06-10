@@ -1,33 +1,41 @@
 package com.flipcash.services.analytics
 
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
 import com.getcode.utils.TraceType
+import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.perf.ktx.performance
 import com.google.firebase.perf.metrics.Trace
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import org.json.JSONObject
-import timber.log.Timber
 import javax.inject.Inject
 
 interface FlipcashAnalyticsService : AnalyticsService {
     fun transfer(
-        event: AnalyticsEvent,
+        event: AnalyticsEvent.Transfer,
         amount: LocalFiat? = null,
         successful: Boolean = true,
         error: Throwable? = null
     )
     fun transfer(
-        event: AnalyticsEvent,
+        event: AnalyticsEvent.Transfer,
         fiat: Fiat? = null,
         successful: Boolean = true,
         error: Throwable? = null
+    )
+
+    fun paidForAccount(
+        price: Double,
+        currency: CurrencyCode,
+        owner: KeyPair,
     )
 }
 
@@ -63,13 +71,19 @@ class FlipcashAnalyticsManager @Inject constructor(
 
     override fun action(action: AppAction, source: AppActionSource?) = Unit
 
-    override fun transfer(event: AnalyticsEvent, amount: LocalFiat?, successful: Boolean, error: Throwable?) {
+    override fun transfer(event: AnalyticsEvent.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) {
         val properties = event.properties(localizedAmount = amount, successful = successful, error = error)
         track(event.name, *properties.toList().toTypedArray())
     }
 
-    override fun transfer(event: AnalyticsEvent, fiat: Fiat?, successful: Boolean, error: Throwable?) {
+    override fun transfer(event: AnalyticsEvent.Transfer, fiat: Fiat?, successful: Boolean, error: Throwable?) {
         val properties = event.properties(nativeAmount = fiat, successful = successful, error = error)
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
+        val event = AnalyticsEvent.PaidForAccount(price, currency, owner)
+        val properties = event.properties()
         track(event.name, *properties.toList().toTypedArray())
     }
 
@@ -90,25 +104,51 @@ class FlipcashAnalyticsManager @Inject constructor(
     }
 }
 
-sealed class AnalyticsEvent(val name: String) {
-    data object GrabBill : AnalyticsEvent("Grab Bill")
-    data object GiveBill : AnalyticsEvent("Give Bill")
-    data object Withdrawal : AnalyticsEvent("Withdrawal")
-    data class SentCashLink(val clipboard: Boolean? = null, val app: String? = null) : AnalyticsEvent("Sent Cash Link")
-    data object ClaimedCashLink : AnalyticsEvent("Receive Cash Link")
+sealed interface AnalyticsEvent {
+
+    val name: String
+    data class PaidForAccount(
+        val price: Double,
+        val currency: CurrencyCode,
+        val owner: KeyPair
+    ) : AnalyticsEvent {
+        override val name: String = "Create Account Payment"
+    }
+
+    sealed interface Transfer : AnalyticsEvent
+    data object GrabBill : Transfer {
+        override val name: String = "Grab Bill"
+    }
+    data object GiveBill : Transfer {
+        override val name: String = "Give Bill"
+    }
+    data object Withdrawal : Transfer {
+        override val name: String = "Withdrawal"
+    }
+    data class SentCashLink(
+        val clipboard: Boolean? = null,
+        val app: String? = null
+    ) : Transfer {
+        override val name: String = "Send Cash Link"
+    }
+    data object ClaimedCashLink : Transfer {
+        override val name: String = "Receive Cash Link"
+    }
 }
 
 private fun AnalyticsEvent.properties(
     localizedAmount: LocalFiat? = null,
     nativeAmount: Fiat? = null,
-    successful: Boolean,
-    error: Throwable?
+    successful: Boolean? = null,
+    error: Throwable? = null,
 ): Map<String, String> {
     return buildMap {
-        if (successful) {
-            put("State", "Success")
-        } else {
-            put("State", "Failure")
+        if (successful != null) {
+            if (successful) {
+                put("State", "Success")
+            } else {
+                put("State", "Failure")
+            }
         }
 
         when (val event = this@properties) {
@@ -124,6 +164,12 @@ private fun AnalyticsEvent.properties(
             AnalyticsEvent.ClaimedCashLink,
             AnalyticsEvent.GiveBill,
             AnalyticsEvent.GrabBill -> Unit
+
+            is AnalyticsEvent.PaidForAccount -> {
+                put("Fiat", event.price.toString())
+                put("Currency", event.currency.name)
+                put("Owner Public Key", event.owner.getPublicKeyBase58())
+            }
         }
 
         if (localizedAmount != null) {

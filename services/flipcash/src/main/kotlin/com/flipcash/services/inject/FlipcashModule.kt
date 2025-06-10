@@ -1,6 +1,7 @@
 package com.flipcash.services.inject
 
 import android.content.Context
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
@@ -109,5 +110,6 @@ internal object FlipcashModule {
         @ApplicationContext context: Context,
         repository: PurchaseRepository,
         userManager: UserManager,
-    ): BillingClient = GooglePlayBillingClient(context, userManager, repository)
+        analytics: FlipcashAnalyticsService
+    ): BillingClient = GooglePlayBillingClient(context, userManager, repository, analytics)
 }

@@ -20,12 +20,14 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.billing.BillingClient
 import com.flipcash.services.billing.BillingClientState
 import com.flipcash.services.billing.IapPaymentError
 import com.flipcash.services.billing.IapPaymentEvent
 import com.flipcash.services.billing.IapProduct
 import com.flipcash.services.billing.ProductPrice
+import com.flipcash.services.internal.extensions.asPublicKey
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.repository.PurchaseRepository
@@ -58,7 +60,8 @@ import com.android.billingclient.api.BillingClient as GooglePlayBillingClient
 internal class GooglePlayBillingClient(
     @ApplicationContext context: Context,
     private val userManager: UserManager,
-    private val purchaseRepository: PurchaseRepository
+    private val purchaseRepository: PurchaseRepository,
+    private val analytics: FlipcashAnalyticsService,
 ) : BillingClient, PurchasesUpdatedListener {
 
     companion object {
@@ -209,7 +212,7 @@ internal class GooglePlayBillingClient(
                 val receipt = Receipt(item.purchaseToken)
 
                 printLog(
-                    message = "completing purchasen",
+                    message = "completing purchase",
                     metadata = {
                         "token" to item.purchaseToken
                         "product" to productId
@@ -219,8 +222,10 @@ internal class GooglePlayBillingClient(
                     }
                 )
 
+
+                val owner = userManager.accountCluster?.authority?.keyPair!!
                 purchaseRepository.onPurchaseCompleted(
-                    owner = userManager.accountCluster?.authority?.keyPair!!,
+                    owner = owner,
                     receipt = receipt,
                     metadata = IapMetadata(
                         product = productId,
@@ -228,6 +233,11 @@ internal class GooglePlayBillingClient(
                         currency = purchasePrice.currency
                     )
                 ).onSuccess {
+                    analytics.paidForAccount(
+                        price = purchasePrice.amount,
+                        currency = purchasePrice.currency,
+                        owner = owner,
+                    )
                     acknowledgeOrConsume(item)
                 }.onFailure {
                     val cause = if (isFromRestore) SuppressibleException(it) else it
