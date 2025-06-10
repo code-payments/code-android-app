@@ -142,7 +142,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                     listOf(
                         ScreenRegistry.get(NavScreenProvider.Login.Home()),
                         ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
-                        ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase)
+                        ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase())
                     )
                 } else {
                     listOf(

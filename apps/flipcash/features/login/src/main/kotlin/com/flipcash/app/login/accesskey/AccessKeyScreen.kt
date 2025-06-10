@@ -101,7 +101,7 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
                 onBackIconClicked = { navigator.pop() },
             )
             AccessKeyScreen(viewModel) {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase))
+                navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase()))
             }
         }
     }

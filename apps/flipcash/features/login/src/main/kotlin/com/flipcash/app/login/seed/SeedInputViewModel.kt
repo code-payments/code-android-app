@@ -9,6 +9,9 @@ import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.features.login.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
+import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.user.UserManager
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
@@ -39,6 +42,8 @@ data class SeedInputUiModel(
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
     private val authManager: AuthManager,
+    private val accountController: AccountController,
+    private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
     private val permissionChecker: PermissionChecker,
@@ -83,7 +88,11 @@ class SeedInputViewModel @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    fun performLogin(navigator: CodeNavigator, entropyB64: String, deeplink: Boolean = false, isRestore: Boolean = false) {
+    fun performLogin(
+        navigator: CodeNavigator,
+        entropyB64: String,
+        isRestore: Boolean = false
+    ) {
         viewModelScope.launch {
             setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
             authManager.login(entropyB64, isFromSelection = isRestore)
@@ -100,20 +109,44 @@ class SeedInputViewModel @Inject constructor(
                     setState(isLoading = false, isSuccess = false, isContinueEnabled = true)
                 }
                 .onSuccess {
-                    setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
-                    delay(if (deeplink) 0.seconds else 1.seconds)
-                    when {
-                        permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                            navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Notification()))
-                        }
-
-                        permissionChecker.isDenied(Manifest.permission.CAMERA) -> {
-                            navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera()))
-                        }
-
-                        else -> navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                    val userFlags = userManager.userFlags
+                    if (userFlags == null) {
+                        accountController.getUserFlags()
+                            .onSuccess {
+                                postLoginNavigation(navigator, it)
+                            }.onFailure {
+                                setState(isLoading = false, isSuccess = false, isContinueEnabled = false)
+                                BottomBarManager.showError(
+                                    getString(R.string.error_title_loginFailed),
+                                    getString(R.string.error_description_loginFailed)
+                                )
+                            }
+                    } else {
+                        postLoginNavigation(navigator, userFlags)
                     }
                 }
+        }
+    }
+
+    private suspend fun postLoginNavigation(
+        navigator: CodeNavigator,
+        flags: UserFlags,
+    ) {
+        setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
+        delay(1.seconds)
+        when {
+            !flags.isRegistered -> {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase(true)))
+            }
+            permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Notification()))
+            }
+
+            permissionChecker.isDenied(Manifest.permission.CAMERA) -> {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera()))
+            }
+
+            else -> navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
         }
     }
 

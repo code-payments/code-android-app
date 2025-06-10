@@ -25,8 +25,8 @@ sealed class NavScreenProvider : ScreenProvider {
     }
 
     sealed interface CreateAccount {
-        data object Purchase : NavScreenProvider()
         data object AccessKey : NavScreenProvider()
+        data class Purchase(val fromLogin: Boolean = false) : NavScreenProvider()
     }
 
     sealed interface HomeScreen {

@@ -11,7 +11,9 @@ import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class PurchaseAccountScreen: Screen, Parcelable {
+class PurchaseAccountScreen(
+    private val fromLogin: Boolean = false
+) : Screen, Parcelable {
 
     @Composable
     override fun Content() {
@@ -19,7 +21,13 @@ class PurchaseAccountScreen: Screen, Parcelable {
         Column {
             AppBarWithTitle(
                 backButton = true,
-                onBackIconClicked = { navigator.pop() },
+                onBackIconClicked = {
+                    if (fromLogin) {
+                        navigator.popAll()
+                    } else {
+                        navigator.pop()
+                    }
+                }
             )
             PurchaseAccountScreen(getViewModel())
         }

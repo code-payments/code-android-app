@@ -45,7 +45,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.CreateAccount.Purchase> {
-            PurchaseAccountScreen()
+            PurchaseAccountScreen(it.fromLogin)
         }
 
         register<NavScreenProvider.Permissions.Notification> {
