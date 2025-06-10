@@ -180,7 +180,6 @@ suspend fun <T> timedTraceSuspend(
         "total duration" to time.inWholeMilliseconds
     }
 
-    println("metadata=${ metadata { timedMetadata() }}")
     trace(message = message, tag = tag, type = type, metadata = timedMetadata, error = error)
     onComplete(result, time)
     return result
