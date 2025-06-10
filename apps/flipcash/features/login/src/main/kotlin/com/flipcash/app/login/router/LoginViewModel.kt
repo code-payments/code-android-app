@@ -3,6 +3,7 @@ package com.flipcash.app.login.router
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.features.login.R
+import com.flipcash.services.controllers.AccountController
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.encodeBase64
@@ -22,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
+    private val accounts: AccountController,
     private val resources: ResourceHelper,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
@@ -124,7 +126,16 @@ class LoginViewModel @Inject constructor(
                         message = it.localizedMessage ?: resources.getString(R.string.error_description_loginFailed),
                     )
                 }.onSuccess {
-                    dispatchEvent(Event.LoggedInSuccessfully)
+                    accounts.getUserFlags()
+                        .onSuccess {
+                            if (it.isRegistered) {
+                                dispatchEvent(Event.LoggedInSuccessfully)
+                            } else {
+                                dispatchEvent(Event.LogInFailed)
+                            }
+                        }.onFailure {
+                            dispatchEvent(Event.LogInFailed)
+                        }
                 }
             }.launchIn(viewModelScope)
 
