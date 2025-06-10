@@ -39,6 +39,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.getActivity
 import com.getcode.util.permissions.LocalPermissionChecker
+import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -94,7 +95,7 @@ private fun PurchaseAccountScreenContent(
                         .fillMaxWidth(),
                     buttonState = ButtonState.Filled,
                     enabled = state.hasProduct && !state.isPurchasePending,
-                    isLoading = state.creatingAccount.loading,
+                    isLoading = state.creatingAccount.loading && !state.isPurchasePending,
                     isSuccess = state.creatingAccount.success,
                     text = if (state.isPurchasePending) {
                         stringResource(R.string.title_purchaseAccountPending)
@@ -206,7 +207,8 @@ private fun Preview_Pending() {
                     currency = CurrencyCode.USD
                 ),
                 formattedCost = "$20",
-                isPurchasePending = true
+                isPurchasePending = true,
+                creatingAccount = LoadingSuccessState(loading = true)
             ),
         ) { }
     }
