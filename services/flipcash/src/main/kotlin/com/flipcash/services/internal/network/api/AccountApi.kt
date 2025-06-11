@@ -13,6 +13,7 @@ import com.google.protobuf.Timestamp
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService
 
@@ -22,6 +23,8 @@ class AccountApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
 
     private val api = AccountGrpcKt.AccountCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
 
     /**
      * Registers a new user, bound to the provided PublicKey.

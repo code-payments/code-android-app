@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 internal class MessagingApi @Inject constructor(
@@ -23,6 +24,8 @@ internal class MessagingApi @Inject constructor(
 ): GrpcApi(managedChannel) {
 
     private val api = MessagingGrpcKt.MessagingCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
 
     /**
      * Opens a stream of messages. Messages are routed using the public key of a rendezvous keypair

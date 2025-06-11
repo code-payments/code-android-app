@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 internal class CurrencyApi @Inject constructor(
@@ -18,6 +19,8 @@ internal class CurrencyApi @Inject constructor(
 ): GrpcApi(managedChannel) {
 
     private val api = CurrencyGrpcKt.CurrencyCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
     /**
      * Returns the exchange rates for the core mint token against all available currencies
      *

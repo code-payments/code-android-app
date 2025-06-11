@@ -15,6 +15,7 @@ import com.getcode.opencode.model.core.ID
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class ActivityFeedApi @Inject constructor(
@@ -23,6 +24,8 @@ class ActivityFeedApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
 
     private val api = ActivityFeedGrpcKt.ActivityFeedCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
 
     /**
      * Gets the latest [maxItems] notifications in a user's activity feed.

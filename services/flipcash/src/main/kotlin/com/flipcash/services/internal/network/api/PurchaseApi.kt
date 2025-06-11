@@ -12,6 +12,7 @@ import com.getcode.opencode.internal.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class PurchaseApi @Inject constructor(
@@ -19,6 +20,8 @@ class PurchaseApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
     private val api = IapGrpcKt.IapCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
 
     // OnPurchaseCompleted is called when an IAP has been completed
     suspend fun onPurchaseCompleted(

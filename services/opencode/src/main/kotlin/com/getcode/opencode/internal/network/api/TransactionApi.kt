@@ -27,6 +27,7 @@ import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class TransactionApi @Inject constructor(
@@ -35,6 +36,8 @@ class TransactionApi @Inject constructor(
 ): GrpcApi(managedChannel) {
 
     private val api = TransactionGrpcKt.TransactionCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
 
     /**
      * The mechanism for client and server to agree upon a set of

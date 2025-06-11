@@ -10,6 +10,7 @@ import com.getcode.opencode.internal.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class PushApi @Inject constructor(
@@ -18,6 +19,8 @@ class PushApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
 
     private val api = PushGrpcKt.PushCoroutineStub(managedChannel)
+        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
+        .withWaitForReady()
 
     /**
      * Adds a push token associated with a user.
