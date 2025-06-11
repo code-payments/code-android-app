@@ -33,6 +33,7 @@ interface BillingClient {
 
     fun connect()
     fun disconnect()
+    suspend fun isAvailable(product: IapProduct): Boolean
     fun hasPaidFor(product: IapProduct): Boolean
     suspend fun costOf(product: IapProduct): ProductPrice?
     suspend fun purchase(activity: Activity, product: IapProduct)
@@ -50,13 +51,9 @@ object StubBillingClient: BillingClient {
     )
     override val state: StateFlow<BillingClientState> = _stateFlow.asStateFlow()
 
-    data class State(
-        val connected: Boolean = false,
-        val failedToConnect: Boolean = false,
-    )
-
     override fun connect() = Unit
     override fun disconnect() = Unit
+    override suspend fun isAvailable(product: IapProduct): Boolean = false
     override fun hasPaidFor(product: IapProduct): Boolean = false
     override suspend fun costOf(product: IapProduct): ProductPrice? = null
     override suspend fun purchase(activity: Activity, product: IapProduct) {

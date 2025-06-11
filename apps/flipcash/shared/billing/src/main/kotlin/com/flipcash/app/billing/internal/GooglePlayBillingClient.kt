@@ -144,6 +144,13 @@ internal class GooglePlayBillingClient(
         }
     }
 
+    override suspend fun isAvailable(product: IapProduct): Boolean {
+        val hasDetails = productDetails.containsKey(product.productId)
+        if (hasDetails) return true
+        queryProduct(product.productId)
+        return productDetails.containsKey(product.productId)
+    }
+
     override fun hasPaidFor(product: IapProduct) =
         _purchases[product.productId] == Purchase.PurchaseState.PURCHASED
 

@@ -113,18 +113,10 @@ internal class PurchaseAccountViewModel @Inject constructor(
         billingClient.state
             .filter { it.connectionState == BillingClientConnection.Connected }
             .onEach {
-                val receivedWelcomeBonus =
-                    billingClient.hasPaidFor(IapProduct.CreateAccountWithWelcomeBonus)
-                val (product, cost) = if (!receivedWelcomeBonus) {
-                    IapProduct.CreateAccountWithWelcomeBonus to billingClient.costOf(IapProduct.CreateAccountWithWelcomeBonus)
-                } else {
-                    IapProduct.CreateAccount to billingClient.costOf(IapProduct.CreateAccount)
-                }
-
                 dispatchEvent(
                     Event.OnProductChanged(
-                        product = product,
-                        cost = cost
+                        product = IapProduct.CreateAccount,
+                        cost = billingClient.costOf(IapProduct.CreateAccount)
                     )
                 )
             }.launchIn(viewModelScope)

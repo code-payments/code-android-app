@@ -14,8 +14,8 @@
 
     <string name="title_finalizeAccountCreationWithWelcomeBonus">Pay %1$s, Get %2$s</string>
     <string name="subtitle_finalizeAccountCreationWithWelcomeBonus">For a limited time new accounts will receive a free welcome bonus of %1s of stablecoins</string>
-    <string name="title_finalizeAccountCreationWithoutBonus">Pay %1$s</string>
-    <string name="subtitle_finalizeAccountCreationWithoutBonus">Pay %1$s to create your Flipcash account</string>
+    <string name="title_finalizeAccountCreationWithoutBonus">Purchase an Account for %1$s</string>
+    <string name="subtitle_finalizeAccountCreationWithoutBonus">This fee is used to cover our operational costs</string>
 
     <string name="action_logOutAndLogin">Log Out &amp; Log In</string>
 
@@ -23,7 +23,7 @@
     <string name="title_logoutAndLoginConfirmation">You\'re currently logged into an account</string>
     <string name="subtitle_logoutAndLoginConfirmation">Please ensure you have saved your Access Key before proceeding. Would you like to logout and login with a new account?</string>
 
-    <string name="action_purchaseAccount">Buy Your Account</string>
+    <string name="action_purchaseAccount">Purchase Your Account</string>
     <string name="title_purchaseAccountPending">Purchase Pending</string>
 
     <string name="error_title_failedToPurchaseItem">Purchase Failed</string>
