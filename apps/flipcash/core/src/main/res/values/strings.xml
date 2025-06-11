@@ -13,7 +13,7 @@
     <string name="error_description_loginFailed">Something went wrong</string>
 
     <string name="title_finalizeAccountCreationWithWelcomeBonus">Pay %1$s, Get %2$s</string>
-    <string name="subtitle_finalizeAccountCreationWithWelcomeBonus">For a limited time new accounts will receive a free welcome bonus of $20 of stablecoins</string>
+    <string name="subtitle_finalizeAccountCreationWithWelcomeBonus">For a limited time new accounts will receive a free welcome bonus of %1s of stablecoins</string>
     <string name="title_finalizeAccountCreationWithoutBonus">Pay %1$s</string>
     <string name="subtitle_finalizeAccountCreationWithoutBonus">Pay %1$s to create your Flipcash account</string>
 

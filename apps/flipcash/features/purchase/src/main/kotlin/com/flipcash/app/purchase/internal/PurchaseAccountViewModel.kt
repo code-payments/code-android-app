@@ -76,7 +76,6 @@ internal class PurchaseAccountViewModel @Inject constructor(
         private val subtitleForWelcomeBonus: String
             @Composable get() = stringResource(
                 R.string.subtitle_finalizeAccountCreationWithWelcomeBonus,
-                safeCost,
                 safeReward
             )
 
