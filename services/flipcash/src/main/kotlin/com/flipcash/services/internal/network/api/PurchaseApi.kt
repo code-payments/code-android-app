@@ -20,7 +20,6 @@ class PurchaseApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
     private val api = IapGrpcKt.IapCoroutineStub(managedChannel)
-        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
         .withWaitForReady()
 
     // OnPurchaseCompleted is called when an IAP has been completed
@@ -32,10 +31,11 @@ class PurchaseApi @Inject constructor(
         val request = IapService.OnPurchaseCompletedRequest.newBuilder()
             .setPlatform(Common.Platform.GOOGLE)
             .setReceipt(IapService.Receipt.newBuilder().setValue(receipt.value))
-            .setMetadata(IapService.Metadata.newBuilder()
-                .setProduct(metadata.product)
-                .setCurrency(metadata.currency.name.lowercase())
-                .setAmount(metadata.amount)
+            .setMetadata(
+                IapService.Metadata.newBuilder()
+                    .setProduct(metadata.product)
+                    .setCurrency(metadata.currency.name.lowercase())
+                    .setAmount(metadata.amount)
             )
             .apply { setAuth(authenticate(owner)) }
             .build()

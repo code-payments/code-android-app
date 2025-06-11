@@ -24,7 +24,6 @@ class ActivityFeedApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
 
     private val api = ActivityFeedGrpcKt.ActivityFeedCoroutineStub(managedChannel)
-        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
         .withWaitForReady()
 
     /**

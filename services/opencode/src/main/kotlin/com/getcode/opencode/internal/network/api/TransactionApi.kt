@@ -33,10 +33,9 @@ import javax.inject.Inject
 class TransactionApi @Inject constructor(
     @OpenCodeManagedChannel
     managedChannel: ManagedChannel,
-): GrpcApi(managedChannel) {
+) : GrpcApi(managedChannel) {
 
     private val api = TransactionGrpcKt.TransactionCoroutineStub(managedChannel)
-        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
         .withWaitForReady()
 
     /**

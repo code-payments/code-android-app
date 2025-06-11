@@ -23,7 +23,6 @@ class AccountApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
 
     private val api = AccountGrpcKt.AccountCoroutineStub(managedChannel)
-        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
         .withWaitForReady()
 
     /**

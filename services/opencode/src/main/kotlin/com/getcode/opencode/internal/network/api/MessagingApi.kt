@@ -21,10 +21,9 @@ import javax.inject.Inject
 internal class MessagingApi @Inject constructor(
     @OpenCodeManagedChannel
     managedChannel: ManagedChannel,
-): GrpcApi(managedChannel) {
+) : GrpcApi(managedChannel) {
 
     private val api = MessagingGrpcKt.MessagingCoroutineStub(managedChannel)
-        .withDeadlineAfter(2000, TimeUnit.MILLISECONDS)
         .withWaitForReady()
 
     /**
@@ -156,7 +155,7 @@ internal class MessagingApi @Inject constructor(
             .addAllMessageIds(messageIds)
             .build()
 
-        return withContext(Dispatchers.IO) {  api.ackMessages(request) }
+        return withContext(Dispatchers.IO) { api.ackMessages(request) }
     }
 
     /**
