@@ -52,6 +52,23 @@ class LoginRouter(
                 .launchIn(this)
         }
 
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<LoginViewModel.Event.LoggedInRequiresPayment>()
+                .onEach { delay(1.333.seconds) }
+                .onEach {
+                    navigator.push(
+                        items = listOf(
+                            ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
+                            ScreenRegistry.get(
+                                NavScreenProvider.CreateAccount.Purchase(true)
+                            )
+                        )
+                    )
+                }
+                .launchIn(this)
+        }
+
         LaunchedEffect(seed) {
             if (seed != null) {
                 vm.dispatchEvent(LoginViewModel.Event.LogIn(seed, fromDeeplink))

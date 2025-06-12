@@ -44,6 +44,7 @@ class LoginViewModel @Inject constructor(
         data class LogIn(val seed: String, val fromDeeplink: Boolean = false) : Event
         data class FacilitateLogin(val entropyB64: String) : Event
         data object LoggedInSuccessfully : Event
+        data object LoggedInRequiresPayment : Event
         data object LogInFailed : Event
         data object OnAccountCreated : Event
         data object CreateFailed : Event
@@ -131,7 +132,7 @@ class LoginViewModel @Inject constructor(
                             if (it.isRegistered) {
                                 dispatchEvent(Event.LoggedInSuccessfully)
                             } else {
-                                dispatchEvent(Event.LogInFailed)
+                                dispatchEvent(Event.LoggedInRequiresPayment)
                             }
                         }.onFailure {
                             dispatchEvent(Event.LogInFailed)
@@ -179,6 +180,15 @@ class LoginViewModel @Inject constructor(
                 is Event.LogIn -> { state -> state.copy(loggingIn = LoadingSuccessState(loading = true)) }
                 is Event.FacilitateLogin -> { state -> state }
                 is Event.LoggedInSuccessfully -> { state ->
+                    state.copy(
+                        loggingIn = LoadingSuccessState(
+                            loading = false,
+                            success = true
+                        )
+                    )
+                }
+
+                is Event.LoggedInRequiresPayment -> { state ->
                     state.copy(
                         loggingIn = LoadingSuccessState(
                             loading = false,
