@@ -56,12 +56,11 @@ class AuthManager @Inject constructor(
 
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            when (val result = credentialManager.lookup().also { taggedTrace("lookup result: $it") }) {
+            when (val result = credentialManager.lookup().also { taggedTrace("lookup result: ${it::class.simpleName}") }) {
                 is LookupResult.ExistingAccountFound -> {
                     val token = result.entropy
                     softLogin(token)
                         .onSuccess { onInitialized() }
-                        .onFailure(ErrorUtils::handleError)
                 }
                 LookupResult.NoAccountFound -> Unit
                 is LookupResult.TemporaryAccountCreated -> {
