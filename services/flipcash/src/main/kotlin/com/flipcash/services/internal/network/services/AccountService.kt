@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.AccountApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.GetUserFlagsError
 import com.flipcash.services.models.LoginError
 import com.flipcash.services.models.RegisterError
@@ -15,7 +16,7 @@ internal class AccountService @Inject constructor(
     suspend fun register(owner: KeyPair): Result<ID> {
         return runCatching {
             api.register(owner)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     RpcAccountService.RegisterResponse.Result.OK -> {
@@ -46,7 +47,7 @@ internal class AccountService @Inject constructor(
     suspend fun login(owner: KeyPair): Result<ID> {
         return runCatching {
             api.login(owner)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     RpcAccountService.LoginResponse.Result.OK -> {
@@ -77,7 +78,7 @@ internal class AccountService @Inject constructor(
     suspend fun getUserFlags(owner: KeyPair, userId: ID): Result<RpcAccountService.UserFlags> {
         return runCatching {
             api.getUserFlags(userId, owner)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     RpcAccountService.GetUserFlagsResponse.Result.OK -> Result.success(response.userFlags)

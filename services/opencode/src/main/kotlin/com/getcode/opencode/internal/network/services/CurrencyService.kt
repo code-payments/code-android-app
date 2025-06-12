@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.network.api.CurrencyApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.core.errors.GetRatesError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
@@ -16,7 +17,7 @@ internal class CurrencyService @Inject constructor(
     ): Result<Map<CurrencyCode, Rate>> {
         return runCatching {
             api.getAllRates(from?.toEpochMilliseconds())
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     CurrencyService.GetAllRatesResponse.Result.OK -> {

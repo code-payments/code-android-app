@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.iap.v1.IapService
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.internal.network.api.PurchaseApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.PurchaseAckError
 import com.getcode.ed25519.Ed25519.KeyPair
 import javax.inject.Inject
@@ -14,7 +15,7 @@ internal class PurchaseService @Inject constructor(
     suspend fun onPurchaseCompleted(owner: KeyPair, receipt: Receipt, metadata: IapMetadata): Result<Unit> {
         return runCatching {
             api.onPurchaseCompleted(owner, receipt, metadata)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     IapService.OnPurchaseCompletedResponse.Result.OK -> Result.success(Unit)

@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.PushApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.AddTokenError
 import com.flipcash.services.models.DeleteTokenError
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -17,7 +18,7 @@ internal class PushService @Inject constructor(
     ): Result<Unit> {
         return runCatching {
             api.addToken(owner, token, installationId)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     RpcPushService.AddTokenResponse.Result.OK -> Result.success(Unit)
@@ -38,7 +39,7 @@ internal class PushService @Inject constructor(
     ): Result<Unit> {
         return runCatching {
             api.deleteTokens(owner, installationId)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     RpcPushService.DeleteTokensResponse.Result.OK -> Result.success(Unit)

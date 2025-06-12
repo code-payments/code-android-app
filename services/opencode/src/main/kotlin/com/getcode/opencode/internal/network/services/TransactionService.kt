@@ -9,6 +9,7 @@ import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.network.api.TransactionApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
@@ -80,7 +81,7 @@ internal class TransactionService @Inject constructor(
     ): Result<TransactionMetadata> {
         return runCatching {
             api.getIntentMetadata(intentId, owner)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     TransactionService.GetIntentMetadataResponse.Result.OK -> {
@@ -110,7 +111,7 @@ internal class TransactionService @Inject constructor(
     ): Result<Limits> {
         return runCatching {
             api.getLimits(owner, consumedSince.toEpochMilliseconds())
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     TransactionService.GetLimitsResponse.Result.OK -> {
@@ -141,7 +142,7 @@ internal class TransactionService @Inject constructor(
     ): Result<WithdrawalAvailability> {
         return runCatching {
             api.canWithdrawToAccount(destination)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 val availability = WithdrawalAvailability.newInstance(
                     destination = destination,
@@ -166,7 +167,7 @@ internal class TransactionService @Inject constructor(
     ): Result<ExchangeData.WithRate> {
         return runCatching {
             api.airdrop(type, destination)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     TransactionService.AirdropResponse.Result.OK -> Result.success(response.exchangeData.toModel())
@@ -188,7 +189,7 @@ internal class TransactionService @Inject constructor(
     ): Result<Unit> {
         return runCatching {
             api.voidGiftCard(owner, giftCardVault)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     TransactionService.VoidGiftCardResponse.Result.OK -> Result.success(Unit)

@@ -3,6 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.activity.v1.ActivityFeedService
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.flipcash.services.internal.network.api.ActivityFeedApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.GetActivityFeedMessagesError
 import com.flipcash.services.models.QueryOptions
@@ -20,7 +21,7 @@ internal class ActivityFeedService @Inject constructor(
     ): Result<List<Model.Notification>> {
         return runCatching {
             api.getLatestNotifications(owner, type, maxItems)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     ActivityFeedService.GetLatestNotificationsResponse.Result.OK -> Result.success(response.notificationsList)
@@ -42,7 +43,7 @@ internal class ActivityFeedService @Inject constructor(
     ): Result<List<Model.Notification>> {
         return runCatching {
             api.getNotificationsPage(owner, type, queryOptions)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     ActivityFeedService.GetPagedNotificationsResponse.Result.OK -> Result.success(response.notificationsList)
@@ -63,7 +64,7 @@ internal class ActivityFeedService @Inject constructor(
     ): Result<List<Model.Notification>> {
         return runCatching {
             api.getNotificationsByIds(owner, ids)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     ActivityFeedService.GetBatchNotificationsResponse.Result.OK -> Result.success(response.notificationsList)

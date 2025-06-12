@@ -6,6 +6,7 @@ import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.extensions.clientPongWith
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.openMessageStreamRequest
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.model.core.errors.AckMessagesError
@@ -107,7 +108,7 @@ internal class MessagingService @Inject constructor(
                     }
                 }
             }
-        ).fold(
+        ).foldWithSuppression(
             onFailure = { onEvent(Result.failure(it)) },
             onSuccess = { onEvent(Result.success(it)) }
         )
@@ -117,12 +118,12 @@ internal class MessagingService @Inject constructor(
         rendezvous: KeyPair,
     ): Result<List<MessagingService.Message>> {
         return runCatching { api.pollMessages(rendezvous) }
-            .fold(
+            .foldWithSuppression(
                 onSuccess = { response ->
                     Result.success(response.messagesList)
                 },
                 onFailure = {
-                    return Result.failure(PollMessagesError.Other(cause = it))
+                    Result.failure(PollMessagesError.Other(cause = it))
                 }
             )
     }
@@ -132,7 +133,7 @@ internal class MessagingService @Inject constructor(
         messageIds: List<MessagingService.MessageId> = emptyList(),
     ): Result<Unit> {
         return runCatching { api.ackMessages(rendezvous, messageIds) }
-            .fold(
+            .foldWithSuppression(
                 onSuccess = { response ->
                     when (response.result) {
                         RpcMessagingService.AckMesssagesResponse.Result.OK -> Result.success(Unit)
@@ -154,7 +155,7 @@ internal class MessagingService @Inject constructor(
         message: RpcMessagingService.Message.Builder,
     ): Result<PublicKey> {
         return runCatching { api.sendMessage(rendezvous = rendezvous, message = message) }
-            .fold(
+            .foldWithSuppression(
                 onSuccess = { response ->
                     when (response.result) {
                         RpcMessagingService.SendMessageResponse.Result.OK -> {

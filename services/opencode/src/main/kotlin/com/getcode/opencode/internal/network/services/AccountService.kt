@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.network.services
 import com.codeinc.opencode.gen.account.v1.AccountService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi
+import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.core.errors.CodeAccountCheckError
 import com.getcode.opencode.model.core.errors.GetAccountsError
@@ -40,7 +41,7 @@ internal class AccountService @Inject constructor(
     ): Result<Map<PublicKey, AccountInfo>> {
         return runCatching {
             api.getTokenAccounts(accountOwner, requestingOwner)
-        }.fold(
+        }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     AccountService.GetTokenAccountInfosResponse.Result.OK -> {
