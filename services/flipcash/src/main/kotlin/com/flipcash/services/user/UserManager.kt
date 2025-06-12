@@ -12,6 +12,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.core.uuid
 import com.getcode.services.opencode.BuildConfig
+import com.getcode.solana.keys.base58
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus
@@ -104,13 +105,14 @@ class UserManager @Inject constructor(
                 cluster = cluster,
             )
         }
+
+        associate()
     }
 
     fun set(accountId: ID) {
         _state.update {
             it.copy(accountId = accountId)
         }
-        associate()
     }
 
     fun set(authState: AuthState) {
@@ -137,8 +139,6 @@ class UserManager @Inject constructor(
         if (userFlags?.isRegistered == true) {
             accountCluster?.let { eventBus.send(Events.OnLoggedIn(accountCluster!!)) }
         }
-
-        associate()
     }
 
     fun set(pushToken: String?) {
@@ -155,11 +155,9 @@ class UserManager @Inject constructor(
         }
     }
 
-    fun isSelf(id: ID?) = accountId == id
-
     private fun associate() {
         if (!BuildConfig.DEBUG) {
-            val distinctId = accountId?.uuid?.toString()
+            val distinctId = accountCluster?.authorityPublicKey?.base58()
             if (Bugsnag.isStarted()) {
                 Bugsnag.setUser(distinctId, null, "")
             }
