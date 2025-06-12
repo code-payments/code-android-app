@@ -4,14 +4,18 @@ import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.balance.internal.BalanceScreenContent
+import com.flipcash.app.balance.internal.BalanceScreen
 import com.flipcash.app.balance.internal.BalanceViewModel
+import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
@@ -20,6 +24,9 @@ import com.getcode.navigation.screens.NamedScreen
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.RepeatOnLifecycle
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -50,10 +57,36 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
             )
 
             val viewModel = getActivityScopedViewModel<BalanceViewModel>()
-            BalanceScreenContent(viewModel)
+            BalanceScreen(viewModel)
 
             RepeatOnLifecycle(Lifecycle.State.RESUMED) {
                 viewModel.dispatchEvent(BalanceViewModel.Event.ResetSelections)
+            }
+
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
+                    .filterIsInstance<BalanceViewModel.Event.OpenCurrencySelection>()
+                    .onEach {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                NavScreenProvider.HomeScreen.CurrencySelection(
+                                    CurrencySelectionKind.Balance
+                                )
+                            )
+                        )
+                    }.launchIn(this)
+            }
+
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
+                    .filterIsInstance<BalanceViewModel.Event.OpenDeposit>()
+                    .onEach {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                NavScreenProvider.HomeScreen.Menu.Transfers.Deposit
+                            )
+                        )
+                    }.launchIn(this)
             }
         }
     }

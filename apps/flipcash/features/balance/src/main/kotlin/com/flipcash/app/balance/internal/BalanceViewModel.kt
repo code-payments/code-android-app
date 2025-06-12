@@ -54,6 +54,9 @@ internal class BalanceViewModel @Inject constructor(
         data object ResetSelections : Event
         data class OnCancelRequested(val message: ActivityFeedMessage) : Event
         data class CancelTransfer(val vault: PublicKey) : Event
+
+        data object OpenCurrencySelection : Event
+        data object OpenDeposit : Event
     }
 
     init {
@@ -138,6 +141,8 @@ internal class BalanceViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                Event.OpenCurrencySelection -> { state -> state }
+                Event.OpenDeposit -> { state -> state }
                 Event.ResetSelections -> { state -> state }
                 is Event.OnCancelRequested -> { state -> state }
                 is Event.CancelTransfer -> { state -> state }
