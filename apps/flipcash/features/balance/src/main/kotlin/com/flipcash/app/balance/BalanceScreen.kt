@@ -16,6 +16,7 @@ import com.flipcash.app.balance.internal.BalanceScreen
 import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.money.CurrencySelectionKind
+import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
@@ -83,7 +84,7 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
                     .onEach {
                         navigator.push(
                             ScreenRegistry.get(
-                                NavScreenProvider.HomeScreen.Menu.Transfers.Deposit
+                                NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming)
                             )
                         )
                     }.launchIn(this)

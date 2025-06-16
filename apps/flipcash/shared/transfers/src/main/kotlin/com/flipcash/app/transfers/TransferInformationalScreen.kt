@@ -50,6 +50,7 @@ class TransferInformationalScreen(
         val navigator = LocalCodeNavigator.current
         val uriHandler = LocalUriHandler.current
         val context = LocalContext.current
+
         CodeScaffold(
             topBar = {
                 AppBarWithTitle(
@@ -73,6 +74,15 @@ class TransferInformationalScreen(
                         modifier = Modifier
                             .fillMaxWidth(),
                         buttonState = ButtonState.Filled,
+                        text = direction.continueAction
+                    ) {
+                        navigator.push(ScreenRegistry.get(direction.nextScreen))
+                    }
+
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        buttonState = ButtonState.Subtle,
                         text = direction.learnMoreAction
                     ) {
                         try {
@@ -88,16 +98,6 @@ class TransferInformationalScreen(
                                 message = context.getString(R.string.error_description_failedToOpenExternalLink)
                             )
                         }
-
-                    }
-
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        buttonState = ButtonState.Filled,
-                        text = direction.continueAction
-                    ) {
-                        navigator.push(ScreenRegistry.get(direction.nextScreen))
                     }
                 }
             }

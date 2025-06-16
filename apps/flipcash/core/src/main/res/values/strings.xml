@@ -54,6 +54,10 @@
 
     <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 24 hours. Please ask them to send the cash again</string>
 
+    <string name="subtitle_balanceIsHeldInUsdStablecoins">Your balance is held in US dollar stablecoins</string>
+    <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
+    <string name="subtitle_balanceEmptyState">Ask a friend to give you some cash with Flipcash, or deposit USDC from your crypto exchange or another crypto wallet</string>
+    <string name="action_depositFunds">Deposit Funds</string>
 
     <string name="title_depositUsdc">Deposit</string>
     <string name="title_withdrawUsdc">Withdraw</string>
@@ -149,9 +153,9 @@
 
     <string name="subtitle_startCameraToScan">You need to start your camera to grab cash</string>
 
-    <string name="title_learnToDeposit">You can deposit funds from your bank account into Flipcash</string>
-    <string name="action_learnHowToDepositFunds">Learn How to Deposit Funds</string>
-    <string name="action_depositFundsNow">Deposit Funds Now</string>
+    <string name="title_learnToDeposit">Purchase USDC on a crypto exchange with your bank account, and then deposit into Flipcash</string>
+    <string name="action_learnHowToDepositFunds">Learn How to Get USDC</string>
+    <string name="action_depositUsdc">Deposit USDC</string>
 
     <string name="title_learnToWithdraw">You can withdraw your funds at any time, and move them into your bank account</string>
     <string name="action_learnHowToWithdrawFunds">Learn How to Withdraw Funds</string>

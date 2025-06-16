@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.paging.LoadState
@@ -37,6 +38,7 @@ import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.features.balance.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
@@ -112,11 +114,11 @@ private fun FeedList(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6)
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12)
                     ) {
                         Text(
                             modifier = Modifier.fillMaxWidth(),
-                            text = "Ask a friend to give you some Flipcash, or deposit USDC from your crypto exchange or other crypto wallet",
+                            text = stringResource(R.string.subtitle_balanceEmptyState),
                             style = CodeTheme.typography.textMedium,
                             color = CodeTheme.colors.textMain,
                             textAlign = TextAlign.Center,
@@ -124,7 +126,7 @@ private fun FeedList(
 
                         CodeButton(
                             modifier = Modifier.fillMaxWidth(),
-                            text = "Deposit USDC",
+                            text = stringResource(R.string.action_depositFunds),
                             buttonState = ButtonState.Filled
                         ) {
                             dispatchEvent(BalanceViewModel.Event.OpenDeposit)

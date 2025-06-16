@@ -36,7 +36,7 @@ sealed interface TransferDirection : Parcelable {
         override val learnMoreAction: String
             @Composable get() = stringResource(R.string.action_learnHowToDepositFunds)
         override val continueAction: String
-            @Composable get() = stringResource(R.string.action_depositFundsNow)
+            @Composable get() = stringResource(R.string.action_depositUsdc)
     }
 
     data object Outgoing : TransferDirection {
