@@ -441,55 +441,13 @@ class RealSessionController @Inject constructor(
                             // delay _slightly_ before presenting confirmation
                             delay(CASH_LINK_CONFIRMATION_DELAY)
 
-                            // confirm the result of the share
-                            val confirmResult =
-                                shareConfirmationController.confirm(shareable, result)
-
-                            // reset isChecking after confirmation
-                            shareSheetController.reset(setChecked = false)
-
-                            when (confirmResult) {
-                                ShareConfirmationResult.Cancelled -> {
-                                    // user selected cancel, dismiss everything back to camera
-                                    cancelGiftCard(owner, giftCard)
-                                }
-
-                                is ShareConfirmationResult.Confirmed -> {
-                                    when (result) {
-                                        ShareResult.CopiedToClipboard -> {
-                                            toastController.enqueue(amount, isDeposit = false)
-                                            dismissBill(Grabbed)
-                                            vibrator.vibrate()
-                                            bringActivityFeedCurrent()
-                                            analytics.transfer(AnalyticsEvent.SentCashLink(clipboard = true), amount)
-                                            trace(
-                                                tag = "Session",
-                                                message = "Cash link copied to clipboard",
-                                                metadata = {
-                                                    "amount" to amount
-                                                },
-                                                type = TraceType.User,
-                                            )
-                                        }
-
-                                        is ShareResult.SharedToApp -> {
-                                            toastController.enqueue(amount, isDeposit = false)
-                                            dismissBill(Grabbed)
-                                            vibrator.vibrate()
-                                            bringActivityFeedCurrent()
-                                            analytics.transfer(AnalyticsEvent.SentCashLink(app = result.to), amount)
-                                            trace(
-                                                tag = "Session",
-                                                message = "Cash link shared with ${result.to}",
-                                                metadata = {
-                                                    "amount" to amount
-                                                },
-                                                type = TraceType.User,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                            confirmGiftCardSent(
+                                owner = owner,
+                                giftCard = giftCard,
+                                amount = amount,
+                                shareable = shareable,
+                                result = result
+                            )
                         }
                     }
 
@@ -499,6 +457,94 @@ class RealSessionController @Inject constructor(
                 }
             }
             shareSheetController.present(shareable)
+        }
+    }
+
+    private suspend fun confirmGiftCardSent(
+        owner: AccountCluster,
+        giftCard: GiftCardAccount,
+        amount: LocalFiat,
+        shareable: Shareable,
+        result: ShareResult.ActionTaken,
+    ) {
+        // confirm the result of the share
+        val confirmResult =
+            shareConfirmationController.confirm(shareable, result)
+
+        // reset isChecking after confirmation
+        shareSheetController.reset(setChecked = false)
+
+        when (confirmResult) {
+            ShareConfirmationResult.Cancelled -> {
+                BottomBarManager.showMessage(
+                    title = "Are You Sure?",
+                    subtitle = "Anyone you sent the link to won’t be able to collect the cash",
+                    actions = listOf(
+                        BottomBarAction(
+                            text = "Yes",
+                            onClick = {
+                                // user selected cancel, dismiss everything back to camera
+                                scope.launch {
+                                    cancelGiftCard(owner, giftCard)
+                                }
+                            }
+                        ),
+                        BottomBarAction(
+                            text = "Nevermind",
+                            style = BottomBarManager.BottomBarButtonStyle.Text,
+                            onClick = {
+                                scope.launch {
+                                    confirmGiftCardSent(
+                                        owner,
+                                        giftCard,
+                                        amount,
+                                        shareable,
+                                        result
+                                    )
+                                }
+                            }
+                        )
+                    ),
+                    isDismissible = false,
+                    showCancel = false,
+                )
+            }
+
+            is ShareConfirmationResult.Confirmed -> {
+                when (result) {
+                    ShareResult.CopiedToClipboard -> {
+                        toastController.enqueue(amount, isDeposit = false)
+                        dismissBill(Grabbed)
+                        vibrator.vibrate()
+                        bringActivityFeedCurrent()
+                        analytics.transfer(AnalyticsEvent.SentCashLink(clipboard = true), amount)
+                        trace(
+                            tag = "Session",
+                            message = "Cash link copied to clipboard",
+                            metadata = {
+                                "amount" to amount
+                            },
+                            type = TraceType.User,
+                        )
+                    }
+
+                    is ShareResult.SharedToApp -> {
+                        toastController.enqueue(amount, isDeposit = false)
+                        dismissBill(Grabbed)
+                        vibrator.vibrate()
+                        bringActivityFeedCurrent()
+                        analytics.transfer(AnalyticsEvent.SentCashLink(app = result.to), amount)
+                        trace(
+                            tag = "Session",
+                            message = "Cash link shared with ${result.to}",
+                            metadata = {
+                                "amount" to amount
+                            },
+                            type = TraceType.User,
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -716,7 +762,7 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun presentBillToUser(data : List<Byte>, bill: Bill) {
+    private fun presentBillToUser(data: List<Byte>, bill: Bill) {
         if (billController.state.value.bill != null) return
 
         if (bill.didReceive) {
