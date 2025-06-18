@@ -69,7 +69,7 @@ object Versions {
     const val junit = "4.13.1"
     const val androidx_junit = "1.1.3"
     const val espresso = "3.4.0"
-    const val mixpanel = "6.4.0"
+    const val mixpanel = "8.2.0"
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"

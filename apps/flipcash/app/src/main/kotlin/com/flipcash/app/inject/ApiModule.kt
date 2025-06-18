@@ -17,6 +17,10 @@ object ApiModule {
     @Singleton
     @Provides
     fun provideMixpanelApi(@ApplicationContext context: Context): MixpanelAPI {
-        return MixpanelAPI.getInstance(context, BuildConfig.MIXPANEL_API_KEY)
+        return MixpanelAPI.getInstance(
+            /* context = */ context,
+            /* token = */ BuildConfig.MIXPANEL_API_KEY,
+            /* trackAutomaticEvents = */ true
+        )
     }
 }
