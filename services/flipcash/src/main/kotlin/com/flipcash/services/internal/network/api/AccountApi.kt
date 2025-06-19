@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService
 
-class AccountApi @Inject constructor(
+internal class AccountApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {

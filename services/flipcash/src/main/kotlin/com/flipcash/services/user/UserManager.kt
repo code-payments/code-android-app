@@ -10,9 +10,9 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
-import com.getcode.opencode.model.core.uuid
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.base58
+import com.getcode.utils.trace
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus
@@ -75,6 +75,9 @@ class UserManager @Inject constructor(
     val isRegistered: Boolean
         get() = _state.value.flags?.isRegistered == true
 
+    val nextPoolIndex: Long
+        get() = _state.value.nextPoolIndex
+
     data class State(
         val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,
@@ -83,11 +86,17 @@ class UserManager @Inject constructor(
         val flags: UserFlags? = null,
         val isTimelockUnlocked: Boolean = false,
         val pushToken: String? = null,
+        val nextPoolIndex: Long = 0L,
     )
 
     init {
         balanceController.onTimelockUnlocked = {
             didDetectUnlockedAccount()
+        }
+
+        balanceController.onNextIndexDetermined = { nextIndex ->
+            trace("next pool index determined => $nextIndex")
+            _state.update { it.copy(nextPoolIndex = nextIndex) }
         }
 
         Firebase.messaging.token.addOnSuccessListener { token ->

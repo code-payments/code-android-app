@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-class PurchaseApi @Inject constructor(
+internal class PurchaseApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {

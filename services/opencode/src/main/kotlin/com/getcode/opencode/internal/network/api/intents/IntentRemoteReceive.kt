@@ -8,7 +8,7 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
-import com.getcode.opencode.internal.extensions.generate
+import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentRemoteReceive(

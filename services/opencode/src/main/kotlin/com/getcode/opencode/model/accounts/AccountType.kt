@@ -12,6 +12,8 @@ sealed interface AccountType {
 
     data object Swap: AccountType
 
+    data object Pool: AccountType
+
     fun sortOrder() = when (this) {
         Primary -> 0
         Incoming -> 1
@@ -19,6 +21,7 @@ sealed interface AccountType {
         Swap -> 10
         RemoteSend -> 12
         AssociatedToken -> 15
+        Pool -> 16
     }
 
     fun getAccountType(): Model.AccountType {
@@ -29,6 +32,7 @@ sealed interface AccountType {
             RemoteSend -> Model.AccountType.REMOTE_SEND_GIFT_CARD
             Swap -> Model.AccountType.SWAP
             AssociatedToken -> Model.AccountType.ASSOCIATED_TOKEN_ACCOUNT
+            Pool -> Model.AccountType.POOL
         }
     }
 
@@ -52,6 +56,7 @@ sealed interface AccountType {
                 Model.AccountType.RELATIONSHIP -> null
                 Model.AccountType.SWAP -> Swap
                 Model.AccountType.ASSOCIATED_TOKEN_ACCOUNT -> AssociatedToken
+                Model.AccountType.POOL -> Pool
             }
         }
     }

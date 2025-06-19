@@ -196,7 +196,7 @@ message CanWithdrawToAccountResponse {
     // ATA requires initialization before the withdrawal can occur. Server will not
     // subsidize the account creation, so a fee is required.
     bool requires_initialization = 3;
-    // The WITHDRAWAL_CREATE_ON_SEND fee, in USD, that must be paid in order to
+    // The CREATE_ON_SEND_WITHDRAWAL fee, in USD, that must be paid in order to
     // submit a withdrawal to subsidize the creation of the account at time of
     // send. The user must explicitly agree to this fee amount before submitting
     // the intent.
@@ -257,6 +257,7 @@ message Metadata {
         OpenAccountsMetadata            open_accounts             = 1;
         SendPublicPaymentMetadata       send_public_payment       = 6;
         ReceivePaymentsPubliclyMetadata receive_payments_publicly = 7;
+        PublicDistributionMetadata      public_distribution       = 9;
     }
     reserved 2; // Deprecated SendPrivatePaymentMetadata
     reserved 3; // Deprecated ReceivePaymentsPrivatelyMetadata
@@ -264,15 +265,23 @@ message Metadata {
     reserved 5; // Deprecated MigrateToPrivacy2022Metadata
     reserved 8; // Deprecated EstablishRelationshipMetadata
 }
-// Open a set of accounts. Currently, clients should only use this for new users
-// to open all required accounts up front..
+// Open a set of accounts
 //
-// Action Spec:
+// Action Spec (User):
 //
 // for account in [PRIMARY]
 //   actions.push_back(OpenAccountAction(account))
+//
+// Action Spec (Pool):
+//
+// for account in [POOL]
+//   actions.push_back(OpenAccountAction(account))
 message OpenAccountsMetadata {
-    // Nothing is currently required
+    AccountSet account_set = 1;
+    enum AccountSet {
+        USER = 0; // Opens a set of user accounts
+        POOL = 1; // Opens a pool account
+    }
 }
 // Send a payment to a destination account publicly.
 //
@@ -296,20 +305,20 @@ message OpenAccountsMetadata {
 //   NoPrivacyWithdrawAction(REMOTE_SEND_GIFT_CARD, PRIMARY, ExchangeData.Quarks, is_auto_return=true),
 // ]
 message SendPublicPaymentMetadata {
-    // The primary account where funds will be sent from. The primary account is assumed if this
-    // field is not set for backwards compatibility with old clients.
+    // The source account where funds will be sent from. Currently, this is always
+    // the user's primary account.
     common.v1.SolanaAccountId source = 4;
     // The destination token account to send funds to.
     common.v1.SolanaAccountId destination = 1;
+    // Destination owner account, which is required for withdrawals that intend
+    // to create an ATA. Every other variation of this intent can omit this field.
+    common.v1.SolanaAccountId destination_owner = 6;
     // The exchange data of total funds being sent to the destination
     ExchangeData exchange_data = 2;
     // Is the payment a withdrawal?
     bool is_withdrawal = 3;
     // Is the payment going to a new gift card? Note is_withdrawal must be false.
     bool is_remote_send = 5;
-    // Destination owner account, which is required for withdrawals that intend
-    // to create an ATA. Every other variation of this intent can omit this field.
-    common.v1.SolanaAccountId destination_owner = 6;
 }
 // Receive funds into a user-owned account publicly. All use cases of this intent
 // close the account, so all funds must be moved.
@@ -331,6 +340,30 @@ message ReceivePaymentsPubliclyMetadata {
     // part of creating the gift card account. This is purely a server-provided value.
     // SubmitIntent will disallow this being set.
     ExchangeData exchange_data = 5;
+}
+// Distribute funds from a pool account publicly to one or more user-owned accounts.
+//
+// Action Spec:
+//
+// for distribution in distributions[:len(distributions)-1]
+//   actions.push_back(NoPrivacyTransferAction(POOL, distribution.destination, distributions.quarks))
+// actions.push_back(NoPrivacyWithdrawAction(POOL, distributions[:len(distributions)-1].destination, distributions[:len(distributions)-1].quarks))
+//
+// Notes:
+//  - All funds must distributed. The balance of the pool must be zero at the end of the intent
+//  - The pool is closed at the end of the intent via a NoPrivacyWithdrawAction
+message PublicDistributionMetadata {
+    // The pool account to distribute from
+    common.v1.SolanaAccountId source = 1;
+    // The set of distributions
+    repeated Distribution distributions = 2 ;
+    message Distribution {
+        // Destination where a portion of the pool's funds will be distributed.
+        // This must always be a primary account.
+        common.v1.SolanaAccountId destination = 1;
+        // The amount of funds to distribute to the destination
+        uint64 quarks = 2;
+    }
 }
 //
 // Action Definitions
@@ -433,10 +466,10 @@ message ServerParameter {
     repeated NoncedTransactionMetadata nonces = 2 ;
     // The type of server parameter which maps to the type of action requested
     oneof type {
-        OpenAccountServerParameter              open_account               = 3;
-        NoPrivacyTransferServerParameter        no_privacy_transfer        = 6;
-        NoPrivacyWithdrawServerParameter        no_privacy_withdraw        = 7;
-        FeePaymentServerParameter               fee_payment                = 11;
+        OpenAccountServerParameter       open_account        = 3;
+        NoPrivacyTransferServerParameter no_privacy_transfer = 6;
+        NoPrivacyWithdrawServerParameter no_privacy_withdraw = 7;
+        FeePaymentServerParameter        fee_payment         = 11;
     }
     reserved 4;  // Deprecated CloseEmptyAccountServerParameter
     reserved 5;  // Deprecated CloseDormantAccountServerParameter

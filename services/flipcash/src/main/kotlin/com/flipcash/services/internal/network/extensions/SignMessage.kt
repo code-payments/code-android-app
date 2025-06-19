@@ -2,6 +2,7 @@ package com.flipcash.services.internal.network.extensions
 
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.getcode.ed25519.Ed25519
+import com.getcode.solana.keys.PublicKey
 import com.google.protobuf.GeneratedMessageLite
 import java.io.ByteArrayOutputStream
 

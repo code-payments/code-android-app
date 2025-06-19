@@ -68,3 +68,45 @@ sealed class GetActivityFeedMessagesError(
     class NotFound: GetActivityFeedMessagesError("Not found")
     data class Other(override val cause: Throwable? = null) : GetActivityFeedMessagesError(message = cause?.message, cause = cause)
 }
+
+sealed class CreatePoolError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class RendezvousExists: CreatePoolError("Rendezvous exists")
+    class FundingDestinationExists: CreatePoolError("Funding destination exists")
+    class Unrecognized : CreatePoolError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : CreatePoolError(message = cause?.message, cause = cause)
+}
+
+sealed class GetPoolError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound: GetPoolError("Not found")
+    class Unrecognized : GetPoolError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : GetPoolError(message = cause?.message, cause = cause)
+}
+
+sealed class PlacePoolBetError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class PoolNotFound: PlacePoolBetError("Pool not found")
+    class PoolClosed: PlacePoolBetError("Pool closed")
+    class BetAlreadyMade: PlacePoolBetError("Bet already made")
+    class Unrecognized : PlacePoolBetError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : PlacePoolBetError(message = cause?.message, cause = cause)
+}
+
+sealed class DeclarePoolOutcomeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound: DeclarePoolOutcomeError("Not found")
+    class Denied: DeclarePoolOutcomeError("Denied")
+    class AlreadyDeclared: DeclarePoolOutcomeError("Different outcome already declared")
+    class Unrecognized : DeclarePoolOutcomeError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : DeclarePoolOutcomeError(message = cause?.message, cause = cause)
+}
+

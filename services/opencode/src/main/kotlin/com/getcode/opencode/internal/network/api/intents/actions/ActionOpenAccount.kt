@@ -16,16 +16,18 @@ internal class ActionOpenAccount(
     override val signer: Ed25519.KeyPair? = null,
     val accountType: AccountType,
     val owner: AccountCluster,
+    val index: Long = 0
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> = listOf()
     override fun action(): TransactionService.Action {
         return TransactionService.Action.newBuilder()
             .apply trx@{
+                val nextIndex = this@ActionOpenAccount.index
                 val source = this@ActionOpenAccount.owner
                 this.id = id
                 this.setOpenAccount(TransactionService.OpenAccountAction.newBuilder()
-                    .setIndex(0)
+                    .setIndex(nextIndex)
                     .setOwner(source.authorityPublicKey.asSolanaAccountId())
                     .setAccountType(accountType.getAccountType())
                     .setAuthority(source.authorityPublicKey.asSolanaAccountId())
@@ -52,6 +54,15 @@ internal class ActionOpenAccount(
                 id = 0,
                 owner = owner,
                 accountType = AccountType.RemoteSend
+            )
+        }
+
+        fun createPool(owner: AccountCluster, nextIndex: Long): ActionOpenAccount {
+            return ActionOpenAccount(
+                id = 0,
+                owner = owner,
+                accountType = AccountType.Pool,
+                index = nextIndex
             )
         }
     }

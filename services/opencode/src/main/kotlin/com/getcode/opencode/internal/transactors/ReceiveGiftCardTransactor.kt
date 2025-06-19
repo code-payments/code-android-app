@@ -50,7 +50,7 @@ internal class ReceiveGiftCardTransactor(
         ).getOrElse {
             onStep("account query")
             return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
-        }.takeIf { it.isNotEmpty() }
+        }.takeIf { it.accounts.isNotEmpty() }?.accounts
             ?: run {
                 onStep("account query")
                 return@timedTraceSuspend  logAndFail(ReceiveGiftTransactorError.FailedToQuery())

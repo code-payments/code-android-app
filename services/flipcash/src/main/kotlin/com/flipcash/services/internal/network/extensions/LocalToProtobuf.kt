@@ -2,11 +2,19 @@ package com.flipcash.services.internal.network.extensions
 
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
+import com.flipcash.services.models.BetOutcome
+import com.flipcash.services.models.BetResolution
+import com.codeinc.flipcash.gen.pool.v1.Model as PoolModels
 import com.flipcash.services.models.PagingToken
+import com.flipcash.services.models.PoolMetadata
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
+import com.google.protobuf.Timestamp
+import kotlinx.datetime.Instant
 
 internal fun ByteArray.asSignature(): Common.Signature {
     return Common.Signature.newBuilder().setValue(this.toByteString())
@@ -17,8 +25,24 @@ internal fun KeyPair.asPublicKey(): Common.PublicKey {
     return Common.PublicKey.newBuilder().setValue(this.publicKeyBytes.toByteString()).build()
 }
 
+internal fun PublicKey.asPublicKey(): Common.PublicKey {
+    return Common.PublicKey.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun ID.asPoolId(): PoolModels.PoolId {
+    return PoolModels.PoolId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun ID.asPoolBetId(): PoolModels.BetId {
+    return PoolModels.BetId.newBuilder().setValue(toByteString()).build()
+}
+
 internal fun ID.asUserId(): Common.UserId {
     return Common.UserId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun Instant.asTimestamp(): Timestamp {
+    return Timestamp.newBuilder().setSeconds(this.epochSeconds).build()
 }
 
 internal fun QueryOptions.asQueryOptions(): Common.QueryOptions {
@@ -40,4 +64,52 @@ internal fun PagingToken.toPagingToken(): Common.PagingToken {
 
 internal fun List<ID>.toNotificationIds(): List<Model.NotificationId> {
     return this.map { Model.NotificationId.newBuilder().setValue(it.toByteString()).build() }
+}
+
+internal fun PoolMetadata.signedMetadata(): PoolModels.SignedPoolMetadata {
+    return PoolModels.SignedPoolMetadata.newBuilder()
+        .setCreator(creator.asUserId())
+        .setName(name)
+        .setBuyIn(
+            Common.FiatPaymentAmount.newBuilder()
+                .setCurrency(buyIn.currencyCode.name)
+                .setNativeAmount(buyIn.doubleValue)
+        )
+        .setFundingDestination(fundingDestination.asPublicKey())
+        .setIsOpen(isOpen)
+        .setCreatedAt(createdAt.asTimestamp())
+        .apply {
+            when (this@signedMetadata.resolution) {
+                is BetResolution.BooleanResolution -> {
+                    setResolution(
+                        PoolModels.Resolution.newBuilder()
+                            .setBooleanResolution(this@signedMetadata.resolution.value)
+                    )
+                }
+
+                BetResolution.NotSet -> Unit
+            }
+        }
+        .build()
+}
+
+internal fun PoolBetMetadata.signedMetadata(): PoolModels.SignedBetMetadata {
+    return PoolModels.SignedBetMetadata.newBuilder()
+        .setBetId(id.asPoolBetId())
+        .setUserId(userId.asUserId())
+        .apply {
+            when (this@signedMetadata.selectedOutcome) {
+                is BetOutcome.BooleanOutcome -> {
+                    setSelectedOutcome(
+                        PoolModels.BetOutcome.newBuilder()
+                            .setBooleanOutcome(this@signedMetadata.selectedOutcome.value)
+                    )
+                }
+
+                BetOutcome.NotSet -> Unit
+            }
+        }
+        .setPayoutDestination(payoutDestination.asPublicKey())
+        .setTs(timestamp.asTimestamp())
+        .build()
 }

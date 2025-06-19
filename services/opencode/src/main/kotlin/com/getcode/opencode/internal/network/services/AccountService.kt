@@ -5,6 +5,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.accounts.AccountInfo
+import com.getcode.opencode.model.accounts.AccountResponse
 import com.getcode.opencode.model.core.errors.CodeAccountCheckError
 import com.getcode.opencode.model.core.errors.GetAccountsError
 import com.getcode.solana.keys.PublicKey
@@ -38,7 +39,7 @@ internal class AccountService @Inject constructor(
     suspend fun getAccounts(
         accountOwner: KeyPair,
         requestingOwner: KeyPair,
-    ): Result<Map<PublicKey, AccountInfo>> {
+    ): Result<AccountResponse> {
         return runCatching {
             api.getTokenAccounts(accountOwner, requestingOwner)
         }.foldWithSuppression(
@@ -54,7 +55,14 @@ internal class AccountService @Inject constructor(
                                 container[account] = accountInfo
                             }
                         }
-                        Result.success(container.toMap())
+
+
+                        Result.success(
+                            AccountResponse(
+                                accounts = container.toMap(),
+                                nextPoolIndex = response.nextPoolIndex,
+                            )
+                        )
                     }
                     AccountService.GetTokenAccountInfosResponse.Result.NOT_FOUND -> Result.failure(
                         GetAccountsError.NotFound())

@@ -53,6 +53,7 @@ class BalanceController @Inject constructor(
     private val fetching = AtomicBoolean(false)
 
     var onTimelockUnlocked: (() -> Unit) = { }
+    var onNextIndexDetermined: ((Long) -> Unit) = { }
 
     val rawBalance: StateFlow<Fiat>
         get() = _rawBalance.asStateFlow()
@@ -151,11 +152,12 @@ class BalanceController @Inject constructor(
                 } else {
                     throw error
                 }
-            }?.map { accounts ->
-                if (accounts.values.any { it.unusable }) {
+            }?.map { response ->
+                if (response.accounts.values.any { it.unusable }) {
                     onTimelockUnlocked()
                 }
-                retrieveBalanceFromAccounts(accounts)
+                onNextIndexDetermined(response.nextPoolIndex)
+                retrieveBalanceFromAccounts(response.accounts)
             }?.onSuccess { newBalance ->
                 trace(
                     tag = "Balance",

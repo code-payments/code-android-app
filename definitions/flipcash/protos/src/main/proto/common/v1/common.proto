@@ -42,14 +42,21 @@ enum Platform {
     APPLE   = 1;
     GOOGLE  = 2;
 }
-// PaymentAmount defines an amount of USDC with currency exchange data
-message PaymentAmount {
+// UsdcPaymentAmount defines an amount of USDC with currency exchange data
+message UsdcPaymentAmount {
     // ISO 4217 alpha-3 currency code the payment was made in
     string currency = 1;
     // The amount in the native currency that was paid
     double native_amount = 2;
     // The amount in quarks of USDC that was paid
     uint64 quarks = 3;
+}
+// FiatPaymentAmount defines an amount of fiat
+message FiatPaymentAmount {
+    // ISO 4217 alpha-3 currency code the payment was made in
+    string currency = 1;
+    // The amount in the native currency that was paid
+    double native_amount = 2;
 }
 message PagingToken {
     bytes value = 1 ;

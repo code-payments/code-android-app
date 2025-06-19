@@ -5,16 +5,20 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
+import com.flipcash.services.internal.domain.PoolMapper
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
+import com.flipcash.services.internal.network.services.PoolService
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.internal.network.services.PushService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
+import com.flipcash.services.internal.repositories.InternalPoolRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
+import com.flipcash.services.repository.PoolRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
 import com.getcode.libs.logging.BuildConfig
@@ -86,6 +90,12 @@ internal object FlipcashModule {
         service: ActivityFeedService,
         mapper: ActivityFeedMessageMapper,
     ): ActivityFeedRepository = InternalActivityFeedRepository(service, mapper)
+
+    @Provides
+    internal fun providesPoolRepository(
+        service: PoolService,
+        poolMapper: PoolMapper,
+    ): PoolRepository = InternalPoolRepository(service, poolMapper)
 
     @Provides
     internal fun providesPurchaseRepository(
