@@ -46,4 +46,6 @@ abstract class BaseViewModel2<ViewState : Any, Event : Any>(
 data class LoadingSuccessState(
     val loading: Boolean = false,
     val success: Boolean = false,
-)
+) {
+    val isIdle: Boolean = !loading && !success
+}

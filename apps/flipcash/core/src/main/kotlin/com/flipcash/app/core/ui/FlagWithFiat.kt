@@ -49,7 +49,7 @@ fun FlagWithFiat(
         }
 
         Text(
-            text = fiat.formatted(suffix = suffix(fiat.currencyCode)),
+            text = fiat.formatted(),
             style = textStyle,
             color = textColor,
         )

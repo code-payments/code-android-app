@@ -147,6 +147,10 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
+        featureFlagController.observe(FeatureFlag.Pools)
+            .onEach { enabled -> _state.update { it.copy(poolsOpen = enabled) } }
+            .launchIn(scope)
+
         state
             .map { it.isCameraUp }
             .distinctUntilChanged() // Emit only when value changes

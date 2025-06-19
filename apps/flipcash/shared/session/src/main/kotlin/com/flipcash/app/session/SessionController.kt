@@ -34,6 +34,7 @@ interface SessionController {
 data class SessionState(
     val isCameraPermissionGranted: Boolean? = null,
     val vibrateOnScan: Boolean = false,
+    val poolsOpen: Boolean = false,
     val balance: Fiat? = null,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,

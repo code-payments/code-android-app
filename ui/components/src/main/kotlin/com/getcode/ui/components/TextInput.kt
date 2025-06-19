@@ -1,6 +1,5 @@
 package com.getcode.ui.components
 
-import android.view.ViewTreeObserver
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,9 +23,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,21 +36,18 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
-import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.core.addIf
-import com.getcode.ui.utils.constrain
 import com.getcode.ui.core.measured
+import com.getcode.ui.utils.ConstraintMode
+import com.getcode.ui.utils.constrain
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -108,8 +102,8 @@ fun TextInput(
                     frameConstraints = Constraints(
                         minWidth = 0,
                         minHeight = 0,
-                        maxWidth = with (density) { textFieldSize.width.roundToPx() },
-                        maxHeight = with (density) { textFieldSize.height.roundToPx() },
+                        maxWidth = with(density) { textFieldSize.width.roundToPx() },
+                        maxHeight = with(density) { textFieldSize.height.roundToPx() },
                     )
                 ) { textSize = it },
             enabled = enabled,
@@ -202,7 +196,12 @@ private fun DecoratorBox(
             }
             if (state.text.isEmpty() && placeholder.isNotEmpty()) {
                 Text(
-                    modifier = Modifier.fillMaxWidth().then(Modifier.padding(contentPadding)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .addIf(textFieldAlignment == Alignment.Center) {
+                            Modifier.align(Alignment.Center)
+                        }
+                        .then(Modifier.padding(contentPadding)),
                     text = placeholder,
                     style = placeholderStyle.copy(color = placeholderColor),
                     maxLines = 1,

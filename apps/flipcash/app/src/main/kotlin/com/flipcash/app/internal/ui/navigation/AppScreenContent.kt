@@ -19,6 +19,12 @@ import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
+import com.flipcash.app.pools.PoolBettingScreen
+import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
+import com.flipcash.app.pools.PoolCreateFlow
+import com.flipcash.app.pools.PoolListScreen
+import com.flipcash.app.pools.create.PoolConfirmationScreen
+import com.flipcash.app.pools.create.PoolQuestionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
@@ -74,6 +80,27 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.HomeScreen.Balance> {
             BalanceScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Pools.Root> {
+            PoolListScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Pools.Create.Name> {
+            PoolCreateFlow.start()
+            PoolQuestionScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Pools.Create.Amount> {
+            PoolCustomBidEntryScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Pools.Create.Confirmation> {
+            PoolConfirmationScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.Pools.ChoiceSelection> {
+            PoolBettingScreen(it.poolId, it.postCreate)
         }
 
         register<NavScreenProvider.HomeScreen.CurrencySelection> {

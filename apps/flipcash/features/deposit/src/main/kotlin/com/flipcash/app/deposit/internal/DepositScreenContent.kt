@@ -71,7 +71,7 @@ private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (
                 .clip(CodeTheme.shapes.extraSmall)
                 .border(
                     width = CodeTheme.dimens.border,
-                    color = CodeTheme.colors.brandLight,
+                    color = CodeTheme.colors.border,
                     shape = CodeTheme.shapes.extraSmall
                 )
                 .fillMaxWidth()

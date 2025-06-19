@@ -168,4 +168,24 @@
     <string name="prompt_description_collectOwnCash">You tapped to collect the cash you sent. Are you sure you want to collect it yourself?</string>
     <string name="action_dontCollect">Don\'t Collect</string>
     <string name="action_collect">Collect</string>
+
+    <string name="action_pools">Pools</string>
+    <string name="title_pools">Pools</string>
+    <string name="action_createNewPool">Create a New Pool</string>
+    <string name="title_createNewPool">Create a New Pool</string>
+    <string name="title_createPool">Create Pool</string>
+    <string name="subtitle_createPoolDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
+    <string name="subtitle_createPools">Create a pool, collect money from your friends, and then decide who was right!</string>
+    <string name="action_set">Set</string>
+    <string name="subtitle_poolBidHint">Enter up to %1$s</string>
+    <string name="subtitle_poolBidLimitExceeded">You can only bid up to %1$s</string>
+    <string name="title_setBuyInAmount">Set Buy In Amount</string>
+    <string name="subtitle_buyIn">Buy In</string>
+    <string name="subtitle_poolNamePlaceholder">Question</string>
+    <string name="subtitle_poolNameHint">Pose a Yes or No Question</string>
+    <string name="action_createYourPool">Create Your Pool</string>
+    <string name="error_title_bidLimitReached">Bid Limit Reached</string>
+    <string name="error_description_bidLimitReached">Bids are capped at %1$s</string>
+    <string name="error_title_createPoolFailed">Create Pool Failed</string>
+    <string name="error_description_createPoolFailed">Something went wrong</string>
 </resources>
