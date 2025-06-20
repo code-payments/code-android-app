@@ -22,6 +22,7 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             isOpen = from.isOpen,
             resolution = PoolResolutionConverter.toPoolResolution(from.resolution),
             createdAt = from.createdAt,
+            didWin = from.didWin
         )
     }
 }

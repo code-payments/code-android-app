@@ -188,4 +188,7 @@
     <string name="error_description_bidLimitReached">Bids are capped at %1$s</string>
     <string name="error_title_createPoolFailed">Create Pool Failed</string>
     <string name="error_description_createPoolFailed">Something went wrong</string>
+    <string name="subtitle_amountInPool">%1$s in Pool</string>
+    <string name="subtitle_lostInPool">Lost %1$s</string>
+    <string name="subtitle_wonInPool">Won %1$s</string>
 </resources>

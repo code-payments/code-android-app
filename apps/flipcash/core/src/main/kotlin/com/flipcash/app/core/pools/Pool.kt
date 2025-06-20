@@ -15,6 +15,7 @@ data class Pool(
     val isOpen: Boolean = true,
     val resolution: PoolResolution = PoolResolution.NotSet,
     val createdAt: Instant,
+    val didWin: Boolean,
 )
 
 data class PoolWithBets(
