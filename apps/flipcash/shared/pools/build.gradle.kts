@@ -6,11 +6,10 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
-    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.features.pools"
+    namespace = "${Gradle.flipcashNamespace}.shared.pools"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -30,11 +29,6 @@ android {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
-
-    buildFeatures {
-        buildConfig = true
-        compose = true
-    }
 }
 
 dependencies {
@@ -43,26 +37,14 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
-    implementation(Libs.compose_foundation)
-    implementation(Libs.compose_material)
-    implementation(Libs.compose_materialIconsExtended)
-    implementation(Libs.compose_paging)
+    implementation(Libs.androidx_room_ktx)
+    implementation(Libs.androidx_room_paging)
+    implementation(Libs.androidx_paging_runtime)
 
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:shared:pools"))
-    implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-
+    compileOnly(project(":apps:flipcash:shared:persistence:db"))
+    implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":services:flipcash"))
-
-    implementation(project(":ui:analytics"))
-    implementation(project(":ui:core"))
-    implementation(project(":ui:components"))
-    implementation(project(":ui:navigation"))
-    implementation(project(":ui:resources"))
-    implementation(project(":ui:theme"))
-
-    implementation(Libs.rinku_compose)
+    implementation(project(":libs:datetime"))
+    implementation(project(":libs:logging"))
 }

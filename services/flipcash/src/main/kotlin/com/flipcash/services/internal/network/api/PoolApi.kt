@@ -7,6 +7,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.model.pools.PoolRequest.Resolve.Resolution
 import com.flipcash.services.internal.network.extensions.asPoolId
+import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asSignature
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.toProto
@@ -60,6 +61,24 @@ internal class PoolApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getPool(rpcRequest)
+        }
+    }
+
+    /**
+     * Gets all pools for a user over a paging API
+     */
+    suspend fun getPagedPools(
+        owner: KeyPair,
+        request: PoolRequest.GetPage,
+    ): PoolService.GetPagedPoolsResponse {
+        val rpcRequest = PoolService.GetPagedPoolsRequest.newBuilder()
+            .setQueryOptions(request.queryOptions.asQueryOptions())
+            .apply {
+                setAuth(authenticate(owner))
+            }.build()
+
+        return withContext(Dispatchers.IO) {
+            api.getPagedPools(rpcRequest)
         }
     }
 

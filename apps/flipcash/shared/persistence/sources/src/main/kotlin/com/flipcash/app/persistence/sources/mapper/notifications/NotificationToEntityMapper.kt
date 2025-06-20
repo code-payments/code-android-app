@@ -1,4 +1,4 @@
-package com.flipcash.app.persistence.sources.mapper
+package com.flipcash.app.persistence.sources.mapper.notifications
 
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.persistence.entities.MessageEntity

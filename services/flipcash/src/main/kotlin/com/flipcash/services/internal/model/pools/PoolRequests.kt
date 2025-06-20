@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.model.pools
 
 import com.flipcash.services.models.PoolMetadata
+import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -21,6 +22,10 @@ internal sealed interface PoolRequest {
     }
 
     data class Get(val poolId: ID): PoolRequest
+
+    data class GetPage(
+        val queryOptions: QueryOptions,
+    ): PoolRequest
 
     data class Resolve(
         val pool: PoolMetadata,

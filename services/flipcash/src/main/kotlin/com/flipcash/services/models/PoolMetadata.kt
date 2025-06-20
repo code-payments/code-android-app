@@ -1,6 +1,7 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.core.RandomId
@@ -70,7 +71,7 @@ data class PoolMetadata(
 @Immutable
 data class NetworkPool(
     val metadata: PoolMetadata,
-    val rendezvous: Signature,
+    val rendezvous: Ed25519.KeyPair,
     val bets: List<PoolBetMetadata> = emptyList(),
 )
 

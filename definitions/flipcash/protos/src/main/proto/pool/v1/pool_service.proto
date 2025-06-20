@@ -11,6 +11,8 @@ service Pool {
     rpc CreatePool(CreatePoolRequest) returns (CreatePoolResponse);
     // GetPool gets pool metadata by its ID
     rpc GetPool(GetPoolRequest) returns (GetPoolResponse);
+    // GetPagedPools gets all pools for a user over a paging API
+    rpc GetPagedPools(GetPagedPoolsRequest) returns (GetPagedPoolsResponse);
     // ResolvePool resolves a pool by declaring the pool's outcome. The pool creator
     // resolves a pool by calling this RPC first, then SubmitIntent to distribute funds
     // to the winning participants.
@@ -50,6 +52,18 @@ message GetPoolResponse {
         NOT_FOUND = 1;
     }
     PoolMetadata pool = 2;
+}
+message GetPagedPoolsRequest {
+    common.v1.QueryOptions query_options = 1;
+    common.v1.Auth auth = 2;
+}
+message GetPagedPoolsResponse {
+    Result result = 1;
+    enum Result {
+        OK        = 0;
+        NOT_FOUND = 1;
+    }
+    repeated PoolMetadata pools = 2 ;
 }
 message ResolvePoolRequest {
     PoolId id = 1;

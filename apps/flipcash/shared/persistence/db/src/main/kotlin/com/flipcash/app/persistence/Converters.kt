@@ -1,5 +1,57 @@
 package com.flipcash.app.persistence
 
-internal object Converters {
+import androidx.room.TypeConverter
+import com.flipcash.app.core.pools.PoolBetOutcome
+import com.flipcash.app.core.pools.PoolResolution
+import com.flipcash.services.models.NetworkPoolBetOutcome
+import com.flipcash.services.models.NetworkPoolResolution
 
+object BetOutcomeConverter {
+    @TypeConverter
+    fun fromBetOutcome(outcome: PoolBetOutcome): String = when (outcome) {
+        is PoolBetOutcome.NotSet -> "not_set"
+        is PoolBetOutcome.BooleanOutcome -> "boolean_${outcome.value}"
+    }
+
+    @TypeConverter
+    fun fromBetOutcome(outcome: NetworkPoolBetOutcome): String = when (outcome) {
+        is NetworkPoolBetOutcome.NotSet -> "not_set"
+        is NetworkPoolBetOutcome.BooleanOutcome -> "boolean_${outcome.value}"
+    }
+
+    @TypeConverter
+    fun toBetOutcome(value: String?): PoolBetOutcome = when {
+        value == null -> PoolBetOutcome.NotSet
+        value == "not_set" -> PoolBetOutcome.NotSet
+        value.startsWith("boolean_") -> {
+            val boolValue = value.removePrefix("boolean_").toBoolean()
+            PoolBetOutcome.BooleanOutcome(boolValue)
+        }
+        else -> throw IllegalArgumentException("Unknown BetOutcome: $value")
+    }
+}
+
+object PoolResolutionConverter {
+    @TypeConverter
+    fun fromPoolResolution(resolution: NetworkPoolResolution): String = when (resolution) {
+        is NetworkPoolResolution.BooleanResolution -> "boolean_${resolution.value}"
+        NetworkPoolResolution.NotSet -> "not_set"
+    }
+
+    @TypeConverter
+    fun fromPoolResolution(resolution: PoolResolution): String = when (resolution) {
+        is PoolResolution.BooleanResolution -> "boolean_${resolution.value}"
+        PoolResolution.NotSet -> "not_set"
+    }
+
+    @TypeConverter
+    fun toPoolResolution(value: String?): PoolResolution = when {
+        value == null -> PoolResolution.NotSet
+        value == "not_set" -> PoolResolution.NotSet
+        value.startsWith("boolean_") -> {
+            val boolValue = value.removePrefix("boolean_").toBoolean()
+            PoolResolution.BooleanResolution(boolValue)
+        }
+        else -> throw IllegalArgumentException("Unknown PoolResolution: $value")
+    }
 }

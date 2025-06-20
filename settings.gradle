@@ -24,6 +24,7 @@ include(
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",
         ":apps:flipcash:shared:persistence:sources",
+        ":apps:flipcash:shared:pools",
         ":apps:flipcash:shared:router",
         ":apps:flipcash:shared:session",
         ":apps:flipcash:shared:shareable",

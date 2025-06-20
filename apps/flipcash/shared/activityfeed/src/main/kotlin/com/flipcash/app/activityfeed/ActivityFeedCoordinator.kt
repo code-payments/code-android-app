@@ -7,7 +7,7 @@ import androidx.paging.PagingData
 import androidx.paging.map
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.persistence.sources.MessageDataSource
-import com.flipcash.app.persistence.sources.mapper.MessageEntityToFeedMessageMapper
+import com.flipcash.app.persistence.sources.mapper.notifications.MessageEntityToFeedMessageMapper
 import com.flipcash.app.persistence.sources.mediator.FeedRemoteMediator
 import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.models.ActivityFeedType

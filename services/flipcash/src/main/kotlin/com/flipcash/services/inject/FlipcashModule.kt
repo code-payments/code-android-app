@@ -4,6 +4,7 @@ import android.content.Context
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
+import com.flipcash.services.internal.domain.PoolBetMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
 import com.flipcash.services.internal.domain.PoolMapper
 import com.flipcash.services.internal.network.services.AccountService
@@ -52,7 +53,6 @@ internal object FlipcashModule {
                     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
                     return "Flipcash/Core/Android/$version"
                 }
-
         }
     }
 
@@ -95,7 +95,8 @@ internal object FlipcashModule {
     internal fun providesPoolRepository(
         service: PoolService,
         poolMapper: PoolMapper,
-    ): PoolRepository = InternalPoolRepository(service, poolMapper)
+        betMapper: PoolBetMapper,
+    ): PoolRepository = InternalPoolRepository(service, poolMapper, betMapper)
 
     @Provides
     internal fun providesPurchaseRepository(

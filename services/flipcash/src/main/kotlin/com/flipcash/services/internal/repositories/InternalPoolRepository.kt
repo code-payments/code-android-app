@@ -1,10 +1,13 @@
 package com.flipcash.services.internal.repositories
 
+import com.flipcash.services.internal.domain.PoolBetMapper
 import com.flipcash.services.internal.domain.PoolMapper
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.network.services.PoolService
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
+import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
@@ -16,6 +19,7 @@ import com.getcode.utils.ErrorUtils
 internal class InternalPoolRepository(
     private val service: PoolService,
     private val poolMapper: PoolMapper,
+    private val betMapper: PoolBetMapper,
 ) : PoolRepository {
 
     override suspend fun createPool(
@@ -43,6 +47,14 @@ internal class InternalPoolRepository(
         return service.getPool(request = PoolRequest.Get(poolId))
             .onFailure { ErrorUtils.handleError(it) }
             .map { poolMapper.map(it) }
+    }
+
+    override suspend fun getPagedPools(
+        owner: KeyPair,
+        queryOptions: QueryOptions
+    ): Result<List<NetworkPool>> {
+        return service.getPagedPools(owner = owner, request = PoolRequest.GetPage(queryOptions))
+            .map { list -> list.map { poolMapper.map(it) } }
     }
 
 

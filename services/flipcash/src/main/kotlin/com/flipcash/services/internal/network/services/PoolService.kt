@@ -7,6 +7,7 @@ import com.flipcash.services.internal.network.api.PoolApi
 import com.flipcash.services.models.CreatePoolError
 import com.flipcash.services.models.DeclarePoolOutcomeError
 import com.flipcash.services.models.GetPoolError
+import com.flipcash.services.models.GetPoolPageError
 import com.flipcash.services.models.PlacePoolBetError
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -51,6 +52,26 @@ internal class PoolService @Inject constructor(
             onFailure = { cause ->
                 Result.failure(GetPoolError.Other(cause = cause))
             },
+        )
+    }
+
+    suspend fun getPagedPools(
+        owner: KeyPair,
+        request: PoolRequest.GetPage
+    ): Result<List<Model.PoolMetadata>> {
+        return runCatching {
+            api.getPagedPools(owner, request)
+        }.foldWithSuppression(
+            onSuccess = { result ->
+                when (result.result) {
+                    PoolService.GetPagedPoolsResponse.Result.OK -> Result.success(result.poolsList)
+                    PoolService.GetPagedPoolsResponse.Result.NOT_FOUND -> Result.failure(GetPoolPageError.NotFound())
+                    PoolService.GetPagedPoolsResponse.Result.UNRECOGNIZED -> Result.failure(GetPoolPageError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(GetPoolPageError.Other(cause = cause))
+            }
         )
     }
 

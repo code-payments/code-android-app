@@ -43,7 +43,9 @@ message PoolMetadata {
     // Signature of the SignedPoolMetadata message with the rendezvous public key of the pool
     common.v1.Signature rendezvous_signature = 2;
     // The set of bets (with verified payment) made against this pool
-    repeated BetMetadata bets = 3;
+    repeated BetMetadata bets = 3 ;
+    // Paging token specific to each user that enables access to paging APIs
+    common.v1.PagingToken paging_token = 4;
 }
 // BetId uniquely identifies a bet via an intent ID
 message BetId {

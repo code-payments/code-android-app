@@ -1,5 +1,6 @@
 plugins {
     id(Plugins.android_library)
+    id(Plugins.kotlin_serialization)
 }
 
 android {
@@ -37,4 +38,6 @@ android {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+
+    implementation(Libs.kotlinx_serialization_json)
 }

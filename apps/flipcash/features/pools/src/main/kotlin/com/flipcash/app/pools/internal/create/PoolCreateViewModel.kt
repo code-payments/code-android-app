@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.features.pools.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.PoolController
@@ -85,7 +86,7 @@ internal class PoolCreateViewModel @Inject constructor(
     balanceController: BalanceController,
     analytics: FlipcashAnalyticsService,
     transactionController: TransactionController,
-    poolController: PoolController,
+    poolCoordinator: PoolsCoordinator,
 ) : BaseViewModel2<PoolCreateViewModel.State, PoolCreateViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -293,7 +294,7 @@ internal class PoolCreateViewModel @Inject constructor(
                     )
                     return@mapNotNull null
                 }
-                poolController.createPool(name, buyIn)
+                poolCoordinator.createPool(name, buyIn)
             }.onResult(
                 onError = {
                     BottomBarManager.showError(
@@ -304,7 +305,7 @@ internal class PoolCreateViewModel @Inject constructor(
                 },
                 onSuccess = {
                     dispatchEvent(Event.UpdateCreatingState(loading = false, success = true))
-                    dispatchEvent(Event.OnPoolCreated(it.metadata.id))
+                    dispatchEvent(Event.OnPoolCreated(it.id))
                 }
             ).launchIn(viewModelScope)
     }

@@ -5,11 +5,15 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.flipcash.app.persistence.dao.MessageDao
+import com.flipcash.app.persistence.dao.PoolDao
 import com.flipcash.app.persistence.entities.MessageEntity
+import com.flipcash.app.persistence.entities.PoolBetEntity
+import com.flipcash.app.persistence.entities.PoolEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -17,17 +21,21 @@ import org.kin.sdk.base.tools.subByteArray
 
 @Database(
     entities = [
-        MessageEntity::class
+        MessageEntity::class,
+        PoolEntity::class,
+        PoolBetEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
+        AutoMigration(from = 2, to = 3),
     ],
-    version = 2,
+    version = 3,
 )
-//@TypeConverters(Converters::class)
+@TypeConverters(PoolResolutionConverter::class, BetOutcomeConverter::class)
 abstract class FlipcashDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
+    abstract fun poolDao(): PoolDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {

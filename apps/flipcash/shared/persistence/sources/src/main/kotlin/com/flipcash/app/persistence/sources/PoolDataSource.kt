@@ -1,0 +1,84 @@
+package com.flipcash.app.persistence.sources
+
+import androidx.paging.PagingSource
+import androidx.paging.PagingState
+import androidx.room.withTransaction
+import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.core.pools.PoolWithBets
+import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.entities.PoolEntity
+import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToEntityMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
+import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.persistence.PagingDataSource
+import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+
+class PoolDataSource @Inject constructor(
+    private val poolEntityMapper: PoolEntityToPoolMapper,
+    private val poolMetadataEntityMapper: NetworkPoolToEntityMapper,
+    private val betEntityMapper: PoolBetEntityToPoolBetMapper
+): PagingDataSource<ID, Pool, List<NetworkPool>, Int, PoolEntity> {
+
+    private val db: FlipcashDatabase?
+        get() = FlipcashDatabase.getInstance()
+
+    override fun observe(): PagingSource<Int, PoolEntity> {
+        return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolEntity>() {
+            override fun getRefreshKey(state: PagingState<Int, PoolEntity>): Int? = null
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PoolEntity> =
+                LoadResult.Error(Exception("Database not initialized"))
+        }
+    }
+
+    fun observe(id: ID): Flow<PoolWithBets> {
+        return db?.poolDao()?.observe(id)?.map {
+            val pool = poolEntityMapper.map(it.pool)
+            val bets = it.bets.map { betEntityMapper.map(it) }
+            PoolWithBets(pool, bets)
+        } ?: throw Exception("No pool found")
+    }
+
+    override suspend fun getById(id: ID): Pool? {
+        val result = db?.poolDao()?.getPoolWithBets(id) ?: return null
+        return poolEntityMapper.map(result.pool)
+    }
+
+    suspend fun getByIdWithBets(id: ID): PoolWithBets? {
+        val result = db?.poolDao()?.getPoolWithBets(id) ?: return null
+        val pool = poolEntityMapper.map(result.pool)
+        val bets = result.bets.map { betEntityMapper.map(it) }
+        return PoolWithBets(pool, bets)
+    }
+
+    override suspend fun get(): List<Pool> {
+        val result = db?.poolDao()?.getAll() ?: return emptyList()
+        return result.map { poolEntityMapper.map(it) }
+    }
+
+    override suspend fun upsert(value: List<NetworkPool>) {
+        val entities = value.map { poolMetadataEntityMapper.map(it) }
+        entities.onEach { (pool, bets) ->
+            db?.withTransaction {
+                db?.poolDao()?.upsert(pool)
+                db?.poolDao()?.upsert(*bets.toTypedArray())
+            }
+        }
+    }
+
+    override suspend fun query(whereClause: String): List<Pool> {
+        return emptyList()
+    }
+
+    override suspend fun getMostRecent(): Pool? {
+        val entity = db?.poolDao()?.getNewestPool() ?: return null
+        return poolEntityMapper.map(entity)
+    }
+
+    override suspend fun clear() {
+        db?.poolDao()?.clear()
+    }
+}

@@ -88,6 +88,14 @@ sealed class GetPoolError(
     data class Other(override val cause: Throwable? = null) : GetPoolError(message = cause?.message, cause = cause)
 }
 
+sealed class GetPoolPageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound: GetPoolPageError("Not found")
+    data class Other(override val cause: Throwable? = null) : GetPoolPageError(message = cause?.message, cause = cause)
+}
+
 sealed class PlacePoolBetError(
     override val message: String? = null,
     override val cause: Throwable? = null

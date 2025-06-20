@@ -2,10 +2,10 @@ package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.model.pools.PoolRequest.PlaceBet.Outcome
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import javax.annotation.concurrent.Immutable
@@ -36,7 +36,7 @@ data class PoolBetMetadata(
 @Immutable
 data class NetworkPoolBet(
     val metadata: PoolBetMetadata,
-    val rendezvous: Signature,
+    val poolRendezvous: Ed25519.KeyPair,
 )
 
 sealed interface NetworkPoolBetOutcome {

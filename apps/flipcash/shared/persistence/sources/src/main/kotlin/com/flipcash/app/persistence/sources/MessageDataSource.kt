@@ -6,8 +6,8 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.persistence.FlipcashDatabase
-import com.flipcash.app.persistence.sources.mapper.MessageEntityToFeedMessageMapper
-import com.flipcash.app.persistence.sources.mapper.NotificationToEntityMapper
+import com.flipcash.app.persistence.sources.mapper.notifications.MessageEntityToFeedMessageMapper
+import com.flipcash.app.persistence.sources.mapper.notifications.NotificationToEntityMapper
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.persistence.PagingDataSource
 import com.getcode.opencode.model.core.ID

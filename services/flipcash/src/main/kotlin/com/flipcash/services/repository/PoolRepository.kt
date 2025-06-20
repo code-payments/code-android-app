@@ -1,7 +1,9 @@
 package com.flipcash.services.repository
 
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
+import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -21,6 +23,11 @@ interface PoolRepository {
     suspend fun getPool(
         poolId: ID
     ): Result<NetworkPool>
+
+    suspend fun getPagedPools(
+        owner: KeyPair,
+        queryOptions: QueryOptions,
+    ): Result<List<NetworkPool>>
 
     suspend fun declareOutcome(
         owner: KeyPair,
