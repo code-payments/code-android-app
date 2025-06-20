@@ -52,7 +52,7 @@
     <string name="error_title_failedToCreateGiftCard">Something Went Wrong</string>
     <string name="error_description_failedToCreateGiftCard">Please try again later</string>
 
-    <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 24 hours. Please ask them to send the cash again</string>
+    <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 7 days. Please ask them to send the cash again</string>
 
     <string name="subtitle_balanceIsHeldInUsdStablecoins">Your balance is held in US dollar stablecoins</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
@@ -149,7 +149,7 @@
 
     <string name="action_unlockCode">Unlock Flipcash</string>
     <string name="action_noCancelSend">No, Cancel Send</string>
-    <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 24 hours will be automatically returned to your balance</string>
+    <string name="prompt_description_didYouSendLink">Any cash that isn\'t collected within 7 days will be automatically returned to your balance</string>
 
     <string name="subtitle_startCameraToScan">You need to start your camera to grab cash</string>
 
