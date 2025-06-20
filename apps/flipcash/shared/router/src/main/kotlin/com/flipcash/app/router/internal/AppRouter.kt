@@ -20,6 +20,7 @@ internal class AppRouter(
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
+        val pool = listOf("pool")
     }
 
     override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
@@ -34,6 +35,14 @@ internal class AppRouter(
                     }
                 }
                 is DeeplinkType.CashLink -> {
+                    if (userManager.authState is AuthState.LoggedIn) {
+                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                    } else {
+                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    }
+                }
+
+                is DeeplinkType.Pool -> {
                     if (userManager.authState is AuthState.LoggedIn) {
                         listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
                     } else {
@@ -67,6 +76,10 @@ internal class AppRouter(
                             DeeplinkType.CashLink(entropy)
                         }
 
+                        pool.contains(deeplink.pathSegments[0]) -> {
+                            val entropy = deeplink.data.toUri().fragments[Key.entropy] ?: return null
+                            DeeplinkType.Pool(entropy)
+                        }
                         else -> null
                     }
                 }

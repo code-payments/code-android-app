@@ -81,6 +81,10 @@ internal fun Scanner(deepLink: DeeplinkType?) {
             }
 
             is DeeplinkType.Login -> Unit
+            is DeeplinkType.Pool -> {
+                // TODO: route through session controller to get ID
+                //  and trigger navigation
+            }
         }
 
         deepLinkSaved = null

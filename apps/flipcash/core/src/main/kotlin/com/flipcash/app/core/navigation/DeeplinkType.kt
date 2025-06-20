@@ -8,6 +8,7 @@ import kotlinx.parcelize.Parcelize
 sealed interface DeeplinkType: Parcelable {
     data class Login(val entropy: String) : DeeplinkType
     data class CashLink(val entropy: String) : DeeplinkType
+    data class Pool(val entropy: String) : DeeplinkType
 }
 
 val Uri.fragments: Map<Key, String>
