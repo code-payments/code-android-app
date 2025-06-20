@@ -1,6 +1,5 @@
 package com.flipcash.services.controllers
 
-import com.flipcash.services.internal.model.pools.Resolution
 import com.flipcash.services.models.Pool
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.repository.PoolRepository

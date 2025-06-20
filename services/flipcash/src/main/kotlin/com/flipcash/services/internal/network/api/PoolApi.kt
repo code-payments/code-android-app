@@ -11,7 +11,6 @@ import com.flipcash.services.internal.network.extensions.asSignature
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.sign
 import com.flipcash.services.internal.network.extensions.signedMetadata
-import com.flipcash.services.models.Pool
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.PoolBetMetadata
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -67,9 +66,9 @@ internal class PoolApi @Inject constructor(
 
     suspend fun declareOutcome(
         owner: KeyPair,
-        request: PoolRequest.DeclareOutcome,
-    ): PoolService.DeclarePoolOutcomeResponse {
-        val rpcRequest = PoolService.DeclarePoolOutcomeRequest.newBuilder()
+        request: PoolRequest.Resolve,
+    ): PoolService.ResolvePoolResponse {
+        val rpcRequest = PoolService.ResolvePoolRequest.newBuilder()
             .setId(request.poolId.asPoolId())
             .setResolution(
                 when (request.resolution) {
@@ -88,7 +87,7 @@ internal class PoolApi @Inject constructor(
             .build()
 
         return withContext(Dispatchers.IO) {
-            api.declarePoolOutcome(rpcRequest)
+            api.resolvePool(rpcRequest)
         }
     }
 

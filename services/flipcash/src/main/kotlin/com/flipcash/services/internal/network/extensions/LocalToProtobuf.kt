@@ -3,7 +3,7 @@ package com.flipcash.services.internal.network.extensions
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.models.BetOutcome
-import com.flipcash.services.models.BetResolution
+import com.flipcash.services.models.PoolResolution
 import com.codeinc.flipcash.gen.pool.v1.Model as PoolModels
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.PoolMetadata
@@ -80,14 +80,14 @@ internal fun PoolMetadata.signedMetadata(): PoolModels.SignedPoolMetadata {
         .setCreatedAt(createdAt.asTimestamp())
         .apply {
             when (this@signedMetadata.resolution) {
-                is BetResolution.BooleanResolution -> {
+                is PoolResolution.BooleanResolution -> {
                     setResolution(
                         PoolModels.Resolution.newBuilder()
                             .setBooleanResolution(this@signedMetadata.resolution.value)
                     )
                 }
 
-                BetResolution.NotSet -> Unit
+                PoolResolution.NotSet -> Unit
             }
         }
         .build()

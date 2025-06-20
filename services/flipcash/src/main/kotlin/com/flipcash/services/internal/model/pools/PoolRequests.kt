@@ -1,7 +1,5 @@
 package com.flipcash.services.internal.model.pools
 
-import com.getcode.ed25519.Ed25519
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
@@ -17,7 +15,7 @@ internal sealed interface PoolRequest {
 
     data class Get(val poolId: ID): PoolRequest
 
-    data class DeclareOutcome(
+    data class Resolve(
         val poolId: ID,
         val resolution: Resolution,
         val poolRendezvous: Signature,
@@ -28,12 +26,12 @@ internal sealed interface PoolRequest {
         val poolId: ID,
         val payoutDestination: PublicKey,
         val poolRendezvous: Signature,
-        val choiceType: BetChoiceType,
+        val outcome: Outcome,
     ): PoolRequest
 }
 
-sealed interface BetChoiceType {
-    data class BooleanChoice(val value: Boolean): BetChoiceType
+sealed interface Outcome {
+    data class BooleanOutcome(val value: Boolean): Outcome
 }
 
 sealed interface Resolution {

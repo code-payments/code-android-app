@@ -95,6 +95,7 @@ sealed class PlacePoolBetError(
     class PoolNotFound: PlacePoolBetError("Pool not found")
     class PoolClosed: PlacePoolBetError("Pool closed")
     class BetAlreadyMade: PlacePoolBetError("Bet already made")
+    class MaxBetsReceived: PlacePoolBetError("Max bets received")
     class Unrecognized : PlacePoolBetError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : PlacePoolBetError(message = cause?.message, cause = cause)
 }

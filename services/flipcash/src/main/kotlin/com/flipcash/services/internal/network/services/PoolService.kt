@@ -53,20 +53,20 @@ internal class PoolService @Inject constructor(
         )
     }
 
-    suspend fun declareOutcome(
+    suspend fun resolvePool(
         owner: KeyPair,
-        request: PoolRequest.DeclareOutcome
+        request: PoolRequest.Resolve
     ): Result<Unit> {
         return runCatching {
             api.declareOutcome(owner, request)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    PoolService.DeclarePoolOutcomeResponse.Result.OK -> Result.success(Unit)
-                    PoolService.DeclarePoolOutcomeResponse.Result.NOT_FOUND -> Result.failure(DeclarePoolOutcomeError.NotFound())
-                    PoolService.DeclarePoolOutcomeResponse.Result.DENIED -> Result.failure(DeclarePoolOutcomeError.Denied())
-                    PoolService.DeclarePoolOutcomeResponse.Result.DIFFERENT_OUTCOME_DECLARED -> Result.failure(DeclarePoolOutcomeError.AlreadyDeclared())
-                    PoolService.DeclarePoolOutcomeResponse.Result.UNRECOGNIZED -> Result.failure(DeclarePoolOutcomeError.Unrecognized())
+                    PoolService.ResolvePoolResponse.Result.OK -> Result.success(Unit)
+                    PoolService.ResolvePoolResponse.Result.NOT_FOUND -> Result.failure(DeclarePoolOutcomeError.NotFound())
+                    PoolService.ResolvePoolResponse.Result.DENIED -> Result.failure(DeclarePoolOutcomeError.Denied())
+                    PoolService.ResolvePoolResponse.Result.DIFFERENT_OUTCOME_DECLARED -> Result.failure(DeclarePoolOutcomeError.AlreadyDeclared())
+                    PoolService.ResolvePoolResponse.Result.UNRECOGNIZED -> Result.failure(DeclarePoolOutcomeError.Unrecognized())
                 }
             },
             onFailure = { cause ->
@@ -87,6 +87,7 @@ internal class PoolService @Inject constructor(
                     PoolService.MakeBetResponse.Result.POOL_NOT_FOUND -> Result.failure(PlacePoolBetError.PoolNotFound())
                     PoolService.MakeBetResponse.Result.POOL_CLOSED -> Result.failure(PlacePoolBetError.PoolClosed())
                     PoolService.MakeBetResponse.Result.MULTIPLE_BETS -> Result.failure(PlacePoolBetError.BetAlreadyMade())
+                    PoolService.MakeBetResponse.Result.MAX_BETS_RECEIVED -> Result.failure(PlacePoolBetError.MaxBetsReceived())
                     PoolService.MakeBetResponse.Result.UNRECOGNIZED -> Result.failure(PlacePoolBetError.Unrecognized())
                 }
             },

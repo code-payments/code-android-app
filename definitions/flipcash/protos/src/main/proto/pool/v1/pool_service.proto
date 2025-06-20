@@ -11,10 +11,12 @@ service Pool {
     rpc CreatePool(CreatePoolRequest) returns (CreatePoolResponse);
     // GetPool gets pool metadata by its ID
     rpc GetPool(GetPoolRequest) returns (GetPoolResponse);
-    // DeclarePoolOutcome declares a pool's outcome. The pool creator resolves a
-    // pool by calling this RPC first, then SubmitIntent to distribute pool funds
+    // ResolvePool resolves a pool by declaring the pool's outcome. The pool creator
+    // resolves a pool by calling this RPC first, then SubmitIntent to distribute funds
     // to the winning participants.
-    rpc DeclarePoolOutcome(DeclarePoolOutcomeRequest) returns (DeclarePoolOutcomeResponse);
+    //
+    // Note: If the pool is not closed, it will be closed after execution of this RPC.
+    rpc ResolvePool(ResolvePoolRequest) returns (ResolvePoolResponse);
     // MakeBet creates a new bet against a pool. Pool participants make a bet by
     // calling MakeBet to create an initially unpaid bet, then SubmitIntent for
     // payment where:
@@ -49,14 +51,14 @@ message GetPoolResponse {
     }
     PoolMetadata pool = 2;
 }
-message DeclarePoolOutcomeRequest {
+message ResolvePoolRequest {
     PoolId id = 1;
     
     Resolution resolution = 2;
     common.v1.Signature new_rendezvous_signature = 3;
     common.v1.Auth auth = 4;
 }
-message DeclarePoolOutcomeResponse {
+message ResolvePoolResponse {
     Result result = 1;
     enum Result {
         OK                         = 0;
@@ -74,9 +76,10 @@ message MakeBetRequest {
 message MakeBetResponse {
     Result result = 1;
     enum Result {
-        OK               = 0;
-        POOL_NOT_FOUND   = 1;
-        POOL_CLOSED      = 2;
-        MULTIPLE_BETS    = 3;
+        OK                = 0;
+        POOL_NOT_FOUND    = 1;
+        POOL_CLOSED       = 2;
+        MULTIPLE_BETS     = 3;
+        MAX_BETS_RECEIVED = 4;
     }
 }

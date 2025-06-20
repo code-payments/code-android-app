@@ -1,7 +1,7 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.domain.PoolMapper
-import com.flipcash.services.internal.model.pools.BetChoiceType.BooleanChoice
+import com.flipcash.services.internal.model.pools.Outcome.BooleanOutcome
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.model.pools.Resolution
 import com.flipcash.services.internal.network.services.PoolService
@@ -11,7 +11,6 @@ import com.flipcash.services.repository.PoolRepository
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.utils.mapResult
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import com.getcode.utils.ErrorUtils
@@ -52,9 +51,9 @@ internal class InternalPoolRepository(
         poolId: ID,
         resolution: Boolean,
         poolRendezvous: Signature,
-    ): Result<Unit> = service.declareOutcome(
+    ): Result<Unit> = service.resolvePool(
         owner = owner,
-        request = PoolRequest.DeclareOutcome(
+        request = PoolRequest.Resolve(
             poolId = poolId,
             resolution = Resolution.BooleanResolution(resolution),
             poolRendezvous = poolRendezvous,
@@ -75,7 +74,7 @@ internal class InternalPoolRepository(
             userId = userId,
             payoutDestination = payoutDestination,
             poolRendezvous = rendezvous,
-            choiceType = BooleanChoice(choice),
+            outcome = BooleanOutcome(choice),
         )
     )
 }

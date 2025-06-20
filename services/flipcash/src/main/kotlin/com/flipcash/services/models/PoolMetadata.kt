@@ -1,7 +1,6 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Fiat
@@ -31,7 +30,7 @@ data class PoolMetadata(
     val buyIn: Fiat,
     val fundingDestination: PublicKey,
     val isOpen: Boolean = true,
-    val resolution: BetResolution = BetResolution.NotSet,
+    val resolution: PoolResolution = PoolResolution.NotSet,
     val createdAt: Instant,
 ) {
     companion object {
@@ -42,7 +41,7 @@ data class PoolMetadata(
             buyIn = Fiat.Zero,
             fundingDestination = PublicKey.generate(),
             createdAt = Clock.System.now(),
-            resolution = BetResolution.NotSet,
+            resolution = PoolResolution.NotSet,
             isOpen = true,
         )
 
@@ -52,7 +51,7 @@ data class PoolMetadata(
                 creator = request.userId,
                 name = request.name,
                 buyIn = request.buyIn,
-                resolution = BetResolution.NotSet,
+                resolution = PoolResolution.NotSet,
                 fundingDestination = request.fundingDestination,
                 createdAt = Clock.System.now(),
             )
@@ -67,8 +66,8 @@ data class Pool(
     val bets: List<PoolBetMetadata> = emptyList(),
 )
 
-sealed interface BetResolution {
-    data object NotSet: BetResolution
+sealed interface PoolResolution {
+    data object NotSet: PoolResolution
     @Immutable
-    data class BooleanResolution(val value: Boolean): BetResolution
+    data class BooleanResolution(val value: Boolean): PoolResolution
 }

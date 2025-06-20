@@ -1,8 +1,7 @@
 package com.flipcash.services.models
 
-import com.flipcash.services.internal.model.pools.BetChoiceType
+import com.flipcash.services.internal.model.pools.Outcome
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
@@ -24,8 +23,8 @@ data class PoolBetMetadata(
             return PoolBetMetadata(
                 id = PublicKey.generate().bytes,
                 userId = request.userId,
-                selectedOutcome = when (request.choiceType) {
-                    is BetChoiceType.BooleanChoice -> BetOutcome.BooleanOutcome(request.choiceType.value)
+                selectedOutcome = when (request.outcome) {
+                    is Outcome.BooleanOutcome -> BetOutcome.BooleanOutcome(request.outcome.value)
                 },
                 payoutDestination = request.payoutDestination,
                 timestamp = Clock.System.now(),

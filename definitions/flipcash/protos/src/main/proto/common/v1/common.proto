@@ -77,3 +77,20 @@ message QueryOptions {
         DESC = 1;
     }
 }
+// Request is a generic wrapper for gRPC requests
+message Request {
+    string version = 1;
+    string service = 2;
+    string method = 3;
+    bytes body = 4;
+}
+// Response is a generic wrapper for gRPC responses
+message Response {
+    Result result = 1;
+    bytes body = 2;
+    string message = 3;
+    enum Result {
+        OK = 0;
+        ERROR = 1;
+    }
+}
