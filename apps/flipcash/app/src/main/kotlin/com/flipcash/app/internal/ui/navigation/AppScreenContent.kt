@@ -1,6 +1,7 @@
 package com.flipcash.app.internal.ui.navigation
 
 import androidx.compose.runtime.Composable
+import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
