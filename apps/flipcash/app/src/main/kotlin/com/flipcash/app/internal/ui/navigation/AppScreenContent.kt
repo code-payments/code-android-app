@@ -19,7 +19,6 @@ import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
-import com.flipcash.app.pools.PoolBettingScreen
 import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
 import com.flipcash.app.pools.PoolCreateFlow
 import com.flipcash.app.pools.PoolListScreen
@@ -33,7 +32,7 @@ import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
 import com.flipcash.app.withdrawal.WithdrawalFlow
-
+import com.getcode.navigation.modal.ModalScreen
 
 @Composable
 internal fun AppScreenContent(content: @Composable () -> Unit) {
@@ -100,7 +99,8 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Pools.ChoiceSelection> {
-            PoolBettingScreen(it.poolId, it.postCreate)
+            // PoolBettingScreen(it.poolId, it.postCreate)
+            DummyModal()
         }
 
         register<NavScreenProvider.HomeScreen.CurrencySelection> {
@@ -160,4 +160,18 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
     PreloadBalance()
 
     content()
+}
+
+private class Dummy: Screen {
+    @Composable
+    override fun Content() {
+
+    }
+}
+
+private class DummyModal: ModalScreen {
+    @Composable
+    override fun ModalContent() {
+
+    }
 }
