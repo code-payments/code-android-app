@@ -1,7 +1,7 @@
 package com.flipcash.services.models
 
-import com.flipcash.services.internal.model.pools.Outcome
 import com.flipcash.services.internal.model.pools.PoolRequest
+import com.flipcash.services.internal.model.pools.PoolRequest.PlaceBet.Outcome
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
@@ -14,7 +14,7 @@ import javax.annotation.concurrent.Immutable
 data class PoolBetMetadata(
     val id: ID,
     val userId: ID,
-    val selectedOutcome: BetOutcome,
+    val selectedOutcome: NetworkPoolBetOutcome,
     val payoutDestination: PublicKey,
     val timestamp: Instant,
 ) {
@@ -24,7 +24,7 @@ data class PoolBetMetadata(
                 id = PublicKey.generate().bytes,
                 userId = request.userId,
                 selectedOutcome = when (request.outcome) {
-                    is Outcome.BooleanOutcome -> BetOutcome.BooleanOutcome(request.outcome.value)
+                    is Outcome.BooleanOutcome -> NetworkPoolBetOutcome.BooleanOutcome(request.outcome.value)
                 },
                 payoutDestination = request.payoutDestination,
                 timestamp = Clock.System.now(),
@@ -34,13 +34,13 @@ data class PoolBetMetadata(
 }
 
 @Immutable
-data class PoolBet(
+data class NetworkPoolBet(
     val metadata: PoolBetMetadata,
     val rendezvous: Signature,
 )
 
-sealed interface BetOutcome {
-    data object NotSet: BetOutcome
+sealed interface NetworkPoolBetOutcome {
+    data object NotSet: NetworkPoolBetOutcome
     @Immutable
-    data class BooleanOutcome(val value: Boolean): BetOutcome
+    data class BooleanOutcome(val value: Boolean): NetworkPoolBetOutcome
 }

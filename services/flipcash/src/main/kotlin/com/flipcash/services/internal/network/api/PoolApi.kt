@@ -5,14 +5,14 @@ import com.codeinc.flipcash.gen.pool.v1.PoolGrpcKt
 import com.codeinc.flipcash.gen.pool.v1.PoolService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.flipcash.services.internal.model.pools.Resolution
+import com.flipcash.services.internal.model.pools.PoolRequest.Resolve.Resolution
 import com.flipcash.services.internal.network.extensions.asPoolId
 import com.flipcash.services.internal.network.extensions.asSignature
 import com.flipcash.services.internal.network.extensions.authenticate
-import com.flipcash.services.internal.network.extensions.sign
-import com.flipcash.services.internal.network.extensions.signedMetadata
-import com.flipcash.services.models.PoolMetadata
+import com.flipcash.services.internal.network.extensions.toProto
 import com.flipcash.services.models.PoolBetMetadata
+import com.flipcash.services.models.PoolMetadata
+import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import io.grpc.ManagedChannel
@@ -34,15 +34,14 @@ internal class PoolApi @Inject constructor(
         owner: KeyPair,
         request: PoolRequest.Create,
     ): PoolService.CreatePoolResponse {
-        val pool = PoolMetadata.fromRequest(request)
+        val metadata = request.metadata
+        val pool = metadata.toProto()
+        val signature = request.rendezvous.sign(pool.toByteArray()).asSignature()
         val rpcRequest = PoolService.CreatePoolRequest.newBuilder()
-            .setPool(pool.signedMetadata())
-            .apply {
-                setRendezvousSignature(sign(owner))
-            }
-            .apply {
-                setAuth(authenticate(owner))
-            }.build()
+            .setPool(pool)
+            .setRendezvousSignature(signature)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
 
         return withContext(Dispatchers.IO) {
             api.createPool(rpcRequest)
@@ -64,12 +63,23 @@ internal class PoolApi @Inject constructor(
         }
     }
 
+    /**
+     * Resolves a pool by declaring the pool's outcome. The pool creator
+     * resolves a pool by calling this RPC first, then SubmitIntent to distribute funds
+     * to the winning participants.
+     *
+     * Note: If the pool is not closed, it will be closed after execution of this RPC.
+     */
     suspend fun declareOutcome(
         owner: KeyPair,
         request: PoolRequest.Resolve,
     ): PoolService.ResolvePoolResponse {
+        val rendezvous = Ed25519.createKeyPair()
+        val metadata = request.pool.resolve(request.resolution).toProto()
+        val signature = rendezvous.sign(metadata.toByteArray()).asSignature()
+
         val rpcRequest = PoolService.ResolvePoolRequest.newBuilder()
-            .setId(request.poolId.asPoolId())
+            .setId(request.pool.id.asPoolId())
             .setResolution(
                 when (request.resolution) {
                     is Resolution.BooleanResolution -> {
@@ -78,12 +88,8 @@ internal class PoolApi @Inject constructor(
                     }
                 }
             )
-            .apply {
-                setNewRendezvousSignature(sign(owner))
-            }
-            .apply {
-                setAuth(authenticate(owner))
-            }
+            .setNewRendezvousSignature(signature)
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return withContext(Dispatchers.IO) {
@@ -91,14 +97,6 @@ internal class PoolApi @Inject constructor(
         }
     }
 
-    // MakeBet creates a new bet against a pool. Pool participants make a bet by
-    // calling MakeBet to create an initially unpaid bet, then SubmitIntent for
-    // payment where:
-    //  1. Intent ID == Bet.id
-    //  2. Payment amount == PoolMetadata.buy_in
-    //  3. Payment destination == PoolMetadata.funding_destination
-    // Bets without payment, or with invalid intents, will not be visible in the
-    // PoolMetadata when calling GetPool.
     /**
      * Creates a new bet against a pool. Pool participants make a bet by
      * calling [placeBet] to create an initially unpaid bet, then SubmitIntent for
@@ -117,7 +115,7 @@ internal class PoolApi @Inject constructor(
         val bet = PoolBetMetadata.fromRequest(request)
         val rpcRequest = PoolService.MakeBetRequest.newBuilder()
             .setPoolId(request.poolId.asPoolId())
-            .setBet(bet.signedMetadata())
+            .setBet(bet.toProto())
             .setRendezvousSignature(request.poolRendezvous.byteArray.asSignature())
             .apply {
                 setAuth(authenticate(owner))

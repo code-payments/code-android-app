@@ -80,6 +80,10 @@ class DerivePath(val indexes: List<Index>, val password: String? = null) {
             return newInstance("m/44'/501'/0'/0'/$index'/3")!!
         }
 
+        fun getPool(index: Long): DerivePath {
+            return newInstance("m/44'/501'/0'/0'/7665'/$index'")!!
+        }
+
         fun relationship(domain: Domain): DerivePath {
             return newInstance("m/44'/501'/0'/0'/0'/0", password = domain.relationshipHost)!!
         }

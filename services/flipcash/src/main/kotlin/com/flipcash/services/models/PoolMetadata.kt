@@ -3,6 +3,7 @@ package com.flipcash.services.models
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
+import com.getcode.opencode.model.core.RandomId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
@@ -30,9 +31,16 @@ data class PoolMetadata(
     val buyIn: Fiat,
     val fundingDestination: PublicKey,
     val isOpen: Boolean = true,
-    val resolution: PoolResolution = PoolResolution.NotSet,
+    val resolution: NetworkPoolResolution = NetworkPoolResolution.NotSet,
     val createdAt: Instant,
 ) {
+
+    internal fun resolve(resolution: PoolRequest.Resolve.Resolution): PoolMetadata {
+        return copy(resolution = when (resolution) {
+            is PoolRequest.Resolve.Resolution.BooleanResolution -> NetworkPoolResolution.BooleanResolution(resolution.value)
+        })
+    }
+
     companion object {
         val Empty = PoolMetadata(
             id = NoId,
@@ -41,17 +49,17 @@ data class PoolMetadata(
             buyIn = Fiat.Zero,
             fundingDestination = PublicKey.generate(),
             createdAt = Clock.System.now(),
-            resolution = PoolResolution.NotSet,
+            resolution = NetworkPoolResolution.NotSet,
             isOpen = true,
         )
 
         internal fun fromRequest(request: PoolRequest.Create): PoolMetadata {
             return PoolMetadata(
-                id = PublicKey.generate().bytes,
+                id = request.rendezvous.publicKeyBytes.toList(),
                 creator = request.userId,
                 name = request.name,
                 buyIn = request.buyIn,
-                resolution = PoolResolution.NotSet,
+                resolution = NetworkPoolResolution.NotSet,
                 fundingDestination = request.fundingDestination,
                 createdAt = Clock.System.now(),
             )
@@ -60,14 +68,14 @@ data class PoolMetadata(
 }
 
 @Immutable
-data class Pool(
+data class NetworkPool(
     val metadata: PoolMetadata,
     val rendezvous: Signature,
     val bets: List<PoolBetMetadata> = emptyList(),
 )
 
-sealed interface PoolResolution {
-    data object NotSet: PoolResolution
+sealed interface NetworkPoolResolution {
+    data object NotSet: NetworkPoolResolution
     @Immutable
-    data class BooleanResolution(val value: Boolean): PoolResolution
+    data class BooleanResolution(val value: Boolean): NetworkPoolResolution
 }

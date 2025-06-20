@@ -2,8 +2,8 @@ package com.flipcash.services.internal.network.extensions
 
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
-import com.flipcash.services.models.BetOutcome
-import com.flipcash.services.models.PoolResolution
+import com.flipcash.services.models.NetworkPoolBetOutcome
+import com.flipcash.services.models.NetworkPoolResolution
 import com.codeinc.flipcash.gen.pool.v1.Model as PoolModels
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.PoolMetadata
@@ -66,47 +66,48 @@ internal fun List<ID>.toNotificationIds(): List<Model.NotificationId> {
     return this.map { Model.NotificationId.newBuilder().setValue(it.toByteString()).build() }
 }
 
-internal fun PoolMetadata.signedMetadata(): PoolModels.SignedPoolMetadata {
+internal fun PoolMetadata.toProto(): PoolModels.SignedPoolMetadata {
     return PoolModels.SignedPoolMetadata.newBuilder()
+        .setId(id.asPoolId())
         .setCreator(creator.asUserId())
         .setName(name)
         .setBuyIn(
             Common.FiatPaymentAmount.newBuilder()
-                .setCurrency(buyIn.currencyCode.name)
+                .setCurrency(buyIn.currencyCode.name.lowercase())
                 .setNativeAmount(buyIn.doubleValue)
         )
         .setFundingDestination(fundingDestination.asPublicKey())
         .setIsOpen(isOpen)
         .setCreatedAt(createdAt.asTimestamp())
         .apply {
-            when (this@signedMetadata.resolution) {
-                is PoolResolution.BooleanResolution -> {
+            when (this@toProto.resolution) {
+                is NetworkPoolResolution.BooleanResolution -> {
                     setResolution(
                         PoolModels.Resolution.newBuilder()
-                            .setBooleanResolution(this@signedMetadata.resolution.value)
+                            .setBooleanResolution(this@toProto.resolution.value)
                     )
                 }
 
-                PoolResolution.NotSet -> Unit
+                NetworkPoolResolution.NotSet -> Unit
             }
         }
         .build()
 }
 
-internal fun PoolBetMetadata.signedMetadata(): PoolModels.SignedBetMetadata {
+internal fun PoolBetMetadata.toProto(): PoolModels.SignedBetMetadata {
     return PoolModels.SignedBetMetadata.newBuilder()
         .setBetId(id.asPoolBetId())
         .setUserId(userId.asUserId())
         .apply {
-            when (this@signedMetadata.selectedOutcome) {
-                is BetOutcome.BooleanOutcome -> {
+            when (this@toProto.selectedOutcome) {
+                is NetworkPoolBetOutcome.BooleanOutcome -> {
                     setSelectedOutcome(
                         PoolModels.BetOutcome.newBuilder()
-                            .setBooleanOutcome(this@signedMetadata.selectedOutcome.value)
+                            .setBooleanOutcome(this@toProto.selectedOutcome.value)
                     )
                 }
 
-                BetOutcome.NotSet -> Unit
+                NetworkPoolBetOutcome.NotSet -> Unit
             }
         }
         .setPayoutDestination(payoutDestination.asPublicKey())

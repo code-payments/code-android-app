@@ -4,29 +4,22 @@ import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 
-class GiftCardAccount(
+class PoolAccount(
     val mnemonic: MnemonicPhrase,
     val cluster: AccountCluster,
 ) {
-    var funded: Boolean = false
-        private set
-
-    fun fund() {
-        funded = true
-    }
-
     companion object {
-        fun create(mnemonic: MnemonicPhrase? = null): GiftCardAccount {
+        fun create(index: Long, mnemonic: MnemonicPhrase? = null): PoolAccount {
             val phrase = mnemonic ?: MnemonicPhrase.generate()
-            return GiftCardAccount(
+            return PoolAccount(
                 mnemonic = phrase,
                 cluster = AccountCluster.newInstance(
-                    authority = DerivedKey.derive(DerivePath.primary, mnemonic = phrase)
+                    authority = DerivedKey.derive(DerivePath.getPool(index), mnemonic = phrase)
                 )
             )
         }
     }
 }
 
-val GiftCardAccount.entropy: String
+val PoolAccount.entropy: String
     get() = mnemonic.getBase58EncodedEntropy()

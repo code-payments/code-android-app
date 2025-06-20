@@ -3,6 +3,7 @@ package com.getcode.opencode.controllers
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountResponse
+import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.repositories.AccountRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,11 +26,11 @@ class AccountController @Inject constructor(
             .map { it.id.bytes }
     }
 
-    suspend fun createPoolAccount(owner: AccountCluster, index: Long): Result<ID> {
+    suspend fun createPoolAccount(owner: AccountCluster, index: Long): Result<PoolAccount> {
         val intent = IntentCreateAccount.createPoolAccount(owner, index)
 
         return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
-            .map { it.id.bytes }
+            .map { PoolAccount.create(index) }
     }
 
 

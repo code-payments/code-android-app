@@ -1,9 +1,10 @@
 package com.flipcash.services.controllers
 
-import com.flipcash.services.models.Pool
+import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.repository.PoolRepository
 import com.flipcash.services.user.UserManager
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -21,7 +22,7 @@ class PoolController @Inject constructor(
     suspend fun createPool(
         name: String,
         buyIn: Fiat,
-    ): Result<Pool> {
+    ): Result<NetworkPool> {
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         val userId = userManager.accountId
@@ -30,12 +31,14 @@ class PoolController @Inject constructor(
         val poolAccount = accountController.createPoolAccount(owner, userManager.nextPoolIndex)
             .getOrElse { return Result.failure(it) }
 
+        val rendezvous = Ed25519.createKeyPair()
         return repository.createPool(
             owner = owner.authority.keyPair,
             name = name,
             userId = userId,
             buyIn = buyIn,
-            fundingDestination = PublicKey(poolAccount),
+            fundingDestination = poolAccount.cluster.vaultPublicKey,
+            rendezvous = rendezvous,
         ).mapResult { getPool(it.id) }
             .onSuccess {
                 println("Pool created: ${it.metadata.id.base58}")
@@ -46,17 +49,18 @@ class PoolController @Inject constructor(
 
     suspend fun declareOutcome(
         pool: PoolMetadata,
-        rendezvous: Signature,
         resolution: Boolean,
     ): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
+        val rendezvous = Ed25519.createKeyPair()
+
         return repository.declareOutcome(
             owner = owner,
-            poolId = pool.id,
+            pool = pool,
             resolution = resolution,
-            poolRendezvous = rendezvous,
+            rendezvous = rendezvous,
         )
     }
 

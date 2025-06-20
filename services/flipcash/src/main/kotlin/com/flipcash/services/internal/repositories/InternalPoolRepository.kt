@@ -1,11 +1,9 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.domain.PoolMapper
-import com.flipcash.services.internal.model.pools.Outcome.BooleanOutcome
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.flipcash.services.internal.model.pools.Resolution
 import com.flipcash.services.internal.network.services.PoolService
-import com.flipcash.services.models.Pool
+import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.repository.PoolRepository
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -26,36 +24,38 @@ internal class InternalPoolRepository(
         name: String,
         buyIn: Fiat,
         fundingDestination: PublicKey,
+        rendezvous: KeyPair,
     ): Result<PoolMetadata> {
         val request = PoolRequest.Create(
             userId = userId,
             name = name,
             buyIn = buyIn,
             fundingDestination = fundingDestination,
+            rendezvous = rendezvous,
         )
 
-        val pool = PoolMetadata.fromRequest(request)
         return service.createPool(owner = owner, request = request)
             .onFailure { ErrorUtils.handleError(it) }
-            .map { pool }
+            .map { request.metadata }
     }
 
-    override suspend fun getPool(poolId: ID): Result<Pool> {
+    override suspend fun getPool(poolId: ID): Result<NetworkPool> {
         return service.getPool(request = PoolRequest.Get(poolId))
             .onFailure { ErrorUtils.handleError(it) }
             .map { poolMapper.map(it) }
     }
 
+
     override suspend fun declareOutcome(
         owner: KeyPair,
-        poolId: ID,
+        pool: PoolMetadata,
         resolution: Boolean,
-        poolRendezvous: Signature,
+        poolRendezvous: KeyPair,
     ): Result<Unit> = service.resolvePool(
         owner = owner,
         request = PoolRequest.Resolve(
-            poolId = poolId,
-            resolution = Resolution.BooleanResolution(resolution),
+            pool = pool,
+            resolution = PoolRequest.Resolve.Resolution.BooleanResolution(resolution),
             poolRendezvous = poolRendezvous,
         )
     )
@@ -74,7 +74,7 @@ internal class InternalPoolRepository(
             userId = userId,
             payoutDestination = payoutDestination,
             poolRendezvous = rendezvous,
-            outcome = BooleanOutcome(choice),
+            outcome = PoolRequest.PlaceBet.Outcome.BooleanOutcome(choice),
         )
     )
 }

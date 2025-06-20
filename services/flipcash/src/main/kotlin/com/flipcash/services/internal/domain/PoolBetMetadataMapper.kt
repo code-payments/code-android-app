@@ -3,9 +3,8 @@ package com.flipcash.services.internal.domain
 import com.codeinc.flipcash.gen.pool.v1.Model
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toPublicKey
-import com.flipcash.services.models.BetOutcome
-import com.flipcash.services.models.BetOutcome.BooleanOutcome
-import com.flipcash.services.models.PoolBet
+import com.flipcash.services.models.NetworkPoolBetOutcome
+import com.flipcash.services.models.NetworkPoolBetOutcome.BooleanOutcome
 import com.flipcash.services.models.PoolBetMetadata
 import com.getcode.opencode.mapper.Mapper
 import kotlinx.datetime.Instant
@@ -20,7 +19,7 @@ class PoolBetMetadataMapper @Inject constructor(): Mapper<Model.SignedBetMetadat
                 Model.BetOutcome.KindCase.BOOLEAN_OUTCOME -> {
                     BooleanOutcome(from.selectedOutcome.booleanOutcome)
                 }
-                Model.BetOutcome.KindCase.KIND_NOT_SET -> BetOutcome.NotSet
+                Model.BetOutcome.KindCase.KIND_NOT_SET -> NetworkPoolBetOutcome.NotSet
             },
             payoutDestination = from.payoutDestination.toPublicKey(),
             timestamp = Instant.fromEpochSeconds(from.ts.seconds, 0)

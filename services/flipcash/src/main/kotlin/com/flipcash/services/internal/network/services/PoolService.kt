@@ -17,7 +17,8 @@ internal class PoolService @Inject constructor(
 ) {
     suspend fun createPool(
         owner: KeyPair,
-        request: PoolRequest.Create): Result<Unit> {
+        request: PoolRequest.Create,
+    ): Result<Unit> {
         return runCatching {
             api.createPool(owner, request)
         }.foldWithSuppression(
