@@ -20,6 +20,7 @@ import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
+import com.flipcash.app.pools.PoolBettingScreen
 import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
 import com.flipcash.app.pools.PoolCreateFlow
 import com.flipcash.app.pools.PoolListScreen
@@ -100,8 +101,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Pools.ChoiceSelection> {
-            // PoolBettingScreen(it.poolId, it.postCreate)
-            DummyModal()
+             PoolBettingScreen(it.poolId)
         }
 
         register<NavScreenProvider.HomeScreen.CurrencySelection> {

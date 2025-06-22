@@ -60,7 +60,6 @@ internal fun PoolConfirmationScreen(viewModel: PoolCreateViewModel) {
                     ScreenRegistry.get(
                         NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
                             poolId = id,
-                            postCreate = true
                         )
                     )
                 )

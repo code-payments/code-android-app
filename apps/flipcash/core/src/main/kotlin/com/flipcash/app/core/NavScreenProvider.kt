@@ -5,7 +5,6 @@ import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.ui.core.RestrictionType
 
 sealed class NavScreenProvider : ScreenProvider {
@@ -48,7 +47,7 @@ sealed class NavScreenProvider : ScreenProvider {
             }
             data class ChoiceSelection(
                 val poolId: ID,
-                val postCreate: Boolean = false
+                val standalone: Boolean = false
             ) : NavScreenProvider()
         }
 

@@ -191,4 +191,13 @@
     <string name="subtitle_amountInPool">%1$s in Pool</string>
     <string name="subtitle_lostInPool">Lost %1$s</string>
     <string name="subtitle_wonInPool">Won %1$s</string>
+    <string name="subtitle_poolHostOutcomeDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
+    <string name="action_sharePoolWithFriends">Share Pool With Friends</string>
+    <string name="subtitle_inPoolSoFar">in pool so far</string>
+
+    <string name="action_pool_bet_not_set">None</string>
+    <string name="action_pool_bet_yes">Yes</string>
+    <string name="action_pool_bet_no">No</string>
+    <string name="subtitle_poolAlreadyBet">You\'re bought in</string>
+    <string name="subtitle_poolNotYetBet">Tap to buy in</string>
 </resources>
