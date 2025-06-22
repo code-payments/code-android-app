@@ -20,7 +20,7 @@ internal class AppRouter(
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
-        val pool = listOf("pool")
+        val pool = listOf("p", "pool")
     }
 
     override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
