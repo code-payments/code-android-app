@@ -14,6 +14,8 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.times
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -117,13 +119,16 @@ internal class PoolBettingViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnOutcomeSelected>()
+            .map { it.outcome }
+            .distinctUntilChangedBy { it.key }
             .onEach {
-                dispatchEvent(Event.OnOutcomeSelected(it.outcome))
+
             }.launchIn(viewModelScope)
     }
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            println("Event: $event")
             when (event) {
                 is Event.OnUserIdChanged -> { state ->
                     state.copy(

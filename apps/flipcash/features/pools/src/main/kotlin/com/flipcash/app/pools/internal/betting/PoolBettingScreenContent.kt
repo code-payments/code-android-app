@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +36,7 @@ import com.flipcash.app.core.ui.FlagWithFiat
 import com.flipcash.features.pools.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -127,6 +131,7 @@ private fun BidOptions(
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     onOutcomeSelected: (PoolBetOutcome) -> Unit,
 ) {
+    val possibleOutcomes by rememberUpdatedState(outcomes)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -135,10 +140,11 @@ private fun BidOptions(
         horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        outcomes.fastForEach { item ->
-            val isSelected = remember(selectedOutcome, outcomes) {
-                item.key == selectedOutcome?.key
-            }
+        possibleOutcomes.fastForEach { item ->
+            val isSelected = remember(
+                item,
+                selectedOutcome
+            ) { item.key == selectedOutcome?.key }
 
             val backgroundColor by animateColorAsState(
                 if (isSelected) Color.White else Color(0xFF071F10)
@@ -161,7 +167,7 @@ private fun BidOptions(
                     .weight(1f)
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clickable(enabled = canBid, onClick = { onOutcomeSelected(item) })
+                    .rememberedClickable(enabled = canBid, onClick = { onOutcomeSelected(item) })
                     .border(
                         width = CodeTheme.dimens.border,
                         color = borderColor,
