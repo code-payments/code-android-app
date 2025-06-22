@@ -14,6 +14,7 @@ import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.PutInWallet
@@ -82,6 +83,7 @@ class RealSessionController @Inject constructor(
     private val userManager: UserManager,
     private val accountController: AccountController,
     private val feedCoordinator: ActivityFeedCoordinator,
+    private val poolsCoordinator: PoolsCoordinator,
     private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
@@ -185,6 +187,7 @@ class RealSessionController @Inject constructor(
         updateUserFlags()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
+        bringPoolsCurrent()
         shareSheetController.checkForShare()
         if (userManager.authState.isAtLeastRegistered) {
             billingClient.connect()
@@ -298,6 +301,14 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 feedCoordinator.fetchSinceLatest(count)
+            }
+        }
+    }
+
+    private fun bringPoolsCurrent(count: Int = 100) {
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                poolsCoordinator.fetchSinceLatest(count)
             }
         }
     }

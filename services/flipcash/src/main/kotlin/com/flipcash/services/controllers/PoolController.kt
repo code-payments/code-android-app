@@ -1,21 +1,17 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.NetworkPool
-import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.utils.mapResult
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
-import com.getcode.utils.base58
 import javax.inject.Inject
+import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
 
 class PoolController @Inject constructor(
     private val repository: PoolRepository,
