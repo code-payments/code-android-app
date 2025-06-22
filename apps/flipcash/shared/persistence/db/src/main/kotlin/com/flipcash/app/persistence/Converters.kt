@@ -29,6 +29,13 @@ object BetOutcomeConverter {
         }
         else -> throw IllegalArgumentException("Unknown BetOutcome: $value")
     }
+
+    @TypeConverter
+    fun toBetOutcome(value: NetworkPoolBetOutcome?): PoolBetOutcome = when (value) {
+        null -> PoolBetOutcome.NotSet
+        NetworkPoolBetOutcome.NotSet -> PoolBetOutcome.NotSet
+        is NetworkPoolBetOutcome.BooleanOutcome -> PoolBetOutcome.BooleanOutcome(value.value)
+    }
 }
 
 object PoolResolutionConverter {
@@ -53,5 +60,12 @@ object PoolResolutionConverter {
             PoolResolution.BooleanResolution(boolValue)
         }
         else -> throw IllegalArgumentException("Unknown PoolResolution: $value")
+    }
+
+    @TypeConverter
+    fun toPoolResolution(value: NetworkPoolResolution?): PoolResolution = when (value) {
+        null -> PoolResolution.NotSet
+        NetworkPoolResolution.NotSet -> PoolResolution.NotSet
+        is NetworkPoolResolution.BooleanResolution -> PoolResolution.BooleanResolution(value.value)
     }
 }

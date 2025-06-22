@@ -8,10 +8,10 @@ import androidx.paging.map
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.sources.PoolDataSource
+import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
-import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
@@ -27,10 +27,11 @@ import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 
 class PoolsCoordinator @Inject constructor(
-    val controller: PoolController,
-    val dataSource: PoolDataSource,
-    val mapper: PoolEntityToPoolMapper,
-    userManager: UserManager
+    private val controller: PoolController,
+    private val dataSource: PoolDataSource,
+    private val mapper: PoolEntityToPoolMapper,
+    private val networkMapper: NetworkPoolToDomainMapper,
+    private val userManager: UserManager
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -73,19 +74,24 @@ class PoolsCoordinator @Inject constructor(
     }
 
     suspend fun getPool(id: ID): Result<PoolWithBets> {
-        val (metadata, rendezvous, bets) = controller.getPool(id)
+        val networkPool = controller.getPool(id)
             .getOrElse { return Result.failure(it) }
 
-        val mockNetworkResponse = NetworkPool(
-            metadata = metadata,
-            rendezvous = rendezvous,
-            bets = bets,
-        )
+        val (metadata, bets) = networkMapper.map(networkPool)
 
-        dataSource.upsert(listOf(mockNetworkResponse))
+        // store the pool if we are the host or if we have bet already
+        val poolWithBets = if (
+            metadata.creator == userManager.accountId ||
+            bets.any { it.userId == userManager.accountId }
+        ) {
+            dataSource.upsert(listOf(networkPool))
 
-        val poolWithBets = dataSource.getByIdWithBets(metadata.id)
-            ?: return Result.failure(Exception("Pool not found"))
+            dataSource.getByIdWithBets(metadata.id)
+                ?: return Result.failure(Exception("Pool not found"))
+        } else {
+            networkMapper.map(networkPool)
+        }
+
         return Result.success(poolWithBets)
     }
 

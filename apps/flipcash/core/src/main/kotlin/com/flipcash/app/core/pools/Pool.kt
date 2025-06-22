@@ -2,6 +2,7 @@ package com.flipcash.app.core.pools
 
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Fiat

@@ -50,7 +50,7 @@ class NetworkPoolToEntityMapper @Inject constructor(
     }
 }
 
-private fun NetworkPoolResolution.didWin(outcome: NetworkPoolBetOutcome?): Boolean {
+internal fun NetworkPoolResolution.didWin(outcome: NetworkPoolBetOutcome?): Boolean {
     outcome ?: return false
     return when (this) {
         is NetworkPoolResolution.BooleanResolution -> {

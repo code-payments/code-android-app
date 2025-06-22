@@ -195,6 +195,10 @@
     <string name="action_sharePoolWithFriends">Share Pool With Friends</string>
     <string name="subtitle_inPoolSoFar">in pool so far</string>
 
+    <string name="error_title_poolNotFound">Something went wrong</string>
+    <string name="error_description_poolNotFound">Failed to load the desired pool. Please try again</string>
+
+
     <string name="action_pool_bet_not_set">None</string>
     <string name="action_pool_bet_yes">Yes</string>
     <string name="action_pool_bet_no">No</string>

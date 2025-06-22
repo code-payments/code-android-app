@@ -8,13 +8,17 @@ import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.pools.PoolsCoordinator
+import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.shareable.Shareable
+import com.flipcash.features.pools.R
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.times
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -27,11 +31,14 @@ import javax.inject.Inject
 internal class PoolBettingViewModel @Inject constructor(
     poolsCoordinator: PoolsCoordinator,
     userManager: UserManager,
-): BaseViewModel2<PoolBettingViewModel.State, PoolBettingViewModel.Event>(
+    shareController: ShareSheetController,
+    resources: ResourceHelper,
+) : BaseViewModel2<PoolBettingViewModel.State, PoolBettingViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
+        val loading: Boolean = false,
         val poolId: ID? = null,
         val userId: ID? = null,
         val metadata: Pool = Pool.Empty,
@@ -90,11 +97,12 @@ internal class PoolBettingViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnPoolIdChanged(val id: ID): Event
-        data class OnUserIdChanged(val id: ID): Event
-        data class OnPoolLoaded(val data: PoolWithBets): Event
-        data class OnOutcomeSelected(val outcome: PoolBetOutcome): Event
-        data object OnSharePool: Event
+        data class OnLoadingChanged(val loading: Boolean) : Event
+        data class OnPoolIdChanged(val id: ID) : Event
+        data class OnUserIdChanged(val id: ID) : Event
+        data class OnPoolLoaded(val data: PoolWithBets) : Event
+        data class OnOutcomeSelected(val outcome: PoolBetOutcome) : Event
+        data object OnSharePool : Event
     }
 
     init {
@@ -107,15 +115,34 @@ internal class PoolBettingViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnPoolIdChanged>()
             .map { it.id }
-            .map { poolsCoordinator.getPool(it) }
+            .map {
+                dispatchEvent(Event.OnLoadingChanged(true))
+                poolsCoordinator.getPool(it) }
             .onResult(
                 onSuccess = { event ->
+                    dispatchEvent(Event.OnLoadingChanged(false))
                     dispatchEvent(Event.OnPoolLoaded(event))
                 },
                 onError = {
-
+                    dispatchEvent(Event.OnLoadingChanged(false))
+                    BottomBarManager.showError(
+                        resources.getString(R.string.error_title_poolNotFound),
+                        resources.getString(R.string.error_description_poolNotFound),
+                    )
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnSharePool>()
+            .mapNotNull {
+                val pool = stateFlow.value.metadata
+                if (pool == Pool.Empty) return@mapNotNull null
+                pool
+            }.map { Shareable.Pool(it) }
+            .onEach { shareable ->
+                shareController.present(shareable)
+            }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnOutcomeSelected>()
@@ -128,24 +155,31 @@ internal class PoolBettingViewModel @Inject constructor(
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("Event: $event")
             when (event) {
+                is Event.OnLoadingChanged -> { state ->
+                    state.copy(
+                        loading = event.loading
+                    )
+                }
                 is Event.OnUserIdChanged -> { state ->
                     state.copy(
                         userId = event.id
                     )
                 }
+
                 is Event.OnPoolIdChanged -> { state ->
                     state.copy(
                         poolId = event.id
                     )
                 }
+
                 is Event.OnPoolLoaded -> { state ->
                     state.copy(
                         metadata = event.data.pool,
                         bets = event.data.bets,
                     )
                 }
+
                 is Event.OnOutcomeSelected -> { state ->
                     state.copy(
                         selectedOutcome = event.outcome

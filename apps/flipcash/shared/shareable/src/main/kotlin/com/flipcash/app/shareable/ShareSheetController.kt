@@ -3,6 +3,7 @@ package com.flipcash.app.shareable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -25,6 +26,10 @@ sealed interface Shareable {
     ): Shareable
 
     data object DownloadLink: Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
+
+    data class Pool(val pool: com.flipcash.app.core.pools.Pool): Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 }
