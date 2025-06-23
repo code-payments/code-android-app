@@ -1,10 +1,12 @@
 package com.flipcash.app.pools.internal.create
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -17,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -107,37 +110,54 @@ private fun PoolConfirmationScreenContent(
             }
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = CodeTheme.dimens.inset),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f),
+                text = state.nameEntryState.selectedName,
+                style = CodeTheme.typography.screenTitle,
+                color = CodeTheme.colors.textMain,
+                textAlign = TextAlign.Center,
+            )
+
             Column(
                 modifier = Modifier
-                    .width(IntrinsicSize.Min)
-                    .align(Alignment.Center),
+                    .fillMaxWidth()
+                    .padding(top = CodeTheme.dimens.grid.x6)
+                    .border(
+                        width = CodeTheme.dimens.border,
+                        color = CodeTheme.colors.border,
+                        shape = CodeTheme.shapes.medium
+                    )
+                    .background(Color(0xFF071F10), CodeTheme.shapes.medium)
+                    .padding(
+                        horizontal = CodeTheme.dimens.grid.x4,
+                        vertical = CodeTheme.dimens.grid.x4
+                    ),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = state.nameEntryState.selectedName,
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                )
-
                 FlagWithFiat(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x6),
                     fiat = state.bidEntryState.selectedAmount,
                     textStyle = CodeTheme.typography.displayLarge,
                     iconSize = CodeTheme.dimens.staticGrid.x6,
                 )
 
                 Text(
-                    text = stringResource(R.string.subtitle_buyIn),
+                    text = stringResource(R.string.subtitle_poolBuyIn),
                     style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textSecondary
                 )
             }
+
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
