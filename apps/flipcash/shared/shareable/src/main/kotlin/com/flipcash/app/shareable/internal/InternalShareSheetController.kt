@@ -22,6 +22,7 @@ import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.base58
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import java.security.SecureRandom
@@ -208,26 +209,26 @@ internal class InternalShareSheetController(
     }
 
     private fun sharePool(pool: Pool) {
-//        val url = Linkify.pool(pool.fundingDestination.base58())
-//        val intent = Intent().apply {
-//            action = Intent.ACTION_SEND
-//            putExtra(
-//                Intent.EXTRA_TITLE,
-//                pool.name,
-//            )
-//            putExtra(
-//                Intent.EXTRA_SUBJECT,
-//                pool.name
-//            )
-//            putExtra(Intent.EXTRA_TEXT, url)
-//            type = "text/plain"
-//        }
-//
-//        val share = Intent.createChooser(intent, null).apply {
-//            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-//        }
-//
-//        context.startActivity(share)
+        val url = Linkify.pool(pool.id.base58)
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(
+                Intent.EXTRA_TITLE,
+                pool.name,
+            )
+            putExtra(
+                Intent.EXTRA_SUBJECT,
+                pool.name
+            )
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        context.startActivity(share)
     }
 
     override fun reset(setChecked: Boolean) {

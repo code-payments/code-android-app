@@ -37,6 +37,7 @@ object CodeNavigatorStub : CodeNavigator {
     override var tabsNavigator: TabNavigator? = null
 
     override fun show(screen: Screen) = Unit
+    override fun show(items: List<Screen>) = Unit
 
     override fun hide() = Unit
     override fun <T> hideWithResult(result: T) = Unit
@@ -90,6 +91,7 @@ interface CodeNavigator: NavigationLocator {
     var tabsNavigator: TabNavigator?
 
     fun show(screen: Screen)
+    fun show(items: List<Screen>)
     fun hide()
     fun <T> hideWithResult(result: T)
     override fun push(item: Screen, delay: Long)

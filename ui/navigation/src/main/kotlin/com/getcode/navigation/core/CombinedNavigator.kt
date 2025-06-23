@@ -45,8 +45,22 @@ class CombinedNavigator(
 
 
     override fun show(screen: Screen) {
-        println(screensNavigator?.items?.map { it::class.simpleName })
         sheetNavigator.show(screen)
+    }
+
+    override fun show(items: List<Screen>) {
+        launch {
+            if (items.isEmpty()) return@launch
+            val firstScreen = items.first()
+            val remainingScreens = items.drop(1)
+            sheetNavigator.show(firstScreen)
+            if (remainingScreens.isNotEmpty()) {
+                while (!sheetFullyVisible) {
+                    delay(50)
+                }
+                sheetNavigator.push(remainingScreens)
+            }
+        }
     }
 
     override fun hide() {
@@ -62,7 +76,6 @@ class CombinedNavigator(
         }
 
         with(sheetNavigator) {
-            println(items.map { it::class.simpleName })
             var prev = if (size < 2) null else items[items.size - 2] as? AppScreen
             if (prev == null) {
                 // grab last screen from base
@@ -169,7 +182,7 @@ class CombinedNavigator(
         return if (isVisible) {
             sheetNavigator.popUntil(predicate)
         } else {
-            screensNavigator?.popUntil(predicate) ?: false
+            screensNavigator?.popUntil(predicate) == true
         }
     }
 

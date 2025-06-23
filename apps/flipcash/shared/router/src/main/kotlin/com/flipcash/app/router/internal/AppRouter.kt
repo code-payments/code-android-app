@@ -10,6 +10,7 @@ import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.getcode.vendor.Base58
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +79,8 @@ internal class AppRouter(
 
                         pool.contains(deeplink.pathSegments[0]) -> {
                             val entropy = deeplink.data.toUri().fragments[Key.entropy] ?: return null
-                            DeeplinkType.Pool(entropy)
+                            val poolId = Base58.decode(entropy).toList()
+                            DeeplinkType.Pool(poolId)
                         }
                         else -> null
                     }

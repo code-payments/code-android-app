@@ -17,16 +17,20 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.core.trackVisibility
 import com.getcode.ui.core.visibility.VisibilityInfo
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.utils.ErrorUtils
+import kotlinx.coroutines.delay
 import timber.log.Timber
 import java.util.Timer
 import kotlin.concurrent.schedule
@@ -60,6 +64,8 @@ internal fun Scanner(deepLink: DeeplinkType?) {
     val focusManager = LocalFocusManager.current
     val biometricsState = LocalBiometricsState.current
 
+    val animationScale by rememberAnimationScale()
+
     LaunchedEffect(
         biometricsState,
         previewing,
@@ -82,8 +88,13 @@ internal fun Scanner(deepLink: DeeplinkType?) {
 
             is DeeplinkType.Login -> Unit
             is DeeplinkType.Pool -> {
-                // TODO: route through session controller to get ID
-                //  and trigger navigation
+                delay(200.scaled(animationScale))
+                navigator.show(
+                    listOf(
+                        ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Root),
+                        ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(deeplink.id))
+                    )
+                )
             }
         }
 
