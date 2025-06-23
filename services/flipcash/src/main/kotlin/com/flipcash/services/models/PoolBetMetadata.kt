@@ -1,7 +1,6 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.flipcash.services.internal.model.pools.PoolRequest.PlaceBet.Outcome
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.generate
@@ -23,9 +22,7 @@ data class PoolBetMetadata(
             return PoolBetMetadata(
                 id = PublicKey.generate().bytes,
                 userId = request.userId,
-                selectedOutcome = when (request.outcome) {
-                    is Outcome.BooleanOutcome -> NetworkPoolBetOutcome.BooleanOutcome(request.outcome.value)
-                },
+                selectedOutcome = request.outcome,
                 payoutDestination = request.payoutDestination,
                 timestamp = Clock.System.now(),
             )

@@ -7,7 +7,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.flipcash.app.core.pools.PoolResolution
-import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
 import com.flipcash.app.persistence.entities.PoolWithBetsEntity
@@ -50,8 +49,8 @@ interface PoolDao {
     @Query("SELECT * FROM pool_metadata ORDER BY timestamp DESC")
     suspend fun getAll(): List<PoolEntity>
 
-    @Query("SELECT * FROM pool_metadata ORDER BY timestamp DESC")
-    fun observePools(): PagingSource<Int, PoolEntity>
+    @Query("SELECT * FROM pool_metadata ORDER BY isOpen DESC")
+    fun observePools(): PagingSource<Int, PoolWithBetsEntity>
 
     @Query("SELECT * FROM pool_metadata WHERE idBase58 = :id ORDER BY timestamp DESC")
     fun observe(id: String): Flow<PoolWithBetsEntity>

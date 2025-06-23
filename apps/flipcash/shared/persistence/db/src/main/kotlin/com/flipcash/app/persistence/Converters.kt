@@ -36,6 +36,13 @@ object BetOutcomeConverter {
         NetworkPoolBetOutcome.NotSet -> PoolBetOutcome.NotSet
         is NetworkPoolBetOutcome.BooleanOutcome -> PoolBetOutcome.BooleanOutcome(value.value)
     }
+
+    @TypeConverter
+    fun toBetOutcome(value: PoolBetOutcome?): NetworkPoolBetOutcome = when (value) {
+        PoolBetOutcome.NotSet -> NetworkPoolBetOutcome.NotSet
+        is PoolBetOutcome.BooleanOutcome -> NetworkPoolBetOutcome.BooleanOutcome(value.value)
+        null -> NetworkPoolBetOutcome.NotSet
+    }
 }
 
 object PoolResolutionConverter {
@@ -43,11 +50,13 @@ object PoolResolutionConverter {
     fun fromPoolResolution(resolution: NetworkPoolResolution): String = when (resolution) {
         is NetworkPoolResolution.BooleanResolution -> "boolean_${resolution.value}"
         NetworkPoolResolution.NotSet -> "not_set"
+        NetworkPoolResolution.Refund -> "refund"
     }
 
     @TypeConverter
     fun fromPoolResolution(resolution: PoolResolution): String = when (resolution) {
         is PoolResolution.BooleanResolution -> "boolean_${resolution.value}"
+        PoolResolution.Refund -> "refund"
         PoolResolution.NotSet -> "not_set"
     }
 
@@ -55,6 +64,7 @@ object PoolResolutionConverter {
     fun toPoolResolution(value: String?): PoolResolution = when {
         value == null -> PoolResolution.NotSet
         value == "not_set" -> PoolResolution.NotSet
+        value == "refund" -> PoolResolution.Refund
         value.startsWith("boolean_") -> {
             val boolValue = value.removePrefix("boolean_").toBoolean()
             PoolResolution.BooleanResolution(boolValue)
@@ -67,5 +77,14 @@ object PoolResolutionConverter {
         null -> PoolResolution.NotSet
         NetworkPoolResolution.NotSet -> PoolResolution.NotSet
         is NetworkPoolResolution.BooleanResolution -> PoolResolution.BooleanResolution(value.value)
+        NetworkPoolResolution.Refund -> PoolResolution.Refund
+    }
+
+    @TypeConverter
+    fun toPoolResolution(value: PoolResolution?): NetworkPoolResolution = when (value) {
+        null -> NetworkPoolResolution.NotSet
+        PoolResolution.NotSet -> NetworkPoolResolution.NotSet
+        is PoolResolution.BooleanResolution -> NetworkPoolResolution.BooleanResolution(value.value)
+        PoolResolution.Refund -> NetworkPoolResolution.Refund
     }
 }

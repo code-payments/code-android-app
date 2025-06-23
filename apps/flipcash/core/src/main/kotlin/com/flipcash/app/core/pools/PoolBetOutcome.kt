@@ -6,11 +6,13 @@ import com.flipcash.core.R
 
 sealed interface PoolBetOutcome {
     val key: String
-    data object NotSet: PoolBetOutcome {
+
+    data object NotSet : PoolBetOutcome {
         override val key: String = "bet::not_set"
     }
+
     sealed interface DecisionMade
-    data class BooleanOutcome(val value: Boolean): PoolBetOutcome, DecisionMade {
+    data class BooleanOutcome(val value: Boolean) : PoolBetOutcome, DecisionMade {
         override val key: String = "bet::boolean::$value"
     }
 }
@@ -23,4 +25,11 @@ val PoolBetOutcome.label: String
         } else {
             stringResource(R.string.action_pool_bet_no)
         }
+    }
+
+val PoolResolution.winningOutcome: PoolBetOutcome?
+    get() = when (val res = this) {
+        PoolResolution.NotSet -> null
+        is PoolResolution.BooleanResolution -> PoolBetOutcome.BooleanOutcome(res.value)
+        PoolResolution.Refund -> null
     }

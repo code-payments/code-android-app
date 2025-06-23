@@ -89,6 +89,12 @@ internal fun PoolMetadata.toProto(): PoolModels.SignedPoolMetadata {
                 }
 
                 NetworkPoolResolution.NotSet -> Unit
+                NetworkPoolResolution.Refund -> {
+                    setResolution(
+                        PoolModels.Resolution.newBuilder()
+                            .setRefundResolution(PoolModels.Resolution.Refund.getDefaultInstance())
+                    )
+                }
             }
         }
         .build()

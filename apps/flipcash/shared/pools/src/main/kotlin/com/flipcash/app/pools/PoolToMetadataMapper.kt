@@ -16,6 +16,7 @@ class PoolToMetadataMapper @Inject constructor() : Mapper<Pool, PoolMetadata>{
             buyIn = from.buyIn,
             resolution = when (val res = from.resolution) {
                 is PoolResolution.BooleanResolution -> NetworkPoolResolution.BooleanResolution(res.value)
+                PoolResolution.Refund -> NetworkPoolResolution.Refund
                 PoolResolution.NotSet -> NetworkPoolResolution.NotSet
             },
             fundingDestination = from.fundingDestination,

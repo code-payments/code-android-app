@@ -1,6 +1,9 @@
 package com.flipcash.services.controllers
 
+import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolBetOutcome
+import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
@@ -67,7 +70,7 @@ class PoolController @Inject constructor(
 
     suspend fun resolvePool(
         pool: PoolMetadata,
-        resolution: Boolean,
+        resolution: NetworkPoolResolution,
     ): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
@@ -86,7 +89,7 @@ class PoolController @Inject constructor(
         poolId: ID,
         fundingDestination: PublicKey,
         rendezvous: KeyPair,
-        choice: Boolean,
+        choice: NetworkPoolBetOutcome,
     ): Result<PoolBetMetadata> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))

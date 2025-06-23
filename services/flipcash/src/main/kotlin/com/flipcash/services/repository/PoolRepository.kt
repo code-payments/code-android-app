@@ -1,6 +1,8 @@
 package com.flipcash.services.repository
 
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolBetOutcome
+import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
@@ -37,7 +39,7 @@ interface PoolRepository {
     suspend fun declareOutcome(
         owner: KeyPair,
         pool: PoolMetadata,
-        resolution: Boolean,
+        resolution: NetworkPoolResolution,
         rendezvous: KeyPair,
     ): Result<Unit>
 
@@ -47,6 +49,6 @@ interface PoolRepository {
         poolId: ID,
         payoutDestination: PublicKey,
         rendezvous: KeyPair,
-        choice: Boolean,
+        choice: NetworkPoolBetOutcome,
     ): Result<PoolBetMetadata>
 }

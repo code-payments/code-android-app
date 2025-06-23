@@ -7,7 +7,7 @@ import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.FlipcashDatabase
-import com.flipcash.app.persistence.entities.PoolEntity
+import com.flipcash.app.persistence.entities.PoolWithBetsEntity
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetMetadataToEntityMapper
@@ -15,6 +15,7 @@ import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.persistence.PagingDataSource
+import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -25,15 +26,16 @@ class PoolDataSource @Inject constructor(
     private val poolMetadataEntityMapper: NetworkPoolToEntityMapper,
     private val betEntityMapper: PoolBetEntityToPoolBetMapper,
     private val betMetadataEntityMapper: PoolBetMetadataToEntityMapper,
-): PagingDataSource<ID, Pool, List<NetworkPool>, Int, PoolEntity> {
+    private val userManager: UserManager,
+) : PagingDataSource<ID, Pool, List<NetworkPool>, Int, PoolWithBetsEntity> {
 
     private val db: FlipcashDatabase?
         get() = FlipcashDatabase.getInstance()
 
-    override fun observe(): PagingSource<Int, PoolEntity> {
-        return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolEntity>() {
-            override fun getRefreshKey(state: PagingState<Int, PoolEntity>): Int? = null
-            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PoolEntity> =
+    override fun observe(): PagingSource<Int, PoolWithBetsEntity> {
+        return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolWithBetsEntity>() {
+            override fun getRefreshKey(state: PagingState<Int, PoolWithBetsEntity>): Int? = null
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PoolWithBetsEntity> =
                 LoadResult.Error(Exception("Database not initialized"))
         }
     }
@@ -42,7 +44,7 @@ class PoolDataSource @Inject constructor(
         return db?.poolDao()?.observe(id)?.map {
             val pool = poolEntityMapper.map(it.pool)
             val bets = it.bets.map { betEntityMapper.map(it) }
-            PoolWithBets(pool, bets)
+            PoolWithBets(pool, isHost = pool.creator == userManager.accountId, bets)
         } ?: throw Exception("No pool found")
     }
 
@@ -56,7 +58,11 @@ class PoolDataSource @Inject constructor(
         val result = db?.poolDao()?.getPoolWithBets(id) ?: return null
         val pool = poolEntityMapper.map(result.pool)
         val bets = result.bets.map { betEntityMapper.map(it) }
-        return PoolWithBets(pool, bets)
+        return PoolWithBets(
+            pool = pool,
+            isHost = pool.creator == userManager.accountId,
+            bets = bets
+        )
     }
 
     override suspend fun get(): List<Pool> {

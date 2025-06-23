@@ -31,6 +31,7 @@ class NetworkPoolToDomainMapper @Inject constructor(
                 didWin = from.metadata.resolution.didWin(selectedOutcome),
                 didBet = selectedOutcome != null
             ),
+            isHost = userManager.accountId == from.metadata.creator,
             bets = from.bets.map {
                 PoolBet(
                     id = it.id,

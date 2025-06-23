@@ -4,6 +4,8 @@ import com.flipcash.services.internal.domain.PoolMapper
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.network.services.PoolService
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolBetOutcome
+import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
@@ -65,13 +67,13 @@ internal class InternalPoolRepository(
     override suspend fun declareOutcome(
         owner: KeyPair,
         pool: PoolMetadata,
-        resolution: Boolean,
+        resolution: NetworkPoolResolution,
         poolRendezvous: KeyPair,
     ): Result<Unit> = service.resolvePool(
         owner = owner,
         request = PoolRequest.Resolve(
             pool = pool,
-            resolution = PoolRequest.Resolve.Resolution.BooleanResolution(resolution),
+            resolution = resolution,
             poolRendezvous = poolRendezvous,
         )
     )
@@ -82,14 +84,14 @@ internal class InternalPoolRepository(
         poolId: ID,
         payoutDestination: PublicKey,
         rendezvous: KeyPair,
-        choice: Boolean,
+        choice: NetworkPoolBetOutcome,
     ): Result<PoolBetMetadata> {
         val request = PoolRequest.PlaceBet(
             poolId = poolId,
             userId = userId,
             payoutDestination = payoutDestination,
             poolRendezvous = rendezvous,
-            outcome = PoolRequest.PlaceBet.Outcome.BooleanOutcome(choice),
+            outcome = choice,
         )
 
         return service.placeBet(

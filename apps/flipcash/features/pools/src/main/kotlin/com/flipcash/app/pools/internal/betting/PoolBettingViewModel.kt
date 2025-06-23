@@ -2,6 +2,7 @@ package com.flipcash.app.pools.internal.betting
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.pools.Empty
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolBetOutcome
@@ -15,18 +16,15 @@ import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
-import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.times
-import com.getcode.solana.keys.Signature
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn

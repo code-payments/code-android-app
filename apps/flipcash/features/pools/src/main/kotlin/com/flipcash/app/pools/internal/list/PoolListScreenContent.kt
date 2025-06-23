@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,12 +34,14 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.pools.internal.list.components.PoolListItem
+import com.flipcash.app.pools.internal.list.components.PoolStatusSeparator
 import com.flipcash.app.pools.internal.list.components.PoolSummaryRow
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.Pill
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -45,6 +50,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.datetime.format.Padding
 
 @Composable
 internal fun PoolListScreen(
@@ -81,10 +87,10 @@ internal fun PoolListScreen(
 @Composable
 private fun PoolListScreenContent(
     state: PoolListViewModel.State,
-    pools: LazyPagingItems<Pool>,
+    items: LazyPagingItems<PoolListItem>,
     dispatch: (PoolListViewModel.Event) -> Unit
 ) {
-    if (pools.itemCount == 0 && pools.loadState.append is LoadState.NotLoading) {
+    if (items.itemCount == 0 && items.loadState.append is LoadState.NotLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -110,13 +116,34 @@ private fun PoolListScreenContent(
             }
         ) { innerPadding ->
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
-                items(pools.itemCount) { index ->
-                    pools[index]?.let {
-                        PoolSummaryRow(
-                            pool = it,
-                            onClick = { dispatch(PoolListViewModel.Event.OnPoolClicked(it)) }
-                        )
+                items(items.itemCount) { index ->
+                    items[index]?.let { item ->
+                        when (item) {
+                            is PoolListItem.Header -> {
+                                Box(modifier = Modifier.fillParentMaxWidth()) {
+                                    PoolStatusSeparator(
+                                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x7),
+                                        item = item
+                                    )
+                                }
+                            }
+
+                            is PoolListItem.PoolItem -> {
+                                PoolSummaryRow(
+                                    data = item.data,
+                                    onClick = {
+                                        dispatch(
+                                            PoolListViewModel.Event.OnPoolClicked(
+                                                item.data.pool
+                                            )
+                                        )
+                                    }
+                                )
+                            }
+                        }
                     }
+
+                    Divider(color = CodeTheme.colors.divider)
                 }
             }
         }
@@ -174,7 +201,7 @@ private fun Preview_EmptyState() {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolListScreenContent(
                 state = PoolListViewModel.State(),
-                pools = flowOf(PagingData.empty<Pool>()).collectAsLazyPagingItems(),
+                items = flowOf(PagingData.empty<PoolListItem>()).collectAsLazyPagingItems(),
                 dispatch = {}
             )
         }

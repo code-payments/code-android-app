@@ -188,10 +188,7 @@
     <string name="error_description_bidLimitReached">Bids are capped at %1$s</string>
     <string name="error_title_createPoolFailed">Create Pool Failed</string>
     <string name="error_description_createPoolFailed">Something went wrong</string>
-    <string name="subtitle_amountInPool">%1$s in Pool</string>
-    <string name="subtitle_lostInPool">Lost %1$s</string>
-    <string name="subtitle_wonInPool">Won %1$s</string>
-    <string name="subtitle_notYetBoughtIn">%1$s buy in</string>
+    <string name="subtitle_totalInPool">%1$s in pool so far</string>
     <string name="subtitle_poolHostOutcomeDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
     <string name="action_sharePoolWithFriends">Share Pool With Friends</string>
     <string name="subtitle_inPoolSoFar">in pool so far</string>
@@ -216,5 +213,15 @@
     <string name="error_description_placeBetFailed">We were unable to place your bid. Please try again</string>
 
     <string name="action_swipeToBuyIn">Swipe to Buy In</string>
+
+    <string name="title_open">Open</string>
+    <string name="title_completed">Completed</string>
+    <string name="subtitle_host">Host</string>
+    <string name="subtitle_booleanResult">Result: %1$s</string>
+    <string name="subtitle_refunded">Refunded</string>
+    <string name="label_yes">Yes</string>
+    <string name="label_no">No</string>
+    <string name="subtitle_lostPool">Lost %1$s</string>
+
 
 </resources>

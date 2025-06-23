@@ -5,13 +5,12 @@ import com.codeinc.flipcash.gen.pool.v1.PoolGrpcKt
 import com.codeinc.flipcash.gen.pool.v1.PoolService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.flipcash.services.internal.model.pools.PoolRequest.Resolve.Resolution
 import com.flipcash.services.internal.network.extensions.asPoolId
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asSignature
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.toProto
-import com.flipcash.services.models.PoolBetMetadata
+import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolMetadata
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -125,10 +124,15 @@ internal class PoolApi @Inject constructor(
             .setId(request.pool.id.asPoolId())
             .setResolution(
                 when (request.resolution) {
-                    is Resolution.BooleanResolution -> {
+                    is NetworkPoolResolution.BooleanResolution -> {
                         Model.Resolution.newBuilder()
                             .setBooleanResolution(request.resolution.value)
                     }
+                    is NetworkPoolResolution.Refund -> {
+                        Model.Resolution.newBuilder()
+                            .setRefundResolution(Model.Resolution.Refund.getDefaultInstance())
+                    }
+                    is NetworkPoolResolution.NotSet -> throw IllegalStateException("Not set resolution")
                 }
             )
             .setNewRendezvousSignature(signature)

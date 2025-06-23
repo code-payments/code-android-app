@@ -9,8 +9,11 @@ import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
+import com.flipcash.app.persistence.BetOutcomeConverter
+import com.flipcash.app.persistence.PoolResolutionConverter
 import com.flipcash.app.persistence.sources.PoolDataSource
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
@@ -34,6 +37,7 @@ class PoolsCoordinator @Inject constructor(
     private val controller: PoolController,
     private val dataSource: PoolDataSource,
     private val mapper: PoolEntityToPoolMapper,
+    private val betMapper: PoolBetEntityToPoolBetMapper,
     private val networkMapper: NetworkPoolToDomainMapper,
     private val domainToMetadataMapper: PoolToMetadataMapper,
     private val userManager: UserManager,
@@ -41,7 +45,7 @@ class PoolsCoordinator @Inject constructor(
     private val pagingConfig = PagingConfig(pageSize = 20)
 
     @OptIn(ExperimentalPagingApi::class)
-    private val _pools: Flow<PagingData<Pool>> = userManager.state
+    private val _pools: Flow<PagingData<PoolWithBets>> = userManager.state
         .filter { it.authState.canAccessAuthenticatedApis }
         .flatMapLatest {
             Pager(
@@ -49,11 +53,19 @@ class PoolsCoordinator @Inject constructor(
                 remoteMediator = PoolRemoteMediator(controller, dataSource)
             ) {
                 dataSource.observe()
-            }.flow.map { page -> page.map { entity -> mapper.map(entity) } }
+            }.flow.map { page ->
+                page.map { entity ->
+                    PoolWithBets(
+                        pool = mapper.map(entity.pool),
+                        isHost = userManager.accountId == entity.pool.creator,
+                        bets = entity.bets.map { betMapper.map(it) }
+                    )
+                }
+            }
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val pools: Flow<PagingData<Pool>> = userManager.state
+    val pools: Flow<PagingData<PoolWithBets>> = userManager.state
         .mapNotNull { it.authState }
         .filter { it.canAccessAuthenticatedApis }
         .flatMapLatest { _pools }
@@ -82,12 +94,11 @@ class PoolsCoordinator @Inject constructor(
         val networkPool = controller.getPool(id)
             .getOrElse { return Result.failure(it) }
 
-        val (metadata, bets) = networkMapper.map(networkPool)
+        val (metadata, isHost, bets) = networkMapper.map(networkPool)
 
         // store the pool if we are the host or if we have bet already
         val poolWithBets = if (
-            metadata.creator == userManager.accountId ||
-            bets.any { it.userId == userManager.accountId }
+            isHost || bets.any { it.userId == userManager.accountId }
         ) {
             dataSource.upsert(listOf(networkPool))
 
@@ -117,10 +128,7 @@ class PoolsCoordinator @Inject constructor(
         val metadata = domainToMetadataMapper.map(pool)
         return controller.resolvePool(
             pool = metadata,
-            resolution = when (resolution) {
-                is PoolResolution.BooleanResolution -> resolution.value
-                PoolResolution.NotSet -> throw Exception("Resolution not set")
-            }
+            resolution = PoolResolutionConverter.toPoolResolution(resolution),
         ).onSuccess {
             dataSource.resolvePool(pool.id, resolution)
         }
@@ -136,10 +144,7 @@ class PoolsCoordinator @Inject constructor(
             poolId = poolId,
             fundingDestination = fundingDestination,
             rendezvous = rendezvous,
-            choice = when (outcome) {
-                is PoolBetOutcome.BooleanOutcome -> outcome.value
-                PoolBetOutcome.NotSet -> throw Exception("Outcome not set")
-            },
+            choice = BetOutcomeConverter.toBetOutcome(outcome),
         ).onSuccess {
             dataSource.addBet(poolId, it)
         }.map { Unit }

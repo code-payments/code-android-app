@@ -57,5 +57,6 @@ internal fun NetworkPoolResolution.didWin(outcome: NetworkPoolBetOutcome?): Bool
             false
         }
         NetworkPoolResolution.NotSet -> false
+        NetworkPoolResolution.Refund -> false
     }
 }

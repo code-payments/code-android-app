@@ -3,15 +3,14 @@ package com.flipcash.app.pools.internal.list
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
+import androidx.paging.map
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.pools.PoolsCoordinator
-import com.flipcash.services.controllers.PoolController
-import com.flipcash.services.models.PoolMetadata
-import com.getcode.vendor.Base58
+import com.flipcash.app.pools.internal.list.components.PoolListItem
+import com.flipcash.app.pools.internal.list.components.PoolListItem.PoolItem
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,6 +30,22 @@ internal class PoolListViewModel @Inject constructor(
     }
 
     val pools = poolsCoordinator.pools
+        .map { pagingData ->
+            pagingData
+                .map { pool -> PoolItem(pool) }
+                .insertSeparators { before, after ->
+                    when {
+                        // Start of list and first pool is open: insert open header
+                        before == null && after?.data?.pool?.isOpen == true -> PoolListItem.Header.Open
+                        // Start of list and first pool is closed: insert closed header
+                        before == null && after?.data?.pool?.isOpen == false -> PoolListItem.Header.Completed
+                        // Transition from open to closed: insert closed header
+                        before?.data?.pool?.isOpen == true && after?.data?.pool?.isOpen == false -> PoolListItem.Header.Completed
+                        // No separator for same group or other cases
+                        else -> null
+                    }
+                }
+        }
         .map { pagingData ->
             pagingData.insertSeparators { before, after ->
                 return@insertSeparators null

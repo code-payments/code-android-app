@@ -1,6 +1,9 @@
 package com.flipcash.app.pools.internal.list.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -12,18 +15,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.core.pools.PoolBet
+import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
+import com.flipcash.app.core.pools.PoolWithBets
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.toFiat
+import com.getcode.solana.keys.PublicKey
 import com.getcode.theme.CodeTheme
+import com.getcode.utils.decodeBase58
+import kotlinx.datetime.Clock
 
 @Composable
 internal fun PoolSummaryRow(
-    pool: Pool,
+    data: PoolWithBets,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val didBet = remember(pool) { pool.didBet }
+    val (pool, isHost, _) = data
     val isCompleted = remember(pool) { pool.resolution != PoolResolution.NotSet }
     val didWin = remember(pool) { pool.didWin }
 
@@ -32,7 +45,7 @@ internal fun PoolSummaryRow(
             .clickable(onClick = onClick)
             .padding(
                 horizontal = CodeTheme.dimens.grid.x2,
-                vertical = CodeTheme.dimens.grid.x2,
+                vertical = CodeTheme.dimens.grid.x3,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -40,22 +53,51 @@ internal fun PoolSummaryRow(
             modifier = Modifier
                 .weight(1f)
                 .padding(start = CodeTheme.dimens.grid.x2),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
+            if (isHost) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_host),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                    )
+
+                    Text(
+                        text = stringResource(R.string.subtitle_host),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
+            }
             Text(
                 text = pool.name,
-                style = CodeTheme.typography.textMedium,
+                style = CodeTheme.typography.textLarge,
                 color = CodeTheme.colors.textMain,
             )
-            Text(
-                text = when {
-                    !didBet -> stringResource(R.string.subtitle_notYetBoughtIn, pool.buyIn.formatted())
-                    isCompleted && didWin -> stringResource(R.string.subtitle_wonInPool, pool.buyIn.formatted())
-                    isCompleted -> stringResource(R.string.subtitle_lostInPool, pool.buyIn.formatted())
-                    else -> stringResource(R.string.subtitle_amountInPool, pool.buyIn.formatted())
-                },
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-            )
+
+            if (isCompleted) {
+                CompletedPoolStatusRow(
+                    winnings = data.winningAmount,
+                    buyIn = pool.buyIn,
+                    didWin = didWin,
+                    resolution = pool.resolution,
+                )
+            } else {
+                Text(
+                    text = stringResource(
+                        R.string.subtitle_totalInPool,
+                        data.totalPoolAmount.formatted(
+                            formatting = Fiat.Formatting.Truncated
+                        )
+                    ),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                )
+            }
         }
 
         Icon(
@@ -63,6 +105,174 @@ internal fun PoolSummaryRow(
             contentDescription = null,
             tint = CodeTheme.colors.secondary,
         )
+    }
+}
 
+private val pool = Pool(
+    id = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
+    creator = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
+    isOpen = true,
+    buyIn = 5.00.toFiat(),
+    fundingDestination = PublicKey.fromBase58("7XbL9kZ3mPqW8nR2vY5tJ6hQ4uF1cA9xN3gT8rK5pM"),
+    name = "Will Flipcash Pools launch before the end of June?",
+    rendezvous = null,
+    createdAt = Clock.System.now(),
+    closedAt = null,
+    didWin = false,
+    didBet = false,
+)
+
+private val hostedPoolWithNoBets = PoolWithBets(
+    pool = pool,
+    isHost = true,
+    bets = emptyList()
+)
+
+private val hostedPoolWithBets = PoolWithBets(
+    pool = pool,
+    isHost = true,
+    bets = listOf(
+        PoolBet(
+            id = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
+            userId = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
+            selectedOutcome = PoolBetOutcome.BooleanOutcome(false),
+            payoutDestination = PublicKey.fromBase58("7XbL9kZ3mPqW8nR2vY5tJ6hQ4uF1cA9xN3gT8rK5pM"),
+            placedAt = Clock.System.now(),
+        )
+    )
+)
+
+private val refundedPool = pool.copy(resolution = PoolResolution.Refund)
+
+private val wonPool = pool.copy(didWin = true, resolution = PoolResolution.BooleanResolution(false))
+private val lostPool = pool.copy(didWin = false, resolution = PoolResolution.BooleanResolution(true))
+
+@Preview
+@Composable
+private fun OpenHostedNoBetsPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithNoBets,
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun OpenNoBetsPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithNoBets.copy(isHost = false),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun OpenHostedHasBetsPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets,
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun OpenHasBetsPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(isHost = false),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ClosedHostedRefundedPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(pool = refundedPool),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ClosedRefundedPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(pool = refundedPool, isHost = false),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ClosedHostedWonPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(pool = wonPool),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ClosedWonPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(pool = wonPool, isHost = false),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ClosedHostedLostPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(pool = lostPool),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ClosedLostPreview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+            PoolSummaryRow(
+                data = hostedPoolWithBets.copy(pool = lostPool, isHost = false),
+                onClick = {},
+            )
+        }
     }
 }

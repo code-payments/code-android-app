@@ -5,4 +5,5 @@ sealed interface PoolResolution {
 
     sealed interface DecisionMade
     data class BooleanResolution(val value: Boolean): PoolResolution, DecisionMade
+    data object Refund: PoolResolution, DecisionMade
 }
