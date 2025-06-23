@@ -31,7 +31,7 @@ class PoolBettingScreen(
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
-                onBackIconClicked = { navigator.pop() },
+                onBackIconClicked = { navigator.popAll() },
             )
             val viewModel = getViewModel<PoolBettingViewModel>()
             PoolBettingScreen(viewModel)

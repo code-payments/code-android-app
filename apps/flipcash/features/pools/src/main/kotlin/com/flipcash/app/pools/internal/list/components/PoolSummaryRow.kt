@@ -23,6 +23,7 @@ internal fun PoolSummaryRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val didBet = remember(pool) { pool.didBet }
     val isCompleted = remember(pool) { pool.resolution != PoolResolution.NotSet }
     val didWin = remember(pool) { pool.didWin }
 
@@ -47,6 +48,7 @@ internal fun PoolSummaryRow(
             )
             Text(
                 text = when {
+                    !didBet -> stringResource(R.string.subtitle_notYetBoughtIn, pool.buyIn.formatted())
                     isCompleted && didWin -> stringResource(R.string.subtitle_wonInPool, pool.buyIn.formatted())
                     isCompleted -> stringResource(R.string.subtitle_lostInPool, pool.buyIn.formatted())
                     else -> stringResource(R.string.subtitle_amountInPool, pool.buyIn.formatted())

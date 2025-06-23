@@ -32,7 +32,8 @@ class NetworkPoolToEntityMapper @Inject constructor(
             resolution = PoolResolutionConverter.fromPoolResolution(metadata.resolution),
             timestamp = metadata.createdAt.toEpochMilliseconds(),
             rendezvousSeed = from.rendezvous.seed,
-            didWin = metadata.resolution.didWin(selectedOutcome)
+            didWin = metadata.resolution.didWin(selectedOutcome),
+            didBet = selectedOutcome != null
         )
 
         val bets = from.bets.map {

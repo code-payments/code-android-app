@@ -15,14 +15,12 @@ import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LINK_SHARED
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_SHARE_CASH_LINK
 import com.flipcash.app.shareable.Shareable
-import com.flipcash.app.shareable.ShareablePendingData.*
+import com.flipcash.app.shareable.ShareablePendingData.CashLink
 import com.flipcash.shared.shareable.R
 import com.getcode.opencode.model.accounts.GiftCardAccount
-import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -210,26 +208,26 @@ internal class InternalShareSheetController(
     }
 
     private fun sharePool(pool: Pool) {
-        val url = Linkify.pool(pool.fundingDestination.base58())
-        val intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(
-                Intent.EXTRA_TITLE,
-                pool.name,
-            )
-            putExtra(
-                Intent.EXTRA_SUBJECT,
-                pool.name
-            )
-            putExtra(Intent.EXTRA_TEXT, url)
-            type = "text/plain"
-        }
-
-        val share = Intent.createChooser(intent, null).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-
-        context.startActivity(share)
+//        val url = Linkify.pool(pool.fundingDestination.base58())
+//        val intent = Intent().apply {
+//            action = Intent.ACTION_SEND
+//            putExtra(
+//                Intent.EXTRA_TITLE,
+//                pool.name,
+//            )
+//            putExtra(
+//                Intent.EXTRA_SUBJECT,
+//                pool.name
+//            )
+//            putExtra(Intent.EXTRA_TEXT, url)
+//            type = "text/plain"
+//        }
+//
+//        val share = Intent.createChooser(intent, null).apply {
+//            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//        }
+//
+//        context.startActivity(share)
     }
 
     override fun reset(setChecked: Boolean) {

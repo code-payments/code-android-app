@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -24,6 +25,8 @@ data class PoolEntity(
     val rendezvousSeed: String,
     val isOpen: Boolean,
     val didWin: Boolean,
+    @ColumnInfo(defaultValue = "false")
+    val didBet: Boolean,
     val resolution: String?,
     val timestamp: Long,
 ) {

@@ -31,7 +31,7 @@ class PoolsCoordinator @Inject constructor(
     private val dataSource: PoolDataSource,
     private val mapper: PoolEntityToPoolMapper,
     private val networkMapper: NetworkPoolToDomainMapper,
-    private val userManager: UserManager
+    private val userManager: UserManager,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 

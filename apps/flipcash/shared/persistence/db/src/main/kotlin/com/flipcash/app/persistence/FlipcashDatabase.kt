@@ -28,8 +28,9 @@ import org.kin.sdk.base.tools.subByteArray
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
         AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4, spec = FlipcashDatabase.Migration3To4::class),
     ],
-    version = 3,
+    version = 4,
 )
 @TypeConverters(PoolResolutionConverter::class, BetOutcomeConverter::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -40,6 +41,13 @@ abstract class FlipcashDatabase : RoomDatabase() {
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM messages")
+        }
+    }
+
+    class Migration3To4 : Migration(3, 4), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM pool_metadata")
+            db.execSQL("DELETE FROM pool_bet_metadata")
         }
     }
 

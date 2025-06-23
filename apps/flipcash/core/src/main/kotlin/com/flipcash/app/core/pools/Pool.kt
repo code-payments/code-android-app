@@ -2,7 +2,6 @@ package com.flipcash.app.core.pools
 
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Fiat
@@ -21,6 +20,7 @@ data class Pool(
     val resolution: PoolResolution = PoolResolution.NotSet,
     val createdAt: Instant,
     val didWin: Boolean,
+    val didBet: Boolean,
 ) {
     companion object {
         val Empty = Pool(
@@ -32,6 +32,7 @@ data class Pool(
             fundingDestination = PublicKey(emptyList()),
             createdAt = Instant.fromEpochMilliseconds(0),
             didWin = false,
+            didBet = false,
             resolution = PoolResolution.NotSet,
             isOpen = true,
         )
