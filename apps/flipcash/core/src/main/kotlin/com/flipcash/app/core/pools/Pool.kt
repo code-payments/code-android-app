@@ -19,6 +19,7 @@ data class Pool(
     val rendezvous: KeyPair?,
     val resolution: PoolResolution = PoolResolution.NotSet,
     val createdAt: Instant,
+    val closedAt: Instant?,
     val didWin: Boolean,
     val didBet: Boolean,
 ) {
@@ -31,6 +32,7 @@ data class Pool(
             rendezvous = Ed25519.createKeyPair(),
             fundingDestination = PublicKey(emptyList()),
             createdAt = Instant.fromEpochMilliseconds(0),
+            closedAt = null,
             didWin = false,
             didBet = false,
             resolution = PoolResolution.NotSet,

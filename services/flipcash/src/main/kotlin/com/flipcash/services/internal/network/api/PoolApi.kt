@@ -83,13 +83,37 @@ internal class PoolApi @Inject constructor(
     }
 
     /**
+     * Closes a pool from additional bets
+     */
+    suspend fun closePool(
+        owner: KeyPair,
+        request: PoolRequest.Close,
+    ): PoolService.ClosePoolResponse {
+        val rendezvous = Ed25519.createKeyPair()
+        val metadata = request.pool.close().toProto()
+        val signature = rendezvous.sign(metadata.toByteArray()).asSignature()
+
+        val rpcRequest = PoolService.ClosePoolRequest.newBuilder()
+            .setId(metadata.id)
+            .setClosedAt(metadata.closedAt)
+            .setNewRendezvousSignature(signature)
+            .apply {
+                setAuth(authenticate(owner))
+            }.build()
+
+        return withContext(Dispatchers.IO) {
+            api.closePool(rpcRequest)
+        }
+    }
+
+    /**
      * Resolves a pool by declaring the pool's outcome. The pool creator
      * resolves a pool by calling this RPC first, then SubmitIntent to distribute funds
      * to the winning participants.
      *
      * Note: If the pool is not closed, it will be closed after execution of this RPC.
      */
-    suspend fun declareOutcome(
+    suspend fun resolvePool(
         owner: KeyPair,
         request: PoolRequest.Resolve,
     ): PoolService.ResolvePoolResponse {
@@ -131,7 +155,7 @@ internal class PoolApi @Inject constructor(
         owner: KeyPair,
         request: PoolRequest.PlaceBet,
     ): PoolService.MakeBetResponse {
-        val bet = PoolBetMetadata.fromRequest(request)
+        val bet = request.metadata
         val metadata = bet.toProto()
         val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
         val rpcRequest = PoolService.MakeBetRequest.newBuilder()

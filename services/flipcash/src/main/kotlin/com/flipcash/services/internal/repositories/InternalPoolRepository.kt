@@ -4,6 +4,7 @@ import com.flipcash.services.internal.domain.PoolMapper
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.network.services.PoolService
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
@@ -11,7 +12,6 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import com.getcode.utils.ErrorUtils
 
 internal class InternalPoolRepository(
@@ -54,6 +54,13 @@ internal class InternalPoolRepository(
             .map { list -> list.map { poolMapper.map(it) } }
     }
 
+    override suspend fun closePool(
+        owner: KeyPair,
+        pool: PoolMetadata
+    ): Result<Unit> {
+        return service.closePool(owner = owner, request = PoolRequest.Close(pool))
+    }
+
 
     override suspend fun declareOutcome(
         owner: KeyPair,
@@ -76,14 +83,23 @@ internal class InternalPoolRepository(
         payoutDestination: PublicKey,
         rendezvous: KeyPair,
         choice: Boolean,
-    ): Result<Unit> = service.placeBet(
-        owner = owner,
-        request = PoolRequest.PlaceBet(
+    ): Result<PoolBetMetadata> {
+        val request = PoolRequest.PlaceBet(
             poolId = poolId,
             userId = userId,
             payoutDestination = payoutDestination,
             poolRendezvous = rendezvous,
             outcome = PoolRequest.PlaceBet.Outcome.BooleanOutcome(choice),
         )
-    )
+
+        return service.placeBet(
+            owner = owner,
+            request = request,
+        ).fold(
+            onSuccess = {
+                Result.success(request.metadata)
+            },
+            onFailure = { Result.failure(it) }
+        )
+    }
 }

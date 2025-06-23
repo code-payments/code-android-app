@@ -1,5 +1,6 @@
 package com.flipcash.services.internal.model.pools
 
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -26,6 +27,10 @@ internal sealed interface PoolRequest {
         val queryOptions: QueryOptions,
     ): PoolRequest
 
+    data class Close(
+        val pool: PoolMetadata,
+    ): PoolRequest
+
     data class Resolve(
         val pool: PoolMetadata,
         val resolution: Resolution,
@@ -43,6 +48,10 @@ internal sealed interface PoolRequest {
         val poolRendezvous: KeyPair,
         val outcome: Outcome,
     ): PoolRequest {
+        val metadata by lazy {
+            PoolBetMetadata.fromRequest(this)
+        }
+
         sealed interface Outcome {
             data class BooleanOutcome(val value: Boolean): Outcome
         }

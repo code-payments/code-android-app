@@ -108,14 +108,25 @@ sealed class PlacePoolBetError(
     data class Other(override val cause: Throwable? = null) : PlacePoolBetError(message = cause?.message, cause = cause)
 }
 
-sealed class DeclarePoolOutcomeError(
+sealed class ResolvePoolOutcomeError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class NotFound: DeclarePoolOutcomeError("Not found")
-    class Denied: DeclarePoolOutcomeError("Denied")
-    class AlreadyDeclared: DeclarePoolOutcomeError("Different outcome already declared")
-    class Unrecognized : DeclarePoolOutcomeError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : DeclarePoolOutcomeError(message = cause?.message, cause = cause)
+    class NotFound: ResolvePoolOutcomeError("Not found")
+    class Denied: ResolvePoolOutcomeError("Denied")
+    class PoolOpen: ResolvePoolOutcomeError("Pool still open")
+    class AlreadyDeclared: ResolvePoolOutcomeError("Different outcome already declared")
+    class Unrecognized : ResolvePoolOutcomeError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : ResolvePoolOutcomeError(message = cause?.message, cause = cause)
+}
+
+sealed class ClosePoolError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound: ClosePoolError("Not found")
+    class Denied: ClosePoolError("Denied")
+    class Unrecognized : ClosePoolError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : ClosePoolError(message = cause?.message, cause = cause)
 }
 

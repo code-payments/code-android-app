@@ -34,12 +34,24 @@ data class PoolMetadata(
     val isOpen: Boolean = true,
     val resolution: NetworkPoolResolution = NetworkPoolResolution.NotSet,
     val createdAt: Instant,
+    val closedAt: Instant? = null,
 ) {
 
     internal fun resolve(resolution: PoolRequest.Resolve.Resolution): PoolMetadata {
-        return copy(resolution = when (resolution) {
-            is PoolRequest.Resolve.Resolution.BooleanResolution -> NetworkPoolResolution.BooleanResolution(resolution.value)
-        })
+        return copy(
+            resolution = when (resolution) {
+                is PoolRequest.Resolve.Resolution.BooleanResolution -> NetworkPoolResolution.BooleanResolution(
+                    resolution.value
+                )
+            }
+        )
+    }
+
+    internal fun close(): PoolMetadata {
+        return copy(
+            isOpen = false,
+            closedAt = Clock.System.now()
+        )
     }
 
     companion object {
@@ -76,7 +88,8 @@ data class NetworkPool(
 )
 
 sealed interface NetworkPoolResolution {
-    data object NotSet: NetworkPoolResolution
+    data object NotSet : NetworkPoolResolution
+
     @Immutable
-    data class BooleanResolution(val value: Boolean): NetworkPoolResolution
+    data class BooleanResolution(val value: Boolean) : NetworkPoolResolution
 }

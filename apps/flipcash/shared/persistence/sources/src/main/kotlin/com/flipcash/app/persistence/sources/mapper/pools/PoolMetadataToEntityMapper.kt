@@ -15,6 +15,7 @@ import javax.inject.Inject
 
 class NetworkPoolToEntityMapper @Inject constructor(
     private val userManager: UserManager,
+    private val betMapper: PoolBetMetadataToEntityMapper
 ): Mapper<NetworkPool, Pair<PoolEntity, List<PoolBetEntity>>> {
 
     override fun map(from: NetworkPool):  Pair<PoolEntity, List<PoolBetEntity>> {
@@ -31,20 +32,14 @@ class NetworkPoolToEntityMapper @Inject constructor(
             isOpen = metadata.isOpen,
             resolution = PoolResolutionConverter.fromPoolResolution(metadata.resolution),
             timestamp = metadata.createdAt.toEpochMilliseconds(),
+            closedTimestamp = metadata.closedAt?.toEpochMilliseconds(),
             rendezvousSeed = from.rendezvous.seed,
             didWin = metadata.resolution.didWin(selectedOutcome),
             didBet = selectedOutcome != null
         )
 
         val bets = from.bets.map {
-            PoolBetEntity(
-                idBase58 = it.id.base58,
-                poolIdBase58 = metadata.id.base58,
-                userIdBase58 = it.userId.base58,
-                selectedOutcome = BetOutcomeConverter.fromBetOutcome(it.selectedOutcome),
-                timestamp = it.timestamp.toEpochMilliseconds(),
-                payoutDestinationBase58 = it.payoutDestination.base58()
-            )
+            betMapper.map(pool.id to it)
         }
 
         return pool to bets

@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
@@ -10,7 +11,6 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import javax.inject.Inject
 import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
 
@@ -53,7 +53,19 @@ class PoolController @Inject constructor(
         return repository.getPagedPools(owner, queryOptions)
     }
 
-    suspend fun declareOutcome(
+    suspend fun closePool(
+        pool: PoolMetadata,
+    ): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.closePool(
+            owner = owner,
+            pool = pool,
+        )
+    }
+
+    suspend fun resolvePool(
         pool: PoolMetadata,
         resolution: Boolean,
     ): Result<Unit> {
@@ -75,7 +87,7 @@ class PoolController @Inject constructor(
         fundingDestination: PublicKey,
         rendezvous: KeyPair,
         choice: Boolean,
-    ): Result<Unit> {
+    ): Result<PoolBetMetadata> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         val userId = userManager.accountId

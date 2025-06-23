@@ -36,6 +36,17 @@ interface PoolDao {
         resolvePool(id.base58, resolution)
     }
 
+    @Query("UPDATE pool_metadata SET isOpen = 0 AND closedTimestamp = strftime('%s', 'now') WHERE idBase58 = :id")
+    suspend fun closePool(
+        id: String,
+    )
+
+    suspend fun closePool(
+        id: ID,
+    ) {
+        closePool(id.base58)
+    }
+
     @Query("SELECT * FROM pool_metadata ORDER BY timestamp DESC")
     suspend fun getAll(): List<PoolEntity>
 

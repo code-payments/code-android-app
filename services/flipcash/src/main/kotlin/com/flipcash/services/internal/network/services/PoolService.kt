@@ -4,11 +4,13 @@ import com.codeinc.flipcash.gen.pool.v1.Model
 import com.codeinc.flipcash.gen.pool.v1.PoolService
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.internal.network.api.PoolApi
+import com.flipcash.services.models.ClosePoolError
 import com.flipcash.services.models.CreatePoolError
-import com.flipcash.services.models.DeclarePoolOutcomeError
+import com.flipcash.services.models.ResolvePoolOutcomeError
 import com.flipcash.services.models.GetPoolError
 import com.flipcash.services.models.GetPoolPageError
 import com.flipcash.services.models.PlacePoolBetError
+import com.flipcash.services.models.PoolBetMetadata
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import javax.inject.Inject
@@ -75,24 +77,46 @@ internal class PoolService @Inject constructor(
         )
     }
 
+    suspend fun closePool(
+        owner: KeyPair,
+        request: PoolRequest.Close
+    ): Result<Unit> {
+        return runCatching {
+            api.closePool(owner, request)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    PoolService.ClosePoolResponse.Result.OK -> Result.success(Unit)
+                    PoolService.ClosePoolResponse.Result.DENIED -> Result.failure(ClosePoolError.Denied())
+                    PoolService.ClosePoolResponse.Result.NOT_FOUND -> Result.failure(ClosePoolError.NotFound())
+                    PoolService.ClosePoolResponse.Result.UNRECOGNIZED -> Result.failure(ClosePoolError.Unrecognized())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(ClosePoolError.Other(cause = cause))
+            }
+        )
+    }
+
     suspend fun resolvePool(
         owner: KeyPair,
         request: PoolRequest.Resolve
     ): Result<Unit> {
         return runCatching {
-            api.declareOutcome(owner, request)
+            api.resolvePool(owner, request)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     PoolService.ResolvePoolResponse.Result.OK -> Result.success(Unit)
-                    PoolService.ResolvePoolResponse.Result.NOT_FOUND -> Result.failure(DeclarePoolOutcomeError.NotFound())
-                    PoolService.ResolvePoolResponse.Result.DENIED -> Result.failure(DeclarePoolOutcomeError.Denied())
-                    PoolService.ResolvePoolResponse.Result.DIFFERENT_OUTCOME_DECLARED -> Result.failure(DeclarePoolOutcomeError.AlreadyDeclared())
-                    PoolService.ResolvePoolResponse.Result.UNRECOGNIZED -> Result.failure(DeclarePoolOutcomeError.Unrecognized())
+                    PoolService.ResolvePoolResponse.Result.NOT_FOUND -> Result.failure(ResolvePoolOutcomeError.NotFound())
+                    PoolService.ResolvePoolResponse.Result.DENIED -> Result.failure(ResolvePoolOutcomeError.Denied())
+                    PoolService.ResolvePoolResponse.Result.DIFFERENT_OUTCOME_DECLARED -> Result.failure(ResolvePoolOutcomeError.AlreadyDeclared())
+                    PoolService.ResolvePoolResponse.Result.POOL_OPEN -> Result.failure(ResolvePoolOutcomeError.PoolOpen())
+                    PoolService.ResolvePoolResponse.Result.UNRECOGNIZED -> Result.failure(ResolvePoolOutcomeError.Unrecognized())
                 }
             },
             onFailure = { cause ->
-                Result.failure(DeclarePoolOutcomeError.Other(cause = cause))
+                Result.failure(ResolvePoolOutcomeError.Other(cause = cause))
             }
         )
     }

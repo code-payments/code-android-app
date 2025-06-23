@@ -27,6 +27,7 @@ class NetworkPoolToDomainMapper @Inject constructor(
                 rendezvous = from.rendezvous,
                 resolution = PoolResolutionConverter.toPoolResolution(from.metadata.resolution),
                 createdAt = from.metadata.createdAt,
+                closedAt = from.metadata.closedAt,
                 didWin = from.metadata.resolution.didWin(selectedOutcome),
                 didBet = selectedOutcome != null
             ),

@@ -29,6 +29,7 @@ data class PoolEntity(
     val didBet: Boolean,
     val resolution: String?,
     val timestamp: Long,
+    val closedTimestamp: Long?,
 ) {
 
     @Ignore
@@ -42,6 +43,9 @@ data class PoolEntity(
 
     @Ignore
     val createdAt: Instant = Instant.fromEpochMilliseconds(timestamp)
+
+    @Ignore
+    val closedAt: Instant? = closedTimestamp?.let { Instant.fromEpochMilliseconds(it) }
 }
 
 data class PoolWithBetsEntity(

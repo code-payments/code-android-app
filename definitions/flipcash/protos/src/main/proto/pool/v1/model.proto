@@ -16,6 +16,10 @@ message Resolution {
     oneof kind {
         // The yes/no outcome the creator has chosen as the winning outcome
         bool boolean_resolution = 1;
+        // A refund to all participants. No outcome was decided
+        Refund refund_resolution = 2;
+    }
+    message Refund {
     }
 }
 // Pool metadata signed by the rendezvous key
@@ -35,6 +39,8 @@ message SignedPoolMetadata {
     Resolution resolution = 7;
     // Timestamp pool was created at
     google.protobuf.Timestamp created_at = 8;
+    // Timestamp the pool was closed at
+    google.protobuf.Timestamp closed_at = 9;
 }
 // Pool metadata
 message PoolMetadata {

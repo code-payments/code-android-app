@@ -24,6 +24,7 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             rendezvous = Ed25519.createKeyPair(from.rendezvousSeed),
             resolution = PoolResolutionConverter.toPoolResolution(from.resolution),
             createdAt = from.createdAt,
+            closedAt = from.closedAt,
             didWin = from.didWin,
             didBet = from.didBet,
         )

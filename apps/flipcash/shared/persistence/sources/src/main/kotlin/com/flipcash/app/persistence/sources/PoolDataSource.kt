@@ -4,13 +4,16 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.room.withTransaction
 import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.PoolEntity
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolBetMetadataToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.persistence.PagingDataSource
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +23,8 @@ import javax.inject.Inject
 class PoolDataSource @Inject constructor(
     private val poolEntityMapper: PoolEntityToPoolMapper,
     private val poolMetadataEntityMapper: NetworkPoolToEntityMapper,
-    private val betEntityMapper: PoolBetEntityToPoolBetMapper
+    private val betEntityMapper: PoolBetEntityToPoolBetMapper,
+    private val betMetadataEntityMapper: PoolBetMetadataToEntityMapper,
 ): PagingDataSource<ID, Pool, List<NetworkPool>, Int, PoolEntity> {
 
     private val db: FlipcashDatabase?
@@ -47,6 +51,7 @@ class PoolDataSource @Inject constructor(
         return poolEntityMapper.map(result.pool)
     }
 
+
     suspend fun getByIdWithBets(id: ID): PoolWithBets? {
         val result = db?.poolDao()?.getPoolWithBets(id) ?: return null
         val pool = poolEntityMapper.map(result.pool)
@@ -67,6 +72,20 @@ class PoolDataSource @Inject constructor(
                 db?.poolDao()?.upsert(*bets.toTypedArray())
             }
         }
+    }
+
+    suspend fun resolvePool(id: ID, resolution: PoolResolution) {
+        db?.poolDao()?.resolvePool(id, resolution)
+    }
+
+    suspend fun closePool(id: ID) {
+        db?.poolDao()?.closePool(id)
+
+    }
+
+    suspend fun addBet(poolId: ID, bet: PoolBetMetadata) {
+        val entity = betMetadataEntityMapper.map(poolId to bet)
+        db?.poolDao()?.upsert(entity)
     }
 
     override suspend fun query(whereClause: String): List<Pool> {

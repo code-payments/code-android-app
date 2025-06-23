@@ -29,6 +29,11 @@ interface PoolRepository {
         queryOptions: QueryOptions,
     ): Result<List<NetworkPool>>
 
+    suspend fun closePool(
+        owner: KeyPair,
+        pool: PoolMetadata,
+    ): Result<Unit>
+
     suspend fun declareOutcome(
         owner: KeyPair,
         pool: PoolMetadata,
@@ -43,5 +48,5 @@ interface PoolRepository {
         payoutDestination: PublicKey,
         rendezvous: KeyPair,
         choice: Boolean,
-    ): Result<Unit>
+    ): Result<PoolBetMetadata>
 }

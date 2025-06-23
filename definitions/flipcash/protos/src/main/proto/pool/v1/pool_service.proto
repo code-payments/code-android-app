@@ -5,6 +5,7 @@ option java_package = "com.codeinc.flipcash.gen.pool.v1";
 option objc_class_prefix = "FPBPoolV1";
 import "pool/v1/model.proto";
 import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
 
 service Pool {
     // CreatePool creates a new pool
@@ -13,11 +14,11 @@ service Pool {
     rpc GetPool(GetPoolRequest) returns (GetPoolResponse);
     // GetPagedPools gets all pools for a user over a paging API
     rpc GetPagedPools(GetPagedPoolsRequest) returns (GetPagedPoolsResponse);
+    // ClosePool closes a pool from additional bets
+    rpc ClosePool(ClosePoolRequest) returns (ClosePoolResponse);
     // ResolvePool resolves a pool by declaring the pool's outcome. The pool creator
     // resolves a pool by calling this RPC first, then SubmitIntent to distribute funds
     // to the winning participants.
-    //
-    // Note: If the pool is not closed, it will be closed after execution of this RPC.
     rpc ResolvePool(ResolvePoolRequest) returns (ResolvePoolResponse);
     // MakeBet creates a new bet against a pool. Pool participants make a bet by
     // calling MakeBet to create an initially unpaid bet, then SubmitIntent for
@@ -65,6 +66,20 @@ message GetPagedPoolsResponse {
     }
     repeated PoolMetadata pools = 2 ;
 }
+message ClosePoolRequest {
+    PoolId id = 1;
+    google.protobuf.Timestamp closed_at = 2;
+    common.v1.Signature new_rendezvous_signature = 3;
+    common.v1.Auth auth = 4;
+}
+message ClosePoolResponse {
+    Result result = 1;
+    enum Result {
+        OK        = 0;
+        DENIED    = 1;
+        NOT_FOUND = 2;
+    }
+}
 message ResolvePoolRequest {
     PoolId id = 1;
     
@@ -79,6 +94,7 @@ message ResolvePoolResponse {
         DENIED                     = 1;
         NOT_FOUND                  = 2;
         DIFFERENT_OUTCOME_DECLARED = 3;
+        POOL_OPEN                  = 4;
     }
 }
 message MakeBetRequest {
