@@ -99,7 +99,8 @@ internal class PoolService @Inject constructor(
 
     suspend fun placeBet(
         owner: KeyPair,
-        request: PoolRequest.PlaceBet): Result<Unit> {
+        request: PoolRequest.PlaceBet
+    ): Result<Unit> {
         return runCatching {
             api.placeBet(owner, request)
         }.foldWithSuppression(

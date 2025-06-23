@@ -41,7 +41,7 @@ interface PoolRepository {
         userId: ID,
         poolId: ID,
         payoutDestination: PublicKey,
-        rendezvous: Signature,
+        rendezvous: KeyPair,
         choice: Boolean,
     ): Result<Unit>
 }

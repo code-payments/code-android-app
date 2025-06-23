@@ -6,6 +6,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.sources.PoolDataSource
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapper
@@ -16,8 +17,12 @@ import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
+import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -93,6 +98,23 @@ class PoolsCoordinator @Inject constructor(
         }
 
         return Result.success(poolWithBets)
+    }
+
+    suspend fun placeBet(
+        poolId: ID,
+        rendezvous: KeyPair,
+        fundingDestination: PublicKey,
+        outcome: PoolBetOutcome
+    ): Result<Unit> {
+        return controller.placeBet(
+            poolId = poolId,
+            fundingDestination = fundingDestination,
+            rendezvous = rendezvous,
+            choice = when (outcome) {
+                is PoolBetOutcome.BooleanOutcome -> outcome.value
+                PoolBetOutcome.NotSet -> throw Exception("Outcome not set")
+            },
+        )
     }
 
     suspend fun fetchSinceLatest(count: Int = 20): Result<Unit> {

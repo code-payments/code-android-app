@@ -18,6 +18,8 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
+import com.flipcash.app.payments.LocalPaymentController
+import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router
@@ -94,6 +96,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var featureFlagController: FeatureFlagController
 
+    @Inject
+    lateinit var paymentController: PaymentController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -115,6 +120,7 @@ class MainActivity : FragmentActivity() {
                 LocalShareController provides shareController,
                 LocalAppSettings provides appSettingsCoordinator,
                 LocalFeatureFlags provides featureFlagController,
+                LocalPaymentController provides paymentController,
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)

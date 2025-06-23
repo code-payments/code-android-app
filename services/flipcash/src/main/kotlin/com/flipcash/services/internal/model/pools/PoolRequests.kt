@@ -2,11 +2,10 @@ package com.flipcash.services.internal.model.pools
 
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 
 internal sealed interface PoolRequest {
     data class Create(
@@ -14,7 +13,7 @@ internal sealed interface PoolRequest {
         val name: String,
         val buyIn: Fiat,
         val fundingDestination: PublicKey,
-        val rendezvous: Ed25519.KeyPair,
+        val rendezvous: KeyPair,
     ): PoolRequest {
         val metadata by lazy {
             PoolMetadata.fromRequest(this)
@@ -30,7 +29,7 @@ internal sealed interface PoolRequest {
     data class Resolve(
         val pool: PoolMetadata,
         val resolution: Resolution,
-        val poolRendezvous: Ed25519.KeyPair,
+        val poolRendezvous: KeyPair,
     ): PoolRequest {
         sealed interface Resolution {
             data class BooleanResolution(val value: Boolean): Resolution
@@ -41,7 +40,7 @@ internal sealed interface PoolRequest {
         val userId: ID,
         val poolId: ID,
         val payoutDestination: PublicKey,
-        val poolRendezvous: Signature,
+        val poolRendezvous: KeyPair,
         val outcome: Outcome,
     ): PoolRequest {
         sealed interface Outcome {

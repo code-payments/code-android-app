@@ -57,7 +57,7 @@ private val colors = with(FlipcashColorSpec) {
         border = White20,
         divider = White10,
         dividerVariant = White05,
-        trackColor = BrandSlideToConfirm,
+        trackColor = Color.White.copy(alpha = 0.07f),
         toggleUncheckedTrackColor = secondaryText,
         cashBill = cashBill,
         cashBillDecorColor = secondaryText,

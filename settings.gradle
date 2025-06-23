@@ -20,6 +20,7 @@ include(
         ":apps:flipcash:shared:ksp",
         ":apps:flipcash:shared:menu",
         ":apps:flipcash:shared:notifications",
+        ":apps:flipcash:shared:payments",
         ":apps:flipcash:shared:permissions",
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",

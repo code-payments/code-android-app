@@ -95,8 +95,7 @@ internal object FlipcashModule {
     internal fun providesPoolRepository(
         service: PoolService,
         poolMapper: PoolMapper,
-        betMapper: PoolBetMapper,
-    ): PoolRepository = InternalPoolRepository(service, poolMapper, betMapper)
+    ): PoolRepository = InternalPoolRepository(service, poolMapper)
 
     @Provides
     internal fun providesPurchaseRepository(

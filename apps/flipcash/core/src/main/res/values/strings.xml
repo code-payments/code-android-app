@@ -180,7 +180,7 @@
     <string name="subtitle_poolBidHint">Enter up to %1$s</string>
     <string name="subtitle_poolBidLimitExceeded">You can only bid up to %1$s</string>
     <string name="title_setBuyInAmount">Set Buy In Amount</string>
-    <string name="subtitle_buyIn">Buy In</string>
+    <string name="subtitle_poolBuyIn">Pool Buy In</string>
     <string name="subtitle_poolNamePlaceholder">Question</string>
     <string name="subtitle_poolNameHint">Pose a Yes or No Question</string>
     <string name="action_createYourPool">Create Your Pool</string>
@@ -205,4 +205,16 @@
     <string name="action_pool_bet_no">No</string>
     <string name="subtitle_poolAlreadyBet">You\'re bought in</string>
     <string name="subtitle_poolNotYetBet">Tap to buy in</string>
+
+    <string name="error_title_paymentFailed">Payment Failed</string>
+    <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>
+
+    <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
+    <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough funds to complete this payment</string>
+
+    <string name="error_title_placeBetFailed">Something Went Wrong</string>
+    <string name="error_description_placeBetFailed">We were unable to place your bid. Please try again</string>
+
+    <string name="action_swipeToBuyIn">Swipe to Buy In</string>
+
 </resources>

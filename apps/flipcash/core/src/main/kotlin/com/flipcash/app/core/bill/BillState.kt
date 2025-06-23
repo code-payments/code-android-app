@@ -5,7 +5,6 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
-import com.getcode.opencode.model.core.ExtendedMetadata
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -22,7 +21,7 @@ data class BillState(
     val secondaryAction: Action?,
 ) {
     val canSwipeToDismiss: Boolean
-        get() = bill?.canSwipeToDismiss ?: false
+        get() = bill?.canSwipeToDismiss == true
 
     val confirmationDelayMillis: Int
         get() = (bill?.confirmationDelay ?: Duration.ZERO).inWholeMilliseconds.toInt()
@@ -143,7 +142,7 @@ data class PublicPaymentConfirmation(
     override val state: ConfirmationState,
     val amount: Fiat,
     val destination: PublicKey,
-    val metadata: ExtendedMetadata,
+    val metadata: PaymentMetadata,
     override val showScrim: Boolean = true,
     override val cancellable: Boolean = true,
 ): Confirmation(showScrim, state)

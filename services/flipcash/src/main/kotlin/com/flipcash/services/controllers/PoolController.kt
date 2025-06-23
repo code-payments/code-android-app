@@ -9,6 +9,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import javax.inject.Inject
 import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
@@ -70,8 +71,9 @@ class PoolController @Inject constructor(
     }
 
     suspend fun placeBet(
-        pool: PoolMetadata,
-        rendezvous: Signature,
+        poolId: ID,
+        fundingDestination: PublicKey,
+        rendezvous: KeyPair,
         choice: Boolean,
     ): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
@@ -79,13 +81,12 @@ class PoolController @Inject constructor(
         val userId = userManager.accountId
             ?: return Result.failure(Throwable("No account ID in UserManager"))
 
-
         return repository.placeBet(
             owner = owner,
             userId = userId,
-            poolId = pool.id,
+            poolId = poolId,
             choice = choice,
-            payoutDestination = pool.fundingDestination,
+            payoutDestination = fundingDestination,
             rendezvous = rendezvous,
         )
     }

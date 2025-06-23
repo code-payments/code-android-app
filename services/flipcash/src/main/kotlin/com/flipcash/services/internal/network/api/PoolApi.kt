@@ -132,10 +132,12 @@ internal class PoolApi @Inject constructor(
         request: PoolRequest.PlaceBet,
     ): PoolService.MakeBetResponse {
         val bet = PoolBetMetadata.fromRequest(request)
+        val metadata = bet.toProto()
+        val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
         val rpcRequest = PoolService.MakeBetRequest.newBuilder()
             .setPoolId(request.poolId.asPoolId())
             .setBet(bet.toProto())
-            .setRendezvousSignature(request.poolRendezvous.byteArray.asSignature())
+            .setRendezvousSignature(signature)
             .apply {
                 setAuth(authenticate(owner))
             }.build()
