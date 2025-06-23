@@ -175,7 +175,6 @@ internal class PoolBettingViewModel @Inject constructor(
                         poolsCoordinator.placeBet(
                             poolId = stateFlow.value.metadata.id,
                             rendezvous = stateFlow.value.metadata.rendezvous ?: Ed25519.createKeyPair(), // will fail but better than an NPE
-                            fundingDestination = stateFlow.value.metadata.fundingDestination,
                             outcome = poolMetadata.selectedOutcome,
                         ).onSuccess {
                             event.acknowledge(true) {

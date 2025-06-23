@@ -66,17 +66,6 @@ internal fun CompletedPoolStatusRow(
                         color = CodeTheme.colors.success,
                     )
                 }
-            } else {
-                CodeChip(
-                    shape = CodeTheme.shapes.small,
-                    label = stringResource(
-                        R.string.subtitle_lostPool,
-                        buyIn.formatted(
-                            formatting = Fiat.Formatting.Truncated
-                        )
-                    ),
-                    contentColor = CodeTheme.colors.textSecondary,
-                )
             }
         }
     }

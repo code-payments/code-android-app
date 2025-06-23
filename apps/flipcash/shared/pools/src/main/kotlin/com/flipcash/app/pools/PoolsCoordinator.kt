@@ -137,12 +137,10 @@ class PoolsCoordinator @Inject constructor(
     suspend fun placeBet(
         poolId: ID,
         rendezvous: KeyPair,
-        fundingDestination: PublicKey,
         outcome: PoolBetOutcome
     ): Result<Unit> {
         return controller.placeBet(
             poolId = poolId,
-            fundingDestination = fundingDestination,
             rendezvous = rendezvous,
             choice = BetOutcomeConverter.toBetOutcome(outcome),
         ).onSuccess {

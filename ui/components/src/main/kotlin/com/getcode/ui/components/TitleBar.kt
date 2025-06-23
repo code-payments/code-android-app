@@ -1,9 +1,11 @@
 package com.getcode.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
@@ -169,7 +171,7 @@ fun AppBarWithTitle(
     TopAppBarBase(
         modifier = modifier,
         isInModal = isInModal,
-        leftIcon =  startContent,
+        leftIcon = startContent,
         contentPadding = contentPadding,
         titleRegion = {
             AppBarDefaults.Title(text = title)
@@ -214,25 +216,42 @@ private fun TopAppBarBase(
     val inset = CodeTheme.dimens.inset
     val horizontal = contentPadding.calculateHorizontalPadding()
 
+    val leftSlot = @Composable {
+        Box(modifier = Modifier.padding(5.dp)) {
+            leftIcon()
+        }
+    }
+
+    val rightSlot = @Composable {
+        Box(modifier = Modifier.padding(5.dp)) {
+            rightContents()
+        }
+    }
+
+
     SubcomposeLayout(
         modifier = modifier
             .addIf(!isInModal) { Modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility) }
             .height(56.dp),
     ) { constraints ->
         // Measure left icon, if provided
-        val leftIconPlaceable = subcompose("leftIcon", leftIcon).firstOrNull()?.measure(
+        val leftIconPlaceable = subcompose("leftIcon", leftSlot).firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0)
         )
 
         // Measure right contents, if provided
-        val rightContentsPlaceable = subcompose("rightContents", rightContents).firstOrNull()?.measure(
-            constraints.copy(minWidth = 0, minHeight = 0)
-        )
+        val rightContentsPlaceable =
+            subcompose("rightContents", rightSlot).firstOrNull()?.measure(
+                constraints.copy(minWidth = 0, minHeight = 0)
+            )
 
         // Calculate the remaining space for the title region
         val leftIconWidth = leftIconPlaceable?.width ?: 0
         val rightContentsWidth = rightContentsPlaceable?.width ?: 0
-        val remainingWidth = constraints.maxWidth - leftIconWidth - rightContentsWidth - contentPadding.calculateLeftPadding(layoutDirection).roundToPx() - (contentPadding.calculateRightPadding(layoutDirection).roundToPx() * 2)
+        val remainingWidth =
+            constraints.maxWidth - leftIconWidth - rightContentsWidth - contentPadding.calculateLeftPadding(
+                layoutDirection
+            ).roundToPx() - (contentPadding.calculateRightPadding(layoutDirection).roundToPx() * 2)
 
         // Measure title region with the remaining space, if provided
         val titleRegionPlaceable = subcompose("titleRegion", titleRegion).firstOrNull()?.measure(
@@ -243,13 +262,17 @@ private fun TopAppBarBase(
             // Place left icon, if present
             leftIconPlaceable?.placeRelative(
                 x = contentPadding.calculateLeftPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - (leftIconPlaceable.height)) / 2 + contentPadding.calculateTopPadding().roundToPx()
+                y = (constraints.maxHeight - (leftIconPlaceable.height)) / 2 + contentPadding.calculateTopPadding()
+                    .roundToPx()
             )
 
             // Place right contents, if present
             rightContentsPlaceable?.placeRelative(
-                x = constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - rightContentsPlaceable.height) / 2 + contentPadding.calculateTopPadding().roundToPx()
+                x = constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(
+                    layoutDirection
+                ).roundToPx(),
+                y = (constraints.maxHeight - rightContentsPlaceable.height) / 2 + contentPadding.calculateTopPadding()
+                    .roundToPx()
             )
 
             // Place title region with configurable alignment
@@ -258,14 +281,19 @@ private fun TopAppBarBase(
                     if (leftIconWidth == 0) inset.roundToPx()
                     else leftIconWidth + horizontal.roundToPx()
                 }
-                Alignment.End -> constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(layoutDirection).roundToPx() - (titleRegionPlaceable?.width ?: 0)
+
+                Alignment.End -> constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(
+                    layoutDirection
+                ).roundToPx() - (titleRegionPlaceable?.width ?: 0)
+
                 else -> (constraints.maxWidth - (titleRegionPlaceable?.width ?: 0)) / 2
             }
 
             // Place title region
             titleRegionPlaceable?.placeRelative(
                 x = titleX,
-                y = (constraints.maxHeight - (titleRegionPlaceable.height)) / 2 + contentPadding.calculateTopPadding().roundToPx()
+                y = (constraints.maxHeight - (titleRegionPlaceable.height)) / 2 + contentPadding.calculateTopPadding()
+                    .roundToPx()
             )
         }
     }

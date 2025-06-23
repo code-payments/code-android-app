@@ -9,10 +9,16 @@ import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.PaymentState
 import com.flipcash.app.payments.PoolPaymentMetadata
 import com.flipcash.services.models.PoolMetadata
+import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.getPublicKeyBase58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,6 +35,9 @@ class InternalPaymentController(
     private val resources: ResourceHelper,
     private val billController: BillController,
     private val balanceController: BalanceController,
+    private val transactionController: TransactionController,
+    private val userManager: UserManager,
+    private val exchange: Exchange,
 ) : PaymentController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -42,13 +51,14 @@ class InternalPaymentController(
     override val eventFlow: SharedFlow<PaymentEvent> = _eventFlow.asSharedFlow()
 
     override fun presentPublicPaymentConfirmation(request: PaymentRequest) {
+        val vault = userManager.accountCluster?.vaultPublicKey ?: return
         billController.update {
             when (request) {
                 is PaymentRequest.Pool -> it.copy(
                     publicPaymentConfirmation = PublicPaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         amount = request.pool.buyIn,
-                        destination = request.pool.fundingDestination,
+                        destination = vault,
                         metadata = PoolPaymentMetadata(
                             pool = PoolMetadata(
                                 id = request.pool.id,
@@ -71,43 +81,65 @@ class InternalPaymentController(
     override fun completePublicPayment() {
         scope.launch {
             val confirmation = billController.state.value.publicPaymentConfirmation ?: return@launch
+            val destination = confirmation.destination
+            val amount = confirmation.amount
             val metadata = confirmation.metadata as PoolPaymentMetadata
 
-            val (pool, rendezvous, outcome) = metadata
+            val (pool, _, _) = metadata
             billController.update {
                 it.copy(
                     publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.Sending),
                 )
             }
 
+            exchange.fetchRatesIfNeeded()
+
             val balance = balanceController.rawBalance.value
 
-            runCatching {
-                if (balance < pool.buyIn) throw PaymentError.InsufficientBalance()
-                Unit
-            }.onSuccess {
+            val localizedAmount = LocalFiat(
+                usdc = amount.convertingTo(exchange.rateForUsd()),
+                converted = amount,
+            )
+
+
+            if (balance < pool.buyIn) {
+                _eventFlow.emit(PaymentEvent.OnPaymentError(PaymentError.InsufficientBalance()))
+                return@launch
+            }
+
+            transactionController.transfer(
+                destination = destination,
+                amount = localizedAmount,
+                rendezvous = PublicKey.fromBase58(metadata.rendezvous.getPublicKeyBase58()),
+                owner = userManager.accountCluster!!,
+            ).onSuccess {
                 _eventFlow.emit(
                     PaymentEvent.OnPaymentSuccess(
-                    metadata = metadata,
-                    acknowledge = { isSuccess, after ->
-                        if (isSuccess) {
-                            scope.launch {
-                                billController.update { billState ->
-                                    val publicPaymentConfirmation =
-                                        billState.publicPaymentConfirmation ?: return@update billState
-                                    billState.copy(
-                                        publicPaymentConfirmation = publicPaymentConfirmation.copy(state = ConfirmationState.Sent),
-                                    )
+                        intentId = it.id.bytes,
+                        metadata = metadata,
+                        acknowledge = { isSuccess, after ->
+                            if (isSuccess) {
+                                scope.launch {
+                                    billController.update { billState ->
+                                        val publicPaymentConfirmation =
+                                            billState.publicPaymentConfirmation
+                                                ?: return@update billState
+                                        billState.copy(
+                                            publicPaymentConfirmation = publicPaymentConfirmation.copy(
+                                                state = ConfirmationState.Sent
+                                            ),
+                                        )
+                                    }
+                                    cancelPayment(fromUser = false)
+                                    after()
                                 }
-                                cancelPayment(fromUser = false)
+                            } else {
+                                billController.reset()
                                 after()
                             }
-                        } else {
-                            billController.reset()
-                            after()
                         }
-                    }
-                ))
+                    )
+                )
             }.onFailure {
                 when {
                     it is PaymentError -> {
@@ -115,6 +147,7 @@ class InternalPaymentController(
                             is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
                         }
                     }
+
                     else -> presentPaymentFailedError()
                 }
 
