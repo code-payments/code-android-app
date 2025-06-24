@@ -190,7 +190,9 @@
     <string name="error_description_createPoolFailed">Something went wrong</string>
     <string name="subtitle_totalInPool">%1$s in pool so far</string>
     <string name="subtitle_poolHostOutcomeDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
+    <string name="subtitle_poolParticipantOutcomeDisclaimer">The person who created the pool gets to decide the outcome of the pool in their sole discretion</string>
     <string name="action_sharePoolWithFriends">Share Pool With Friends</string>
+    <string name="action_declareOutcome">Declare the Outcome</string>
     <string name="subtitle_inPoolSoFar">in pool so far</string>
 
     <string name="error_title_poolNotFound">Something went wrong</string>
@@ -221,7 +223,11 @@
     <string name="subtitle_refunded">Refunded</string>
     <string name="label_yes">Yes</string>
     <string name="label_no">No</string>
+    <string name="action_no">No</string>
+    <string name="action_tie">Tie (Refund Everyone)</string>
     <string name="subtitle_lostPool">Lost %1$s</string>
 
+    <string name="subtitle_youSaid">You said</string>
 
+    <string name="prompt_title_poolResolution">What was the winning outcome?</string>
 </resources>

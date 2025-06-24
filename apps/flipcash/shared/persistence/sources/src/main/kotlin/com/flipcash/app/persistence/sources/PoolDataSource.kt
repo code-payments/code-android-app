@@ -18,6 +18,7 @@ import com.flipcash.services.persistence.PagingDataSource
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -40,12 +41,12 @@ class PoolDataSource @Inject constructor(
         }
     }
 
-    fun observe(id: ID): Flow<PoolWithBets> {
+    fun observe(id: ID): Flow<PoolWithBets?> {
         return db?.poolDao()?.observe(id)?.map {
             val pool = poolEntityMapper.map(it.pool)
             val bets = it.bets.map { betEntityMapper.map(it) }
             PoolWithBets(pool, isHost = pool.creator == userManager.accountId, bets)
-        } ?: throw Exception("No pool found")
+        } ?: flowOf(null)
     }
 
     override suspend fun getById(id: ID): Pool? {

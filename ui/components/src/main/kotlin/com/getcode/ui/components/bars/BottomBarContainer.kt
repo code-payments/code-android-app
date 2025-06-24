@@ -211,14 +211,16 @@ fun BottomBarView(
                 CompositionLocalProvider(LocalContentColor provides White) {
                     Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
                         Text(
-                            style = CodeTheme.typography.textLarge,
+                            style = CodeTheme.typography.textMedium,
                             text = bottomBarMessage.title
                         )
-                        Text(
-                            style = CodeTheme.typography.textSmall,
-                            text = bottomBarMessage.subtitle,
-                            color = LocalContentColor.current.copy(alpha = 0.8f)
-                        )
+                        if (bottomBarMessage.subtitle.isNotEmpty()) {
+                            Text(
+                                style = CodeTheme.typography.textSmall,
+                                text = bottomBarMessage.subtitle,
+                                color = LocalContentColor.current.copy(alpha = 0.8f)
+                            )
+                        }
                     }
                 }
             }
@@ -246,6 +248,7 @@ fun BottomBarView(
                                     bottom = when (action.style) {
                                         BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.dimens.grid.x2
                                         BottomBarManager.BottomBarButtonStyle.Filled50 -> CodeTheme.dimens.grid.x2
+                                        BottomBarManager.BottomBarButtonStyle.Outlined -> CodeTheme.dimens.grid.x2
                                         BottomBarManager.BottomBarButtonStyle.Text -> 0.dp
                                     }
                                 )
@@ -259,10 +262,16 @@ fun BottomBarView(
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.error
                                 BottomBarManager.BottomBarButtonStyle.Filled50 -> Color.White
+                                BottomBarManager.BottomBarButtonStyle.Outlined -> Color.White
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
                             }
 
-                            BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
+                            BottomBarManager.BottomBarMessageType.THEMED -> when (action.style) {
+                                BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.brand
+                                BottomBarManager.BottomBarButtonStyle.Filled50 -> CodeTheme.colors.brand
+                                BottomBarManager.BottomBarButtonStyle.Outlined -> Color.White
+                                BottomBarManager.BottomBarButtonStyle.Text -> White50
+                            }
                             BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
                             BottomBarManager.BottomBarMessageType.INFO -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
@@ -274,6 +283,7 @@ fun BottomBarView(
                         buttonState = when (action.style) {
                             BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
                             BottomBarManager.BottomBarButtonStyle.Filled50 -> ButtonState.Filled50
+                            BottomBarManager.BottomBarButtonStyle.Outlined -> ButtonState.Bordered
                             BottomBarManager.BottomBarButtonStyle.Text -> ButtonState.Subtle
                         },
                         text = action.text
@@ -312,7 +322,7 @@ private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = whe
     BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
 
     BottomBarManager.BottomBarMessageType.INFO -> CodeTheme.colors.brandLight
-    BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
+    BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.bannerThemed
     BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
     BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerSuccess
 }

@@ -111,6 +111,10 @@ class PoolsCoordinator @Inject constructor(
         return Result.success(poolWithBets)
     }
 
+    fun observePool(id: ID): Flow<PoolWithBets?> {
+        return dataSource.observe(id)
+    }
+
     suspend fun closePool(
         pool: Pool,
     ): Result<Unit> {

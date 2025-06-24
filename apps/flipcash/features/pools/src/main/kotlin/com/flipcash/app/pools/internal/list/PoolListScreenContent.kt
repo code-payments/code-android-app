@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
@@ -42,6 +43,7 @@ import com.flipcash.features.pools.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
+import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -115,7 +117,16 @@ private fun PoolListScreenContent(
                 )
             }
         ) { innerPadding ->
-            LazyColumn(modifier = Modifier.padding(innerPadding)) {
+            val state = rememberLazyListState()
+            LazyColumn(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .verticalScrollStateGradient(
+                        scrollState = state,
+                        color = CodeTheme.colors.background,
+                    ),
+                state = state,
+            ) {
                 items(items.itemCount) { index ->
                     items[index]?.let { item ->
                         when (item) {

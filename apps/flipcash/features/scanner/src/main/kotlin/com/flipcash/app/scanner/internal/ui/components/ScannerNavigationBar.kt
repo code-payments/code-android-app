@@ -72,17 +72,6 @@ internal fun ScannerNavigationBar(
             onClick = { onAction(ScannerDecorItem.Cash) }
         )
 
-        if (state.poolsOpen) {
-            BottomBarAction(
-                modifier = Modifier.weight(1f),
-                label = stringResource(R.string.action_pools),
-                painter = painterResource(R.drawable.ic_flipcash_pools),
-                badgeCount = 0,
-                onClick = { onAction(ScannerDecorItem.Pools) },
-                toast = {}
-            )
-        }
-
         BottomBarAction(
             modifier = Modifier.weight(1f),
             label = stringResource(R.string.action_balance),
@@ -112,6 +101,17 @@ internal fun ScannerNavigationBar(
                 }
             }
         )
+
+        if (state.poolsOpen) {
+            BottomBarAction(
+                modifier = Modifier.weight(1f),
+                label = stringResource(R.string.action_pools),
+                painter = painterResource(R.drawable.ic_flipcash_pools),
+                badgeCount = 0,
+                onClick = { onAction(ScannerDecorItem.Pools) },
+                toast = {}
+            )
+        }
     }
 }
 

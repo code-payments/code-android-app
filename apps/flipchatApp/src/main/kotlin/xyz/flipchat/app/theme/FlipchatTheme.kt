@@ -59,6 +59,7 @@ private val colors = ColorScheme(
     cashBill = CashBill,
     cashBillDecorColor = CashBillDecor,
     betaIndicator = BetaIndicator,
+    bannerThemed = Color(0xFF28176E),
     bannerError = Error,
     bannerWarning = Warning,
     bannerSuccess = BannerSuccess,

@@ -18,6 +18,7 @@ import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -26,6 +27,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -56,6 +58,7 @@ internal class PoolBettingViewModel @Inject constructor(
             PoolBetOutcome.BooleanOutcome(false),
         ),
         val selectedOutcome: PoolBetOutcome? = null,
+        val bottomBarActions: List<BottomBarAction> = emptyList()
     ) {
         val isHost: Boolean
             get() = metadata.creator == userId
@@ -65,7 +68,7 @@ internal class PoolBettingViewModel @Inject constructor(
 
         val hasBoughtIn: Boolean
             get() {
-                return bets.any { it.userId == userId }
+                return bets.any { it.userId == userId } || selectedOutcome != null
             }
 
         val isResolved: Boolean
@@ -109,8 +112,11 @@ internal class PoolBettingViewModel @Inject constructor(
         data class OnPoolIdChanged(val id: ID) : Event
         data class OnUserIdChanged(val id: ID) : Event
         data class OnPoolLoaded(val data: PoolWithBets) : Event
+        data class OnBottomBarActionsChanged(val actions: List<BottomBarAction>) : Event
         data class OnOutcomeSelected(val outcome: PoolBetOutcome) : Event
         data class OnOutcomePaidFor(val outcome: PoolBetOutcome) : Event
+        data object OnDeclareOutcome: Event
+        data class OnResolutionSelected(val resolution: PoolResolution) : Event
         data object OnSharePool : Event
     }
 
@@ -126,11 +132,12 @@ internal class PoolBettingViewModel @Inject constructor(
             .map { it.id }
             .map {
                 dispatchEvent(Event.OnLoadingChanged(true))
-                poolsCoordinator.getPool(it) }
+                poolsCoordinator.getPool(it)
+            }
             .onResult(
-                onSuccess = { event ->
+                onSuccess = { data ->
                     dispatchEvent(Event.OnLoadingChanged(false))
-                    dispatchEvent(Event.OnPoolLoaded(event))
+                    dispatchEvent(Event.OnPoolLoaded(data))
                 },
                 onError = {
                     dispatchEvent(Event.OnLoadingChanged(false))
@@ -140,6 +147,65 @@ internal class PoolBettingViewModel @Inject constructor(
                     )
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnPoolIdChanged>()
+            .flatMapLatest { poolsCoordinator.observePool(it.id) }
+            .filterNotNull()
+            .onEach {
+                dispatchEvent(Event.OnPoolLoaded(it))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnPoolLoaded>()
+            .map { it.data }
+            .onEach { data ->
+                val actions = buildList<BottomBarAction> {
+                    if (data.isHost) {
+                        if (data.bets.count() >= 2) {
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_declareOutcome),
+                                    style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                    onClick = { dispatchEvent(Event.OnDeclareOutcome) }
+                                )
+                            )
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_sharePoolWithFriends),
+                                    style = BottomBarManager.BottomBarButtonStyle.Text,
+                                    onClick = { dispatchEvent(Event.OnSharePool) }
+                                )
+                            )
+                        } else {
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_sharePoolWithFriends),
+                                    onClick = { dispatchEvent(Event.OnSharePool) }
+                                )
+                            )
+                            if (data.bets.isNotEmpty()) {
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_declareOutcome),
+                                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                                        onClick = { dispatchEvent(Event.OnDeclareOutcome) }
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_sharePoolWithFriends),
+                                onClick = { dispatchEvent(Event.OnSharePool) }
+                            )
+                        )
+                    }
+                }
+
+                dispatchEvent(Event.OnBottomBarActionsChanged(actions))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnSharePool>()
@@ -192,6 +258,41 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnDeclareOutcome>()
+            .onEach {
+                BottomBarManager.showMessage(
+                    title = resources.getString(R.string.prompt_title_poolResolution),
+                    subtitle = "",
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_yes),
+                            style = BottomBarManager.BottomBarButtonStyle.Filled,
+                            onClick = {
+
+                            }
+                        ),
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_no),
+                            style = BottomBarManager.BottomBarButtonStyle.Filled,
+                            onClick = {
+
+                            }
+                        ),
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_tie),
+                            style = BottomBarManager.BottomBarButtonStyle.Outlined,
+                            onClick = {
+
+                            }
+                        ),
+                    ),
+                    showCancel = true,
+                    showScrim = true,
+                    type = BottomBarManager.BottomBarMessageType.THEMED,
+                )
+            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -232,6 +333,15 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
 
                 is Event.OnSharePool -> { state -> state }
+
+                is Event.OnDeclareOutcome -> { state -> state }
+                is Event.OnResolutionSelected -> { state -> state }
+
+                is Event.OnBottomBarActionsChanged -> { state ->
+                    state.copy(
+                        bottomBarActions = event.actions
+                    )
+                }
             }
         }
     }

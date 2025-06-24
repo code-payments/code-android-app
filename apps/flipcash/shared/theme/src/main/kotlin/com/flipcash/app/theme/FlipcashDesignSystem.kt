@@ -63,6 +63,7 @@ private val colors = with(FlipcashColorSpec) {
         cashBill = cashBill,
         cashBillDecorColor = secondaryText,
         betaIndicator = BetaIndicator,
+        bannerThemed = Color(0xFF1A3125),
         bannerError = Error,
         bannerWarning = Warning,
         bannerSuccess = BannerSuccess,

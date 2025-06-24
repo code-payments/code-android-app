@@ -49,6 +49,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     cashBill = CashBill,
     cashBillDecorColor = CashBillDecor,
     betaIndicator = BetaIndicator,
+    bannerThemed = Brand,
     bannerError = Error,
     bannerWarning = Warning,
     bannerSuccess = BannerSuccess,
@@ -131,6 +132,7 @@ class ColorScheme(
     cashBill: Color,
     cashBillDecorColor: Color,
     betaIndicator: Color,
+    bannerThemed: Color,
     bannerError: Color,
     bannerWarning: Color,
     bannerSuccess: Color,
@@ -198,6 +200,8 @@ class ColorScheme(
     var betaIndicator by mutableStateOf(betaIndicator)
         private set
 
+    var bannerThemed by mutableStateOf(bannerThemed)
+        private set
     var bannerError by mutableStateOf(bannerError)
         private set
     var bannerWarning by mutableStateOf(bannerWarning)
@@ -237,6 +241,7 @@ class ColorScheme(
         cashBillColor = other.cashBillColor
         cashBillDecorColor = other.cashBillDecorColor
         betaIndicator = other.betaIndicator
+        bannerThemed = other.bannerThemed
         bannerError = other.bannerError
         bannerWarning = other.bannerWarning
         bannerSuccess = other.bannerSuccess
@@ -274,6 +279,7 @@ class ColorScheme(
         cashBill = cashBillColor,
         cashBillDecorColor = cashBillDecorColor,
         betaIndicator = betaIndicator,
+        bannerThemed = bannerThemed,
         bannerError = bannerError,
         bannerWarning = bannerWarning,
         bannerSuccess = bannerSuccess,
