@@ -9,13 +9,12 @@ import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
+import com.flipcash.app.core.pools.PoolWithHostStatus
 import com.flipcash.app.persistence.converters.BetOutcomeConverter
 import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.app.persistence.sources.PoolDataSource
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapper
-import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
-import com.flipcash.app.persistence.sources.mapper.pools.PoolMetadataToEntityMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
 import com.flipcash.services.models.PoolBetMetadata
@@ -40,19 +39,14 @@ class PoolsCoordinator @Inject constructor(
     private val controller: PoolController,
     private val dataSource: PoolDataSource,
     private val entityToDomainMapper: PoolEntityToPoolMapper,
-    private val betMapper: PoolBetEntityToPoolBetMapper,
     private val networkToDomainMapper: NetworkPoolToDomainMapper,
     private val domainToNetworkMapper: PoolToMetadataMapper,
     private val userManager: UserManager,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
-    private fun Pool.derivePoolRendezvous(): KeyPair {
-        return userManager.mnemnonic!!.getSolanaKeyPair(rendezvousPath)
-    }
-
     @OptIn(ExperimentalPagingApi::class)
-    private val _pools: Flow<PagingData<PoolWithBets>> = userManager.state
+    private val _pools: Flow<PagingData<PoolWithHostStatus>> = userManager.state
         .filter { it.authState.canAccessAuthenticatedApis }
         .flatMapLatest {
             Pager(
@@ -62,20 +56,15 @@ class PoolsCoordinator @Inject constructor(
                 dataSource.observe()
             }.flow.map { page ->
                 page.map { entity ->
-                    val pool = entityToDomainMapper.map(entity.pool)
-                    val isHost = userManager.accountId == entity.pool.creator
-                    PoolWithBets(
-                        pool = pool,
-                        rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
-                        isHost = isHost,
-                        bets = entity.bets.map { betMapper.map(it) }
-                    )
+                    val pool = entityToDomainMapper.map(entity)
+                    val isHost = userManager.accountId == entity.creator
+                    PoolWithHostStatus(pool, isHost)
                 }
             }
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val pools: Flow<PagingData<PoolWithBets>> = userManager.state
+    val pools: Flow<PagingData<PoolWithHostStatus>> = userManager.state
         .mapNotNull { it.authState }
         .filter { it.canAccessAuthenticatedApis }
         .flatMapLatest { _pools }

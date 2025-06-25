@@ -31,8 +31,7 @@ data class Pool(
 
     val totalPoolAmount: Fiat
         get() {
-            val summary = betSummary
-            return when (summary) {
+            return when (val summary = betSummary) {
                 is PoolBetSummary.Boolean -> {
                     val totalBets = summary.numYes + summary.numNo
                     buyIn.times(totalBets)
@@ -44,24 +43,8 @@ data class Pool(
 
     val winningOutcome: PoolBetOutcome.DecisionMade? = resolution.winningOutcome
 
-    val winnerCount: Int = when (winningOutcome) {
-        is PoolBetOutcome.BooleanOutcome -> {
-            val summary = betSummary
-            when (summary) {
-                is PoolBetSummary.Boolean -> {
-                    if (winningOutcome.value) {
-                        summary.numYes
-                    } else {
-                        summary.numNo
-                    }
-                }
-
-                PoolBetSummary.NotSet -> 0
-            }
-        }
-
-        null -> 0
-    }
+    val winnerCount: Int
+        get() = countForOutcome(winningOutcome)
 
     val winningAmount: Fiat
         get() = winnerCount.takeIf { it > 0 }?.let {
@@ -71,8 +54,7 @@ data class Pool(
     private fun countForOutcome(outcome: PoolBetOutcome.DecisionMade?): Int {
         return when (outcome) {
             is PoolBetOutcome.BooleanOutcome -> {
-                val summary = betSummary
-                return when (summary) {
+                return when (val summary = betSummary) {
                     is PoolBetSummary.Boolean -> {
                         if (outcome.value) {
                             summary.numYes
@@ -117,6 +99,11 @@ val Pool.Companion.Empty: Pool
         derivationIndex = -1,
         betSummary = PoolBetSummary.Boolean(0, 0),
     )
+
+data class PoolWithHostStatus(
+    val pool: Pool,
+    val isUserHost: Boolean,
+)
 
 data class PoolWithBets(
     val pool: Pool,

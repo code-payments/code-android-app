@@ -19,7 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBetSummary
 import com.flipcash.app.core.pools.PoolResolution
-import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
 import com.getcode.opencode.model.financial.Fiat
@@ -31,15 +30,16 @@ import kotlinx.datetime.Clock
 
 @Composable
 internal fun PoolSummaryRow(
-    poolWithBets: PoolWithBets,
+    pool: Pool,
+    isHost: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     PoolSummaryRow(
-        pool = poolWithBets.pool,
-        isHost = poolWithBets.isHost,
-        winningAmount = poolWithBets.winningAmount,
-        totalPoolAmount = poolWithBets.totalPoolAmount,
+        pool = pool,
+        isHost = isHost,
+        winningAmount = pool.winningAmount,
+        totalPoolAmount = pool.totalPoolAmount,
         modifier = modifier,
         onClick = onClick,
     )

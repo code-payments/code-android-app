@@ -7,6 +7,7 @@ import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.entities.PoolEntity
 import com.flipcash.app.persistence.entities.PoolWithBetsEntity
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
@@ -30,7 +31,7 @@ class PoolDataSource @Inject constructor(
     private val betEntityMapper: PoolBetEntityToPoolBetMapper,
     private val betMetadataEntityMapper: PoolBetMetadataToEntityMapper,
     private val userManager: UserManager,
-) : PagingDataSource<ID, PoolWithBets, List<NetworkPool>, Int, PoolWithBetsEntity> {
+) : PagingDataSource<ID, PoolWithBets, List<NetworkPool>, Int, PoolEntity> {
 
     private val db: FlipcashDatabase?
         get() = FlipcashDatabase.getInstance()
@@ -39,10 +40,10 @@ class PoolDataSource @Inject constructor(
         return userManager.mnemnonic!!.getSolanaKeyPair(rendezvousPath)
     }
 
-    override fun observe(): PagingSource<Int, PoolWithBetsEntity> {
-        return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolWithBetsEntity>() {
-            override fun getRefreshKey(state: PagingState<Int, PoolWithBetsEntity>): Int? = null
-            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PoolWithBetsEntity> =
+    override fun observe(): PagingSource<Int, PoolEntity> {
+        return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolEntity>() {
+            override fun getRefreshKey(state: PagingState<Int, PoolEntity>): Int? = null
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PoolEntity> =
                 LoadResult.Error(Exception("Database not initialized"))
         }
     }

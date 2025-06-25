@@ -72,7 +72,7 @@ internal fun PoolListScreen(
                 navigator.push(
                     ScreenRegistry.get(
                         NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
-                            poolId = item.pool.id,
+                            poolId = item.id,
                         )
                     )
                 )
@@ -143,12 +143,11 @@ private fun PoolListScreenContent(
 
                             is PoolListItem.PoolItem -> {
                                 PoolSummaryRow(
-                                    poolWithBets = item.data,
+                                    pool = item.pool,
+                                    isHost = item.isHost,
                                     onClick = {
                                         dispatch(
-                                            PoolListViewModel.Event.OnPoolClicked(
-                                                item.data
-                                            )
+                                            PoolListViewModel.Event.OnPoolClicked(item.pool)
                                         )
                                     }
                                 )

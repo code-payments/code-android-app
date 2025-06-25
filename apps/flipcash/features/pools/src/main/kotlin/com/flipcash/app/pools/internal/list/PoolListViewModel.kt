@@ -27,22 +27,22 @@ internal class PoolListViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnPoolClicked(val pool: PoolWithBets) : Event
+        data class OnPoolClicked(val pool: Pool) : Event
         data object OnCreatePool : Event
     }
 
     val pools = poolsCoordinator.pools
         .map { pagingData ->
             pagingData
-                .map { pool -> PoolItem(pool) }
+                .map { (pool, isHost) -> PoolItem(pool, isHost) }
                 .insertSeparators { before, after ->
                     when {
                         // Start of list and first pool is open: insert open header
-                        before == null && after?.data?.pool?.isOpen == true -> PoolListItem.Header.Open
+                        before == null && after?.pool?.isOpen == true -> PoolListItem.Header.Open
                         // Start of list and first pool is closed: insert closed header
-                        before == null && after?.data?.pool?.isOpen == false -> PoolListItem.Header.Completed
+                        before == null && after?.pool?.isOpen == false -> PoolListItem.Header.Completed
                         // Transition from open to closed: insert closed header
-                        before?.data?.pool?.isOpen == true && after?.data?.pool?.isOpen == false -> PoolListItem.Header.Completed
+                        before?.pool?.isOpen == true && after?.pool?.isOpen == false -> PoolListItem.Header.Completed
                         // No separator for same group or other cases
                         else -> null
                     }
