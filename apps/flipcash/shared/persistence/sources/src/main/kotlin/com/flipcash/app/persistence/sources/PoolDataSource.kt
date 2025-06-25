@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.sources
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.room.withTransaction
+import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.FlipcashDatabase
@@ -12,12 +13,8 @@ import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetM
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetMetadataParameters
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetMetadataToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
-import com.flipcash.app.persistence.sources.mapper.pools.PoolMetadataMappingParameters
-import com.flipcash.app.persistence.sources.mapper.pools.PoolMetadataToEntityMapper
 import com.flipcash.services.models.NetworkPool
-import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.PoolBetMetadata
-import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.persistence.PagingDataSource
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -26,19 +23,21 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
-import kotlin.collections.map
 
 class PoolDataSource @Inject constructor(
     private val poolEntityMapper: PoolEntityToPoolMapper,
     private val networkPoolToEntityMapper: NetworkPoolToEntityMapper,
     private val betEntityMapper: PoolBetEntityToPoolBetMapper,
     private val betMetadataEntityMapper: PoolBetMetadataToEntityMapper,
-    private val poolMetadataToEntityMapper: PoolMetadataToEntityMapper,
     private val userManager: UserManager,
 ) : PagingDataSource<ID, PoolWithBets, List<NetworkPool>, Int, PoolWithBetsEntity> {
 
     private val db: FlipcashDatabase?
         get() = FlipcashDatabase.getInstance()
+
+    private fun Pool.derivePoolRendezvous(): Ed25519.KeyPair {
+        return userManager.mnemnonic!!.getSolanaKeyPair(rendezvousPath)
+    }
 
     override fun observe(): PagingSource<Int, PoolWithBetsEntity> {
         return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolWithBetsEntity>() {
@@ -52,10 +51,11 @@ class PoolDataSource @Inject constructor(
         return db?.poolDao()?.observe(id)?.map { entity ->
             val pool = entity?.let { poolEntityMapper.map(it.pool) } ?: return@map null
             val bets = entity.bets.map { betEntityMapper.map(it) }
+            val isHost = pool.creator == userManager.accountId
             PoolWithBets(
                 pool = pool,
-                rendezvous = entity.rendezvous?.let { Ed25519.createKeyPair(it) },
-                isHost = pool.creator == userManager.accountId,
+                rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
+                isHost = isHost,
                 bets = bets
             )
         } ?: flowOf(null)
@@ -65,10 +65,11 @@ class PoolDataSource @Inject constructor(
         val result = db?.poolDao()?.getPoolWithBets(id) ?: return null
         val pool =  poolEntityMapper.map(result.pool)
         val bets = result.bets.map { betEntityMapper.map(it) }
+        val isHost = pool.creator == userManager.accountId
         return PoolWithBets(
             pool = pool,
-            rendezvous = result.rendezvous?.let { Ed25519.createKeyPair(it) },
-            isHost = pool.creator == userManager.accountId,
+            rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
+            isHost = isHost,
             bets = bets
         )
     }
@@ -78,9 +79,10 @@ class PoolDataSource @Inject constructor(
         return result.map {
             val pool = poolEntityMapper.map(it.pool)
             val bets = it.bets.map { betEntityMapper.map(it) }
+            val isHost = pool.creator == userManager.accountId
             PoolWithBets(
                 pool = pool,
-                rendezvous = null,
+                rendezvous = pool.derivePoolRendezvous(),
                 isHost = pool.creator == userManager.accountId,
                 bets = bets
             )
@@ -95,20 +97,6 @@ class PoolDataSource @Inject constructor(
                 db?.poolDao()?.upsert(*bets.toTypedArray())
             }
         }
-    }
-
-    suspend fun upsert(pool: PoolMetadata) {
-        val params = PoolMetadataMappingParameters(
-            metadata = pool,
-            pagingToken = null,
-            selectedOutcome = null,
-        )
-        val entity = poolMetadataToEntityMapper.map(params)
-        db?.poolDao()?.upsert(entity)
-    }
-
-    suspend fun upsertRendezvous(rendezvous: Ed25519.KeyPair, signature: List<Byte>? = null) {
-        db?.poolDao()?.updateRendezvous(rendezvous, signature)
     }
 
     suspend fun resolvePool(id: ID, resolution: PoolResolution.DecisionMade) {
@@ -145,10 +133,11 @@ class PoolDataSource @Inject constructor(
         val result = db?.poolDao()?.getNewestPool() ?: return null
         val pool = poolEntityMapper.map(result.pool)
         val bets = result.bets.map { betEntityMapper.map(it) }
+        val isHost = pool.creator == userManager.accountId
         return PoolWithBets(
             pool = pool,
-            rendezvous = null,
-            isHost = pool.creator == userManager.accountId,
+            rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
+            isHost = isHost,
             bets = bets
         )
     }

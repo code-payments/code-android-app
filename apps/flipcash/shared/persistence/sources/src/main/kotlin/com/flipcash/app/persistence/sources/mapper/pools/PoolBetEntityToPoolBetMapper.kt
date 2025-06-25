@@ -1,7 +1,7 @@
 package com.flipcash.app.persistence.sources.mapper.pools
 
 import com.flipcash.app.core.pools.PoolBet
-import com.flipcash.app.persistence.BetOutcomeConverter
+import com.flipcash.app.persistence.converters.BetOutcomeConverter
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject

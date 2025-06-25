@@ -27,7 +27,7 @@ val PoolBetOutcome.label: String
         }
     }
 
-val PoolResolution.winningOutcome: PoolBetOutcome?
+val PoolResolution.winningOutcome: PoolBetOutcome.DecisionMade?
     get() = when (val res = this) {
         PoolResolution.NotSet -> null
         is PoolResolution.BooleanResolution -> PoolBetOutcome.BooleanOutcome(res.value)

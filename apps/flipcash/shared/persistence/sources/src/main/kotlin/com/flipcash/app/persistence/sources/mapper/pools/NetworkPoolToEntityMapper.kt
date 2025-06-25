@@ -1,6 +1,5 @@
 package com.flipcash.app.persistence.sources.mapper.pools
 
-import com.flipcash.app.persistence.PoolResolutionConverter
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
 import com.flipcash.services.models.NetworkPool
@@ -8,8 +7,6 @@ import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.mapper.Mapper
-import com.getcode.solana.keys.base58
-import com.getcode.utils.base58
 import javax.inject.Inject
 
 class NetworkPoolToEntityMapper @Inject constructor(
@@ -26,7 +23,10 @@ class NetworkPoolToEntityMapper @Inject constructor(
             PoolMetadataMappingParameters(
                 metadata = metadata,
                 pagingToken = from.pagingToken,
-                selectedOutcome = selectedOutcome
+                selectedOutcome = selectedOutcome,
+                derivationIndex = from.derivationIndex,
+                rendezvousSignature = from.rendezvousSignature,
+                betSummary = from.betSummary
             )
         )
 

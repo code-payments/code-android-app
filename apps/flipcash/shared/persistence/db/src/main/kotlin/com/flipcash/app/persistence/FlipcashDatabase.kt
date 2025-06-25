@@ -10,12 +10,13 @@ import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.flipcash.app.persistence.converters.BetOutcomeConverter
+import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.dao.PoolDao
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
-import com.flipcash.app.persistence.entities.PoolRendezvousEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -25,7 +26,6 @@ import org.kin.sdk.base.tools.subByteArray
     entities = [
         MessageEntity::class,
         PoolEntity::class,
-        PoolRendezvousEntity::class,
         PoolBetEntity::class,
     ],
     autoMigrations = [

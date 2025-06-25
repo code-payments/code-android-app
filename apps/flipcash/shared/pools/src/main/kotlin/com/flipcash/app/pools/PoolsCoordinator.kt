@@ -9,12 +9,13 @@ import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
-import com.flipcash.app.persistence.BetOutcomeConverter
-import com.flipcash.app.persistence.PoolResolutionConverter
+import com.flipcash.app.persistence.converters.BetOutcomeConverter
+import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.app.persistence.sources.PoolDataSource
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolMetadataToEntityMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
 import com.flipcash.services.models.PoolBetMetadata
@@ -46,6 +47,10 @@ class PoolsCoordinator @Inject constructor(
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
+    private fun Pool.derivePoolRendezvous(): KeyPair {
+        return userManager.mnemnonic!!.getSolanaKeyPair(rendezvousPath)
+    }
+
     @OptIn(ExperimentalPagingApi::class)
     private val _pools: Flow<PagingData<PoolWithBets>> = userManager.state
         .filter { it.authState.canAccessAuthenticatedApis }
@@ -57,10 +62,12 @@ class PoolsCoordinator @Inject constructor(
                 dataSource.observe()
             }.flow.map { page ->
                 page.map { entity ->
+                    val pool = entityToDomainMapper.map(entity.pool)
+                    val isHost = userManager.accountId == entity.pool.creator
                     PoolWithBets(
-                        pool = entityToDomainMapper.map(entity.pool),
-                        rendezvous = null,
-                        isHost = userManager.accountId == entity.pool.creator,
+                        pool = pool,
+                        rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
+                        isHost = isHost,
                         bets = entity.bets.map { betMapper.map(it) }
                     )
                 }
@@ -78,13 +85,10 @@ class PoolsCoordinator @Inject constructor(
         buyIn: Fiat,
     ): Result<ID> {
 
-        val (metadata, rendezvous) = controller.createPool(
+        val metadata = controller.createPool(
             name = name,
             buyIn = buyIn,
         ).getOrElse { return Result.failure(it) }
-
-        dataSource.upsert(metadata)
-        dataSource.upsertRendezvous(rendezvous)
 
         return Result.success(metadata.id)
     }
@@ -95,21 +99,6 @@ class PoolsCoordinator @Inject constructor(
 
         val isHost = networkPool.metadata.creator == userManager.accountId
 
-        if (isHost) {
-            // if we are the host, we can query for the rendezvous
-            val rendezvous = userManager.poolAccounts.find { it.address.bytes == networkPool.metadata.fundingDestination.bytes }
-                ?.let { account ->
-                    val index = account.index.toLong()
-                    val path = DerivePath.getPoolRendezvous(index)
-                    userManager.mnemnonic?.getSolanaKeyPair(path)
-                }
-
-            if (rendezvous != null) {
-                dataSource.upsertRendezvous(rendezvous, networkPool.rendezvousSignature)
-            }
-        }
-
-
         // store the pool if we are the host or if we have bet already
         if (isHost || networkPool.bets.any { it.metadata.userId == userManager.accountId }) {
             dataSource.upsert(listOf(networkPool))
@@ -117,7 +106,16 @@ class PoolsCoordinator @Inject constructor(
 
         return runCatching {
             dataSource.getById(id)!!
-        }.recoverCatching { networkToDomainMapper.map(networkPool to null) }
+        }.recoverCatching {
+            // attempt to derive rendezvous
+            val rendezvous = if (isHost) {
+                userManager.mnemnonic!!.getSolanaKeyPair(
+                    DerivePath.getPoolRendezvous(networkPool.derivationIndex)
+                )
+            } else {
+                null
+            }
+            networkToDomainMapper.map(networkPool to rendezvous) }
     }
 
     suspend fun getPool(rendezvous: KeyPair): Result<PoolWithBets> {
@@ -129,7 +127,6 @@ class PoolsCoordinator @Inject constructor(
         // store the pool if we are the host or if we have bet already
         if (isHost || bets.any { it.userId == userManager.accountId }) {
             dataSource.upsert(listOf(networkPool))
-            dataSource.upsertRendezvous(rendezvous, networkPool.rendezvousSignature)
         }
 
         return runCatching {

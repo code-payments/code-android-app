@@ -95,7 +95,7 @@ private fun PoolBettingScreenContent(
             BidOptions(
                 canBid = state.canSelectOutcome,
                 outcomes = state.outcomes,
-                totals = state.betsPerOutcome,
+                totals = state.totalPerOutcome,
                 selectedOutcome = state.selectedOutcome,
             ) { dispatchEvent(PoolBettingViewModel.Event.OnOutcomeSelected(it)) }
         }

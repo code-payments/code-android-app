@@ -23,6 +23,7 @@ interface PoolRepository {
 
     suspend fun getPool(
         poolId: ID,
+        excludeBets: Boolean,
     ): Result<NetworkPool>
 
     suspend fun getPagedPools(

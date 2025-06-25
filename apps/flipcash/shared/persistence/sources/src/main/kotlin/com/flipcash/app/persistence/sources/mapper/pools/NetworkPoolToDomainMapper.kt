@@ -3,9 +3,9 @@ package com.flipcash.app.persistence.sources.mapper.pools
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolWithBets
-import com.flipcash.app.persistence.BetOutcomeConverter
-import com.flipcash.app.persistence.PoolResolutionConverter
-import com.flipcash.services.internal.domain.PoolBetMetadataMapper
+import com.flipcash.app.persistence.converters.BetOutcomeConverter
+import com.flipcash.app.persistence.converters.PoolBetSummaryConverter
+import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -31,7 +31,9 @@ class NetworkPoolToDomainMapper @Inject constructor(
                 createdAt = networkResponse.metadata.createdAt,
                 closedAt = networkResponse.metadata.closedAt,
                 didWin = networkResponse.metadata.resolution.didWin(selectedOutcome),
-                didBet = selectedOutcome != null
+                didBet = selectedOutcome != null,
+                derivationIndex = networkResponse.derivationIndex,
+                betSummary = PoolBetSummaryConverter.toPoolBetSummary(networkResponse.betSummary),
             ),
             rendezvous = rendezvous,
             isHost = userManager.accountId == networkResponse.metadata.creator,

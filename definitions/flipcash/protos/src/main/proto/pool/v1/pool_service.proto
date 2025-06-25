@@ -13,6 +13,8 @@ service Pool {
     // GetPool gets pool metadata by its ID
     rpc GetPool(GetPoolRequest) returns (GetPoolResponse);
     // GetPagedPools gets all pools for a user over a paging API
+    //
+    // Note: Only bet summaries are provided in the response
     rpc GetPagedPools(GetPagedPoolsRequest) returns (GetPagedPoolsResponse);
     // ClosePool closes a pool from additional bets
     rpc ClosePool(ClosePoolRequest) returns (ClosePoolResponse);
@@ -43,6 +45,7 @@ message CreatePoolResponse {
 }
 message GetPoolRequest {
     PoolId id = 1;
+    bool exclude_bets = 2;
 }
 message GetPoolResponse {
     Result result = 1;

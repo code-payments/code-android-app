@@ -1,7 +1,8 @@
 package com.flipcash.app.persistence.sources.mapper.pools
 
 import com.flipcash.app.core.pools.Pool
-import com.flipcash.app.persistence.PoolResolutionConverter
+import com.flipcash.app.persistence.converters.PoolBetSummaryConverter
+import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.app.persistence.entities.PoolEntity
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -25,6 +26,8 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             closedAt = from.closedAt,
             didWin = from.didWin,
             didBet = from.didBet,
+            derivationIndex = from.derivationIndex,
+            betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary)
         )
     }
 }

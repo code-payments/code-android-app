@@ -23,7 +23,7 @@ internal sealed interface PoolRequest {
         }
     }
 
-    data class Get(val poolId: ID): PoolRequest
+    data class Get(val poolId: ID, val excludeBets: Boolean): PoolRequest
 
     data class GetPage(
         val queryOptions: QueryOptions,

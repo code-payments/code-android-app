@@ -50,11 +50,16 @@ message PoolMetadata {
     common.v1.Signature rendezvous_signature = 2;
     // The set of bets made against this pool
     repeated BetMetadata bets = 3 ;
+    // Consolidated summary of bets made against this pool
+    BetSummary bet_summary = 7;
     // Paging token specific to each user that enables access to paging APIs
     common.v1.PagingToken paging_token = 4;
     // Has the funding destination been initialized? Bet payments cannot be made
-    // this has occurred.
+    // until this has occurred.
     bool is_funding_destination_initialized = 5;
+    // Derivation index used to derive the pool account's authority. This is only
+    // valid against authenticated RPCs made by the pool creator
+    uint64 derivation_index = 6;
 }
 // BetId uniquely identifies a bet via an intent ID
 message BetId {
@@ -65,6 +70,17 @@ message BetOutcome {
     oneof kind {
         // The yes/no outcome the user has bet against
         bool boolean_outcome = 1;
+    }
+}
+// BetSummary contains a consolidated summary of bets made against a pool
+message BetSummary {
+    oneof kind {
+        // The yes/no outcome the user has bet against
+        BooleanBetSummary boolean_summary = 1;
+    }
+    message BooleanBetSummary {
+        uint32 num_yes = 1;
+        uint32 num_no  = 2;
     }
 }
 // Bet metadata signed by the rendezvous key

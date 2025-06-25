@@ -2,22 +2,18 @@ package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.domain.PoolMapper
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.flipcash.services.internal.network.extensions.toProto
 import com.flipcash.services.internal.network.services.PoolService
 import com.flipcash.services.models.NetworkPool
-import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
-import kotlin.collections.toByteArray
 
 internal class InternalPoolRepository(
     private val service: PoolService,
@@ -45,13 +41,12 @@ internal class InternalPoolRepository(
             .map { request.metadata }
     }
 
-    override suspend fun getPool(poolId: ID): Result<NetworkPool> {
-        return service.getPool(request = PoolRequest.Get(poolId))
+    override suspend fun getPool(poolId: ID, excludeBets: Boolean): Result<NetworkPool> {
+        return service.getPool(request = PoolRequest.Get(poolId, excludeBets))
             .onFailure { ErrorUtils.handleError(it) }
             .map { poolMapper.map(it) }
             .fold(
                 onSuccess = { pool ->
-                    if (pool.rendezvousSignature == null) return@fold Result.failure(Exception("Invalid pool"))
 //                    val isValid = Ed25519.verify(
 //                        pool.rendezvousSignature.toByteArray(),
 //                        pool.metadata.toProto().toByteArray(),
@@ -73,7 +68,6 @@ internal class InternalPoolRepository(
             .map { list -> list.map { poolMapper.map(it) } }
             .map { pools ->
                 pools.filter { pool ->
-                    if (pool.rendezvousSignature == null) return@filter false
                     true
 //                    val isValid = Ed25519.verify(
 //                        pool.rendezvousSignature.toByteArray(),

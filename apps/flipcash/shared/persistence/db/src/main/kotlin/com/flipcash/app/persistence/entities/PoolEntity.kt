@@ -31,6 +31,10 @@ data class PoolEntity(
     val resolution: String?,
     val timestamp: Long,
     val closedTimestamp: Long?,
+    @ColumnInfo(defaultValue = "-1")
+    val derivationIndex: Long,
+    val rendezvousSignature: String?,
+    val betSummary: String?,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
@@ -53,22 +57,6 @@ data class PoolEntity(
 
 data class PoolWithBetsEntity(
     @Embedded val pool: PoolEntity,
-    @Relation(
-        parentColumn = "idBase58",
-        entityColumn = "poolIdBase58"
-    )
-    val bets: List<PoolBetEntity>
-)
-
-data class PoolWithBetsAndRendezvousEntity(
-    @Embedded val pool: PoolEntity,
-    @Relation(
-        entity = PoolRendezvousEntity::class,
-        parentColumn = "idBase58",
-        entityColumn = "poolIdBase58",
-        projection = ["rendezvousSeed"]
-    )
-    val rendezvous: String?,
     @Relation(
         parentColumn = "idBase58",
         entityColumn = "poolIdBase58"

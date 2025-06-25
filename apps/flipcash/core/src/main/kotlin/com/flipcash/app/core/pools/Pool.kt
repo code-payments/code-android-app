@@ -1,5 +1,6 @@
 package com.flipcash.app.core.pools
 
+import com.getcode.crypt.DerivePath
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
@@ -21,8 +22,83 @@ data class Pool(
     val closedAt: Instant?,
     val didWin: Boolean,
     val didBet: Boolean,
+    val derivationIndex: Long,
+    val betSummary: PoolBetSummary,
 ) {
     companion object
+
+    val rendezvousPath = DerivePath.getPoolRendezvous(derivationIndex)
+
+    val totalPoolAmount: Fiat
+        get() {
+            val summary = betSummary
+            return when (summary) {
+                is PoolBetSummary.Boolean -> {
+                    val totalBets = summary.numYes + summary.numNo
+                    buyIn.times(totalBets)
+                }
+
+                PoolBetSummary.NotSet -> Fiat.Zero
+            }
+        }
+
+    val winningOutcome: PoolBetOutcome.DecisionMade? = resolution.winningOutcome
+
+    val winnerCount: Int = when (winningOutcome) {
+        is PoolBetOutcome.BooleanOutcome -> {
+            val summary = betSummary
+            when (summary) {
+                is PoolBetSummary.Boolean -> {
+                    if (winningOutcome.value) {
+                        summary.numYes
+                    } else {
+                        summary.numNo
+                    }
+                }
+
+                PoolBetSummary.NotSet -> 0
+            }
+        }
+
+        null -> 0
+    }
+
+    val winningAmount: Fiat
+        get() = winnerCount.takeIf { it > 0 }?.let {
+            totalPoolAmount / it
+        } ?: Fiat.Zero
+
+    private fun countForOutcome(outcome: PoolBetOutcome.DecisionMade?): Int {
+        return when (outcome) {
+            is PoolBetOutcome.BooleanOutcome -> {
+                val summary = betSummary
+                return when (summary) {
+                    is PoolBetSummary.Boolean -> {
+                        if (outcome.value) {
+                            summary.numYes
+                        } else {
+                            summary.numNo
+                        }
+                    }
+
+                    PoolBetSummary.NotSet -> 0
+                }
+            }
+
+            null -> 0
+        }
+    }
+
+    fun winningAmountForResolution(resolution: PoolResolution.DecisionMade): Fiat {
+        when (resolution) {
+            is PoolResolution.BooleanResolution -> {
+                val bettors = countForOutcome(resolution.winningOutcome)
+                return totalPoolAmount / bettors.coerceAtLeast(1)
+            }
+
+            PoolResolution.Refund -> return buyIn
+        }
+    }
 }
 
 val Pool.Companion.Empty: Pool
@@ -38,48 +114,29 @@ val Pool.Companion.Empty: Pool
         didBet = false,
         resolution = PoolResolution.NotSet,
         isOpen = true,
+        derivationIndex = -1,
+        betSummary = PoolBetSummary.Boolean(0, 0),
     )
 
 data class PoolWithBets(
     val pool: Pool,
-    val rendezvous: KeyPair? = null,
+    val rendezvous: KeyPair?,
     val isHost: Boolean,
     val bets: List<PoolBet>
 ) {
-    private val paidBets: List<PoolBet>
-        get() = bets.filter { it.hasPaidForBet }
-
-    val totalBets: Int
-        get() = paidBets.count()
-
     val totalPoolAmount: Fiat
-        get() = pool.buyIn.times(totalBets)
+        get() = pool.totalPoolAmount
 
-    val groupedBets: Map<PoolBetOutcome, List<PoolBet>> = paidBets.groupBy { it.selectedOutcome }
-
-    val winnerCount: Int
-        get() = winningOutcome?.let { groupedBets[it] }?.count() ?: 0
-
-    val winningOutcome: PoolBetOutcome?
+    val winningOutcome: PoolBetOutcome.DecisionMade?
         get() = pool.resolution.winningOutcome
 
+    val winnerCount: Int
+        get() = pool.winnerCount
+
     val winningAmount: Fiat
-        get() = winningOutcome?.let {
-            val bettors = groupedBets[it].orEmpty().count()
-            totalPoolAmount / bettors.coerceAtLeast(1)
-        } ?: Fiat.Zero
+        get() = pool.winningAmount
 
     fun winningAmountForResolution(resolution: PoolResolution.DecisionMade): Fiat {
-        when (resolution) {
-            is PoolResolution.BooleanResolution -> {
-                val bettors = groupedBets[resolution.winningOutcome].orEmpty().count()
-                return totalPoolAmount / bettors.coerceAtLeast(1)
-            }
-
-            PoolResolution.Refund -> return pool.buyIn
-        }
+        return pool.winningAmountForResolution(resolution)
     }
-
-    fun amountForOutcome(outcome: PoolBetOutcome): Fiat =
-        groupedBets[outcome].let { pool.buyIn.times(it?.count() ?: 0) }
 }

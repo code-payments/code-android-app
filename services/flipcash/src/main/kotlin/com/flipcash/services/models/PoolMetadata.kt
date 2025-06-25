@@ -47,18 +47,6 @@ data class PoolMetadata(
     }
 
     companion object {
-        val Empty = PoolMetadata(
-            id = NoId,
-            creator = NoId,
-            name = "",
-            buyIn = Fiat.Zero,
-            fundingDestination = PublicKey.generate(),
-            createdAt = Clock.System.now(),
-            resolution = NetworkPoolResolution.NotSet,
-            isOpen = true,
-            closedAt = null,
-        )
-
         internal fun fromRequest(request: PoolRequest.Create): PoolMetadata {
             return PoolMetadata(
                 id = request.rendezvous.publicKeyBytes.toList(),
@@ -82,6 +70,8 @@ data class NetworkPool(
     val bets: List<NetworkPoolBet> = emptyList(),
     val pagingToken: PagingToken,
     val isFundingDestinationInitialized: Boolean,
+    val derivationIndex: Long,
+    val betSummary: NetworkPoolBetSummary,
 )
 
 sealed interface NetworkPoolResolution {
@@ -92,4 +82,12 @@ sealed interface NetworkPoolResolution {
 
     @Immutable
     data class BooleanResolution(val value: Boolean) : NetworkPoolResolution
+}
+
+sealed interface NetworkPoolBetSummary {
+    data object NotSet: NetworkPoolBetSummary
+    data class Boolean(
+        val yes: Int,
+        val no: Int,
+    ): NetworkPoolBetSummary
 }

@@ -6,15 +6,13 @@ import com.flipcash.app.core.pools.Empty
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolBetOutcome
+import com.flipcash.app.core.pools.PoolBetSummary
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
-import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
-import com.flipcash.app.payments.internal.PoolResolutionPaymentMetadata
 import com.flipcash.app.pools.PoolsCoordinator
-import com.flipcash.app.pools.internal.betting.PoolBettingViewModel.Event.*
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
@@ -65,11 +63,16 @@ internal class PoolBettingViewModel @Inject constructor(
         val isLoaded: Boolean
             get() = metadata != Pool.Empty
 
-        val isHost: Boolean
-            get() = metadata.creator == userId
+        private val poolWithBets: PoolWithBets
+            get() = PoolWithBets(
+                pool = metadata,
+                rendezvous = rendezvous,
+                isHost = metadata.creator == userId,
+                bets = bets
+            )
 
-        val isMissingKeys: Boolean
-            get() = rendezvous == null
+        val isHost: Boolean
+            get() = poolWithBets.isHost
 
         val isOpen: Boolean
             get() = metadata.isOpen
@@ -89,14 +92,23 @@ internal class PoolBettingViewModel @Inject constructor(
         val isResolved: Boolean
             get() = metadata.resolution != PoolResolution.NotSet
 
-        private val paidBets: List<PoolBet>
-            get() = bets.filter { it.hasPaidForBet }
-
-        val betsPerOutcome: Map<PoolBetOutcome, Fiat>
+        val totalPerOutcome: Map<PoolBetOutcome, Fiat>
             get() {
                 val betsPerOutcome = mutableMapOf<PoolBetOutcome, Fiat>()
+
                 outcomes.forEach { outcome ->
-                    val countForOutcome = paidBets.count { it.selectedOutcome == outcome }
+                    val countForOutcome = when (val summary = poolWithBets.pool.betSummary) {
+                        is PoolBetSummary.Boolean -> {
+                            when (outcome) {
+                                is PoolBetOutcome.BooleanOutcome -> {
+                                    if (outcome.value) summary.numYes else summary.numNo
+                                }
+
+                                PoolBetOutcome.NotSet -> 0
+                            }
+                        }
+                        PoolBetSummary.NotSet -> 0
+                    }
                     betsPerOutcome[outcome] = metadata.buyIn.times(countForOutcome)
                 }
 
@@ -123,7 +135,17 @@ internal class PoolBettingViewModel @Inject constructor(
          * The total amount in the pool.
          */
         val poolTotal: Fiat
-            get() = metadata.buyIn.times(paidBets.count())
+            get() {
+                val summary = metadata.betSummary
+                return when (summary) {
+                    is PoolBetSummary.Boolean -> {
+                        val totalBets = summary.numYes + summary.numNo
+                        metadata.buyIn.times(totalBets)
+                    }
+
+                    PoolBetSummary.NotSet -> Fiat.Zero
+                }
+            }
     }
 
     sealed interface Event {
@@ -214,6 +236,8 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
+
+
         eventFlow
             .filterIsInstance<Event.OnPoolLoaded>()
             .map { it.data }
@@ -263,20 +287,6 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
 
                 dispatchEvent(Event.OnBottomBarActionsChanged(actions))
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnPoolLoaded>()
-            .map { stateFlow.value.isMissingKeys }
-            .onEach {
-                if (it) {
-                    BottomBarManager.showError(
-                        resources.getString(R.string.error_title_missingPoolKeys),
-                        resources.getString(R.string.error_description_missingPoolKeys),
-                    ) {
-                        dispatchEvent(Event.OnFailedToLoad)
-                    }
-                }
             }.launchIn(viewModelScope)
 
         eventFlow

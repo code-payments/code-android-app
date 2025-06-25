@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolBet
 import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
@@ -23,16 +24,17 @@ class PoolController @Inject constructor(
     suspend fun createPool(
         name: String,
         buyIn: Fiat,
-    ): Result<Pair<PoolMetadata, KeyPair>> {
+    ): Result<PoolMetadata> {
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         val userId = userManager.accountId
             ?: return Result.failure(Throwable("No account ID in UserManager"))
 
-        val poolAccount = accountController.createPoolAccount(owner, userManager.nextPoolIndex)
+        val poolIndex = userManager.nextPoolIndex
+        val poolAccount = accountController.createPoolAccount(owner, poolIndex)
             .getOrElse { return Result.failure(it) }
 
-        val path = DerivePath.getPoolRendezvous(userManager.nextPoolIndex)
+        val path = DerivePath.getPoolRendezvous(poolIndex)
         val rendezvous = userManager.mnemnonic?.getSolanaKeyPair(path)
             ?: return Result.failure(Throwable("No mnemonic in UserManager"))
         return repository.createPool(
@@ -42,13 +44,23 @@ class PoolController @Inject constructor(
             buyIn = buyIn,
             fundingDestination = poolAccount.cluster.vaultPublicKey,
             rendezvous = rendezvous,
-        ).map {
-            it to rendezvous
-        }
+        )
     }
 
-    suspend fun getPool(rendezvous: KeyPair) = repository.getPool(rendezvous.publicKeyBytes.toList())
-    suspend fun getPool(id: ID) = repository.getPool(id)
+    suspend fun getPool(rendezvous: KeyPair): Result<NetworkPool> {
+        // for now include all bets always
+        return repository.getPool(rendezvous.publicKeyBytes.toList(), false)
+    }
+
+    suspend fun getPool(id: ID): Result<NetworkPool> {
+        // for now include all bets always
+        return repository.getPool(id, false)
+    }
+
+    suspend fun getBetsForPool(id: ID): Result<List<NetworkPoolBet>> {
+        return repository.getPool(id, excludeBets = false)
+            .map { it.bets }
+    }
 
     suspend fun getPagedPools(queryOptions: QueryOptions): Result<List<NetworkPool>> {
         val owner = userManager.accountCluster?.authority?.keyPair
