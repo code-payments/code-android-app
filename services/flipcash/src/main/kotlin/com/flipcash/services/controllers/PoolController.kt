@@ -90,23 +90,16 @@ class PoolController @Inject constructor(
     suspend fun placeBet(
         poolId: ID,
         rendezvous: KeyPair,
-        choice: NetworkPoolBetOutcome,
+        metadata: PoolBetMetadata,
     ): Result<PoolBetMetadata> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
-        val userId = userManager.accountId
-            ?: return Result.failure(Throwable("No account ID in UserManager"))
-
-        val vault = userManager.accountCluster?.vaultPublicKey
-            ?: return Result.failure(Throwable("No vault public key in UserManager"))
 
         return repository.placeBet(
             owner = owner,
-            userId = userId,
             poolId = poolId,
-            choice = choice,
-            payoutDestination = vault,
             poolRendezvous = rendezvous,
+            metadata = metadata,
         )
     }
 }

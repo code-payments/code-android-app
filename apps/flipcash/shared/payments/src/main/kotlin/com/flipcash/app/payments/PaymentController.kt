@@ -8,17 +8,19 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface PaymentController {
     val state: StateFlow<PaymentState>
-    val eventFlow: SharedFlow<PaymentEvent>
-    fun requestPaymentConfirmation(request: PaymentRequest)
+    val paymentEvents: SharedFlow<PaymentEvent>
+    val confirmationEvents: SharedFlow<ConfirmationEvent>
+    fun requestPaymentConfirmation(request: PaymentRequest<*>)
     fun completeRequest()
     fun cancelRequest(fromUser: Boolean = true)
 }
 
 private object StubPaymentController : PaymentController {
     override val state: StateFlow<PaymentState> = MutableStateFlow(PaymentState.Default)
-    override val eventFlow: SharedFlow<PaymentEvent> = MutableSharedFlow()
+    override val paymentEvents: SharedFlow<PaymentEvent> = MutableSharedFlow()
+    override val confirmationEvents: SharedFlow<ConfirmationEvent> = MutableSharedFlow()
 
-    override fun requestPaymentConfirmation(request: PaymentRequest) = Unit
+    override fun requestPaymentConfirmation(request: PaymentRequest<*>) = Unit
     override fun completeRequest() = Unit
     override fun cancelRequest(fromUser: Boolean) = Unit
 }

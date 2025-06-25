@@ -14,6 +14,7 @@ class PoolBetEntityToPoolBetMapper @Inject constructor(): Mapper<PoolBetEntity, 
             selectedOutcome = BetOutcomeConverter.toBetOutcome(from.selectedOutcome),
             payoutDestination = from.payoutDestination,
             placedAt = from.placedAt,
+            hasPaidForBet = from.hasSubmittedIntent
         )
     }
 }

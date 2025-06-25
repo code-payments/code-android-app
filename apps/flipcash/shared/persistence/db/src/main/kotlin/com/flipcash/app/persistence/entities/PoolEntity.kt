@@ -19,6 +19,7 @@ data class PoolEntity(
     @PrimaryKey
     val idBase58: String,
     val creatorBase58: String,
+    val pagingTokenBase58: String?,
     val name: String,
     val buyInAmount: Long,
     val buyInCurrency: String,
@@ -31,12 +32,14 @@ data class PoolEntity(
     val timestamp: Long,
     val closedTimestamp: Long?,
 ) {
-
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
 
     @Ignore
     val creator: ID = Base58.decode(creatorBase58).toList()
+
+    @Ignore
+    val pagingToken: ID? = pagingTokenBase58?.let { Base58.decode(it).toList() }
 
     @Ignore
     val fundingDestination: PublicKey = PublicKey.fromBase58(fundingDestinationBase58)

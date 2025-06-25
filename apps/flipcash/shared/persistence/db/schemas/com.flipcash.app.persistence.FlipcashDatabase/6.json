@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "ff68ee18664c52258009f77f4da303d2",
+    "identityHash": "992bffe6ab95b48fdce9f64d9ce06f2f",
     "entities": [
       {
         "tableName": "messages",
@@ -67,7 +67,7 @@
       },
       {
         "tableName": "pool_metadata",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `creatorBase58` TEXT NOT NULL, `name` TEXT NOT NULL, `buyInAmount` INTEGER NOT NULL, `buyInCurrency` TEXT NOT NULL, `fundingDestinationBase58` TEXT NOT NULL, `isOpen` INTEGER NOT NULL, `didWin` INTEGER NOT NULL, `didBet` INTEGER NOT NULL DEFAULT false, `resolution` TEXT, `timestamp` INTEGER NOT NULL, `closedTimestamp` INTEGER, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `creatorBase58` TEXT NOT NULL, `pagingTokenBase58` TEXT, `name` TEXT NOT NULL, `buyInAmount` INTEGER NOT NULL, `buyInCurrency` TEXT NOT NULL, `fundingDestinationBase58` TEXT NOT NULL, `isOpen` INTEGER NOT NULL, `didWin` INTEGER NOT NULL, `didBet` INTEGER NOT NULL DEFAULT false, `resolution` TEXT, `timestamp` INTEGER NOT NULL, `closedTimestamp` INTEGER, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -80,6 +80,11 @@
             "columnName": "creatorBase58",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "pagingTokenBase58",
+            "columnName": "pagingTokenBase58",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "name",
@@ -179,7 +184,7 @@
       },
       {
         "tableName": "pool_bet_metadata",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `poolIdBase58` TEXT NOT NULL, `userIdBase58` TEXT NOT NULL, `selectedOutcome` TEXT NOT NULL, `payoutDestinationBase58` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `poolIdBase58` TEXT NOT NULL, `userIdBase58` TEXT NOT NULL, `selectedOutcome` TEXT NOT NULL, `payoutDestinationBase58` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `hasSubmittedIntent` INTEGER NOT NULL DEFAULT false, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -216,6 +221,13 @@
             "columnName": "timestamp",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "hasSubmittedIntent",
+            "columnName": "hasSubmittedIntent",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "false"
           }
         ],
         "primaryKey": {
@@ -228,7 +240,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ff68ee18664c52258009f77f4da303d2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '992bffe6ab95b48fdce9f64d9ce06f2f')"
     ]
   }
 }

@@ -14,6 +14,7 @@ import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
 import com.flipcash.app.payments.internal.PoolResolutionPaymentMetadata
 import com.flipcash.app.pools.PoolsCoordinator
+import com.flipcash.app.pools.internal.betting.PoolBettingViewModel.Event.*
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
@@ -78,14 +79,24 @@ internal class PoolBettingViewModel @Inject constructor(
                 return bets.any { it.userId == userId } || selectedOutcome != null
             }
 
+        /**
+         * If the user has placed a bet, but has not yet paid for it. Effectively treated
+         * as an IOU, and to be included in the payout, the bet must be settled.
+         */
+        val needsToPayForBet: Boolean
+            get() = bets.find { it.userId == userId }?.hasPaidForBet == false
+
         val isResolved: Boolean
             get() = metadata.resolution != PoolResolution.NotSet
+
+        private val paidBets: List<PoolBet>
+            get() = bets.filter { it.hasPaidForBet }
 
         val betsPerOutcome: Map<PoolBetOutcome, Fiat>
             get() {
                 val betsPerOutcome = mutableMapOf<PoolBetOutcome, Fiat>()
                 outcomes.forEach { outcome ->
-                    val countForOutcome = bets.count { it.selectedOutcome == outcome }
+                    val countForOutcome = paidBets.count { it.selectedOutcome == outcome }
                     betsPerOutcome[outcome] = metadata.buyIn.times(countForOutcome)
                 }
 
@@ -112,7 +123,7 @@ internal class PoolBettingViewModel @Inject constructor(
          * The total amount in the pool.
          */
         val poolTotal: Fiat
-            get() = metadata.buyIn.times(bets.count())
+            get() = metadata.buyIn.times(paidBets.count())
     }
 
     sealed interface Event {
@@ -291,34 +302,30 @@ internal class PoolBettingViewModel @Inject constructor(
                     pool = stateFlow.value.metadata,
                     rendezvous = rendezvous,
                     outcome = it,
-                )
+                ) {
+                    poolsCoordinator.placeBet(
+                        poolId = stateFlow.value.metadata.id,
+                        rendezvous = rendezvous,
+                        outcome = it,
+                    )
+                }
             }
             .map { request ->
                 payments.requestPaymentConfirmation(request)
             }.flatMapLatest {
-                payments.eventFlow.take(1)
+                payments.paymentEvents.take(1)
             }.onEach { event ->
                 when (event) {
                     PaymentEvent.OnPaymentCancelled -> Unit
                     is PaymentEvent.OnPaymentError -> Unit
+                    is PaymentEvent.OnRpcFailure -> {
+                        BottomBarManager.showError(
+                            resources.getString(R.string.error_title_placeBetFailed),
+                            resources.getString(R.string.error_description_placeBetFailed),
+                        )
+                    }
                     is PaymentEvent.OnPaymentSuccess -> {
-                        val poolMetadata = event.metadata as PoolBidPaymentMetadata
-                        poolsCoordinator.placeBet(
-                            poolId = stateFlow.value.metadata.id,
-                            rendezvous = poolMetadata.rendezvous,
-                            outcome = poolMetadata.selectedOutcome,
-                        ).onSuccess {
-                            event.acknowledge(true) {
-                                dispatchEvent(Event.OnOutcomePaidFor(poolMetadata.selectedOutcome))
-                            }
-                        }.onFailure {
-                            event.acknowledge(false) {
-                                BottomBarManager.showError(
-                                    resources.getString(R.string.error_title_placeBetFailed),
-                                    resources.getString(R.string.error_description_placeBetFailed),
-                                )
-                            }
-                        }
+                        event.acknowledge(true) { }
                     }
                 }
             }
@@ -382,32 +389,30 @@ internal class PoolBettingViewModel @Inject constructor(
                     bets = stateFlow.value.bets,
                     rendezvous = rendezvous,
                     resolution = it,
-                )
+                ) {
+                    poolsCoordinator.resolvePool(
+                        pool = stateFlow.value.metadata,
+                        resolution = it,
+                        rendezvous = rendezvous
+                    )
+                }
             }
             .map { request -> payments.requestPaymentConfirmation(request) }
             .flatMapLatest {
-                payments.eventFlow.take(1)
+                payments.paymentEvents.take(1)
             }.onEach { event ->
                 when (event) {
                     PaymentEvent.OnPaymentCancelled -> Unit
                     is PaymentEvent.OnPaymentError -> Unit
+                    is PaymentEvent.OnRpcFailure -> {
+                        BottomBarManager.showError(
+                            resources.getString(R.string.error_title_resolvePoolFailed),
+                            resources.getString(R.string.error_description_resolvePoolFailed),
+                        )
+                    }
                     is PaymentEvent.OnPaymentSuccess -> {
-                        val poolMetadata = event.metadata as PoolResolutionPaymentMetadata
-                        poolsCoordinator.resolvePool(
-                            pool = poolMetadata.poolWithBets.pool,
-                            resolution = poolMetadata.resolution,
-                            rendezvous = poolMetadata.rendezvous
-                        ).onSuccess {
-                            event.acknowledge(true) {
+                        event.acknowledge(true) {
 
-                            }
-                        }.onFailure {
-                            event.acknowledge(false) {
-                                BottomBarManager.showError(
-                                    resources.getString(R.string.error_title_resolvePoolFailed),
-                                    resources.getString(R.string.error_description_resolvePoolFailed),
-                                )
-                            }
                         }
                     }
                 }

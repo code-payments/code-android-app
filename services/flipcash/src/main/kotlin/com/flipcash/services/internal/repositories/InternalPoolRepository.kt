@@ -117,18 +117,14 @@ internal class InternalPoolRepository(
 
     override suspend fun placeBet(
         owner: KeyPair,
-        userId: ID,
         poolId: ID,
-        payoutDestination: PublicKey,
         poolRendezvous: KeyPair,
-        choice: NetworkPoolBetOutcome,
+        metadata: PoolBetMetadata,
     ): Result<PoolBetMetadata> {
         val request = PoolRequest.PlaceBet(
             poolId = poolId,
-            userId = userId,
-            payoutDestination = payoutDestination,
             poolRendezvous = poolRendezvous,
-            outcome = choice,
+            metadata = metadata,
         )
 
         return service.placeBet(

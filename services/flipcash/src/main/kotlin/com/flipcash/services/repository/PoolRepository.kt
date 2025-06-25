@@ -45,10 +45,8 @@ interface PoolRepository {
 
     suspend fun placeBet(
         owner: KeyPair,
-        userId: ID,
         poolId: ID,
-        payoutDestination: PublicKey,
         poolRendezvous: KeyPair,
-        choice: NetworkPoolBetOutcome,
+        metadata: PoolBetMetadata,
     ): Result<PoolBetMetadata>
 }

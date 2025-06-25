@@ -9,27 +9,31 @@ import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.PoolWithBetsEntity
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetEntityToPoolBetMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolBetMetadataParameters
 import com.flipcash.app.persistence.sources.mapper.pools.PoolBetMetadataToEntityMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
+import com.flipcash.app.persistence.sources.mapper.pools.PoolMetadataMappingParameters
+import com.flipcash.app.persistence.sources.mapper.pools.PoolMetadataToEntityMapper
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.PoolBetMetadata
+import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.persistence.PagingDataSource
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
-import com.getcode.solana.keys.Signature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import kotlin.collections.map
-import kotlin.math.sign
 
 class PoolDataSource @Inject constructor(
     private val poolEntityMapper: PoolEntityToPoolMapper,
-    private val poolMetadataEntityMapper: NetworkPoolToEntityMapper,
+    private val networkPoolToEntityMapper: NetworkPoolToEntityMapper,
     private val betEntityMapper: PoolBetEntityToPoolBetMapper,
     private val betMetadataEntityMapper: PoolBetMetadataToEntityMapper,
+    private val poolMetadataToEntityMapper: PoolMetadataToEntityMapper,
     private val userManager: UserManager,
 ) : PagingDataSource<ID, PoolWithBets, List<NetworkPool>, Int, PoolWithBetsEntity> {
 
@@ -84,7 +88,7 @@ class PoolDataSource @Inject constructor(
     }
 
     override suspend fun upsert(value: List<NetworkPool>) {
-        val entities = value.map { poolMetadataEntityMapper.map(it) }
+        val entities = value.map { networkPoolToEntityMapper.map(it) }
         entities.onEach { (pool, bets) ->
             db?.withTransaction {
                 db?.poolDao()?.upsert(pool)
@@ -93,22 +97,44 @@ class PoolDataSource @Inject constructor(
         }
     }
 
+    suspend fun upsert(pool: PoolMetadata) {
+        val params = PoolMetadataMappingParameters(
+            metadata = pool,
+            pagingToken = null,
+            selectedOutcome = null,
+        )
+        val entity = poolMetadataToEntityMapper.map(params)
+        db?.poolDao()?.upsert(entity)
+    }
+
     suspend fun upsertRendezvous(rendezvous: Ed25519.KeyPair, signature: List<Byte>? = null) {
         db?.poolDao()?.updateRendezvous(rendezvous, signature)
     }
 
-    suspend fun resolvePool(id: ID, resolution: PoolResolution) {
+    suspend fun resolvePool(id: ID, resolution: PoolResolution.DecisionMade) {
         db?.poolDao()?.resolvePool(id, resolution)
+    }
+
+    suspend fun unresolvePool(id: ID) {
+        db?.poolDao()?.unresolvePool(id)
     }
 
     suspend fun closePool(id: ID) {
         db?.poolDao()?.closePool(id)
-
     }
 
-    suspend fun addBet(poolId: ID, bet: PoolBetMetadata) {
-        val entity = betMetadataEntityMapper.map(poolId to bet)
+    suspend fun reopenPool(id: ID) {
+        db?.poolDao()?.reopenPool(id)
+    }
+
+    suspend fun upsertBet(poolId: ID, bet: PoolBetMetadata, hasSubmittedIntent: Boolean) {
+        val params = PoolBetMetadataParameters(poolId, bet, hasSubmittedIntent)
+        val entity = betMetadataEntityMapper.map(params)
         db?.poolDao()?.upsert(entity)
+    }
+
+    suspend fun removeBet(poolId: ID, betId: ID) {
+        db?.poolDao()?.removeBet(poolId, betId)
     }
 
     override suspend fun query(whereClause: String): List<PoolWithBets> {

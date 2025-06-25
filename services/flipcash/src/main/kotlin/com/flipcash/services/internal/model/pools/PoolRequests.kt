@@ -41,15 +41,8 @@ internal sealed interface PoolRequest {
     ): PoolRequest
 
     data class PlaceBet(
-        val userId: ID,
         val poolId: ID,
-        val payoutDestination: PublicKey,
+        val metadata: PoolBetMetadata,
         val poolRendezvous: KeyPair,
-        val outcome: NetworkPoolBetOutcome,
-    ): PoolRequest {
-        val metadata by lazy {
-            PoolBetMetadata.fromRequest(this)
-        }
-
-    }
+    ): PoolRequest
 }

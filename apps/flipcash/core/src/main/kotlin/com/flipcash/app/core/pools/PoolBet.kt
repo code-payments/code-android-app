@@ -10,4 +10,5 @@ data class PoolBet(
     val selectedOutcome: PoolBetOutcome,
     val payoutDestination: PublicKey,
     val placedAt: Instant,
+    val hasPaidForBet: Boolean,
 )

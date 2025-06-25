@@ -78,8 +78,10 @@ data class PoolMetadata(
 @Immutable
 data class NetworkPool(
     val metadata: PoolMetadata,
-    val rendezvousSignature: List<Byte>?,
-    val bets: List<PoolBetMetadata> = emptyList(),
+    val rendezvousSignature: List<Byte>,
+    val bets: List<NetworkPoolBet> = emptyList(),
+    val pagingToken: PagingToken,
+    val isFundingDestinationInitialized: Boolean,
 )
 
 sealed interface NetworkPoolResolution {

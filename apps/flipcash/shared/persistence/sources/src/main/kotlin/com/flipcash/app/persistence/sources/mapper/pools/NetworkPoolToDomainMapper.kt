@@ -5,6 +5,7 @@ import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.BetOutcomeConverter
 import com.flipcash.app.persistence.PoolResolutionConverter
+import com.flipcash.services.internal.domain.PoolBetMetadataMapper
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -16,7 +17,7 @@ class NetworkPoolToDomainMapper @Inject constructor(
 ): Mapper<Pair<NetworkPool, Ed25519.KeyPair?>, PoolWithBets> {
     override fun map(from: Pair<NetworkPool, Ed25519.KeyPair?>): PoolWithBets {
         val (networkResponse, rendezvous) = from
-        val selectedOutcome = networkResponse.bets.find { it.userId == userManager.accountId }?.selectedOutcome
+        val selectedOutcome = networkResponse.bets.find { it.metadata.userId == userManager.accountId }?.metadata?.selectedOutcome
 
         return PoolWithBets(
             pool = Pool(
@@ -36,11 +37,12 @@ class NetworkPoolToDomainMapper @Inject constructor(
             isHost = userManager.accountId == networkResponse.metadata.creator,
             bets = networkResponse.bets.map {
                 PoolBet(
-                    id = it.id,
-                    userId = it.userId,
-                    selectedOutcome = BetOutcomeConverter.toBetOutcome(it.selectedOutcome),
-                    placedAt = it.timestamp,
-                    payoutDestination = it.payoutDestination
+                    id = it.metadata.id,
+                    userId = it.metadata.userId,
+                    selectedOutcome = BetOutcomeConverter.toBetOutcome(it.metadata.selectedOutcome),
+                    placedAt = it.metadata.timestamp,
+                    payoutDestination = it.metadata.payoutDestination,
+                    hasPaidForBet = it.hasIntentBeenSubmitted
                 )
             }
         )

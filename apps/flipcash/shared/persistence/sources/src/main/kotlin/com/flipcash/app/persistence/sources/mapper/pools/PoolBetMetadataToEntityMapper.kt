@@ -9,9 +9,15 @@ import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import javax.inject.Inject
 
-class PoolBetMetadataToEntityMapper @Inject constructor(): Mapper<Pair<ID, PoolBetMetadata>, PoolBetEntity> {
-    override fun map(from: Pair<ID, PoolBetMetadata>): PoolBetEntity {
-        val (poolId, metadata) = from
+data class PoolBetMetadataParameters(
+    val poolId: ID,
+    val metadata: PoolBetMetadata,
+    val hasSubmittedIntent: Boolean,
+)
+
+class PoolBetMetadataToEntityMapper @Inject constructor(): Mapper<PoolBetMetadataParameters, PoolBetEntity> {
+    override fun map(from: PoolBetMetadataParameters): PoolBetEntity {
+        val (poolId, metadata, hasSubmittedIntent) = from //from could also be named parameters
 
         return PoolBetEntity(
             idBase58 = metadata.id.base58,
@@ -19,7 +25,8 @@ class PoolBetMetadataToEntityMapper @Inject constructor(): Mapper<Pair<ID, PoolB
             userIdBase58 = metadata.userId.base58,
             selectedOutcome = BetOutcomeConverter.fromBetOutcome(metadata.selectedOutcome),
             timestamp = metadata.timestamp.toEpochMilliseconds(),
-            payoutDestinationBase58 = metadata.payoutDestination.base58()
+            payoutDestinationBase58 = metadata.payoutDestination.base58(),
+            hasSubmittedIntent = hasSubmittedIntent
         )
     }
 }

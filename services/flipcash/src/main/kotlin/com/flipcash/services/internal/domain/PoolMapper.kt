@@ -14,9 +14,9 @@ class PoolMapper @Inject constructor(
         return NetworkPool(
             metadata = metadata,
             rendezvousSignature = from.rendezvousSignature.value.toList(),
-            bets = from.betsList
-                .map { betMapper.map(it) }
-                .map { it.metadata }
+            bets = from.betsList.map { betMapper.map(it) },
+            pagingToken = from.pagingToken.value.toList(),
+            isFundingDestinationInitialized = from.isFundingDestinationInitialized,
         )
     }
 }

@@ -17,8 +17,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.pools.Pool
-import com.flipcash.app.core.pools.PoolBet
-import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.theme.FlipcashDesignSystem
@@ -137,16 +135,6 @@ private val pool = Pool(
     closedAt = null,
     didWin = false,
     didBet = false,
-)
-
-val bets = listOf(
-    PoolBet(
-        id = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
-        userId = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
-        selectedOutcome = PoolBetOutcome.BooleanOutcome(false),
-        payoutDestination = PublicKey.fromBase58("7XbL9kZ3mPqW8nR2vY5tJ6hQ4uF1cA9xN3gT8rK5pM"),
-        placedAt = Clock.System.now(),
-    )
 )
 
 private val refundedPool = pool.copy(resolution = PoolResolution.Refund)

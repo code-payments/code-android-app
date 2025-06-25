@@ -7,7 +7,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 
 data class PaymentState(
-    val request: PaymentRequest?,
+    val request: PaymentRequest<*>?,
     val poolBidConfirmation: PublicPaymentConfirmation?,
     val poolResolutionConfirmation: PoolResolutionConfirmation?,
 ) {

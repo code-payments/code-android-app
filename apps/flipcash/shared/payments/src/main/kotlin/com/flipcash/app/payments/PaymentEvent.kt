@@ -10,5 +10,11 @@ sealed interface PaymentEvent {
         val acknowledge: (Boolean, () -> Unit) -> Unit // Caller returns true if they want to proceed as success, false as error
     ) : PaymentEvent
     data object OnPaymentCancelled : PaymentEvent
+    data class OnRpcFailure(val error: Throwable): PaymentEvent
     data class OnPaymentError(val error: Throwable): PaymentEvent
+}
+
+sealed interface ConfirmationEvent {
+    data object OnConfirmationSuccess : ConfirmationEvent
+    data object OnConfirmationCancelled : ConfirmationEvent
 }

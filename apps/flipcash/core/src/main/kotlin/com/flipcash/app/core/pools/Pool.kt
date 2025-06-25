@@ -46,13 +46,16 @@ data class PoolWithBets(
     val isHost: Boolean,
     val bets: List<PoolBet>
 ) {
+    private val paidBets: List<PoolBet>
+        get() = bets.filter { it.hasPaidForBet }
+
     val totalBets: Int
-        get() = bets.count()
+        get() = paidBets.count()
 
     val totalPoolAmount: Fiat
         get() = pool.buyIn.times(totalBets)
 
-    val groupedBets: Map<PoolBetOutcome, List<PoolBet>> = bets.groupBy { it.selectedOutcome }
+    val groupedBets: Map<PoolBetOutcome, List<PoolBet>> = paidBets.groupBy { it.selectedOutcome }
 
     val winnerCount: Int
         get() = winningOutcome?.let { groupedBets[it] }?.count() ?: 0

@@ -1,27 +1,24 @@
 package com.flipcash.app.persistence.sources.mapper.pools
 
 import com.flipcash.app.persistence.PoolResolutionConverter
-import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
-import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.NetworkPoolBetOutcome
-import com.flipcash.services.models.NetworkPoolResolution
-import com.flipcash.services.user.UserManager
+import com.flipcash.services.models.PagingToken
+import com.flipcash.services.models.PoolMetadata
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import javax.inject.Inject
 
-class NetworkPoolToEntityMapper @Inject constructor(
-    private val userManager: UserManager,
-    private val betMapper: PoolBetMetadataToEntityMapper
-): Mapper<NetworkPool, Pair<PoolEntity, List<PoolBetEntity>>> {
-
-    override fun map(from: NetworkPool):  Pair<PoolEntity, List<PoolBetEntity>> {
-        val metadata = from.metadata
-        val selectedOutcome = from.bets.find { it.userId == userManager.accountId }?.selectedOutcome
-
-        val pool = PoolEntity(
+data class PoolMetadataMappingParameters(
+    val metadata: PoolMetadata,
+    val pagingToken: PagingToken?,
+    val selectedOutcome: NetworkPoolBetOutcome?,
+)
+class PoolMetadataToEntityMapper @Inject constructor(): Mapper<PoolMetadataMappingParameters, PoolEntity> {
+    override fun map(from: PoolMetadataMappingParameters): PoolEntity {
+        val (metadata, pagingToken, selectedOutcome) = from
+        return PoolEntity(
             idBase58 = metadata.id.base58,
             creatorBase58 = metadata.creator.base58,
             name = metadata.name,
@@ -33,28 +30,8 @@ class NetworkPoolToEntityMapper @Inject constructor(
             timestamp = metadata.createdAt.toEpochMilliseconds(),
             closedTimestamp = metadata.closedAt?.toEpochMilliseconds(),
             didWin = metadata.resolution.didWin(selectedOutcome),
+            pagingTokenBase58 = pagingToken?.base58,
             didBet = selectedOutcome != null
         )
-
-        val bets = from.bets.map {
-            betMapper.map(pool.id to it)
-        }
-
-        return pool to bets
-    }
-}
-
-internal fun NetworkPoolResolution.didWin(outcome: NetworkPoolBetOutcome?): Boolean {
-    outcome ?: return false
-    return when (this) {
-        is NetworkPoolResolution.BooleanResolution -> {
-            if (outcome is NetworkPoolBetOutcome.BooleanOutcome) {
-                return outcome.value == value
-            }
-
-            false
-        }
-        NetworkPoolResolution.NotSet -> false
-        NetworkPoolResolution.Refund -> false
     }
 }

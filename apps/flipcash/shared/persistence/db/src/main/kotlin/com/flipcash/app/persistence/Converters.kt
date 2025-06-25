@@ -61,6 +61,12 @@ object PoolResolutionConverter {
     }
 
     @TypeConverter
+    fun fromPoolResolution(resolution: PoolResolution.DecisionMade): String = when (resolution) {
+        is PoolResolution.BooleanResolution -> "boolean_${resolution.value}"
+        PoolResolution.Refund -> "refund"
+    }
+
+    @TypeConverter
     fun toPoolResolution(value: String?): PoolResolution = when {
         value == null -> PoolResolution.NotSet
         value == "not_set" -> PoolResolution.NotSet

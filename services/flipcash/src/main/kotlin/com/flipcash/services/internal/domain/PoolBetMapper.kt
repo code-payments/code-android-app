@@ -13,7 +13,8 @@ class PoolBetMapper @Inject constructor(
 
         return NetworkPoolBet(
             metadata = metadata,
-            poolRendezvousSignature = from.rendezvousSignature.value.toList()
+            poolRendezvousSignature = from.rendezvousSignature.value.toList(),
+            hasIntentBeenSubmitted = from.isIntentSubmitted,
         )
     }
 }

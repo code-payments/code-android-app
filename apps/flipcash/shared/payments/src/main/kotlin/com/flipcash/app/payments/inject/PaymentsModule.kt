@@ -1,11 +1,10 @@
 package com.flipcash.app.payments.inject
 
 import com.flipcash.app.payments.PaymentController
+import com.flipcash.app.payments.internal.InternalPoolBidDelegate
 import com.flipcash.app.payments.internal.InternalPaymentController
+import com.flipcash.app.payments.internal.InternalPoolResolveDelegate
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.controllers.BalanceController
-import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.util.resources.ResourceHelper
 import dagger.Module
 import dagger.Provides
@@ -18,20 +17,17 @@ import javax.inject.Singleton
 object PaymentsModule {
     @Provides
     @Singleton
-    fun providePaymentController(
+    internal fun providePaymentController(
         resources: ResourceHelper,
-        balanceController: BalanceController,
-        transactionController: TransactionController,
-        exchange: Exchange,
+        bidDelegate: InternalPoolBidDelegate,
+        resolveDelegate: InternalPoolResolveDelegate,
         userManager: UserManager,
     ): PaymentController {
         return InternalPaymentController(
             resources = resources,
-            balanceController = balanceController,
-            transactionController = transactionController,
-            exchange = exchange,
+            poolBidDelegate = bidDelegate,
+            poolResolveDelegate = resolveDelegate,
             userManager = userManager
         )
     }
-
 }
