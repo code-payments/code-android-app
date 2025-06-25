@@ -39,6 +39,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     error = Error,
     errorText = TextError,
     success = Success,
+    successText = Success,
     textMain = TextMain,
     textSecondary = TextSecondary,
     border = BrandLight,
@@ -126,6 +127,7 @@ class ColorScheme(
     error: Color,
     errorText: Color,
     success: Color,
+    successText: Color,
     textMain: Color,
     textSecondary: Color,
     trackColor: Color,
@@ -170,6 +172,8 @@ class ColorScheme(
     var errorText by mutableStateOf(errorText)
         private set
     var success by mutableStateOf(success)
+        private set
+    var successText by mutableStateOf(successText)
         private set
     var textMain by mutableStateOf(textMain)
         private set
@@ -231,6 +235,7 @@ class ColorScheme(
         error = other.error
         errorText = other.errorText
         success = other.success
+        successText = other.successText
         textMain = other.textMain
         textSecondary = other.textSecondary
         secondary = other.secondary
@@ -270,6 +275,7 @@ class ColorScheme(
         error = error,
         errorText = errorText,
         success = success,
+        successText = successText,
         textMain = textMain,
         textSecondary = textSecondary,
         secondary = secondary,

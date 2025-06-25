@@ -148,7 +148,7 @@ private fun WithdrawalDestinationScreenContent(
 //                                    }
                                     else -> stringResource(R.string.error_title_invalidAddress)
                                 },
-                                color = if (availability.isValid) CodeTheme.colors.success else CodeTheme.colors.errorText,
+                                color = if (availability.isValid) CodeTheme.colors.successText else CodeTheme.colors.errorText,
                                 style = CodeTheme.typography.caption
                             )
                         }

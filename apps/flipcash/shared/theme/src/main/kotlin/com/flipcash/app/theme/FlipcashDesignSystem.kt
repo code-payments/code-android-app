@@ -55,6 +55,7 @@ private val colors = with(FlipcashColorSpec) {
         error = Error,
         errorText = TextError,
         success = Color(0xB01AC86A),
+        successText = Color(0xFF73EAA4),
         textMain = Color.White,
         textSecondary = Color.White.copy(alpha = 0.5f),
         border = White08,

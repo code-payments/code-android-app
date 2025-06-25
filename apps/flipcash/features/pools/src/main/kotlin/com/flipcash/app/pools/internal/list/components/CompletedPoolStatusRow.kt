@@ -57,14 +57,14 @@ internal fun CompletedPoolStatusRow(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_trophy),
                         contentDescription = null,
-                        tint = CodeTheme.colors.success,
+                        tint = CodeTheme.colors.successText,
                     )
                     Text(
                         text = winnings.formatted(
                             formatting = Fiat.Formatting.Truncated
                         ),
                         style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.success,
+                        color = CodeTheme.colors.successText,
                     )
                 }
             }

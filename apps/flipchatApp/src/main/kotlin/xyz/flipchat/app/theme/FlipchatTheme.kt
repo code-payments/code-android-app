@@ -50,6 +50,7 @@ private val colors = ColorScheme(
     error = Error,
     errorText = Alert,
     success = FC_Accent,
+    successText = FC_Accent,
     textMain = TextMain,
     textSecondary = FC_TextWithPrimary,
     border = BrandLight,
