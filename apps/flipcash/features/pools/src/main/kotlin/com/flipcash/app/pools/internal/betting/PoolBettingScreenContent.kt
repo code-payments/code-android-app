@@ -117,7 +117,7 @@ private fun PoolTotal(
         )
         Text(
             text = stringResource(R.string.subtitle_inPoolSoFar),
-            style = CodeTheme.typography.textSmall,
+            style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textSecondary,
         )
     }
@@ -220,7 +220,7 @@ private fun BidOptions(
                                         )
                                         .padding(
                                             horizontal = CodeTheme.dimens.grid.x2,
-                                            vertical = CodeTheme.dimens.grid.x2,
+                                            vertical = CodeTheme.dimens.grid.x1,
                                         ),
                                     text = youSaid,
                                     style = CodeTheme.typography.textSmall,
