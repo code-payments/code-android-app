@@ -28,20 +28,27 @@ import com.getcode.theme.codeTypography
 object FlipcashColorSpec {
     val primary = Color(0xFF001A0C)
     val primaryLight = Color(0xFF09550B)
-    val secondaryText = Color(115, 129, 121)
+    val secondary = Color(115, 129, 121)
+    val secondaryText = Color.White.copy(alpha = 0.5f)
     val cashBill = Color(0xFF06450F)
+    val trackColor = Color.White.copy(alpha = 0.07f)
+    val bannerThemed = Color(0xFF1A3125)
+    val success = Color(0xFF1AC86A)
+    val successText = Color(0xFF73EAA4)
+    val surfaceVariant = Color.White.copy(alpha = 0.12f)
+    val successSurface = Color(0x4A6FCF97)
 }
 
 private val colors = with(FlipcashColorSpec) {
     ColorScheme(
         brand = primary,
         brandLight = primaryLight,
-        brandSubtle = secondaryText,
+        brandSubtle = secondary,
         brandMuted = BrandMuted,
         brandDark = BrandDark,
         brandOverlay = BrandOverlay,
         brandContainer = primary,
-        secondary = secondaryText,
+        secondary = secondary,
         tertiary = BrandAccent,
         indicator = BrandIndicator,
         action = Gray50,
@@ -49,24 +56,24 @@ private val colors = with(FlipcashColorSpec) {
         background = primary,
         onBackground = White,
         surface = primary,
-        surfaceVariant = Color.White.copy(alpha = 0.12f),
-        surfaceSuccess = Color(0x4A6FCF97),
+        surfaceVariant = surfaceVariant,
+        surfaceSuccess = successSurface,
         onSurface = White,
         error = Error,
         errorText = TextError,
-        success = Color(0xB01AC86A),
-        successText = Color(0xFF73EAA4),
+        success = success,
+        successText = successText,
         textMain = Color.White,
-        textSecondary = Color.White.copy(alpha = 0.5f),
+        textSecondary = secondaryText,
         border = White08,
         divider = White10,
         dividerVariant = White05,
-        trackColor = Color.White.copy(alpha = 0.07f),
-        toggleUncheckedTrackColor = secondaryText,
+        trackColor = trackColor,
+        toggleUncheckedTrackColor = secondary,
         cashBill = cashBill,
-        cashBillDecorColor = secondaryText,
+        cashBillDecorColor = secondary,
         betaIndicator = BetaIndicator,
-        bannerThemed = Color(0xFF1A3125),
+        bannerThemed = bannerThemed,
         bannerError = Error,
         bannerWarning = Warning,
         bannerSuccess = BannerSuccess,
