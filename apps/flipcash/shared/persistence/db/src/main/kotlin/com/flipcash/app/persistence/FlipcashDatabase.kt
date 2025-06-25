@@ -3,6 +3,7 @@ package com.flipcash.app.persistence
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -14,6 +15,7 @@ import com.flipcash.app.persistence.dao.PoolDao
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
+import com.flipcash.app.persistence.entities.PoolRendezvousEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -23,6 +25,7 @@ import org.kin.sdk.base.tools.subByteArray
     entities = [
         MessageEntity::class,
         PoolEntity::class,
+        PoolRendezvousEntity::class,
         PoolBetEntity::class,
     ],
     autoMigrations = [
@@ -30,8 +33,9 @@ import org.kin.sdk.base.tools.subByteArray
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4, spec = FlipcashDatabase.Migration3To4::class),
         AutoMigration(from = 4, to = 5, spec = FlipcashDatabase.Migration4To5::class),
+        AutoMigration(from = 5, to = 6, spec = FlipcashDatabase.Migration5To6::class),
     ],
-    version = 5,
+    version = 6,
 )
 @TypeConverters(PoolResolutionConverter::class, BetOutcomeConverter::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -53,6 +57,19 @@ abstract class FlipcashDatabase : RoomDatabase() {
     }
 
     class Migration4To5 : Migration(4, 5), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM pool_metadata")
+            db.execSQL("DELETE FROM pool_bet_metadata")
+        }
+    }
+
+    @DeleteColumn.Entries(
+        DeleteColumn(
+            tableName = "pool_metadata",
+            columnName = "rendezvousSeed"
+        )
+    )
+    class Migration5To6 : Migration(5, 6), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM pool_metadata")
             db.execSQL("DELETE FROM pool_bet_metadata")

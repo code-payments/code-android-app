@@ -1,7 +1,6 @@
 package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.pool.v1.Model
-import com.flipcash.services.internal.network.extensions.toKeyPair
 import com.flipcash.services.models.NetworkPoolBet
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
@@ -14,7 +13,7 @@ class PoolBetMapper @Inject constructor(
 
         return NetworkPoolBet(
             metadata = metadata,
-            poolRendezvous = from.rendezvousSignature.toKeyPair()
+            poolRendezvousSignature = from.rendezvousSignature.value.toList()
         )
     }
 }

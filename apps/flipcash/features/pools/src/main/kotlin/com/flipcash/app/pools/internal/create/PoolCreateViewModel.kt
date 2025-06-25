@@ -8,6 +8,7 @@ import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.features.pools.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.PoolController
+import com.getcode.ed25519.Ed25519
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
@@ -135,7 +136,7 @@ internal class PoolCreateViewModel @Inject constructor(
             val loading: Boolean = false,
             val success: Boolean = false
         ) : Event
-        data class OnPoolCreated(val id: ID): Event
+        data class OnPoolCreated(val poolId: ID): Event
     }
 
     val checkBidLimit: () -> Boolean = {
@@ -305,7 +306,7 @@ internal class PoolCreateViewModel @Inject constructor(
                 },
                 onSuccess = {
                     dispatchEvent(Event.UpdateCreatingState(loading = false, success = true))
-                    dispatchEvent(Event.OnPoolCreated(it.id))
+                    dispatchEvent(Event.OnPoolCreated(it.pool.id))
                 }
             ).launchIn(viewModelScope)
     }

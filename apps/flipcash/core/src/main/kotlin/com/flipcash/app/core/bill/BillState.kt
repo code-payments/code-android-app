@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.core.R
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -17,6 +19,7 @@ data class BillState(
     val toast: BillToast?,
     val valuation: Valuation?,
     val publicPaymentConfirmation: PublicPaymentConfirmation?,
+    val poolResolutionConfirmation: PoolResolutionConfirmation?,
     val primaryAction: Action?,
     val secondaryAction: Action?,
 ) {
@@ -33,6 +36,7 @@ data class BillState(
             toast = null,
             valuation = null,
             publicPaymentConfirmation = null,
+            poolResolutionConfirmation = null,
             primaryAction = null,
             secondaryAction = null,
         )
@@ -147,6 +151,13 @@ data class PublicPaymentConfirmation(
     override val cancellable: Boolean = true,
 ): Confirmation(showScrim, state)
 
+data class PoolResolutionConfirmation(
+    override val state: ConfirmationState,
+    val poolId: ID,
+    val metadata: PaymentMetadata,
+    override val showScrim: Boolean = true,
+    override val cancellable: Boolean = true,
+): Confirmation(showScrim, state)
 
 sealed interface ConfirmationState {
     data object AwaitingConfirmation : ConfirmationState

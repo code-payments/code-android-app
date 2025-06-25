@@ -75,6 +75,29 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                 Spacer(Modifier.fillMaxWidth())
             }
         }
+
+        // pool resolution confirmation
+        AnimatedContent(
+            modifier = Modifier.align(BottomCenter),
+            targetState = state.billState.poolResolutionConfirmation?.poolId, // ID is constant across state changes
+            transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast()),
+            label = "pool resolugion confirmation",
+        ) {
+            if (it != null) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = BottomCenter
+                ) {
+                    PublicPaymentConfirmation(
+                        confirmation = state.billState.publicPaymentConfirmation,
+                        onSend = { payments.completePublicPayment() },
+                        onCancel = { payments.cancelPayment(fromUser = true) }
+                    )
+                }
+            } else {
+                Spacer(Modifier.fillMaxWidth())
+            }
+        }
     }
 }
 

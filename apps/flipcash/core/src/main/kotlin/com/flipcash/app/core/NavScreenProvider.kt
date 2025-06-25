@@ -4,6 +4,7 @@ import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.transfers.TransferDirection
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.ui.core.RestrictionType
 
@@ -46,7 +47,8 @@ sealed class NavScreenProvider : ScreenProvider {
                 data object Confirmation : NavScreenProvider()
             }
             data class ChoiceSelection(
-                val poolId: ID,
+                val poolId: ID? = null,
+                val rendezvous: Ed25519.KeyPair? = null,
                 val standalone: Boolean = false
             ) : NavScreenProvider()
         }

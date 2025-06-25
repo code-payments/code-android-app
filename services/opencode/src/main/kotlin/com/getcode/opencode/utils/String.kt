@@ -1,10 +1,19 @@
 package com.getcode.opencode.utils
 
+import com.getcode.utils.encodeBase64
+import com.getcode.vendor.Base58
+
 fun String.addLeadingZero(upTo: Int): String {
     if (upTo < length) return this
     val padding = "0".repeat(length - upTo)
     return "$padding$this"
 }
+
+val String.base58: String
+    get() = Base58.encode(toByteArray())
+
+val String.base64: String
+    get() = toByteArray().encodeBase64()
 
 fun String.base64EncodedData(): ByteArray {
     val data = toByteArray()

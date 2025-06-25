@@ -11,21 +11,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.bill.ConfirmationState
-import com.flipcash.app.core.bill.PublicPaymentConfirmation
-import com.flipcash.app.core.ui.FlagWithFiat
+import com.flipcash.app.core.bill.PoolResolutionConfirmation
 import com.flipcash.app.payments.PoolBidPaymentMetadata
 import com.flipcash.shared.payments.R
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Modal
-import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 @Composable
-internal fun PublicPaymentConfirmation(
+internal fun PoolResolutionConfirmation(
     modifier: Modifier = Modifier,
-    confirmation: PublicPaymentConfirmation?,
+    confirmation: PoolResolutionConfirmation?,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -37,19 +34,12 @@ internal fun PublicPaymentConfirmation(
         derivedStateOf { state is ConfirmationState.Sending }
     }
 
-    val requestedAmount = remember {
-        confirmation?.amount
-    }
-
     BackHandler {
         onCancel()
     }
 
-
     Modal(modifier) {
-        val amount = requestedAmount
-        PaymentConfirmationContent(
-            amount = amount ?: Fiat.Zero,
+        PoolResolutionContent(
             isSending = isSending,
             state = state,
             onApproved = onSend,
@@ -73,22 +63,11 @@ internal fun PublicPaymentConfirmation(
 }
 
 @Composable
-private fun PaymentConfirmationContent(
-    amount: Fiat,
+private fun PoolResolutionContent(
     isSending: Boolean,
     state: ConfirmationState?,
     label: String,
     onApproved: () -> Unit
 ) {
-    FlagWithFiat(
-        fiat = amount,
-        iconSize = CodeTheme.dimens.staticGrid.x5,
-        textStyle = CodeTheme.typography.displayMedium,
-    )
-    SlideToConfirm(
-        isLoading = isSending,
-        isSuccess = state is ConfirmationState.Sent,
-        label = label,
-        onConfirm = { onApproved() },
-    )
+
 }

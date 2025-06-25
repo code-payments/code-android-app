@@ -68,10 +68,12 @@ internal fun PoolListScreen(
         viewModel.eventFlow
             .filterIsInstance<PoolListViewModel.Event.OnPoolClicked>()
             .map { it.pool }
-            .onEach {
+            .onEach { item ->
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.Pools.ChoiceSelection(it.id)
+                        NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                            poolId = item.pool.id,
+                        )
                     )
                 )
             }.launchIn(this)
@@ -141,11 +143,11 @@ private fun PoolListScreenContent(
 
                             is PoolListItem.PoolItem -> {
                                 PoolSummaryRow(
-                                    data = item.data,
+                                    poolWithBets = item.data,
                                     onClick = {
                                         dispatch(
                                             PoolListViewModel.Event.OnPoolClicked(
-                                                item.data.pool
+                                                item.data
                                             )
                                         )
                                     }

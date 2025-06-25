@@ -1,7 +1,6 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
@@ -33,7 +32,7 @@ data class PoolBetMetadata(
 @Immutable
 data class NetworkPoolBet(
     val metadata: PoolBetMetadata,
-    val poolRendezvous: Ed25519.KeyPair,
+    val poolRendezvousSignature: List<Byte>,
 )
 
 sealed interface NetworkPoolBetOutcome {

@@ -18,13 +18,12 @@ import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
 import com.flipcash.services.models.NetworkPool
-import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
+import com.getcode.crypt.DerivePath
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -36,9 +35,9 @@ import javax.inject.Inject
 class PoolsCoordinator @Inject constructor(
     private val controller: PoolController,
     private val dataSource: PoolDataSource,
-    private val mapper: PoolEntityToPoolMapper,
+    private val entityToDomainMapper: PoolEntityToPoolMapper,
     private val betMapper: PoolBetEntityToPoolBetMapper,
-    private val networkMapper: NetworkPoolToDomainMapper,
+    private val networkToDomainMapper: NetworkPoolToDomainMapper,
     private val domainToMetadataMapper: PoolToMetadataMapper,
     private val userManager: UserManager,
 ) {
@@ -56,7 +55,8 @@ class PoolsCoordinator @Inject constructor(
             }.flow.map { page ->
                 page.map { entity ->
                     PoolWithBets(
-                        pool = mapper.map(entity.pool),
+                        pool = entityToDomainMapper.map(entity.pool),
+                        rendezvous = null,
                         isHost = userManager.accountId == entity.pool.creator,
                         bets = entity.bets.map { betMapper.map(it) }
                     )
@@ -73,7 +73,7 @@ class PoolsCoordinator @Inject constructor(
     suspend fun createPool(
         name: String,
         buyIn: Fiat,
-    ): Result<PoolMetadata> {
+    ): Result<PoolWithBets> {
 
         val (metadata, rendezvous) = controller.createPool(
             name = name,
@@ -82,33 +82,62 @@ class PoolsCoordinator @Inject constructor(
 
         val mockNetworkResponse = NetworkPool(
             metadata = metadata,
-            rendezvous = rendezvous,
+            rendezvousSignature = null,
         )
 
-        dataSource.upsert(listOf(mockNetworkResponse))
+        // only insert the rendezvous here
+        // the pool will get inserted by the get
+        dataSource.upsertRendezvous(rendezvous)
 
-        return Result.success(metadata)
+        return Result.success(networkToDomainMapper.map(mockNetworkResponse to rendezvous))
     }
 
     suspend fun getPool(id: ID): Result<PoolWithBets> {
         val networkPool = controller.getPool(id)
             .getOrElse { return Result.failure(it) }
 
-        val (metadata, isHost, bets) = networkMapper.map(networkPool)
+        val isHost = networkPool.metadata.creator == userManager.accountId
 
-        // store the pool if we are the host or if we have bet already
-        val poolWithBets = if (
-            isHost || bets.any { it.userId == userManager.accountId }
-        ) {
-            dataSource.upsert(listOf(networkPool))
+        if (isHost) {
+            // if we are the host, we can query for the rendezvous
+            val rendezvous = userManager.poolAccounts.find { it.address.bytes == networkPool.metadata.fundingDestination.bytes }
+                ?.let { account ->
+                    val index = account.index.toLong()
+                    val path = DerivePath.getPoolRendezvous(index)
+                    userManager.mnemnonic?.getSolanaKeyPair(path)
+                }
 
-            dataSource.getByIdWithBets(metadata.id)
-                ?: return Result.failure(Exception("Pool not found"))
-        } else {
-            networkMapper.map(networkPool)
+            if (rendezvous != null) {
+                dataSource.upsertRendezvous(rendezvous, networkPool.rendezvousSignature)
+            }
         }
 
-        return Result.success(poolWithBets)
+
+        // store the pool if we are the host or if we have bet already
+        if (isHost || networkPool.bets.any { it.userId == userManager.accountId }) {
+            dataSource.upsert(listOf(networkPool))
+        }
+
+        return runCatching {
+            dataSource.getById(id)!!
+        }.recoverCatching { networkToDomainMapper.map(networkPool to null) }
+    }
+
+    suspend fun getPool(rendezvous: KeyPair): Result<PoolWithBets> {
+        val networkPool = controller.getPool(rendezvous)
+            .getOrElse { return Result.failure(it) }
+
+        val (_, _, isHost, bets) = networkToDomainMapper.map(networkPool to rendezvous)
+
+        // store the pool if we are the host or if we have bet already
+        if (isHost || bets.any { it.userId == userManager.accountId }) {
+            dataSource.upsert(listOf(networkPool))
+            dataSource.upsertRendezvous(rendezvous, networkPool.rendezvousSignature)
+        }
+
+        return runCatching {
+            dataSource.getById(rendezvous.publicKeyBytes.toList())!!
+        }.recoverCatching { networkToDomainMapper.map(networkPool to rendezvous) }
     }
 
     fun observePool(id: ID): Flow<PoolWithBets?> {
@@ -117,9 +146,10 @@ class PoolsCoordinator @Inject constructor(
 
     suspend fun closePool(
         pool: Pool,
+        rendezvous: KeyPair,
     ): Result<Unit> {
         val metadata = domainToMetadataMapper.map(pool)
-        return controller.closePool(metadata)
+        return controller.closePool(metadata, rendezvous)
             .onSuccess {
                 dataSource.closePool(pool.id)
             }
@@ -128,10 +158,12 @@ class PoolsCoordinator @Inject constructor(
     suspend fun resolvePool(
         pool: Pool,
         resolution: PoolResolution,
+        rendezvous: KeyPair
     ): Result<Unit> {
         val metadata = domainToMetadataMapper.map(pool)
         return controller.resolvePool(
             pool = metadata,
+            rendezvous = rendezvous,
             resolution = PoolResolutionConverter.toPoolResolution(resolution),
         ).onSuccess {
             dataSource.resolvePool(pool.id, resolution)
@@ -157,9 +189,10 @@ class PoolsCoordinator @Inject constructor(
         return controller.getPagedPools(
             queryOptions = QueryOptions(
                 limit = count,
-                token = latest?.id,
+                token = latest?.pool?.id,
                 descending = latest == null,
             )
-        ).onSuccess { dataSource.upsert(it) }.map { Unit }
+        ).onSuccess {
+            dataSource.upsert(it) }.map { Unit }
     }
 }

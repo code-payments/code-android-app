@@ -10,7 +10,6 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 
 interface PoolRepository {
     suspend fun createPool(
@@ -23,7 +22,7 @@ interface PoolRepository {
     ): Result<PoolMetadata>
 
     suspend fun getPool(
-        poolId: ID
+        poolId: ID,
     ): Result<NetworkPool>
 
     suspend fun getPagedPools(
@@ -34,13 +33,14 @@ interface PoolRepository {
     suspend fun closePool(
         owner: KeyPair,
         pool: PoolMetadata,
+        poolRendezvous: KeyPair,
     ): Result<Unit>
 
     suspend fun declareOutcome(
         owner: KeyPair,
         pool: PoolMetadata,
+        poolRendezvous: KeyPair,
         resolution: NetworkPoolResolution,
-        rendezvous: KeyPair,
     ): Result<Unit>
 
     suspend fun placeBet(
@@ -48,7 +48,7 @@ interface PoolRepository {
         userId: ID,
         poolId: ID,
         payoutDestination: PublicKey,
-        rendezvous: KeyPair,
+        poolRendezvous: KeyPair,
         choice: NetworkPoolBetOutcome,
     ): Result<PoolBetMetadata>
 }

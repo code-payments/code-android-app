@@ -1,11 +1,10 @@
 package com.flipcash.app.persistence.sources.mapper.pools
 
-import com.flipcash.app.persistence.BetOutcomeConverter
 import com.flipcash.app.persistence.PoolResolutionConverter
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
-import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.mapper.Mapper
@@ -33,7 +32,6 @@ class NetworkPoolToEntityMapper @Inject constructor(
             resolution = PoolResolutionConverter.fromPoolResolution(metadata.resolution),
             timestamp = metadata.createdAt.toEpochMilliseconds(),
             closedTimestamp = metadata.closedAt?.toEpochMilliseconds(),
-            rendezvousSeed = from.rendezvous.seed,
             didWin = metadata.resolution.didWin(selectedOutcome),
             didBet = selectedOutcome != null
         )

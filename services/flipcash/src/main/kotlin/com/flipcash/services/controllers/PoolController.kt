@@ -1,6 +1,5 @@
 package com.flipcash.services.controllers
 
-import com.flipcash.services.internal.model.pools.PoolRequest
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
@@ -9,11 +8,10 @@ import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.crypt.DerivePath
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.PublicKey
 import javax.inject.Inject
 import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
 
@@ -34,7 +32,9 @@ class PoolController @Inject constructor(
         val poolAccount = accountController.createPoolAccount(owner, userManager.nextPoolIndex)
             .getOrElse { return Result.failure(it) }
 
-        val rendezvous = Ed25519.createKeyPair()
+        val path = DerivePath.getPoolRendezvous(userManager.nextPoolIndex)
+        val rendezvous = userManager.mnemnonic?.getSolanaKeyPair(path)
+            ?: return Result.failure(Throwable("No mnemonic in UserManager"))
         return repository.createPool(
             owner = owner.authority.keyPair,
             name = name,
@@ -47,7 +47,8 @@ class PoolController @Inject constructor(
         }
     }
 
-    suspend fun getPool(poolId: ID) = repository.getPool(poolId)
+    suspend fun getPool(rendezvous: KeyPair) = repository.getPool(rendezvous.publicKeyBytes.toList())
+    suspend fun getPool(id: ID) = repository.getPool(id)
 
     suspend fun getPagedPools(queryOptions: QueryOptions): Result<List<NetworkPool>> {
         val owner = userManager.accountCluster?.authority?.keyPair
@@ -58,6 +59,7 @@ class PoolController @Inject constructor(
 
     suspend fun closePool(
         pool: PoolMetadata,
+        rendezvous: KeyPair,
     ): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
@@ -65,23 +67,23 @@ class PoolController @Inject constructor(
         return repository.closePool(
             owner = owner,
             pool = pool,
+            poolRendezvous = rendezvous,
         )
     }
 
     suspend fun resolvePool(
         pool: PoolMetadata,
         resolution: NetworkPoolResolution,
+        rendezvous: KeyPair,
     ): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
-
-        val rendezvous = Ed25519.createKeyPair()
 
         return repository.declareOutcome(
             owner = owner,
             pool = pool,
             resolution = resolution,
-            rendezvous = rendezvous,
+            poolRendezvous = rendezvous,
         )
     }
 
@@ -104,7 +106,7 @@ class PoolController @Inject constructor(
             poolId = poolId,
             choice = choice,
             payoutDestination = vault,
-            rendezvous = rendezvous,
+            poolRendezvous = rendezvous,
         )
     }
 }

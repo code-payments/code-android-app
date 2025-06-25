@@ -11,6 +11,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.vendor.Base58
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import java.io.Serial
 
 @Serializable
 @Entity(tableName = "pool_metadata")
@@ -22,7 +23,6 @@ data class PoolEntity(
     val buyInAmount: Long,
     val buyInCurrency: String,
     val fundingDestinationBase58: String,
-    val rendezvousSeed: String,
     val isOpen: Boolean,
     val didWin: Boolean,
     @ColumnInfo(defaultValue = "false")
@@ -50,6 +50,22 @@ data class PoolEntity(
 
 data class PoolWithBetsEntity(
     @Embedded val pool: PoolEntity,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "poolIdBase58"
+    )
+    val bets: List<PoolBetEntity>
+)
+
+data class PoolWithBetsAndRendezvousEntity(
+    @Embedded val pool: PoolEntity,
+    @Relation(
+        entity = PoolRendezvousEntity::class,
+        parentColumn = "idBase58",
+        entityColumn = "poolIdBase58",
+        projection = ["rendezvousSeed"]
+    )
+    val rendezvous: String?,
     @Relation(
         parentColumn = "idBase58",
         entityColumn = "poolIdBase58"

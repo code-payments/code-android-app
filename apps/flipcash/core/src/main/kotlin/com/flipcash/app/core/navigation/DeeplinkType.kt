@@ -2,14 +2,21 @@ package com.flipcash.app.core.navigation
 
 import android.net.Uri
 import android.os.Parcelable
-import com.getcode.opencode.model.core.ID
+import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.utils.base58
+import com.getcode.utils.encodeBase64
+import com.getcode.vendor.Base58
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
 sealed interface DeeplinkType: Parcelable {
     data class Login(val entropy: String) : DeeplinkType
     data class CashLink(val entropy: String) : DeeplinkType
-    data class Pool(val id: ID) : DeeplinkType
+    data class Pool(val seed: String) : DeeplinkType {
+        val rendezvous: Ed25519.KeyPair
+            get() = Ed25519.createKeyPair(Base58.decode(seed))
+
+    }
 }
 
 val Uri.fragments: Map<Key, String>

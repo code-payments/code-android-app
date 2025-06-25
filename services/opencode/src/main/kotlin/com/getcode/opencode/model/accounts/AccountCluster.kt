@@ -1,6 +1,7 @@
 package com.getcode.opencode.model.accounts
 
 import com.getcode.crypt.DerivedKey
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.solana.extensions.newInstance
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
@@ -13,6 +14,9 @@ class AccountCluster(
     val authority: DerivedKey,
     val timelock: TimelockDerivedAccounts
 ) {
+    val rendezvous: Ed25519.KeyPair
+        get() = authority.keyPair
+
     val authorityPublicKey: PublicKey
         get() = authority.keyPair.publicKeyBytes.toPublicKey()
 

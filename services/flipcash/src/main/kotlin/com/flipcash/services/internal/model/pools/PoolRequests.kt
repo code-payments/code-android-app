@@ -31,6 +31,7 @@ internal sealed interface PoolRequest {
 
     data class Close(
         val pool: PoolMetadata,
+        val poolRendezvous: KeyPair,
     ): PoolRequest
 
     data class Resolve(

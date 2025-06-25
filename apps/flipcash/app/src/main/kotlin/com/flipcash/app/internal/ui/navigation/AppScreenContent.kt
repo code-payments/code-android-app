@@ -101,7 +101,10 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.Pools.ChoiceSelection> {
-             PoolBettingScreen(it.poolId)
+             PoolBettingScreen(
+                 poolId = it.poolId,
+                 rendezvous = it.rendezvous
+             )
         }
 
         register<NavScreenProvider.HomeScreen.CurrencySelection> {

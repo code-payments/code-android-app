@@ -1,24 +1,26 @@
 package com.flipcash.app.payments.internal
 
 import com.flipcash.app.core.bill.ConfirmationState
+import com.flipcash.app.core.bill.PoolResolutionConfirmation
 import com.flipcash.app.core.bill.PublicPaymentConfirmation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.PaymentState
-import com.flipcash.app.payments.PoolPaymentMetadata
-import com.flipcash.services.models.PoolMetadata
+import com.flipcash.app.payments.PoolBidPaymentMetadata
+import com.flipcash.app.payments.PoolResolutionPaymentMetadata
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.core.RandomId
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.getPublicKeyBase58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,26 +56,32 @@ class InternalPaymentController(
         val vault = userManager.accountCluster?.vaultPublicKey ?: return
         billController.update {
             when (request) {
-                is PaymentRequest.Pool -> it.copy(
+                is PaymentRequest.PoolBid -> it.copy(
                     publicPaymentConfirmation = PublicPaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         amount = request.pool.buyIn,
                         destination = vault,
-                        metadata = PoolPaymentMetadata(
-                            pool = PoolMetadata(
-                                id = request.pool.id,
-                                creator = request.pool.creator,
-                                name = request.pool.name,
-                                buyIn = request.pool.buyIn,
-                                fundingDestination = request.pool.fundingDestination,
-                                createdAt = request.pool.createdAt,
-                                isOpen = request.pool.isOpen,
-                            ),
+                        metadata = PoolBidPaymentMetadata(
+                            pool = request.pool,
                             selectedOutcome = request.outcome,
-                            rendezvous = request.pool.rendezvous!!
+                            rendezvous = request.rendezvous
                         )
                     )
                 )
+
+                is PaymentRequest.ResolvePool -> {
+                    it.copy(
+                        poolResolutionConfirmation = PoolResolutionConfirmation(
+                            state = ConfirmationState.AwaitingConfirmation,
+                            poolId = request.poolWithBets.pool.id,
+                            metadata = PoolResolutionPaymentMetadata(
+                                poolWithBets = request.poolWithBets,
+                                resolution = request.resolution
+                            )
+                        )
+                    )
+
+                }
             }
         }
     }
@@ -83,39 +91,68 @@ class InternalPaymentController(
             val confirmation = billController.state.value.publicPaymentConfirmation ?: return@launch
             val destination = confirmation.destination
             val amount = confirmation.amount
-            val metadata = confirmation.metadata as PoolPaymentMetadata
+            val metadata = confirmation.metadata
 
-            val (pool, _, _) = metadata
+            when (metadata) {
+                is PoolBidPaymentMetadata -> {
+                    completeBidPayment(
+                        metadata = metadata,
+                        amount = amount,
+                        destination = destination
+                    )
+                }
+
+                is PoolResolutionPaymentMetadata -> {
+                    completePoolDisbursement(metadata)
+                }
+            }
+        }
+    }
+
+    private suspend fun completeBidPayment(
+        metadata: PoolBidPaymentMetadata,
+        amount: Fiat,
+        destination: PublicKey
+
+    ) {
+        val (pool, _, _) = metadata
+        billController.update {
+            it.copy(
+                publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.Sending),
+            )
+        }
+
+        exchange.fetchRatesIfNeeded()
+
+        val balance = balanceController.rawBalance.value
+
+        val localizedAmount = LocalFiat(
+            usdc = amount.convertingTo(exchange.rateForUsd()),
+            converted = amount,
+        )
+
+
+        if (balance < pool.buyIn) {
             billController.update {
                 it.copy(
-                    publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.Sending),
+                    publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
                 )
             }
+            _eventFlow.emit(PaymentEvent.OnPaymentError(PaymentError.InsufficientBalance()))
+            return
+        }
 
-            exchange.fetchRatesIfNeeded()
+//        val request = transactionController.transfer(
+//            destination = destination,
+//            amount = localizedAmount,
+//            rendezvous = PublicKey.fromBase58(metadata.rendezvous.getPublicKeyBase58()),
+//            owner = userManager.accountCluster!!,
+//        ).map { it.id.bytes }
 
-            val balance = balanceController.rawBalance.value
-
-            val localizedAmount = LocalFiat(
-                usdc = amount.convertingTo(exchange.rateForUsd()),
-                converted = amount,
-            )
-
-
-            if (balance < pool.buyIn) {
-                _eventFlow.emit(PaymentEvent.OnPaymentError(PaymentError.InsufficientBalance()))
-                return@launch
-            }
-
-            transactionController.transfer(
-                destination = destination,
-                amount = localizedAmount,
-                rendezvous = PublicKey.fromBase58(metadata.rendezvous.getPublicKeyBase58()),
-                owner = userManager.accountCluster!!,
-            ).onSuccess {
+        Result.success(RandomId).onSuccess {
                 _eventFlow.emit(
                     PaymentEvent.OnPaymentSuccess(
-                        intentId = it.id.bytes,
+                        intentId = it,
                         metadata = metadata,
                         acknowledge = { isSuccess, after ->
                             if (isSuccess) {
@@ -155,7 +192,16 @@ class InternalPaymentController(
 
                 billController.reset()
             }
-        }
+    }
+
+    private suspend fun completePoolDisbursement(
+        metadata: PoolResolutionPaymentMetadata
+    ) {
+        val (poolWithBets, resolution) = metadata
+
+        _eventFlow.emit(PaymentEvent.OnPaymentError(Throwable("Not yet implemented")))
+
+        billController.reset()
     }
 
     override fun cancelPayment(fromUser: Boolean) {

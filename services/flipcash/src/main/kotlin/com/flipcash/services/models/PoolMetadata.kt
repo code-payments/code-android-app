@@ -1,10 +1,8 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
-import com.getcode.opencode.model.core.RandomId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
@@ -31,10 +29,10 @@ data class PoolMetadata(
     val name: String,
     val buyIn: Fiat,
     val fundingDestination: PublicKey,
-    val isOpen: Boolean = true,
-    val resolution: NetworkPoolResolution = NetworkPoolResolution.NotSet,
+    val isOpen: Boolean,
+    val resolution: NetworkPoolResolution,
     val createdAt: Instant,
-    val closedAt: Instant? = null,
+    val closedAt: Instant?,
 ) {
 
     internal fun resolve(resolution: NetworkPoolResolution): PoolMetadata {
@@ -58,6 +56,7 @@ data class PoolMetadata(
             createdAt = Clock.System.now(),
             resolution = NetworkPoolResolution.NotSet,
             isOpen = true,
+            closedAt = null,
         )
 
         internal fun fromRequest(request: PoolRequest.Create): PoolMetadata {
@@ -69,6 +68,8 @@ data class PoolMetadata(
                 resolution = NetworkPoolResolution.NotSet,
                 fundingDestination = request.fundingDestination,
                 createdAt = Clock.System.now(),
+                isOpen = true,
+                closedAt = null,
             )
         }
     }
@@ -77,7 +78,7 @@ data class PoolMetadata(
 @Immutable
 data class NetworkPool(
     val metadata: PoolMetadata,
-    val rendezvous: Ed25519.KeyPair,
+    val rendezvousSignature: List<Byte>?,
     val bets: List<PoolBetMetadata> = emptyList(),
 )
 

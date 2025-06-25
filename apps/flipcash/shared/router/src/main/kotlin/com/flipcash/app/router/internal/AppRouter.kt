@@ -78,9 +78,9 @@ internal class AppRouter(
                         }
 
                         pool.contains(deeplink.pathSegments[0]) -> {
-                            val entropy = deeplink.data.toUri().fragments[Key.entropy] ?: return null
-                            val poolId = Base58.decode(entropy).toList()
-                            DeeplinkType.Pool(poolId)
+                            val seed = deeplink.data.toUri().fragments[Key.entropy] ?: return null
+                            println("seed=$seed")
+                            DeeplinkType.Pool(seed)
                         }
                         else -> null
                     }

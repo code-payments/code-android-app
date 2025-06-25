@@ -1,5 +1,6 @@
 package com.getcode.opencode.controllers
 
+import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.model.accounts.AccountCluster

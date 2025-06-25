@@ -2,6 +2,8 @@ package com.flipcash.app.shareable
 
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.app.core.pools.PoolWithBets
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.financial.LocalFiat
@@ -11,25 +13,29 @@ import kotlin.time.Duration.Companion.seconds
 
 sealed interface ShareResult {
     sealed interface ActionTaken
-    data object NotShared: ShareResult
-    data object CopiedToClipboard: ShareResult, ActionTaken
-    data class SharedToApp(val to: String): ShareResult, ActionTaken
+    data object NotShared : ShareResult
+    data object CopiedToClipboard : ShareResult, ActionTaken
+    data class SharedToApp(val to: String) : ShareResult, ActionTaken
 }
 
 sealed interface Shareable {
     val pendingData: ShareablePendingData?
+
     data class CashLink(
         val giftCardAccount: GiftCardAccount,
         val amount: LocalFiat,
         val autoConfirmationAfter: Duration = 60.seconds,
         override val pendingData: ShareablePendingData.CashLink? = null
-    ): Shareable
+    ) : Shareable
 
-    data object DownloadLink: Shareable {
+    data object DownloadLink : Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 
-    data class Pool(val pool: com.flipcash.app.core.pools.Pool): Shareable {
+    data class Pool(
+        val pool: com.flipcash.app.core.pools.Pool,
+        val rendezvous: Ed25519.KeyPair
+    ) : Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 }
@@ -38,7 +44,7 @@ sealed interface ShareablePendingData {
     data class CashLink(
         val entropy: String,
         val amount: LocalFiat,
-    ): ShareablePendingData
+    ) : ShareablePendingData
 }
 
 interface ShareSheetController {
@@ -54,7 +60,7 @@ interface ShareSheetController {
     }
 }
 
-private object NoOpController: ShareSheetController {
+private object NoOpController : ShareSheetController {
     override val isCheckingForShare: Boolean = false
     override var onShared: ((ShareResult) -> Unit)? = null
     override fun checkForShare() = Unit
@@ -62,4 +68,5 @@ private object NoOpController: ShareSheetController {
     override fun reset(setChecked: Boolean) = Unit
 }
 
-val LocalShareController: ProvidableCompositionLocal<ShareSheetController> = staticCompositionLocalOf { NoOpController }
+val LocalShareController: ProvidableCompositionLocal<ShareSheetController> =
+    staticCompositionLocalOf { NoOpController }

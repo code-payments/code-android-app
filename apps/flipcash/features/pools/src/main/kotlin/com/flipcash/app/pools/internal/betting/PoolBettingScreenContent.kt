@@ -324,7 +324,7 @@ private fun BettingBottomBar(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
     ) {
-        if (!state.isHost && !state.isResolved) {
+        if (state.isLoaded && !state.isHost && !state.isResolved) {
             Text(
                 modifier = Modifier
                     .fillMaxWidth()

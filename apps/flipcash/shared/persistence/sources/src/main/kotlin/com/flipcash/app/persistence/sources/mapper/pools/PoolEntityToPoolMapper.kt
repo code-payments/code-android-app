@@ -3,7 +3,6 @@ package com.flipcash.app.persistence.sources.mapper.pools
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.persistence.PoolResolutionConverter
 import com.flipcash.app.persistence.entities.PoolEntity
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -21,7 +20,6 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             buyIn = Fiat(nativeAmount, currencyCode),
             fundingDestination = from.fundingDestination,
             isOpen = from.isOpen,
-            rendezvous = Ed25519.createKeyPair(from.rendezvousSeed),
             resolution = PoolResolutionConverter.toPoolResolution(from.resolution),
             createdAt = from.createdAt,
             closedAt = from.closedAt,

@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.pool.v1.Model
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toPublicKey
+import com.flipcash.services.internal.network.extensions.toResolution
 import com.flipcash.services.models.PoolMetadata
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -24,8 +25,11 @@ class PoolMetadataMapper @Inject constructor(): Mapper<Model.SignedPoolMetadata,
                         ?: CurrencyCode.USD,
                 )
             },
+            isOpen = from.isOpen,
+            resolution = from.resolution.toResolution(),
             fundingDestination = from.fundingDestination.toByteArray().toPublicKey(),
             createdAt = Instant.Companion.fromEpochSeconds(from.createdAt.seconds, 0),
+            closedAt = from.closedAt?.let { Instant.Companion.fromEpochSeconds(it.seconds, 0) },
         )
     }
 }

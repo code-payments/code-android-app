@@ -2,7 +2,6 @@ package com.flipcash.app.scanner.internal
 
 import android.app.Activity
 import android.view.WindowManager
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -11,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
@@ -26,8 +24,6 @@ import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.scaled
-import com.getcode.ui.core.trackVisibility
-import com.getcode.ui.core.visibility.VisibilityInfo
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.delay
@@ -92,7 +88,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
                 navigator.show(
                     listOf(
                         ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Root),
-                        ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(deeplink.id))
+                        ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(rendezvous = deeplink.rendezvous))
                     )
                 )
             }

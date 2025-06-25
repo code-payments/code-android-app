@@ -32,11 +32,29 @@ import kotlinx.datetime.Clock
 
 @Composable
 internal fun PoolSummaryRow(
-    data: PoolWithBets,
+    poolWithBets: PoolWithBets,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val (pool, isHost, _) = data
+    PoolSummaryRow(
+        pool = poolWithBets.pool,
+        isHost = poolWithBets.isHost,
+        winningAmount = poolWithBets.winningAmount,
+        totalPoolAmount = poolWithBets.totalPoolAmount,
+        modifier = modifier,
+        onClick = onClick,
+    )
+}
+
+@Composable
+internal fun PoolSummaryRow(
+    pool: Pool,
+    isHost: Boolean,
+    winningAmount: Fiat,
+    totalPoolAmount: Fiat,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val isCompleted = remember(pool) { pool.resolution != PoolResolution.NotSet }
     val didWin = remember(pool) { pool.didWin }
 
@@ -81,7 +99,7 @@ internal fun PoolSummaryRow(
 
             if (isCompleted) {
                 CompletedPoolStatusRow(
-                    winnings = data.winningAmount,
+                    winnings = winningAmount,
                     buyIn = pool.buyIn,
                     didWin = didWin,
                     resolution = pool.resolution,
@@ -90,7 +108,7 @@ internal fun PoolSummaryRow(
                 Text(
                     text = stringResource(
                         R.string.subtitle_totalInPool,
-                        data.totalPoolAmount.formatted(
+                        totalPoolAmount.formatted(
                             formatting = Fiat.Formatting.Truncated
                         )
                     ),
@@ -115,30 +133,19 @@ private val pool = Pool(
     buyIn = 5.00.toFiat(),
     fundingDestination = PublicKey.fromBase58("7XbL9kZ3mPqW8nR2vY5tJ6hQ4uF1cA9xN3gT8rK5pM"),
     name = "Will Flipcash Pools launch before the end of June?",
-    rendezvous = null,
     createdAt = Clock.System.now(),
     closedAt = null,
     didWin = false,
     didBet = false,
 )
 
-private val hostedPoolWithNoBets = PoolWithBets(
-    pool = pool,
-    isHost = true,
-    bets = emptyList()
-)
-
-private val hostedPoolWithBets = PoolWithBets(
-    pool = pool,
-    isHost = true,
-    bets = listOf(
-        PoolBet(
-            id = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
-            userId = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
-            selectedOutcome = PoolBetOutcome.BooleanOutcome(false),
-            payoutDestination = PublicKey.fromBase58("7XbL9kZ3mPqW8nR2vY5tJ6hQ4uF1cA9xN3gT8rK5pM"),
-            placedAt = Clock.System.now(),
-        )
+val bets = listOf(
+    PoolBet(
+        id = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
+        userId = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
+        selectedOutcome = PoolBetOutcome.BooleanOutcome(false),
+        payoutDestination = PublicKey.fromBase58("7XbL9kZ3mPqW8nR2vY5tJ6hQ4uF1cA9xN3gT8rK5pM"),
+        placedAt = Clock.System.now(),
     )
 )
 
@@ -153,7 +160,10 @@ private fun OpenHostedNoBetsPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithNoBets,
+                pool = pool,
+                isHost = true,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 0.00.toFiat(),
                 onClick = {},
             )
         }
@@ -166,7 +176,10 @@ private fun OpenNoBetsPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithNoBets.copy(isHost = false),
+                pool = pool,
+                isHost = false,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 0.00.toFiat(),
                 onClick = {},
             )
         }
@@ -179,7 +192,10 @@ private fun OpenHostedHasBetsPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets,
+                pool = pool,
+                isHost = true,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -192,7 +208,10 @@ private fun OpenHasBetsPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(isHost = false),
+                pool = pool,
+                isHost = false,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -205,7 +224,10 @@ private fun ClosedHostedRefundedPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(pool = refundedPool),
+                pool = refundedPool,
+                isHost = true,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -218,7 +240,10 @@ private fun ClosedRefundedPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(pool = refundedPool, isHost = false),
+                pool = refundedPool,
+                isHost = false,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -231,7 +256,10 @@ private fun ClosedHostedWonPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(pool = wonPool),
+                pool = wonPool,
+                isHost = true,
+                winningAmount = 10.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -244,7 +272,10 @@ private fun ClosedWonPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(pool = wonPool, isHost = false),
+                pool = wonPool,
+                isHost = false,
+                winningAmount = 10.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -257,7 +288,10 @@ private fun ClosedHostedLostPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(pool = lostPool),
+                pool = lostPool,
+                isHost = true,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -270,7 +304,10 @@ private fun ClosedLostPreview() {
     FlipcashDesignSystem {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             PoolSummaryRow(
-                data = hostedPoolWithBets.copy(pool = lostPool, isHost = false),
+                pool = lostPool,
+                isHost = false,
+                winningAmount = 0.00.toFiat(),
+                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }

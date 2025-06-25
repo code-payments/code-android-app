@@ -12,7 +12,6 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.toProto
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolMetadata
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import io.grpc.ManagedChannel
@@ -36,10 +35,10 @@ internal class PoolApi @Inject constructor(
     ): PoolService.CreatePoolResponse {
         val metadata = request.metadata
         val pool = metadata.toProto()
-        val signature = request.rendezvous.sign(pool.toByteArray()).asSignature()
+        val signature = request.rendezvous.sign(pool.toByteArray())
         val rpcRequest = PoolService.CreatePoolRequest.newBuilder()
             .setPool(pool)
-            .setRendezvousSignature(signature)
+            .setRendezvousSignature(signature.asSignature())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -88,9 +87,8 @@ internal class PoolApi @Inject constructor(
         owner: KeyPair,
         request: PoolRequest.Close,
     ): PoolService.ClosePoolResponse {
-        val rendezvous = Ed25519.createKeyPair()
         val metadata = request.pool.close().toProto()
-        val signature = rendezvous.sign(metadata.toByteArray()).asSignature()
+        val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
 
         val rpcRequest = PoolService.ClosePoolRequest.newBuilder()
             .setId(metadata.id)
@@ -116,9 +114,8 @@ internal class PoolApi @Inject constructor(
         owner: KeyPair,
         request: PoolRequest.Resolve,
     ): PoolService.ResolvePoolResponse {
-        val rendezvous = Ed25519.createKeyPair()
         val metadata = request.pool.resolve(request.resolution).toProto()
-        val signature = rendezvous.sign(metadata.toByteArray()).asSignature()
+        val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
 
         val rpcRequest = PoolService.ResolvePoolRequest.newBuilder()
             .setId(request.pool.id.asPoolId())

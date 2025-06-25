@@ -4,10 +4,12 @@ import com.bugsnag.android.Bugsnag
 import com.flipcash.services.internal.model.account.UserFlags
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
+import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
+import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.services.opencode.BuildConfig
@@ -60,6 +62,9 @@ class UserManager @Inject constructor(
     val entropy: String?
         get() = _state.value.entropy
 
+    val mnemnonic: MnemonicPhrase?
+        get() = entropy?.let { MnemonicPhrase.fromEntropyB64(it) }
+
     val accountCluster: AccountCluster?
         get() = _state.value.cluster
 
@@ -75,6 +80,9 @@ class UserManager @Inject constructor(
     val isRegistered: Boolean
         get() = _state.value.flags?.isRegistered == true
 
+    val poolAccounts: List<AccountInfo>
+        get() = _state.value.poolAccounts
+
     val nextPoolIndex: Long
         get() = _state.value.nextPoolIndex
 
@@ -87,6 +95,7 @@ class UserManager @Inject constructor(
         val isTimelockUnlocked: Boolean = false,
         val pushToken: String? = null,
         val nextPoolIndex: Long = 0L,
+        val poolAccounts: List<AccountInfo> = emptyList(),
     )
 
     init {
@@ -97,6 +106,10 @@ class UserManager @Inject constructor(
         balanceController.onNextIndexDetermined = { nextIndex ->
             trace("next pool index determined => $nextIndex")
             _state.update { it.copy(nextPoolIndex = nextIndex) }
+        }
+
+        balanceController.onPoolAccountsUpdated = { poolAccounts ->
+            _state.update { it.copy(poolAccounts = poolAccounts) }
         }
 
         Firebase.messaging.token.addOnSuccessListener { token ->

@@ -5,9 +5,11 @@ import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.pools.internal.list.components.PoolListItem
 import com.flipcash.app.pools.internal.list.components.PoolListItem.PoolItem
+import com.getcode.ed25519.Ed25519
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.map
@@ -25,7 +27,7 @@ internal class PoolListViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnPoolClicked(val pool: Pool) : Event
+        data class OnPoolClicked(val pool: PoolWithBets) : Event
         data object OnCreatePool : Event
     }
 
