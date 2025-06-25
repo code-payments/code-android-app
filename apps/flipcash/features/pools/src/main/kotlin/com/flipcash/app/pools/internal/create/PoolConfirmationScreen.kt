@@ -144,13 +144,13 @@ private fun PoolConfirmationScreenContent(
             ) {
                 FlagWithFiat(
                     fiat = state.bidEntryState.selectedAmount,
-                    textStyle = CodeTheme.typography.displayLarge,
+                    textStyle = CodeTheme.typography.displayMedium,
                     iconSize = CodeTheme.dimens.staticGrid.x6,
                 )
 
                 Text(
-                    text = stringResource(R.string.subtitle_poolBuyIn),
-                    style = CodeTheme.typography.textLarge,
+                    text = stringResource(R.string.subtitle_toJoin),
+                    style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textSecondary
                 )
             }

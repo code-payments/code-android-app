@@ -28,7 +28,7 @@ class PoolCustomBidEntryScreen  : ModalScreen, NamedScreen, Parcelable {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_createNewPool)
+        @Composable get() = stringResource(R.string.title_setAmount)
 
     @Composable
     override fun ModalContent() {
