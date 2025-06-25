@@ -31,7 +31,6 @@ import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
-import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.getActivity
 import dev.bmcreations.tipkit.TipScaffold
@@ -76,85 +75,83 @@ fun App(
         AppScreenContent {
             PaymentScaffold {
                 TipScaffold(tipsEngine = tipsEngine) {
-                    ScrimSupport {
-                        AppNavHost {
-                            val codeNavigator = LocalCodeNavigator.current
-                            CodeScaffold { innerPaddingModifier ->
-                                Navigator(
-                                    screen = MainRoot { deepLink },
-                                ) { navigator ->
-                                    LaunchedEffect(navigator.lastItem) {
-                                        // update global navigator for platform access to support push/pop from a single
-                                        // navigator current
-                                        codeNavigator.screensNavigator = navigator
-                                    }
+                    AppNavHost {
+                        val codeNavigator = LocalCodeNavigator.current
+                        CodeScaffold { innerPaddingModifier ->
+                            Navigator(
+                                screen = MainRoot { deepLink },
+                            ) { navigator ->
+                                LaunchedEffect(navigator.lastItem) {
+                                    // update global navigator for platform access to support push/pop from a single
+                                    // navigator current
+                                    codeNavigator.screensNavigator = navigator
+                                }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(innerPaddingModifier)
-                                    ) {
-                                        SlideTransition(navigator)
-                                    }
+                                Box(
+                                    modifier = Modifier
+                                        .padding(innerPaddingModifier)
+                                ) {
+                                    SlideTransition(navigator)
+                                }
 
-                                    LaunchedEffect(deepLink) {
-                                        if (codeNavigator.lastItem !is MainRoot) {
-                                            if (deepLink != null) {
-                                                val screenSet = router.processDestination(deepLink)
-                                                if (screenSet.isNotEmpty()) {
-                                                    codeNavigator.replaceAll(screenSet)
-                                                }
+                                LaunchedEffect(deepLink) {
+                                    if (codeNavigator.lastItem !is MainRoot) {
+                                        if (deepLink != null) {
+                                            val screenSet = router.processDestination(deepLink)
+                                            if (screenSet.isNotEmpty()) {
+                                                codeNavigator.replaceAll(screenSet)
                                             }
                                         }
                                     }
+                                }
 
-                                    LaunchedEffect(loginRequest) {
-                                        loginRequest?.let { entropy ->
-                                            homeViewModel.handleLoginEntropy(
-                                                entropy,
-                                                onSwitchAccounts = {
-                                                    loginRequest = null
-                                                    context.getActivity()?.let {
-                                                        homeViewModel.logout(it) {
-                                                            codeNavigator.replaceAll(
-                                                                ScreenRegistry.get(
-                                                                    NavScreenProvider.Login.Home(
-                                                                        entropy
-                                                                    )
+                                LaunchedEffect(loginRequest) {
+                                    loginRequest?.let { entropy ->
+                                        homeViewModel.handleLoginEntropy(
+                                            entropy,
+                                            onSwitchAccounts = {
+                                                loginRequest = null
+                                                context.getActivity()?.let {
+                                                    homeViewModel.logout(it) {
+                                                        codeNavigator.replaceAll(
+                                                            ScreenRegistry.get(
+                                                                NavScreenProvider.Login.Home(
+                                                                    entropy
                                                                 )
                                                             )
-                                                        }
+                                                        )
                                                     }
-                                                },
-                                                onCancel = {
-                                                    loginRequest = null
                                                 }
-                                            )
-                                        }
-                                    }
-
-                                    LaunchedEffect(userState.isTimelockUnlocked) {
-                                        if (userState.isTimelockUnlocked) {
-                                            codeNavigator.replaceAll(
-                                                ScreenRegistry.get(
-                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    OnLifecycleEvent { _, event ->
-                                        when (event) {
-                                            Lifecycle.Event.ON_RESUME -> {
-                                                homeViewModel.onAppOpen()
+                                            },
+                                            onCancel = {
+                                                loginRequest = null
                                             }
+                                        )
+                                    }
+                                }
 
-                                            Lifecycle.Event.ON_STOP,
-                                            Lifecycle.Event.ON_DESTROY -> {
-                                                homeViewModel.closeStream()
-                                            }
+                                LaunchedEffect(userState.isTimelockUnlocked) {
+                                    if (userState.isTimelockUnlocked) {
+                                        codeNavigator.replaceAll(
+                                            ScreenRegistry.get(
+                                                NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
+                                            )
+                                        )
+                                    }
+                                }
 
-                                            else -> Unit
+                                OnLifecycleEvent { _, event ->
+                                    when (event) {
+                                        Lifecycle.Event.ON_RESUME -> {
+                                            homeViewModel.onAppOpen()
                                         }
+
+                                        Lifecycle.Event.ON_STOP,
+                                        Lifecycle.Event.ON_DESTROY -> {
+                                            homeViewModel.closeStream()
+                                        }
+
+                                        else -> Unit
                                     }
                                 }
                             }

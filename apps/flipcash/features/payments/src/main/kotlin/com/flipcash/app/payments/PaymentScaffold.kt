@@ -1,4 +1,4 @@
-package com.flipcash.app.payments.ui
+package com.flipcash.app.payments
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -17,10 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import com.flipcash.app.core.bill.BillState
-import com.flipcash.app.payments.LocalPaymentController
-import com.flipcash.app.payments.internal.ui.PublicPaymentConfirmation
-import com.getcode.theme.Black40
+import com.flipcash.app.payments.internal.PoolResolutionConfirmationModal
+import com.flipcash.app.payments.internal.PublicPaymentConfirmationModal
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
@@ -32,7 +31,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
     val state by payments.state.collectAsState()
     Box(modifier = Modifier.fillMaxSize()) {
         content()
-        val scrimDetails by rememberConfirmationDetails(state.billState)
+        val scrimDetails by rememberConfirmationDetails(state)
 
         val scrimAlpha by animateFloatAsState(if (scrimDetails.show) 1f else 0f, label = "scrim visibility")
 
@@ -41,13 +40,13 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                 modifier = Modifier
                     .fillMaxSize()
                     .alpha(scrimAlpha)
-                    .background(Black40)
+                    .background(CodeTheme.colors.scrim)
                     .rememberedClickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
                     ) {
                         if (scrimDetails.cancellable) {
-                            payments.cancelPayment(fromUser = true)
+                            payments.cancelRequest(fromUser = true)
                         }
                     }
             )
@@ -56,19 +55,20 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
         // public payments
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = state.billState.publicPaymentConfirmation?.amount, // amount is constant across state changes
+            targetState = state.poolBidConfirmation,
+            contentKey = { it?.amount },
             transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast()),
             label = "public payments",
-        ) {
-            if (it != null) {
+        ) { confirmation ->
+            if (confirmation != null) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = BottomCenter
                 ) {
-                    PublicPaymentConfirmation(
-                        confirmation = state.billState.publicPaymentConfirmation,
-                        onSend = { payments.completePublicPayment() },
-                        onCancel = { payments.cancelPayment(fromUser = true) }
+                    PublicPaymentConfirmationModal(
+                        confirmation = confirmation,
+                        onSend = { payments.completeRequest() },
+                        onCancel = { payments.cancelRequest(fromUser = true) }
                     )
                 }
             } else {
@@ -79,19 +79,20 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
         // pool resolution confirmation
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = state.billState.poolResolutionConfirmation?.poolId, // ID is constant across state changes
+            targetState = state.poolResolutionConfirmation,
+            contentKey = { it?.poolId },
             transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast()),
             label = "pool resolugion confirmation",
-        ) {
-            if (it != null) {
+        ) { confirmation ->
+            if (confirmation != null) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = BottomCenter
                 ) {
-                    PublicPaymentConfirmation(
-                        confirmation = state.billState.publicPaymentConfirmation,
-                        onSend = { payments.completePublicPayment() },
-                        onCancel = { payments.cancelPayment(fromUser = true) }
+                    PoolResolutionConfirmationModal(
+                        confirmation = confirmation,
+                        onSend = { payments.completeRequest() },
+                        onCancel = { payments.cancelRequest(fromUser = true) }
                     )
                 }
             } else {
@@ -104,13 +105,15 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
 data class ScrimDetails(val show: Boolean, val cancellable: Boolean)
 
 @Composable
-private fun rememberConfirmationDetails(billState: BillState): State<ScrimDetails> {
-    return remember(billState) {
+private fun rememberConfirmationDetails(state: PaymentState): State<ScrimDetails> {
+    return remember(state) {
         derivedStateOf {
-            val publicPaymentConfirmation = billState.publicPaymentConfirmation
+            val publicPaymentConfirmation = state.poolBidConfirmation
+            val poolResolutionConfirmation = state.poolResolutionConfirmation
 
             listOf(
                 publicPaymentConfirmation,
+                poolResolutionConfirmation,
             ).firstNotNullOfOrNull { it }?.let { conf ->
                 ScrimDetails(conf.showScrim, conf.cancellable)
             } ?: ScrimDetails(show = false, cancellable = false)

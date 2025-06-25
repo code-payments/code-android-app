@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.flipcash.app.core.extensions.toYesOrNo
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.features.pools.R
 import com.getcode.opencode.model.financial.Fiat
@@ -70,6 +71,3 @@ internal fun CompletedPoolStatusRow(
         }
     }
 }
-
-@Composable
-private fun Boolean.toYesOrNo() = if (this) stringResource(R.string.label_yes) else stringResource(R.string.label_no)

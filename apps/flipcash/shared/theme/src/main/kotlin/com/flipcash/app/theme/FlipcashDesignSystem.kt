@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.getcode.theme.BannerSuccess
 import com.getcode.theme.BetaIndicator
+import com.getcode.theme.Black40
 import com.getcode.theme.BrandAccent
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandIndicator
@@ -19,6 +20,7 @@ import com.getcode.theme.TextError
 import com.getcode.theme.Warning
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.theme.White08
 import com.getcode.theme.White10
 import com.getcode.theme.White20
 import com.getcode.theme.codeTypography
@@ -52,10 +54,10 @@ private val colors = with(FlipcashColorSpec) {
         onSurface = White,
         error = Error,
         errorText = TextError,
-        success = Color(0xFF3FE159),
+        success = Color(0xB01AC86A),
         textMain = Color.White,
         textSecondary = Color.White.copy(alpha = 0.5f),
-        border = White20,
+        border = White08,
         divider = White10,
         dividerVariant = White05,
         trackColor = Color.White.copy(alpha = 0.07f),
@@ -67,6 +69,7 @@ private val colors = with(FlipcashColorSpec) {
         bannerError = Error,
         bannerWarning = Warning,
         bannerSuccess = BannerSuccess,
+        scrim = Black40
     )
 }
 

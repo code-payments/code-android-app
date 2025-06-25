@@ -1,6 +1,6 @@
 package com.flipcash.app.payments
 
-import com.flipcash.app.core.bill.PaymentMetadata
+import com.flipcash.app.payments.internal.PaymentMetadata
 import com.getcode.opencode.model.core.ID
 
 sealed interface PaymentEvent {

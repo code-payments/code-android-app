@@ -6,6 +6,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.getcode.theme.Alert
 import com.getcode.theme.BannerSuccess
 import com.getcode.theme.BetaIndicator
+import com.getcode.theme.Black40
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
@@ -63,6 +64,7 @@ private val colors = ColorScheme(
     bannerError = Error,
     bannerWarning = Warning,
     bannerSuccess = BannerSuccess,
+    scrim = Black40,
 )
 
 @Composable

@@ -42,7 +42,7 @@ val Pool.Companion.Empty: Pool
 
 data class PoolWithBets(
     val pool: Pool,
-    val rendezvous: KeyPair?,
+    val rendezvous: KeyPair? = null,
     val isHost: Boolean,
     val bets: List<PoolBet>
 ) {
@@ -54,6 +54,9 @@ data class PoolWithBets(
 
     val groupedBets: Map<PoolBetOutcome, List<PoolBet>> = bets.groupBy { it.selectedOutcome }
 
+    val winnerCount: Int
+        get() = winningOutcome?.let { groupedBets[it] }?.count() ?: 0
+
     val winningOutcome: PoolBetOutcome?
         get() = pool.resolution.winningOutcome
 
@@ -63,5 +66,17 @@ data class PoolWithBets(
             totalPoolAmount / bettors.coerceAtLeast(1)
         } ?: Fiat.Zero
 
-    fun amountForOutcome(outcome: PoolBetOutcome): Fiat = groupedBets[outcome].let { pool.buyIn.times(it?.count() ?: 0) }
+    fun winningAmountForResolution(resolution: PoolResolution.DecisionMade): Fiat {
+        when (resolution) {
+            is PoolResolution.BooleanResolution -> {
+                val bettors = groupedBets[resolution.winningOutcome].orEmpty().count()
+                return totalPoolAmount / bettors.coerceAtLeast(1)
+            }
+
+            PoolResolution.Refund -> return pool.buyIn
+        }
+    }
+
+    fun amountForOutcome(outcome: PoolBetOutcome): Fiat =
+        groupedBets[outcome].let { pool.buyIn.times(it?.count() ?: 0) }
 }

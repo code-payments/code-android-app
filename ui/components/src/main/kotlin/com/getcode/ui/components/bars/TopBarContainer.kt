@@ -58,7 +58,7 @@ fun TopBarContainer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Black40)
+                .background(CodeTheme.colors.scrim)
                 .rememberedClickable(indication = null,
                     interactionSource = remember { MutableInteractionSource() }) {}
         )

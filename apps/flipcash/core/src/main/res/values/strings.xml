@@ -217,6 +217,9 @@
     <string name="error_title_placeBetFailed">Something Went Wrong</string>
     <string name="error_description_placeBetFailed">We were unable to place your bid. Please try again</string>
 
+    <string name="error_title_resolvePoolFailed">Something Went Wrong</string>
+    <string name="error_description_resolvePoolFailed">We were unable to resolve your pool. Please try again</string>
+
     <string name="action_swipeToBuyIn">Swipe to Buy In</string>
 
     <string name="title_open">Open</string>
@@ -226,6 +229,7 @@
     <string name="subtitle_refunded">Refunded</string>
     <string name="label_yes">Yes</string>
     <string name="label_no">No</string>
+    <string name="label_tie">Tie</string>
     <string name="action_no">No</string>
     <string name="action_tie">Tie (Refund Everyone)</string>
     <string name="subtitle_lostPool">Lost %1$s</string>
@@ -233,4 +237,9 @@
     <string name="subtitle_youSaid">You said</string>
 
     <string name="prompt_title_poolResolution">What was the winning outcome?</string>
+
+    <string name="action_swipeToSendPayouts">Swipe to Send Payouts</string>
+    <string name="subtitle_winnerReceives">Winner receives %1$s</string>
+    <string name="subtitle_winnersReceive">Winners receive %1$s</string>
+    <string name="subtitle_everyoneReceives">Everyone receives %1$s</string>
 </resources>

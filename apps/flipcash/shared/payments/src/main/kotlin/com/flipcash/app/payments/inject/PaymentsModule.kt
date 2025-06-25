@@ -1,6 +1,5 @@
 package com.flipcash.app.payments.inject
 
-import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.internal.InternalPaymentController
 import com.flipcash.services.user.UserManager
@@ -21,7 +20,6 @@ object PaymentsModule {
     @Singleton
     fun providePaymentController(
         resources: ResourceHelper,
-        billController: BillController,
         balanceController: BalanceController,
         transactionController: TransactionController,
         exchange: Exchange,
@@ -29,7 +27,6 @@ object PaymentsModule {
     ): PaymentController {
         return InternalPaymentController(
             resources = resources,
-            billController = billController,
             balanceController = balanceController,
             transactionController = transactionController,
             exchange = exchange,

@@ -113,7 +113,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(scrimAlpha)
-                        .background(Black40)
+                        .background(CodeTheme.colors.scrim)
                         .rememberedClickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }

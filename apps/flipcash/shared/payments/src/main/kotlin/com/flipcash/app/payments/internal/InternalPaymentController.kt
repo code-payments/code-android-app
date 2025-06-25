@@ -1,15 +1,12 @@
 package com.flipcash.app.payments.internal
 
-import com.flipcash.app.core.bill.ConfirmationState
-import com.flipcash.app.core.bill.PoolResolutionConfirmation
-import com.flipcash.app.core.bill.PublicPaymentConfirmation
-import com.flipcash.app.core.internal.bill.BillController
+import com.flipcash.app.payments.ConfirmationState
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.PaymentState
-import com.flipcash.app.payments.PoolBidPaymentMetadata
-import com.flipcash.app.payments.PoolResolutionPaymentMetadata
+import com.flipcash.app.payments.PoolResolutionConfirmation
+import com.flipcash.app.payments.PublicPaymentConfirmation
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
@@ -17,25 +14,22 @@ import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.RandomId
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class InternalPaymentController(
     private val resources: ResourceHelper,
-    private val billController: BillController,
     private val balanceController: BalanceController,
     private val transactionController: TransactionController,
     private val userManager: UserManager,
@@ -44,20 +38,21 @@ class InternalPaymentController(
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    override val state: StateFlow<PaymentState> = billController.state.map {
-        PaymentState(it)
-    }.stateIn(scope, started = SharingStarted.Eagerly, initialValue = PaymentState())
+    private val _state: MutableStateFlow<PaymentState> = MutableStateFlow(PaymentState.Default)
+    override val state: StateFlow<PaymentState>
+        get() = _state.asStateFlow()
 
 
     private val _eventFlow: MutableSharedFlow<PaymentEvent> = MutableSharedFlow()
     override val eventFlow: SharedFlow<PaymentEvent> = _eventFlow.asSharedFlow()
 
-    override fun presentPublicPaymentConfirmation(request: PaymentRequest) {
+    override fun requestPaymentConfirmation(request: PaymentRequest) {
         val vault = userManager.accountCluster?.vaultPublicKey ?: return
-        billController.update {
+        _state.update {
             when (request) {
                 is PaymentRequest.PoolBid -> it.copy(
-                    publicPaymentConfirmation = PublicPaymentConfirmation(
+                    request = request,
+                    poolBidConfirmation = PublicPaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         amount = request.pool.buyIn,
                         destination = vault,
@@ -71,11 +66,14 @@ class InternalPaymentController(
 
                 is PaymentRequest.ResolvePool -> {
                     it.copy(
+                        request = request,
                         poolResolutionConfirmation = PoolResolutionConfirmation(
                             state = ConfirmationState.AwaitingConfirmation,
-                            poolId = request.poolWithBets.pool.id,
+                            poolId = request.pool.id,
                             metadata = PoolResolutionPaymentMetadata(
-                                poolWithBets = request.poolWithBets,
+                                pool = request.pool,
+                                bets = request.bets,
+                                rendezvous = request.rendezvous,
                                 resolution = request.resolution
                             )
                         )
@@ -86,39 +84,31 @@ class InternalPaymentController(
         }
     }
 
-    override fun completePublicPayment() {
+    override fun completeRequest() {
         scope.launch {
-            val confirmation = billController.state.value.publicPaymentConfirmation ?: return@launch
-            val destination = confirmation.destination
-            val amount = confirmation.amount
-            val metadata = confirmation.metadata
-
-            when (metadata) {
-                is PoolBidPaymentMetadata -> {
-                    completeBidPayment(
-                        metadata = metadata,
-                        amount = amount,
-                        destination = destination
-                    )
+            val request = _state.value.request ?: return@launch
+            when (request) {
+                is PaymentRequest.PoolBid -> {
+                    completeBidPayment()
                 }
 
-                is PoolResolutionPaymentMetadata -> {
-                    completePoolDisbursement(metadata)
+                is PaymentRequest.ResolvePool -> {
+                    completePoolDisbursement()
                 }
             }
         }
     }
 
-    private suspend fun completeBidPayment(
-        metadata: PoolBidPaymentMetadata,
-        amount: Fiat,
-        destination: PublicKey
+    private suspend fun completeBidPayment() {
+        val confirmation = _state.value.poolBidConfirmation ?: return
+        val destination = confirmation.destination
+        val amount = confirmation.amount
+        val metadata = confirmation.metadata as PoolBidPaymentMetadata
 
-    ) {
         val (pool, _, _) = metadata
-        billController.update {
+        _state.update {
             it.copy(
-                publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.Sending),
+                poolBidConfirmation = it.poolBidConfirmation?.copy(state = ConfirmationState.Sending),
             )
         }
 
@@ -126,21 +116,21 @@ class InternalPaymentController(
 
         val balance = balanceController.rawBalance.value
 
-        val localizedAmount = LocalFiat(
-            usdc = amount.convertingTo(exchange.rateForUsd()),
-            converted = amount,
-        )
-
 
         if (balance < pool.buyIn) {
-            billController.update {
+            _state.update {
                 it.copy(
-                    publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
+                    poolBidConfirmation = it.poolBidConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
                 )
             }
             _eventFlow.emit(PaymentEvent.OnPaymentError(PaymentError.InsufficientBalance()))
             return
         }
+
+        val localizedAmount = LocalFiat(
+            usdc = amount.convertingTo(exchange.rateForUsd()),
+            converted = amount,
+        )
 
 //        val request = transactionController.transfer(
 //            destination = destination,
@@ -150,63 +140,60 @@ class InternalPaymentController(
 //        ).map { it.id.bytes }
 
         Result.success(RandomId).onSuccess {
-                _eventFlow.emit(
-                    PaymentEvent.OnPaymentSuccess(
-                        intentId = it,
-                        metadata = metadata,
-                        acknowledge = { isSuccess, after ->
-                            if (isSuccess) {
-                                scope.launch {
-                                    billController.update { billState ->
-                                        val publicPaymentConfirmation =
-                                            billState.publicPaymentConfirmation
-                                                ?: return@update billState
-                                        billState.copy(
-                                            publicPaymentConfirmation = publicPaymentConfirmation.copy(
-                                                state = ConfirmationState.Sent
-                                            ),
-                                        )
-                                    }
-                                    cancelPayment(fromUser = false)
-                                    after()
-                                }
-                            } else {
-                                billController.reset()
-                                after()
+            _eventFlow.emit(
+                PaymentEvent.OnPaymentSuccess(
+                    intentId = it,
+                    metadata = metadata,
+                    acknowledge = { isSuccess, after ->
+                        if (isSuccess) {
+                            _state.update {
+                                val publicPaymentConfirmation =
+                                    it.poolBidConfirmation ?: return@update it
+                                it.copy(
+                                    poolBidConfirmation = publicPaymentConfirmation.copy(
+                                        state = ConfirmationState.Sent
+                                    ),
+                                )
                             }
-                        }
-                    )
-                )
-            }.onFailure {
-                when {
-                    it is PaymentError -> {
-                        when (it) {
-                            is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
+                            cancelRequest(fromUser = false)
+                            after()
+                        } else {
+                            _state.update { PaymentState.Default }
+                            after()
                         }
                     }
-
-                    else -> presentPaymentFailedError()
+                )
+            )
+        }.onFailure {
+            when {
+                it is PaymentError -> {
+                    when (it) {
+                        is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
+                    }
                 }
 
-                _eventFlow.emit(PaymentEvent.OnPaymentError(it))
-
-                billController.reset()
+                else -> presentPaymentFailedError()
             }
+
+            _eventFlow.emit(PaymentEvent.OnPaymentError(it))
+
+            _state.update { PaymentState.Default }
+        }
     }
 
-    private suspend fun completePoolDisbursement(
-        metadata: PoolResolutionPaymentMetadata
-    ) {
-        val (poolWithBets, resolution) = metadata
+    private suspend fun completePoolDisbursement() {
+        val confirmation = _state.value.poolResolutionConfirmation ?: return
+        val metadata = confirmation.metadata
+        val (pool, bets, rendezvous, resolution) = metadata
 
         _eventFlow.emit(PaymentEvent.OnPaymentError(Throwable("Not yet implemented")))
 
-        billController.reset()
+        _state.update { PaymentState.Default }
     }
 
-    override fun cancelPayment(fromUser: Boolean) {
+    override fun cancelRequest(fromUser: Boolean) {
         scope.launch {
-            billController.reset()
+            _state.update { PaymentState.Default }
             if (fromUser) {
                 _eventFlow.emit(PaymentEvent.OnPaymentCancelled)
             }

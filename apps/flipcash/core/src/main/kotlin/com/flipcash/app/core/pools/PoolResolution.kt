@@ -4,6 +4,7 @@ sealed interface PoolResolution {
     data object NotSet: PoolResolution
 
     sealed interface DecisionMade
-    data class BooleanResolution(val value: Boolean): PoolResolution, DecisionMade
+    sealed interface HasWinner: DecisionMade
+    data class BooleanResolution(val value: Boolean): PoolResolution, HasWinner
     data object Refund: PoolResolution, DecisionMade
 }

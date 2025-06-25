@@ -47,6 +47,7 @@ include(
         ":apps:flipcash:features:shareapp",
         ":apps:flipcash:features:withdrawal",
         ":apps:flipcash:features:pools",
+        ":apps:flipcash:features:payments",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

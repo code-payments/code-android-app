@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.shared.payments"
+    namespace = "${Gradle.flipcashNamespace}.features.payments"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -32,6 +32,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -42,16 +43,26 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
+    implementation(Libs.compose_activities)
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
-
-    implementation(Libs.androidx_localbroadcastmanager)
+    implementation(Libs.compose_materialIconsExtended)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
+
+    implementation(project(":services:flipcash"))
+
+    implementation(project(":ui:analytics"))
+    implementation(project(":ui:core"))
     implementation(project(":ui:components"))
+    implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
+
+    implementation(Libs.rinku_compose)
 }

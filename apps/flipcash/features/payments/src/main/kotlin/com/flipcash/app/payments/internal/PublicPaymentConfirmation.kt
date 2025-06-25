@@ -1,4 +1,4 @@
-package com.flipcash.app.payments.internal.ui
+package com.flipcash.app.payments.internal
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
@@ -10,10 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.core.bill.ConfirmationState
-import com.flipcash.app.core.bill.PublicPaymentConfirmation
 import com.flipcash.app.core.ui.FlagWithFiat
-import com.flipcash.app.payments.PoolBidPaymentMetadata
+import com.flipcash.app.payments.ConfirmationState
+import com.flipcash.app.payments.PublicPaymentConfirmation
 import com.flipcash.shared.payments.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
@@ -23,14 +22,14 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 @Composable
-internal fun PublicPaymentConfirmation(
+internal fun PublicPaymentConfirmationModal(
     modifier: Modifier = Modifier,
-    confirmation: PublicPaymentConfirmation?,
+    confirmation: PublicPaymentConfirmation,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val state by remember(confirmation?.state) {
-        derivedStateOf { confirmation?.state }
+    val state by remember(confirmation.state) {
+        derivedStateOf { confirmation.state }
     }
 
     val isSending by remember(state) {
@@ -38,7 +37,7 @@ internal fun PublicPaymentConfirmation(
     }
 
     val requestedAmount = remember {
-        confirmation?.amount
+        confirmation.amount
     }
 
     BackHandler {
@@ -49,11 +48,11 @@ internal fun PublicPaymentConfirmation(
     Modal(modifier) {
         val amount = requestedAmount
         PaymentConfirmationContent(
-            amount = amount ?: Fiat.Zero,
+            amount = amount,
             isSending = isSending,
             state = state,
             onApproved = onSend,
-            label = when (confirmation?.metadata) {
+            label = when (confirmation.metadata) {
                 is PoolBidPaymentMetadata -> stringResource(R.string.action_swipeToBuyIn)
                 else -> stringResource(id = R.string.action_swipeToPay)
             }

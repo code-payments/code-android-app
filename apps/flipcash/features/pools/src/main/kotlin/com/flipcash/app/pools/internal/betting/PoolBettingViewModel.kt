@@ -11,7 +11,8 @@ import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
-import com.flipcash.app.payments.PoolBidPaymentMetadata
+import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
+import com.flipcash.app.payments.internal.PoolResolutionPaymentMetadata
 import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
@@ -26,7 +27,6 @@ import com.getcode.opencode.model.financial.times
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -125,7 +125,7 @@ internal class PoolBettingViewModel @Inject constructor(
         data class OnOutcomeSelected(val outcome: PoolBetOutcome) : Event
         data class OnOutcomePaidFor(val outcome: PoolBetOutcome) : Event
         data object OnDeclareOutcome : Event
-        data class OnResolutionSelected(val resolution: PoolResolution) : Event
+        data class OnResolutionSelected(val resolution: PoolResolution.DecisionMade) : Event
         data object OnSharePool : Event
         data object OnFailedToLoad: Event
         data object OnMissingKeys: Event
@@ -294,7 +294,7 @@ internal class PoolBettingViewModel @Inject constructor(
                 )
             }
             .map { request ->
-                payments.presentPublicPaymentConfirmation(request)
+                payments.requestPaymentConfirmation(request)
             }.flatMapLatest {
                 payments.eventFlow.take(1)
             }.onEach { event ->
@@ -370,6 +370,49 @@ internal class PoolBettingViewModel @Inject constructor(
                     type = BottomBarManager.BottomBarMessageType.THEMED,
                 )
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnResolutionSelected>()
+            .map { it.resolution }
+            .mapNotNull {
+                val rendezvous = stateFlow.value.rendezvous ?: return@mapNotNull null
+
+                PaymentRequest.ResolvePool(
+                    pool = stateFlow.value.metadata,
+                    bets = stateFlow.value.bets,
+                    rendezvous = rendezvous,
+                    resolution = it,
+                )
+            }
+            .map { request -> payments.requestPaymentConfirmation(request) }
+            .flatMapLatest {
+                payments.eventFlow.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        val poolMetadata = event.metadata as PoolResolutionPaymentMetadata
+                        poolsCoordinator.resolvePool(
+                            pool = poolMetadata.poolWithBets.pool,
+                            resolution = poolMetadata.resolution,
+                            rendezvous = poolMetadata.rendezvous
+                        ).onSuccess {
+                            event.acknowledge(true) {
+
+                            }
+                        }.onFailure {
+                            event.acknowledge(false) {
+                                BottomBarManager.showError(
+                                    resources.getString(R.string.error_title_resolvePoolFailed),
+                                    resources.getString(R.string.error_description_resolvePoolFailed),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     internal companion object {

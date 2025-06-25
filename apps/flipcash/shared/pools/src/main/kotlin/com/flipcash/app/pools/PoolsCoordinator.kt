@@ -157,14 +157,14 @@ class PoolsCoordinator @Inject constructor(
 
     suspend fun resolvePool(
         pool: Pool,
-        resolution: PoolResolution,
+        resolution: PoolResolution.DecisionMade,
         rendezvous: KeyPair
     ): Result<Unit> {
         val metadata = domainToMetadataMapper.map(pool)
         return controller.resolvePool(
             pool = metadata,
             rendezvous = rendezvous,
-            resolution = PoolResolutionConverter.toPoolResolution(resolution),
+            resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
         ).onSuccess {
             dataSource.resolvePool(pool.id, resolution)
         }
