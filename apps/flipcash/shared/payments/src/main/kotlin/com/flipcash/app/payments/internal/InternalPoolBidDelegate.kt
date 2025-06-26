@@ -26,7 +26,7 @@ internal class InternalPoolBidDelegate @Inject constructor(
         payoutDestination: PublicKey,
         amount: Fiat,
         rendezvous: Ed25519.KeyPair,
-        onEvent: suspend (DelegateEvent) -> Unit,
+        onSuccess: suspend (ID) -> Unit,
         onError: suspend (Throwable) -> Unit,
 
     ) {
@@ -34,7 +34,6 @@ internal class InternalPoolBidDelegate @Inject constructor(
 
 
         if (balance < pool.buyIn) {
-            onEvent(DelegateEvent.Cancel)
             onError(PaymentError.InsufficientBalance())
             return
         }
@@ -52,7 +51,7 @@ internal class InternalPoolBidDelegate @Inject constructor(
 //        ).map { it.id.bytes }
 
         Result.success(bidId).onSuccess {
-            onEvent(DelegateEvent.Sent)
+            onSuccess(it)
         }.onFailure {
             onError(it)
         }

@@ -35,7 +35,8 @@ internal class InternalPaymentController(
     private val userManager: UserManager,
     private val poolBidDelegate: PoolBidDelegate,
     private val poolResolveDelegate: PoolResolveDelegate,
-) : PaymentController, PoolBidDelegate by poolBidDelegate, PoolResolveDelegate by poolResolveDelegate {
+) : PaymentController, PoolBidDelegate by poolBidDelegate,
+    PoolResolveDelegate by poolResolveDelegate {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -48,7 +49,8 @@ internal class InternalPaymentController(
     override val paymentEvents: SharedFlow<PaymentEvent> = _paymentEvents.asSharedFlow()
 
     private val _confirmationEvents: MutableSharedFlow<ConfirmationEvent> = MutableSharedFlow()
-    override val confirmationEvents: SharedFlow<ConfirmationEvent> = _confirmationEvents.asSharedFlow()
+    override val confirmationEvents: SharedFlow<ConfirmationEvent> =
+        _confirmationEvents.asSharedFlow()
 
     override fun requestPaymentConfirmation(request: PaymentRequest<*>) {
         val vault = userManager.accountCluster?.vaultPublicKey ?: return
@@ -92,11 +94,11 @@ internal class InternalPaymentController(
         scope.launch {
             val request = _state.value.request ?: return@launch
             when (request) {
-                is PaymentRequest.PoolBid<*> -> {
+                is PaymentRequest.PoolBid -> {
                     completeBidPayment()
                 }
 
-                is PaymentRequest.ResolvePool<*> -> {
+                is PaymentRequest.ResolvePool -> {
                     completePoolDisbursement()
                 }
             }
@@ -119,32 +121,25 @@ internal class InternalPaymentController(
 
         request.rpcCall!!.invoke()
             .map { it as ID }
-            .onSuccess { intentId ->
+            .onSuccess { bidId ->
                 poolBidDelegate.payForBid(
                     pool = pool,
-                    bidId = intentId,
+                    bidId = bidId,
                     amount = amount,
                     payoutDestination = destination,
                     rendezvous = metadata.rendezvous,
-                    onEvent = { event ->
-                        when (event) {
-                            DelegateEvent.Cancel -> {
-                                _state.update {
-                                    it.copy(
-                                        poolBidConfirmation = it.poolBidConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
-                                    )
-                                }
+                    onSuccess = { intentId ->
+                        handlePaymentSuccess(
+                            intentId = intentId,
+                            metadata = metadata,
+                            stateUpdate = {
+                                it.copy(
+                                    poolBidConfirmation = it.poolBidConfirmation?.copy(
+                                        state = ConfirmationState.Sent
+                                    ),
+                                )
                             }
-                            DelegateEvent.Sent -> {
-                                _state.update {
-                                    it.copy(
-                                        poolBidConfirmation = it.poolBidConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
-                                    )
-                                }
-                            }
-                        }
-
-                        _state.update { PaymentState.Default }
+                        )
                     },
                     onError = ::handlePaymentError,
                 )
@@ -167,24 +162,18 @@ internal class InternalPaymentController(
                     bets = bets,
                     rendezvous = rendezvous,
                     resolution = resolution,
-                    onEvent = { event ->
-                        when (event) {
-                            DelegateEvent.Cancel -> {
-                                _state.update {
-                                    it.copy(
-                                        poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
-                                    )
-                                }
+                    onSuccess = { id ->
+                        handlePaymentSuccess(
+                            intentId = id,
+                            metadata = metadata,
+                            stateUpdate = {
+                                it.copy(
+                                    poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(
+                                        state = ConfirmationState.Sent
+                                    ),
+                                )
                             }
-                            DelegateEvent.Sent -> {
-                                _state.update {
-                                    it.copy(
-                                        poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
-                                    )
-                                }
-                            }
-                        }
-                        _state.update { PaymentState.Default }
+                        )
                     },
                     onError = ::handlePaymentError,
                 )
@@ -193,6 +182,27 @@ internal class InternalPaymentController(
                 _state.update { PaymentState.Default }
                 _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
             }
+    }
+
+    private suspend fun handlePaymentSuccess(
+        intentId: ID,
+        metadata: PaymentMetadata,
+        stateUpdate: (PaymentState) -> PaymentState
+    ) {
+        _paymentEvents.emit(
+            PaymentEvent.OnPaymentSuccess(
+                intentId = intentId,
+                metadata = metadata,
+                acknowledge = { isSuccess, after ->
+                    if (isSuccess) {
+                        _state.update { stateUpdate(it) }
+                    }
+
+                    cancelRequest(fromUser = false)
+                    after()
+                }
+            )
+        )
     }
 
     private suspend fun handlePaymentError(error: Throwable) {

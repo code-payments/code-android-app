@@ -14,7 +14,7 @@ internal interface PoolBidDelegate {
         payoutDestination: PublicKey,
         amount: Fiat,
         rendezvous: Ed25519.KeyPair,
-        onEvent: suspend (DelegateEvent) -> Unit,
+        onSuccess: suspend (ID) -> Unit,
         onError: suspend (Throwable) -> Unit,
     )
 }

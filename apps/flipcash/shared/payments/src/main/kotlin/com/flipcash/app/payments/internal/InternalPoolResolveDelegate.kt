@@ -8,6 +8,8 @@ import com.flipcash.app.payments.delegates.PoolResolveDelegate
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.RandomId
 import javax.inject.Inject
 
 class InternalPoolResolveDelegate @Inject constructor(
@@ -19,10 +21,10 @@ class InternalPoolResolveDelegate @Inject constructor(
         bets: List<PoolBet>,
         rendezvous: Ed25519.KeyPair,
         resolution: PoolResolution.DecisionMade,
-        onEvent: suspend (DelegateEvent) -> Unit,
+        onSuccess: suspend (ID) -> Unit,
         onError: suspend (Throwable) -> Unit,
     ) {
         // TODO: implement distribution
-        onEvent(DelegateEvent.Sent)
+        onSuccess(RandomId)
     }
 }

@@ -159,7 +159,7 @@ class PoolsCoordinator @Inject constructor(
         poolId: ID,
         rendezvous: KeyPair,
         outcome: PoolBetOutcome
-    ): Result<Unit> {
+    ): Result<ID> {
         val userId = userManager.accountId
             ?: return Result.failure(Throwable("No account ID in UserManager"))
 
@@ -182,7 +182,7 @@ class PoolsCoordinator @Inject constructor(
             metadata = metadata,
         ).onFailure {
             dataSource.removeBet(poolId, metadata.id)
-        }.map { Unit }
+        }.map { it.id }
     }
 
     suspend fun fetchSinceLatest(count: Int = 20): Result<Unit> {
