@@ -143,15 +143,13 @@ internal class InternalPaymentController(
                                 }
                             }
                         }
+
+                        _state.update { PaymentState.Default }
                     },
                     onError = ::handlePaymentError,
                 )
             }.onFailure {
-                _state.update {
-                    it.copy(
-                        poolBidConfirmation = it.poolBidConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
-                    )
-                }
+                _state.update { PaymentState.Default }
                 _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
             }
     }
@@ -186,16 +184,13 @@ internal class InternalPaymentController(
                                 }
                             }
                         }
+                        _state.update { PaymentState.Default }
                     },
                     onError = ::handlePaymentError,
                 )
             }
             .onFailure {
-                _state.update {
-                    it.copy(
-                        poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(state = ConfirmationState.AwaitingConfirmation),
-                    )
-                }
+                _state.update { PaymentState.Default }
                 _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
             }
     }
