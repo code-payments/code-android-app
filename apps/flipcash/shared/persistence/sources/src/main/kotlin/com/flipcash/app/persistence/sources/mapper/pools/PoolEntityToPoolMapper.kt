@@ -25,7 +25,6 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             createdAt = from.createdAt,
             closedAt = from.closedAt,
             didWin = from.didWin,
-            didBet = from.didBet,
             derivationIndex = from.derivationIndex,
             betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary)
         )

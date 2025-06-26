@@ -38,7 +38,6 @@ class PoolMetadataToEntityMapper @Inject constructor(): Mapper<PoolMetadataMappi
             closedTimestamp = metadata.closedAt?.toEpochMilliseconds(),
             didWin = metadata.resolution.didWin(selectedOutcome),
             pagingTokenBase58 = pagingToken?.base58,
-            didBet = selectedOutcome != null,
             derivationIndex = derivationIndex,
             rendezvousSignature = signature?.base58,
             betSummary = PoolBetSummaryConverter.fromPoolBetSummary(summary)

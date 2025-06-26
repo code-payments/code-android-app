@@ -22,6 +22,13 @@ interface PoolDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(vararg bet: PoolBetEntity)
 
+    @Query("SELECT * FROM pool_bet_metadata WHERE idBase58 = :id")
+    suspend fun getBet(id: String): PoolBetEntity?
+
+    suspend fun getBet(id: ID): PoolBetEntity? {
+        return getBet(id.base58)
+    }
+
     @Query("DELETE FROM pool_bet_metadata WHERE poolIdBase58 = :poolId AND idBase58 = :betId")
     suspend fun removeBet(poolId: String, betId: String)
 

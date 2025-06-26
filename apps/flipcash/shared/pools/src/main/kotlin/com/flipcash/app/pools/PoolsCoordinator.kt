@@ -158,6 +158,7 @@ class PoolsCoordinator @Inject constructor(
     suspend fun placeBet(
         poolId: ID,
         rendezvous: KeyPair,
+        previousBetId: ID?,
         outcome: PoolBetOutcome
     ): Result<Unit> {
         val userId = userManager.accountId
@@ -166,14 +167,26 @@ class PoolsCoordinator @Inject constructor(
         val vault = userManager.accountCluster?.vaultPublicKey
             ?: return Result.failure(Throwable("No vault public key in UserManager"))
 
-        val metadata = PoolBetMetadata(
-            id = PublicKey.generate().bytes,
-            userId = userId,
-            payoutDestination = vault,
-            selectedOutcome = BetOutcomeConverter.toBetOutcome(outcome),
-            timestamp = Clock.System.now(),
-        )
-        dataSource.upsertBet(poolId, metadata, false)
+        val metadata = if (previousBetId == null) {
+            PoolBetMetadata(
+                id = PublicKey.generate().bytes,
+                userId = userId,
+                payoutDestination = vault,
+                selectedOutcome = BetOutcomeConverter.toBetOutcome(outcome),
+                timestamp = Clock.System.now(),
+            ).also {
+                dataSource.upsertBet(poolId, it, false)
+            }
+        } else {
+            val bet = dataSource.getBet(previousBetId)!!
+            PoolBetMetadata(
+                id = bet.id,
+                userId = bet.userId,
+                payoutDestination = bet.payoutDestination,
+                selectedOutcome = BetOutcomeConverter.toBetOutcome(bet.selectedOutcome),
+                timestamp = bet.placedAt,
+            )
+        }
 
         return controller.placeBet(
             poolId = poolId,

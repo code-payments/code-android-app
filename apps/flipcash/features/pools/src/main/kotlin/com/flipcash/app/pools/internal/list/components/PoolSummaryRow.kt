@@ -135,7 +135,6 @@ private val pool = Pool(
     createdAt = Clock.System.now(),
     closedAt = null,
     didWin = false,
-    didBet = false,
     derivationIndex = 0,
     betSummary = PoolBetSummary.Boolean(0, 0)
 )

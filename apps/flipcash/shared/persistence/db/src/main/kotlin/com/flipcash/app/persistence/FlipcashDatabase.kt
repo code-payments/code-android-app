@@ -67,6 +67,10 @@ abstract class FlipcashDatabase : RoomDatabase() {
         DeleteColumn(
             tableName = "pool_metadata",
             columnName = "rendezvousSeed"
+        ),
+        DeleteColumn(
+            tableName = "pool_metadata",
+            columnName = "didBet"
         )
     )
     class Migration5To6 : Migration(5, 6), AutoMigrationSpec {

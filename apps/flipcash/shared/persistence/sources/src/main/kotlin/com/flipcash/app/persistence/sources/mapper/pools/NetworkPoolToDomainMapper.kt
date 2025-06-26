@@ -31,7 +31,6 @@ class NetworkPoolToDomainMapper @Inject constructor(
                 createdAt = networkResponse.metadata.createdAt,
                 closedAt = networkResponse.metadata.closedAt,
                 didWin = networkResponse.metadata.resolution.didWin(selectedOutcome),
-                didBet = selectedOutcome != null,
                 derivationIndex = networkResponse.derivationIndex,
                 betSummary = PoolBetSummaryConverter.toPoolBetSummary(networkResponse.betSummary),
             ),

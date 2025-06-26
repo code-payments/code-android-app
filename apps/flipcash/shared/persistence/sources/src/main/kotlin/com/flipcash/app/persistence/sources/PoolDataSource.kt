@@ -4,6 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.room.withTransaction
 import com.flipcash.app.core.pools.Pool
+import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.FlipcashDatabase
@@ -120,6 +121,11 @@ class PoolDataSource @Inject constructor(
         val params = PoolBetMetadataParameters(poolId, bet, hasSubmittedIntent)
         val entity = betMetadataEntityMapper.map(params)
         db?.poolDao()?.upsert(entity)
+    }
+
+    suspend fun getBet(id: ID): PoolBet? {
+        val entity = db?.poolDao()?.getBet(id) ?: return null
+        return betEntityMapper.map(entity)
     }
 
     suspend fun removeBet(poolId: ID, betId: ID) {

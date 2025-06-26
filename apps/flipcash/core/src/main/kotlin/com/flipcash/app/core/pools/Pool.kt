@@ -21,7 +21,6 @@ data class Pool(
     val createdAt: Instant,
     val closedAt: Instant?,
     val didWin: Boolean,
-    val didBet: Boolean,
     val derivationIndex: Long,
     val betSummary: PoolBetSummary,
 ) {
@@ -93,7 +92,6 @@ val Pool.Companion.Empty: Pool
         createdAt = Instant.fromEpochMilliseconds(0),
         closedAt = null,
         didWin = false,
-        didBet = false,
         resolution = PoolResolution.NotSet,
         isOpen = true,
         derivationIndex = -1,

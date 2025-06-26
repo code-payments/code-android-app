@@ -77,17 +77,13 @@ internal class PoolBettingViewModel @Inject constructor(
         val isOpen: Boolean
             get() = metadata.isOpen
 
+        val userBet: PoolBet?
+            get() = bets.find { it.userId == userId }
+
         val hasBoughtIn: Boolean
             get() {
-                return bets.any { it.userId == userId } || selectedOutcome != null
+                return userBet != null || selectedOutcome != null
             }
-
-        /**
-         * If the user has placed a bet, but has not yet paid for it. Effectively treated
-         * as an IOU, and to be included in the payout, the bet must be settled.
-         */
-        val needsToPayForBet: Boolean
-            get() = bets.find { it.userId == userId }?.hasPaidForBet == false
 
         val isResolved: Boolean
             get() = metadata.resolution != PoolResolution.NotSet
@@ -128,7 +124,7 @@ internal class PoolBettingViewModel @Inject constructor(
                 if (!metadata.isOpen) return false
                 if (metadata.resolution != PoolResolution.NotSet) return false
                 if (selectedOutcome != null) return false
-                return bets.none { it.userId == userId }
+                return !hasBoughtIn
             }
 
         /**
@@ -230,9 +226,9 @@ internal class PoolBettingViewModel @Inject constructor(
             .filterIsInstance<Event.OnPoolLoaded>()
             .map { it.data }
             .onEach { data ->
-                val selfBet = data.bets.find { it.userId == stateFlow.value.userId }?.selectedOutcome
-                if (selfBet != null) {
-                    dispatchEvent(Event.OnOutcomePaidFor(selfBet))
+                val selfBet = data.bets.find { it.userId == stateFlow.value.userId }
+                if (selfBet != null /* && selfBet.hasPaidForBet */) {
+                    dispatchEvent(Event.OnOutcomePaidFor(selfBet.selectedOutcome))
                 }
             }.launchIn(viewModelScope)
 

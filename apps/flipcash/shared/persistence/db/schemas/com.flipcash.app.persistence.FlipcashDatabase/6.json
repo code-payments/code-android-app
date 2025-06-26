@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "324fbc3f5394dd31f889c423967c987c",
+    "identityHash": "ee8ffbaef64ca0f3bce6498660de4223",
     "entities": [
       {
         "tableName": "messages",
@@ -67,7 +67,7 @@
       },
       {
         "tableName": "pool_metadata",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `creatorBase58` TEXT NOT NULL, `pagingTokenBase58` TEXT, `name` TEXT NOT NULL, `buyInAmount` INTEGER NOT NULL, `buyInCurrency` TEXT NOT NULL, `fundingDestinationBase58` TEXT NOT NULL, `isOpen` INTEGER NOT NULL, `didWin` INTEGER NOT NULL, `didBet` INTEGER NOT NULL DEFAULT false, `resolution` TEXT, `timestamp` INTEGER NOT NULL, `closedTimestamp` INTEGER, `derivationIndex` INTEGER NOT NULL DEFAULT -1, `rendezvousSignature` TEXT, `betSummary` TEXT, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `creatorBase58` TEXT NOT NULL, `pagingTokenBase58` TEXT, `name` TEXT NOT NULL, `buyInAmount` INTEGER NOT NULL, `buyInCurrency` TEXT NOT NULL, `fundingDestinationBase58` TEXT NOT NULL, `isOpen` INTEGER NOT NULL, `didWin` INTEGER NOT NULL, `resolution` TEXT, `timestamp` INTEGER NOT NULL, `closedTimestamp` INTEGER, `derivationIndex` INTEGER NOT NULL DEFAULT -1, `rendezvousSignature` TEXT, `betSummary` TEXT, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -121,13 +121,6 @@
             "columnName": "didWin",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "didBet",
-            "columnName": "didBet",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "false"
           },
           {
             "fieldPath": "resolution",
@@ -228,7 +221,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '324fbc3f5394dd31f889c423967c987c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ee8ffbaef64ca0f3bce6498660de4223')"
     ]
   }
 }

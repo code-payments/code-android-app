@@ -26,8 +26,6 @@ data class PoolEntity(
     val fundingDestinationBase58: String,
     val isOpen: Boolean,
     val didWin: Boolean,
-    @ColumnInfo(defaultValue = "false")
-    val didBet: Boolean,
     val resolution: String?,
     val timestamp: Long,
     val closedTimestamp: Long?,
