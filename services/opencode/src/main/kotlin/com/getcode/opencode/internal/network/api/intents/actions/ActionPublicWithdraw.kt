@@ -14,7 +14,7 @@ import com.getcode.solana.keys.PublicKey
 class ActionPublicWithdraw(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
-    override val signer: Ed25519.KeyPair?,
+    override val signer: Ed25519.KeyPair,
     val source: AccountCluster,
     val destination: PublicKey,
     val amount: Fiat,

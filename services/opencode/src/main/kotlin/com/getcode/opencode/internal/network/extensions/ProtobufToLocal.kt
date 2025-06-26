@@ -3,8 +3,12 @@ package com.getcode.opencode.internal.network.extensions
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v2.destinationOrNull
 import com.getcode.opencode.internal.extensions.toPublicKey
+import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Distribution
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -16,6 +20,12 @@ internal fun Model.Signature.toPublicKey(): PublicKey = value.toByteArray().toPu
 internal fun MessagingService.MessageId.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun MessagingService.RendezvousKey.toPublicKey(): PublicKey =
     value.toByteArray().toPublicKey()
+
+internal fun TransactionService.OpenAccountsMetadata.AccountSet.toAccountType() = when (this) {
+    TransactionService.OpenAccountsMetadata.AccountSet.USER -> AccountType.Primary
+    TransactionService.OpenAccountsMetadata.AccountSet.POOL -> AccountType.Pool
+    TransactionService.OpenAccountsMetadata.AccountSet.UNRECOGNIZED -> AccountType.Unknown
+}
 
 internal fun TransactionService.ExchangeData.toModel(): ExchangeData.WithRate {
     return ExchangeData.WithRate(
@@ -40,12 +50,14 @@ internal fun MessagingService.RequestToGrabBill.toMessageKind(): MessageKind.Req
 }
 
 internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
-    return when (typeCase) {
-        TransactionService.Metadata.TypeCase.OPEN_ACCOUNTS -> TransactionMetadata.OpenAccounts
+    return when (val case = typeCase) {
+        TransactionService.Metadata.TypeCase.OPEN_ACCOUNTS -> TransactionMetadata.OpenAccount(openAccounts.accountSet.toAccountType())
         TransactionService.Metadata.TypeCase.SEND_PUBLIC_PAYMENT -> TransactionMetadata.SendPublicPayment(
             source = sendPublicPayment.source.toPublicKey(),
             destination = sendPublicPayment.destination.toPublicKey(),
+            destinationOwner = sendPublicPayment.destinationOrNull?.toPublicKey(),
             exchangeData = sendPublicPayment.exchangeData.toModel(),
+            isRemoteSend = sendPublicPayment.isRemoteSend,
             isWithdrawal = sendPublicPayment.isWithdrawal
         )
 
@@ -57,6 +69,14 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
         )
 
         TransactionService.Metadata.TypeCase.TYPE_NOT_SET -> TransactionMetadata.Unknown
-        else -> TransactionMetadata.Unknown
+        TransactionService.Metadata.TypeCase.PUBLIC_DISTRIBUTION -> TransactionMetadata.PublicDistribution(
+            source = publicDistribution.source.toPublicKey(),
+            distributions = publicDistribution.distributionsList.map { distribution ->
+                Distribution(
+                    destination = distribution.destination.toPublicKey(),
+                    amount = Fiat(distribution.quarks)
+                )
+            }
+        )
     }
 }

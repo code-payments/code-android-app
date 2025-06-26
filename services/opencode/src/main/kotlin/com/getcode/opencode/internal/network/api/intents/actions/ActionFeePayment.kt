@@ -13,7 +13,7 @@ import com.getcode.opencode.solana.intents.actions.ActionType
 internal class ActionFeePayment(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
-    override val signer: Ed25519.KeyPair? = null,
+    override val signer: Ed25519.KeyPair,
 
     val fee: Fee,
     val source: AccountCluster,
@@ -29,7 +29,7 @@ internal class ActionFeePayment(
         }
 
         return configs.map {
-            val amountInQuarks = fee.fiat.quarks.toLong()
+            val amountInQuarks = fee.fiat.quarks
             val nonceAccount = it.nonce
             val nonceValue = it.blockhash
 
@@ -55,7 +55,7 @@ internal class ActionFeePayment(
                         }
                     )
                     .setAuthority(source.authority.keyPair.asSolanaAccountId())
-                    .setAmount(fee.fiat.quarks.toLong())
+                    .setAmount(fee.fiat.quarks)
                     .build()
             ).build()
     }

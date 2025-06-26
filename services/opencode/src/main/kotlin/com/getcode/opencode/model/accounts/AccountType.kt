@@ -14,6 +14,8 @@ sealed interface AccountType {
 
     data object Pool: AccountType
 
+    data object Unknown: AccountType
+
     fun sortOrder() = when (this) {
         Primary -> 0
         Incoming -> 1
@@ -22,6 +24,7 @@ sealed interface AccountType {
         RemoteSend -> 12
         AssociatedToken -> 15
         Pool -> 16
+        Unknown -> 999
     }
 
     fun getAccountType(): Model.AccountType {
@@ -33,6 +36,7 @@ sealed interface AccountType {
             Swap -> Model.AccountType.SWAP
             AssociatedToken -> Model.AccountType.ASSOCIATED_TOKEN_ACCOUNT
             Pool -> Model.AccountType.POOL
+            Unknown -> Model.AccountType.UNKNOWN
         }
     }
 

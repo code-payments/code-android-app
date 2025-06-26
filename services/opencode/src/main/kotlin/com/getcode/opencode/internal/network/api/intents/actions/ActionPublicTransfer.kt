@@ -1,7 +1,9 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.solana.intents.CompactMessageArgs
 import com.getcode.opencode.solana.intents.ServerParameter
@@ -10,14 +12,15 @@ import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.solana.intents.actions.ActionType
 import com.getcode.solana.keys.PublicKey
+import kotlin.math.sign
 
 internal class ActionPublicTransfer(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
-    override val signer: Ed25519.KeyPair? = null,
+    override val signer: KeyPair,
 
     val amount: Fiat,
-    val source: AccountCluster,
+    val source: PublicKey,
     val destination: PublicKey,
 ) : ActionType() {
 
@@ -26,12 +29,12 @@ internal class ActionPublicTransfer(
         val configs = serverParameter?.configs ?: return emptyList()
         return configs.map {
 
-            val amountInQuarks = amount.quarks.toLong()
+            val amountInQuarks = amount.quarks
             val nonceAccount = it.nonce
             val nonceValue = it.blockhash
 
             CompactMessageArgs.Transfer(
-                source = source.vaultPublicKey,
+                source = source,
                 destination = destination,
                 amountInQuarks = amountInQuarks,
                 nonce = nonceAccount,
@@ -46,10 +49,10 @@ internal class ActionPublicTransfer(
             .setId(id)
             .setNoPrivacyTransfer(
                 TransactionService.NoPrivacyTransferAction.newBuilder()
-                    .setSource(source.vaultPublicKey.asSolanaAccountId())
+                    .setSource(source.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
-                    .setAuthority(source.authority.keyPair.asSolanaAccountId())
-                    .setAmount(amount.quarks.toLong())
+                    .setAuthority(signer.asSolanaAccountId())
+                    .setAmount(amount.quarks)
                     .build()
             ).build()
     }
@@ -57,14 +60,15 @@ internal class ActionPublicTransfer(
     internal companion object {
         fun newInstance(
             amount: Fiat,
-            sourceCluster: AccountCluster,
+            source: PublicKey,
+            owner: KeyPair,
             destination: PublicKey
         ): ActionPublicTransfer {
             return ActionPublicTransfer(
                 id = 0,
-                signer = sourceCluster.authority.keyPair,
+                signer = owner,
                 amount = amount,
-                source = sourceCluster,
+                source = source,
                 destination = destination
             )
         }

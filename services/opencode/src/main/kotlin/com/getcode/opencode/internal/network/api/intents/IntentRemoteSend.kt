@@ -5,32 +5,23 @@ import com.getcode.opencode.internal.network.api.intents.actions.ActionOpenAccou
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
 import com.getcode.opencode.internal.network.extensions.asExchangeData
+import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentRemoteSend(
     override val id: PublicKey,
-    private val sourceCluster: AccountCluster,
-    private val amount: LocalFiat,
-    internal val giftCardAccount: GiftCardAccount,
+    override val metadata: TransactionMetadata,
     override val actionGroup: ActionGroup
 ): IntentType() {
     override fun metadata(): TransactionService.Metadata {
-        return TransactionService.Metadata.newBuilder()
-            .setSendPublicPayment(
-                TransactionService.SendPublicPaymentMetadata.newBuilder()
-                    .setIsRemoteSend(true)
-                    .setIsWithdrawal(false)
-                    .setSource(sourceCluster.vaultPublicKey.asSolanaAccountId())
-                    .setDestination(giftCardAccount.cluster.vaultPublicKey.asSolanaAccountId())
-                    .setExchangeData(amount.asExchangeData())
-            )
-            .build()
+        return metadata.asProtobufMetadata()
     }
 
     internal companion object {
@@ -46,7 +37,8 @@ internal class IntentRemoteSend(
             // 2. Transfer all funds from primary account to the created gift card
             val transferToGiftCardAccount = ActionPublicTransfer.newInstance(
                 amount = amount.usdc,
-                sourceCluster = sourceCluster,
+                owner = sourceCluster.authority.keyPair,
+                source = sourceCluster.vaultPublicKey,
                 destination = openGiftCardAccount.owner.vaultPublicKey
             )
 
@@ -68,9 +60,13 @@ internal class IntentRemoteSend(
 
             return IntentRemoteSend(
                 id = rendezvous,
-                sourceCluster = sourceCluster,
-                giftCardAccount = giftCard,
-                amount = amount,
+                metadata = TransactionMetadata.SendPublicPayment(
+                    source = sourceCluster.vaultPublicKey,
+                    destination = giftCard.cluster.vaultPublicKey,
+                    amount = amount,
+                    isRemoteSend = true,
+                    isWithdrawal = false
+                ),
                 actionGroup = actions
             )
         }

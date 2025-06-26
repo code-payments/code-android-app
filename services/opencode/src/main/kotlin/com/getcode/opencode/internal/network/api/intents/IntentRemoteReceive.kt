@@ -2,10 +2,13 @@ package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
+import com.getcode.opencode.internal.network.extensions.asExchangeData
+import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.generate
@@ -13,19 +16,11 @@ import com.getcode.solana.keys.PublicKey
 
 internal class IntentRemoteReceive(
     override val id: PublicKey,
-    private val giftCard: GiftCardAccount,
-    private val amount: LocalFiat,
+    override val metadata: TransactionMetadata,
     override val actionGroup: ActionGroup
 ): IntentType() {
     override fun metadata(): TransactionService.Metadata {
-        return TransactionService.Metadata.newBuilder()
-            .setReceivePaymentsPublicly(
-                TransactionService.ReceivePaymentsPubliclyMetadata.newBuilder()
-                    .setIsRemoteSend(true)
-                    .setQuarks(amount.usdc.quarks.toLong())
-                    .setSource(giftCard.cluster.vaultPublicKey.asSolanaAccountId())
-            )
-            .build()
+        return metadata.asProtobufMetadata()
     }
 
     internal companion object {
@@ -45,8 +40,11 @@ internal class IntentRemoteReceive(
 
             return IntentRemoteReceive(
                 id = PublicKey.generate(),
-                giftCard = giftCard,
-                amount = amount,
+                metadata = TransactionMetadata.ReceivePublicPayment(
+                    source = giftCard.cluster.vaultPublicKey,
+                    amount = amount,
+                    isRemoteSend = true,
+                ),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(withdrawFromGiftCard)
                 }

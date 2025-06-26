@@ -2,12 +2,14 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
+import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fee
 import com.getcode.opencode.model.financial.FeeType
 import com.getcode.opencode.model.financial.Fiat
@@ -130,7 +132,6 @@ class TransactionController @Inject constructor(
             sourceCluster = owner,
             destination = destination,
             destinationOwner = destinationOwner,
-            rendezvous = PublicKey.generate(),
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)
@@ -193,6 +194,20 @@ class TransactionController @Inject constructor(
             amount = amount,
             giftCard = giftCard,
             owner = owner
+        )
+
+        return submitIntent(scope, intent, owner.authority.keyPair)
+    }
+
+    suspend fun distributeFunds(
+        owner: AccountCluster,
+        from: PublicKey,
+        distributions: List<Distribution>
+    ): Result<IntentType> {
+        val intent = IntentDistribution.create(
+            owner = owner,
+            source = from,
+            distributions = distributions
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)

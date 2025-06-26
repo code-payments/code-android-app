@@ -4,7 +4,9 @@ import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v2.TransactionService.OpenAccountsMetadata.AccountSet
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.messaging.Message
@@ -79,32 +81,67 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
     val builder = TransactionService.Metadata.newBuilder()
 
     when (this) {
-        TransactionMetadata.OpenAccounts -> {
+        is TransactionMetadata.OpenAccount -> {
             builder.setOpenAccounts(
-                TransactionService.OpenAccountsMetadata.newBuilder().build()
+                TransactionService.OpenAccountsMetadata.newBuilder()
+                    .setAccountSet(
+                        when (type) {
+                            AccountType.Pool -> AccountSet.POOL
+                            AccountType.Primary -> AccountSet.USER
+                            else -> AccountSet.UNRECOGNIZED
+                        }
+                    )
+                    .build()
             )
         }
+
         is TransactionMetadata.ReceivePublicPayment -> {
             builder.setReceivePaymentsPublicly(
                 TransactionService.ReceivePaymentsPubliclyMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
                     .setQuarks(quarks)
                     .setIsRemoteSend(isRemoteSend)
-                    .setExchangeData(exchangeData.asProtobufExchangeData())
+                    // exchange data cannot be set on outgoing transactions
+//                    .setExchangeData(exchangeData.asProtobufExchangeData())
                     .build()
             )
         }
+
         is TransactionMetadata.SendPublicPayment -> {
             builder.setSendPublicPayment(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
                     .setExchangeData(exchangeData.asProtobufExchangeData())
                     .setDestination(destination.asSolanaAccountId())
+                    .apply {
+                        if (this@asProtobufMetadata.destinationOwner != null) {
+                            setDestinationOwner(this@asProtobufMetadata.destinationOwner.asSolanaAccountId())
+                        }
+                    }
+                    .setIsRemoteSend(isRemoteSend)
                     .setIsWithdrawal(isWithdrawal)
                     .build()
             )
-
         }
+
+        is TransactionMetadata.PublicDistribution -> {
+            builder.setPublicDistribution(
+                TransactionService.PublicDistributionMetadata.newBuilder()
+                    .setSource(source.asSolanaAccountId())
+                    .apply {
+                        distributions.forEachIndexed { index, distribution ->
+                            setDistributions(
+                                index,
+                                TransactionService.PublicDistributionMetadata.Distribution
+                                    .newBuilder()
+                                    .setQuarks(distribution.amount.quarks)
+                                    .setDestination(distribution.destination.asSolanaAccountId())
+                            )
+                        }
+                    }.build()
+            )
+        }
+
         TransactionMetadata.Unknown -> Unit
     }
 
@@ -113,7 +150,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
 
 internal fun ExchangeData.WithRate.asProtobufExchangeData(): TransactionService.ExchangeData {
     return TransactionService.ExchangeData.newBuilder()
-        .setCurrency(currencyCode)
+        .setCurrency(currencyCode.lowercase()) // ensure always lowercase
         .setExchangeRate(exchangeRate)
         .setNativeAmount(nativeAmount)
         .setQuarks(quarks)
@@ -122,7 +159,7 @@ internal fun ExchangeData.WithRate.asProtobufExchangeData(): TransactionService.
 
 internal fun ExchangeData.WithoutRate.asProtobufExchangeData(): TransactionService.ExchangeDataWithoutRate {
     return TransactionService.ExchangeDataWithoutRate.newBuilder()
-        .setCurrency(currencyCode)
+        .setCurrency(currencyCode.lowercase()) // ensure always lowercase
         .setNativeAmount(nativeAmount)
         .build()
 }
@@ -156,7 +193,7 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
 
 internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
     return TransactionService.ExchangeData.newBuilder()
-        .setQuarks(usdc.quarks.toLong())
+        .setQuarks(usdc.quarks)
         .setCurrency(converted.currencyCode.name.lowercase())
         .setExchangeRate(rate.fx)
         .setNativeAmount(converted.doubleValue)

@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.network.extensions.asIntentId
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.Message
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.solana.keys.Hash
@@ -16,6 +17,7 @@ import com.getcode.solana.keys.Signature
 
 abstract class IntentType {
     abstract val id: PublicKey
+    abstract val metadata: TransactionMetadata
     abstract val actionGroup: ActionGroup
 
     val actions: List<ActionType>

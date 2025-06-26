@@ -296,6 +296,7 @@ val AccountInfo.displayName: String
         AccountType.Swap -> "Swap (USDC)"
         AccountType.AssociatedToken -> "ATA"
         AccountType.Pool -> "Pool"
+        AccountType.Unknown -> "Unknown"
     }
 
 // An account is deemed unuseable in the OCP if the management
