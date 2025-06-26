@@ -17,6 +17,7 @@ import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapp
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
+import com.flipcash.services.extensions.derivePoolBetId
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
@@ -169,7 +170,7 @@ class PoolsCoordinator @Inject constructor(
 
         val metadata = if (previousBetId == null) {
             PoolBetMetadata(
-                id = PublicKey.generate().bytes,
+                id = derivePoolBetId(poolId, userId).publicKeyBytes.toList(),
                 userId = userId,
                 payoutDestination = vault,
                 selectedOutcome = BetOutcomeConverter.toBetOutcome(outcome),
