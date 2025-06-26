@@ -90,14 +90,13 @@ class PoolsCoordinator @Inject constructor(
         val isHost = networkPool.metadata.creator == userManager.accountId
 
         // store the pool if we are the host or if we have bet already
-        if (isHost || networkPool.bets.any { it.metadata.userId == userManager.accountId }) {
+        if (isHost || networkPool.bets.find { it.metadata.userId == userManager.accountId }?.hasIntentBeenSubmitted == true) {
             dataSource.upsert(listOf(networkPool))
         }
 
         return runCatching {
             dataSource.getById(id)!!
         }.recoverCatching {
-            // attempt to derive rendezvous
             val rendezvous = if (isHost) {
                 userManager.mnemnonic!!.getSolanaKeyPair(
                     DerivePath.getPoolRendezvous(networkPool.derivationIndex)
@@ -114,8 +113,8 @@ class PoolsCoordinator @Inject constructor(
 
         val (_, _, isHost, bets) = networkToDomainMapper.map(networkPool to rendezvous)
 
-        // store the pool if we are the host or if we have bet already
-        if (isHost || bets.any { it.userId == userManager.accountId }) {
+        // store the pool if we are the host or if we have bet already (and paid for it)
+        if (isHost || bets.find { it.userId == userManager.accountId }?.hasPaidForBet == true) {
             dataSource.upsert(listOf(networkPool))
         }
 
@@ -159,7 +158,6 @@ class PoolsCoordinator @Inject constructor(
     suspend fun placeBet(
         poolId: ID,
         rendezvous: KeyPair,
-        previousBetId: ID?,
         outcome: PoolBetOutcome
     ): Result<Unit> {
         val userId = userManager.accountId
@@ -168,25 +166,14 @@ class PoolsCoordinator @Inject constructor(
         val vault = userManager.accountCluster?.vaultPublicKey
             ?: return Result.failure(Throwable("No vault public key in UserManager"))
 
-        val metadata = if (previousBetId == null) {
-            PoolBetMetadata(
-                id = derivePoolBetId(poolId, userId).publicKeyBytes.toList(),
-                userId = userId,
-                payoutDestination = vault,
-                selectedOutcome = BetOutcomeConverter.toBetOutcome(outcome),
-                timestamp = Clock.System.now(),
-            ).also {
-                dataSource.upsertBet(poolId, it, false)
-            }
-        } else {
-            val bet = dataSource.getBet(previousBetId)!!
-            PoolBetMetadata(
-                id = bet.id,
-                userId = bet.userId,
-                payoutDestination = bet.payoutDestination,
-                selectedOutcome = BetOutcomeConverter.toBetOutcome(bet.selectedOutcome),
-                timestamp = bet.placedAt,
-            )
+        val metadata = PoolBetMetadata(
+            id = derivePoolBetId(poolId, userId).publicKeyBytes.toList(),
+            userId = userId,
+            payoutDestination = vault,
+            selectedOutcome = BetOutcomeConverter.toBetOutcome(outcome),
+            timestamp = Clock.System.now(),
+        ).also {
+            dataSource.upsertBet(poolId, it, false)
         }
 
         return controller.placeBet(

@@ -444,13 +444,14 @@ internal class PoolBettingViewModel @Inject constructor(
                 is Event.OnPoolIdChanged -> { state -> state }
 
                 is Event.OnPoolRendezvousChanged -> { state ->
-                    state
+                    state.copy(rendezvous = event.rendezvous)
                 }
 
                 is Event.OnPoolLoaded -> { state ->
+                    val existingRendezvous = state.rendezvous
                     state.copy(
                         metadata = event.data.pool,
-                        rendezvous = event.data.rendezvous,
+                        rendezvous = existingRendezvous ?: event.data.rendezvous,
                         bets = event.data.bets,
                     )
                 }

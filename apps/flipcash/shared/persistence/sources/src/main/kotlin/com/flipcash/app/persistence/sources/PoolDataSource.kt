@@ -78,14 +78,14 @@ class PoolDataSource @Inject constructor(
 
     override suspend fun get(): List<PoolWithBets> {
         val result = db?.poolDao()?.getAll() ?: return emptyList()
-        return result.map {
-            val pool = poolEntityMapper.map(it.pool)
-            val bets = it.bets.map { betEntityMapper.map(it) }
+        return result.map { entity ->
+            val pool = poolEntityMapper.map(entity.pool)
+            val bets = entity.bets.map { betEntityMapper.map(it) }
             val isHost = pool.creator == userManager.accountId
             PoolWithBets(
                 pool = pool,
-                rendezvous = pool.derivePoolRendezvous(),
-                isHost = pool.creator == userManager.accountId,
+                rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
+                isHost = isHost,
                 bets = bets
             )
         }
