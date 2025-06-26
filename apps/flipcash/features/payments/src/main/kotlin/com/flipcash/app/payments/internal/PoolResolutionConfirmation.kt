@@ -106,7 +106,7 @@ private fun PoolResolutionContent(
                 .padding(top = CodeTheme.dimens.grid.x4)
                 .addIf(resolution is PoolResolution.BooleanResolution) {
                     Modifier.background(
-                        color = CodeTheme.colors.success,
+                        color = CodeTheme.colors.success.copy(alpha = 0.69f),
                         shape = CodeTheme.shapes.medium
                     )
                 }.addIf(resolution is PoolResolution.Refund) {
