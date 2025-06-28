@@ -36,7 +36,7 @@ class LoggingClientCallListener<ReqT, ResT>(
                 tag = "RpcLogging",
                 message = "An error occurred while processing the request",
                 type = TraceType.Error,
-                error = status.asRuntimeException()
+                error = status.asRuntimeException(trailers)
             )
         }
 
@@ -50,6 +50,12 @@ class LoggingClientCallListener<ReqT, ResT>(
         if (currentDepth >= maxDepth) return "${obj::class.java.simpleName}(...)"
 
         return try {
+            // Handle Protobuf messages directly using their toString()
+            if (obj is com.google.protobuf.Any) {
+                return obj.toString().replace("\n", ", ")
+            }
+
+            // Fallback to reflection for non-Protobuf objects
             val fields = obj::class.java.declaredFields
             fields.joinToString(", ", "${obj::class.java.simpleName}(", ")") { field ->
                 field.isAccessible = true
@@ -64,18 +70,8 @@ class LoggingClientCallListener<ReqT, ResT>(
 
                 "${field.name}=$valueString"
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "Unable to log details for ${obj::class.java.simpleName}"
         }
-    }
-
-
-    companion object {
-        private val UNSUCCESSFUL_STATUS_CODES = listOf(
-            Status.INVALID_ARGUMENT.code,
-            Status.INTERNAL.code,
-            Status.NOT_FOUND.code,
-            Status.UNAUTHENTICATED.code
-        )
     }
 }

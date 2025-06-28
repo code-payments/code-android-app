@@ -1,7 +1,6 @@
 package com.flipcash.services.repository
 
 import com.flipcash.services.models.NetworkPool
-import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
@@ -10,6 +9,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
+import kotlinx.datetime.Instant
 
 interface PoolRepository {
     suspend fun createPool(
@@ -35,7 +35,7 @@ interface PoolRepository {
         owner: KeyPair,
         pool: PoolMetadata,
         poolRendezvous: KeyPair,
-    ): Result<Unit>
+    ): Result<Instant>
 
     suspend fun declareOutcome(
         owner: KeyPair,

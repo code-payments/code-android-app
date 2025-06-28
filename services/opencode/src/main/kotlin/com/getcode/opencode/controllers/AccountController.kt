@@ -28,11 +28,15 @@ class AccountController @Inject constructor(
             .map { it.id.bytes }
     }
 
-    suspend fun createPoolAccount(owner: AccountCluster, index: Long): Result<PoolAccount> {
+    suspend fun createPoolAccount(
+        owner: AccountCluster,
+        index: Long,
+        mnemonic: MnemonicPhrase,
+    ): Result<PoolAccount> {
         val intent = IntentCreateAccount.createPoolAccount(owner, index)
 
         return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
-            .map { PoolAccount.create(index) }
+            .map { PoolAccount.create(index, mnemonic) }
     }
 
 

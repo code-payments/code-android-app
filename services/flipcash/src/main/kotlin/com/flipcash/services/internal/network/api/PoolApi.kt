@@ -65,6 +65,8 @@ internal class PoolApi @Inject constructor(
 
     /**
      * Gets all pools for a user over a paging API
+     *
+     * Note: Only bet summaries are provided in the response
      */
     suspend fun getPagedPools(
         owner: KeyPair,
@@ -88,13 +90,14 @@ internal class PoolApi @Inject constructor(
         owner: KeyPair,
         request: PoolRequest.Close,
     ): PoolService.ClosePoolResponse {
-        val metadata = request.pool.close().toProto()
-        val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
+        val pool = request.pool
+        val metadata = pool.toProto()
+        val signature = request.poolRendezvous.sign(metadata.toByteArray())
 
         val rpcRequest = PoolService.ClosePoolRequest.newBuilder()
             .setId(metadata.id)
             .setClosedAt(metadata.closedAt)
-            .setNewRendezvousSignature(signature)
+            .setNewRendezvousSignature(signature.asSignature())
             .apply {
                 setAuth(authenticate(owner))
             }.build()
@@ -108,23 +111,22 @@ internal class PoolApi @Inject constructor(
      * Resolves a pool by declaring the pool's outcome. The pool creator
      * resolves a pool by calling this RPC first, then SubmitIntent to distribute funds
      * to the winning participants.
-     *
-     * Note: If the pool is not closed, it will be closed after execution of this RPC.
      */
     suspend fun resolvePool(
         owner: KeyPair,
         request: PoolRequest.Resolve,
     ): PoolService.ResolvePoolResponse {
-        val metadata = request.pool.resolve(request.resolution).toProto()
+        val pool = request.pool
+        val metadata = pool.toProto()
         val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
 
         val rpcRequest = PoolService.ResolvePoolRequest.newBuilder()
-            .setId(request.pool.id.asPoolId())
+            .setId(pool.id.asPoolId())
             .setResolution(
-                when (request.resolution) {
+                when (pool.resolution) {
                     is NetworkPoolResolution.BooleanResolution -> {
                         Model.Resolution.newBuilder()
-                            .setBooleanResolution(request.resolution.value)
+                            .setBooleanResolution(pool.resolution.value)
                     }
                     is NetworkPoolResolution.Refund -> {
                         Model.Resolution.newBuilder()
@@ -159,11 +161,11 @@ internal class PoolApi @Inject constructor(
     ): PoolService.MakeBetResponse {
         val bet = request.metadata
         val metadata = bet.toProto()
-        val signature = request.poolRendezvous.sign(metadata.toByteArray()).asSignature()
+        val signature = request.poolRendezvous.sign(metadata.toByteArray())
         val rpcRequest = PoolService.MakeBetRequest.newBuilder()
             .setPoolId(request.poolId.asPoolId())
-            .setBet(bet.toProto())
-            .setRendezvousSignature(signature)
+            .setBet(metadata)
+            .setRendezvousSignature(signature.asSignature())
             .apply {
                 setAuth(authenticate(owner))
             }.build()

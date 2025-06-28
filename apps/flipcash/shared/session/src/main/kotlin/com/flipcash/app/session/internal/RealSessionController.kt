@@ -15,6 +15,7 @@ import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.pools.PoolsCoordinator
+import com.flipcash.app.pools.PoolsUpdater
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.PutInWallet
@@ -91,6 +92,7 @@ class RealSessionController @Inject constructor(
     private val balanceUpdater: BalanceUpdater,
     private val exchangeUpdater: ExchangeUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
+    private val poolsUpdater: PoolsUpdater,
     private val shareSheetController: ShareSheetController,
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
@@ -223,6 +225,7 @@ class RealSessionController @Inject constructor(
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
             balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+            poolsUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 45.seconds)
         }
     }
 
@@ -230,6 +233,7 @@ class RealSessionController @Inject constructor(
         exchangeUpdater.stop()
         balanceUpdater.stop()
         activityFeedUpdater.stop()
+        poolsUpdater.stop()
     }
 
     private fun updateUserFlags() {
@@ -307,6 +311,9 @@ class RealSessionController @Inject constructor(
 
     private fun bringPoolsCurrent(count: Int = 100) {
         if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                poolsCoordinator.updatePools()
+            }
             scope.launch {
                 poolsCoordinator.fetchSinceLatest(count)
             }

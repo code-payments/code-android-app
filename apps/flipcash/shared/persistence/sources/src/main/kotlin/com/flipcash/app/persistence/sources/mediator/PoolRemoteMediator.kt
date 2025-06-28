@@ -36,7 +36,7 @@ class PoolRemoteMediator @Inject constructor(
                     val lastItem = state.lastItemOrNull()
                         ?: return MediatorResult.Success(endOfPaginationReached = true)
 
-                    lastItem.pagingToken
+                    lastItem.pagingToken?.takeIf { it.isNotEmpty() }
                 }
             }
 

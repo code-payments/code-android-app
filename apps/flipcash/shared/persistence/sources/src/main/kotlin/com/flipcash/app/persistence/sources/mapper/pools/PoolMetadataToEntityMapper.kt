@@ -18,7 +18,7 @@ data class PoolMetadataMappingParameters(
     val pagingToken: PagingToken?,
     val selectedOutcome: NetworkPoolBetOutcome?,
     val derivationIndex: Long,
-    val rendezvousSignature: List<Byte>?,
+    val rendezvousSignature: List<Byte>,
     val betSummary: NetworkPoolBetSummary,
 )
 class PoolMetadataToEntityMapper @Inject constructor(): Mapper<PoolMetadataMappingParameters, PoolEntity> {
@@ -39,7 +39,7 @@ class PoolMetadataToEntityMapper @Inject constructor(): Mapper<PoolMetadataMappi
             didWin = metadata.resolution.didWin(selectedOutcome),
             pagingTokenBase58 = pagingToken?.base58,
             derivationIndex = derivationIndex,
-            rendezvousSignature = signature?.base58,
+            rendezvousSignature = signature.base58,
             betSummary = PoolBetSummaryConverter.fromPoolBetSummary(summary)
         )
     }

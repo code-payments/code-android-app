@@ -9,6 +9,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 
 internal sealed interface PoolRequest {
     data class Create(
@@ -36,7 +37,6 @@ internal sealed interface PoolRequest {
 
     data class Resolve(
         val pool: PoolMetadata,
-        val resolution: NetworkPoolResolution,
         val poolRendezvous: KeyPair,
     ): PoolRequest
 

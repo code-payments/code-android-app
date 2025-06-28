@@ -51,7 +51,6 @@ object DateUtils {
 }
 
 fun Long.toInstantFromMillis() = Instant.fromEpochMilliseconds(this)
-fun Long.toInstantFromSeconds() = Instant.fromEpochSeconds(this)
 
 fun Instant.formatDateRelatively(): String {
     return com.getcode.util.DateUtils.getDateRelatively(toEpochMilliseconds())

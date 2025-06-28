@@ -1,6 +1,7 @@
 package com.flipcash.app.pools.internal.betting
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -42,13 +44,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.extensions.toYesOrNo
 import com.flipcash.app.core.pools.PoolBetOutcome
+import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.label
+import com.flipcash.app.core.pools.winningOutcome
 import com.flipcash.app.core.ui.FlagWithFiat
 import com.flipcash.features.pools.R
+import com.flipcash.shared.payments.R.*
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -81,7 +88,11 @@ private fun PoolBettingScreenContent(
                 )
             }
         },
-        bottomBar = { BettingBottomBar(state) }
+        bottomBar = {
+            if (!state.isResolved) {
+                BettingBottomBar(state)
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -97,7 +108,10 @@ private fun PoolBettingScreenContent(
                 outcomes = state.outcomes,
                 totals = state.totalPerOutcome,
                 selectedOutcome = state.selectedOutcome,
+                resolution = state.metadata.resolution
             ) { dispatchEvent(PoolBettingViewModel.Event.OnOutcomeSelected(it)) }
+
+            ResolutionInfo(state, Modifier.weight(1f))
         }
     }
 }
@@ -129,6 +143,7 @@ private fun BidOptions(
     outcomes: List<PoolBetOutcome>,
     totals: Map<PoolBetOutcome, Fiat>,
     selectedOutcome: PoolBetOutcome?,
+    resolution: PoolResolution,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = CodeTheme.dimens.inset),
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -176,6 +191,7 @@ private fun BidOptions(
                         enabled = canBid,
                         isSelected = isSelected,
                         item = item,
+                        resolution = resolution,
                         totals = totals
                     ) { onOutcomeSelected(item) }
 
@@ -256,25 +272,51 @@ private fun BidOptions(
 private fun ClickableCell(
     enabled: Boolean,
     isSelected: Boolean,
+    resolution: PoolResolution,
     item: PoolBetOutcome,
     totals: Map<PoolBetOutcome, Fiat>,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val backgroundColor by animateColorAsState(
-        if (isSelected) Color.White else Color(0xFF071F10)
+        when (resolution) {
+            is PoolResolution.BooleanResolution -> {
+                val isWon = resolution.winningOutcome == item
+                if (isWon) CodeTheme.colors.success.copy(0.69f) else Color(0xFF193024)
+            }
+            PoolResolution.NotSet -> if (isSelected) Color.White else Color(0xFF071F10)
+            PoolResolution.Refund -> Color(0xFF071F10)
+        }
     )
 
     val borderColor by animateColorAsState(
-        if (isSelected) Color.White else CodeTheme.colors.border
+        when (resolution) {
+            is PoolResolution.BooleanResolution -> {
+                val isWon = resolution.winningOutcome == item
+                if (isWon) Color.Transparent else CodeTheme.colors.border
+            }
+            PoolResolution.NotSet -> if (isSelected) Color.White else CodeTheme.colors.border
+            PoolResolution.Refund -> CodeTheme.colors.border
+        }
     )
 
     val choiceOptionColor by animateColorAsState(
-        if (isSelected) Color.Black else Color.White.copy(0.5f)
+        when (resolution) {
+            is PoolResolution.BooleanResolution -> Color.White
+            PoolResolution.NotSet -> if (isSelected) Color.Black else CodeTheme.colors.textSecondary
+            PoolResolution.Refund -> CodeTheme.colors.textSecondary
+        }
     )
 
     val choiceBetTotalColor by animateColorAsState(
-        if (isSelected) Color.Black else Color.White.copy(0.3f)
+        when (resolution) {
+            is PoolResolution.BooleanResolution -> {
+                val isWon = resolution.winningOutcome == item
+                if (isWon) Color.White else CodeTheme.colors.textSecondary
+            }
+            PoolResolution.NotSet -> if (isSelected) Color.Black else Color.White.copy(0.3f)
+            PoolResolution.Refund -> CodeTheme.colors.textSecondary
+        }
     )
     Box(
         modifier = modifier
@@ -306,6 +348,60 @@ private fun ClickableCell(
                 style = CodeTheme.typography.textSmall,
                 color = choiceBetTotalColor,
             )
+        }
+    }
+}
+
+@Composable
+private fun ResolutionInfo(state: PoolBettingViewModel.State, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        AnimatedVisibility(
+            visible = state.isResolved,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = when (val resolution = state.metadata.resolution) {
+                        PoolResolution.Refund -> stringResource(string.label_tie)
+                        is PoolResolution.BooleanResolution -> resolution.value.toYesOrNo()
+                        PoolResolution.NotSet -> ""
+                    },
+                    style = CodeTheme.typography.displaySmall,
+                    color = CodeTheme.colors.textMain,
+                )
+                Text(
+                    text = when (state.metadata.resolution) {
+                        is PoolResolution.BooleanResolution -> {
+                            if (state.metadata.winnerCount > 1) {
+                                stringResource(
+                                    string.subtitle_winnersReceive,
+                                    state.metadata.winningAmount.formatted()
+                                )
+                            } else {
+                                stringResource(
+                                    string.subtitle_winnerReceives,
+                                    state.metadata.winningAmount.formatted())
+                            }
+                        }
+                        PoolResolution.Refund -> {
+                            stringResource(
+                                string.subtitle_everyoneReceives,
+                                state.metadata.buyIn.formatted()
+                            )
+                        }
+
+                        PoolResolution.NotSet -> ""
+                    },
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary,
+                )
+                Spacer(Modifier.requiredHeight(CodeTheme.dimens.grid.x6))
+            }
         }
     }
 }

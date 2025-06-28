@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.pool.v1.Model
+import com.codeinc.flipcash.gen.pool.v1.closedAtOrNull
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toPublicKey
@@ -27,9 +28,9 @@ class PoolMetadataMapper @Inject constructor(): Mapper<Model.SignedPoolMetadata,
             },
             isOpen = from.isOpen,
             resolution = from.resolution.toResolution(),
-            fundingDestination = from.fundingDestination.toByteArray().toPublicKey(),
-            createdAt = Instant.Companion.fromEpochSeconds(from.createdAt.seconds, 0),
-            closedAt = from.closedAt?.let { Instant.Companion.fromEpochSeconds(it.seconds, 0) },
+            fundingDestination = from.fundingDestination.value.toByteArray().toPublicKey(),
+            createdAt = Instant.Companion.fromEpochMilliseconds(from.createdAt.seconds * 1000L),
+            closedAt = from.closedAtOrNull?.let { Instant.Companion.fromEpochMilliseconds(it.seconds * 1000L) },
         )
     }
 }

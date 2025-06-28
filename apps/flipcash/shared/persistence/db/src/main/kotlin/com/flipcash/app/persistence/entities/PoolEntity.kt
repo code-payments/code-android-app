@@ -31,7 +31,8 @@ data class PoolEntity(
     val closedTimestamp: Long?,
     @ColumnInfo(defaultValue = "-1")
     val derivationIndex: Long,
-    val rendezvousSignature: String?,
+    @ColumnInfo(defaultValue = "")
+    val rendezvousSignature: String,
     val betSummary: String?,
 ) {
     @Ignore

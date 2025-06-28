@@ -33,10 +33,10 @@ internal class InternalPoolBidDelegate @Inject constructor(
         val balance = balanceController.rawBalance.value
 
 
-        if (balance < pool.buyIn) {
-            onError(PaymentError.InsufficientBalance())
-            return
-        }
+//        if (balance < pool.buyIn) {
+//            onError(PaymentError.InsufficientBalance())
+//            return
+//        }
 
         val localizedAmount = LocalFiat(
             usdc = amount.convertingTo(exchange.rateForUsd()),

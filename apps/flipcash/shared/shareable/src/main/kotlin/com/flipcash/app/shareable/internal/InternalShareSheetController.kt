@@ -22,7 +22,6 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.utils.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase64

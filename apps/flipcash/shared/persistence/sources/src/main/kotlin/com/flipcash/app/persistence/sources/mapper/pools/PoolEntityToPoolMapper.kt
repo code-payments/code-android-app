@@ -7,6 +7,7 @@ import com.flipcash.app.persistence.entities.PoolEntity
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.utils.decodeBase58
 import javax.inject.Inject
 
 class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
@@ -26,7 +27,8 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             closedAt = from.closedAt,
             didWin = from.didWin,
             derivationIndex = from.derivationIndex,
-            betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary)
+            betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary),
+            rendezvousSignature = from.rendezvousSignature.decodeBase58().toList(),
         )
     }
 }

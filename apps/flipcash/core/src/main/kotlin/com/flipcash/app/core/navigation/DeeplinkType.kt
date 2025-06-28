@@ -25,7 +25,7 @@ val Uri.fragments: Map<Key, String>
             .mapNotNull { fragment ->
                 val data = Key.entries
                     .map { key -> key to "${key.value}=" }
-                    .filter { (key, prefix) -> fragment.startsWith(prefix) }
+                    .filter { (_, prefix) -> fragment.startsWith(prefix) }
                     .firstNotNullOfOrNull { (key, prefix) -> key to fragment.removePrefix(prefix) }
 
                 data ?: return@mapNotNull null

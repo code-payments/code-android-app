@@ -30,6 +30,7 @@ internal class PoolService @Inject constructor(
                     PoolService.CreatePoolResponse.Result.OK -> Result.success(Unit)
                     PoolService.CreatePoolResponse.Result.RENDEZVOUS_EXISTS -> Result.failure(CreatePoolError.RendezvousExists())
                     PoolService.CreatePoolResponse.Result.FUNDING_DESTINATION_EXISTS -> Result.failure(CreatePoolError.FundingDestinationExists())
+                    PoolService.CreatePoolResponse.Result.DENIED -> Result.failure(CreatePoolError.Denied())
                     PoolService.CreatePoolResponse.Result.UNRECOGNIZED -> Result.failure(CreatePoolError.Unrecognized())
                 }
                 Result.success(Unit)
@@ -135,6 +136,7 @@ internal class PoolService @Inject constructor(
                     PoolService.MakeBetResponse.Result.POOL_CLOSED -> Result.failure(PlacePoolBetError.PoolClosed())
                     PoolService.MakeBetResponse.Result.MULTIPLE_BETS -> Result.failure(PlacePoolBetError.BetAlreadyMade())
                     PoolService.MakeBetResponse.Result.MAX_BETS_RECEIVED -> Result.failure(PlacePoolBetError.MaxBetsReceived())
+                    PoolService.MakeBetResponse.Result.BET_OUTCOME_SOLIDIFIED -> Result.failure(PlacePoolBetError.BetOutcomeSolidified())
                     PoolService.MakeBetResponse.Result.UNRECOGNIZED -> Result.failure(PlacePoolBetError.Unrecognized())
                 }
             },

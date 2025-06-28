@@ -20,12 +20,4 @@ data class PoolResolutionPaymentMetadata(
     val bets: List<PoolBet>,
     val rendezvous: Ed25519.KeyPair,
     val resolution: PoolResolution.DecisionMade,
-): PaymentMetadata {
-    val poolWithBets = PoolWithBets(
-        pool = pool,
-        rendezvous = rendezvous,
-        isHost = true, /* You can only resolve a pool as the host */
-        bets = bets
-    )
-
-}
+): PaymentMetadata

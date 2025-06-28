@@ -12,10 +12,12 @@ import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
+import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
 import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
+import com.flipcash.services.models.ClosePoolError
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.BottomBarAction
@@ -26,6 +28,7 @@ import com.getcode.opencode.model.financial.times
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -34,6 +37,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,7 +70,6 @@ internal class PoolBettingViewModel @Inject constructor(
         private val poolWithBets: PoolWithBets
             get() = PoolWithBets(
                 pool = metadata,
-                rendezvous = rendezvous,
                 isHost = metadata.creator == userId,
                 bets = bets
             )
@@ -86,7 +89,7 @@ internal class PoolBettingViewModel @Inject constructor(
             }
 
         val isResolved: Boolean
-            get() = metadata.resolution != PoolResolution.NotSet
+            get() = metadata.resolution is PoolResolution.DecisionMade
 
         val totalPerOutcome: Map<PoolBetOutcome, Fiat>
             get() {
@@ -147,7 +150,7 @@ internal class PoolBettingViewModel @Inject constructor(
     sealed interface Event {
         data class OnLoadingChanged(val loading: Boolean) : Event
         data class OnPoolIdChanged(val poolId: ID) : Event
-        data class OnPoolRendezvousChanged(val rendezvous: Ed25519.KeyPair) : Event
+        data class OnPoolRendezvousChanged(val rendezvous: Ed25519.KeyPair, val fromUser: Boolean = true) : Event
         data class OnUserIdChanged(val id: ID) : Event
         data class OnPoolLoaded(val data: PoolWithBets) : Event
         data class OnBottomBarActionsChanged(val actions: List<BottomBarAction>) : Event
@@ -192,6 +195,7 @@ internal class PoolBettingViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnPoolRendezvousChanged>()
+            .filter { it.fromUser }
             .map { it.rendezvous }
             .map { rendezvous ->
                 dispatchEvent(Event.OnLoadingChanged(true))
@@ -232,13 +236,22 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-
+        eventFlow
+            .filterIsInstance<Event.OnPoolLoaded>()
+            .filter { it.data.isHost }
+            .map { it.data.pool }
+            .filter { stateFlow.value.rendezvous == null }
+            .map { userManager.poolAccountAt(it.derivationIndex) }
+            .onEach {
+                dispatchEvent(Event.OnPoolRendezvousChanged(it.rendezvous, fromUser = false))
+            }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnPoolLoaded>()
             .map { it.data }
             .onEach { data ->
-                val actions = buildList<BottomBarAction> {
+                val actions = buildList {
                     if (data.isHost) {
                         if (data.bets.count() >= 2) {
                             add(
@@ -290,6 +303,7 @@ internal class PoolBettingViewModel @Inject constructor(
             .mapNotNull {
                 val pool = stateFlow.value.metadata
                 val rendezvous = stateFlow.value.rendezvous
+
                 if (pool == Pool.Empty) return@mapNotNull null
                 if (rendezvous == null) return@mapNotNull null
                 pool to rendezvous
@@ -303,14 +317,16 @@ internal class PoolBettingViewModel @Inject constructor(
             .filterIsInstance<Event.OnOutcomeSelected>()
             .map { it.outcome }
             .mapNotNull {
-                val rendezvous = stateFlow.value.rendezvous ?: return@mapNotNull null
+                val pool = stateFlow.value.metadata
+                val rendezvous = stateFlow.value.rendezvous
+                if (rendezvous == null) return@mapNotNull null
                 PaymentRequest.PoolBid(
-                    pool = stateFlow.value.metadata,
+                    pool = pool,
                     rendezvous = rendezvous,
                     outcome = it,
                 ) {
                     poolsCoordinator.placeBet(
-                        poolId = stateFlow.value.metadata.id,
+                        poolId = pool.id,
                         rendezvous = rendezvous,
                         outcome = it,
                     )
@@ -331,7 +347,13 @@ internal class PoolBettingViewModel @Inject constructor(
                         )
                     }
                     is PaymentEvent.OnPaymentSuccess -> {
-                        event.acknowledge(true) { }
+                        event.acknowledge(true) {
+                            viewModelScope.launch {
+                                poolsCoordinator.onBetPaidForInPool(
+                                    poolId = (event.metadata as PoolBidPaymentMetadata).pool.id
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -387,19 +409,33 @@ internal class PoolBettingViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnResolutionSelected>()
             .map { it.resolution }
-            .mapNotNull {
-                val rendezvous = stateFlow.value.rendezvous ?: return@mapNotNull null
+            .mapNotNull { resolution ->
+                val rendezvous = stateFlow.value.rendezvous
+                if (rendezvous == null) return@mapNotNull null
 
                 PaymentRequest.ResolvePool(
                     pool = stateFlow.value.metadata,
                     bets = stateFlow.value.bets,
                     rendezvous = rendezvous,
-                    resolution = it,
+                    resolution = resolution,
                 ) {
-                    poolsCoordinator.resolvePool(
+                    poolsCoordinator.closePool(
                         pool = stateFlow.value.metadata,
-                        resolution = it,
-                        rendezvous = rendezvous
+                        rendezvous = rendezvous,
+                    ).fold(
+                        onSuccess = {
+                            poolsCoordinator.resolvePool(
+                                // ensure the pool metadata is as up-to-date as possible
+                                // ensuring there is no race condition possibility w/ observe
+                                pool = stateFlow.value.metadata.copy(
+                                    isOpen = false,
+                                    closedAt = it
+                                ),
+                                rendezvous = rendezvous,
+                                resolution = resolution,
+                            )
+                        },
+                        onFailure = { Result.failure(it) }
                     )
                 }
             }
@@ -411,10 +447,21 @@ internal class PoolBettingViewModel @Inject constructor(
                     PaymentEvent.OnPaymentCancelled -> Unit
                     is PaymentEvent.OnPaymentError -> Unit
                     is PaymentEvent.OnRpcFailure -> {
-                        BottomBarManager.showError(
-                            resources.getString(R.string.error_title_resolvePoolFailed),
-                            resources.getString(R.string.error_description_resolvePoolFailed),
-                        )
+                        when (event.error) {
+                            is ClosePoolError -> {
+                                BottomBarManager.showError(
+                                    resources.getString(R.string.error_title_closePoolFailed),
+                                    resources.getString(R.string.error_description_closePoolFailed),
+                                )
+                            }
+                            else -> {
+                                BottomBarManager.showError(
+                                    resources.getString(R.string.error_title_resolvePoolFailed),
+                                    resources.getString(R.string.error_description_resolvePoolFailed),
+                                )
+                            }
+                        }
+
                     }
                     is PaymentEvent.OnPaymentSuccess -> {
                         event.acknowledge(true) {
@@ -451,7 +498,6 @@ internal class PoolBettingViewModel @Inject constructor(
                     val existingRendezvous = state.rendezvous
                     state.copy(
                         metadata = event.data.pool,
-                        rendezvous = existingRendezvous ?: event.data.rendezvous,
                         bets = event.data.bets,
                     )
                 }

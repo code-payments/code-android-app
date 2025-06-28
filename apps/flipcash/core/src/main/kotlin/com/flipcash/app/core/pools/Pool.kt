@@ -1,7 +1,5 @@
 package com.flipcash.app.core.pools
 
-import com.getcode.crypt.DerivePath
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Fiat
@@ -18,6 +16,7 @@ data class Pool(
     val fundingDestination: PublicKey,
     val isOpen: Boolean = true,
     val resolution: PoolResolution = PoolResolution.NotSet,
+    val rendezvousSignature: List<Byte> = emptyList(),
     val createdAt: Instant,
     val closedAt: Instant?,
     val didWin: Boolean,
@@ -25,8 +24,6 @@ data class Pool(
     val betSummary: PoolBetSummary,
 ) {
     companion object
-
-    val rendezvousPath = DerivePath.getPoolRendezvous(derivationIndex)
 
     val totalPoolAmount: Fiat
         get() {
@@ -97,31 +94,3 @@ val Pool.Companion.Empty: Pool
         derivationIndex = -1,
         betSummary = PoolBetSummary.Boolean(0, 0),
     )
-
-data class PoolWithHostStatus(
-    val pool: Pool,
-    val isUserHost: Boolean,
-)
-
-data class PoolWithBets(
-    val pool: Pool,
-    val rendezvous: KeyPair?,
-    val isHost: Boolean,
-    val bets: List<PoolBet>
-) {
-    val totalPoolAmount: Fiat
-        get() = pool.totalPoolAmount
-
-    val winningOutcome: PoolBetOutcome.DecisionMade?
-        get() = pool.resolution.winningOutcome
-
-    val winnerCount: Int
-        get() = pool.winnerCount
-
-    val winningAmount: Fiat
-        get() = pool.winningAmount
-
-    fun winningAmountForResolution(resolution: PoolResolution.DecisionMade): Fiat {
-        return pool.winningAmountForResolution(resolution)
-    }
-}

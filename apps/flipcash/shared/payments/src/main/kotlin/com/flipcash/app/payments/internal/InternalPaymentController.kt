@@ -144,7 +144,7 @@ internal class InternalPaymentController(
                     onError = ::handlePaymentError,
                 )
             }.onFailure {
-                _state.update { PaymentState.Default }
+                cancelRequest(false)
                 _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
             }
     }
@@ -179,7 +179,7 @@ internal class InternalPaymentController(
                 )
             }
             .onFailure {
-                _state.update { PaymentState.Default }
+                cancelRequest(false)
                 _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
             }
     }
@@ -195,7 +195,7 @@ internal class InternalPaymentController(
                 metadata = metadata,
                 acknowledge = { isSuccess, after ->
                     if (isSuccess) {
-                        _state.update { stateUpdate(it) }
+                        _state.update(stateUpdate)
                     }
 
                     cancelRequest(fromUser = false)

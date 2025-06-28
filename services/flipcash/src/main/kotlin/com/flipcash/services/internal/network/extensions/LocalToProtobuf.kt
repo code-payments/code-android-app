@@ -78,7 +78,6 @@ internal fun PoolMetadata.toProto(): PoolModels.SignedPoolMetadata {
         )
         .setFundingDestination(fundingDestination.asPublicKey())
         .setIsOpen(isOpen)
-        .setCreatedAt(createdAt.asTimestamp())
         .apply {
             when (this@toProto.resolution) {
                 is NetworkPoolResolution.BooleanResolution -> {
@@ -89,12 +88,19 @@ internal fun PoolMetadata.toProto(): PoolModels.SignedPoolMetadata {
                 }
 
                 NetworkPoolResolution.NotSet -> Unit
+
                 NetworkPoolResolution.Refund -> {
                     setResolution(
                         PoolModels.Resolution.newBuilder()
                             .setRefundResolution(PoolModels.Resolution.Refund.getDefaultInstance())
                     )
                 }
+            }
+        }
+        .setCreatedAt(createdAt.asTimestamp())
+        .apply {
+            if (this@toProto.closedAt != null) {
+                setClosedAt(this@toProto.closedAt.asTimestamp())
             }
         }
         .build()

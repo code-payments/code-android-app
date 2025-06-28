@@ -65,9 +65,9 @@ internal fun PoolResolutionConfirmationModal(
             state = state,
             onApproved = onSend,
             resolution = metadata.resolution,
-            winners = metadata.poolWithBets.winnerCount,
-            buyIn = metadata.poolWithBets.pool.buyIn,
-            winningAmount = metadata.poolWithBets.winningAmountForResolution(metadata.resolution),
+            winners = metadata.pool.winnerCount,
+            buyIn = metadata.pool.buyIn,
+            winningAmount = metadata.pool.winningAmountForResolution(metadata.resolution),
             label = stringResource(R.string.action_swipeToSendPayouts),
         )
         val enabled = state !is ConfirmationState.Sending && state !is ConfirmationState.Sent

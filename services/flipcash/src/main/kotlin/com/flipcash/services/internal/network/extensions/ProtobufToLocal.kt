@@ -19,7 +19,7 @@ internal fun Common.PublicKey.toPublicKey(): PublicKey = value.toByteArray().toP
 
 
 internal fun Model.Resolution.toResolution(): NetworkPoolResolution = when (this.kindCase) {
-    PoolModels.Resolution.KindCase.BOOLEAN_RESOLUTION -> NetworkPoolResolution.Refund
-    PoolModels.Resolution.KindCase.REFUND_RESOLUTION -> NetworkPoolResolution.BooleanResolution(booleanResolution)
+    PoolModels.Resolution.KindCase.BOOLEAN_RESOLUTION -> NetworkPoolResolution.BooleanResolution(booleanResolution)
+    PoolModels.Resolution.KindCase.REFUND_RESOLUTION -> NetworkPoolResolution.Refund
     PoolModels.Resolution.KindCase.KIND_NOT_SET -> NetworkPoolResolution.NotSet
 }

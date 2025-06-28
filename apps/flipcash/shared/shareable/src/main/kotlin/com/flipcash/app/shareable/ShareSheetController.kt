@@ -2,10 +2,8 @@ package com.flipcash.app.shareable
 
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.flipcash.app.core.pools.PoolWithBets
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
-import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds

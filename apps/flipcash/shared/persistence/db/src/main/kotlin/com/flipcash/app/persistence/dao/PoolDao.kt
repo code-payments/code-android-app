@@ -13,6 +13,7 @@ import com.flipcash.app.persistence.entities.PoolWithBetsEntity
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.Instant
 
 @Dao
 interface PoolDao {
@@ -24,48 +25,43 @@ interface PoolDao {
 
     @Query("SELECT * FROM pool_bet_metadata WHERE idBase58 = :id")
     suspend fun getBet(id: String): PoolBetEntity?
-
     suspend fun getBet(id: ID): PoolBetEntity? {
         return getBet(id.base58)
     }
 
+    @Query("UPDATE pool_bet_metadata SET hasSubmittedIntent = 1 WHERE idBase58 = :id")
+    suspend fun paidBet(id: String)
+    suspend fun paidBet(id: ID) {
+        return paidBet(id.base58)
+    }
+
+
     @Query("DELETE FROM pool_bet_metadata WHERE poolIdBase58 = :poolId AND idBase58 = :betId")
     suspend fun removeBet(poolId: String, betId: String)
-
     suspend fun removeBet(poolId: ID, betId: ID) {
         removeBet(poolId.base58, betId.base58)
     }
 
     @Query("UPDATE pool_metadata SET resolution = :resolution WHERE idBase58 = :id")
-    suspend fun resolvePool(
-        id: String,
-        resolution: PoolResolution.DecisionMade,
-    )
-
-    suspend fun resolvePool(
-        id: ID,
-        resolution: PoolResolution.DecisionMade,
-    ) {
+    suspend fun resolvePool(id: String, resolution: PoolResolution.DecisionMade)
+    suspend fun resolvePool(id: ID, resolution: PoolResolution.DecisionMade) {
         resolvePool(id.base58, resolution)
     }
 
     @Query("UPDATE pool_metadata SET resolution = NULL WHERE idBase58 = :id")
     suspend fun unresolvePool(id: String)
-
     suspend fun unresolvePool(id: ID) {
         unresolvePool(id.base58)
     }
 
-    @Query("UPDATE pool_metadata SET isOpen = 0 AND closedTimestamp = strftime('%s', 'now') WHERE idBase58 = :id")
-    suspend fun closePool(id: String)
-
-    suspend fun closePool(id: ID) {
-        closePool(id.base58)
+    @Query("UPDATE pool_metadata SET isOpen = 0, closedTimestamp = :timestamp WHERE idBase58 = :id")
+    suspend fun closePool(id: String, timestamp: Long)
+    suspend fun closePool(id: ID, closedAt: Instant) {
+        closePool(id.base58, closedAt.toEpochMilliseconds())
     }
 
-    @Query("UPDATE pool_metadata SET isOpen = 1 AND closedTimestamp = NULL WHERE idBase58 = :id")
+    @Query("UPDATE pool_metadata SET isOpen = 1, closedTimestamp = NULL WHERE idBase58 = :id")
     suspend fun reopenPool(id: String)
-
     suspend fun reopenPool(id: ID) {
         reopenPool(id.base58)
     }

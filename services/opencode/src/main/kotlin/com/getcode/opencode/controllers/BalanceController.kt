@@ -53,7 +53,6 @@ class BalanceController @Inject constructor(
     private val fetching = AtomicBoolean(false)
 
     var onTimelockUnlocked: (() -> Unit) = { }
-    var onPoolAccountsUpdated: ((List<AccountInfo>) -> Unit) = { }
     var onNextIndexDetermined: ((Long) -> Unit) = { }
 
     val rawBalance: StateFlow<Fiat>
@@ -118,6 +117,7 @@ class BalanceController @Inject constructor(
         localizedBalance.value = fiat
     }
 
+    // TODO: split non-balance account handling out into a separate controller
     suspend fun fetchBalance() {
         val owner = cluster.value
         if (owner == null) {
@@ -157,7 +157,6 @@ class BalanceController @Inject constructor(
                 if (response.accounts.values.any { it.unusable }) {
                     onTimelockUnlocked()
                 }
-                onPoolAccountsUpdated(response.accounts.values.toList().filter { it.accountType == AccountType.Pool })
                 onNextIndexDetermined(response.nextPoolIndex)
                 retrieveBalanceFromAccounts(response.accounts)
             }?.onSuccess { newBalance ->

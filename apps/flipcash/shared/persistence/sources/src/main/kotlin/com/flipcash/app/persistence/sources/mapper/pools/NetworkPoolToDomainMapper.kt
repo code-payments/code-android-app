@@ -14,29 +14,27 @@ import javax.inject.Inject
 
 class NetworkPoolToDomainMapper @Inject constructor(
     private val userManager: UserManager,
-): Mapper<Pair<NetworkPool, Ed25519.KeyPair?>, PoolWithBets> {
-    override fun map(from: Pair<NetworkPool, Ed25519.KeyPair?>): PoolWithBets {
-        val (networkResponse, rendezvous) = from
-        val selectedOutcome = networkResponse.bets.find { it.metadata.userId == userManager.accountId }?.metadata?.selectedOutcome
+): Mapper<NetworkPool, PoolWithBets> {
+    override fun map(from: NetworkPool): PoolWithBets {
+        val selectedOutcome = from.bets.find { it.metadata.userId == userManager.accountId }?.metadata?.selectedOutcome
 
         return PoolWithBets(
             pool = Pool(
-                id = networkResponse.metadata.id,
-                creator = networkResponse.metadata.creator,
-                name = networkResponse.metadata.name,
-                buyIn = networkResponse.metadata.buyIn,
-                fundingDestination = networkResponse.metadata.fundingDestination,
-                isOpen = networkResponse.metadata.isOpen,
-                resolution = PoolResolutionConverter.toPoolResolution(networkResponse.metadata.resolution),
-                createdAt = networkResponse.metadata.createdAt,
-                closedAt = networkResponse.metadata.closedAt,
-                didWin = networkResponse.metadata.resolution.didWin(selectedOutcome),
-                derivationIndex = networkResponse.derivationIndex,
-                betSummary = PoolBetSummaryConverter.toPoolBetSummary(networkResponse.betSummary),
+                id = from.metadata.id,
+                creator = from.metadata.creator,
+                name = from.metadata.name,
+                buyIn = from.metadata.buyIn,
+                fundingDestination = from.metadata.fundingDestination,
+                isOpen = from.metadata.isOpen,
+                resolution = PoolResolutionConverter.toPoolResolution(from.metadata.resolution),
+                createdAt = from.metadata.createdAt,
+                closedAt = from.metadata.closedAt,
+                didWin = from.metadata.resolution.didWin(selectedOutcome),
+                derivationIndex = from.derivationIndex,
+                betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary),
             ),
-            rendezvous = rendezvous,
-            isHost = userManager.accountId == networkResponse.metadata.creator,
-            bets = networkResponse.bets.map {
+            isHost = userManager.accountId == from.metadata.creator,
+            bets = from.bets.map {
                 PoolBet(
                     id = it.metadata.id,
                     userId = it.metadata.userId,

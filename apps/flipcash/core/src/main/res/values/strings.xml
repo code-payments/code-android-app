@@ -217,6 +217,9 @@
     <string name="error_title_placeBetFailed">Something Went Wrong</string>
     <string name="error_description_placeBetFailed">We were unable to place your bid. Please try again</string>
 
+    <string name="error_title_closePoolFailed">Something Went Wrong</string>
+    <string name="error_description_closePoolFailed">We were unable to close your pool. Please try again</string>
+
     <string name="error_title_resolvePoolFailed">Something Went Wrong</string>
     <string name="error_description_resolvePoolFailed">We were unable to resolve your pool. Please try again</string>
 

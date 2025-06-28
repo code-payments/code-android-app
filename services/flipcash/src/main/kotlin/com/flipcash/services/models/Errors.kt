@@ -75,6 +75,7 @@ sealed class CreatePoolError(
 ): CodeServerError(message, cause) {
     class RendezvousExists: CreatePoolError("Rendezvous exists")
     class FundingDestinationExists: CreatePoolError("Funding destination exists")
+    class Denied: CreatePoolError("Denied")
     class Unrecognized : CreatePoolError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : CreatePoolError(message = cause?.message, cause = cause)
 }
@@ -104,6 +105,7 @@ sealed class PlacePoolBetError(
     class PoolClosed: PlacePoolBetError("Pool closed")
     class BetAlreadyMade: PlacePoolBetError("Bet already made")
     class MaxBetsReceived: PlacePoolBetError("Max bets received")
+    class BetOutcomeSolidified: PlacePoolBetError("Bet outcome solidified")
     class Unrecognized : PlacePoolBetError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : PlacePoolBetError(message = cause?.message, cause = cause)
 }

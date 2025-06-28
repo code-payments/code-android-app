@@ -14,6 +14,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
+import kotlinx.datetime.Instant
 
 internal class InternalPoolRepository(
     private val service: PoolService,
@@ -85,14 +86,15 @@ internal class InternalPoolRepository(
         owner: KeyPair,
         pool: PoolMetadata,
         poolRendezvous: KeyPair,
-    ): Result<Unit> {
+    ): Result<Instant> {
+        val closedPool = pool.close()
         return service.closePool(
             owner = owner,
             request = PoolRequest.Close(
-                pool = pool,
+                pool = closedPool,
                 poolRendezvous = poolRendezvous
             )
-        )
+        ).map { closedPool.closedAt!! }
     }
 
     override suspend fun declareOutcome(
@@ -103,8 +105,7 @@ internal class InternalPoolRepository(
     ): Result<Unit> = service.resolvePool(
         owner = owner,
         request = PoolRequest.Resolve(
-            pool = pool,
-            resolution = resolution,
+            pool = pool.resolve(resolution),
             poolRendezvous = poolRendezvous,
         )
     )

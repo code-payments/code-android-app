@@ -24,6 +24,7 @@ import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 class PoolDataSource @Inject constructor(
@@ -36,10 +37,6 @@ class PoolDataSource @Inject constructor(
 
     private val db: FlipcashDatabase?
         get() = FlipcashDatabase.getInstance()
-
-    private fun Pool.derivePoolRendezvous(): Ed25519.KeyPair {
-        return userManager.mnemnonic!!.getSolanaKeyPair(rendezvousPath)
-    }
 
     override fun observe(): PagingSource<Int, PoolEntity> {
         return db?.poolDao()?.observePools() ?: object : PagingSource<Int, PoolEntity>() {
@@ -56,7 +53,6 @@ class PoolDataSource @Inject constructor(
             val isHost = pool.creator == userManager.accountId
             PoolWithBets(
                 pool = pool,
-                rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
                 isHost = isHost,
                 bets = bets
             )
@@ -70,7 +66,6 @@ class PoolDataSource @Inject constructor(
         val isHost = pool.creator == userManager.accountId
         return PoolWithBets(
             pool = pool,
-            rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
             isHost = isHost,
             bets = bets
         )
@@ -84,7 +79,6 @@ class PoolDataSource @Inject constructor(
             val isHost = pool.creator == userManager.accountId
             PoolWithBets(
                 pool = pool,
-                rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
                 isHost = isHost,
                 bets = bets
             )
@@ -109,8 +103,8 @@ class PoolDataSource @Inject constructor(
         db?.poolDao()?.unresolvePool(id)
     }
 
-    suspend fun closePool(id: ID) {
-        db?.poolDao()?.closePool(id)
+    suspend fun closePool(id: ID, closedAt: Instant) {
+        db?.poolDao()?.closePool(id, closedAt)
     }
 
     suspend fun reopenPool(id: ID) {
@@ -128,6 +122,10 @@ class PoolDataSource @Inject constructor(
         return betEntityMapper.map(entity)
     }
 
+    suspend fun paidBet(id: ID) {
+        db?.poolDao()?.paidBet(id)
+    }
+
     suspend fun removeBet(poolId: ID, betId: ID) {
         db?.poolDao()?.removeBet(poolId, betId)
     }
@@ -143,7 +141,6 @@ class PoolDataSource @Inject constructor(
         val isHost = pool.creator == userManager.accountId
         return PoolWithBets(
             pool = pool,
-            rendezvous = pool.derivePoolRendezvous().takeIf { isHost },
             isHost = isHost,
             bets = bets
         )
