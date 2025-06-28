@@ -245,4 +245,12 @@
     <string name="subtitle_winnerReceives">Winner receives %1$s</string>
     <string name="subtitle_winnersReceive">Winners receive %1$s</string>
     <string name="subtitle_everyoneReceives">Everyone receives %1$s</string>
+
+    <string-array name="pool_preview_titles">
+        <item>Will Joe and Sally have a baby girl?</item>
+        <item>Will anyone put a ball in the water during today’s golf round?</item>
+        <item>Will Jack bring a date to the wedding?</item>
+        <item>Will Caleb dunk this basketball?</item>
+        <item>Will Jill text her ex before dawn?</item>
+    </string-array>
 </resources>

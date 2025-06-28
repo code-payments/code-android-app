@@ -1,13 +1,13 @@
 package com.flipcash.app.pools.internal.list
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,6 +34,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.pools.internal.list.components.AnimatedPoolPreviewCarousel
 import com.flipcash.app.pools.internal.list.components.PoolListItem
 import com.flipcash.app.pools.internal.list.components.PoolStatusSeparator
 import com.flipcash.app.pools.internal.list.components.PoolSummaryRow
@@ -42,7 +42,6 @@ import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.Pill
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -52,7 +51,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.format.Padding
 
 @Composable
 internal fun PoolListScreen(
@@ -175,22 +173,23 @@ private fun BoxScope.EmptyState(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.weight(0.25f))
-            Image(
-                painter = painterResource(R.drawable.ic_pools_preview),
-                contentDescription = "",
+            Spacer(Modifier.weight(0.4f))
+            AnimatedPoolPreviewCarousel(
+                titles = stringArrayResource(R.array.pool_preview_titles).toList(),
                 modifier = Modifier
-                    .padding(horizontal = CodeTheme.dimens.grid.x8)
+                    .aspectRatio(0.9315f)
+                    .fillMaxHeight(0.6f)
                     .padding(top = CodeTheme.dimens.grid.x10)
-                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.grid.x6)
             )
             Text(
                 modifier = Modifier
+                    .padding(top = CodeTheme.dimens.grid.x10)
                     .padding(horizontal = CodeTheme.dimens.inset),
                 text = stringResource(R.string.subtitle_createPools),
                 style = CodeTheme.typography.textMedium
                     .copy(textAlign = TextAlign.Center),
-                color = CodeTheme.colors.textMain,
+                color = CodeTheme.colors.textSecondary,
             )
             Spacer(Modifier.weight(1f))
             CodeButton(
