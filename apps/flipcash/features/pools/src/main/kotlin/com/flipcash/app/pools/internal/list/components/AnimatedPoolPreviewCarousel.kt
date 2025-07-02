@@ -53,6 +53,8 @@ import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.debugBounds
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
 import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.constrain
 import kotlinx.coroutines.delay
@@ -128,8 +130,6 @@ internal fun AnimatedPoolPreviewCarousel(
                         .fillMaxWidth(0.7f),
                     titles = titles,
                     interval = 3.seconds,
-                    maxWidth = constraints.maxWidth,
-                    maxHeight = constraints.maxHeight * 0.23f
                 )
 
                 Row(
@@ -154,8 +154,6 @@ internal fun AnimatedPoolPreviewCarousel(
 private fun TextCarousel(
     titles: List<String>,
     interval: Duration,
-    maxWidth: Dp,
-    maxHeight: Dp,
     modifier: Modifier = Modifier,
     initialIndex: Int = 0,
 ) {
@@ -166,14 +164,12 @@ private fun TextCarousel(
     // Timer to update index
     DisposableEffect(lifecycleScope) {
         val timer = Timer()
-        flow {
-            emit(Unit)
-        }.onEach {
-            index = (index + 1) % titles.size // Cycle through indices
-        }.launchIn(lifecycleScope)
 
         // Simulate timer with periodic updates
-        timer.scheduleAtFixedRate(0L, interval.inWholeMilliseconds) {
+        timer.scheduleAtFixedRate(
+            delay = (interval.inWholeMilliseconds / 2).coerceAtLeast(300),
+            period = interval.inWholeMilliseconds
+        ) {
             index = (index + 1) % titles.size
         }
 
