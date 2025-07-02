@@ -261,20 +261,24 @@ internal class PoolBettingViewModel @Inject constructor(
                                     onClick = { dispatchEvent(Event.OnDeclareOutcome) }
                                 )
                             )
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_sharePoolWithFriends),
-                                    style = BottomBarManager.BottomBarButtonStyle.Text,
-                                    onClick = { dispatchEvent(Event.OnSharePool) }
+                            if (stateFlow.value.rendezvous != null) {
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_sharePoolWithFriends),
+                                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                                        onClick = { dispatchEvent(Event.OnSharePool) }
+                                    )
                                 )
-                            )
+                            }
                         } else {
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_sharePoolWithFriends),
-                                    onClick = { dispatchEvent(Event.OnSharePool) }
+                            if (stateFlow.value.rendezvous != null) {
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_sharePoolWithFriends),
+                                        onClick = { dispatchEvent(Event.OnSharePool) }
+                                    )
                                 )
-                            )
+                            }
                             if (data.bets.isNotEmpty()) {
                                 add(
                                     BottomBarAction(
@@ -286,12 +290,14 @@ internal class PoolBettingViewModel @Inject constructor(
                             }
                         }
                     } else {
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_sharePoolWithFriends),
-                                onClick = { dispatchEvent(Event.OnSharePool) }
+                        if (stateFlow.value.rendezvous != null) {
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_sharePoolWithFriends),
+                                    onClick = { dispatchEvent(Event.OnSharePool) }
+                                )
                             )
-                        )
+                        }
                     }
                 }
 
