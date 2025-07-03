@@ -173,7 +173,7 @@
     <string name="title_pools">Pools</string>
     <string name="action_createNewPool">Create a New Pool</string>
     <string name="title_poseQuestion">Pose a Question</string>
-    <string name="title_setAmount">Set an Amount</string>
+    <string name="title_costToJoin">Cost to Join</string>
     <string name="title_createPool">Create Pool</string>
     <string name="subtitle_createPoolDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
     <string name="subtitle_createPools">Create a pool, collect money from your friends, and then decide who was right!</string>
@@ -241,10 +241,18 @@
 
     <string name="prompt_title_poolResolution">What was the winning outcome?</string>
 
-    <string name="action_swipeToSendPayouts">Swipe to Send Payouts</string>
+    <string name="action_swipeToConfirm">Swipe to Confirm</string>
+    <string name="subtitle_wasInPool">was in pool</string>
     <string name="subtitle_winnerReceives">Winner receives %1$s</string>
     <string name="subtitle_winnersReceive">Winners receive %1$s</string>
     <string name="subtitle_everyoneReceives">Everyone receives %1$s</string>
+    <string name="subtitle_everyoneGotMoneyBack">Everyone got their money back</string>
+
+    <plurals name="subtitle_personCount">
+        <item quantity="zero">0 people</item>
+        <item quantity="one">1 person</item>
+        <item quantity="other">%1$s people</item>
+    </plurals>
 
     <string-array name="pool_preview_titles">
         <item>Will Joe and Sally have a baby girl?</item>

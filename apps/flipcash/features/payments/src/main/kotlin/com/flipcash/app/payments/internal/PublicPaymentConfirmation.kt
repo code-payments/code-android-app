@@ -52,10 +52,7 @@ internal fun PublicPaymentConfirmationModal(
             isSending = isSending,
             state = state,
             onApproved = onSend,
-            label = when (confirmation.metadata) {
-                is PoolBidPaymentMetadata -> stringResource(R.string.action_swipeToBuyIn)
-                else -> stringResource(id = R.string.action_swipeToPay)
-            }
+            label = stringResource(id = R.string.action_swipeToPay),
         )
         val enabled = state !is ConfirmationState.Sending && state !is ConfirmationState.Sent
         val alpha by animateFloatAsState(targetValue = if (enabled) 1f else 0f, label = "alpha")

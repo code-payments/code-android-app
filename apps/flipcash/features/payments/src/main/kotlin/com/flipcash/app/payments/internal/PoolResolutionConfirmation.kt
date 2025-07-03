@@ -68,7 +68,7 @@ internal fun PoolResolutionConfirmationModal(
             winners = metadata.pool.winnerCount,
             buyIn = metadata.pool.buyIn,
             winningAmount = metadata.pool.winningAmountForResolution(metadata.resolution),
-            label = stringResource(R.string.action_swipeToSendPayouts),
+            label = stringResource(R.string.action_swipeToConfirm),
         )
         val enabled = state !is ConfirmationState.Sending && state !is ConfirmationState.Sent
         val alpha by animateFloatAsState(targetValue = if (enabled) 1f else 0f, label = "alpha")
@@ -178,7 +178,7 @@ private fun PreviewResolutionModalWithSingleYesWin() {
                     winners = 1,
                     winningAmount = 10.00.toFiat(),
                     buyIn = 10.00.toFiat(),
-                    label = stringResource(R.string.action_swipeToSendPayouts),
+                    label = stringResource(R.string.action_swipeToConfirm),
                 )
                 CodeButton(
                     modifier = Modifier
@@ -208,7 +208,7 @@ private fun PreviewResolutionModalWithMultipleWin() {
                     winners = 2,
                     winningAmount = 10.00.toFiat(),
                     buyIn = 10.00.toFiat(),
-                    label = stringResource(R.string.action_swipeToSendPayouts),
+                    label = stringResource(R.string.action_swipeToConfirm),
                 )
                 CodeButton(
                     modifier = Modifier
@@ -238,7 +238,7 @@ private fun PreviewResolutionModalWithTie() {
                     winners = 1,
                     winningAmount = 10.00.toFiat(),
                     buyIn = 10.00.toFiat(),
-                    label = stringResource(R.string.action_swipeToSendPayouts),
+                    label = stringResource(R.string.action_swipeToConfirm),
                 )
                 CodeButton(
                     modifier = Modifier

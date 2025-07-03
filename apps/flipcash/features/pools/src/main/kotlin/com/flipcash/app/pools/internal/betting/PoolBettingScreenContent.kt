@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -101,7 +102,7 @@ private fun PoolBettingScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(CodeTheme.dimens.grid.x12))
-            PoolTotal(state.poolTotal)
+            PoolTotal(state.poolTotal, state.isResolved)
             Spacer(modifier = Modifier.height(CodeTheme.dimens.grid.x12))
             BidOptions(
                 canBid = state.canSelectOutcome,
@@ -119,6 +120,7 @@ private fun PoolBettingScreenContent(
 @Composable
 private fun PoolTotal(
     poolTotal: Fiat,
+    isResolved: Boolean = false,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -130,7 +132,11 @@ private fun PoolTotal(
             iconSize = CodeTheme.dimens.staticGrid.x5,
         )
         Text(
-            text = stringResource(R.string.subtitle_inPoolSoFar),
+            text = if (isResolved) {
+                stringResource(R.string.subtitle_wasInPool)
+            } else {
+                stringResource(R.string.subtitle_inPoolSoFar)
+            },
             style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textSecondary,
         )
@@ -141,7 +147,7 @@ private fun PoolTotal(
 private fun BidOptions(
     canBid: Boolean,
     outcomes: List<PoolBetOutcome>,
-    totals: Map<PoolBetOutcome, Fiat>,
+    totals: Map<PoolBetOutcome, Int>,
     selectedOutcome: PoolBetOutcome?,
     resolution: PoolResolution,
     modifier: Modifier = Modifier,
@@ -274,7 +280,7 @@ private fun ClickableCell(
     isSelected: Boolean,
     resolution: PoolResolution,
     item: PoolBetOutcome,
-    totals: Map<PoolBetOutcome, Fiat>,
+    totals: Map<PoolBetOutcome, Int>,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
@@ -344,7 +350,11 @@ private fun ClickableCell(
             )
 
             Text(
-                text = (totals[item] ?: Fiat.Zero).formatted(),
+                text = pluralStringResource(
+                    R.plurals.subtitle_personCount,
+                    totals[item] ?: 0,
+                    totals[item] ?: 0
+                ),
                 style = CodeTheme.typography.textSmall,
                 color = choiceBetTotalColor,
             )
@@ -366,15 +376,6 @@ private fun ResolutionInfo(state: PoolBettingViewModel.State, modifier: Modifier
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = when (val resolution = state.metadata.resolution) {
-                        PoolResolution.Refund -> stringResource(string.label_tie)
-                        is PoolResolution.BooleanResolution -> resolution.value.toYesOrNo()
-                        PoolResolution.NotSet -> ""
-                    },
-                    style = CodeTheme.typography.displaySmall,
-                    color = CodeTheme.colors.textMain,
-                )
-                Text(
                     text = when (state.metadata.resolution) {
                         is PoolResolution.BooleanResolution -> {
                             if (state.metadata.winnerCount > 1) {
@@ -389,10 +390,7 @@ private fun ResolutionInfo(state: PoolBettingViewModel.State, modifier: Modifier
                             }
                         }
                         PoolResolution.Refund -> {
-                            stringResource(
-                                string.subtitle_everyoneReceives,
-                                state.metadata.buyIn.formatted()
-                            )
+                            stringResource(string.subtitle_everyoneGotMoneyBack,)
                         }
 
                         PoolResolution.NotSet -> ""

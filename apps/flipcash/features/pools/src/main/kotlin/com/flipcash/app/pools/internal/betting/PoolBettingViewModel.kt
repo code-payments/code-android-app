@@ -92,9 +92,9 @@ internal class PoolBettingViewModel @Inject constructor(
         val isResolved: Boolean
             get() = metadata.resolution is PoolResolution.DecisionMade
 
-        val totalPerOutcome: Map<PoolBetOutcome, Fiat>
+        val totalPerOutcome: Map<PoolBetOutcome, Int>
             get() {
-                val betsPerOutcome = mutableMapOf<PoolBetOutcome, Fiat>()
+                val betsPerOutcome = mutableMapOf<PoolBetOutcome, Int>()
 
                 outcomes.forEach { outcome ->
                     val countForOutcome = when (val summary = poolWithBets.pool.betSummary) {
@@ -109,7 +109,7 @@ internal class PoolBettingViewModel @Inject constructor(
                         }
                         PoolBetSummary.NotSet -> 0
                     }
-                    betsPerOutcome[outcome] = metadata.buyIn.times(countForOutcome)
+                    betsPerOutcome[outcome] = countForOutcome
                 }
 
                 return betsPerOutcome
@@ -243,42 +243,21 @@ internal class PoolBettingViewModel @Inject constructor(
             .onEach { data ->
                 val actions = buildList {
                     if (data.isHost) {
-                        if (data.bets.count() >= 2) {
+                        if (stateFlow.value.rendezvous != null) {
                             add(
                                 BottomBarAction(
-                                    text = resources.getString(R.string.action_declareOutcome),
-                                    style = BottomBarManager.BottomBarButtonStyle.Filled,
-                                    onClick = { dispatchEvent(Event.OnDeclareOutcome) }
+                                    text = resources.getString(R.string.action_sharePoolWithFriends),
+                                    onClick = { dispatchEvent(Event.OnSharePool) }
                                 )
                             )
-                            if (stateFlow.value.rendezvous != null) {
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_sharePoolWithFriends),
-                                        style = BottomBarManager.BottomBarButtonStyle.Text,
-                                        onClick = { dispatchEvent(Event.OnSharePool) }
-                                    )
-                                )
-                            }
-                        } else {
-                            if (stateFlow.value.rendezvous != null) {
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_sharePoolWithFriends),
-                                        onClick = { dispatchEvent(Event.OnSharePool) }
-                                    )
-                                )
-                            }
-                            if (data.bets.isNotEmpty()) {
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_declareOutcome),
-                                        style = BottomBarManager.BottomBarButtonStyle.Text,
-                                        onClick = { dispatchEvent(Event.OnDeclareOutcome) }
-                                    )
-                                )
-                            }
                         }
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_declareOutcome),
+                                style = BottomBarManager.BottomBarButtonStyle.Text,
+                                onClick = { dispatchEvent(Event.OnDeclareOutcome) }
+                            )
+                        )
                     } else {
                         if (stateFlow.value.rendezvous != null) {
                             add(
