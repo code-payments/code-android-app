@@ -188,7 +188,12 @@ class PoolsCoordinator @Inject constructor(
             metadata = metadata,
         ).onSuccess {
             dataSource.upsertBet(poolId, it, false)
-        }.map { it.id }
+        }.fold(
+            onSuccess = { bet ->
+                getPool(poolId).map { bet.id }
+            },
+            onFailure = { Result.failure(it) }
+        )
     }
 
     suspend fun onBetPaidForInPool(poolId: ID): Result<Unit> {
