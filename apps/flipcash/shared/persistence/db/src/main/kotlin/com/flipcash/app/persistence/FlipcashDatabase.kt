@@ -17,6 +17,7 @@ import com.flipcash.app.persistence.dao.PoolDao
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
+import com.flipcash.app.persistence.entities.PoolRendezvousKeyEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -27,6 +28,7 @@ import org.kin.sdk.base.tools.subByteArray
         MessageEntity::class,
         PoolEntity::class,
         PoolBetEntity::class,
+        PoolRendezvousKeyEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),

@@ -11,7 +11,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.vendor.Base58
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
-import java.io.Serial
 
 @Serializable
 @Entity(tableName = "pool_metadata")
@@ -60,5 +59,13 @@ data class PoolWithBetsEntity(
         parentColumn = "idBase58",
         entityColumn = "poolIdBase58"
     )
-    val bets: List<PoolBetEntity>
+    val bets: List<PoolBetEntity>,
+    @Relation(
+        entity = PoolRendezvousKeyEntity::class,
+        parentColumn = "idBase58",
+        entityColumn = "poolIdBase58",
+        projection = ["rendezvousSeedBase58"]
+
+    )
+    val rendezvous: String?,
 )

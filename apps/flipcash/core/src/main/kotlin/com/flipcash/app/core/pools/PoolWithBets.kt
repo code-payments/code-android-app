@@ -1,10 +1,12 @@
 package com.flipcash.app.core.pools
 
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.financial.Fiat
 
 data class PoolWithBets(
     val pool: Pool,
     val isHost: Boolean,
+    val rendezvousSeed: String?,
     val bets: List<PoolBet>
 ) {
     val totalPoolAmount: Fiat
@@ -22,4 +24,7 @@ data class PoolWithBets(
     fun winningAmountForResolution(resolution: PoolResolution.DecisionMade): Fiat {
         return pool.winningAmountForResolution(resolution)
     }
+
+    val rendezvous: Ed25519.KeyPair?
+        get() = rendezvousSeed?.let { Ed25519.createKeyPair(it) }
 }

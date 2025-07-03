@@ -13,6 +13,7 @@ import com.flipcash.app.core.pools.PoolWithHostStatus
 import com.flipcash.app.persistence.converters.BetOutcomeConverter
 import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.app.persistence.sources.PoolDataSource
+import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolMapperParameters
 import com.flipcash.app.persistence.sources.mapper.pools.NetworkPoolToDomainMapper
 import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
@@ -75,7 +76,7 @@ class PoolsCoordinator @Inject constructor(
 
     suspend fun updatePools() = coroutineScope {
         val pools = dataSource.get()
-        pools.map { (pool, _, _) ->
+        pools.map { (pool, _, _, _) ->
             async { getPool(pool.id) }
         }.forEach { it.await() }
     }
@@ -97,16 +98,19 @@ class PoolsCoordinator @Inject constructor(
             .getOrElse { return Result.failure(it) }
 
         val isHost = networkPool.metadata.creator == userManager.accountId
-
-        // store the pool if we are the host or if we have bet already
-        if (isHost || networkPool.bets.find { it.metadata.userId == userManager.accountId }?.hasIntentBeenSubmitted == true) {
-            dataSource.upsert(listOf(networkPool))
+        if (isHost) {
+            val rendezvous = userManager.poolAccountAt(networkPool.derivationIndex).rendezvous
+            dataSource.persistRendezvous(networkPool.metadata.id, rendezvous)
         }
+
+        dataSource.upsert(listOf(networkPool))
+
 
         return runCatching {
             dataSource.getById(id)!!
         }.recoverCatching {
-            networkToDomainMapper.map(networkPool)
+            val params = NetworkPoolMapperParameters(networkPool, null)
+            networkToDomainMapper.map(params)
         }
     }
 
@@ -114,16 +118,16 @@ class PoolsCoordinator @Inject constructor(
         val networkPool = controller.getPool(rendezvous)
             .getOrElse { return Result.failure(it) }
 
-        val (_, isHost, bets) = networkToDomainMapper.map(networkPool)
-
         // store the pool if we are the host or if we have bet already (and paid for it)
-        if (isHost || bets.find { it.userId == userManager.accountId }?.hasPaidForBet == true) {
-            dataSource.upsert(listOf(networkPool))
-        }
+        dataSource.persistRendezvous(networkPool.metadata.id, rendezvous)
+        dataSource.upsert(listOf(networkPool))
 
         return runCatching {
             dataSource.getById(rendezvous.publicKeyBytes.toList())!!
-        }.recoverCatching { networkToDomainMapper.map(networkPool) }
+        }.recoverCatching {
+            val params = NetworkPoolMapperParameters(networkPool, rendezvous)
+            networkToDomainMapper.map(params)
+        }
     }
 
     fun observePool(id: ID): Flow<PoolWithBets?> {

@@ -71,7 +71,8 @@ internal class PoolBettingViewModel @Inject constructor(
             get() = PoolWithBets(
                 pool = metadata,
                 isHost = metadata.creator == userId,
-                bets = bets
+                bets = bets,
+                rendezvousSeed = rendezvous?.seed
             )
 
         val isHost: Boolean
@@ -235,17 +236,6 @@ internal class PoolBettingViewModel @Inject constructor(
                     dispatchEvent(Event.OnOutcomePaidFor(selfBet.selectedOutcome))
                 }
             }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnPoolLoaded>()
-            .filter { it.data.isHost }
-            .map { it.data.pool }
-            .filter { stateFlow.value.rendezvous == null }
-            .map { userManager.poolAccountAt(it.derivationIndex) }
-            .onEach {
-                dispatchEvent(Event.OnPoolRendezvousChanged(it.rendezvous, fromUser = false))
-            }
-            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnPoolLoaded>()
@@ -501,10 +491,10 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
 
                 is Event.OnPoolLoaded -> { state ->
-                    val existingRendezvous = state.rendezvous
                     state.copy(
                         metadata = event.data.pool,
                         bets = event.data.bets,
+                        rendezvous = event.data.rendezvous,
                     )
                 }
 

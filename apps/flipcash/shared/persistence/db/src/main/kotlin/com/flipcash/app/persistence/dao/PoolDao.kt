@@ -9,7 +9,9 @@ import androidx.room.Transaction
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.persistence.entities.PoolBetEntity
 import com.flipcash.app.persistence.entities.PoolEntity
+import com.flipcash.app.persistence.entities.PoolRendezvousKeyEntity
 import com.flipcash.app.persistence.entities.PoolWithBetsEntity
+import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +24,12 @@ interface PoolDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(vararg bet: PoolBetEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertRendezvous(pair: PoolRendezvousKeyEntity)
+    suspend fun upsertRendezvous(poolId: ID, rendezvous: Ed25519.KeyPair) {
+        upsertRendezvous(PoolRendezvousKeyEntity(poolId.base58, rendezvous.seed))
+    }
 
     @Query("SELECT * FROM pool_bet_metadata WHERE idBase58 = :id")
     suspend fun getBet(id: String): PoolBetEntity?

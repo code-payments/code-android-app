@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "1a108f47c87c6befc8853fe8d6027a60",
+    "identityHash": "0a01c71b9099ef20120ac28b9e3bed39",
     "entities": [
       {
         "tableName": "messages",
@@ -219,11 +219,35 @@
             "idBase58"
           ]
         }
+      },
+      {
+        "tableName": "pool_rendezvous_keys",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`poolIdBase58` TEXT NOT NULL, `rendezvousSeedBase58` TEXT NOT NULL, PRIMARY KEY(`poolIdBase58`))",
+        "fields": [
+          {
+            "fieldPath": "poolIdBase58",
+            "columnName": "poolIdBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rendezvousSeedBase58",
+            "columnName": "rendezvousSeedBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "poolIdBase58"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1a108f47c87c6befc8853fe8d6027a60')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0a01c71b9099ef20120ac28b9e3bed39')"
     ]
   }
 }

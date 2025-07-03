@@ -54,7 +54,8 @@ class PoolDataSource @Inject constructor(
             PoolWithBets(
                 pool = pool,
                 isHost = isHost,
-                bets = bets
+                bets = bets,
+                rendezvousSeed = entity.rendezvous
             )
         } ?: flowOf(null)
     }
@@ -67,7 +68,8 @@ class PoolDataSource @Inject constructor(
         return PoolWithBets(
             pool = pool,
             isHost = isHost,
-            bets = bets
+            bets = bets,
+            rendezvousSeed = result.rendezvous
         )
     }
 
@@ -80,7 +82,8 @@ class PoolDataSource @Inject constructor(
             PoolWithBets(
                 pool = pool,
                 isHost = isHost,
-                bets = bets
+                bets = bets,
+                rendezvousSeed = entity.rendezvous
             )
         }
     }
@@ -93,6 +96,10 @@ class PoolDataSource @Inject constructor(
                 db?.poolDao()?.upsert(*bets.toTypedArray())
             }
         }
+    }
+
+    suspend fun persistRendezvous(poolId: ID, rendezvous: Ed25519.KeyPair) {
+        db?.poolDao()?.upsertRendezvous(poolId, rendezvous)
     }
 
     suspend fun resolvePool(id: ID, resolution: PoolResolution.DecisionMade) {
@@ -142,7 +149,8 @@ class PoolDataSource @Inject constructor(
         return PoolWithBets(
             pool = pool,
             isHost = isHost,
-            bets = bets
+            bets = bets,
+            rendezvousSeed = result.rendezvous
         )
     }
 

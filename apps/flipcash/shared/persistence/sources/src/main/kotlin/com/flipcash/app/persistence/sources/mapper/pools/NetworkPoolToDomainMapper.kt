@@ -7,34 +7,43 @@ import com.flipcash.app.persistence.converters.BetOutcomeConverter
 import com.flipcash.app.persistence.converters.PoolBetSummaryConverter
 import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.mapper.Mapper
+import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
+
+data class NetworkPoolMapperParameters(
+    val networkPool: NetworkPool,
+    val rendezvous: Ed25519.KeyPair?,
+)
 
 class NetworkPoolToDomainMapper @Inject constructor(
     private val userManager: UserManager,
-): Mapper<NetworkPool, PoolWithBets> {
-    override fun map(from: NetworkPool): PoolWithBets {
-        val selectedOutcome = from.bets.find { it.metadata.userId == userManager.accountId }?.metadata?.selectedOutcome
+): Mapper<NetworkPoolMapperParameters, PoolWithBets> {
+    override fun map(from: NetworkPoolMapperParameters): PoolWithBets {
+        val (response, rendezvous) = from
+        val selectedOutcome = response.bets.find { it.metadata.userId == userManager.accountId }?.metadata?.selectedOutcome
 
         return PoolWithBets(
             pool = Pool(
-                id = from.metadata.id,
-                creator = from.metadata.creator,
-                name = from.metadata.name,
-                buyIn = from.metadata.buyIn,
-                fundingDestination = from.metadata.fundingDestination,
-                isOpen = from.metadata.isOpen,
-                resolution = PoolResolutionConverter.toPoolResolution(from.metadata.resolution),
-                createdAt = from.metadata.createdAt,
-                closedAt = from.metadata.closedAt,
-                didWin = from.metadata.resolution.didWin(selectedOutcome),
-                derivationIndex = from.derivationIndex,
-                betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary),
+                id = response.metadata.id,
+                creator = response.metadata.creator,
+                name = response.metadata.name,
+                buyIn = response.metadata.buyIn,
+                fundingDestination = response.metadata.fundingDestination,
+                isOpen = response.metadata.isOpen,
+                resolution = PoolResolutionConverter.toPoolResolution(response.metadata.resolution),
+                createdAt = response.metadata.createdAt,
+                closedAt = response.metadata.closedAt,
+                didWin = response.metadata.resolution.didWin(selectedOutcome),
+                derivationIndex = response.derivationIndex,
+                betSummary = PoolBetSummaryConverter.toPoolBetSummary(response.betSummary),
             ),
-            isHost = userManager.accountId == from.metadata.creator,
-            bets = from.bets.map {
+            isHost = userManager.accountId == response.metadata.creator,
+            rendezvousSeed = rendezvous?.seed,
+            bets = response.bets.map {
                 PoolBet(
                     id = it.metadata.id,
                     userId = it.metadata.userId,
