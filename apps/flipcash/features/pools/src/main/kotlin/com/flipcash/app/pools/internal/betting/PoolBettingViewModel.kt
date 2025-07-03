@@ -421,12 +421,7 @@ internal class PoolBettingViewModel @Inject constructor(
                     ).fold(
                         onSuccess = {
                             poolsCoordinator.resolvePool(
-                                // ensure the pool metadata is as up-to-date as possible
-                                // ensuring there is no race condition possibility w/ observe
-                                pool = stateFlow.value.metadata.copy(
-                                    isOpen = false,
-                                    closedAt = it
-                                ),
+                                poolId = stateFlow.value.metadata.id,
                                 rendezvous = rendezvous,
                                 resolution = resolution,
                             )

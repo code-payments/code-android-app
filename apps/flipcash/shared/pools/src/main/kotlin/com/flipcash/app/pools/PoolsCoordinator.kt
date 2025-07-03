@@ -146,18 +146,21 @@ class PoolsCoordinator @Inject constructor(
     }
 
     suspend fun resolvePool(
-        pool: Pool,
+        poolId: ID,
         resolution: PoolResolution.DecisionMade,
         rendezvous: KeyPair
     ): Result<Unit> {
-        val metadata = domainToNetworkMapper.map(pool)
-        return controller.resolvePool(
-            pool = metadata,
-            rendezvous = rendezvous,
-            resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
-        ).onSuccess {
-            dataSource.resolvePool(pool.id, resolution)
-        }
+        return controller.getPool(poolId)
+            .fold(
+                onSuccess = {
+                    controller.resolvePool(
+                        pool = it.metadata,
+                        rendezvous = rendezvous,
+                        resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
+                    )
+                },
+                onFailure = { Result.failure(it) }
+            )
     }
 
     suspend fun placeBet(
