@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.account.v1.AccountService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
+import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountResponse
 import com.getcode.opencode.model.core.errors.CodeAccountCheckError
@@ -39,9 +40,10 @@ internal class AccountService @Inject constructor(
     suspend fun getAccounts(
         accountOwner: KeyPair,
         requestingOwner: KeyPair,
+        filter: AccountFilter? = null,
     ): Result<AccountResponse> {
         return runCatching {
-            api.getTokenAccounts(accountOwner, requestingOwner)
+            api.getTokenAccounts(accountOwner, requestingOwner, filter)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {

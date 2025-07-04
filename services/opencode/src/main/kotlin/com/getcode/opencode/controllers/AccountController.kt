@@ -4,6 +4,7 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountResponse
 import com.getcode.opencode.model.accounts.PoolAccount
@@ -55,19 +56,12 @@ class AccountController @Inject constructor(
     suspend fun getAccount(
         accountOwner: AccountCluster,
         requestingOwner: AccountCluster,
-        predicate: (AccountInfo) -> Boolean,
+        filter: AccountFilter,
     ): Result<AccountInfo> {
-        return getAccounts(
-            accountOwner = accountOwner,
-            requestingOwner = requestingOwner,
-        ).map {
-            it.accounts.values.find(predicate)
-        }.fold(
-            onSuccess = {
-                if (it != null) Result.success(it)
-                else Result.failure(NoSuchElementException())
-            },
-            onFailure = { Result.failure(it) }
+        return accountRepository.getAccount(
+            accountOwner = accountOwner.authority.keyPair,
+            requestingOwner = requestingOwner.authority.keyPair,
+            filter = filter,
         )
     }
 }

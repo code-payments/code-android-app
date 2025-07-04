@@ -7,6 +7,7 @@ import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.model.accounts.AccountFilter
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -54,16 +55,29 @@ internal class AccountApi @Inject constructor(
      *   metadata that is considered private will be provided, if applicable. An example
      *   use case includes a user owner account requesting account info for a gift card
      *   owner account.
-     *
+     * @param filter Filter to apply to limit response sizes
      * @return The [AccountService.GetTokenAccountInfosResponse] for the owner account.
      */
     suspend fun getTokenAccounts(
         accountOwner: KeyPair,
         requestingOwner: KeyPair,
+        filter: AccountFilter? = null,
     ): AccountService.GetTokenAccountInfosResponse {
         val request = AccountService.GetTokenAccountInfosRequest.newBuilder()
             .setOwner(accountOwner.asSolanaAccountId())
             .setRequestingOwner(requestingOwner.asSolanaAccountId())
+            .apply {
+                if (filter != null) {
+                    when (filter) {
+                        is AccountFilter.AccountType -> {
+                            setFilterByAccountType(filter.accountType.getAccountType())
+                        }
+                        is AccountFilter.TokenAddress -> {
+                            setFilterByTokenAddress(filter.tokenAddress.asSolanaAccountId())
+                        }
+                    }
+                }
+            }
             .apply {
                 val ownerSig = sign(accountOwner)
                 val requestingOwnerSig = sign(requestingOwner)

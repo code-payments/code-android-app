@@ -137,6 +137,7 @@ class BalanceController @Inject constructor(
                 type = TraceType.Process
             )
 
+            // TODO: segment this to have balance utilize getAccount(filter: Primary) and timelock check and nextPoolIndex to be handled separately
             retryable(
                 maxRetries = 3,
                 call = suspend { accountController.getAccounts(owner, owner) }

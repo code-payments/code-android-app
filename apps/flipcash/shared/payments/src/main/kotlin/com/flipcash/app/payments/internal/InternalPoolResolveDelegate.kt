@@ -16,6 +16,7 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.RandomId
@@ -97,12 +98,7 @@ class InternalPoolResolveDelegate @Inject constructor(
         val poolBalance = accountController.getAccount(
             accountOwner = owner,
             requestingOwner = owner,
-            predicate = { account ->
-                val indexMatch = account.index.toLong() == pool.derivationIndex
-                val addressMatch = account.address == pool.fundingDestination
-                val isPool = account.accountType == AccountType.Pool
-                indexMatch && addressMatch && isPool
-            },
+            filter = AccountFilter.TokenAddress(pool.fundingDestination),
         ).getOrNull()?.balance
 
         if (poolBalance == null) {

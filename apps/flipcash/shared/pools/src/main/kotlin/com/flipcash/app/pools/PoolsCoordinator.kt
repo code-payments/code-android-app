@@ -24,6 +24,7 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
@@ -137,12 +138,7 @@ class PoolsCoordinator @Inject constructor(
         return accountController.getAccount(
             accountOwner = owner,
             requestingOwner = owner,
-            predicate = { account ->
-                val indexMatch = account.index.toLong() == pool.derivationIndex
-                val addressMatch = account.address == pool.fundingDestination
-                val isPool = account.accountType == AccountType.Pool
-                indexMatch && addressMatch && isPool
-            }
+            filter = AccountFilter.TokenAddress(pool.fundingDestination)
         ).map {
             it.balance == Fiat.Zero
         }.onFailure {
@@ -177,13 +173,20 @@ class PoolsCoordinator @Inject constructor(
         resolution: PoolResolution.DecisionMade,
         rendezvous: KeyPair
     ): Result<Unit> {
-        return controller.resolvePool(
-            pool = domainToNetworkMapper.map(pool),
-            rendezvous = rendezvous,
-            resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
-        ).onSuccess {
-            dataSource.resolvePool(pool.id, resolution)
-        }
+        // ensure we are working with an up-to-date instance of a pool
+        return controller.getPool(pool.id)
+            .fold(
+                onSuccess = {
+                    controller.resolvePool(
+                        pool = domainToNetworkMapper.map(pool),
+                        rendezvous = rendezvous,
+                        resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
+                    )
+                },
+                onFailure = { Result.failure(it) }
+            ).onSuccess {
+                dataSource.resolvePool(pool.id, resolution)
+            }
     }
 
     suspend fun placeBet(
