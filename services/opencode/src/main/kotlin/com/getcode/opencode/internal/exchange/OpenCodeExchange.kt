@@ -132,8 +132,8 @@ internal class OpenCodeExchange @Inject constructor(
         }
     }
 
-    override suspend fun fetchRatesIfNeeded() {
-        if (isStale) {
+    override suspend fun fetchRatesIfNeeded(force: Boolean) {
+        if (isStale || force) {
             retryable(
                 call = {
                     val now = Clock.System.now()

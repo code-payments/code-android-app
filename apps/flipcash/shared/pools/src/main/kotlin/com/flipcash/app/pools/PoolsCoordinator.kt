@@ -134,18 +134,17 @@ class PoolsCoordinator @Inject constructor(
     suspend fun isPoolDistributed(pool: Pool): Result<Boolean> {
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("No account cluster"))
-        return accountController.getAccounts(
+        return accountController.getAccount(
             accountOwner = owner,
             requestingOwner = owner,
-        ).map {
-            val info = it.accounts.values.firstOrNull { account ->
+            predicate = { account ->
                 val indexMatch = account.index.toLong() == pool.derivationIndex
                 val addressMatch = account.address == pool.fundingDestination
                 val isPool = account.accountType == AccountType.Pool
                 indexMatch && addressMatch && isPool
-            } ?: return Result.failure(Throwable("Account for pool not found"))
-
-            info.balance == Fiat.Zero
+            }
+        ).map {
+            it.balance == Fiat.Zero
         }.onFailure {
             return Result.failure(it)
         }
@@ -159,35 +158,32 @@ class PoolsCoordinator @Inject constructor(
         pool: Pool,
         rendezvous: KeyPair,
     ): Result<Instant> {
-        val metadata = domainToNetworkMapper.map(pool)
-        return controller.closePool(metadata, rendezvous)
-            .onSuccess { closedAt ->
+        // ensure we are working with an up-to-date instance of a pool
+        return controller.getPool(pool.id)
+            .fold(
+                onSuccess = {
+                    controller.closePool(it.metadata, rendezvous)
+                },
+                onFailure = {
+                    Result.failure(it)
+                }
+            ).onSuccess { closedAt ->
                 dataSource.closePool(pool.id, closedAt)
             }
     }
 
     suspend fun resolvePool(
-        poolId: ID,
+        pool: Pool,
         resolution: PoolResolution.DecisionMade,
         rendezvous: KeyPair
     ): Result<Unit> {
-        return controller.getPool(poolId)
-            .fold(
-                onSuccess = {
-                    controller.resolvePool(
-                        pool = it.metadata,
-                        rendezvous = rendezvous,
-                        resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
-                    )
-                },
-                onFailure = { Result.failure(it) }
-            ).fold(
-                onSuccess = {
-                    dataSource.resolvePool(poolId, resolution)
-                    Result.success(Unit)
-                },
-                onFailure = { Result.failure(it) }
-            )
+        return controller.resolvePool(
+            pool = domainToNetworkMapper.map(pool),
+            rendezvous = rendezvous,
+            resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
+        ).onSuccess {
+            dataSource.resolvePool(pool.id, resolution)
+        }
     }
 
     suspend fun placeBet(

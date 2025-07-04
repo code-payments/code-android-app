@@ -65,7 +65,7 @@ private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exc
         return null
     }
 
-    override suspend fun fetchRatesIfNeeded() = Unit
+    override suspend fun fetchRatesIfNeeded(force: Boolean) = Unit
 
     override fun rateFor(currencyCode: CurrencyCode): Rate? {
         return null

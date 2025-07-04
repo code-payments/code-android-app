@@ -12,7 +12,11 @@ import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.RandomId
 import com.getcode.opencode.model.financial.Distribution
@@ -23,6 +27,8 @@ import javax.inject.Inject
 class InternalPoolResolveDelegate @Inject constructor(
     private val transactionController: TransactionController,
     private val userManager: UserManager,
+    private val accountController: AccountController,
+    private val exchange: Exchange,
 ) : PoolResolveDelegate {
     override suspend fun resolvePool(
         pool: Pool,
@@ -46,14 +52,19 @@ class InternalPoolResolveDelegate @Inject constructor(
             bets = bets,
         )
 
-        val distributions = poolWithBets.buildDistributionList(resolution)
+        val distributions = runCatching { poolWithBets.buildDistributionList(owner, resolution) }
+
+        distributions.exceptionOrNull()?.let {
+            onError(it)
+            return
+        }
 
         val poolAccount = userManager.poolAccountAt(pool.derivationIndex)
 
         transactionController.distributeFunds(
             owner = owner,
             from = poolAccount.cluster,
-            distributions = distributions
+            distributions = distributions.getOrNull().orEmpty()
         ).map {
             it.id.bytes
         }.onSuccess {
@@ -63,25 +74,59 @@ class InternalPoolResolveDelegate @Inject constructor(
         }
     }
 
-    private fun PoolWithBets.buildDistributionList(resolution: PoolResolution.DecisionMade): List<Distribution> {
+    private suspend fun PoolWithBets.buildDistributionList(
+        owner: AccountCluster,
+        resolution: PoolResolution.DecisionMade
+    ): List<Distribution> {
         val paidBets = bets.filter { it.hasPaidForBet }
-
         // 1. if the decision was to refund, then all paid bets are returned
         if (resolution is PoolResolution.Refund) {
+            val rate = exchange.rateToUsd(pool.buyIn.currencyCode)
+                ?: throw IllegalArgumentException("No rate found for ${pool.buyIn.currencyCode}")
+            val usdc = pool.buyIn.convertingTo(rate)
             return paidBets.map {
                 Distribution(
                     destination = it.payoutDestination,
-                    amount = pool.buyIn,
+                    amount = usdc,
                 )
             }
         }
 
         val matchingBets = paidBets.filter { it.selectedOutcome.matchesResolution(resolution) }
+
+        val poolBalance = accountController.getAccount(
+            accountOwner = owner,
+            requestingOwner = owner,
+            predicate = { account ->
+                val indexMatch = account.index.toLong() == pool.derivationIndex
+                val addressMatch = account.address == pool.fundingDestination
+                val isPool = account.accountType == AccountType.Pool
+                indexMatch && addressMatch && isPool
+            },
+        ).getOrNull()?.balance
+
+        if (poolBalance == null) {
+            throw PaymentError.NoPoolBalance()
+        }
+
+        val winnerCount = matchingBets.count()
+
+        // Calculate base amount per winner and remainder
+        val baseAmountPerWinner = poolBalance.quarks / winnerCount
+        val remainderQuarks = poolBalance.quarks % winnerCount
+
         // 2. otherwise, pay out all winning (matching bets)
-        return matchingBets.map {
+        // unequal remainder is added to the 'remainderQuarks' winners
+        return matchingBets.mapIndexed { index, bet ->
+            val amount = if (index < remainderQuarks) {
+                // Add 1 extra quark to the first 'remainderQuarks' winners
+                baseAmountPerWinner + 1
+            } else {
+                baseAmountPerWinner
+            }
             Distribution(
-                destination = it.payoutDestination,
-                amount = winningAmountForResolution(resolution)
+                destination = bet.payoutDestination,
+                amount = Fiat(amount)
             )
         }
     }

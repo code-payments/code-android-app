@@ -214,6 +214,7 @@ internal class InternalPaymentController(
                 when (error) {
                     is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
                     is PaymentError.NoOwnerForDistribution -> presentPaymentFailedError()
+                    is PaymentError.NoPoolBalance -> presentPaymentFailedError()
                 }
             }
 
@@ -253,4 +254,5 @@ sealed interface PaymentError {
     data class InsufficientBalance(override val message: String? = "Insufficient balance for payment") :
         PaymentError, Throwable(message)
     data class NoOwnerForDistribution(override val message: String? = "No owner for distribution") : PaymentError, Throwable(message)
+    data class NoPoolBalance(override val message: String? = "No pool balance") : PaymentError, Throwable(message)
 }

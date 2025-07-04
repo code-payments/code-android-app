@@ -76,7 +76,7 @@ class ExchangeStub(
         ).let { if (it == 0) null else it }
     }
 
-    override suspend fun fetchRatesIfNeeded() = Unit
+    override suspend fun fetchRatesIfNeeded(force: Boolean) = Unit
 
     override fun rateFor(currencyCode: CurrencyCode): Rate? {
         return providedRates[currencyCode]

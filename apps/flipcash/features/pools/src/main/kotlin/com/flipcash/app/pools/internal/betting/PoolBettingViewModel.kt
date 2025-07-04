@@ -249,6 +249,9 @@ internal class PoolBettingViewModel @Inject constructor(
             .onResult(
                 onSuccess = { isDistributed ->
                     dispatchEvent(Event.OnFundsDistributed(isDistributed))
+                },
+                onError = {
+                    dispatchEvent(Event.OnFundsDistributed(true))
                 }
             ).launchIn(viewModelScope)
 
@@ -446,20 +449,20 @@ internal class PoolBettingViewModel @Inject constructor(
             .mapNotNull { resolution ->
                 val rendezvous = stateFlow.value.rendezvous
                 if (rendezvous == null) return@mapNotNull null
-
+                val pool = stateFlow.value.metadata
                 PaymentRequest.ResolvePool(
-                    pool = stateFlow.value.metadata,
+                    pool = pool,
                     bets = stateFlow.value.bets,
                     rendezvous = rendezvous,
                     resolution = resolution,
                 ) {
                     poolsCoordinator.closePool(
-                        pool = stateFlow.value.metadata,
+                        pool = pool,
                         rendezvous = rendezvous,
                     ).fold(
                         onSuccess = {
                             poolsCoordinator.resolvePool(
-                                poolId = stateFlow.value.metadata.id,
+                                pool = pool,
                                 rendezvous = rendezvous,
                                 resolution = resolution,
                             )
@@ -493,7 +496,9 @@ internal class PoolBettingViewModel @Inject constructor(
 
                     }
                     is PaymentEvent.OnPaymentSuccess -> {
-                        event.acknowledge(true) {}
+                        event.acknowledge(true) {
+                            dispatchEvent(Event.OnFundsDistributed(true))
+                        }
                     }
                 }
             }

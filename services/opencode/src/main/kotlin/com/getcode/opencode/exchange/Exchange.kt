@@ -25,7 +25,7 @@ interface Exchange {
     fun getFlagByCurrency(currencyCode: String?): Int?
     fun getFlag(countryCode: String): Int?
 
-    suspend fun fetchRatesIfNeeded()
+    suspend fun fetchRatesIfNeeded(force: Boolean = false)
 
     fun rateFor(currencyCode: CurrencyCode): Rate?
 

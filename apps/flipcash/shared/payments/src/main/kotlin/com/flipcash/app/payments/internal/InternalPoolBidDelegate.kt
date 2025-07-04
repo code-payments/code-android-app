@@ -36,8 +36,10 @@ internal class InternalPoolBidDelegate @Inject constructor(
             return
         }
 
+        exchange.fetchRatesIfNeeded()
+
         val localizedAmount = LocalFiat(
-            usdc = amount.convertingTo(exchange.rateForUsd()),
+            usdc = amount.convertingTo(exchange.rateToUsd(amount.currencyCode)!!),
             converted = amount,
         )
 
