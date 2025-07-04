@@ -130,7 +130,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
                     .setSource(source.asSolanaAccountId())
                     .apply {
                         distributions.forEachIndexed { index, distribution ->
-                            setDistributions(
+                            addDistributions(
                                 index,
                                 TransactionService.PublicDistributionMetadata.Distribution
                                     .newBuilder()

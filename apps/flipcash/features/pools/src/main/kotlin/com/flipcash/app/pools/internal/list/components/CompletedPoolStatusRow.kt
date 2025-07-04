@@ -11,6 +11,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.extensions.toYesOrNo
 import com.flipcash.app.core.pools.PoolResolution
+import com.flipcash.app.core.pools.PoolUserSummary
 import com.flipcash.features.pools.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
@@ -18,9 +19,7 @@ import com.getcode.ui.components.CodeChip
 
 @Composable
 internal fun CompletedPoolStatusRow(
-    winnings: Fiat,
-    buyIn: Fiat,
-    didWin: Boolean,
+    summary: PoolUserSummary,
     resolution: PoolResolution,
     modifier: Modifier = Modifier,
 ) {
@@ -49,24 +48,27 @@ internal fun CompletedPoolStatusRow(
         }
 
         if (resolution is PoolResolution.DecisionMade && resolution !is PoolResolution.Refund) {
-            if (didWin) {
-                CodeChip(
-                    shape = CodeTheme.shapes.small,
-                    backgroundColor = CodeTheme.colors.surfaceSuccess,
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_trophy),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.successText,
-                    )
-                    Text(
-                        text = winnings.formatted(
-                            formatting = Fiat.Formatting.Truncated
-                        ),
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.successText,
-                    )
+            when (summary) {
+                is PoolUserSummary.Won -> {
+                    CodeChip(
+                        shape = CodeTheme.shapes.small,
+                        backgroundColor = CodeTheme.colors.surfaceSuccess,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_trophy),
+                            contentDescription = null,
+                            tint = CodeTheme.colors.successText,
+                        )
+                        Text(
+                            text = summary.amount.formatted(
+                                formatting = Fiat.Formatting.Truncated
+                            ),
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.successText,
+                        )
+                    }
                 }
+                else -> Unit
             }
         }
     }

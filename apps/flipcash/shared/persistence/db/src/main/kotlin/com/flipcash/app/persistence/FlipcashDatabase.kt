@@ -73,7 +73,11 @@ abstract class FlipcashDatabase : RoomDatabase() {
         DeleteColumn(
             tableName = "pool_metadata",
             columnName = "didBet"
-        )
+        ),
+        DeleteColumn(
+            tableName = "pool_metadata",
+            columnName = "didWin"
+        ),
     )
     class Migration5To6 : Migration(5, 6), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {

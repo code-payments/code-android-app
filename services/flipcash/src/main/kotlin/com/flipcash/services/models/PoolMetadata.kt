@@ -68,10 +68,11 @@ data class NetworkPool(
     val metadata: PoolMetadata,
     val rendezvousSignature: List<Byte>,
     val bets: List<NetworkPoolBet> = emptyList(),
-    val pagingToken: PagingToken,
+    val pagingToken: PagingToken?,
     val isFundingDestinationInitialized: Boolean,
     val derivationIndex: Long,
     val betSummary: NetworkPoolBetSummary,
+    val userSummary: NetworkPoolUserSummary?,
 )
 
 sealed interface NetworkPoolResolution {
@@ -90,4 +91,11 @@ sealed interface NetworkPoolBetSummary {
         val yes: Int,
         val no: Int,
     ): NetworkPoolBetSummary
+}
+
+sealed interface NetworkPoolUserSummary {
+    data object NotSet: NetworkPoolUserSummary
+    data class Win(val amount: Fiat): NetworkPoolUserSummary
+    data class Lose(val amount: Fiat): NetworkPoolUserSummary
+    data class Refund(val amount: Fiat): NetworkPoolUserSummary
 }

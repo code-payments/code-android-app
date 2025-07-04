@@ -21,7 +21,6 @@ import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
-import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
@@ -103,19 +102,19 @@ class TransactionController @Inject constructor(
 
     suspend fun transfer(
         amount: LocalFiat,
-        owner: AccountCluster,
+        source: AccountCluster,
         destination: PublicKey,
         rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
         val intent = IntentTransfer.create(
             amount = amount,
-            sourceCluster = owner,
+            sourceCluster = source,
             destination = destination,
             rendezvous = rendezvous,
         )
 
-        return submitIntent(scope, intent, owner.authority.keyPair)
+        return submitIntent(scope, intent, source.authority.keyPair)
     }
 
     suspend fun withdraw(
@@ -201,7 +200,7 @@ class TransactionController @Inject constructor(
 
     suspend fun distributeFunds(
         owner: AccountCluster,
-        from: PublicKey,
+        from: AccountCluster,
         distributions: List<Distribution>
     ): Result<IntentType> {
         val intent = IntentDistribution.create(
@@ -216,8 +215,8 @@ class TransactionController @Inject constructor(
     internal suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
-        owner: KeyPair,
-    ): Result<IntentType> = repository.submitIntent(scope, intent, owner)
+        authority: KeyPair,
+    ): Result<IntentType> = repository.submitIntent(scope, intent, authority)
 
     suspend fun getIntentMetadata(
         intentId: PublicKey,

@@ -24,7 +24,6 @@ data class PoolEntity(
     val buyInCurrency: String,
     val fundingDestinationBase58: String,
     val isOpen: Boolean,
-    val didWin: Boolean,
     val resolution: String?,
     val timestamp: Long,
     val closedTimestamp: Long?,
@@ -33,6 +32,7 @@ data class PoolEntity(
     @ColumnInfo(defaultValue = "")
     val rendezvousSignature: String,
     val betSummary: String?,
+    val userSummary: String?
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()

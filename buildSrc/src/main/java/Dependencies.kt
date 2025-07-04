@@ -81,6 +81,8 @@ object Versions {
     const val desugaring = "2.1.2"
 
     const val eventBus = "0.1.0"
+
+    const val solana_mwa = "2.0.3"
 }
 
 object Classpath {
@@ -318,4 +320,6 @@ object Libs {
     const val rinku_compose = "dev.theolm:rinku-compose-ext:1.4.0"
 
     const val eventBus = "io.github.hoc081098:channel-event-bus:${Versions.eventBus}"
+
+    const val solana_mwa = "com.solanamobile:mobile-wallet-adapter-clientlib-ktx:${Versions.solana_mwa}"
 }

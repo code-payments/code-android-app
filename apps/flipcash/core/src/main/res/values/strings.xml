@@ -184,8 +184,8 @@
     <string name="subtitle_poolNamePlaceholder">Question</string>
     <string name="subtitle_poolNameHint">Pose a Yes or No Question</string>
     <string name="action_createYourPool">Create Your Pool</string>
-    <string name="error_title_bidLimitReached">Bid Limit Reached</string>
-    <string name="error_description_bidLimitReached">Bids are capped at %1$s</string>
+    <string name="error_title_bidLimitReached">Cost Limit Too High</string>
+    <string name="error_description_bidLimitReached">Your pool’s cost to join is too high. Enter a smaller amount and try again</string>
     <string name="error_title_createPoolFailed">Create Pool Failed</string>
     <string name="error_description_createPoolFailed">Something went wrong</string>
     <string name="subtitle_totalInPool">%1$s in pool so far</string>
@@ -193,6 +193,7 @@
     <string name="subtitle_poolParticipantOutcomeDisclaimer">The person who created the pool gets to decide the outcome of the pool in their sole discretion</string>
     <string name="action_sharePoolWithFriends">Share Pool With Friends</string>
     <string name="action_declareOutcome">Declare the Outcome</string>
+    <string name="action_distributeFunds">Distribute Funds</string>
     <string name="subtitle_inPoolSoFar">in pool so far</string>
 
     <string name="error_title_poolNotFound">Something went wrong</string>
@@ -206,7 +207,7 @@
     <string name="action_pool_bet_yes">Yes</string>
     <string name="action_pool_bet_no">No</string>
     <string name="subtitle_poolAlreadyBet">You\'re bought in</string>
-    <string name="subtitle_poolNotYetBet">Tap to buy in</string>
+    <string name="subtitle_poolNotYetBet">Tap yes or no to buy in for %1$s</string>
 
     <string name="error_title_paymentFailed">Payment Failed</string>
     <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>

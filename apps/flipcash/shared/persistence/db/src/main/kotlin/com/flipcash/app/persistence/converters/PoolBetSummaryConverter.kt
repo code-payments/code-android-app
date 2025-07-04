@@ -34,7 +34,7 @@ object PoolBetSummaryConverter {
     fun toPoolBetSummary(value: String?): PoolBetSummary {
         val parts = value?.split("_").orEmpty()
         return when (parts[0]) {
-            "not_set" -> PoolBetSummary.NotSet
+            "not-set" -> PoolBetSummary.NotSet
             "boolean" -> PoolBetSummary.Boolean(parts[1].toInt(), parts[2].toInt())
             else -> throw IllegalArgumentException("Unknown PoolBetSummary type: $value")
         }

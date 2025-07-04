@@ -22,6 +22,6 @@ sealed interface PaymentRequest<T> {
         val bets: List<PoolBet>,
         val rendezvous: Ed25519.KeyPair,
         val resolution: PoolResolution.DecisionMade,
-        override val rpcCall: suspend () -> Result<Unit>
+        override val rpcCall: (suspend () -> Result<Unit>)?
     ) : PaymentRequest<Unit>
 }

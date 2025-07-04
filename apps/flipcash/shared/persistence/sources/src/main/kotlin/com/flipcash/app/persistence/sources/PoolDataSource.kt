@@ -150,7 +150,8 @@ class PoolDataSource @Inject constructor(
             pool = pool,
             isHost = isHost,
             bets = bets,
-            rendezvousSeed = result.rendezvous
+            rendezvousSeed = result.rendezvous,
+            pagingToken = result.pool.pagingToken
         )
     }
 

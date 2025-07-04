@@ -28,10 +28,18 @@ internal class PoolService @Inject constructor(
             onSuccess = { response ->
                 when (response.result) {
                     PoolService.CreatePoolResponse.Result.OK -> Result.success(Unit)
-                    PoolService.CreatePoolResponse.Result.RENDEZVOUS_EXISTS -> Result.failure(CreatePoolError.RendezvousExists())
-                    PoolService.CreatePoolResponse.Result.FUNDING_DESTINATION_EXISTS -> Result.failure(CreatePoolError.FundingDestinationExists())
+                    PoolService.CreatePoolResponse.Result.RENDEZVOUS_EXISTS -> Result.failure(
+                        CreatePoolError.RendezvousExists()
+                    )
+
+                    PoolService.CreatePoolResponse.Result.FUNDING_DESTINATION_EXISTS -> Result.failure(
+                        CreatePoolError.FundingDestinationExists()
+                    )
+
                     PoolService.CreatePoolResponse.Result.DENIED -> Result.failure(CreatePoolError.Denied())
-                    PoolService.CreatePoolResponse.Result.UNRECOGNIZED -> Result.failure(CreatePoolError.Unrecognized())
+                    PoolService.CreatePoolResponse.Result.UNRECOGNIZED -> Result.failure(
+                        CreatePoolError.Unrecognized()
+                    )
                 }
                 Result.success(Unit)
             },
@@ -41,9 +49,12 @@ internal class PoolService @Inject constructor(
         )
     }
 
-    suspend fun getPool(request: PoolRequest.Get): Result<Model.PoolMetadata> {
+    suspend fun getPool(
+        owner: KeyPair,
+        request: PoolRequest.Get,
+    ): Result<Model.PoolMetadata> {
         return runCatching {
-            api.getPool(request)
+            api.getPool(owner, request)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -68,8 +79,13 @@ internal class PoolService @Inject constructor(
             onSuccess = { result ->
                 when (result.result) {
                     PoolService.GetPagedPoolsResponse.Result.OK -> Result.success(result.poolsList)
-                    PoolService.GetPagedPoolsResponse.Result.NOT_FOUND -> Result.failure(GetPoolPageError.NotFound())
-                    PoolService.GetPagedPoolsResponse.Result.UNRECOGNIZED -> Result.failure(GetPoolPageError.Other())
+                    PoolService.GetPagedPoolsResponse.Result.NOT_FOUND -> Result.failure(
+                        GetPoolPageError.NotFound()
+                    )
+
+                    PoolService.GetPagedPoolsResponse.Result.UNRECOGNIZED -> Result.failure(
+                        GetPoolPageError.Other()
+                    )
                 }
             },
             onFailure = { cause ->
@@ -90,7 +106,9 @@ internal class PoolService @Inject constructor(
                     PoolService.ClosePoolResponse.Result.OK -> Result.success(Unit)
                     PoolService.ClosePoolResponse.Result.DENIED -> Result.failure(ClosePoolError.Denied())
                     PoolService.ClosePoolResponse.Result.NOT_FOUND -> Result.failure(ClosePoolError.NotFound())
-                    PoolService.ClosePoolResponse.Result.UNRECOGNIZED -> Result.failure(ClosePoolError.Unrecognized())
+                    PoolService.ClosePoolResponse.Result.UNRECOGNIZED -> Result.failure(
+                        ClosePoolError.Unrecognized()
+                    )
                 }
             },
             onFailure = { cause ->
@@ -109,11 +127,25 @@ internal class PoolService @Inject constructor(
             onSuccess = { response ->
                 when (response.result) {
                     PoolService.ResolvePoolResponse.Result.OK -> Result.success(Unit)
-                    PoolService.ResolvePoolResponse.Result.NOT_FOUND -> Result.failure(ResolvePoolOutcomeError.NotFound())
-                    PoolService.ResolvePoolResponse.Result.DENIED -> Result.failure(ResolvePoolOutcomeError.Denied())
-                    PoolService.ResolvePoolResponse.Result.DIFFERENT_OUTCOME_DECLARED -> Result.failure(ResolvePoolOutcomeError.AlreadyDeclared())
-                    PoolService.ResolvePoolResponse.Result.POOL_OPEN -> Result.failure(ResolvePoolOutcomeError.PoolOpen())
-                    PoolService.ResolvePoolResponse.Result.UNRECOGNIZED -> Result.failure(ResolvePoolOutcomeError.Unrecognized())
+                    PoolService.ResolvePoolResponse.Result.NOT_FOUND -> Result.failure(
+                        ResolvePoolOutcomeError.NotFound()
+                    )
+
+                    PoolService.ResolvePoolResponse.Result.DENIED -> Result.failure(
+                        ResolvePoolOutcomeError.Denied()
+                    )
+
+                    PoolService.ResolvePoolResponse.Result.DIFFERENT_OUTCOME_DECLARED -> Result.failure(
+                        ResolvePoolOutcomeError.AlreadyDeclared()
+                    )
+
+                    PoolService.ResolvePoolResponse.Result.POOL_OPEN -> Result.failure(
+                        ResolvePoolOutcomeError.PoolOpen()
+                    )
+
+                    PoolService.ResolvePoolResponse.Result.UNRECOGNIZED -> Result.failure(
+                        ResolvePoolOutcomeError.Unrecognized()
+                    )
                 }
             },
             onFailure = { cause ->
@@ -132,12 +164,29 @@ internal class PoolService @Inject constructor(
             onSuccess = { response ->
                 when (response.result) {
                     PoolService.MakeBetResponse.Result.OK -> Result.success(Unit)
-                    PoolService.MakeBetResponse.Result.POOL_NOT_FOUND -> Result.failure(PlacePoolBetError.PoolNotFound())
-                    PoolService.MakeBetResponse.Result.POOL_CLOSED -> Result.failure(PlacePoolBetError.PoolClosed())
-                    PoolService.MakeBetResponse.Result.MULTIPLE_BETS -> Result.failure(PlacePoolBetError.BetAlreadyMade())
-                    PoolService.MakeBetResponse.Result.MAX_BETS_RECEIVED -> Result.failure(PlacePoolBetError.MaxBetsReceived())
-                    PoolService.MakeBetResponse.Result.BET_OUTCOME_SOLIDIFIED -> Result.failure(PlacePoolBetError.BetOutcomeSolidified())
-                    PoolService.MakeBetResponse.Result.UNRECOGNIZED -> Result.failure(PlacePoolBetError.Unrecognized())
+                    PoolService.MakeBetResponse.Result.POOL_NOT_FOUND -> Result.failure(
+                        PlacePoolBetError.PoolNotFound()
+                    )
+
+                    PoolService.MakeBetResponse.Result.POOL_CLOSED -> Result.failure(
+                        PlacePoolBetError.PoolClosed()
+                    )
+
+                    PoolService.MakeBetResponse.Result.MULTIPLE_BETS -> Result.failure(
+                        PlacePoolBetError.BetAlreadyMade()
+                    )
+
+                    PoolService.MakeBetResponse.Result.MAX_BETS_RECEIVED -> Result.failure(
+                        PlacePoolBetError.MaxBetsReceived()
+                    )
+
+                    PoolService.MakeBetResponse.Result.BET_OUTCOME_SOLIDIFIED -> Result.failure(
+                        PlacePoolBetError.BetOutcomeSolidified()
+                    )
+
+                    PoolService.MakeBetResponse.Result.UNRECOGNIZED -> Result.failure(
+                        PlacePoolBetError.Unrecognized()
+                    )
                 }
             },
             onFailure = { cause ->

@@ -154,7 +154,8 @@ class BalanceController @Inject constructor(
                     throw error
                 }
             }?.map { response ->
-                if (response.accounts.values.any { it.unusable }) {
+                val primary = response.accounts.values.find { it.accountType == AccountType.Primary }
+                if (primary?.unusable == true) {
                     onTimelockUnlocked()
                 }
                 onNextIndexDetermined(response.nextPoolIndex)

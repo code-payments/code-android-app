@@ -19,13 +19,11 @@ class PoolMetadataMapper @Inject constructor(): Mapper<Model.SignedPoolMetadata,
             id = from.id.toId(),
             creator = from.creator.toId(),
             name = from.name,
-            buyIn = from.buyIn.let {
-                Fiat(
-                    fiat = it.nativeAmount,
-                    currencyCode = CurrencyCode.Companion.tryValueOf(it.currency)
-                        ?: CurrencyCode.USD,
-                )
-            },
+            buyIn = Fiat(
+                fiat = from.buyIn.nativeAmount,
+                currencyCode = CurrencyCode.Companion.tryValueOf(from.buyIn.currency)
+                    ?: CurrencyCode.USD,
+            ),
             isOpen = from.isOpen,
             resolution = from.resolution.toResolution(),
             fundingDestination = from.fundingDestination.value.toByteArray().toPublicKey(),

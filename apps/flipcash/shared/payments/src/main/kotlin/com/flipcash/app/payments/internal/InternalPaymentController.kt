@@ -9,15 +9,12 @@ import com.flipcash.app.payments.PaymentState
 import com.flipcash.app.payments.PoolResolutionConfirmation
 import com.flipcash.app.payments.PublicPaymentConfirmation
 import com.flipcash.app.payments.delegates.PoolBidDelegate
-import com.flipcash.app.payments.delegates.DelegateEvent
 import com.flipcash.app.payments.delegates.PoolResolveDelegate
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
-import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.getPublicKeyBase58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -108,7 +105,6 @@ internal class InternalPaymentController(
     private suspend fun completeBidPayment() {
         val request = _state.value.request ?: return
         val confirmation = _state.value.poolBidConfirmation ?: return
-        val destination = confirmation.destination
         val amount = confirmation.amount
         val metadata = confirmation.metadata as PoolBidPaymentMetadata
 
@@ -126,7 +122,6 @@ internal class InternalPaymentController(
                     pool = pool,
                     bidId = bidId,
                     amount = amount,
-                    payoutDestination = destination,
                     rendezvous = metadata.rendezvous,
                     onSuccess = { intentId ->
                         handlePaymentSuccess(
@@ -155,33 +150,41 @@ internal class InternalPaymentController(
         val metadata = confirmation.metadata
         val (pool, bets, rendezvous, resolution) = metadata
 
-        request.rpcCall!!.invoke()
-            .onSuccess {
-                poolResolveDelegate.resolvePool(
-                    pool = pool,
-                    bets = bets,
-                    rendezvous = rendezvous,
-                    resolution = resolution,
-                    onSuccess = { id ->
-                        handlePaymentSuccess(
-                            intentId = id,
-                            metadata = metadata,
-                            stateUpdate = {
-                                it.copy(
-                                    poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(
-                                        state = ConfirmationState.Sent
-                                    ),
-                                )
-                            }
-                        )
-                    },
-                    onError = ::handlePaymentError,
-                )
-            }
-            .onFailure {
-                cancelRequest(false)
-                _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
-            }
+        val rpc = request.rpcCall
+
+        val resolve = suspend {
+            poolResolveDelegate.resolvePool(
+                pool = pool,
+                bets = bets,
+                rendezvous = rendezvous,
+                resolution = resolution,
+                onSuccess = { id ->
+                    handlePaymentSuccess(
+                        intentId = id,
+                        metadata = metadata,
+                        stateUpdate = {
+                            it.copy(
+                                poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(
+                                    state = ConfirmationState.Sent
+                                ),
+                            )
+                        }
+                    )
+                },
+                onError = ::handlePaymentError,
+            )
+        }
+
+        if (rpc == null) {
+            resolve()
+        } else {
+            rpc.invoke()
+                .onSuccess { resolve() }
+                .onFailure {
+                    cancelRequest(false)
+                    _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
+                }
+        }
     }
 
     private suspend fun handlePaymentSuccess(
@@ -210,6 +213,7 @@ internal class InternalPaymentController(
             error is PaymentError -> {
                 when (error) {
                     is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
+                    is PaymentError.NoOwnerForDistribution -> presentPaymentFailedError()
                 }
             }
 
@@ -248,4 +252,5 @@ sealed interface PaymentError {
 
     data class InsufficientBalance(override val message: String? = "Insufficient balance for payment") :
         PaymentError, Throwable(message)
+    data class NoOwnerForDistribution(override val message: String? = "No owner for distribution") : PaymentError, Throwable(message)
 }

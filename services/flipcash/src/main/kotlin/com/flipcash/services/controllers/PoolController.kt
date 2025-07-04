@@ -27,7 +27,6 @@ class PoolController @Inject constructor(
     private val repository: PoolRepository,
     private val userManager: UserManager,
     private val accountController: OpenCodeAccountController,
-    private val poolValidator: NetworkPoolValidator,
 ) {
     suspend fun createPool(
         name: String,
@@ -56,18 +55,37 @@ class PoolController @Inject constructor(
     }
 
     suspend fun getPool(rendezvous: KeyPair): Result<NetworkPool> {
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
         // for now include all bets always
-        return repository.getPool(rendezvous.publicKeyBytes.toList(), false)
+        return repository.getPool(
+            owner = owner.authority.keyPair,
+            poolId = rendezvous.publicKeyBytes.toList(),
+            excludeBets = false
+        )
     }
 
     suspend fun getPool(id: ID): Result<NetworkPool> {
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
         // for now include all bets always
-        return repository.getPool(id, false)
+        return repository.getPool(
+            owner = owner.authority.keyPair,
+            poolId = id,
+            excludeBets = false
+        )
     }
 
     suspend fun getBetsForPool(id: ID): Result<List<NetworkPoolBet>> {
-        return repository.getPool(id, excludeBets = false)
-            .map { it.bets }
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getPool(
+            owner = owner.authority.keyPair,
+            poolId = id,
+            excludeBets = false
+        ).map { it.bets }
     }
 
     suspend fun getPagedPools(queryOptions: QueryOptions): Result<List<NetworkPool>> {

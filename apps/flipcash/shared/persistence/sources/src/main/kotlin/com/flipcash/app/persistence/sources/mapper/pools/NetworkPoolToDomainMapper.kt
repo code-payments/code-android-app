@@ -2,11 +2,14 @@ package com.flipcash.app.persistence.sources.mapper.pools
 
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
+import com.flipcash.app.core.pools.PoolUserSummary
 import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.persistence.converters.BetOutcomeConverter
 import com.flipcash.app.persistence.converters.PoolBetSummaryConverter
 import com.flipcash.app.persistence.converters.PoolResolutionConverter
+import com.flipcash.app.persistence.converters.PoolUserSummaryConverter
 import com.flipcash.services.models.NetworkPool
+import com.flipcash.services.models.NetworkPoolUserSummary
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -24,8 +27,6 @@ class NetworkPoolToDomainMapper @Inject constructor(
 ): Mapper<NetworkPoolMapperParameters, PoolWithBets> {
     override fun map(from: NetworkPoolMapperParameters): PoolWithBets {
         val (response, rendezvous) = from
-        val selectedOutcome = response.bets.find { it.metadata.userId == userManager.accountId }?.metadata?.selectedOutcome
-
         return PoolWithBets(
             pool = Pool(
                 id = response.metadata.id,
@@ -37,9 +38,9 @@ class NetworkPoolToDomainMapper @Inject constructor(
                 resolution = PoolResolutionConverter.toPoolResolution(response.metadata.resolution),
                 createdAt = response.metadata.createdAt,
                 closedAt = response.metadata.closedAt,
-                didWin = response.metadata.resolution.didWin(selectedOutcome),
                 derivationIndex = response.derivationIndex,
                 betSummary = PoolBetSummaryConverter.toPoolBetSummary(response.betSummary),
+                userSummary = response.userSummary?.let { PoolUserSummaryConverter.toPoolUserSummary(it) } ?: PoolUserSummary.NotSet,
             ),
             isHost = userManager.accountId == response.metadata.creator,
             rendezvousSeed = rendezvous?.seed,

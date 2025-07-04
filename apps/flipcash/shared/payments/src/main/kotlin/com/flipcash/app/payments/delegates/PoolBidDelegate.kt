@@ -11,7 +11,6 @@ internal interface PoolBidDelegate {
     suspend fun payForBid(
         pool: Pool,
         bidId: ID,
-        payoutDestination: PublicKey,
         amount: Fiat,
         rendezvous: Ed25519.KeyPair,
         onSuccess: suspend (ID) -> Unit,

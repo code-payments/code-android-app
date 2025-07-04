@@ -2,6 +2,7 @@ package com.flipcash.app.pools.internal.betting
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.pools.Empty
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
@@ -28,6 +29,8 @@ import com.getcode.opencode.model.financial.times
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -62,6 +65,7 @@ internal class PoolBettingViewModel @Inject constructor(
             PoolBetOutcome.BooleanOutcome(false),
         ),
         val selectedOutcome: PoolBetOutcome? = null,
+        val isDistributed: Boolean? = null,
         val bottomBarActions: List<BottomBarAction> = emptyList()
     ) {
         val isLoaded: Boolean
@@ -86,7 +90,7 @@ internal class PoolBettingViewModel @Inject constructor(
 
         val hasBoughtIn: Boolean
             get() {
-                return userBet != null || selectedOutcome != null
+                return userBet?.hasPaidForBet == true || selectedOutcome != null
             }
 
         val isResolved: Boolean
@@ -159,9 +163,10 @@ internal class PoolBettingViewModel @Inject constructor(
         data class OnOutcomePaidFor(val outcome: PoolBetOutcome) : Event
         data object OnDeclareOutcome : Event
         data class OnResolutionSelected(val resolution: PoolResolution.DecisionMade) : Event
+        data object OnDistributeFunds : Event
+        data class OnFundsDistributed(val isDistributed: Boolean) : Event
         data object OnSharePool : Event
         data object OnFailedToLoad: Event
-        data object OnMissingKeys: Event
     }
 
     init {
@@ -218,21 +223,20 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
             ).launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnPoolRendezvousChanged>()
-            .map { it.rendezvous.publicKeyBytes.toList() }
+        stateFlow
+            .filter { it.isLoaded }
+            .mapNotNull { it.metadata.id }
             .flatMapLatest { poolsCoordinator.observePool(it) }
             .filterNotNull()
-            .onEach {
-                dispatchEvent(Event.OnPoolLoaded(it))
-            }.launchIn(viewModelScope)
+            .onEach { dispatchEvent(Event.OnPoolLoaded(it)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnPoolLoaded>()
             .map { it.data }
             .onEach { data ->
                 val selfBet = data.bets.find { it.userId == stateFlow.value.userId }
-                if (selfBet != null /* && selfBet.hasPaidForBet */) {
+                if (selfBet != null && selfBet.hasPaidForBet) {
                     dispatchEvent(Event.OnOutcomePaidFor(selfBet.selectedOutcome))
                 }
             }.launchIn(viewModelScope)
@@ -240,26 +244,48 @@ internal class PoolBettingViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnPoolLoaded>()
             .map { it.data }
-            .onEach { data ->
+            .filter { it.isHost }
+            .map { poolsCoordinator.isPoolDistributed(it.pool) }
+            .onResult(
+                onSuccess = { isDistributed ->
+                    dispatchEvent(Event.OnFundsDistributed(isDistributed))
+                }
+            ).launchIn(viewModelScope)
+
+        stateFlow
+            .filter { it.isLoaded }
+            .distinctUntilChanged { old, new ->
+                old.rendezvous == new.rendezvous && old.isHost == new.isHost && old.isDistributed == new.isDistributed
+            }
+            .onEach {
                 val actions = buildList {
-                    if (data.isHost) {
-                        if (stateFlow.value.rendezvous != null) {
+                    if (it.isHost) {
+                        if (!it.isResolved) {
+                            if (it.rendezvous != null) {
+                                add(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_sharePoolWithFriends),
+                                        onClick = { dispatchEvent(Event.OnSharePool) }
+                                    )
+                                )
+                            }
                             add(
                                 BottomBarAction(
-                                    text = resources.getString(R.string.action_sharePoolWithFriends),
-                                    onClick = { dispatchEvent(Event.OnSharePool) }
+                                    text = resources.getString(R.string.action_declareOutcome),
+                                    style = BottomBarManager.BottomBarButtonStyle.Text,
+                                    onClick = { dispatchEvent(Event.OnDeclareOutcome) }
+                                )
+                            )
+                        } else if (it.isDistributed == false) {
+                            add(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_distributeFunds),
+                                    onClick = { dispatchEvent(Event.OnDistributeFunds) }
                                 )
                             )
                         }
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_declareOutcome),
-                                style = BottomBarManager.BottomBarButtonStyle.Text,
-                                onClick = { dispatchEvent(Event.OnDeclareOutcome) }
-                            )
-                        )
                     } else {
-                        if (stateFlow.value.rendezvous != null) {
+                        if (it.rendezvous != null) {
                             add(
                                 BottomBarAction(
                                     text = resources.getString(R.string.action_sharePoolWithFriends),
@@ -382,6 +408,39 @@ internal class PoolBettingViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnDistributeFunds>()
+            .filter { stateFlow.value.isResolved }
+            .mapNotNull { stateFlow.value.metadata.resolution as? PoolResolution.DecisionMade }
+            .mapNotNull { resolution ->
+                val rendezvous = stateFlow.value.rendezvous
+                if (rendezvous == null) return@mapNotNull null
+
+                // in this flow we are already resolved so no need to call close and resolve
+                PaymentRequest.ResolvePool(
+                    pool = stateFlow.value.metadata,
+                    bets = stateFlow.value.bets,
+                    rendezvous = rendezvous,
+                    resolution = resolution,
+                    rpcCall = null
+                )
+            }.map { request -> payments.requestPaymentConfirmation(request) }
+            .flatMapLatest {
+                payments.paymentEvents.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+                    is PaymentEvent.OnRpcFailure -> Unit
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        event.acknowledge(true) {
+                            dispatchEvent(Event.OnFundsDistributed(true))
+                        }
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnResolutionSelected>()
             .map { it.resolution }
             .mapNotNull { resolution ->
@@ -434,9 +493,7 @@ internal class PoolBettingViewModel @Inject constructor(
 
                     }
                     is PaymentEvent.OnPaymentSuccess -> {
-                        event.acknowledge(true) {
-
-                        }
+                        event.acknowledge(true) {}
                     }
                 }
             }
@@ -497,9 +554,17 @@ internal class PoolBettingViewModel @Inject constructor(
                     state
                 }
 
-                is Event.OnMissingKeys -> { state ->
-                    state
+                is Event.OnFundsDistributed -> { state ->
+                    if (state.isResolved) {
+                        state.copy(
+                            isDistributed = event.isDistributed
+                        )
+                    } else {
+                        state
+                    }
                 }
+
+                is Event.OnDistributeFunds -> { state -> state }
             }
         }
     }

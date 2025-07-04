@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBetSummary
 import com.flipcash.app.core.pools.PoolResolution
+import com.flipcash.app.core.pools.PoolUserSummary
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
 import com.getcode.opencode.model.financial.Fiat
@@ -35,27 +36,7 @@ internal fun PoolSummaryRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    PoolSummaryRow(
-        pool = pool,
-        isHost = isHost,
-        winningAmount = pool.winningAmount,
-        totalPoolAmount = pool.totalPoolAmount,
-        modifier = modifier,
-        onClick = onClick,
-    )
-}
-
-@Composable
-internal fun PoolSummaryRow(
-    pool: Pool,
-    isHost: Boolean,
-    winningAmount: Fiat,
-    totalPoolAmount: Fiat,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
     val isCompleted = remember(pool) { pool.resolution != PoolResolution.NotSet }
-    val didWin = remember(pool) { pool.didWin }
 
     Row(
         modifier = modifier
@@ -98,16 +79,14 @@ internal fun PoolSummaryRow(
 
             if (isCompleted) {
                 CompletedPoolStatusRow(
-                    winnings = winningAmount,
-                    buyIn = pool.buyIn,
-                    didWin = didWin,
+                    summary = pool.userSummary,
                     resolution = pool.resolution,
                 )
             } else {
                 Text(
                     text = stringResource(
                         R.string.subtitle_totalInPool,
-                        totalPoolAmount.formatted(
+                        pool.totalPoolAmount.formatted(
                             formatting = Fiat.Formatting.Truncated
                         )
                     ),
@@ -134,15 +113,15 @@ private val pool = Pool(
     name = "Will Flipcash Pools launch before the end of June?",
     createdAt = Clock.System.now(),
     closedAt = null,
-    didWin = false,
     derivationIndex = 0,
-    betSummary = PoolBetSummary.Boolean(0, 0)
+    betSummary = PoolBetSummary.Boolean(12, 14),
+    userSummary = PoolUserSummary.NotSet,
 )
 
-private val refundedPool = pool.copy(resolution = PoolResolution.Refund)
+private val refundedPool = pool.copy(resolution = PoolResolution.Refund, userSummary = PoolUserSummary.Refunded(pool.buyIn))
 
-private val wonPool = pool.copy(didWin = true, resolution = PoolResolution.BooleanResolution(false))
-private val lostPool = pool.copy(didWin = false, resolution = PoolResolution.BooleanResolution(true))
+private val wonPool = pool.copy(resolution = PoolResolution.BooleanResolution(false), userSummary = PoolUserSummary.Won(9.26.toFiat()))
+private val lostPool = pool.copy(resolution = PoolResolution.BooleanResolution(true), userSummary = PoolUserSummary.Lost(5.00.toFiat()))
 
 @Preview
 @Composable
@@ -152,8 +131,6 @@ private fun OpenHostedNoBetsPreview() {
             PoolSummaryRow(
                 pool = pool,
                 isHost = true,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 0.00.toFiat(),
                 onClick = {},
             )
         }
@@ -168,8 +145,6 @@ private fun OpenNoBetsPreview() {
             PoolSummaryRow(
                 pool = pool,
                 isHost = false,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 0.00.toFiat(),
                 onClick = {},
             )
         }
@@ -184,8 +159,6 @@ private fun OpenHostedHasBetsPreview() {
             PoolSummaryRow(
                 pool = pool,
                 isHost = true,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -200,8 +173,6 @@ private fun OpenHasBetsPreview() {
             PoolSummaryRow(
                 pool = pool,
                 isHost = false,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -216,8 +187,6 @@ private fun ClosedHostedRefundedPreview() {
             PoolSummaryRow(
                 pool = refundedPool,
                 isHost = true,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -232,8 +201,6 @@ private fun ClosedRefundedPreview() {
             PoolSummaryRow(
                 pool = refundedPool,
                 isHost = false,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -248,8 +215,6 @@ private fun ClosedHostedWonPreview() {
             PoolSummaryRow(
                 pool = wonPool,
                 isHost = true,
-                winningAmount = 10.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -264,8 +229,6 @@ private fun ClosedWonPreview() {
             PoolSummaryRow(
                 pool = wonPool,
                 isHost = false,
-                winningAmount = 10.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -280,8 +243,6 @@ private fun ClosedHostedLostPreview() {
             PoolSummaryRow(
                 pool = lostPool,
                 isHost = true,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }
@@ -296,8 +257,6 @@ private fun ClosedLostPreview() {
             PoolSummaryRow(
                 pool = lostPool,
                 isHost = false,
-                winningAmount = 0.00.toFiat(),
-                totalPoolAmount = 10.00.toFiat(),
                 onClick = {},
             )
         }

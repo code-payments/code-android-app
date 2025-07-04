@@ -52,6 +52,9 @@ message PoolMetadata {
     repeated BetMetadata bets = 3 ;
     // Consolidated summary of bets made against this pool
     BetSummary bet_summary = 7;
+    // User-specific summary data related to this pool. This is provided against
+    // authenticated RPCs
+    UserPoolSummary user_summary = 8;
     // Paging token specific to each user that enables access to paging APIs
     common.v1.PagingToken paging_token = 4;
     // Has the funding destination been initialized? Bet payments cannot be made
@@ -75,12 +78,38 @@ message BetOutcome {
 // BetSummary contains a consolidated summary of bets made against a pool
 message BetSummary {
     oneof kind {
-        // The yes/no outcome the user has bet against
+        // The yes/no outcome users have bet in the pool
         BooleanBetSummary boolean_summary = 1;
     }
     message BooleanBetSummary {
         uint32 num_yes = 1;
         uint32 num_no  = 2;
+    }
+    // The total fiat paid for bets against the pool
+    common.v1.FiatPaymentAmount total_amount_bet = 10;
+}
+message UserPoolSummary {
+    // The outcome for the user for a pool
+    oneof outcome {
+        NoOutcome     none = 1;
+        WinOutcome    win = 2;
+        LoseOutcome   lose = 3;
+        RefundOutcome refund = 4;
+    }
+    // Pool isn't resolved, so no user outcome is available
+    message NoOutcome {
+    }
+    // User is a winner in the pool
+    message WinOutcome {
+        common.v1.FiatPaymentAmount amount_won = 1;
+    }
+     // User is a loser in the pool
+    message LoseOutcome {
+        common.v1.FiatPaymentAmount amount_lost = 1;
+    }
+    // User was refunded
+    message RefundOutcome {
+        common.v1.FiatPaymentAmount amount_refunded = 1;
     }
 }
 // Bet metadata signed by the rendezvous key

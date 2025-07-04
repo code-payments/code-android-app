@@ -45,7 +45,7 @@ class ActionPublicWithdraw(
                     .setSource(source.vaultPublicKey.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
                     .setAuthority(source.authority.keyPair.asSolanaAccountId())
-                    .setAmount(amount.quarks.toLong())
+                    .setAmount(amount.quarks)
                     .setShouldClose(true)
                     .setIsAutoReturn(canAutoReturn)
                     .build()

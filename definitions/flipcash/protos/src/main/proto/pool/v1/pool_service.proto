@@ -49,6 +49,8 @@ message CreatePoolResponse {
 message GetPoolRequest {
     PoolId id = 1;
     bool exclude_bets = 2;
+    // Optional auth to include user-specific pool metadata
+    common.v1.Auth auth = 3;
 }
 message GetPoolResponse {
     Result result = 1;

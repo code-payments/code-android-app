@@ -22,12 +22,12 @@ import com.flipcash.services.extensions.derivePoolBetId
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
-import com.getcode.crypt.DerivePath
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.model.accounts.AccountInfo
+import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.utils.generate
-import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -41,6 +41,7 @@ import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 class PoolsCoordinator @Inject constructor(
+    private val accountController: AccountController,
     private val controller: PoolController,
     private val dataSource: PoolDataSource,
     private val entityToDomainMapper: PoolEntityToPoolMapper,
@@ -130,6 +131,26 @@ class PoolsCoordinator @Inject constructor(
         }
     }
 
+    suspend fun isPoolDistributed(pool: Pool): Result<Boolean> {
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("No account cluster"))
+        return accountController.getAccounts(
+            accountOwner = owner,
+            requestingOwner = owner,
+        ).map {
+            val info = it.accounts.values.firstOrNull { account ->
+                val indexMatch = account.index.toLong() == pool.derivationIndex
+                val addressMatch = account.address == pool.fundingDestination
+                val isPool = account.accountType == AccountType.Pool
+                indexMatch && addressMatch && isPool
+            } ?: return Result.failure(Throwable("Account for pool not found"))
+
+            info.balance == Fiat.Zero
+        }.onFailure {
+            return Result.failure(it)
+        }
+    }
+
     fun observePool(id: ID): Flow<PoolWithBets?> {
         return dataSource.observe(id)
     }
@@ -160,6 +181,12 @@ class PoolsCoordinator @Inject constructor(
                     )
                 },
                 onFailure = { Result.failure(it) }
+            ).fold(
+                onSuccess = {
+                    dataSource.resolvePool(poolId, resolution)
+                    Result.success(Unit)
+                },
+                onFailure = { Result.failure(it) }
             )
     }
 
@@ -175,7 +202,7 @@ class PoolsCoordinator @Inject constructor(
             ?: return Result.failure(Throwable("No vault public key in UserManager"))
 
         val metadata = PoolBetMetadata(
-            id = PublicKey.generate().bytes,
+            id = derivePoolBetId(poolId, userId).bytes,
             userId = userId,
             payoutDestination = vault,
             selectedOutcome = BetOutcomeConverter.toBetOutcome(outcome),
@@ -186,21 +213,17 @@ class PoolsCoordinator @Inject constructor(
             poolId = poolId,
             rendezvous = rendezvous,
             metadata = metadata,
-        ).onSuccess {
-            dataSource.upsertBet(poolId, it, false)
-        }.fold(
-            onSuccess = { bet ->
-                getPool(poolId).map { bet.id }
-            },
-            onFailure = { Result.failure(it) }
-        )
+        ).onSuccess { dataSource.upsertBet(poolId, it, false) }
+            .map { it.id }
     }
 
     suspend fun onBetPaidForInPool(poolId: ID): Result<Unit> {
         val userId = userManager.accountId
             ?: return Result.failure(Throwable("No account ID in UserManager"))
 
-        return runCatching { dataSource.paidBet(derivePoolBetId(poolId, userId).bytes) }
+        dataSource.paidBet(derivePoolBetId(poolId, userId).bytes)
+        // TODO: once we have streams setup for pool this can be removed
+        return getPool(poolId).map { Unit }
     }
 
     suspend fun fetchSinceLatest(count: Int = 20): Result<Unit> {
@@ -208,7 +231,7 @@ class PoolsCoordinator @Inject constructor(
         return controller.getPagedPools(
             queryOptions = QueryOptions(
                 limit = count,
-                token = latest?.pool?.id?.takeIf { it.isNotEmpty() },
+                token = latest?.pagingToken?.takeIf { it.isNotEmpty() },
                 descending = latest == null,
             )
         ).onSuccess {

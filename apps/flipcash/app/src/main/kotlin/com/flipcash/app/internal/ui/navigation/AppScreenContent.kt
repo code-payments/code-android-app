@@ -39,6 +39,9 @@ import com.getcode.navigation.modal.ModalScreen
 @Composable
 internal fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
+        register<NavScreenProvider.AppRestricted> {
+            AppRestrictedScreen(it.restrictionType)
+        }
         register<NavScreenProvider.Login.Home> {
             LoginRouter(it.seed, it.fromDeeplink)
         }

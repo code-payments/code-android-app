@@ -149,13 +149,9 @@ internal class PoolCreateViewModel @Inject constructor(
                 ?: SendLimit.Zero
         val isOverLimit = amount > sendLimit.nextTransaction
         if (isOverLimit) {
-            val currencySymbol = currency.selected?.symbol ?: "$"
             BottomBarManager.showError(
                 resources.getString(R.string.error_title_bidLimitReached),
-                resources.getString(R.string.error_title_bidLimitReached)
-                    .replaceParam(
-                        "$currencySymbol${sendLimit.nextTransaction.toInt()}"
-                    )
+                resources.getString(R.string.error_description_bidLimitReached)
             )
         }
         isOverLimit

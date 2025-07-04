@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.sources.mapper.pools
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.persistence.converters.PoolBetSummaryConverter
 import com.flipcash.app.persistence.converters.PoolResolutionConverter
+import com.flipcash.app.persistence.converters.PoolUserSummaryConverter
 import com.flipcash.app.persistence.entities.PoolEntity
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -25,9 +26,9 @@ class PoolEntityToPoolMapper @Inject constructor() : Mapper<PoolEntity, Pool> {
             resolution = PoolResolutionConverter.toPoolResolution(from.resolution),
             createdAt = from.createdAt,
             closedAt = from.closedAt,
-            didWin = from.didWin,
             derivationIndex = from.derivationIndex,
             betSummary = PoolBetSummaryConverter.toPoolBetSummary(from.betSummary),
+            userSummary = PoolUserSummaryConverter.toPoolUserSummary(from.userSummary),
             rendezvousSignature = from.rendezvousSignature.decodeBase58().toList(),
         )
     }

@@ -22,6 +22,7 @@ interface PoolRepository {
     ): Result<PoolMetadata>
 
     suspend fun getPool(
+        owner: KeyPair,
         poolId: ID,
         excludeBets: Boolean,
     ): Result<NetworkPool>

@@ -22,6 +22,7 @@ class AccountController @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     suspend fun createUserAccount(owner: AccountCluster): Result<ID> {
+        // Authority is the owner of the account
         val intent = IntentCreateAccount.createUserAccount(owner)
 
         return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
@@ -33,12 +34,12 @@ class AccountController @Inject constructor(
         index: Long,
         mnemonic: MnemonicPhrase,
     ): Result<PoolAccount> {
-        val intent = IntentCreateAccount.createPoolAccount(owner, index)
+        val poolAccount = PoolAccount.create(index, mnemonic)
+        val intent = IntentCreateAccount.createPoolAccount(owner, poolAccount.cluster, index)
 
         return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
-            .map { PoolAccount.create(index, mnemonic) }
+            .map { poolAccount }
     }
-
 
     suspend fun getAccounts(
         accountOwner: AccountCluster,

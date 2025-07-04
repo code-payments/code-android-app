@@ -1,11 +1,11 @@
 package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.OpenAccountsMetadata.AccountSet
 import com.getcode.opencode.internal.network.api.intents.actions.ActionOpenAccount
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountType
+import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
@@ -33,12 +33,12 @@ internal class IntentCreateAccount(
             )
         }
 
-        fun createPoolAccount(owner: AccountCluster, nextIndex: Long): IntentCreateAccount {
+        fun createPoolAccount(owner: AccountCluster, pool: AccountCluster, index: Long): IntentCreateAccount {
             return IntentCreateAccount(
                 id = PublicKey.generate(),
                 metadata = TransactionMetadata.OpenAccount(AccountType.Pool),
                 actionGroup = ActionGroup().apply {
-                    actions = listOf(ActionOpenAccount.createPool(owner, nextIndex))
+                    actions = listOf(ActionOpenAccount.createPool(owner, pool, index))
                 }
             )
         }

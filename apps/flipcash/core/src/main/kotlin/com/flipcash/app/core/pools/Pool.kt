@@ -19,9 +19,9 @@ data class Pool(
     val rendezvousSignature: List<Byte> = emptyList(),
     val createdAt: Instant,
     val closedAt: Instant?,
-    val didWin: Boolean,
     val derivationIndex: Long,
     val betSummary: PoolBetSummary,
+    val userSummary: PoolUserSummary,
 ) {
     companion object
 
@@ -88,9 +88,9 @@ val Pool.Companion.Empty: Pool
         fundingDestination = PublicKey(emptyList()),
         createdAt = Instant.fromEpochMilliseconds(0),
         closedAt = null,
-        didWin = false,
         resolution = PoolResolution.NotSet,
         isOpen = true,
         derivationIndex = -1,
-        betSummary = PoolBetSummary.Boolean(0, 0),
+        betSummary = PoolBetSummary.NotSet,
+        userSummary = PoolUserSummary.NotSet,
     )

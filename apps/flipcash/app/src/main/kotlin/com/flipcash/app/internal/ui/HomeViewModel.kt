@@ -112,6 +112,10 @@ internal class HomeViewModel @Inject constructor(
         )
     }
 
+    suspend fun logout(): Result<Unit> {
+        return authManager.logout()
+    }
+
     private fun checkBiometrics() {
         viewModelScope.launch {
             _requireBiometrics.value = !shareSheetController.isCheckingForShare &&

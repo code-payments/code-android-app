@@ -14,26 +14,28 @@ internal class ActionOpenAccount(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
     override val signer: Ed25519.KeyPair? = null,
-    val accountType: AccountType,
+    private val accountType: AccountType,
     val owner: AccountCluster,
-    val index: Long = 0
+    private val authority: AccountCluster,
+    private val token: AccountCluster,
+    private val index: Long = 0
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> = listOf()
     override fun action(): TransactionService.Action {
         return TransactionService.Action.newBuilder()
             .apply trx@{
-                val nextIndex = this@ActionOpenAccount.index
-                val source = this@ActionOpenAccount.owner
+                val index = this@ActionOpenAccount.index
+                val owner = this@ActionOpenAccount.owner
                 this.id = id
                 this.setOpenAccount(TransactionService.OpenAccountAction.newBuilder()
-                    .setIndex(nextIndex)
-                    .setOwner(source.authorityPublicKey.asSolanaAccountId())
+                    .setIndex(index)
+                    .setOwner(owner.authorityPublicKey.asSolanaAccountId())
                     .setAccountType(accountType.getAccountType())
-                    .setAuthority(source.authorityPublicKey.asSolanaAccountId())
-                    .setToken(source.vaultPublicKey.asSolanaAccountId())
+                    .setAuthority(authority.authorityPublicKey.asSolanaAccountId())
+                    .setToken(token.vaultPublicKey.asSolanaAccountId())
                     .apply {
-                        setAuthoritySignature(sign(source.authority.keyPair))
+                        setAuthoritySignature(sign(this@ActionOpenAccount.authority.authority.keyPair))
                     }
                 )
             }
@@ -45,6 +47,8 @@ internal class ActionOpenAccount(
             return ActionOpenAccount(
                 id = 0,
                 owner = owner,
+                authority = owner,
+                token = owner,
                 accountType = AccountType.Primary
             )
         }
@@ -53,16 +57,20 @@ internal class ActionOpenAccount(
             return ActionOpenAccount(
                 id = 0,
                 owner = owner,
+                authority = owner,
+                token = owner,
                 accountType = AccountType.RemoteSend
             )
         }
 
-        fun createPool(owner: AccountCluster, nextIndex: Long): ActionOpenAccount {
+        fun createPool(owner: AccountCluster, pool: AccountCluster, index: Long): ActionOpenAccount {
             return ActionOpenAccount(
                 id = 0,
                 owner = owner,
+                authority = pool,
+                token = pool,
                 accountType = AccountType.Pool,
-                index = nextIndex
+                index = index
             )
         }
     }

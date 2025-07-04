@@ -1,13 +1,15 @@
 package com.flipcash.app.core.pools
 
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 
 data class PoolWithBets(
     val pool: Pool,
     val isHost: Boolean,
     val rendezvousSeed: String?,
-    val bets: List<PoolBet>
+    val bets: List<PoolBet>,
+    val pagingToken: ID? = null,
 ) {
     val totalPoolAmount: Fiat
         get() = pool.totalPoolAmount

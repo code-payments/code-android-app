@@ -225,6 +225,7 @@ class RealSessionController @Inject constructor(
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
             balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
+            // TODO: once we have streams setup for pool this can be removed
             poolsUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 45.seconds)
         }
     }
@@ -233,6 +234,7 @@ class RealSessionController @Inject constructor(
         exchangeUpdater.stop()
         balanceUpdater.stop()
         activityFeedUpdater.stop()
+        // TODO: once we have streams setup for pool this can be removed
         poolsUpdater.stop()
     }
 

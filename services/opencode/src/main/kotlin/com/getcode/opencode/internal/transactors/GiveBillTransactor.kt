@@ -9,7 +9,6 @@ import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
@@ -18,8 +17,6 @@ import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.seconds
 
 internal class GiveBillTransactor(
     private val messagingController: MessagingController,
@@ -105,7 +102,7 @@ internal class GiveBillTransactor(
         return transactionController.transfer(
             scope = scope,
             amount = amount!!,
-            owner = ownerKey,
+            source = ownerKey,
             destination = transferRequest.account,
             rendezvous = rendezvous.toPublicKey()
         ).fold(

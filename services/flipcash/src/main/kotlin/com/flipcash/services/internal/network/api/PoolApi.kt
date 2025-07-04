@@ -51,11 +51,13 @@ internal class PoolApi @Inject constructor(
      * Gets pool metadata by its ID
      */
     suspend fun getPool(
+        owner: KeyPair,
         request: PoolRequest.Get,
     ): PoolService.GetPoolResponse {
         val rpcRequest = PoolService.GetPoolRequest.newBuilder()
             .setId(request.poolId.asPoolId())
             .setExcludeBets(request.excludeBets)
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return withContext(Dispatchers.IO) {
