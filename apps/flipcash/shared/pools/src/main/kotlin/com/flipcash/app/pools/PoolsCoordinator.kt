@@ -25,8 +25,6 @@ import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.model.accounts.AccountFilter
-import com.getcode.opencode.model.accounts.AccountInfo
-import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,7 +45,6 @@ class PoolsCoordinator @Inject constructor(
     private val dataSource: PoolDataSource,
     private val entityToDomainMapper: PoolEntityToPoolMapper,
     private val networkToDomainMapper: NetworkPoolToDomainMapper,
-    private val domainToNetworkMapper: PoolToMetadataMapper,
     private val userManager: UserManager,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
@@ -178,7 +175,7 @@ class PoolsCoordinator @Inject constructor(
             .fold(
                 onSuccess = {
                     controller.resolvePool(
-                        pool = domainToNetworkMapper.map(pool),
+                        pool = it.metadata,
                         rendezvous = rendezvous,
                         resolution = PoolResolutionConverter.toPoolResolution(resolution as PoolResolution),
                     )
