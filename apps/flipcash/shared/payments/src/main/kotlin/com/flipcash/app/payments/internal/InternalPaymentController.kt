@@ -212,7 +212,12 @@ internal class InternalPaymentController(
         when {
             error is PaymentError -> {
                 when (error) {
-                    is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
+                    is PaymentError.InsufficientBalance -> {
+                        if (state.value.request !is PaymentRequest.PoolBid) {
+                            // NSF on pool bids is handled at client level
+                            presentInsufficientFundsError()
+                        }
+                    }
                     is PaymentError.NoOwnerForDistribution -> presentPaymentFailedError()
                     is PaymentError.NoPoolBalance -> presentPaymentFailedError()
                 }

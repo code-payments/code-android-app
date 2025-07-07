@@ -215,6 +215,7 @@
 
     <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
     <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough funds to complete this payment</string>
+    <string name="error_description_poolBidFailedDueToInsufficientFunds">You need more funds to join this Pool</string>
 
     <string name="error_title_placeBetFailed">Something Went Wrong</string>
     <string name="error_description_placeBetFailed">We were unable to place your bid. Please try again</string>

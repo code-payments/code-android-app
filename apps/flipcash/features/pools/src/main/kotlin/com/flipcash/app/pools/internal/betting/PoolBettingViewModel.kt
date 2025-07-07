@@ -13,6 +13,7 @@ import com.flipcash.app.core.pools.PoolWithBets
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
+import com.flipcash.app.payments.internal.PaymentError
 import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
 import com.flipcash.app.pools.PoolUpdater
 import com.flipcash.app.pools.PoolsCoordinator
@@ -347,7 +348,18 @@ internal class PoolBettingViewModel @Inject constructor(
             }.onEach { event ->
                 when (event) {
                     PaymentEvent.OnPaymentCancelled -> Unit
-                    is PaymentEvent.OnPaymentError -> Unit
+                    is PaymentEvent.OnPaymentError -> {
+                        when (event.error) {
+                            is PaymentError.InsufficientBalance -> {
+                                BottomBarManager.showError(
+                                    resources.getString(R.string.error_title_paymentFailedDueToInsufficientFunds),
+                                    resources.getString(R.string.error_description_poolBidFailedDueToInsufficientFunds),
+                                )
+                            }
+                            // other errors are handled internally
+                            else -> Unit
+                        }
+                    }
                     is PaymentEvent.OnRpcFailure -> {
                         BottomBarManager.showError(
                             resources.getString(R.string.error_title_placeBetFailed),
