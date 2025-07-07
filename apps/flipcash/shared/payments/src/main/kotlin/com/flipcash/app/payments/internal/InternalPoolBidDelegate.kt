@@ -49,6 +49,8 @@ internal class InternalPoolBidDelegate @Inject constructor(
             rendezvous = PublicKey(bidId),
             source = userManager.accountCluster!!,
         ).map { it.id.bytes }.onSuccess {
+            // update balance on successful bid payment
+            balanceController.subtract(localizedAmount)
             onSuccess(it)
         }.onFailure {
             onError(it)
