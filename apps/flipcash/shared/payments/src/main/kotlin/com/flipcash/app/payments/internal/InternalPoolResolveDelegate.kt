@@ -62,6 +62,10 @@ class InternalPoolResolveDelegate @Inject constructor(
 
         val poolAccount = userManager.poolAccountAt(pool.derivationIndex)
 
+        if (distributions.getOrNull().orEmpty().isEmpty()) {
+            onSuccess(RandomId)
+            return
+        }
         transactionController.distributeFunds(
             owner = owner,
             from = poolAccount.cluster,
