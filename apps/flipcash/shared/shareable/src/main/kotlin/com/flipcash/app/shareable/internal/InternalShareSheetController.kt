@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.pools.Pool
@@ -16,17 +17,21 @@ import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LIN
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_SHARE_CASH_LINK
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareablePendingData.CashLink
+import com.flipcash.app.shareable.internal.packaging.PoolShareLinkData
 import com.flipcash.shared.shareable.R
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.utils.base64
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase64
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.security.SecureRandom
 import java.util.Timer
 import java.util.TimerTask
@@ -212,7 +217,9 @@ internal class InternalShareSheetController(
 
     private fun sharePool(pool: Pool, rendezvous: Ed25519.KeyPair) {
         val decodedSeed = rendezvous.seed.decodeBase64()
-        val url = Linkify.pool(decodedSeed.base58)
+        val data = PoolShareLinkData(pool)
+        val encodedData = Json.encodeToString(data).base64.toUri().toString()
+        val url = Linkify.pool(data = encodedData,decodedSeed.base58)
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(

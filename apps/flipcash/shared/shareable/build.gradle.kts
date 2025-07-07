@@ -6,6 +6,7 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
+    id(Plugins.kotlin_serialization)
     id(Plugins.jetbrains_compose_compiler)
 }
 
@@ -41,6 +42,8 @@ dependencies {
     implementation(Libs.hilt)
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
+
+    implementation(Libs.kotlinx_serialization_json)
 
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
