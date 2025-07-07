@@ -31,6 +31,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -38,7 +41,9 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class PoolsCoordinator @Inject constructor(
     private val accountController: AccountController,
     private val controller: PoolController,
@@ -48,6 +53,18 @@ class PoolsCoordinator @Inject constructor(
     private val userManager: UserManager,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
+
+    private val _poolOpen = MutableStateFlow<ID?>(null)
+    val openPool: StateFlow<ID?>
+        get() = _poolOpen.asStateFlow()
+
+    fun onPoolOpened(id: ID) {
+        _poolOpen.value = id
+    }
+
+    fun onPoolClosed() {
+        _poolOpen.value = null
+    }
 
     @OptIn(ExperimentalPagingApi::class)
     private val _pools: Flow<PagingData<PoolWithHostStatus>> = userManager.state

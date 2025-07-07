@@ -11,6 +11,7 @@ class ActivityFeedUpdater @Inject constructor(
     private val coordinator: ActivityFeedCoordinator,
 ): NetworkUpdater() {
     override fun poll(
+        key: Any?,
         scope: CoroutineScope,
         frequency: Duration,
         startIn: Duration,

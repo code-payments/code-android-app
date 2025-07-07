@@ -9,6 +9,7 @@ abstract class NetworkUpdater {
     protected var updater: Timer? = null
 
     abstract fun poll(
+        key: Any? = null,
         scope: CoroutineScope,
         frequency: Duration,
         startIn: Duration = 0.seconds,

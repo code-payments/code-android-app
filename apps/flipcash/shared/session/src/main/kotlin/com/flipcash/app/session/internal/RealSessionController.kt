@@ -14,6 +14,7 @@ import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.pools.PoolUpdater
 import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.pools.PoolsUpdater
 import com.flipcash.app.session.BillDeterminationResult
@@ -66,6 +67,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -93,6 +95,7 @@ class RealSessionController @Inject constructor(
     private val exchangeUpdater: ExchangeUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
     private val poolsUpdater: PoolsUpdater,
+    private val poolUpdater: PoolUpdater,
     private val shareSheetController: ShareSheetController,
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
@@ -154,6 +157,20 @@ class RealSessionController @Inject constructor(
         featureFlagController.observe(FeatureFlag.Pools)
             .onEach { enabled -> _state.update { it.copy(poolsOpen = enabled) } }
             .launchIn(scope)
+
+        poolsCoordinator.openPool
+            .onEach { id ->
+                if (id == null) {
+                    poolUpdater.stop()
+                } else {
+                    poolUpdater.poll(
+                        key = id,
+                        scope = scope,
+                        frequency = 10.seconds,
+                        startIn = 10.seconds
+                    )
+                }
+            }.launchIn(scope)
 
         state
             .map { it.isCameraUp }
@@ -227,6 +244,10 @@ class RealSessionController @Inject constructor(
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             // TODO: once we have streams setup for pool this can be removed
             poolsUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 45.seconds)
+
+            poolsCoordinator.openPool.value?.let { id ->
+                poolUpdater.poll(id, scope = scope, frequency = 10.seconds, startIn = 10.seconds)
+            }
         }
     }
 
@@ -236,6 +257,7 @@ class RealSessionController @Inject constructor(
         activityFeedUpdater.stop()
         // TODO: once we have streams setup for pool this can be removed
         poolsUpdater.stop()
+        poolUpdater.stop()
     }
 
     private fun updateUserFlags() {

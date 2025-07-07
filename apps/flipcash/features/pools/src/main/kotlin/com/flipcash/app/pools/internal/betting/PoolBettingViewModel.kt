@@ -14,6 +14,7 @@ import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
+import com.flipcash.app.pools.PoolUpdater
 import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
@@ -42,10 +43,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 internal class PoolBettingViewModel @Inject constructor(
-    poolsCoordinator: PoolsCoordinator,
+    private val poolsCoordinator: PoolsCoordinator,
     userManager: UserManager,
     shareController: ShareSheetController,
     resources: ResourceHelper,
@@ -187,6 +189,7 @@ internal class PoolBettingViewModel @Inject constructor(
                 onSuccess = { data ->
                     dispatchEvent(Event.OnLoadingChanged(false))
                     dispatchEvent(Event.OnPoolLoaded(data))
+                    poolsCoordinator.onPoolOpened(data.pool.id)
                 },
                 onError = {
                     dispatchEvent(Event.OnLoadingChanged(false))
@@ -211,6 +214,7 @@ internal class PoolBettingViewModel @Inject constructor(
                 onSuccess = { data ->
                     dispatchEvent(Event.OnLoadingChanged(false))
                     dispatchEvent(Event.OnPoolLoaded(data))
+                    poolsCoordinator.onPoolOpened(data.pool.id)
                 },
                 onError = {
                     dispatchEvent(Event.OnLoadingChanged(false))
@@ -503,6 +507,11 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        poolsCoordinator.onPoolClosed()
     }
 
     internal companion object {

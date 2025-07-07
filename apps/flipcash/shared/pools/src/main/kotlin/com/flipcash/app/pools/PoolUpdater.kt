@@ -1,32 +1,33 @@
-package com.flipcash.app.core.internal.updater
+package com.flipcash.app.pools
 
 import com.flipcash.app.core.updater.NetworkUpdater
-import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.model.core.ID
+import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
-class BalanceUpdater @Inject constructor(
-    private val balanceController: BalanceController,
-) : NetworkUpdater() {
+class PoolUpdater @Inject constructor(
+    private val coordinator: PoolsCoordinator
+): NetworkUpdater() {
     override fun poll(
         key: Any?,
         scope: CoroutineScope,
         frequency: Duration,
-        startIn: Duration,
+        startIn: Duration
     ) {
         stop()
+        val poolId = key as? ID ?: return
+
         updater = fixedRateTimer(
-            name = "update balance",
+            name = "update pool => ${poolId.base58}",
             initialDelay = startIn.inWholeMilliseconds,
             period = frequency.inWholeMilliseconds
         ) {
             scope.launch {
-                balanceController.fetchBalance()
+               coordinator.getPool(poolId)
             }
         }
     }

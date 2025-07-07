@@ -11,6 +11,7 @@ class PoolsUpdater @Inject constructor(
     private val coordinator: PoolsCoordinator
 ): NetworkUpdater() {
     override fun poll(
+        key: Any?,
         scope: CoroutineScope,
         frequency: Duration,
         startIn: Duration,

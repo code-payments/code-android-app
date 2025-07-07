@@ -14,6 +14,7 @@ class ExchangeUpdater @Inject constructor(
     private val exchange: Exchange,
 ): NetworkUpdater() {
     override fun poll(
+        key: Any?,
         scope: CoroutineScope,
         frequency: Duration,
         startIn: Duration,
