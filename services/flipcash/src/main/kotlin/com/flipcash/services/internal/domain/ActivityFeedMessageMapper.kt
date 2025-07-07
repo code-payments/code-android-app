@@ -27,7 +27,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                     converted = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
                 )
             },
-            timestamp = Instant.fromEpochSeconds(from.ts.seconds * 1000L),
+            timestamp = Instant.fromEpochSeconds(from.ts.seconds),
             state = when (from.state) {
                 Model.NotificationState.NOTIFICATION_STATE_PENDING -> NotificationState.PENDING
                 Model.NotificationState.NOTIFICATION_STATE_COMPLETED -> NotificationState.COMPLETED
