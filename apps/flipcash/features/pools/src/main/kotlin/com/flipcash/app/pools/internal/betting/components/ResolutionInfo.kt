@@ -23,7 +23,10 @@ import com.getcode.theme.CodeTheme
 internal fun ResolutionInfo(state: PoolBettingViewModel.State, modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         AnimatedVisibility(
-            visible = state.isResolved && state.isDistributed == true,
+            visible = when {
+                state.isHost -> state.isResolved && state.isDistributed == true
+                else -> state.isResolved
+            },
             enter = fadeIn(),
             exit = fadeOut()
         ) {
