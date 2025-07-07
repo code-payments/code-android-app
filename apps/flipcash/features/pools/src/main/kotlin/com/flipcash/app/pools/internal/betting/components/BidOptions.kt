@@ -1,6 +1,9 @@
 package com.flipcash.app.pools.internal.betting.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -26,9 +29,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +66,7 @@ internal fun BidOptions(
     outcomes: List<PoolBetOutcome>,
     totals: Map<PoolBetOutcome, Int>,
     selectedOutcome: PoolBetOutcome?,
+    isLoaded: Boolean,
     resolution: PoolResolution,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = CodeTheme.dimens.inset),
@@ -92,8 +99,34 @@ internal fun BidOptions(
             possibleOutcomes.fastForEach { item ->
                 val isSelected = remember(
                     item,
-                    selectedOutcome
+                    selectedOutcome,
+                    isLoaded,
                 ) { item.key == selectedOutcome?.key }
+
+                // State to track if the composable has been initialized
+                var isInitialized by remember { mutableStateOf(false) }
+
+                // State to control animation trigger
+                var triggerAnimation by remember { mutableStateOf(false) }
+
+                var showContent by remember { mutableStateOf(false) }
+
+                // Detect selection change after data is loaded
+                LaunchedEffect(isSelected) {
+                    if (isInitialized) {
+                        // Selection changed from false to true after data is loaded
+                        triggerAnimation = true
+                    }
+
+                    showContent = isSelected
+                }
+
+                // Set isInitialized to true after first composition
+                LaunchedEffect(isLoaded) {
+                    if (isLoaded) {
+                        isInitialized = true
+                    }
+                }
 
                 Column(
                     modifier = Modifier
@@ -113,16 +146,24 @@ internal fun BidOptions(
                     ) { onOutcomeSelected(item) }
 
                     AnimatedContent(
-                        targetState = isSelected,
+                        targetState = showContent,
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                         contentKey = { (item.key + it).hashCode() },
                         transitionSpec = {
-                            slideInVertically(
-                                spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMediumLow,
+                            if (triggerAnimation && targetState) {
+                                slideInVertically(
+                                    spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow,
+                                    )
+                                ) + fadeIn() togetherWith fadeOut() + slideOutVertically()
+                            } else {
+                                // No animation for initial load, data change, or deselection
+                                ContentTransform(
+                                    targetContentEnter = EnterTransition.None,
+                                    initialContentExit = ExitTransition.None
                                 )
-                            ) + fadeIn() togetherWith fadeOut() + slideOutVertically()
+                            }
                         },
                     ) { show ->
                         if (show) {

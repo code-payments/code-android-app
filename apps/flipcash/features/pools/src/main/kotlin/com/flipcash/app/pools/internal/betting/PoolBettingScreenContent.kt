@@ -70,6 +70,7 @@ private fun PoolBettingScreenContent(
                 totals = state.totalPerOutcome,
                 selectedOutcome = state.selectedOutcome,
                 resolution = state.metadata.resolution,
+                isLoaded = state.isLoaded,
             ) { dispatchEvent(PoolBettingViewModel.Event.OnOutcomeSelected(it)) }
 
             ResolutionInfo(state, Modifier.weight(1f))
