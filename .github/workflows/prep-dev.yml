@@ -13,6 +13,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@master
         with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+          fetch-depth: 0             # otherwise, you will fail to push refs to dest repo
           ref: code/cash
 
       - name: Generate year and month
