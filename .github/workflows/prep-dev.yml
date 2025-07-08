@@ -64,13 +64,10 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push changes
+      - name: Commit & Push changes
         if: steps.check-changes.outputs.changed == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add buildSrc/src/main/java/Packaging.kt
-          git commit -m "build: update Flipcash versioning to ${{ steps.date.outputs.YEAR }}.${{ steps.date.outputs.MONTH }}"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions-js/push@master
+        with:
+          message: "build: update Flipcash versioning to ${{ steps.date.outputs.YEAR }}.${{ steps.date.outputs.MONTH }}"
+          branch: "code/cash"
+          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
