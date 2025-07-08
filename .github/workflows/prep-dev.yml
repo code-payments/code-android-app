@@ -1,9 +1,8 @@
-name: Prep next development cycle post release
+name: Increments Flipcash versioning on the 1st of the month
 
 on:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]'
+  schedule:
+    - cron: '0 0 1 * *'
   workflow_dispatch:
 
 jobs:
@@ -17,6 +16,54 @@ jobs:
           ref: main
       - uses: connor-baer/action-sync-branch@main
         with:
-          branch: develop
+          branch: code/cash
           token: ${{ secrets.GITHUB_TOKEN }}
           force: false
+
+      - name: Generate year and month
+        id: date
+        run: |
+          YEAR=$(date +"%Y")
+          MONTH=$(date +"%m")
+          echo "YEAR=$YEAR" >> $GITHUB_OUTPUT
+          echo "MONTH=$MONTH" >> $GITHUB_OUTPUT
+
+      - name: Verify Packaging.kt exists
+        run: |
+          if [ ! -f buildSrc/src/main/java/Packaging.kt ]; then
+            echo "Error: Packaging.kt not found"
+            exit 1
+          fi
+
+      - name: Validate updated fields
+        run: |
+          if ! grep -A 10 'object Flipcash {' buildSrc/src/main/java/Packaging.kt | grep -q "const val majorVersion = ${{ steps.date.outputs.YEAR }}"; then
+            echo "Error: Failed to update majorVersion to ${{ steps.date.outputs.YEAR }}"
+            exit 1
+          fi
+          if ! grep -A 10 'object Flipcash {' buildSrc/src/main/java/Packaging.kt | grep -q "const val minorVersion = ${{ steps.date.outputs.MONTH }}"; then
+            echo "Error: Failed to update minorVersion to ${{ steps.date.outputs.MONTH }}"
+            exit 1
+          fi
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet buildSrc/src/main/java/Packaging.kt; then
+            echo "No changes to commit"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check-changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add buildSrc/src/main/java/Packaging.kt
+          git commit -m "build: update Flipcash versioning to ${{ steps.date.outputs.YEAR }}.${{ steps.date.outputs.MONTH }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
