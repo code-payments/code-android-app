@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-branch:
-    name: Update development branch
+  update-version:
+    name: Update versioning for new month
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -32,12 +32,14 @@ jobs:
             exit 1
           fi
 
-      - name: Update majorVersion and minorVersion in Flipcash object
+      - name: Update versioning fields
         run: |
-          # Update majorVersion within Flipcash object
+          # Update majorVersion
           sed -i '/object Flipcash : Packaging(/,/)/ s/majorVersion = [0-9]\{4\}/majorVersion = ${{ steps.date.outputs.YEAR }}/' buildSrc/src/main/java/Packaging.kt
-          # Update minorVersion within Flipcash object
+          # Update minorVersion 
           sed -i '/object Flipcash : Packaging(/,/)/ s/minorVersion = [0-9]\{1,2\}/minorVersion = ${{ steps.date.outputs.MONTH }}/' buildSrc/src/main/java/Packaging.kt
+          # Update patchVersion
+          sed -i '/object Flipcash : Packaging(/,/)/ s/patchVersion = [0-9]\+/minorVersion = 1/' buildSrc/src/main/java/Packaging.kt
           
       - name: Validate updated fields
         run: |
@@ -47,6 +49,10 @@ jobs:
           fi
           if ! grep -A 10 'object Flipcash : Packaging(' buildSrc/src/main/java/Packaging.kt | grep -q "minorVersion = ${{ steps.date.outputs.MONTH }}"; then
             echo "Error: Failed to update minorVersion to ${{ steps.date.outputs.MONTH }}"
+            exit 1
+          fi
+          if ! grep -A 10 'object Flipcash : Packaging(' buildSrc/src/main/java/Packaging.kt | grep -q "patchVersion = 1"; then
+            echo "Error: Failed to reset patchVersion to 1"
             exit 1
           fi
 
