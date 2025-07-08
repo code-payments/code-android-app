@@ -44,11 +44,11 @@ jobs:
           
       - name: Validate updated fields
         run: |
-          if ! grep -A 10 'object Flipcash {' buildSrc/src/main/java/Packaging.kt | grep -q "const val majorVersion = ${{ steps.date.outputs.YEAR }}"; then
+          if ! grep -A 10 'object Flipcash : Packaging(' buildSrc/src/main/java/Packaging.kt | grep -q "majorVersion = ${{ steps.date.outputs.YEAR }}"; then
             echo "Error: Failed to update majorVersion to ${{ steps.date.outputs.YEAR }}"
             exit 1
           fi
-          if ! grep -A 10 'object Flipcash {' buildSrc/src/main/java/Packaging.kt | grep -q "const val minorVersion = ${{ steps.date.outputs.MONTH }}"; then
+          if ! grep -A 10 'object Flipcash : Packaging(' buildSrc/src/main/java/Packaging.kt | grep -q "minorVersion = ${{ steps.date.outputs.MONTH }}"; then
             echo "Error: Failed to update minorVersion to ${{ steps.date.outputs.MONTH }}"
             exit 1
           fi
