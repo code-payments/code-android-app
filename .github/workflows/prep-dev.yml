@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@master
         with:
-          ref: main
+          ref: code/cash
       - uses: connor-baer/action-sync-branch@main
         with:
           branch: code/cash
