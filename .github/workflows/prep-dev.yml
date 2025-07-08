@@ -70,4 +70,4 @@ jobs:
         with:
           message: "build: update Flipcash versioning to ${{ steps.date.outputs.YEAR }}.${{ steps.date.outputs.MONTH }}"
           branch: "code/cash"
-          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
