@@ -38,10 +38,10 @@ jobs:
       - name: Update majorVersion and minorVersion in Flipcash object
         run: |
           # Update majorVersion within Flipcash object
-          sed -i '/object Flipcash {/,/}/ s/const val majorVersion = [0-9]\{4\}/const val majorVersion = ${{ steps.date.outputs.YEAR }}/' "${{ steps.find-file.outputs.FILE_PATH }}"
+          sed -i '/object Flipcash {/,/}/ s/const val majorVersion = [0-9]\{4\}/const val majorVersion = ${{ steps.date.outputs.YEAR }}/' buildSrc/src/main/java/Packaging.kt
           # Update minorVersion within Flipcash object
-          sed -i '/object Flipcash {/,/}/ s/const val minorVersion = [0-9]\{1,2\}/const val minorVersion = ${{ steps.date.outputs.MONTH }}/' "${{ steps.find-file.outputs.FILE_PATH }}"
-
+          sed -i '/object Flipcash {/,/}/ s/const val minorVersion = [0-9]\{1,2\}/const val minorVersion = ${{ steps.date.outputs.MONTH }}/' buildSrc/src/main/java/Packaging.kt
+          
       - name: Validate updated fields
         run: |
           if ! grep -A 10 'object Flipcash {' buildSrc/src/main/java/Packaging.kt | grep -q "const val majorVersion = ${{ steps.date.outputs.YEAR }}"; then
