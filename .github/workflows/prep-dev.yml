@@ -14,11 +14,6 @@ jobs:
         uses: actions/checkout@master
         with:
           ref: code/cash
-      - uses: connor-baer/action-sync-branch@main
-        with:
-          branch: code/cash
-          token: ${{ secrets.GITHUB_TOKEN }}
-          force: false
 
       - name: Generate year and month
         id: date
@@ -70,4 +65,4 @@ jobs:
         with:
           message: "build: update Flipcash versioning to ${{ steps.date.outputs.YEAR }}.${{ steps.date.outputs.MONTH }}"
           branch: "code/cash"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
