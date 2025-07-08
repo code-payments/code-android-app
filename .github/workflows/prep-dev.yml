@@ -21,7 +21,7 @@ jobs:
         id: date
         run: |
           YEAR=$(date +"%Y")
-          MONTH=$(date +"%m")
+          MONTH=$(date +"%m" | sed 's/^0//')
           echo "YEAR=$YEAR" >> $GITHUB_OUTPUT
           echo "MONTH=$MONTH" >> $GITHUB_OUTPUT
 
