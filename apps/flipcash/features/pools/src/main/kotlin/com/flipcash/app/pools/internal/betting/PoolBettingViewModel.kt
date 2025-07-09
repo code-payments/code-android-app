@@ -1,8 +1,10 @@
 package com.flipcash.app.pools.internal.betting
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.cache.CachePolicy
+import com.flipcash.app.core.cache.DataOrigin
+import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.pools.Empty
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
@@ -15,7 +17,6 @@ import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.internal.PaymentError
 import com.flipcash.app.payments.internal.PoolBidPaymentMetadata
-import com.flipcash.app.pools.PoolUpdater
 import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
@@ -29,10 +30,11 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.times
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -44,7 +46,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 internal class PoolBettingViewModel @Inject constructor(
@@ -185,6 +186,17 @@ internal class PoolBettingViewModel @Inject constructor(
             .map {
                 dispatchEvent(Event.OnLoadingChanged(true))
                 poolsCoordinator.getPool(it)
+            }
+            .mapResult { cacheEntry ->
+                when (cacheEntry.origin) {
+                    DataOrigin.Cache -> {
+                        trace(tag = "Pools", message = "Loaded from cache", type = TraceType.Process)
+                    }
+                    DataOrigin.Network -> {
+                        trace(tag = "Pools", message = "Loaded from network", type = TraceType.Process)
+                    }
+                }
+                cacheEntry.data
             }
             .onResult(
                 onSuccess = { data ->

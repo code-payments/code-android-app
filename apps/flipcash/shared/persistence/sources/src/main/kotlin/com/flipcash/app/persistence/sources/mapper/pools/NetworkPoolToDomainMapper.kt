@@ -19,7 +19,7 @@ import javax.inject.Inject
 
 data class NetworkPoolMapperParameters(
     val networkPool: NetworkPool,
-    val rendezvous: Ed25519.KeyPair?,
+    val rendezvous: Ed25519.KeyPair? = null,
 )
 
 class NetworkPoolToDomainMapper @Inject constructor(

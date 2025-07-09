@@ -5,6 +5,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import com.flipcash.app.core.cache.CachePolicy
+import com.flipcash.app.core.cache.CachePolicyHandler
+import com.flipcash.app.core.cache.CacheEntry
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
@@ -19,6 +22,7 @@ import com.flipcash.app.persistence.sources.mapper.pools.PoolEntityToPoolMapper
 import com.flipcash.app.persistence.sources.mediator.PoolRemoteMediator
 import com.flipcash.services.controllers.PoolController
 import com.flipcash.services.extensions.derivePoolBetId
+import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
@@ -27,7 +31,10 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +59,8 @@ class PoolsCoordinator @Inject constructor(
     private val networkToDomainMapper: NetworkPoolToDomainMapper,
     private val userManager: UserManager,
 ) {
+    val supervisor = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     private val pagingConfig = PagingConfig(pageSize = 20)
 
     private val _poolOpen = MutableStateFlow<ID?>(null)
@@ -93,7 +102,7 @@ class PoolsCoordinator @Inject constructor(
     suspend fun updatePools() = coroutineScope {
         val pools = dataSource.get()
         pools.map { (pool, _, _, _) ->
-            async { getPool(pool.id) }
+            async { updatePool(pool.id) }
         }.forEach { it.await() }
     }
 
@@ -109,25 +118,32 @@ class PoolsCoordinator @Inject constructor(
         return Result.success(metadata.id)
     }
 
-    suspend fun getPool(id: ID): Result<PoolWithBets> {
-        val networkPool = controller.getPool(id)
-            .getOrElse { return Result.failure(it) }
+    suspend fun getPool(
+        id: ID,
+        cachePolicy: CachePolicy = CachePolicy.CacheFirst
+    ): Result<CacheEntry<PoolWithBets>> {
+        val handler = CachePolicyHandler<PoolWithBets, NetworkPool>()
+        return handler.execute(
+            cachePolicy = cachePolicy,
+            cacheLookup = { dataSource.getById(id) },
+            persistNetworkData = { networkPool ->
+                val isHost = networkPool.metadata.creator == userManager.accountId
+                if (isHost) {
+                    val rendezvous = userManager.poolAccountAt(networkPool.derivationIndex).rendezvous
+                    dataSource.persistRendezvous(networkPool.metadata.id, rendezvous)
+                }
 
-        val isHost = networkPool.metadata.creator == userManager.accountId
-        if (isHost) {
-            val rendezvous = userManager.poolAccountAt(networkPool.derivationIndex).rendezvous
-            dataSource.persistRendezvous(networkPool.metadata.id, rendezvous)
-        }
+                dataSource.upsert(listOf(networkPool))
+            },
+            networkRequest = { controller.getPool(id) },
+            domainMapper = { networkPool ->
+                networkToDomainMapper.map(NetworkPoolMapperParameters(networkPool))
+            }
+        )
+    }
 
-        dataSource.upsert(listOf(networkPool))
-
-
-        return runCatching {
-            dataSource.getById(id)!!
-        }.recoverCatching {
-            val params = NetworkPoolMapperParameters(networkPool, null)
-            networkToDomainMapper.map(params)
-        }
+    suspend fun updatePool(id: ID) {
+        getPool(id, CachePolicy.NetworkOnly)
     }
 
     suspend fun getPool(rendezvous: KeyPair): Result<PoolWithBets> {
@@ -236,7 +252,9 @@ class PoolsCoordinator @Inject constructor(
 
         dataSource.paidBet(derivePoolBetId(poolId, userId).bytes)
         // TODO: once we have streams setup for pool this can be removed
-        return getPool(poolId).map { Unit }
+        updatePool(poolId)
+
+        return Result.success(Unit)
     }
 
     suspend fun fetchSinceLatest(count: Int = 20): Result<Unit> {
