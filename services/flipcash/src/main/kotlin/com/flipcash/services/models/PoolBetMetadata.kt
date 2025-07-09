@@ -2,7 +2,7 @@ package com.flipcash.services.models
 
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.annotation.concurrent.Immutable
 
 @Immutable

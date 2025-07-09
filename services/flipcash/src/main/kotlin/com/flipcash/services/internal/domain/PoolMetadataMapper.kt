@@ -10,7 +10,7 @@ import com.flipcash.services.models.PoolMetadata
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 class PoolMetadataMapper @Inject constructor(): Mapper<Model.SignedPoolMetadata, PoolMetadata> {

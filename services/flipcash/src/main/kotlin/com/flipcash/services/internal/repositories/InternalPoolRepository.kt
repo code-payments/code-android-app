@@ -14,7 +14,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 internal class InternalPoolRepository(
     private val service: PoolService,

@@ -13,7 +13,7 @@ import com.getcode.model.uuid
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.util.formatDateRelatively
 import com.getcode.utils.base58
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.parcelize.Parcelize
 import java.util.UUID
 

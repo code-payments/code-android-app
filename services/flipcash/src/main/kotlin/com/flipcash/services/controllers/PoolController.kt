@@ -19,7 +19,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import com.getcode.utils.CodeServerError
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 import com.getcode.opencode.controllers.AccountController as OpenCodeAccountController
 

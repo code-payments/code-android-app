@@ -2,7 +2,7 @@ package com.flipcash.app.core.pools
 
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class PoolBet(
     val id: ID,

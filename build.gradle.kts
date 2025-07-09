@@ -40,15 +40,12 @@ allprojects {
     }
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
+        exclude(group = "com.google.firebase", module = "protolite-well-known-types")
         resolutionStrategy {
             force(Libs.kotlinx_serialization_core)
             force(Libs.kotlinx_serialization_json)
             force(Libs.protobuf_java)
         }
-    }
-
-    tasks.matching { it.name.contains("kapt") }.configureEach {
-        enabled = false
     }
 }
 

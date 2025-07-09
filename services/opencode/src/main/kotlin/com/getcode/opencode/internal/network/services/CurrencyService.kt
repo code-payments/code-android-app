@@ -6,7 +6,7 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.core.errors.GetRatesError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 internal class CurrencyService @Inject constructor(

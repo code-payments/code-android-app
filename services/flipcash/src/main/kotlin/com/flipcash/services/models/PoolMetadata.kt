@@ -7,8 +7,8 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import javax.annotation.concurrent.Immutable
 
 /**

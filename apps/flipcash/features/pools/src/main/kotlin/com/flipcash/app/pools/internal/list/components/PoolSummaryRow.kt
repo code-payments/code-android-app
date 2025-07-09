@@ -36,7 +36,7 @@ import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.decodeBase58
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 @Composable
 internal fun PoolSummaryRow(

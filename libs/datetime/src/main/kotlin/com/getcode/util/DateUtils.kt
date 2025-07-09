@@ -4,11 +4,11 @@ import android.text.format.DateFormat
 import android.text.format.DateUtils
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import java.util.Calendar
 import java.util.Locale
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 object DateUtils {
     fun getDate(millis: Long, format: String = "yyyy-MM-dd h:mm aa"): String {

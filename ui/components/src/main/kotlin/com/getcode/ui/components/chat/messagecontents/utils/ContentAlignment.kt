@@ -16,7 +16,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.DateWithStatusDefaults
 import com.getcode.util.formatDateRelatively
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlin.math.max
 
 internal sealed interface AlignmentRule {

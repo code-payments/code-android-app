@@ -36,7 +36,7 @@ import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.decodeBase58
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 @Composable
 internal fun FeedItem(

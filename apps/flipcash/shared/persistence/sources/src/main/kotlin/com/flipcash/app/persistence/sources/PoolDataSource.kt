@@ -24,7 +24,7 @@ import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 class PoolDataSource @Inject constructor(

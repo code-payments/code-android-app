@@ -75,7 +75,7 @@ import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.user.social.SenderNameDisplay
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.util.vibration.LocalVibrator
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 

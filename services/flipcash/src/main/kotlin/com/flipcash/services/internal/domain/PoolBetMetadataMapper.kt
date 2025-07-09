@@ -8,7 +8,7 @@ import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolBetOutcome.BooleanOutcome
 import com.flipcash.services.models.PoolBetMetadata
 import com.getcode.opencode.mapper.Mapper
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 class PoolBetMetadataMapper @Inject constructor(): Mapper<Model.SignedBetMetadata, PoolBetMetadata> {
