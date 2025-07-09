@@ -165,16 +165,5 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
           "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
         }
       )
-
-      gradle(
-              task: "apps:flipcash:app:bugsnagUploadReleaseNativeSymbols",
-              properties: {
-                #"versionPatch" => ENV["BUILD_NUMBER"],
-                "android.injected.signing.store.file" => ENV["STORE_FILE"],
-                "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
-                "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
-                "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
-              }
-            )
     end
 end
