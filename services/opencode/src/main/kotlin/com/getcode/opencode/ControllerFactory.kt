@@ -5,9 +5,7 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.generators.MnemonicGenerator
 import com.getcode.opencode.inject.OpenCodeModule
-import com.getcode.opencode.managers.MnemonicManager
 import dagger.hilt.android.EntryPointAccessors
 
 object ControllerFactory {
@@ -19,18 +17,8 @@ object ControllerFactory {
     }
 
     fun createBalanceController(context: Context,config: ProtocolConfig): BalanceController {
-        val appContext = context.applicationContext ?: throw IllegalStateException(
-            "applicationContext was not provided",
-        )
-
-        val module =  EntryPointAccessors.fromApplication(
-            appContext,
-            OpenCodeModule::class.java,
-        )
-
         return BalanceController(
             accountController = createAccountController(context, config),
-            exchange = ExchangeFactory.createOpenCodeExchange(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
         )
     }

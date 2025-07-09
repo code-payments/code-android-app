@@ -15,12 +15,14 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -37,6 +39,7 @@ internal class BalanceViewModel @Inject constructor(
     featureFlags: FeatureFlagController,
     userManager: UserManager,
     resources: ResourceHelper,
+    private val exchange: Exchange,
 ) : BaseViewModel2<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -60,9 +63,18 @@ internal class BalanceViewModel @Inject constructor(
     }
 
     init {
-        balanceController.balance
-            .onEach { dispatchEvent(Event.OnBalanceUpdated(it)) }
-            .launchIn(viewModelScope)
+        combine(
+            balanceController.rawBalance,
+            exchange.observeEntryRate(),
+        ) { balance, rate ->
+            LocalFiat(
+                usdc = balance,
+                converted = balance.convertingTo(rate),
+                rate = rate
+            )
+        }.onEach {
+            dispatchEvent(Event.OnBalanceUpdated(it))
+        }.launchIn(viewModelScope)
 
         featureFlags.observe(FeatureFlag.TransactionDetails)
             .onEach { dispatchEvent(Event.OnTransactionDetailsEnabled(it)) }

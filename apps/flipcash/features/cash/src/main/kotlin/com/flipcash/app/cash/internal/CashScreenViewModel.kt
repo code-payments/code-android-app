@@ -252,7 +252,6 @@ internal class CashScreenViewModel @Inject constructor(
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("event: $event")
             when (event) {
                 is Event.OnBalanceChanged -> { state ->
                     state.copy(balance = event.balance)

@@ -1,6 +1,5 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountType
@@ -16,18 +15,14 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
 import com.getcode.utils.timedTrace
 import com.getcode.utils.trace
-import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -42,12 +37,11 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 class BalanceController @Inject constructor(
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
-    private val exchange: Exchange,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _rawBalance = MutableStateFlow(Fiat.Zero)
-    private val localizedBalance = MutableStateFlow(LocalFiat.Zero)
+
     private val cluster = MutableStateFlow<AccountCluster?>(null)
 
     private val fetching = AtomicBoolean(false)
@@ -57,9 +51,6 @@ class BalanceController @Inject constructor(
 
     val rawBalance: StateFlow<Fiat>
         get() = _rawBalance.asStateFlow()
-
-    val balance: StateFlow<LocalFiat>
-        get() = localizedBalance.asStateFlow()
 
     fun onUserLoggedIn(cluster: AccountCluster) {
         trace(
@@ -78,22 +69,6 @@ class BalanceController @Inject constructor(
                 if (connected) {
                     retryable { fetchBalance() }
                 }
-            }.flatMapLatest {
-                combine(
-                    exchange.observeBalanceRate()
-                        .flowOn(Dispatchers.IO)
-                        .onEach { exchange.fetchRatesIfNeeded() },
-                    _rawBalance
-                ) { rate, balance ->
-                    LocalFiat(
-                        usdc = balance,
-                        converted = balance.convertingTo(rate),
-                        rate = rate
-                    )
-                }
-            }.distinctUntilChanged()
-            .onEach { newBalance ->
-                localizedBalance.update { newBalance }
             }.launchIn(scope)
     }
 
@@ -104,7 +79,6 @@ class BalanceController @Inject constructor(
         } else {
             _rawBalance.value += fiat.usdc
         }
-        localizedBalance.value = fiat
     }
 
     suspend fun subtract(fiat: LocalFiat) {
@@ -114,7 +88,6 @@ class BalanceController @Inject constructor(
         } else {
             _rawBalance.value = (_rawBalance.value - fiat.usdc).coerceAtLeast(Fiat.Zero)
         }
-        localizedBalance.value = fiat
     }
 
     // TODO: split non-balance account handling out into a separate controller
@@ -155,7 +128,8 @@ class BalanceController @Inject constructor(
                     throw error
                 }
             }?.map { response ->
-                val primary = response.accounts.values.find { it.accountType == AccountType.Primary }
+                val primary =
+                    response.accounts.values.find { it.accountType == AccountType.Primary }
                 if (primary?.unusable == true) {
                     onTimelockUnlocked()
                 }
@@ -194,7 +168,6 @@ class BalanceController @Inject constructor(
 
     fun reset() {
         _rawBalance.value = Fiat.Zero
-        localizedBalance.value = LocalFiat.Zero
         cluster.value = null
     }
 }
