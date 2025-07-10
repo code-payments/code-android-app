@@ -14,7 +14,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 internal fun ByteArray.asSignature(): Common.Signature {
     return Common.Signature.newBuilder().setValue(this.toByteString())

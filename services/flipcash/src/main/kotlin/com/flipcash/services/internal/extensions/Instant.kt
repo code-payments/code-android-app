@@ -1,7 +1,7 @@
 package com.flipcash.services.internal.extensions
 
 import com.getcode.util.atStartOfDay
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 

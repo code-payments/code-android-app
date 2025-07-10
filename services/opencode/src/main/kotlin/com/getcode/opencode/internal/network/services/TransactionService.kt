@@ -34,7 +34,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import com.codeinc.opencode.gen.transaction.v2.TransactionService as RpcTransactionService

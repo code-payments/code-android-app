@@ -49,7 +49,7 @@ import com.getcode.ui.core.addIf
 import com.getcode.ui.core.dashedBorder
 import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.ui.core.measured
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 @Composable
 internal fun MessageNodeScope.MessageReplyContent(

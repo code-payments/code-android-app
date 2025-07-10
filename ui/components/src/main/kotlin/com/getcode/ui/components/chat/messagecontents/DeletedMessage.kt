@@ -25,7 +25,7 @@ import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 @Composable
 internal fun MessageNodeScope.DeletedMessage(

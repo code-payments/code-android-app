@@ -1,7 +1,7 @@
 package com.getcode.opencode.model.financial
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.hours
 
 data class Limits(

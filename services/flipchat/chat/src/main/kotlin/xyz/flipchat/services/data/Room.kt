@@ -4,7 +4,7 @@ import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.chat.ChatType
 import com.getcode.utils.serializer.KinQuarksSerializer
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable

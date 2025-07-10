@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import java.util.Date
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.minutes

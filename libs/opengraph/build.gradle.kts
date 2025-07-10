@@ -27,21 +27,16 @@ android {
         }
     }
 
-    buildFeatures {
-        compose = true
+    kotlinOptions {
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.ExperimentalUnsignedTypes",
+            "-opt-in=kotlin.RequiresOptIn"
+        )
     }
 
-    kotlin {
-        jvmToolchain(Versions.java.toInt())
-        compilerOptions {
-            optIn.addAll(
-                listOf(
-                    "kotlin.RequiresOptIn",
-                    "kotlin.ExperimentalUnsignedTypes",
-                    "kotlin.time.ExperimentalTime"
-                )
-            )
-        }
+    buildFeatures {
+        compose = true
     }
 }
 

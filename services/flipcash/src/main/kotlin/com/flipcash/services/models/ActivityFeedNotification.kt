@@ -3,7 +3,7 @@ package com.flipcash.services.models
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 /**

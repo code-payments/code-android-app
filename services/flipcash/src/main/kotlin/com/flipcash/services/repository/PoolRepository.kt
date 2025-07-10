@@ -9,7 +9,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 interface PoolRepository {
     suspend fun createPool(

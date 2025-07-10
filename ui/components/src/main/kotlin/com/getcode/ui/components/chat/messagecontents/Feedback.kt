@@ -3,6 +3,7 @@ package com.getcode.ui.components.chat.messagecontents
 import android.annotation.SuppressLint
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
 import com.getcode.extensions.formattedRaw
+import com.getcode.model.NoId
 import com.getcode.model.RandomId
 import com.getcode.model.chat.Sender
 import com.getcode.model.sum
@@ -42,7 +44,7 @@ import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.MessageReaction
 import com.getcode.ui.components.chat.utils.MessageTip
 import com.getcode.ui.emojis.processEmoji
-import kotlin.time.Clock
+import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

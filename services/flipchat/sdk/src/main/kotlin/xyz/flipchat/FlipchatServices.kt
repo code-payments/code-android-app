@@ -8,7 +8,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.getcode.services.db.Database
-import kotlin.time.Clock
+import kotlinx.datetime.Clock
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.workers.ChatSyncWorker
 import java.util.concurrent.TimeUnit

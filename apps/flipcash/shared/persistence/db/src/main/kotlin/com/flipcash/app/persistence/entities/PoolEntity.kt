@@ -9,7 +9,7 @@ import androidx.room.Relation
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.vendor.Base58
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -6,7 +6,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.div
 import com.getcode.opencode.model.financial.times
 import com.getcode.solana.keys.PublicKey
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 data class Pool(
     val id: ID,

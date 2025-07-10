@@ -15,7 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
+import kotlinx.datetime.Clock
 import xyz.flipchat.app.auth.AuthManager
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.services.user.UserManager

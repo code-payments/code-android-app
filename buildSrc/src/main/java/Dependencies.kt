@@ -2,16 +2,15 @@
 
 object Versions {
     const val java = "17"
-    const val kotlin = "2.2.0"
-    const val kotlinx_coroutines = "1.10.2"
-    const val kotlinx_serialization = "1.9.0"
-    const val kotlinx_datetime = "0.7.1"
-    const val kotlinx_immutable = "0.4.0"
+    const val kotlin = "2.1.20"
+    const val kotlinx_coroutines = "1.9.0"
+    const val kotlinx_serialization = "1.7.3"
+    const val kotlinx_datetime = "0.6.1"
 
-    private const val ksp = "2.0.2"
+    private const val ksp = "2.0.1"
     const val kotlin_ksp = "$kotlin-$ksp"
 
-    const val android_gradle_build_tools = "8.10.0"
+    const val android_gradle_build_tools = "8.9.1"
     const val google_services = "4.4.2"
 
     const val androidx_appcompat = "1.7.0"
@@ -20,48 +19,46 @@ object Versions {
     const val androidx_biometrics = "1.2.0-alpha05"
     const val androidx_camerax = "1.4.2"
     const val androidx_credentials = "1.5.0"
-    const val androidx_core = "1.13.0"
+    const val androidx_core = "1.13.1"
     const val androidx_constraint_layout = "2.1.3"
-    const val androidx_lifecycle = "2.8.1"
-    const val androidx_datastore = "1.1.7"
-    const val androidx_navigation = "2.8.3"
+    const val androidx_lifecycle = "2.7.0"
+    const val androidx_navigation = "2.8.0"
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"
-    const val androidx_room = "2.7.2"
+    const val androidx_room = "2.7.1"
     const val androidx_work = "2.10.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2025.06.01"
+    const val compose = "2025.05.00"
 
     const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
-    const val compose_navigation: String = "2.8.3"
+    const val compose_navigation: String = "2.8.0"
     const val compose_paging = "3.3.0"
     const val compose_webview = "0.33.6"
 
     const val hilt = "2.56.2"
     const val hilt_jetpack = "1.2.0"
     const val okhttp = "4.12.0"
-    const val retrofit = "2.12.0"
+    const val retrofit = "2.11.0"
     const val rxjava: String = "3.1.3"
     const val rxandroid: String = "3.0.0"
 
     const val compose_accompanist: String = "0.24.2-alpha"
-    const val compose_coil: String = "3.1.0"
+    const val compose_coil: String = "3.0.0"
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
-    const val firebase_bom: String = "33.15.0"
+    const val firebase_bom: String = "33.13.0"
     const val crashlytics_gradle: String = "3.0.2"
     const val play_service_auth = "21.0.0"
     const val play_service_auth_phone = "18.0.2"
     const val google_play_billing = "7.1.1"
-    const val play_integrity = "1.4.0"
 
-    const val grpc: String = "1.73.0"
-    const val grpc_okhttp: String = "1.73.0"
-    const val grpc_kotlin: String = "1.4.3"
-    const val protobuf: String = "4.31.1"
+    const val grpc: String = "1.62.2"
+    const val grpc_okhttp: String = "1.33.1"
+    const val grpc_kotlin: String = "1.4.1"
+    const val protobuf: String = "3.25.3"
 
     const val mp_android_chart: String = "v3.1.0"
     const val lib_phone_number_port: String = "8.12.43"
@@ -76,10 +73,6 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
-    const val bugsnag = "6.15.0"
-    const val cloudy = "0.2.7"
-    const val haze = "1.6.7"
-    const val rinku = "1.4.0"
     const val voyager = "1.1.0-beta03"
     const val protobuf_plugin = "0.9.4"
 
@@ -199,7 +192,7 @@ object Libs {
     const val kotlinx_coroutines_test =
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
     const val kotlinx_collections_immutable =
-        "org.jetbrains.kotlinx:kotlinx-collections-immutable:${Versions.kotlinx_immutable}"
+        "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
     const val kotlinx_datetime =
         "org.jetbrains.kotlinx:kotlinx-datetime:${Versions.kotlinx_datetime}"
     const val kotlinx_serialization_core =
@@ -211,7 +204,7 @@ object Libs {
     const val okhttp_logging_interceptor =
         "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
 
-    const val androidx_datastore = "androidx.datastore:datastore-preferences:${Versions.androidx_datastore}"
+    const val androidx_datastore = "androidx.datastore:datastore-preferences:1.1.1"
     const val androidx_constraint_layout_compose =
         "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     const val androidx_lifecycle_viewmodel =
@@ -265,7 +258,7 @@ object Libs {
     const val firebase_installations = "com.google.firebase:firebase-installations"
     const val firebase_perf = "com.google.firebase:firebase-perf"
 
-    const val play_integrity = "com.google.android.play:integrity:${Versions.play_integrity}"
+    const val play_integrity = "com.google.android.play:integrity:1.3.0"
     const val play_service_auth =
         "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
     const val play_service_auth_phone =
@@ -313,18 +306,18 @@ object Libs {
     const val markwon_ext_strikethrough = "io.noties.markwon:ext-strikethrough:${Versions.markwon}"
 
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
-    const val bugsnag = "com.bugsnag:bugsnag-android:${Versions.bugsnag}"
+    const val bugsnag = "com.bugsnag:bugsnag-android:6.13.0"
 
-    const val cloudy = "com.github.skydoves:cloudy:${Versions.cloudy}"
+    const val cloudy = "com.github.skydoves:cloudy:0.2.7"
 
     const val sodium_bindings =
         "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
 
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 
-    const val haze = "dev.chrisbanes.haze:haze:${Versions.haze}"
-    const val rinku = "dev.theolm:rinku:${Versions.rinku}"
-    const val rinku_compose = "dev.theolm:rinku-compose-ext:${Versions.rinku}"
+    const val haze = "dev.chrisbanes.haze:haze:0.7.3"
+    const val rinku = "dev.theolm:rinku:1.4.0"
+    const val rinku_compose = "dev.theolm:rinku-compose-ext:1.4.0"
 
     const val eventBus = "io.github.hoc081098:channel-event-bus:${Versions.eventBus}"
 

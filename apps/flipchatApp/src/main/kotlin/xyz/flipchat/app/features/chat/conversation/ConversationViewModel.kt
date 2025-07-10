@@ -62,7 +62,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.app.R
 import xyz.flipchat.app.beta.Lab

@@ -15,7 +15,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 @Dao
 interface PoolDao {

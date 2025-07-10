@@ -16,6 +16,14 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
     }
 
+    kotlinOptions {
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.ExperimentalUnsignedTypes",
+            "-opt-in=kotlin.RequiresOptIn"
+        )
+    }
+
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
@@ -23,18 +31,6 @@ android {
     }
 }
 
-kotlin {
-    jvmToolchain(Versions.java.toInt())
-    compilerOptions {
-        optIn.addAll(
-            listOf(
-                "kotlin.RequiresOptIn",
-                "kotlin.ExperimentalUnsignedTypes",
-                "kotlin.time.ExperimentalTime"
-            )
-        )
-    }
-}
 dependencies {
     implementation(Libs.inject)
     implementation(Libs.hilt)

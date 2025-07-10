@@ -26,17 +26,12 @@ android {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
-}
 
-kotlin {
-    jvmToolchain(Versions.java.toInt())
-    compilerOptions {
-        optIn.addAll(
-            listOf(
-                "kotlin.RequiresOptIn",
-                "kotlin.ExperimentalUnsignedTypes",
-                "kotlin.time.ExperimentalTime"
-            )
+    kotlinOptions {
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.ExperimentalUnsignedTypes",
+            "-opt-in=kotlin.RequiresOptIn"
         )
     }
 }

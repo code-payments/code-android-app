@@ -9,7 +9,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 class MessageEntityToFeedMessageMapper @Inject constructor() : Mapper<MessageEntity, ActivityFeedMessage> {

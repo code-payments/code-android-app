@@ -96,23 +96,16 @@ android {
         }
     }
 
+    kotlinOptions {
+        jvmTarget = JvmTarget.fromTarget(Versions.java).target
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn"
+        )
+    }
     packaging {
         resources.excludes.add("**/*.proto")
         resources.excludes.add("META-INF/LICENSE.md")
         resources.excludes.add("META-INF/LICENSE-notice.md")
-    }
-}
-
-kotlin {
-    jvmToolchain(Versions.java.toInt())
-    compilerOptions {
-        optIn.addAll(
-            listOf(
-                "kotlin.RequiresOptIn",
-                "kotlin.ExperimentalUnsignedTypes",
-                "kotlin.time.ExperimentalTime"
-            )
-        )
     }
 }
 

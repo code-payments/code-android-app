@@ -17,7 +17,7 @@ import com.getcode.ui.core.addIf
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.util.DateUtils
 import com.getcode.util.format
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 
 @Composable

@@ -11,7 +11,7 @@ import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 internal class InternalTransactionRepository @Inject constructor(
