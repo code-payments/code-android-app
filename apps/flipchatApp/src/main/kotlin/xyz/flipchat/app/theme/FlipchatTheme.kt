@@ -45,6 +45,7 @@ private val colors = ColorScheme(
     onBackground = White,
     surface = Color(0xFF28176E),
     surfaceSuccess = BannerSuccess,
+    surfaceError = Error,
     surfaceVariant = FC_Secondary,
     onSurface = White,
     error = Error,

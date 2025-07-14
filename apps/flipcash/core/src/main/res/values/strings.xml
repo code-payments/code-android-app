@@ -238,7 +238,9 @@
     <string name="label_tie">Tie</string>
     <string name="action_no">No</string>
     <string name="action_tie">Tie (Refund Everyone)</string>
+    <string name="subtitle_wonPool">Won %1$s</string>
     <string name="subtitle_lostPool">Lost %1$s</string>
+    <string name="subtitle_tiePool">Tie</string>
 
     <string name="subtitle_youSaid">You said</string>
 

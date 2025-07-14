@@ -32,10 +32,14 @@ internal fun CompletedPoolStatusRow(
             is PoolResolution.BooleanResolution -> {
                 CodeChip(
                     shape = CodeTheme.shapes.small,
-                    label = stringResource(R.string.subtitle_booleanResult, resolution.value.toYesOrNo()),
+                    label = stringResource(
+                        R.string.subtitle_booleanResult,
+                        resolution.value.toYesOrNo()
+                    ),
                     contentColor = CodeTheme.colors.textSecondary,
                 )
             }
+
             is PoolResolution.Refund -> {
                 CodeChip(
                     shape = CodeTheme.shapes.small,
@@ -47,28 +51,51 @@ internal fun CompletedPoolStatusRow(
             PoolResolution.NotSet -> Unit
         }
 
-        if (resolution is PoolResolution.DecisionMade && resolution !is PoolResolution.Refund) {
+        if (resolution is PoolResolution.DecisionMade) {
             when (summary) {
                 is PoolUserSummary.Won -> {
                     CodeChip(
                         shape = CodeTheme.shapes.small,
                         backgroundColor = CodeTheme.colors.surfaceSuccess,
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_trophy),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.successText,
-                        )
                         Text(
-                            text = summary.amount.formatted(
-                                formatting = Fiat.Formatting.Truncated
+                            stringResource(
+                                R.string.subtitle_wonPool,
+                                summary.amount.formatted(
+                                    formatting = Fiat.Formatting.Truncated
+                                )
                             ),
                             style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.successText,
                         )
                     }
                 }
-                else -> Unit
+
+                is PoolUserSummary.Lost -> {
+                    CodeChip(
+                        shape = CodeTheme.shapes.small,
+                        backgroundColor = CodeTheme.colors.surfaceError,
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.subtitle_lostPool,
+                                summary.amount.formatted(
+                                    formatting = Fiat.Formatting.Truncated
+                                )
+                            ),
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.errorText,
+                        )
+                    }
+                }
+                PoolUserSummary.NotSet -> Unit
+                is PoolUserSummary.Refunded -> {
+                    CodeChip(
+                        shape = CodeTheme.shapes.small,
+                        label = stringResource(R.string.subtitle_tiePool),
+                        contentColor = CodeTheme.colors.textSecondary,
+                    )
+                }
             }
         }
     }

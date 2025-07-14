@@ -37,6 +37,7 @@ object FlipcashColorSpec {
     val successText = Color(0xFF73EAA4)
     val surfaceVariant = Color.White.copy(alpha = 0.12f)
     val successSurface = Color(0x4A6FCF97)
+    val errorSurface = Color(0x4AE75454)
 }
 
 private val colors = with(FlipcashColorSpec) {
@@ -58,6 +59,7 @@ private val colors = with(FlipcashColorSpec) {
         surface = primary,
         surfaceVariant = surfaceVariant,
         surfaceSuccess = successSurface,
+        surfaceError = errorSurface,
         onSurface = White,
         error = Error,
         errorText = TextError,
