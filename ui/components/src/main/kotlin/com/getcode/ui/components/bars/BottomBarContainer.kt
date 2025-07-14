@@ -10,10 +10,12 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,8 +24,11 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -38,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -220,6 +227,51 @@ fun BottomBarView(
                                 text = bottomBarMessage.subtitle,
                                 color = LocalContentColor.current.copy(alpha = 0.8f)
                             )
+                        }
+                    }
+                }
+            }
+            if (bottomBarMessage.additionalInfo.isNotEmpty()) {
+                var isExpanded by remember { mutableStateOf(false) }
+
+                CompositionLocalProvider(LocalContentColor provides White) {
+                    Column {
+                        Row(
+                            modifier = Modifier.clickable { isExpanded = !isExpanded },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val rotation by animateFloatAsState(if (isExpanded) 180f else 0f)
+                            val linkPrefix = if (isExpanded) "Hide" else "View"
+                            Text(
+                                text = "$linkPrefix Additional Information",
+                                style = CodeTheme.typography.caption,
+                                color = LocalContentColor.current.copy(alpha = 0.8f),
+                            )
+                            Icon(
+                                modifier = Modifier.rotate(rotation),
+                                imageVector = Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                tint = LocalContentColor.current.copy(alpha = 0.8f),
+                            )
+                        }
+                        AnimatedContent(
+                            targetState = isExpanded,
+                            modifier = Modifier.fillMaxWidth(),
+                            transitionSpec = {
+                                slideInVertically { -it } togetherWith slideOutVertically { -it }
+                            }
+                        ) { expanded ->
+                            if (expanded) {
+                                Text(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    text = """
+                                    ${bottomBarMessage.additionalInfo.onEach { (k, v) -> "$k: $v" }}
+                                """.trimIndent(),
+                                    style = CodeTheme.typography.textSmall,
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.fillMaxWidth())
+                            }
                         }
                     }
                 }

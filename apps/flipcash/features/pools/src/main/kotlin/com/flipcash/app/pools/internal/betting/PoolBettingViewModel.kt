@@ -460,7 +460,19 @@ internal class PoolBettingViewModel @Inject constructor(
             }.onEach { event ->
                 when (event) {
                     PaymentEvent.OnPaymentCancelled -> Unit
-                    is PaymentEvent.OnPaymentError -> Unit
+                    is PaymentEvent.OnPaymentError -> {
+                        when (val error = event.error) {
+                            is PaymentError.PoolDistributionFailed -> {
+                                BottomBarManager.showError(
+                                    title = resources.getString(R.string.error_title_resolvePoolDistributionsFailed),
+                                    message = resources.getString(R.string.error_description_resolvePoolDistributionsFailed),
+                                    additionalInfo = error.state
+                                )
+                            }
+                            // other errors are handled internally
+                            else -> Unit
+                        }
+                    }
                     is PaymentEvent.OnRpcFailure -> Unit
                     is PaymentEvent.OnPaymentSuccess -> {
                         event.acknowledge(true) {

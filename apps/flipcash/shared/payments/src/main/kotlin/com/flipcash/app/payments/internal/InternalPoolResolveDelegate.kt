@@ -110,10 +110,7 @@ class InternalPoolResolveDelegate @Inject constructor(
 
             onError(
                 error.copy(
-                    message = """
-                        ---
-                DEBUG: ${metadata.entries.joinToString()}
-            """.trimIndent()
+                    state = metadata
                 )
             )
         }

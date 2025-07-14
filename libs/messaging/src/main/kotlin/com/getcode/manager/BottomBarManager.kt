@@ -27,6 +27,7 @@ object BottomBarManager {
     data class BottomBarMessage(
         val title: String = "",
         val subtitle: String = "",
+        val additionalInfo: Map<String, Any?> = emptyMap(),
         val actions: List<BottomBarAction> = emptyList(),
         val showCancel: Boolean,
         val onClose: (selection: SelectedBottomBarAction) -> Unit = { },
@@ -130,6 +131,7 @@ object BottomBarManager {
     fun showError(
         title: String,
         message: String,
+        additionalInfo: Map<String, Any?> = emptyMap(),
         additionalActions: List<BottomBarAction> = emptyList(),
         onDismiss: () -> Unit = { },
     ) {
@@ -137,6 +139,7 @@ object BottomBarManager {
             BottomBarMessage(
                 title = title,
                 subtitle = message,
+                additionalInfo = additionalInfo,
                 showCancel = false,
                 actions = additionalActions,
                 type = BottomBarMessageType.ERROR,

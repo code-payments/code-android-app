@@ -226,11 +226,8 @@
     <string name="error_title_resolvePoolFailed">Something Went Wrong</string>
     <string name="error_description_resolvePoolFailed">We were unable to resolve your pool. Please try again</string>
 
-    <string name="error_title_resolvePoolDistributionsFailed">Pool Distributions Failed</string>
-    <string name="error_description_resolvePoolDistributionsFailed">
-        The distributions for this pool could not be completed. Please try again
-        %1$s
-    </string>
+    <string name="error_title_resolvePoolDistributionsFailed">Pool Payouts Failed</string>
+    <string name="error_description_resolvePoolDistributionsFailed">The payouts for this pool could not be completed. Please try again</string>
 
 
     <string name="action_swipeToBuyIn">Swipe to Buy In</string>

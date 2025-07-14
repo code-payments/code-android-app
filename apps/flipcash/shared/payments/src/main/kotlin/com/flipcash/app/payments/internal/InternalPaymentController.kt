@@ -220,7 +220,7 @@ internal class InternalPaymentController(
                     }
                     is PaymentError.NoOwnerForDistribution -> presentPaymentFailedError()
                     is PaymentError.NoPoolBalance -> presentPaymentFailedError()
-                    is PaymentError.PoolDistributionFailed -> presentPaymentFailedError()
+                    is PaymentError.PoolDistributionFailed -> Unit
                 }
             }
 
@@ -263,6 +263,7 @@ sealed interface PaymentError {
     data class NoPoolBalance(override val message: String? = "No pool balance") : PaymentError, Throwable(message)
 
     data class PoolDistributionFailed(
+        val state: Map<String, Any?> = emptyMap(),
         override val message: String = "Failed to distribute funds",
         override val cause: Throwable,
     ): PaymentError, Throwable(
