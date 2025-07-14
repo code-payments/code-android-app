@@ -11,8 +11,10 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.solana.keys.base58
+import com.getcode.solana.keys.base64
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
+import com.getcode.utils.base64
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -73,8 +75,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
     init {
         userManager.state
             .onEach {
-                val userId = it.accountId?.base58
-                val publicKey = it.cluster?.authorityPublicKey?.base58()
+                val userId = it.accountId?.base64
+                val publicKey = it.cluster?.authorityPublicKey?.base64()
 
                 dispatchEvent(
                     Event.OnUserAssociated(
