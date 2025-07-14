@@ -32,9 +32,12 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
+import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.user.AuthState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.util.permissions.LocalPermissionChecker
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.delay
@@ -96,10 +99,9 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
 
         LaunchedEffect(userManager) {
             userManager.state
-                .map { it.authState }
+                .map { it.authState to it.flags }
                 .distinctUntilChanged()
-                .onEach { state ->
-
+                .onEach { (state, flags) ->
                     trace(
                         tag = "AuthStateRouter",
                         message = "Handling auth state change during app launch => $state",
@@ -107,7 +109,11 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                             "state" to state
                         }
                     )
-                    val screens = buildNavGraphForLaunch(state, router)
+                    val screens = buildNavGraphForLaunch(
+                        state = state,
+                        userFlags = flags,
+                        router = router
+                    )
 
                     when (state) {
                         AuthState.LoggedInAwaitingUser -> {
@@ -134,16 +140,25 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
 
     private suspend fun buildNavGraphForLaunch(
         state: AuthState,
+        userFlags: UserFlags?,
         router: Router,
     ): List<Screen>? {
         return when (state) {
             is AuthState.Registered -> {
                 if (state.seenAccessKey) {
-                    listOf(
-                        ScreenRegistry.get(NavScreenProvider.Login.Home()),
-                        ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
-                        ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase())
-                    )
+                    buildList {
+                        if (userFlags?.requiresIapForRegistration == true) {
+                            addAll(
+                                listOf(
+                                    ScreenRegistry.get(NavScreenProvider.Login.Home()),
+                                    ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
+                                    ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase())
+                                )
+                            )
+                        } else {
+                            listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                        }
+                    }
                 } else {
                     listOf(
                         ScreenRegistry.get(NavScreenProvider.Login.Home()),

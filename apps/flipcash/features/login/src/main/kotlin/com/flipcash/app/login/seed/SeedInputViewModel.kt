@@ -135,7 +135,7 @@ class SeedInputViewModel @Inject constructor(
         setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
         delay(1.seconds)
         when {
-            !flags.isRegistered -> {
+            !flags.isRegistered && flags.requiresIapForRegistration -> {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase(true)))
             }
             permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {

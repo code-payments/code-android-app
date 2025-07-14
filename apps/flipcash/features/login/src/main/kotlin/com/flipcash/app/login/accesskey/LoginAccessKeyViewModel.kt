@@ -17,16 +17,18 @@ import kotlin.time.Duration.Companion.seconds
 class LoginAccessKeyViewModel @Inject constructor(
     resources: ResourceHelper,
     mnemonicManager: MnemonicManager,
-    mediaScanner: MediaScanner,
-    userManager: UserManager,
     qrCodeGenerator: QRCodeGenerator,
+    mediaScanner: MediaScanner,
+    private val userManager: UserManager,
     private val authManager: AuthManager
 ): BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, userManager, qrCodeGenerator) {
 
-    suspend fun saveImage(): Result<Unit> = saveBitmapToFile()
+    suspend fun saveImage(): Result<Boolean> = saveBitmapToFile()
         .onSuccess { authManager.onUserAccessKeySeen() }
         .map { authManager.presentCredentialStorage() }
+        .map { userManager.userFlags?.requiresIapForRegistration == true }
 
-    suspend fun onWroteDownInstead(): Result<Unit> = authManager.onUserAccessKeySeen()
+    suspend fun onWroteDownInstead(): Result<Boolean> = authManager.onUserAccessKeySeen()
         .map { authManager.presentCredentialStorage() }
+        .map { userManager.userFlags?.requiresIapForRegistration == true }
 }

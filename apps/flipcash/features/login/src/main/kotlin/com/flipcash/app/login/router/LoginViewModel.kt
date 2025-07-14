@@ -129,7 +129,7 @@ class LoginViewModel @Inject constructor(
                 }.onSuccess {
                     accounts.getUserFlags()
                         .onSuccess {
-                            if (it.isRegistered) {
+                            if (it.isRegistered || !it.requiresIapForRegistration) {
                                 dispatchEvent(Event.LoggedInSuccessfully)
                             } else {
                                 dispatchEvent(Event.LoggedInRequiresPayment)
@@ -139,7 +139,6 @@ class LoginViewModel @Inject constructor(
                         }
                 }
             }.launchIn(viewModelScope)
-
     }
 
     internal companion object {

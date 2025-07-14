@@ -69,7 +69,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: () -> Unit) {
+internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (requiresIap: Boolean) -> Unit) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
@@ -104,9 +104,9 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: ()
     LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
         if (isExportSeedRequested && isStoragePermissionGranted) {
             viewModel.saveImage()
-                .onSuccess {
+                .onSuccess { requiresIap ->
                     delay(400)
-                    onCompleted()
+                    onCompleted(requiresIap)
                 }
                 .onFailure {
                     isExportSeedRequested = false
@@ -131,7 +131,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: ()
     val onSkipClick = {
         composeScope.launch {
             viewModel.onWroteDownInstead()
-                .onSuccess { onCompleted() }
+                .onSuccess { onCompleted(it) }
         }
         Unit
     }

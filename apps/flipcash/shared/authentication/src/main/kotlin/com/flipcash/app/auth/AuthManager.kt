@@ -56,12 +56,14 @@ class AuthManager @Inject constructor(
 
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            when (val result = credentialManager.lookup().also { taggedTrace("lookup result: ${it::class.simpleName}") }) {
+            when (val result = credentialManager.lookup()
+                .also { taggedTrace("lookup result: ${it::class.simpleName}") }) {
                 is LookupResult.ExistingAccountFound -> {
                     val token = result.entropy
                     softLogin(token)
                         .onSuccess { onInitialized() }
                 }
+
                 LookupResult.NoAccountFound -> Unit
                 is LookupResult.TemporaryAccountCreated -> {
                     userManager.establish(entropy = result.entropy)
@@ -79,7 +81,19 @@ class AuthManager @Inject constructor(
 
     suspend fun createAccount(): Result<Unit> {
         return credentialManager.createAccount()
-            .onSuccess { entropy ->
+            .fold(
+                onSuccess = { entropy ->
+                    accountController.getUserFlags()
+                        .onSuccess {
+                            userManager.set(it)
+                            if (!it.requiresIapForRegistration) {
+                                onAccountPurchased()
+                            }
+                        }
+                        .map { entropy }
+                },
+                onFailure = { Result.failure(it) }
+            ).onSuccess { entropy ->
                 persistence.openDatabase(entropy)
             }.map { Unit }
     }
@@ -100,10 +114,14 @@ class AuthManager @Inject constructor(
 
     suspend fun onAccountPurchased(): Result<Unit> {
         return credentialManager.onAccountPurchased()
-            .onSuccess {
-                userManager.set(AuthState.LoggedIn)
-                accountController.getUserFlags().onSuccess { userManager.set(it) }
-            }.map { Unit }
+            .fold(
+                onSuccess = {
+                    userManager.set(AuthState.LoggedIn)
+                    accountController.getUserFlags()
+                        .onSuccess { userManager.set(it) }
+                },
+                onFailure = { Result.failure(it) }
+            ).map { Unit }
     }
 
     suspend fun login(
@@ -145,7 +163,6 @@ class AuthManager @Inject constructor(
                 resetStateForUser()
             }.map { it.id }
     }
-
 
 
     suspend fun selectAccount(): Result<MnemonicPhrase> {
