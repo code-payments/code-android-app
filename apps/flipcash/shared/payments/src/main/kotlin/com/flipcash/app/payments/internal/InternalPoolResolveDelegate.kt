@@ -1,5 +1,6 @@
 package com.flipcash.app.payments.internal
 
+import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolBetOutcome
@@ -33,6 +34,7 @@ class InternalPoolResolveDelegate @Inject constructor(
     private val userManager: UserManager,
     private val accountController: AccountController,
     private val exchange: Exchange,
+    private val activityFeedCoordinator: ActivityFeedCoordinator,
 ) : PoolResolveDelegate {
     override suspend fun resolvePool(
         pool: Pool,
@@ -83,6 +85,8 @@ class InternalPoolResolveDelegate @Inject constructor(
             if (balanceIncrement != null) {
                 balanceController.add(balanceIncrement)
             }
+            // update balance on successful bid payment
+            activityFeedCoordinator.fetchSinceLatest()
             onSuccess(it)
         }.onFailure {
             onError(it)

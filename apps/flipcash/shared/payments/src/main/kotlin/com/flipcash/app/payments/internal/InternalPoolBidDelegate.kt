@@ -1,5 +1,6 @@
 package com.flipcash.app.payments.internal
 
+import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.payments.delegates.PoolBidDelegate
 import com.flipcash.services.user.UserManager
@@ -19,6 +20,7 @@ internal class InternalPoolBidDelegate @Inject constructor(
     private val exchange: Exchange,
     private val transactionController: TransactionController,
     private val userManager: UserManager,
+    private val activityFeedCoordinator: ActivityFeedCoordinator,
 ): PoolBidDelegate {
     override suspend fun payForBid(
         pool: Pool,
@@ -50,6 +52,7 @@ internal class InternalPoolBidDelegate @Inject constructor(
             source = userManager.accountCluster!!,
         ).map { it.id.bytes }.onSuccess {
             // update balance on successful bid payment
+            activityFeedCoordinator.fetchSinceLatest()
             balanceController.subtract(localizedAmount)
             onSuccess(it)
         }.onFailure {
