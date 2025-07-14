@@ -1,8 +1,10 @@
 package com.flipcash.app.persistence.sources.mapper.notifications
 
 import com.flipcash.app.core.feed.MessageMetadata
+import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.services.models.ActivityFeedNotification
+import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.NotificationMetadata
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.utils.base58
@@ -59,6 +61,15 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
             NotificationMetadata.WelcomeBonus -> MessageMetadata.WelcomeBonus
             NotificationMetadata.WithdrewUsdc -> MessageMetadata.WithdrewUsdc
             NotificationMetadata.DepositedUsdc -> MessageMetadata.DepositedUsdc
+            is NotificationMetadata.DistributedUsdc -> MessageMetadata.DistributedUsdc(
+                from.poolId,
+                when (val outcome = from.outcome) {
+                    is NetworkPoolResolution.BooleanResolution -> PoolResolution.BooleanResolution(outcome.value)
+                    NetworkPoolResolution.NotSet -> PoolResolution.NotSet
+                    NetworkPoolResolution.Refund -> PoolResolution.Refund
+                }
+            )
+            is NotificationMetadata.PaidUsdc -> MessageMetadata.PaidUsdc(poolId = from.poolId)
         }
     }
 }

@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/flipcash-protobuf-api/generated/go
 option java_package = "com.codeinc.flipcash.gen.activity.v1";
 option objc_class_prefix = "FCPBActivityV1";
 import "common/v1/common.proto";
+import "pool/v1/model.proto";
 import "google/protobuf/timestamp.proto";
 
 // The ID of the notification
@@ -24,12 +25,14 @@ message Notification {
     NotificationState state = 10;
     // Additional metadata for this notification specific to the notification
     oneof additional_metadata {
-        WelcomeBonusNotificationMetadata  welcome_bonus  = 5;
-        GaveUsdcNotificationMetadata      gave_usdc      = 6;
-        ReceivedUsdcNotificationMetadata  received_usdc  = 7;
-        WithdrewUsdcNotificationMetadata  withdrew_usdc  = 8;
-        SentUsdcNotificationMetadata      sent_usdc      = 9;
-        DepositedUsdcNotificationMetadata deposited_usdc = 11;
+        WelcomeBonusNotificationMetadata    welcome_bonus    = 5;
+        GaveUsdcNotificationMetadata        gave_usdc        = 6;
+        ReceivedUsdcNotificationMetadata    received_usdc    = 7;
+        WithdrewUsdcNotificationMetadata    withdrew_usdc    = 8;
+        SentUsdcNotificationMetadata        sent_usdc        = 9;
+        DepositedUsdcNotificationMetadata   deposited_usdc   = 11;
+        PaidUsdcNotificationMetadata        paid_usdc        = 12;
+        DistributedUsdcNotificationMetadata distributed_usdc = 13;
     }
 }
 message WelcomeBonusNotificationMetadata {
@@ -47,6 +50,29 @@ message SentUsdcNotificationMetadata {
     bool can_initiate_cancel_action = 2;
 }
 message DepositedUsdcNotificationMetadata {
+}
+message PaidUsdcNotificationMetadata {
+    oneof payment_metadata {
+        PoolPaymentMetadata pool = 1;
+    }
+    // Payment metadata for betting pools
+    message PoolPaymentMetadata {
+        // The pool that was entered for this payment
+        pool.v1.PoolId pool_id = 1;
+    }
+}
+message DistributedUsdcNotificationMetadata {
+    oneof distribution_metadata {
+        PoolDistributionMetadata pool = 1;
+    }
+    // Distribution metadata for betting pools
+    message PoolDistributionMetadata {
+        // The pool where funds were distributed from
+        pool.v1.PoolId pool_id = 1;
+        // The outcome for this pool for the user that indicates the reason for
+        // receiving the distribution.
+        pool.v1.UserOutcome outcome = 2 ;
+    }
 }
 // ActivityFeedType enables multiple activity feeds, where notifications may be
 // split across different parts of the app

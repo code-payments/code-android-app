@@ -103,7 +103,7 @@ message UserPoolSummary {
     message WinOutcome {
         common.v1.FiatPaymentAmount amount_won = 1;
     }
-     // User is a loser in the pool
+    // User is a loser in the pool
     message LoseOutcome {
         common.v1.FiatPaymentAmount amount_lost = 1;
     }
@@ -111,6 +111,18 @@ message UserPoolSummary {
     message RefundOutcome {
         common.v1.FiatPaymentAmount amount_refunded = 1;
     }
+}
+// UserOutcome is an enum of states for user outcomes in a pool
+enum UserOutcome {
+    UNKNOWN_OUTCOE = 0;
+    // Pool isn't resolved, so no user outcome is available
+    NO_OUTCOME     = 1;
+    // User is a winner in the pool
+    WIN_OUTCOME    = 2;
+    // User is a loser in the pool
+    LOSE_OUTCOME   = 3;
+    // User was refunded
+    REFUND_OUTCOME = 4;
 }
 // Bet metadata signed by the rendezvous key
 message SignedBetMetadata {

@@ -1,5 +1,7 @@
 package com.flipcash.app.core.feed
 
+import com.flipcash.app.core.pools.PoolResolution
+import com.flipcash.services.models.NetworkPoolResolution
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
@@ -66,6 +68,17 @@ sealed interface MessageMetadata {
 
     @Serializable
     data object DepositedUsdc : MessageMetadata
+
+    @Serializable
+    data class PaidUsdc(
+        val poolId: ID,
+    ): MessageMetadata
+
+    @Serializable
+    data class DistributedUsdc(
+        val poolId: ID,
+        val outcome: PoolResolution,
+    ): MessageMetadata
 
     companion object {
         fun from(named: String?): MessageMetadata? {

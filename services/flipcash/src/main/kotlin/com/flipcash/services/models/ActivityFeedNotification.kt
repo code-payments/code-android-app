@@ -76,4 +76,15 @@ sealed interface NotificationMetadata {
 
     @Serializable
     data object WithdrewUsdc : NotificationMetadata
+
+    @Serializable
+    data class PaidUsdc(
+        val poolId: ID,
+    ) : NotificationMetadata
+
+    @Serializable
+    data class DistributedUsdc(
+        val poolId: ID,
+        val outcome: NetworkPoolResolution,
+    ) : NotificationMetadata
 }
