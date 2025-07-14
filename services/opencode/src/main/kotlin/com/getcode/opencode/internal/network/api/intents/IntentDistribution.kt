@@ -43,7 +43,7 @@ internal class IntentDistribution(
                 distributions.dropLast(1).forEach { dist ->
                     add(
                         ActionPublicTransfer.newInstance(
-                            owner = owner.authority.keyPair,
+                            owner = source.authority.keyPair,
                             source = source.vaultPublicKey,
                             amount = dist.amount,
                             destination = dist.destination
@@ -54,7 +54,8 @@ internal class IntentDistribution(
                     add(
                         ActionPublicWithdraw.newInstance(
                             amount = dist.amount,
-                            sourceCluster = source,
+                            owner = source,
+                            source = source,
                             destination = dist.destination,
                             canAutoReturn = false
                         )

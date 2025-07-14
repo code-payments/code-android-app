@@ -2,9 +2,7 @@ package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
-import com.getcode.opencode.internal.network.extensions.asExchangeData
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
@@ -33,7 +31,8 @@ internal class IntentRemoteReceive(
             // 1. Move all funds from the gift card to the primary account
             val withdrawFromGiftCard = ActionPublicWithdraw.newInstance(
                 amount = amount.usdc,
-                sourceCluster = giftCard.cluster,
+                owner = giftCard.cluster,
+                source = giftCard.cluster,
                 destination = owner.vaultPublicKey,
                 canAutoReturn = false,
             )

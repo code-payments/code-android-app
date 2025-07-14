@@ -13,6 +13,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.getPublicKeyBase58
+import com.getcode.utils.trace
 import javax.inject.Inject
 
 internal class InternalPoolBidDelegate @Inject constructor(
@@ -56,6 +57,19 @@ internal class InternalPoolBidDelegate @Inject constructor(
             balanceController.subtract(localizedAmount)
             onSuccess(it)
         }.onFailure {
+            trace(
+                tag = "Pool::bid",
+                message = "Failed to pay for bid",
+                error = it,
+                metadata = {
+                    "pool ID" to pool.id
+                    "pool derivation index" to pool.derivationIndex
+                    "user balance" to balance.formatted()
+                    "bid ID" to bidId
+                    "bid amount" to amount.formatted()
+                    "pool rendezvous" to rendezvous.getPublicKeyBase58()
+                }
+            )
             onError(it)
         }
     }

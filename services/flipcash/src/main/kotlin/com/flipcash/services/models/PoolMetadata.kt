@@ -6,6 +6,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import javax.annotation.concurrent.Immutable
 
 /**
@@ -72,12 +73,16 @@ data class NetworkPool(
     val userSummary: NetworkPoolUserSummary?,
 )
 
+@Serializable
 sealed interface NetworkPoolResolution {
+    @Serializable
     data object NotSet : NetworkPoolResolution
 
+    @Serializable
     @Immutable
     data object Refund : NetworkPoolResolution
 
+    @Serializable
     @Immutable
     data class BooleanResolution(val value: Boolean) : NetworkPoolResolution
 }

@@ -49,8 +49,15 @@ private fun PoolBettingScreenContent(
             }
         },
         bottomBar = {
-            if (state.isLoaded && state.isDistributed != true && !state.isResolved) {
-                BettingBottomBar(state)
+            if (state.isLoaded) {
+                when {
+                    !state.isResolved -> {
+                        BettingBottomBar(state)
+                    }
+                    state.isDistributed == false -> {
+                        BettingBottomBar(state)
+                    }
+                }
             }
         }
     ) { innerPadding ->

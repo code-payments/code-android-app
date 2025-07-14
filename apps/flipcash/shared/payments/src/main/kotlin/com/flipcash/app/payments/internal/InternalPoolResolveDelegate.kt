@@ -4,13 +4,9 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.pools.Pool
 import com.flipcash.app.core.pools.PoolBet
 import com.flipcash.app.core.pools.PoolBetOutcome
-import com.flipcash.app.core.pools.PoolBetSummary
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
-import com.flipcash.app.payments.delegates.DelegateEvent
 import com.flipcash.app.payments.delegates.PoolResolveDelegate
-import com.flipcash.services.models.NetworkPoolBetOutcome
-import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.controllers.AccountController
@@ -19,13 +15,14 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
-import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.RandomId
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.toFiat
+import com.getcode.solana.keys.base58
+import com.getcode.utils.getPublicKeyBase58
+import com.getcode.utils.trace
 import javax.inject.Inject
 
 class InternalPoolResolveDelegate @Inject constructor(
@@ -89,7 +86,36 @@ class InternalPoolResolveDelegate @Inject constructor(
             activityFeedCoordinator.fetchSinceLatest()
             onSuccess(it)
         }.onFailure {
-            onError(it)
+            val error = PaymentError.PoolDistributionFailed(cause = it)
+            val metadata = buildMap {
+                put("pool name", pool.name)
+                put("pool resolution", resolution)
+                put("pool account authority", poolAccount.cluster.authorityPublicKey.base58())
+                put("pool funding destination", pool.fundingDestination.base58())
+                put("pool account vault", poolAccount.cluster.vaultPublicKey.base58())
+                put("pool derivation index", pool.derivationIndex)
+                put("winning bet count", distributions.count())
+                put("winning bet amount", distributions.firstOrNull()?.amount?.formatted())
+            }
+            trace(
+                tag = "Pool::resolve",
+                message = "Failed to distribute funds",
+                error = error,
+                metadata = {
+                    metadata.forEach { (k, v) ->
+                        k to v
+                    }
+                }
+            )
+
+            onError(
+                error.copy(
+                    message = """
+                        ---
+                DEBUG: ${metadata.entries.joinToString()}
+            """.trimIndent()
+                )
+            )
         }
     }
 
@@ -111,7 +137,7 @@ class InternalPoolResolveDelegate @Inject constructor(
                 usdc = pool.buyIn.convertingTo(rate),
                 converted = pool.buyIn,
             )
-            val distros =  paidBets.map {
+            val distros = paidBets.map {
                 Distribution(
                     destination = it.payoutDestination,
                     amount = localizedAmount.usdc,
@@ -158,7 +184,8 @@ class InternalPoolResolveDelegate @Inject constructor(
         }
 
         return DistributionList(
-            balanceIncrement = distros.firstOrNull()?.amount?.let { LocalFiat(usdc = it) }.takeIf { paidBets.any { it.userId == userManager.accountId } },
+            balanceIncrement = distros.firstOrNull()?.amount?.let { LocalFiat(usdc = it) }
+                .takeIf { paidBets.any { it.userId == userManager.accountId } },
             distributions = distros,
         )
     }

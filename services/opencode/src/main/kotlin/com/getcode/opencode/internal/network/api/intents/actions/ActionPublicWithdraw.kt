@@ -44,7 +44,7 @@ class ActionPublicWithdraw(
                 TransactionService.NoPrivacyWithdrawAction.newBuilder()
                     .setSource(source.vaultPublicKey.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
-                    .setAuthority(source.authority.keyPair.asSolanaAccountId())
+                    .setAuthority(signer.asSolanaAccountId())
                     .setAmount(amount.quarks)
                     .setShouldClose(true)
                     .setIsAutoReturn(canAutoReturn)
@@ -56,15 +56,16 @@ class ActionPublicWithdraw(
     internal companion object {
         fun newInstance(
             amount: Fiat,
-            sourceCluster: AccountCluster,
+            owner: AccountCluster,
+            source: AccountCluster,
             destination: PublicKey,
             canAutoReturn: Boolean,
         ): ActionPublicWithdraw {
             return ActionPublicWithdraw(
                 id = 0,
-                signer = sourceCluster.authority.keyPair,
+                signer = owner.authority.keyPair,
                 amount = amount,
-                source = sourceCluster,
+                source = source,
                 destination = destination,
                 canAutoReturn = canAutoReturn
             )
