@@ -2,11 +2,8 @@ package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.pools.PoolRequest
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import javax.annotation.concurrent.Immutable
@@ -95,7 +92,7 @@ sealed interface NetworkPoolBetSummary {
 
 sealed interface NetworkPoolUserSummary {
     data object NotSet: NetworkPoolUserSummary
-    data class Win(val amount: Fiat): NetworkPoolUserSummary
+    data class Win(val amountWon: Fiat, val amountReceived: Fiat): NetworkPoolUserSummary
     data class Lose(val amount: Fiat): NetworkPoolUserSummary
     data class Refund(val amount: Fiat): NetworkPoolUserSummary
 }

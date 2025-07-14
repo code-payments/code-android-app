@@ -129,7 +129,7 @@ private val pool = Pool(
 
 private val refundedPool = pool.copy(resolution = PoolResolution.Refund, userSummary = PoolUserSummary.Refunded(pool.buyIn))
 
-private val wonPool = pool.copy(resolution = PoolResolution.BooleanResolution(false), userSummary = PoolUserSummary.Won(9.26.toFiat()))
+private val wonPool = pool.copy(resolution = PoolResolution.BooleanResolution(false), userSummary = PoolUserSummary.Won(4.26.toFiat(), 9.26.toFiat()))
 private val lostPool = pool.copy(resolution = PoolResolution.BooleanResolution(true), userSummary = PoolUserSummary.Lost(5.00.toFiat()))
 
 @Preview

@@ -67,4 +67,6 @@ message UserFlags {
 	bool is_registered_account = 1;
 	// Is this user associated with a Flipcash staff member?
 	bool is_staff = 2;
+	// Does this user require IAP for registration in the account creation flow?
+	bool requires_iap_for_registration = 3;
 }

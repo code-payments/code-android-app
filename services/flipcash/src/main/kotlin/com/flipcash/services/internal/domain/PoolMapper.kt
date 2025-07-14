@@ -39,7 +39,12 @@ class PoolMapper @Inject constructor(
                             currencyCode = CurrencyCode.Companion.tryValueOf(from.userSummary.win.amountWon.currency)
                                 ?: CurrencyCode.USD,
                         )
-                        NetworkPoolUserSummary.Win(amountWon)
+                        val amountReceived = Fiat(
+                            fiat = from.userSummary.win.totalAmountReceived.nativeAmount,
+                            currencyCode = CurrencyCode.Companion.tryValueOf(from.userSummary.win.totalAmountReceived.currency)
+                                ?: CurrencyCode.USD,
+                        )
+                        NetworkPoolUserSummary.Win(amountWon, amountReceived)
                     }
                     Model.UserPoolSummary.OutcomeCase.LOSE -> {
                         val amountRefunded = Fiat(

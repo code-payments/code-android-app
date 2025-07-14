@@ -102,6 +102,7 @@ message UserPoolSummary {
     // User is a winner in the pool
     message WinOutcome {
         common.v1.FiatPaymentAmount amount_won = 1;
+        common.v1.FiatPaymentAmount total_amount_received = 2;
     }
     // User is a loser in the pool
     message LoseOutcome {

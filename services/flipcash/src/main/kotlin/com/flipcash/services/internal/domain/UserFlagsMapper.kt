@@ -10,7 +10,8 @@ internal class UserFlagsMapper @Inject constructor():
     override fun map(from: FlipcashAccountService.UserFlags): UserFlags {
         return UserFlags(
             isRegistered = from.isRegisteredAccount,
-            isStaff = from.isStaff
+            isStaff = from.isStaff,
+            requiresIapForRegistration = from.requiresIapForRegistration
         )
     }
 }

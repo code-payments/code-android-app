@@ -2,12 +2,10 @@ package com.flipcash.app.pools.internal.list.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.extensions.toYesOrNo
 import com.flipcash.app.core.pools.PoolResolution
@@ -61,7 +59,7 @@ internal fun CompletedPoolStatusRow(
                         Text(
                             stringResource(
                                 R.string.subtitle_wonPool,
-                                summary.amount.formatted(
+                                summary.amountWon.formatted(
                                     formatting = Fiat.Formatting.Truncated
                                 )
                             ),

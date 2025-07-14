@@ -1,0 +1,252 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "f506a555bb289d4b34e7e12b8251a401",
+    "entities": [
+      {
+        "tableName": "messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `text` TEXT NOT NULL, `amountUsdc` INTEGER, `amountNative` INTEGER, `nativeCurrency` TEXT, `rate` REAL, `state` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `metadata` TEXT, PRIMARY KEY(`idBase58`))",
+        "fields": [
+          {
+            "fieldPath": "idBase58",
+            "columnName": "idBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountUsdc",
+            "columnName": "amountUsdc",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "amountNative",
+            "columnName": "amountNative",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nativeCurrency",
+            "columnName": "nativeCurrency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rate",
+            "columnName": "rate",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metadata",
+            "columnName": "metadata",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "idBase58"
+          ]
+        }
+      },
+      {
+        "tableName": "pool_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `creatorBase58` TEXT NOT NULL, `pagingTokenBase58` TEXT, `name` TEXT NOT NULL, `buyInAmount` INTEGER NOT NULL, `buyInCurrency` TEXT NOT NULL, `fundingDestinationBase58` TEXT NOT NULL, `isOpen` INTEGER NOT NULL, `resolution` TEXT, `timestamp` INTEGER NOT NULL, `closedTimestamp` INTEGER, `derivationIndex` INTEGER NOT NULL DEFAULT -1, `rendezvousSignature` TEXT NOT NULL DEFAULT '', `betSummary` TEXT, `userSummary` TEXT, PRIMARY KEY(`idBase58`))",
+        "fields": [
+          {
+            "fieldPath": "idBase58",
+            "columnName": "idBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creatorBase58",
+            "columnName": "creatorBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pagingTokenBase58",
+            "columnName": "pagingTokenBase58",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "buyInAmount",
+            "columnName": "buyInAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "buyInCurrency",
+            "columnName": "buyInCurrency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fundingDestinationBase58",
+            "columnName": "fundingDestinationBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isOpen",
+            "columnName": "isOpen",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resolution",
+            "columnName": "resolution",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "closedTimestamp",
+            "columnName": "closedTimestamp",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "derivationIndex",
+            "columnName": "derivationIndex",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "-1"
+          },
+          {
+            "fieldPath": "rendezvousSignature",
+            "columnName": "rendezvousSignature",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "betSummary",
+            "columnName": "betSummary",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userSummary",
+            "columnName": "userSummary",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "idBase58"
+          ]
+        }
+      },
+      {
+        "tableName": "pool_bet_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `poolIdBase58` TEXT NOT NULL, `userIdBase58` TEXT NOT NULL, `selectedOutcome` TEXT NOT NULL, `payoutDestinationBase58` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `hasSubmittedIntent` INTEGER NOT NULL DEFAULT false, PRIMARY KEY(`idBase58`))",
+        "fields": [
+          {
+            "fieldPath": "idBase58",
+            "columnName": "idBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "poolIdBase58",
+            "columnName": "poolIdBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userIdBase58",
+            "columnName": "userIdBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "selectedOutcome",
+            "columnName": "selectedOutcome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payoutDestinationBase58",
+            "columnName": "payoutDestinationBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasSubmittedIntent",
+            "columnName": "hasSubmittedIntent",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "false"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "idBase58"
+          ]
+        }
+      },
+      {
+        "tableName": "pool_rendezvous_keys",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`poolIdBase58` TEXT NOT NULL, `rendezvousSeedBase58` TEXT NOT NULL, PRIMARY KEY(`poolIdBase58`))",
+        "fields": [
+          {
+            "fieldPath": "poolIdBase58",
+            "columnName": "poolIdBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rendezvousSeedBase58",
+            "columnName": "rendezvousSeedBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "poolIdBase58"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f506a555bb289d4b34e7e12b8251a401')"
+    ]
+  }
+}
