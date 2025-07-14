@@ -1,6 +1,7 @@
 package com.flipcash.app.notifications
 
 import android.Manifest
+import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.auth.AuthManager
@@ -49,7 +51,7 @@ class NotificationService: FirebaseMessagingService(), CoroutineScope by Corouti
                 pushController.addToken(token)
                     .onSuccess {
                         userManager.set(pushToken = token)
-                        trace("push token updated", type = TraceType.Silent)
+                        trace("push token updated onNewToken", type = TraceType.Silent)
                     }.onFailure {
                         trace(message = "Failure updating push token", error = it)
                     }
@@ -60,8 +62,16 @@ class NotificationService: FirebaseMessagingService(), CoroutineScope by Corouti
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         message.notification?.let { notification ->
+            // dump everything into FCM fallback channel for now
+            val channel = NotificationChannelCompat.Builder(
+                "fcm_fallback_notification_channel",
+                NotificationManagerCompat.IMPORTANCE_DEFAULT
+            ).setName("Misc.").build()
+
+            notificationManager.createNotificationChannel(channel)
+
             val notificationBuilder: NotificationCompat.Builder =
-                NotificationCompat.Builder(this, "fcm_fallback_notification_channel")
+                NotificationCompat.Builder(this, channel.id)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                     .setSmallIcon(R.drawable.flipcash_logo)
