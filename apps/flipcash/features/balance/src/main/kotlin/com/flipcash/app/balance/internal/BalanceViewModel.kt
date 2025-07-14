@@ -7,6 +7,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.balance.R
@@ -17,6 +18,7 @@ import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
@@ -65,7 +67,7 @@ internal class BalanceViewModel @Inject constructor(
     init {
         combine(
             balanceController.rawBalance,
-            exchange.observeEntryRate(),
+            exchange.observeBalanceRate(),
         ) { balance, rate ->
             LocalFiat(
                 usdc = balance,
