@@ -77,17 +77,23 @@ interface PoolDao {
     @Query("SELECT * FROM pool_metadata ORDER BY timestamp DESC")
     suspend fun getAll(): List<PoolWithBetsEntity>
 
-    @Query("SELECT * FROM pool_metadata ORDER BY isOpen DESC, timestamp DESC")
+    @Query(
+        """
+            SELECT * FROM pool_metadata
+            ORDER BY isOpen DESC,
+            CASE WHEN isOpen THEN timestamp ELSE closedTimestamp END DESC
+        """
+    )
     fun observePools(): PagingSource<Int, PoolEntity>
 
-    @Query("SELECT * FROM pool_metadata WHERE idBase58 = :id ORDER BY timestamp DESC")
+    @Query("SELECT * FROM pool_metadata WHERE idBase58 = :id")
     fun observe(id: String): Flow<PoolWithBetsEntity?>
     fun observe(id: ID): Flow<PoolWithBetsEntity?> {
         return observe(id.base58)
     }
 
     @Transaction
-    @Query("SELECT * FROM pool_metadata WHERE idBase58 = :id ORDER BY timestamp DESC")
+    @Query("SELECT * FROM pool_metadata WHERE idBase58 = :id")
     suspend fun getPoolWithBets(id: String): PoolWithBetsEntity?
     suspend fun getPoolWithBets(id: ID): PoolWithBetsEntity? {
         return getPoolWithBets(id.base58)
