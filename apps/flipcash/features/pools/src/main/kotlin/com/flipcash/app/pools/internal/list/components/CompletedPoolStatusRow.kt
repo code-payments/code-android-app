@@ -52,20 +52,22 @@ internal fun CompletedPoolStatusRow(
         if (resolution is PoolResolution.DecisionMade) {
             when (summary) {
                 is PoolUserSummary.Won -> {
-                    CodeChip(
-                        shape = CodeTheme.shapes.small,
-                        backgroundColor = CodeTheme.colors.surfaceSuccess,
-                    ) {
-                        Text(
-                            stringResource(
-                                R.string.subtitle_wonPool,
-                                summary.amountWon.formatted(
-                                    formatting = Fiat.Formatting.Truncated
-                                )
-                            ),
-                            style = CodeTheme.typography.textSmall,
-                            color = CodeTheme.colors.successText,
-                        )
+                    if (summary.amountWon > Fiat.Zero) {
+                        CodeChip(
+                            shape = CodeTheme.shapes.small,
+                            backgroundColor = CodeTheme.colors.surfaceSuccess,
+                        ) {
+                            Text(
+                                stringResource(
+                                    R.string.subtitle_wonPool,
+                                    summary.amountWon.formatted(
+                                        formatting = Fiat.Formatting.Truncated
+                                    )
+                                ),
+                                style = CodeTheme.typography.textSmall,
+                                color = CodeTheme.colors.successText,
+                            )
+                        }
                     }
                 }
 
