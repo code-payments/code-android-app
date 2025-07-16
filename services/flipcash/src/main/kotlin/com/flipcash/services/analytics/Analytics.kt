@@ -4,11 +4,15 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
+import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
 import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
 import com.google.firebase.ktx.Firebase
@@ -37,6 +41,11 @@ interface FlipcashAnalyticsService : AnalyticsService {
         currency: CurrencyCode,
         owner: KeyPair,
     )
+
+    fun poolOpenedFromDeeplink(id: ID)
+    fun poolCreated(id: ID)
+    fun placedBidInPool(id: ID)
+    fun declaredOutcomeInPool(id: ID)
 }
 
 class FlipcashAnalyticsManager @Inject constructor(
@@ -69,7 +78,9 @@ class FlipcashAnalyticsManager @Inject constructor(
 
     override fun unintentionalLogout() = Unit
 
-    override fun action(action: AppAction, source: AppActionSource?) = Unit
+    override fun action(action: AppAction, source: AppActionSource?) {
+        track(name = action.value)
+    }
 
     override fun transfer(event: AnalyticsEvent.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) {
         val properties = event.properties(localizedAmount = amount, successful = successful, error = error)
@@ -83,6 +94,30 @@ class FlipcashAnalyticsManager @Inject constructor(
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
         val event = AnalyticsEvent.PaidForAccount(price, currency, owner)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun poolOpenedFromDeeplink(id: ID) {
+        val event = AnalyticsEvent.PoolOpened(id)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun poolCreated(id: ID) {
+        val event = AnalyticsEvent.PoolCreated(id)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun placedBidInPool(id: ID) {
+        val event = AnalyticsEvent.PlacedBid(id)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun declaredOutcomeInPool(id: ID) {
+        val event = AnalyticsEvent.DeclaredOutcome(id)
         val properties = event.properties()
         track(event.name, *properties.toList().toTypedArray())
     }
@@ -101,6 +136,36 @@ class FlipcashAnalyticsManager @Inject constructor(
             jsonObject.put(property.first, property.second)
         }
         mixpanelAPI.track(name, jsonObject)
+    }
+}
+
+sealed class Action : AppAction {
+    data object CreateAccount : Action() {
+        override val value: String = "Button: Create Account"
+    }
+
+    data object SaveAccessKey : Action() {
+        override val value: String = "Button: Save Access Key"
+    }
+
+    data object WroteAccessKey : Action() {
+        override val value: String = "Button: Wrote Access Key"
+    }
+
+    data object AllowCamera : Action() {
+        override val value: String = "Button: Allow Camera"
+    }
+
+    data object AllowPush : Action() {
+        override val value: String = "Button: Allow Push"
+    }
+
+    data object SkipPush : Action() {
+        override val value: String = "Button: Skip Push"
+    }
+
+    data object CompletedOnboarding : Action() {
+        override val value: String = "Complete Onboarding"
     }
 }
 
@@ -133,6 +198,26 @@ sealed interface AnalyticsEvent {
     }
     data object ClaimedCashLink : Transfer {
         override val name: String = "Receive Cash Link"
+    }
+
+    sealed interface PoolEvent : AnalyticsEvent {
+        val id: ID
+    }
+
+    data class PoolOpened(override val id: ID) : PoolEvent {
+        override val name: String = "Pool: Opened From Deeplink"
+    }
+
+    data class PoolCreated(override val id: ID) : PoolEvent {
+        override val name: String = "Pool: Created"
+    }
+
+    data class PlacedBid(override val id: ID) : PoolEvent {
+        override val name: String = "Pool: Place Bet"
+    }
+
+    data class DeclaredOutcome(override val id: ID) : PoolEvent {
+        override val name: String = "Pool: Declared Outcome"
     }
 }
 
@@ -169,6 +254,10 @@ private fun AnalyticsEvent.properties(
                 put("Fiat", event.price.toString())
                 put("Currency", event.currency.name)
                 put("Owner Public Key", event.owner.getPublicKeyBase58())
+            }
+
+            is AnalyticsEvent.PoolEvent -> {
+                put("ID", event.id.base58)
             }
         }
 

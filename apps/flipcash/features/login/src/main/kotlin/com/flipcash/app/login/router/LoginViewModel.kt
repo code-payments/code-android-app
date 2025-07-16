@@ -3,6 +3,8 @@ package com.flipcash.app.login.router
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.features.login.R
+import com.flipcash.services.analytics.Action
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.AccountController
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -25,6 +27,7 @@ class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val accounts: AccountController,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -61,6 +64,7 @@ class LoginViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CreateAccount>()
+            .onEach { analytics.action(Action.CreateAccount) }
             .map {
                 authManager.createAccount()
                     .onFailure {

@@ -21,6 +21,7 @@ import com.flipcash.app.pools.PoolsCoordinator
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.models.ClosePoolError
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -54,6 +55,7 @@ internal class PoolBettingViewModel @Inject constructor(
     shareController: ShareSheetController,
     resources: ResourceHelper,
     payments: PaymentController,
+    analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<PoolBettingViewModel.State, PoolBettingViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -219,6 +221,7 @@ internal class PoolBettingViewModel @Inject constructor(
             .filterIsInstance<Event.OnPoolRendezvousChanged>()
             .filter { it.fromUser }
             .map { it.rendezvous }
+            .onEach { analytics.poolOpenedFromDeeplink(it.publicKeyBytes.toList()) }
             .map { rendezvous ->
                 dispatchEvent(Event.OnLoadingChanged(true))
                 poolsCoordinator.getPool(rendezvous)
@@ -381,6 +384,7 @@ internal class PoolBettingViewModel @Inject constructor(
                     is PaymentEvent.OnPaymentSuccess -> {
                         event.acknowledge(true) {
                             viewModelScope.launch {
+                                analytics.placedBidInPool(stateFlow.value.metadata.id)
                                 poolsCoordinator.onBetPaidForInPool(
                                     poolId = (event.metadata as PoolBidPaymentMetadata).pool.id
                                 )
@@ -475,6 +479,7 @@ internal class PoolBettingViewModel @Inject constructor(
                     }
                     is PaymentEvent.OnRpcFailure -> Unit
                     is PaymentEvent.OnPaymentSuccess -> {
+                        analytics.declaredOutcomeInPool(stateFlow.value.metadata.id)
                         event.acknowledge(true) {
                             dispatchEvent(Event.OnFundsDistributed(true))
                         }
@@ -537,6 +542,7 @@ internal class PoolBettingViewModel @Inject constructor(
                     }
                     is PaymentEvent.OnPaymentSuccess -> {
                         event.acknowledge(true) {
+                            analytics.declaredOutcomeInPool(stateFlow.value.metadata.id)
                             dispatchEvent(Event.OnFundsDistributed(true))
                         }
                     }

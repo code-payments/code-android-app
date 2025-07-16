@@ -29,7 +29,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.services.analytics.Action
 import com.flipcash.shared.permissions.R
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -41,7 +43,7 @@ import com.getcode.util.permissions.cameraPermissionCheck
 import com.getcode.util.permissions.notificationPermissionCheck
 
 internal enum class Permission {
-    Camera, Notifications
+    Notifications, Camera;
 }
 
 @Composable
@@ -51,12 +53,13 @@ internal fun PermissionScreenContent(
 ) {
     val navigator = LocalCodeNavigator.current
     val permissionChecker = LocalPermissionChecker.current
+    val analytics = LocalAnalytics.current
 
     when (permission) {
         Permission.Camera -> CameraPermissionScreenContent(
             onGranted = {
                 if (fromOnboarding) {
-//                    analytics.action(Action.CompletedOnboarding)
+                    analytics.action(Action.CompletedOnboarding)
                 }
                 navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
             },
@@ -65,12 +68,12 @@ internal fun PermissionScreenContent(
             }
         )
         Permission.Notifications -> NotificationScreenContent {
-            if (fromOnboarding) {
-//                analytics.action(Action.CompletedOnboarding)
-            }
             if (permissionChecker.isDenied(Manifest.permission.CAMERA)) {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera()))
             } else {
+                if (fromOnboarding) {
+                    analytics.action(Action.CompletedOnboarding)
+                }
                 navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
             }
         }
@@ -79,12 +82,14 @@ internal fun PermissionScreenContent(
 
 @Composable
 internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: () -> Unit) {
+    val analytics = LocalAnalytics.current
     var isResultHandled by remember { mutableStateOf(false) }
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (!isResultHandled) {
             isResultHandled = true
 
             if (isGranted) {
+                analytics.action(Action.AllowCamera)
                 onGranted()
             } else {
                 onNotGranted()
@@ -154,9 +159,13 @@ internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: 
 
 @Composable
 internal fun NotificationScreenContent(onGranted: () -> Unit) {
+    val analytics = LocalAnalytics.current
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
+            analytics.action(Action.AllowPush)
             onGranted()
+        } else {
+            analytics.action(Action.SkipPush)
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = {

@@ -302,6 +302,7 @@ internal class PoolCreateViewModel @Inject constructor(
                 },
                 onSuccess = {
                     dispatchEvent(Event.UpdateCreatingState(loading = false, success = true))
+                    analytics.poolCreated(it)
                     dispatchEvent(Event.OnPoolCreated(it))
                 }
             ).launchIn(viewModelScope)

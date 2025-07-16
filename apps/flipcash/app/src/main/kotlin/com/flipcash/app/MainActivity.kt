@@ -26,7 +26,9 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.util.permissions.LocalPermissionChecker
@@ -99,6 +101,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var paymentController: PaymentController
 
+    @Inject
+    lateinit var analytics: FlipcashAnalyticsService
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -110,6 +115,7 @@ class MainActivity : FragmentActivity() {
                 LocalSystemSettings provides settingsHelper,
                 LocalNetworkObserver provides networkObserver,
                 LocalExchange provides exchange,
+                LocalAnalytics provides analytics,
                 LocalCurrencyUtils provides currencyUtils,
                 LocalVibrator provides vibrator,
                 LocalRouter provides router,
