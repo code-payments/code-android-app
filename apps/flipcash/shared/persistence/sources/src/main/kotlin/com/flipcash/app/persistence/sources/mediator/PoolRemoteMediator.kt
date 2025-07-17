@@ -47,6 +47,8 @@ class PoolRemoteMediator @Inject constructor(
 
             val pools = controller.getPagedPools(queryOptions).getOrNull().orEmpty()
 
+            val limit = state.config.pageSize
+
             withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
                     dataSource.clear()
@@ -55,7 +57,7 @@ class PoolRemoteMediator @Inject constructor(
                 dataSource.upsert(pools)
             }
 
-            MediatorResult.Success(endOfPaginationReached = pools.isEmpty())
+            MediatorResult.Success(endOfPaginationReached = pools.size < limit)
         } catch (e: Exception) {
             MediatorResult.Error(e)
         }

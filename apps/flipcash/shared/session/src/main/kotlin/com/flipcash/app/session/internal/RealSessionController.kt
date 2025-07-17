@@ -333,10 +333,13 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun bringPoolsCurrent(count: Int = 100) {
+    private fun bringPoolsCurrent(count: Int = 10) {
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 poolsCoordinator.updatePools()
+            }
+            scope.launch {
+                poolsCoordinator.fetchSinceLatest(count)
             }
         }
     }
