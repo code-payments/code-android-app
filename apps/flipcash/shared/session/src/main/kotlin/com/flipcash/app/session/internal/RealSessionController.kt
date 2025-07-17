@@ -338,9 +338,6 @@ class RealSessionController @Inject constructor(
             scope.launch {
                 poolsCoordinator.updatePools()
             }
-            scope.launch {
-                poolsCoordinator.fetchSinceLatest(count)
-            }
         }
     }
 

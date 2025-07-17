@@ -59,8 +59,6 @@ class PoolsCoordinator @Inject constructor(
     private val networkToDomainMapper: NetworkPoolToDomainMapper,
     private val userManager: UserManager,
 ) {
-    val supervisor = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
     private val pagingConfig = PagingConfig(pageSize = 20)
 
     private val _poolOpen = MutableStateFlow<ID?>(null)
@@ -143,7 +141,11 @@ class PoolsCoordinator @Inject constructor(
     }
 
     suspend fun updatePool(id: ID) {
-        getPool(id, CachePolicy.NetworkOnly)
+        val pool = dataSource.getById(id)
+        val hasDecision = pool?.pool?.resolution is PoolResolution.DecisionMade
+        if (!hasDecision) {
+            getPool(id, CachePolicy.NetworkOnly)
+        }
     }
 
     suspend fun getPool(rendezvous: KeyPair): Result<PoolWithBets> {

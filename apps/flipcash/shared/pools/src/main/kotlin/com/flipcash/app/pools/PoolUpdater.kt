@@ -1,6 +1,5 @@
 package com.flipcash.app.pools
 
-import com.flipcash.app.core.cache.CachePolicy
 import com.flipcash.app.core.updater.NetworkUpdater
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
