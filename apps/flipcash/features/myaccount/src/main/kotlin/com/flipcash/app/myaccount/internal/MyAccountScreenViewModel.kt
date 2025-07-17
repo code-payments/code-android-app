@@ -76,7 +76,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
         userManager.state
             .onEach {
                 val userId = it.accountId?.base64
-                val publicKey = it.cluster?.authorityPublicKey?.base64()
+                val publicKey = it.cluster?.authorityPublicKey?.base58()
 
                 dispatchEvent(
                     Event.OnUserAssociated(
