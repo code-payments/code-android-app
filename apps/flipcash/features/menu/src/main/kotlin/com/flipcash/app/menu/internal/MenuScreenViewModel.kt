@@ -74,7 +74,7 @@ internal class MenuScreenViewModel @Inject constructor(
 
     init {
         userManager.state
-            .filter { it.authState is AuthState.LoggedIn }
+            .filter { it.authState is AuthState.LoggedInWithUser }
             .mapNotNull { it.flags }
             .map { it.isStaff }
             .onEach {
@@ -83,12 +83,12 @@ internal class MenuScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         featureFlags.observeOverride()
-            .filter { userManager.authState is AuthState.LoggedIn }
+            .filter { userManager.authState is AuthState.LoggedInWithUser }
             .onEach { dispatchEvent(Event.OnBetaFeaturesUnlocked(it)) }
             .launchIn(viewModelScope)
 
         featureFlags.observe()
-            .filter { userManager.authState is AuthState.LoggedIn }
+            .filter { userManager.authState is AuthState.LoggedInWithUser }
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
 

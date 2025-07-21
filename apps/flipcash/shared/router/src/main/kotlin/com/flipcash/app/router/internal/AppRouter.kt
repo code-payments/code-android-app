@@ -10,7 +10,6 @@ import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
-import com.getcode.vendor.Base58
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,14 +28,14 @@ internal class AppRouter(
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
                 is DeeplinkType.Login -> {
-                    if (userManager.authState is AuthState.LoggedIn) {
+                    if (userManager.authState is AuthState.LoggedInWithUser) {
                         listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
                     } else {
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home(type.entropy, true)))
                     }
                 }
                 is DeeplinkType.CashLink -> {
-                    if (userManager.authState is AuthState.LoggedIn) {
+                    if (userManager.authState is AuthState.LoggedInWithUser) {
                         listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
                     } else {
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
@@ -44,7 +43,7 @@ internal class AppRouter(
                 }
 
                 is DeeplinkType.Pool -> {
-                    if (userManager.authState is AuthState.LoggedIn) {
+                    if (userManager.authState is AuthState.LoggedInWithUser) {
                         listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
                     } else {
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
@@ -79,7 +78,6 @@ internal class AppRouter(
 
                         pool.contains(deeplink.pathSegments[0]) -> {
                             val seed = deeplink.data.toUri().fragments[Key.entropy] ?: return null
-                            println("seed=$seed")
                             DeeplinkType.Pool(seed)
                         }
                         else -> null

@@ -154,10 +154,6 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
-        featureFlagController.observe(FeatureFlag.Pools)
-            .onEach { enabled -> _state.update { it.copy(poolsOpen = enabled) } }
-            .launchIn(scope)
-
         poolsCoordinator.openPool
             .onEach { id ->
                 if (id == null) {

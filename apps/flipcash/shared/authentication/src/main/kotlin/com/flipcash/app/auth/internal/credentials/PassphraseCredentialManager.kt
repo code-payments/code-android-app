@@ -202,7 +202,7 @@ class PassphraseCredentialManager @Inject constructor(
         val selectedMetadata = getSelectedMetadata()
         if (selectedMetadata != null && selectedMetadata.entropy == entropy) {
             storeMetadata(selectedMetadata, isSelected = true)
-            updateUserManager(selectedMetadata.id, AuthState.LoggedIn)
+            updateUserManager(selectedMetadata.id, AuthState.LoggedInWithUser)
             return Result.success(selectedMetadata)
         }
 

@@ -5,12 +5,10 @@ import com.flipcash.services.internal.model.account.UserFlags
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
-import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
@@ -31,23 +29,25 @@ import javax.inject.Singleton
 sealed interface AuthState {
     // still to determine
     data object Unknown : AuthState
-    // account has been created but not yet paid for
+    // account has been created but not yet paid for (if required)
     // seenAccessKey used as a flag whether to land them back on
     // access key screen or purchase
     data class Registered(val seenAccessKey: Boolean = true) : AuthState
-    // account has been created and paid for
+
+    sealed interface LoggedIn
+    // account has been created and paid for (if required)
     // and we are waiting for metadata to be pulled from storage
-    data object LoggedInAwaitingUser : AuthState
-    // account is paid for and we ready for use in app
-    data object LoggedIn : AuthState
+    data object LoggedInAwaitingUser : AuthState, LoggedIn
+    // account is paid for (if required) and is ready for use in app
+    data object LoggedInWithUser : AuthState, LoggedIn
     // logged out
     data object LoggedOut : AuthState
 
     val canAccessAuthenticatedApis: Boolean
-        get() = this is LoggedIn
+        get() = this is LoggedInWithUser
 
     val isAtLeastRegistered: Boolean
-        get() = this is LoggedIn || this is Registered
+        get() = this is LoggedInWithUser || this is Registered
 }
 
 @Singleton
@@ -78,9 +78,6 @@ class UserManager @Inject constructor(
 
     val authState: AuthState
         get() = _state.value.authState
-
-    val isRegistered: Boolean
-        get() = _state.value.flags?.isRegistered == true
 
     val nextPoolIndex: Long
         get() = _state.value.nextPoolIndex
@@ -135,8 +132,7 @@ class UserManager @Inject constructor(
         _state.update { it.copy(authState = authState) }
 
         when (authState) {
-            AuthState.LoggedIn,
-            AuthState.LoggedInAwaitingUser -> {
+            is AuthState.LoggedIn -> {
                 accountCluster?.let { owner ->
                     eventBus.send(Events.UpdateLimits(owner = owner, force = true))
                 }

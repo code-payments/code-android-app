@@ -36,8 +36,6 @@ import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.user.AuthState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.util.permissions.LocalPermissionChecker
-import com.getcode.util.permissions.PermissionChecker
 import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.delay
@@ -122,7 +120,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                             showLogo = true
                         }
 
-                        AuthState.LoggedIn -> {
+                        AuthState.LoggedInWithUser -> {
                             showLogo = false
                         }
 
@@ -167,7 +165,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                 }
             }
 
-            AuthState.LoggedIn -> {
+            AuthState.LoggedInWithUser -> {
                 val screens = router.processDestination(deepLink())
 
                 screens.ifEmpty {

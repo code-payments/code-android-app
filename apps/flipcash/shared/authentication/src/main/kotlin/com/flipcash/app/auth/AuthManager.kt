@@ -5,9 +5,9 @@ import com.bugsnag.android.Bugsnag
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
-import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.auth.internal.extensions.token
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
@@ -16,7 +16,6 @@ import com.flipcash.shared.authentication.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.model.core.ID
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
@@ -75,7 +74,6 @@ class AuthManager @Inject constructor(
 
     private suspend fun softLogin(entropyB64: String): Result<ID> {
         if (softLoginDisabled) return Result.failure(Throwable("Disabled"))
-        println("entropyB64: $entropyB64")
         return login(entropyB64, isSoftLogin = true)
     }
 
@@ -101,7 +99,9 @@ class AuthManager @Inject constructor(
     suspend fun onUserAccessKeySeen(): Result<Unit> {
         return credentialManager.onUserAccessKeySeen()
             .onSuccess {
-                userManager.set(AuthState.Registered(true))
+                if (userManager.authState !is AuthState.LoggedIn) {
+                    userManager.set(AuthState.Registered(true))
+                }
             }.map { Unit }
     }
 
@@ -116,7 +116,7 @@ class AuthManager @Inject constructor(
         return credentialManager.onAccountPurchased()
             .fold(
                 onSuccess = {
-                    userManager.set(AuthState.LoggedIn)
+                    userManager.set(AuthState.LoggedInWithUser)
                     accountController.getUserFlags()
                         .onSuccess { userManager.set(it) }
                 },
@@ -149,9 +149,8 @@ class AuthManager @Inject constructor(
 
                 accountController.getUserFlags()
                     .onSuccess { flags ->
-                        println("flags: $flags")
                         userManager.set(flags)
-                        userManager.set(if (flags.isRegistered) AuthState.LoggedIn else AuthState.Registered())
+                        userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
                     }.onFailure {
                         taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
                         userManager.set(authState = AuthState.Registered())

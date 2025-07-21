@@ -169,7 +169,7 @@ internal fun App(
                                     userManager.authState
                                 ) {
                                     if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
-                                    if (userManager.authState !is AuthState.LoggedIn) {
+                                    if (userManager.authState !is AuthState.LoggedInWithUser) {
                                         // reset login request here
                                         // if we are not currently logged in, then the deeplink
                                         // is most likely being processed in [MainRoot] during launch
