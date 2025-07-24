@@ -186,7 +186,6 @@ internal class PoolBettingViewModel @Inject constructor(
             .filterIsInstance<Event.OnPoolIdChanged>()
             .map { it.poolId }
             .map {
-                dispatchEvent(Event.OnLoadingChanged(true))
                 poolsCoordinator.getPool(it)
             }
             .mapResult { cacheEntry ->
@@ -202,12 +201,10 @@ internal class PoolBettingViewModel @Inject constructor(
             }
             .onResult(
                 onSuccess = { data ->
-                    dispatchEvent(Event.OnLoadingChanged(false))
                     dispatchEvent(Event.OnPoolLoaded(data))
                     poolsCoordinator.onPoolOpened(data.pool.id)
                 },
                 onError = {
-                    dispatchEvent(Event.OnLoadingChanged(false))
                     BottomBarManager.showError(
                         resources.getString(R.string.error_title_poolNotFound),
                         resources.getString(R.string.error_description_poolNotFound),
