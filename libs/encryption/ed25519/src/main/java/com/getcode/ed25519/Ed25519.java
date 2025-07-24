@@ -1,5 +1,7 @@
 package com.getcode.ed25519;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Base64;
 
 import java.security.PrivateKey;
@@ -64,7 +66,7 @@ public class Ed25519 {
         return OnCurve(pubKey);
     }
 
-    public static class KeyPair {
+    public static class KeyPair implements Parcelable {
         private final String publicKey;
         private final String privateKey;
 
@@ -75,6 +77,24 @@ public class Ed25519 {
             this.privateKey = privateKey;
             this.seed = seed;
         }
+
+        protected KeyPair(Parcel in) {
+            publicKey = in.readString();
+            privateKey = in.readString();
+            seed = in.readString();
+        }
+
+        public static final Creator<KeyPair> CREATOR = new Creator<>() {
+            @Override
+            public KeyPair createFromParcel(Parcel in) {
+                return new KeyPair(in);
+            }
+
+            @Override
+            public KeyPair[] newArray(int size) {
+                return new KeyPair[size];
+            }
+        };
 
         public String getPublicKey() {
             return publicKey;
@@ -117,6 +137,18 @@ public class Ed25519 {
         @Override
         public int hashCode() {
             return Objects.hash(publicKey, privateKey);
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(publicKey);
+            dest.writeString(privateKey);
+            dest.writeString(seed);
         }
     }
 }

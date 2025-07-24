@@ -24,7 +24,7 @@ import kotlinx.parcelize.RawValue
 @Parcelize
 class PoolBettingScreen(
     val poolId: ID?,
-    val rendezvous: @RawValue Ed25519.KeyPair?,
+    val rendezvous: Ed25519.KeyPair?,
 ): ModalScreen, Parcelable {
     @Composable
     override fun ModalContent() {
