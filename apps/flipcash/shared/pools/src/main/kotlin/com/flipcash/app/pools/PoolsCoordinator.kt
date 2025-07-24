@@ -152,15 +152,20 @@ class PoolsCoordinator @Inject constructor(
         val networkPool = controller.getPool(rendezvous)
             .getOrElse { return Result.failure(it) }
 
+        val parameters = NetworkPoolMapperParameters(networkPool, rendezvous)
+        val mappedPool = networkToDomainMapper.map(parameters)
+        val (_, isHost, _, bets, _) = mappedPool
+
         // store the pool if we are the host or if we have bet already (and paid for it)
+        if (isHost || bets.find { it.userId == userManager.accountId }?.hasPaidForBet == true) {
+            dataSource.upsert(listOf(networkPool))
+        }
         dataSource.persistRendezvous(networkPool.metadata.id, rendezvous)
-        dataSource.upsert(listOf(networkPool))
 
         return runCatching {
             dataSource.getById(rendezvous.publicKeyBytes.toList())!!
         }.recoverCatching {
-            val params = NetworkPoolMapperParameters(networkPool, rendezvous)
-            networkToDomainMapper.map(params)
+            mappedPool
         }
     }
 
@@ -244,8 +249,10 @@ class PoolsCoordinator @Inject constructor(
             poolId = poolId,
             rendezvous = rendezvous,
             metadata = metadata,
-        ).onSuccess { dataSource.upsertBet(poolId, it, false) }
-            .map { it.id }
+        ).onSuccess {
+            dataSource.upsertBet(poolId, it, false)
+            getPool(poolId, CachePolicy.NetworkOnly) // get and store pool
+        }.map { it.id }
     }
 
     suspend fun onBetPaidForInPool(poolId: ID): Result<Unit> {
