@@ -217,7 +217,7 @@ class PoolsCoordinator @Inject constructor(
                 },
                 onFailure = { Result.failure(it) }
             ).onSuccess {
-                dataSource.resolvePool(pool.id, resolution)
+                updatePool(pool.id)
             }
     }
 
