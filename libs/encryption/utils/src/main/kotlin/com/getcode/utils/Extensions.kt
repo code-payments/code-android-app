@@ -37,8 +37,9 @@ fun ByteArray.decodeBase64(): ByteArray {
 val ByteArray.base64: String
     get() = Base64.encodeToString(this, Base64.NO_WRAP)
 
-fun ByteArray.encodeBase64(): String {
-    return Base64.encodeToString(this, Base64.NO_WRAP)
+fun ByteArray.encodeBase64(urlSafe: Boolean = false): String {
+    val flags = if (urlSafe) Base64.NO_WRAP or Base64.URL_SAFE else Base64.NO_WRAP
+    return Base64.encodeToString(this, flags)
 }
 
 fun ByteArray.encodeBase64ToArray(): ByteArray {

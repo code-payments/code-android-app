@@ -25,6 +25,7 @@ import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.utils.base64
+import com.getcode.opencode.utils.base64UrlSafe
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase64
@@ -218,7 +219,7 @@ internal class InternalShareSheetController(
     private fun sharePool(pool: Pool, rendezvous: Ed25519.KeyPair) {
         val decodedSeed = rendezvous.seed.decodeBase64()
         val data = PoolShareLinkData(pool)
-        val encodedData = Json.encodeToString(data).base64.toUri().toString()
+        val encodedData = Json.encodeToString(data).base64UrlSafe
         val url = Linkify.pool(data = encodedData,decodedSeed.base58)
         val intent = Intent().apply {
             action = Intent.ACTION_SEND

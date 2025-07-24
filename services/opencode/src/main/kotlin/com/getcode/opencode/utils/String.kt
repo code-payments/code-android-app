@@ -15,6 +15,9 @@ val String.base58: String
 val String.base64: String
     get() = toByteArray().encodeBase64()
 
+val String.base64UrlSafe: String
+    get() = toByteArray().encodeBase64(urlSafe = true)
+
 fun String.base64EncodedData(): ByteArray {
     val data = toByteArray()
     val r = data.size % 4
