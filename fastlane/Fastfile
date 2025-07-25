@@ -166,4 +166,13 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
         }
       )
     end
+
+    desc "Download store metadata for Flipcash"
+    lane :download_from_playstore_flipcash do
+        download_from_play_store(
+          package_name: "com.flipcash.android.app",
+          track: "production",
+          metadata_path: "fastlane/metadata/flipcash"
+        )
+    end
 end

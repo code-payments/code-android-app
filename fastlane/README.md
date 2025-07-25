@@ -23,29 +23,53 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Runs all the tests for Code
 
-### android fc_tests
+### android flipchat_tests
 
 ```sh
-[bundle exec] fastlane android fc_tests
+[bundle exec] fastlane android flipchat_tests
 ```
 
 Runs all the tests for Flipchat
 
-### android deploy_code_internal
+### android flipcash_tests
 
 ```sh
-[bundle exec] fastlane android deploy_code_internal
+[bundle exec] fastlane android flipcash_tests
 ```
 
-Build and Deploy a new internal version of Code to the Google Play
+Runs all the tests for Flipcash
 
-### android deploy_fc
+### android deploy_code
 
 ```sh
-[bundle exec] fastlane android deploy_fc
+[bundle exec] fastlane android deploy_code
+```
+
+Build and Deploy a new version of Code to the Google Play
+
+### android deploy_flipchat
+
+```sh
+[bundle exec] fastlane android deploy_flipchat
 ```
 
 Build and Deploy a new version of Flipchat to the Google Play Store
+
+### android deploy_flipcash
+
+```sh
+[bundle exec] fastlane android deploy_flipcash
+```
+
+Build and Deploy a new version of Flipcash to the Google Play Store
+
+### android download_from_playstore_flipcash
+
+```sh
+[bundle exec] fastlane android download_from_playstore_flipcash
+```
+
+Download store metadata for Flipcash
 
 ----
 

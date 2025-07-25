@@ -12,3 +12,9 @@ local.properties
 /app/release/**
 /app/debug/**
 .kotlin
+
+# DappStore
+apps/flipcash/app/dapp_publishing/node_modules/**
+## Fastlane
+fastlane/report.xml
+*.env.*
