@@ -288,7 +288,8 @@ object Libs {
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
 
     const val retrofit = "com.squareup.retrofit2:retrofit:${Versions.retrofit}"
-    const val retrofit_converter = "com.squareup.retrofit2:converter-gson:${Versions.retrofit}"
+    const val retrofit_converter_gson = "com.squareup.retrofit2:converter-gson:${Versions.retrofit}"
+    const val retrofit_converter_serialization = "com.squareup.retrofit2:converter-kotlinx-serialization:${Versions.retrofit}"
 
     const val androidx_test_runner =
         "androidx.test:runner:${Versions.androidx_test_runner}"

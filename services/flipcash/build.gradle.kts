@@ -45,6 +45,7 @@ android {
 
 dependencies {
     implementation(project(":definitions:flipcash:models"))
+    api(project(":libs:network:jwt"))
     api(project(":services:opencode"))
     implementation(project(":ui:resources"))
 

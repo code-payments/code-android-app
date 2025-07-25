@@ -18,6 +18,8 @@ import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
+import com.flipcash.app.onramp.OnRampTestScreen
+import com.flipcash.app.onramp.OnRampWebViewScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.pools.PoolBettingScreen
@@ -30,6 +32,7 @@ import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.transfers.TransferInformationalScreen
+import com.flipcash.app.web.WebViewScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
@@ -116,6 +119,18 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         
         register<NavScreenProvider.HomeScreen.ShareApp> {
             ShareAppScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.OnRamp.Test> {
+            OnRampTestScreen()
+        }
+
+        register<NavScreenProvider.HomeScreen.OnRamp.PaymentWebview> {
+            OnRampWebViewScreen(it.url)
+        }
+
+        register<NavScreenProvider.HomeScreen.OnRamp.PhoneVerification> {
+            WebViewScreen(it.url)
         }
 
         register<NavScreenProvider.HomeScreen.Menu.Root> {

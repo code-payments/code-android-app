@@ -12,8 +12,10 @@ import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
+import com.getcode.opencode.utils.Base58String
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.base58
+import com.getcode.utils.base58
 import com.getcode.utils.trace
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
@@ -176,12 +178,11 @@ class UserManager @Inject constructor(
 
     private fun associate() {
         if (!BuildConfig.DEBUG) {
-            val distinctId = accountCluster?.authorityPublicKey?.base58()
             if (Bugsnag.isStarted()) {
-                Bugsnag.setUser(distinctId, null, "")
+                Bugsnag.setUser(accountId?.base58, null, "")
             }
 
-            mixpanelAPI.identify(distinctId)
+            mixpanelAPI.identify(accountId?.base58)
         }
     }
 

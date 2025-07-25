@@ -214,7 +214,7 @@ dependencies {
     implementation(Libs.mixpanel)
 
     implementation(Libs.retrofit)
-    implementation(Libs.retrofit_converter)
+    implementation(Libs.retrofit_converter_gson)
     implementation(Libs.okhttp_logging_interceptor)
 
     androidTestImplementation(Libs.androidx_test_runner)

@@ -132,3 +132,16 @@ sealed class ClosePoolError(
     data class Other(override val cause: Throwable? = null) : ClosePoolError(message = cause?.message, cause = cause)
 }
 
+sealed class GetJwtError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: GetJwtError("Denied")
+    class UnsupportedProvider: GetJwtError("Unsupported provider")
+    class InvalidApiKey: GetJwtError("Invalid api key")
+    class PhoneVerificationRequired: GetJwtError("Phone verification required")
+    class EmailVerificationRequired: GetJwtError("Email verification required")
+    class Unrecognized : GetJwtError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : GetJwtError(message = cause?.message, cause = cause)
+}
+

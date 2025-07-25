@@ -12,16 +12,19 @@ import com.flipcash.services.internal.network.services.ActivityFeedService
 import com.flipcash.services.internal.network.services.PoolService
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.internal.network.services.PushService
+import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
 import com.flipcash.services.internal.repositories.InternalPoolRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
+import com.flipcash.services.internal.repositories.InternalThirdPartyRepository
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
 import com.flipcash.services.repository.PoolRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
+import com.flipcash.services.repository.ThirdPartyRepository
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
@@ -106,4 +109,9 @@ internal object FlipcashModule {
     internal fun providesPushRepository(
         service: PushService,
     ): PushRepository = InternalPushRepository(service)
+
+    @Provides
+    internal fun providesThirdPartyRepository(
+        service: ThirdPartyService,
+    ): ThirdPartyRepository = InternalThirdPartyRepository(service)
 }

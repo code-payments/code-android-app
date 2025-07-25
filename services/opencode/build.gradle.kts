@@ -97,7 +97,7 @@ dependencies {
     androidTestImplementation(Libs.androidx_test_runner)
 
     implementation(Libs.retrofit)
-    implementation(Libs.retrofit_converter)
+    implementation(Libs.retrofit_converter_gson)
     implementation(Libs.okhttp_logging_interceptor)
 
     implementation(Libs.hilt)

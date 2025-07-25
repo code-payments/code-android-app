@@ -5,11 +5,13 @@ import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.codeinc.flipcash.gen.pool.v1.Model as PoolModels
+import com.codeinc.flipcash.gen.thirdparty.v1.Model as ThirdPartyModels
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
@@ -124,5 +126,16 @@ internal fun PoolBetMetadata.toProto(): PoolModels.SignedBetMetadata {
         }
         .setPayoutDestination(payoutDestination.asPublicKey())
         .setTs(timestamp.asTimestamp())
+        .build()
+}
+
+internal fun Pair<ApiProvider, String>.asApiKey(): ThirdPartyModels.ApiKey {
+    return ThirdPartyModels.ApiKey.newBuilder()
+        .setProvider(
+            when (first) {
+                ApiProvider.Coinbase -> ThirdPartyModels.Provider.COINBASE
+            }
+        )
+        .setValue(second)
         .build()
 }

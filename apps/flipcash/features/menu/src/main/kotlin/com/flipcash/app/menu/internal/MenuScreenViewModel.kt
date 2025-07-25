@@ -32,6 +32,7 @@ private val FullMenuList = buildList {
     add(Deposit)
     add(MyAccount)
     add(AppSettings)
+    add(OnRamp)
     add(SwitchAccount)
     add(Labs)
     add(LogOut)

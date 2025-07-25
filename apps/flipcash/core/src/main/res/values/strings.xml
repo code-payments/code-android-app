@@ -270,4 +270,6 @@
         <item>Will Caleb dunk this basketball?</item>
         <item>Will Jill text her ex before dawn?</item>
     </string-array>
+
+    <string name="title_onramp">Purchase USDC</string>
 </resources>

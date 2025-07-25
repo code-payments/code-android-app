@@ -13,6 +13,7 @@ include(
         ":apps:flipcash:shared:appsettings",
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",
+        ":apps:flipcash:shared:coinbase-onramp",
         ':apps:flipcash:shared:google-play-billing',
         ":apps:flipcash:shared:currency-selection:core",
         ":apps:flipcash:shared:currency-selection:ui",
@@ -32,6 +33,7 @@ include(
         ":apps:flipcash:shared:theme",
         ":apps:flipcash:shared:transfers",
         ":apps:flipcash:shared:workers",
+        ":apps:flipcash:shared:web",
         // flipcash features
         ":apps:flipcash:features:login",
         ":apps:flipcash:features:scanner",
@@ -48,6 +50,7 @@ include(
         ":apps:flipcash:features:withdrawal",
         ":apps:flipcash:features:pools",
         ":apps:flipcash:features:payments",
+        ":apps:flipcash:features:onramp",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",
@@ -95,9 +98,13 @@ include(
         ":libs:network:exchange",
         ":libs:opengraph",
 
+        ":libs:network:coinbase:onramp",
+
         ":libs:network:connectivity:bindings",
         ":libs:network:connectivity:impl",
         ":libs:network:connectivity:public",
+
+        ":libs:network:jwt",
 
         ":libs:permissions:bindings",
         ":libs:permissions:impl",

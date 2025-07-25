@@ -58,6 +58,17 @@ internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
     )
 }
 
+internal data object OnRamp : StaffMenuItem<MenuScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_currency_dollar_active)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_onramp)
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        NavScreenProvider.HomeScreen.OnRamp.Test
+    )
+    override val featureFlag: FeatureFlag = FeatureFlag.OnRamp
+}
+
 internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_switchaccounts)

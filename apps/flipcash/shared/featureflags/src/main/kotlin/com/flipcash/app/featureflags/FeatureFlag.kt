@@ -54,6 +54,15 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object OnRamp: FeatureFlag {
+        override val key: String = "onramp_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
@@ -67,6 +76,7 @@ val FeatureFlag.title: String
         FeatureFlag.WelcomeBonusBill -> "Receive Welcome Bonus as a Bill"
         FeatureFlag.TransactionDetails -> "Transaction Details"
         FeatureFlag.Pools -> "Betting Pools"
+        FeatureFlag.OnRamp -> "Coinbase Onramp"
     }
 
 val FeatureFlag.message: String
@@ -76,6 +86,7 @@ val FeatureFlag.message: String
         FeatureFlag.WelcomeBonusBill -> "When enabled, the welcome bonus after creating an account will be presented as a bill that will be placed in your wallet instead of simply toasting"
         FeatureFlag.TransactionDetails -> "When enabled, you'll gain the ability to view details of each transaction from the balance screen"
         FeatureFlag.Pools -> "When enabled, you'll be able to participate in and create betting pools with other users for a chance to win a share of the prize"
+        FeatureFlag.OnRamp -> "When enabled, you'll gain the ability to purchase crypto directly"
     }
 
 

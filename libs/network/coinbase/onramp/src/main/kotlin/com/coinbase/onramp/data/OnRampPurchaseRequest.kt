@@ -1,0 +1,72 @@
+package com.coinbase.onramp.data
+
+import kotlinx.serialization.Serializable
+
+
+/**
+ * A request to purchase cryptocurrency with fiat.
+ *
+ * This request can be either inclusive of fees or exclusive of fees.
+ * - If inclusive of fees, the user will pay the exact amount of fiat specified in `paymentAmount`.
+ * - If exclusive of fees, the user will receive the exact amount of cryptocurrency specified in `purchaseAmount`.
+ *
+ * @property paymentCurrency The currency of the fiat to spend. For example, "USD".
+ * @property paymentMethod The payment method to use for the purchase. Currently only [OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY] is supported.
+ * @property phoneNumber The user's phone number. For example, "+14155551234".
+ * @property partnerUserRef A unique identifier for the user in your system. For example, "user123".
+ * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
+ */
+sealed interface OnRampPurchaseRequest {
+    val paymentCurrency: String // "USD"
+    val paymentMethod: OnRampPaymentMethod
+    val email: String // "satoshi.nakamoto@coinbase.com"
+    val phoneNumber: String // "+14155551234"
+    val partnerUserRef: String // "user123"
+    val purchaseCurrency: String
+
+    /**
+     * When submitting this request, the returned quote will be inclusive of fees
+     * i.e. the user will pay this exact amount of the payment currency.
+     * @property paymentAmount The amount of fiat to spend, in the currency specified by `paymentCurrency`.
+     * @property partnerUserRef A unique identifier for the user in your system.
+     * @property paymentMethod The payment method to use for the purchase. Currently only [OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY] is supported.
+     * @property email The user's email address.
+     * @property phoneNumber The user's phone number.
+     * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.
+     * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
+     */
+    @Serializable
+    data class InclusiveOfFees(
+        val paymentAmount: String, // "10"
+        override val partnerUserRef: String,
+        override val paymentMethod: OnRampPaymentMethod,
+        override val email: String,
+        override val phoneNumber: String,
+    ): OnRampPurchaseRequest {
+        override val paymentCurrency: String = "USD"
+        override val purchaseCurrency: String = "USDC"
+    }
+
+    /**
+     * When submitting this request, the returned quote will be exclusive of fees
+     * i.e. the user will receive this exact amount of the purchase currency.
+     *
+     * @property purchaseAmount The amount of cryptocurrency to purchase, in the currency specified by `purchaseCurrency`.
+     * @property partnerUserRef A unique identifier for the user in your system.
+     * @property paymentMethod The payment method to use for the purchase. Currently only [OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY] is supported.
+     * @property phoneNumber The user's phone number.
+     * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.
+     * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
+     */
+    @Serializable
+    data class ExclusiveOfFees(
+        val purchaseAmount: String, // "10"
+        override val partnerUserRef: String,
+        override val paymentMethod: OnRampPaymentMethod,
+        override val email: String,
+        override val phoneNumber: String,
+    ): OnRampPurchaseRequest {
+        override val paymentCurrency: String = "USD"
+        override val purchaseCurrency: String = "USDC"
+    }
+}
