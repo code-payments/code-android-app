@@ -13,8 +13,15 @@
     public static <fields>;
 }
 
-## Code API
--keep class com.codeinc.gen.** {*;}
+# Flipcash protos
+-keep class com.codeinc.flipcash.gen.** {*;}
+# Flipcash services
+-keep class com.flipcash.services.** {*;}
+# Opencode protos
+-keep class com.codeinc.opencode.gen.** {*;}
+# Opencode services
+-keep class com.getcode.opencode.** {*;}
+
 -keep class com.google.protobuf.** { *; }
 
 # Keep our scan classes that interact with native
