@@ -13,6 +13,6 @@ interface CoinbaseOnRampApi {
         // URL is provided by [OnRampApiConfig.path] to keep it centralized for the JWT request as well
         @Url url: String,
         @Header("Authorization") jwt: String,
-        @Body request: OnRampPurchaseRequest
+        @Body request: Map<String, String>
     ): OnRampPurchaseResponse
 }

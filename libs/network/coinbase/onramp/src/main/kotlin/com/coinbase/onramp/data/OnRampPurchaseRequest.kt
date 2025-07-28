@@ -1,7 +1,5 @@
 package com.coinbase.onramp.data
 
-import kotlinx.serialization.Serializable
-
 
 /**
  * A request to purchase cryptocurrency with fiat.
@@ -23,6 +21,8 @@ sealed interface OnRampPurchaseRequest {
     val phoneNumber: String // "+14155551234"
     val partnerUserRef: String // "user123"
     val purchaseCurrency: String
+    val destinationAddress: String
+    val destinationNetwork: String // solana
 
     /**
      * When submitting this request, the returned quote will be inclusive of fees
@@ -35,16 +35,17 @@ sealed interface OnRampPurchaseRequest {
      * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.
      * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
      */
-    @Serializable
     data class InclusiveOfFees(
         val paymentAmount: String, // "10"
         override val partnerUserRef: String,
         override val paymentMethod: OnRampPaymentMethod,
         override val email: String,
         override val phoneNumber: String,
+        override val destinationAddress: String,
     ): OnRampPurchaseRequest {
         override val paymentCurrency: String = "USD"
         override val purchaseCurrency: String = "USDC"
+        override val destinationNetwork: String = "solana"
     }
 
     /**
@@ -58,15 +59,44 @@ sealed interface OnRampPurchaseRequest {
      * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.
      * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
      */
-    @Serializable
     data class ExclusiveOfFees(
         val purchaseAmount: String, // "10"
         override val partnerUserRef: String,
         override val paymentMethod: OnRampPaymentMethod,
         override val email: String,
         override val phoneNumber: String,
+        override val destinationAddress: String,
     ): OnRampPurchaseRequest {
         override val paymentCurrency: String = "USD"
         override val purchaseCurrency: String = "USDC"
+        override val destinationNetwork: String = "solana"
+    }
+
+    fun asMap(): Map<String, String> {
+        return when (this) {
+            is InclusiveOfFees -> mapOf(
+                "paymentAmount" to paymentAmount,
+                "partnerUserRef" to partnerUserRef,
+                "paymentMethod" to paymentMethod.name,
+                "email" to email,
+                "phoneNumber" to phoneNumber,
+                "paymentCurrency" to paymentCurrency,
+                "purchaseCurrency" to purchaseCurrency,
+                "destinationAddress" to destinationAddress,
+                "destinationNetwork" to destinationNetwork,
+            )
+
+            is ExclusiveOfFees -> mapOf(
+                "purchaseAmount" to purchaseAmount,
+                "partnerUserRef" to partnerUserRef,
+                "paymentMethod" to paymentMethod.name,
+                "email" to email,
+                "phoneNumber" to phoneNumber,
+                "paymentCurrency" to paymentCurrency,
+                "purchaseCurrency" to purchaseCurrency,
+                "destinationAddress" to destinationAddress,
+                "destinationNetwork" to destinationNetwork,
+            )
+        }
     }
 }

@@ -22,9 +22,11 @@ object OnRampModule {
     @Singleton
     @Provides
     fun providesOnRampApiConfig(): OnRampApiConfig = OnRampApiConfig(
-        baseUrl = "https://api.developer.coinbase.com/onramp/",
-        path = "v2/onramp/order",
-        method = "POST"
+        schema = "https",
+        host = "api.developer.coinbase.com/",
+        path = "onramp/v2/onramp/order",
+        method = "POST",
+        useSandbox = true // for now
     )
 
     @Singleton
