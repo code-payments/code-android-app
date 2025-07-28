@@ -18,8 +18,8 @@ internal class InternalAccountRepository(
     override suspend fun login(owner: Ed25519.KeyPair): Result<ID> = service.login(owner)
         .onFailure { ErrorUtils.handleError(it) }
 
-    override suspend fun getUserFlags(owner: Ed25519.KeyPair, userId: ID): Result<UserFlags> =
-        service.getUserFlags(owner, userId)
+    override suspend fun getUserFlags(owner: Ed25519.KeyPair, userId: ID, countryCode: String): Result<UserFlags> =
+        service.getUserFlags(owner, userId, countryCode)
             .onFailure { ErrorUtils.handleError(it) }
             .map { mapper.map(it) }
 }

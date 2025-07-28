@@ -1,7 +1,9 @@
 package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.account.v1.AccountGrpcKt
+import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
+import com.flipcash.services.internal.network.extensions.asCountryCode
 import com.flipcash.services.internal.network.extensions.asPublicKey
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
@@ -61,9 +63,12 @@ internal class AccountApi @Inject constructor(
     suspend fun getUserFlags(
         userId: ID,
         owner: KeyPair,
+        countryCode: String,
     ): RpcAccountService.GetUserFlagsResponse {
         val request = RpcAccountService.GetUserFlagsRequest.newBuilder()
             .setUserId(userId.asUserId())
+            .setPlatform(Common.Platform.GOOGLE)
+            .setCountryCode(countryCode.asCountryCode())
             .apply { setAuth(authenticate(owner)) }
             .build()
 

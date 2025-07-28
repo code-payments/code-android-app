@@ -94,3 +94,7 @@ message Response {
         ERROR = 1;
     }
 }
+message CountryCode {
+    // ISO 3166-1 Alpha-2
+    string value = 1 ;
+}

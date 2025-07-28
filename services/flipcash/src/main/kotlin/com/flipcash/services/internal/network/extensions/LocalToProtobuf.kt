@@ -139,3 +139,7 @@ internal fun Pair<ApiProvider, String>.asApiKey(): ThirdPartyModels.ApiKey {
         .setValue(second)
         .build()
 }
+
+internal fun String.asCountryCode(): Common.CountryCode {
+    return Common.CountryCode.newBuilder().setValue(this).build()
+}

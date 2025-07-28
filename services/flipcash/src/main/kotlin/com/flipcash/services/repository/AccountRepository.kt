@@ -7,5 +7,5 @@ import com.getcode.opencode.model.core.ID
 interface AccountRepository {
     suspend fun register(owner: KeyPair): Result<ID>
     suspend fun login(owner: KeyPair): Result<ID>
-    suspend fun getUserFlags(owner: KeyPair, userId: ID): Result<UserFlags>
+    suspend fun getUserFlags(owner: KeyPair, userId: ID, countryCode: String): Result<UserFlags>
 }

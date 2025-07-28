@@ -75,9 +75,13 @@ internal class AccountService @Inject constructor(
         )
     }
 
-    suspend fun getUserFlags(owner: KeyPair, userId: ID): Result<RpcAccountService.UserFlags> {
+    suspend fun getUserFlags(
+        owner: KeyPair,
+        userId: ID,
+        countryCode: String
+    ): Result<RpcAccountService.UserFlags> {
         return runCatching {
-            api.getUserFlags(userId, owner)
+            api.getUserFlags(userId, owner, countryCode)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {

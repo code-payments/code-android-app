@@ -4,11 +4,13 @@ import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.util.locale.LocaleHelper
 import javax.inject.Inject
 
 class AccountController @Inject constructor(
     private val repository: AccountRepository,
     private val userManager: UserManager,
+    private val localeHelper: LocaleHelper,
 ) {
     suspend fun createAccount(): Result<ID> {
         val owner = userManager.accountCluster?.authority?.keyPair
@@ -29,9 +31,12 @@ class AccountController @Inject constructor(
         val userId = userManager.accountId
             ?: return Result.failure(Throwable("No user ID in UserManager"))
 
+        val countryCode = localeHelper.getDefaultCountry()
+
         return repository.getUserFlags(
             owner = owner,
-            userId = userId
+            userId = userId,
+            countryCode = countryCode
         )
     }
 }
