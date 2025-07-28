@@ -2,7 +2,7 @@ publisher:
   name: Flipcash
   website: https://flipcash.com
   email: support@flipcash.com
-  address:
+  address: null
   media:
     - purpose: icon
       uri: ../../../../fastlane/metadata/flipcash/en-US/images/icon.png
@@ -12,7 +12,7 @@ publisher:
       uri: .../../../../fastlane/metadata/flipcash/en-US/dappStore/featureGraphic.png
 app:
   name: Flipcash
-  address: ''
+  address: BiJpNgpFRtxWfgSgypWp7q8VddRgmAHpKPU5KtM8CXvr
   android_package: com.flipcash.android.app
   urls:
     license_url: https://www.flipcash.com/terms
