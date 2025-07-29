@@ -170,6 +170,21 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
         }
     }
 
+    fun show(screens: List<Screen>) {
+        coroutineScope.launch {
+            if (sheetStacks.isEmpty) {
+                replaceAll(screens)
+                // setup stack
+                val firstScreen = items.first()
+                val remainingScreens = items.drop(1)
+                sheetStacks.push(firstScreen to remainingScreens)
+                sheetState.show()
+            } else {
+                hideAndShow(screens)
+            }
+        }
+    }
+
     private suspend fun hideAndShow(screen: Screen) {
         if (isVisible) {
             // animate sheet out
@@ -185,6 +200,26 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             Timber.e("shouldn't get here; but ensuring a sheet is shown when requested.")
             sheetStacks.popAll()
             show(screen)
+        }
+    }
+
+    private suspend fun hideAndShow(screens: List<Screen>) {
+        if (isVisible) {
+            // animate sheet out
+            sheetState.hide()
+            // replacing w/ dummy sheet
+            replaceAll(HiddenBottomSheetScreen)
+            // push new stack
+            val firstScreen = items.first()
+            val remainingScreens = items.drop(1)
+            sheetStacks.push(firstScreen to remainingScreens)
+            // show new sheet
+            replaceAll(screens)
+            sheetState.show()
+        } else {
+            Timber.e("shouldn't get here; but ensuring a sheet is shown when requested.")
+            sheetStacks.popAll()
+            show(screens)
         }
     }
 

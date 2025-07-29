@@ -49,18 +49,8 @@ class CombinedNavigator(
     }
 
     override fun show(items: List<Screen>) {
-        launch {
-            if (items.isEmpty()) return@launch
-            val firstScreen = items.first()
-            val remainingScreens = items.drop(1)
-            sheetNavigator.show(firstScreen)
-            if (remainingScreens.isNotEmpty()) {
-                while (!sheetFullyVisible) {
-                    delay(50)
-                }
-                sheetNavigator.push(remainingScreens)
-            }
-        }
+        if (items.isEmpty()) return
+        sheetNavigator.show(items)
     }
 
     override fun hide() {
