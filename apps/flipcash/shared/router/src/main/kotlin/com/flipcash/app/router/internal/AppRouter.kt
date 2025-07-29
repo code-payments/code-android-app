@@ -8,6 +8,9 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.router.Router
+import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
+import com.flipcash.app.router.internal.AppRouter.Companion.login
+import com.flipcash.app.router.internal.AppRouter.Companion.pool
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import dev.theolm.rinku.DeepLink
@@ -55,36 +58,39 @@ internal class AppRouter(
 
     override fun processType(deeplink: DeepLink?): DeeplinkType? {
         return deeplink?.let {
-            when (deeplink.pathSegments.size) {
-                1 -> {
-                    when {
-                        login.contains(deeplink.pathSegments[0]) -> {
-                            val uri = deeplink.data.toUri()
-                            var entropy = uri.fragments[Key.entropy]
-                            if (entropy == null) {
-                                entropy = uri.getQueryParameter("data")
-                            }
-
-                            entropy ?: return null
-
-                            DeeplinkType.Login(entropy)
-                        }
-
-                        cashLink.contains(deeplink.pathSegments[0]) -> {
-                            val entropy = deeplink.data.toUri().fragments[Key.entropy] ?: return null
-
-                            DeeplinkType.CashLink(entropy)
-                        }
-
-                        pool.contains(deeplink.pathSegments[0]) -> {
-                            val seed = deeplink.data.toUri().fragments[Key.entropy] ?: return null
-                            DeeplinkType.Pool(seed)
-                        }
-                        else -> null
-                    }
-                }
+            when {
+                deeplink.isLogin() -> deeplink.handleLoginLink()
+                deeplink.isCashLink() -> deeplink.handleCashLink()
+                deeplink.isPool() -> deeplink.handlePoolLink()
                 else -> null
             }
         }
     }
+}
+
+private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments[0])
+private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])
+private fun DeepLink.isPool(): Boolean = pool.contains(pathSegments[0])
+
+private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
+    val uri = data.toUri()
+    var entropy = uri.fragments[Key.entropy]
+    if (entropy == null) {
+        entropy = uri.getQueryParameter("data")
+    }
+
+    entropy ?: return null
+
+    return DeeplinkType.Login(entropy)
+}
+
+private fun DeepLink.handleCashLink(): DeeplinkType.CashLink? {
+    val entropy = data.toUri().fragments[Key.entropy] ?: return null
+
+    return DeeplinkType.CashLink(entropy)
+}
+
+private fun DeepLink.handlePoolLink(): DeeplinkType.Pool? {
+    val seed = data.toUri().fragments[Key.entropy] ?: return null
+    return DeeplinkType.Pool(seed)
 }
