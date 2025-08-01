@@ -6,6 +6,7 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
+    id(Plugins.kotlin_serialization)
     id(Plugins.jetbrains_compose_compiler)
 }
 
@@ -52,6 +53,7 @@ dependencies {
     implementation(Libs.compose_webview)
 
     implementation(Libs.androidx_localbroadcastmanager)
+    implementation(Libs.kotlinx_serialization_json)
 
     implementation(project(":apps:flipcash:core"))
     api(project(":libs:network:coinbase:onramp"))

@@ -1,5 +1,7 @@
 package com.coinbase.onramp.data
 
+import kotlinx.datetime.Clock
+
 
 /**
  * A request to purchase cryptocurrency with fiat.
@@ -84,6 +86,8 @@ sealed interface OnRampPurchaseRequest {
                 "purchaseCurrency" to purchaseCurrency,
                 "destinationAddress" to destinationAddress,
                 "destinationNetwork" to destinationNetwork,
+                "agreementAcceptedAt" to Clock.System.now().toString(),
+                "phoneNumberVerifiedAt" to Clock.System.now().toString(),
             )
 
             is ExclusiveOfFees -> mapOf(
@@ -96,6 +100,8 @@ sealed interface OnRampPurchaseRequest {
                 "purchaseCurrency" to purchaseCurrency,
                 "destinationAddress" to destinationAddress,
                 "destinationNetwork" to destinationNetwork,
+                "agreementAcceptedAt" to Clock.System.now().toString(),
+                "phoneNumberVerifiedAt" to Clock.System.now().toString(),
             )
         }
     }

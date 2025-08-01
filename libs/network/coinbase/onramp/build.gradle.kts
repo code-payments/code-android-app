@@ -39,7 +39,7 @@ android {
 dependencies {
     implementation(Libs.kotlinx_datetime)
 
-    implementation(Libs.retrofit)
+    api(Libs.retrofit)
     implementation(Libs.retrofit_converter_serialization)
     implementation(Libs.okhttp_logging_interceptor)
     implementation(Libs.kotlinx_serialization_core)

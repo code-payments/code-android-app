@@ -21,7 +21,7 @@ internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_deposit)
     override val name: String
-        @Composable get() = stringResource(R.string.title_depositUsdc)
+        @Composable get() = stringResource(R.string.title_addFundsToWallet)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
         NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming)
     )
@@ -58,15 +58,14 @@ internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
     )
 }
 
-internal data object OnRamp : StaffMenuItem<MenuScreenViewModel.Event>() {
+internal data object OnRamp : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_currency_dollar_active)
+        @Composable get() = painterResource(R.drawable.ic_menu_deposit)
     override val name: String
-        @Composable get() = stringResource(R.string.title_onramp)
+        @Composable get() = stringResource(R.string.title_addFundsToWallet)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.OnRamp.Test
+        NavScreenProvider.HomeScreen.OnRamp.ProviderList
     )
-    override val featureFlag: FeatureFlag = FeatureFlag.OnRamp
 }
 
 internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() {

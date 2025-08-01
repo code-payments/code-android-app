@@ -75,7 +75,9 @@ message UserFlags {
 	// and locale if provided
 	repeated OnRampProvider supported_on_ramp_providers = 4 ;
 	enum OnRampProvider {
-		UNKNOWN  = 0;
-		COINBASE = 1;
+		UNKNOWN                  = 0;
+		COINBASE_VIRTUAL         = 1;
+		COINBASE_PHYSICAL_DEBIT  = 2;
+		COINBASE_PHYSICAL_CREDIT = 3;
 	}
 }

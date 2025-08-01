@@ -59,8 +59,9 @@
     <string name="subtitle_balanceEmptyState">Ask a friend to give you some cash with Flipcash, or deposit USDC from your crypto exchange or another crypto wallet</string>
     <string name="action_depositFunds">Deposit Funds</string>
 
+    <string name="title_addFundsToWallet">Add Funds to Your Wallet</string>
     <string name="title_depositUsdc">Deposit</string>
-    <string name="title_withdrawUsdc">Withdraw</string>
+    <string name="title_withdrawUsdc">Withdraw Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
 
@@ -271,5 +272,9 @@
         <item>Will Jill text her ex before dawn?</item>
     </string-array>
 
-    <string name="title_onramp">Purchase USDC</string>
+    <string name="title_addCash">Add Cash</string>
+    <string name="title_amountToAdd">Amount to Add</string>
+
+    <string name="subtitle_onrampPurchaseHint">Enter up to %1$s</string>
+    <string name="subtitle_onrampPurchaseExceeded">You can only add up to %1$s</string>
 </resources>

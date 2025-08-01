@@ -1,7 +1,7 @@
 package com.coinbase.onramp.internal
 
 import com.coinbase.onramp.annotations.OnRampClient
-import com.coinbase.onramp.api.CoinbaseOnRampApi
+import com.coinbase.onramp.api.CoinbaseApi
 import com.coinbase.onramp.data.OnRampApiConfig
 import dagger.Module
 import dagger.Provides
@@ -17,7 +17,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object OnRampModule {
+object CoinbaseModule {
 
     @Singleton
     @Provides
@@ -65,5 +65,5 @@ object OnRampModule {
     @Singleton
     fun provideOnRampApi(
         @OnRampClient retrofit: Retrofit
-    ): CoinbaseOnRampApi = retrofit.create(CoinbaseOnRampApi::class.java)
+    ): CoinbaseApi = retrofit.create(CoinbaseApi::class.java)
 }

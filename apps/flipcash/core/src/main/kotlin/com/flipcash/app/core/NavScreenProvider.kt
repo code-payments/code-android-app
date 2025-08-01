@@ -55,11 +55,10 @@ sealed class NavScreenProvider : ScreenProvider {
 
         data object ShareApp : NavScreenProvider()
 
-        sealed class OnRamp {
-            data object Test : NavScreenProvider()
-            data class PaymentWebview(val url: String) : NavScreenProvider()
-            data class PhoneVerification(val url: String): NavScreenProvider()
-        }
+       sealed class OnRamp {
+           data object ProviderList: NavScreenProvider()
+           data object Amount : NavScreenProvider()
+       }
 
         sealed class Menu {
             data object Root : NavScreenProvider()

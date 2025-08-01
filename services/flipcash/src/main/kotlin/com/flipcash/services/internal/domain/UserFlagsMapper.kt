@@ -3,6 +3,7 @@ package com.flipcash.services.internal.domain
 import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
 
@@ -14,9 +15,12 @@ internal class UserFlagsMapper @Inject constructor():
             isStaff = from.isStaff,
             requiresIapForRegistration = from.requiresIapForRegistration,
             supportedOnRampProviders = from.supportedOnRampProvidersList.map {
-                when (it) {
-                    FlipcashAccountService.UserFlags.OnRampProvider.COINBASE -> OnRampProvider.Coinbase
-                    else -> OnRampProvider.Unknown
+                when (val ramp = it) {
+                    FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN -> OnRampProvider.Unknown
+                    FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_VIRTUAL -> OnRampProvider.Coinbase(OnRampType.Virtual)
+                    FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_DEBIT -> OnRampProvider.Coinbase(OnRampType.PhysicalDebit)
+                    FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_CREDIT -> OnRampProvider.Coinbase(OnRampType.PhysicalCredit)
+                    FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown
                 }
             }
         )

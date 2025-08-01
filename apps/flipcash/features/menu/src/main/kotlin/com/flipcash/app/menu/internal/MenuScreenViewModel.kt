@@ -6,6 +6,7 @@ import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.BetaFeature
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.menu.R
@@ -28,11 +29,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(Withdraw)
     add(Deposit)
+    add(OnRamp)
+    add(Withdraw)
     add(MyAccount)
     add(AppSettings)
-    add(OnRamp)
     add(SwitchAccount)
     add(Labs)
     add(LogOut)
@@ -158,6 +159,8 @@ internal class MenuScreenViewModel @Inject constructor(
             overrode: Boolean,
             flags: List<BetaFeature> = emptyList(),
         ): List<MenuItem<Event>> {
+            // swap onramp for deposit if enabled
+            val isOnRampEnabled = flags.find { it.flag is FeatureFlag.OnRamp }?.enabled ?: false
             return if (isStaff || overrode) {
                 FullMenuList
                     .filter { item ->
@@ -180,6 +183,12 @@ internal class MenuScreenViewModel @Inject constructor(
                             true
                         }
                     }
+            }.filter { item ->
+                when (item) {
+                    Deposit -> !isOnRampEnabled
+                    OnRamp -> isOnRampEnabled
+                    else -> true
+                }
             }
         }
 
@@ -228,7 +237,7 @@ internal class MenuScreenViewModel @Inject constructor(
                             overrode = state.unlockedBetaFeaturesManually,
                             flags = event.flags
                         ),
-                        flags = event.flags
+                        flags = event.flags,
                     )
                 }
             }
