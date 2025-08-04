@@ -2,9 +2,11 @@ package com.flipcash.app.core.navigation
 
 import android.net.Uri
 import android.os.Parcelable
+import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.phantom.PhantomConnectionResult
+import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.utils.base58
-import com.getcode.utils.encodeBase64
+import com.getcode.opencode.model.core.ID
 import com.getcode.vendor.Base58
 import kotlinx.parcelize.Parcelize
 
@@ -15,8 +17,12 @@ sealed interface DeeplinkType: Parcelable {
     data class Pool(val seed: String) : DeeplinkType {
         val rendezvous: Ed25519.KeyPair
             get() = Ed25519.createKeyPair(Base58.decode(seed))
-
     }
+
+    data class PhantomConnection(
+        val origin: PhantomDeeplinkOrigin,
+        val result: PhantomConnectionResult,
+    ): DeeplinkType
 }
 
 val Uri.fragments: Map<Key, String>

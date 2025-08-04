@@ -48,9 +48,9 @@ object CodeNavigatorStub : CodeNavigator {
 
     override fun replace(item: Screen) = Unit
 
-    override fun replaceAll(item: Screen, inSheet: Boolean) = Unit
+    override fun replaceAll(item: Screen) = Unit
 
-    override fun replaceAll(items: List<Screen>, inSheet: Boolean) = Unit
+    override fun replaceAll(items: List<Screen>) = Unit
 
     override fun isAtRoot(): Boolean = true
 
@@ -100,9 +100,9 @@ interface CodeNavigator: NavigationLocator {
 
     infix fun replace(item: Screen)
 
-    fun replaceAll(item: Screen, inSheet: Boolean = false)
+    fun replaceAll(item: Screen)
 
-    fun replaceAll(items: List<Screen>, inSheet: Boolean = false)
+    fun replaceAll(items: List<Screen>)
 
     fun isAtRoot(): Boolean
     override fun pop(): Boolean

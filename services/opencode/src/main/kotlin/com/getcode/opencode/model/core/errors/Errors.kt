@@ -83,20 +83,6 @@ sealed class SendMessageError(
     data class Other(override val cause: Throwable? = null) : SendMessageError(message = cause?.message, cause = cause)
 }
 
-enum class DeniedReason {
-    Unspecified,
-    TooManyFreeAccountsForPhoneNumber,
-    TooManyFreeAccountsForDevice,
-    UnsupportedCountry,
-    UnsupportedDevice;
-
-    companion object {
-        fun fromValue(value: Int): DeniedReason {
-            return entries.firstOrNull { it.ordinal == value } ?: Unspecified
-        }
-    }
-}
-
 sealed class SubmitIntentError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -108,7 +94,7 @@ sealed class SubmitIntentError(
     data class StaleState(private val reasons: List<String>) :
         SubmitIntentError(message = reasons.joinToString())
 
-    data class Denied(private val reasons: List<DeniedReason>) :
+    data class Denied(private val reasons: List<String>) :
         SubmitIntentError(message = reasons.joinToString())
 
     class Unrecognized : SubmitIntentError("Unrecognized")
@@ -128,7 +114,7 @@ sealed class SubmitIntentError(
                 SubmitIntentResponse.Error.Code.DENIED -> {
                     val reasons = proto.errorDetailsList.mapNotNull {
                         if (!it.hasDenied()) return@mapNotNull null
-                        DeniedReason.fromValue(it.denied.codeValue)
+                        it.denied.reason
                     }
 
                     Denied(reasons)

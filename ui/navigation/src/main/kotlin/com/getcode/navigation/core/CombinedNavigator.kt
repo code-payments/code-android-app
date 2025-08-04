@@ -8,6 +8,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
+import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.AppScreen
 import com.getcode.navigation.screens.ChildNavTab
 import kotlinx.coroutines.CoroutineScope
@@ -103,18 +104,16 @@ class CombinedNavigator(
         sheetNavigator.replace(item)
     }
 
-    override fun replaceAll(item: Screen, inSheet: Boolean) {
-        replaceAll(listOf(item), inSheet)
+    override fun replaceAll(item: Screen) {
+        replaceAll(listOf(item))
     }
 
-    override fun replaceAll(items: List<Screen>, inSheet: Boolean,) {
-        if (isVisible && inSheet) {
-            sheetNavigator.replaceAll(items)
-        } else {
-            if (isVisible) {
-                hide()
-            }
-            screensNavigator?.replaceAll(items)
+    override fun replaceAll(items: List<Screen>) {
+        val modalScreens = items.filterIsInstance<ModalScreen>()
+        val otherScreens = items.filterNot { it is ModalScreen }
+        screensNavigator?.replaceAll(otherScreens)
+        if (modalScreens.isNotEmpty()) {
+            sheetNavigator.replaceAll(modalScreens)
         }
     }
 

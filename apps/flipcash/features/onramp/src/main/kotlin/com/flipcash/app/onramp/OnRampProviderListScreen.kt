@@ -12,8 +12,11 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.onramp.OnRampFlowTracker
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.onramp.internal.OnRampViewModel
+import com.flipcash.app.onramp.internal.data.LocalPhantomDepositState
+import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
+import com.flipcash.app.onramp.internal.data.PhantomDeeplinkState
 import com.flipcash.app.onramp.internal.screens.OnRampProviderListScreen
 import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -29,7 +32,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class OnRampProviderListScreen : ModalScreen, NamedScreen, Parcelable {
+class OnRampProviderListScreen: ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -42,6 +45,8 @@ class OnRampProviderListScreen : ModalScreen, NamedScreen, Parcelable {
         val navigator = LocalCodeNavigator.current
 
         val viewModel = getStackScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
+
+        val phantomDepositState = LocalPhantomDepositState.current
 
         Box {
             Column(
@@ -63,9 +68,28 @@ class OnRampProviderListScreen : ModalScreen, NamedScreen, Parcelable {
             viewModel.eventFlow
                 .filterIsInstance<OnRampViewModel.Event.OnProviderSelected>()
                 .map { it.item.destination }
+                .filterIsInstance<OnRampProviderDestination.Screen>()
+                .map { it.screen }
                 .onEach { destination ->
                     navigator.push(ScreenRegistry.get(destination))
                 }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<OnRampViewModel.Event.OnProviderSelected>()
+                .map { it.item.destination }
+                .filterIsInstance<OnRampProviderDestination.PhantomConnection>()
+                .onEach {
+                    if (phantomDepositState.deeplinkState == PhantomDeeplinkState.CONNECTED) {
+                        // we are connected, so we can move forward
+                        navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                    } else {
+                        phantomDepositState.setOrigin(OnRampFlowTracker.source)
+                        phantomDepositState.start()
+                    }
+                }
+                .launchIn(this)
         }
     }
 }

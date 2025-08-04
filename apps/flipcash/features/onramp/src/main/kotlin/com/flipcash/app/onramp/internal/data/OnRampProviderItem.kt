@@ -8,9 +8,13 @@ import com.flipcash.features.onramp.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 
+sealed interface OnRampProviderDestination {
+    data object PhantomConnection: OnRampProviderDestination
+    data class Screen(val screen: NavScreenProvider): OnRampProviderDestination
+}
 data class OnRampProviderItem(
     val provider: OnRampProvider.Defined,
-    val destination: NavScreenProvider
+    val destination: OnRampProviderDestination
 ) {
     val icon: Painter
         @Composable get() = when (provider) {
@@ -21,6 +25,7 @@ data class OnRampProviderItem(
             }
 
             OnRampProvider.CryptoDeposit -> painterResource(R.drawable.ic_wallet)
+            OnRampProvider.Phantom ->  painterResource(R.drawable.ic_phantom)
         }
 
     val title: String
@@ -32,6 +37,7 @@ data class OnRampProviderItem(
             }
 
             is OnRampProvider.CryptoDeposit -> "Crypto Wallet"
+            OnRampProvider.Phantom -> "Phantom"
         }
 
     val description: String
@@ -43,6 +49,7 @@ data class OnRampProviderItem(
             }
 
             is OnRampProvider.CryptoDeposit -> "Deposit USDC from your crypto wallet"
+            OnRampProvider.Phantom -> "Add cash to your wallet from Phantom"
         }
 }
 

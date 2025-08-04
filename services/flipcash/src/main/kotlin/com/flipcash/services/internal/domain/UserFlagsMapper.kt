@@ -16,10 +16,13 @@ internal class UserFlagsMapper @Inject constructor():
             requiresIapForRegistration = from.requiresIapForRegistration,
             supportedOnRampProviders = from.supportedOnRampProvidersList.map {
                 when (val ramp = it) {
-                    FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN -> OnRampProvider.Unknown
                     FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_VIRTUAL -> OnRampProvider.Coinbase(OnRampType.Virtual)
                     FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_DEBIT -> OnRampProvider.Coinbase(OnRampType.PhysicalDebit)
                     FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_CREDIT -> OnRampProvider.Coinbase(OnRampType.PhysicalCredit)
+                    FlipcashAccountService.UserFlags.OnRampProvider.CRYPTO_WALLET -> OnRampProvider.CryptoDeposit
+                    FlipcashAccountService.UserFlags.OnRampProvider.PHANTOM -> OnRampProvider.Phantom
+
+                    FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN,
                     FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown
                 }
             }

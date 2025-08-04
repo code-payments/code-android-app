@@ -7,6 +7,7 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampWebError
 import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.OnRampController
+import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.data.OnRampProviderItem
 import com.flipcash.features.onramp.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -67,6 +68,13 @@ internal data class AmountEntryState(
         }
 }
 
+private val DefaultOnRampOptions = listOf(
+    OnRampProviderItem(
+        provider = OnRampProvider.CryptoDeposit,
+        destination = OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming))
+    )
+)
+
 @HiltViewModel
 internal class OnRampViewModel @Inject constructor(
     userManager: UserManager,
@@ -83,8 +91,8 @@ internal class OnRampViewModel @Inject constructor(
 
     data class State(
         val loading: Boolean = false,
-        val providers: List<OnRampProviderItem> = emptyList(),
-        val selectedProvider: OnRampProvider.Defined? = null,
+        val providers: List<OnRampProviderItem> = DefaultOnRampOptions,
+        val selectedProvider: OnRampProvider.ThirdParty? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
     )
 
@@ -117,6 +125,8 @@ internal class OnRampViewModel @Inject constructor(
         ) : Event
 
         data class OnAmountAccepted(val amount: Fiat) : Event
+
+        data class ConnectAndSendFromPhantom(val amount: Fiat) : Event
         // endregion
     }
 
@@ -248,21 +258,34 @@ internal class OnRampViewModel @Inject constructor(
         userManager.state
             .map { it.flags?.supportedOnRampProviders.orEmpty() }
             .onEach { providers ->
-                val providersWithDeposit = providers.plus(OnRampProvider.CryptoDeposit)
+                val providersWithDeposit = providers
+                    // always ensure that deposit is available
+                    .ifEmpty { listOf(OnRampProvider.CryptoDeposit) }
+//                    .plus(OnRampProvider.Phantom)
+                    // ensure deposit is last
+                    .sortedBy { if (it is OnRampProvider.CryptoDeposit) 1 else 0 }
+
                 val filteredProviders =
                     providersWithDeposit.filterIsInstance<OnRampProvider.Defined>()
                         .map { provider ->
                             OnRampProviderItem(
                                 provider = provider,
                                 destination = when (provider) {
-                                    OnRampProvider.CryptoDeposit -> NavScreenProvider.HomeScreen.Menu.Transfers.Learn(
-                                        TransferDirection.Incoming
-                                    )
+                                    OnRampProvider.CryptoDeposit ->
+                                        OnRampProviderDestination.Screen(
+                                            NavScreenProvider.HomeScreen.Menu.Transfers.Learn(
+                                                TransferDirection.Incoming
+                                            )
+                                        )
 
                                     is OnRampProvider.Coinbase -> when (provider.type) {
                                         OnRampType.Virtual -> TODO()
-                                        OnRampType.PhysicalDebit -> NavScreenProvider.HomeScreen.OnRamp.Amount
-                                        OnRampType.PhysicalCredit -> NavScreenProvider.HomeScreen.OnRamp.Amount
+                                        OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
+                                        OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
+                                    }
+
+                                    OnRampProvider.Phantom -> {
+                                        OnRampProviderDestination.PhantomConnection
                                     }
                                 }
                             )
@@ -272,51 +295,62 @@ internal class OnRampViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnAmountAccepted>()
-            .map { it.amount }
-            .onEach { selectedAmount ->
-                val provider =
-                    stateFlow.value.selectedProvider as? OnRampProvider.Coinbase ?: return@onEach
-                when (provider.type) {
-                    OnRampType.Virtual -> onRampController.placeOrderExclusiveOfFees(selectedAmount)
-                        .onSuccess {
-                            dispatchEvent(Event.OnPaymentLinkGenerated(it.url))
-                        }.onFailure { error ->
-                            when (error) {
-                                is OnRampAuthError.EmailVerificationRequired -> {
-                                    BottomBarManager.showError(
-                                        title = "Email verification required",
-                                        message = "Please verify your email address to continue",
-                                    )
-                                }
+            .mapNotNull {
+                val provider = stateFlow.value.selectedProvider ?: return@mapNotNull null
+                it.amount to provider
+            }
+            .onEach { (selectedAmount, provider) ->
+                when (provider) {
+                    is OnRampProvider.Coinbase -> {
+                        when (provider.type) {
+                            OnRampType.Virtual -> onRampController.placeOrderExclusiveOfFees(
+                                selectedAmount
+                            )
+                                .onSuccess {
+                                    dispatchEvent(Event.OnPaymentLinkGenerated(it.url))
+                                }.onFailure { error ->
+                                    when (error) {
+                                        is OnRampAuthError.EmailVerificationRequired -> {
+                                            BottomBarManager.showError(
+                                                title = "Email verification required",
+                                                message = "Please verify your email address to continue",
+                                            )
+                                        }
 
-                                is OnRampAuthError.PhoneVerificationRequired -> {
-                                    BottomBarManager.showError(
-                                        title = "Phone verification required",
-                                        message = "Please verify your phone number to continue",
-                                    )
-                                }
+                                        is OnRampAuthError.PhoneVerificationRequired -> {
+                                            BottomBarManager.showError(
+                                                title = "Phone verification required",
+                                                message = "Please verify your phone number to continue",
+                                            )
+                                        }
 
-                                is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
-                                    BottomBarManager.showError(
-                                        title = "Phone verification required",
-                                        message = "Please verify your phone number with Coinbase to continue",
-                                    ) {
+                                        is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
+                                            BottomBarManager.showError(
+                                                title = "Phone verification required",
+                                                message = "Please verify your phone number with Coinbase to continue",
+                                            ) {
 //                                        dispatchEvent(Event.OnPhoneVerificationRequired(error.url))
+                                            }
+                                        }
+
+                                        else -> {
+                                            BottomBarManager.showError(
+                                                title = "Error",
+                                                message = error.message ?: "Unknown error",
+                                            )
+                                        }
                                     }
                                 }
 
-                                else -> {
-                                    BottomBarManager.showError(
-                                        title = "Error",
-                                        message = error.message ?: "Unknown error",
-                                    )
-                                }
+                            OnRampType.PhysicalDebit,
+                            OnRampType.PhysicalCredit -> {
+                                TODO()
                             }
                         }
+                    }
 
-                    OnRampType.PhysicalDebit,
-                    OnRampType.PhysicalCredit -> {
-                        TODO()
+                    OnRampProvider.Phantom -> {
+                        dispatchEvent(Event.ConnectAndSendFromPhantom(selectedAmount))
                     }
                 }
             }.launchIn(viewModelScope)
@@ -325,7 +359,7 @@ internal class OnRampViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnProviderSelected -> { state -> state.copy(selectedProvider = event.item.provider) }
+                is Event.OnProviderSelected -> { state -> state.copy(selectedProvider = event.item.provider as? OnRampProvider.ThirdParty) }
                 is Event.OnProvidersUpdated -> { state -> state.copy(providers = event.providers) }
 
                 is Event.OnAmountAccepted -> { state ->
@@ -380,6 +414,7 @@ internal class OnRampViewModel @Inject constructor(
                     )
                 }
 
+                is Event.ConnectAndSendFromPhantom,
                 is Event.OnPaymentSuccess,
                 is Event.OnPaymentError,
                 is Event.OnPaymentLinkGenerated,

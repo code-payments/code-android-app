@@ -21,6 +21,7 @@ import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampAmountScreen
 import com.flipcash.app.onramp.OnRampProviderListScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
+import com.flipcash.app.onramp.internal.data.LocalPhantomDepositState
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.pools.PoolBettingScreen
@@ -122,7 +123,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.OnRamp.ProviderList> {
-            OnRampFlowTracker.start()
+            OnRampFlowTracker.start(it.from)
             OnRampProviderListScreen()
         }
 

@@ -3,6 +3,8 @@ package com.getcode.navigation.transitions
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
@@ -38,19 +40,23 @@ fun SheetSlideTransition(
         modifier = modifier,
         content = content,
         transition = {
-            val (initialOffset, targetOffset) = when (navigator.lastEvent) {
-                StackEvent.Pop -> ({ size: Int -> -size }) to ({ size: Int -> size })
-                else -> ({ size: Int -> size }) to ({ size: Int -> -size })
-            }
+            if (navigator.lastEvent == StackEvent.Replace) {
+                EnterTransition.None togetherWith ExitTransition.None
+            } else {
+                val (initialOffset, targetOffset) = when (navigator.lastEvent) {
+                    StackEvent.Pop -> ({ size: Int -> -size }) to ({ size: Int -> size })
+                    else -> ({ size: Int -> size }) to ({ size: Int -> -size })
+                }
 
-            when (orientation) {
-                SlideOrientation.Horizontal ->
-                    slideInHorizontally(animationSpec, initialOffset) togetherWith
-                            slideOutHorizontally(animationSpec, targetOffset)
+                when (orientation) {
+                    SlideOrientation.Horizontal ->
+                        slideInHorizontally(animationSpec, initialOffset) togetherWith
+                                slideOutHorizontally(animationSpec, targetOffset)
 
-                SlideOrientation.Vertical ->
-                    slideInVertically(animationSpec, initialOffset) togetherWith
-                            slideOutVertically(animationSpec, targetOffset)
+                    SlideOrientation.Vertical ->
+                        slideInVertically(animationSpec, initialOffset) togetherWith
+                                slideOutVertically(animationSpec, targetOffset)
+                }
             }
         }
     )
@@ -80,8 +86,6 @@ fun BottomSheetScreenTransition(
             }
             else -> CurrentScreen()
         }
-    } else {
-        CurrentScreen()
     }
 }
 

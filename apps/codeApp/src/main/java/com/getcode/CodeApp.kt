@@ -139,7 +139,7 @@ fun CodeApp(tipsEngine: TipsEngine) {
                             AuthCheck(
                                 navigator = codeNavigator,
                                 onNavigate = { screens ->
-                                    codeNavigator.replaceAll(screens, inSheet = false)
+                                    codeNavigator.replaceAll(screens)
                                 },
                                 onSwitchAccounts = { seed ->
                                     activity?.let {

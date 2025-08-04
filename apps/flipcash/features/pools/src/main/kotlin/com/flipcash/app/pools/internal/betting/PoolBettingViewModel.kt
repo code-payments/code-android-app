@@ -173,6 +173,7 @@ internal class PoolBettingViewModel @Inject constructor(
         data class OnFundsDistributed(val isDistributed: Boolean) : Event
         data object OnSharePool : Event
         data object OnFailedToLoad: Event
+        data object AddCashToWallet: Event
     }
 
     init {
@@ -363,9 +364,24 @@ internal class PoolBettingViewModel @Inject constructor(
                     is PaymentEvent.OnPaymentError -> {
                         when (event.error) {
                             is PaymentError.InsufficientBalance -> {
-                                BottomBarManager.showError(
-                                    resources.getString(R.string.error_title_paymentFailedDueToInsufficientFunds),
+                                BottomBarManager.showMessage(
+                                    resources.getString(R.string.error_title_poolBidFailedDueToInsufficientFunds),
                                     resources.getString(R.string.error_description_poolBidFailedDueToInsufficientFunds),
+                                    type = BottomBarManager.BottomBarMessageType.THEMED,
+                                    showScrim = true,
+                                    showCancel = false,
+                                    actions = listOf(
+                                        BottomBarAction(
+                                            text = resources.getString(R.string.action_addCashToWallet),
+                                            style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                        ) {
+                                            dispatchEvent(Event.AddCashToWallet)
+                                        },
+                                        BottomBarAction(
+                                            text = resources.getString(R.string.action_dismiss),
+                                            style = BottomBarManager.BottomBarButtonStyle.Outlined,
+                                        )
+                                    )
                                 )
                             }
                             // other errors are handled internally
@@ -618,6 +634,7 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
 
                 is Event.OnDistributeFunds -> { state -> state }
+                is Event.AddCashToWallet -> { state -> state }
             }
         }
     }

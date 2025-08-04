@@ -18,10 +18,12 @@ import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.crypt.MnemonicCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.initialize
+import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import timber.log.Timber
@@ -50,7 +52,6 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
 
     override fun onCreate() {
         super.onCreate()
-
         if (BuildConfig.DEBUG) {
             Timber.plant(object : Timber.DebugTree() {
                 override fun createStackElementTag(element: StackTraceElement): String {
@@ -76,6 +77,10 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
             })
         } else {
             Bugsnag.start(this)
+        }
+
+        LibsodiumInitializer.initializeWithCallback {
+            trace("libsodium initialized", type = TraceType.Process)
         }
 
         RxJavaPlugins.setErrorHandler {

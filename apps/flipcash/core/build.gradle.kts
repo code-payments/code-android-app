@@ -77,6 +77,9 @@ dependencies {
     implementation(project(":ui:theme"))
     implementation(Libs.rinku_compose)
 
+    api(Libs.sodium_bindings)
+
+
     api(project(":vendor:kik:scanner"))
 
     api(project(":ui:core"))

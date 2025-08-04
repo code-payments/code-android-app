@@ -51,6 +51,7 @@ dependencies {
     implementation(Libs.compose_paging)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:pools"))
     implementation(project(":apps:flipcash:shared:shareable"))

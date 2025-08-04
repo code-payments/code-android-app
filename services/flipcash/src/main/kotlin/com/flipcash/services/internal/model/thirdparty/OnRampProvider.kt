@@ -10,6 +10,8 @@ sealed interface OnRampProvider {
     data object CryptoDeposit : OnRampProvider, Defined
 
     data class Coinbase(val type: OnRampType) : OnRampProvider, ThirdParty
+
+    data object Phantom: OnRampProvider, ThirdParty
 }
 
 enum class OnRampType {

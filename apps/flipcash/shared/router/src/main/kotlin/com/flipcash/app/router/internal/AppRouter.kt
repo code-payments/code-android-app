@@ -7,12 +7,19 @@ import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
+import com.flipcash.app.core.phantom.PhantomConnectionResult
+import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.login
+import com.flipcash.app.router.internal.AppRouter.Companion.phantom
 import com.flipcash.app.router.internal.AppRouter.Companion.pool
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.getcode.ed25519.Ed25519
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.decodeBase58
+import com.getcode.utils.decodeBase64
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +31,7 @@ internal class AppRouter(
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
         val pool = listOf("p", "pool")
+        val phantom = listOf("phantom")
     }
 
     override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
@@ -52,6 +60,14 @@ internal class AppRouter(
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                     }
                 }
+
+                is DeeplinkType.PhantomConnection -> {
+                    if (userManager.authState is AuthState.LoggedInWithUser) {
+                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                    } else {
+                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    }
+                }
             }
         }.orEmpty()
     }
@@ -62,6 +78,7 @@ internal class AppRouter(
                 deeplink.isLogin() -> deeplink.handleLoginLink()
                 deeplink.isCashLink() -> deeplink.handleCashLink()
                 deeplink.isPool() -> deeplink.handlePoolLink()
+                deeplink.isPhantomConnection() -> deeplink.handlePhantomConnect()
                 else -> null
             }
         }
@@ -71,6 +88,8 @@ internal class AppRouter(
 private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments[0])
 private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])
 private fun DeepLink.isPool(): Boolean = pool.contains(pathSegments[0])
+private fun DeepLink.isPhantomConnection(): Boolean = phantom.contains(pathSegments.getOrNull(0))
+        && pathSegments.getOrNull(1) == "connected"
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()
@@ -93,4 +112,35 @@ private fun DeepLink.handleCashLink(): DeeplinkType.CashLink? {
 private fun DeepLink.handlePoolLink(): DeeplinkType.Pool? {
     val seed = data.toUri().fragments[Key.entropy] ?: return null
     return DeeplinkType.Pool(seed)
+}
+
+private fun DeepLink.handlePhantomConnect(): DeeplinkType.PhantomConnection? {
+    val uri = data.toUri()
+    val origin = uri.getQueryParameter("origin")
+
+    val phantomOrigin = when  {
+        origin == "menu" -> PhantomDeeplinkOrigin.Menu
+        origin?.startsWith("pool-") == true -> {
+            val idStringWithPrefix = origin.removePrefix("pool-")
+            val splits = idStringWithPrefix.split("_")
+            val prefix = splits.getOrNull(0) ?: return null
+            when (prefix) {
+                "seed" -> PhantomDeeplinkOrigin.PoolWithRendezvous(Ed25519.createKeyPair(splits[1].decodeBase64()))
+                "id" -> PhantomDeeplinkOrigin.PoolWithId(splits[1].decodeBase58().toList())
+                else -> return null
+            }
+        }
+        else -> return null
+    }
+    val encryptionPublicKey = uri.getQueryParameter("phantom_encryption_public_key")?.decodeBase58()?.toList() ?: return null
+    val nonce = uri.getQueryParameter("nonce")?.decodeBase58()?.toList() ?: return null
+    val data = uri.getQueryParameter("data")?.decodeBase58()?.toList() ?: return null
+    return DeeplinkType.PhantomConnection(
+        origin = phantomOrigin,
+        result = PhantomConnectionResult(
+            encryptionPublicKey = encryptionPublicKey,
+            nonce = nonce,
+            encryptedData = data
+        )
+    )
 }

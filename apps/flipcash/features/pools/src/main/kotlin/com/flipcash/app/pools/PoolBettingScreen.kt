@@ -7,7 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.hilt.getViewModel
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.pools.internal.betting.PoolBettingScreen
 import com.flipcash.app.pools.internal.betting.PoolBettingViewModel
 import com.getcode.ed25519.Ed25519
@@ -25,7 +27,7 @@ import kotlinx.parcelize.RawValue
 class PoolBettingScreen(
     val poolId: ID?,
     val rendezvous: Ed25519.KeyPair?,
-): ModalScreen, Parcelable {
+) : ModalScreen, Parcelable {
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
@@ -44,7 +46,11 @@ class PoolBettingScreen(
 
             LaunchedEffect(viewModel, rendezvous, poolId) {
                 if (rendezvous != null) {
-                    viewModel.dispatchEvent(PoolBettingViewModel.Event.OnPoolRendezvousChanged(rendezvous))
+                    viewModel.dispatchEvent(
+                        PoolBettingViewModel.Event.OnPoolRendezvousChanged(
+                            rendezvous
+                        )
+                    )
                 } else if (poolId != null) {
                     viewModel.dispatchEvent(PoolBettingViewModel.Event.OnPoolIdChanged(poolId))
                 }
@@ -55,6 +61,23 @@ class PoolBettingScreen(
                     .filterIsInstance<PoolBettingViewModel.Event.OnFailedToLoad>()
                     .onEach {
                         navigator.popAll()
+                    }.launchIn(this)
+            }
+
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
+                    .filterIsInstance<PoolBettingViewModel.Event.AddCashToWallet>()
+                    .onEach {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                NavScreenProvider.HomeScreen.OnRamp.ProviderList(
+                                    NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                                        poolId = poolId,
+                                        rendezvous = rendezvous
+                                    )
+                                )
+                            )
+                        )
                     }.launchIn(this)
             }
         }

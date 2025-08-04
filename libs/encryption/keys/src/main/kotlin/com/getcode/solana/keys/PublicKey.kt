@@ -1,14 +1,18 @@
 package com.getcode.solana.keys
 
+import android.os.Parcel
+import android.os.Parcelable
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import com.getcode.vendor.Base58
 import com.google.protobuf.ByteString
 import kotlinx.serialization.Serializable
 
 @Serializable(with = PublicKeyAsStringSerializer::class)
-class PublicKey(bytes: List<Byte>) : Key32(bytes) {
+class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
 
     constructor(base58: String): this(Base58.decode(base58).toList())
+
+    constructor(parcel: Parcel): this(parcel.readString().orEmpty())
 
     companion object {
 
@@ -27,6 +31,13 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
         fun fromByteString(byteString: ByteString): PublicKey {
             return PublicKey(byteString.toByteArray().toList())
         }
+
+        @JvmField
+        val CREATOR: Parcelable.Creator<PublicKey> =
+            object : Parcelable.Creator<PublicKey> {
+                override fun createFromParcel(parcel: Parcel) = PublicKey(parcel)
+                override fun newArray(size: Int) = arrayOfNulls<PublicKey?>(size)
+            }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -40,6 +51,14 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
         var result = super.hashCode()
         result = 31 * result + size
         return result
+    }
+
+    override fun describeContents(): Int {
+        return 0
+    }
+
+    override fun writeToParcel(dest: Parcel, flags: Int) {
+        dest.writeString(Base58.encode(bytes.toByteArray()))
     }
 
 }

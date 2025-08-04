@@ -74,6 +74,10 @@ open class Key64(bytes: List<Byte>) : KeyType(bytes) {
     constructor(base58: String): this (Base58.decode(base58).toList())
 
     override val size: Int get() = LENGTH_64
+
+    companion object {
+
+    }
 }
 
 open class CurvePrivate

@@ -75,22 +75,22 @@ internal class MenuScreenViewModel @Inject constructor(
     }
 
     init {
+        dispatchEvent(Event.OnAppVersionUpdated(versionInfo))
+        dispatchEvent(Event.OnStaffUserDetermined(false))
+
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
             .mapNotNull { it.flags }
             .map { it.isStaff }
             .onEach {
-                dispatchEvent(Event.OnAppVersionUpdated(versionInfo))
                 dispatchEvent(Event.OnStaffUserDetermined(it))
             }.launchIn(viewModelScope)
 
         featureFlags.observeOverride()
-            .filter { userManager.authState is AuthState.LoggedInWithUser }
             .onEach { dispatchEvent(Event.OnBetaFeaturesUnlocked(it)) }
             .launchIn(viewModelScope)
 
         featureFlags.observe()
-            .filter { userManager.authState is AuthState.LoggedInWithUser }
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
 

@@ -24,8 +24,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(Versions.java)
+        targetCompatibility = JavaVersion.toVersion(Versions.java)
     }
 
     buildFeatures {

@@ -56,7 +56,7 @@ sealed class NavScreenProvider : ScreenProvider {
         data object ShareApp : NavScreenProvider()
 
        sealed class OnRamp {
-           data object ProviderList: NavScreenProvider()
+           data class ProviderList(val from: NavScreenProvider? = null): NavScreenProvider()
            data object Amount : NavScreenProvider()
        }
 

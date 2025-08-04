@@ -142,7 +142,6 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
     val isVisible: Boolean
         get() = sheetState.isVisible
 
-
     val sheetStacks = SheetStacks(LinkedHashMap())
 
     val progress: Float
@@ -178,7 +177,9 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
                 val firstScreen = items.first()
                 val remainingScreens = items.drop(1)
                 sheetStacks.push(firstScreen to remainingScreens)
-                sheetState.show()
+                if (!isVisible) {
+                    sheetState.show()
+                }
             } else {
                 hideAndShow(screens)
             }

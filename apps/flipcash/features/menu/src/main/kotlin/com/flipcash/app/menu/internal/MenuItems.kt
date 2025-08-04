@@ -64,7 +64,7 @@ internal data object OnRamp : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_addFundsToWallet)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.OnRamp.ProviderList
+        NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Menu.Root)
     )
 }
 

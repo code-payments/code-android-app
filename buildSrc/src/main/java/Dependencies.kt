@@ -1,7 +1,7 @@
 @file:Suppress("ConstPropertyName")
 
 object Versions {
-    const val java = "17"
+    const val java = "21"
     const val kotlin = "2.1.20"
     const val kotlinx_coroutines = "1.9.0"
     const val kotlinx_serialization = "1.7.3"

@@ -13,10 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
@@ -46,6 +44,7 @@ class OnRampAmountScreen : ModalScreen, NamedScreen, Parcelable {
         val navigator = LocalCodeNavigator.current
         val viewModel = getStackScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
         var paymentLink by rememberSaveable { mutableStateOf<String?>(null) }
+
         Box {
             paymentLink?.let {
                 CoinbaseOnRampWebview(
