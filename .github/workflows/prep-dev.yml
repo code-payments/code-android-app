@@ -39,7 +39,7 @@ jobs:
           # Update minorVersion 
           sed -i '/object Flipcash : Packaging(/,/)/ s/minorVersion = [0-9]\{1,2\}/minorVersion = ${{ steps.date.outputs.MONTH }}/' buildSrc/src/main/java/Packaging.kt
           # Update patchVersion
-          sed -i '/object Flipcash : Packaging(/,/)/ s/patchVersion = [0-9]\+/minorVersion = 1/' buildSrc/src/main/java/Packaging.kt
+          sed -i '/object Flipcash : Packaging(/,/)/ s/patchVersion = [0-9]\+/patchVersion = 1/' buildSrc/src/main/java/Packaging.kt
           
       - name: Validate updated fields
         run: |
