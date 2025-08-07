@@ -35,8 +35,7 @@ internal fun PublicKey.Companion.deriveDepositAccount(vm: PublicKey, depositor: 
         programId = VirtualMachineProgram.address,
     )
 }
-
-internal fun PublicKey.Companion.deriveAssociatedAccount(owner: PublicKey, mint: PublicKey): ProgramDerivedAccount {
+ fun PublicKey.Companion.deriveAssociatedAccount(owner: PublicKey, mint: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(owner.bytes.toByteArray(), TokenProgram.address.bytes.toByteArray(), mint.bytes.toByteArray()),
         programId = AssociatedTokenProgram.address,

@@ -4,7 +4,9 @@ import android.net.Uri
 import android.os.Parcelable
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.phantom.PhantomConnectionResult
+import com.flipcash.app.core.phantom.PhantomDeeplinkError
 import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
+import com.flipcash.app.core.phantom.PhantomSigningResult
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.vendor.Base58
@@ -21,7 +23,14 @@ sealed interface DeeplinkType: Parcelable {
 
     data class PhantomConnection(
         val origin: PhantomDeeplinkOrigin,
-        val result: PhantomConnectionResult,
+        val result: PhantomConnectionResult?,
+        val error: PhantomDeeplinkError? = null
+    ): DeeplinkType
+
+    data class PhantomSignedTransaction(
+        val origin: PhantomDeeplinkOrigin,
+        val result: PhantomSigningResult?,
+        val error: PhantomDeeplinkError? = null
     ): DeeplinkType
 }
 

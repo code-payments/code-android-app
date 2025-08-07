@@ -3,8 +3,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_ksp)
     id(Plugins.kotlin_serialization)
+    id(Plugins.hilt)
 }
 
 android {
@@ -47,4 +48,16 @@ dependencies {
     implementation(project(":libs:currency"))
     implementation(Libs.timber)
     implementation(Libs.kotlinx_serialization_json)
+
+    implementation(Libs.okhttp)
+    implementation(Libs.okhttp_logging_interceptor)
+
+    implementation("org.sol4k:sol4k:0.5.16")
+    api("com.solanamobile:web3-solana:0.2.5")
+    api("com.solanamobile:rpc-core:0.2.8")
+    implementation("com.solanamobile:rpc-okiodriver:0.2.8")
+
+    implementation(Libs.hilt)
+    ksp(Libs.hilt_android_compiler)
+    ksp(Libs.hilt_compiler)
 }

@@ -14,7 +14,8 @@ sealed interface OnRampProviderDestination {
 }
 data class OnRampProviderItem(
     val provider: OnRampProvider.Defined,
-    val destination: OnRampProviderDestination
+    val destination: OnRampProviderDestination,
+    val isLoading: Boolean = false,
 ) {
     val icon: Painter
         @Composable get() = when (provider) {

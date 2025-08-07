@@ -31,6 +31,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.solana.rpc.RpcConfig
 import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.LocalResources
@@ -104,6 +105,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var analytics: FlipcashAnalyticsService
 
+    @Inject
+    lateinit var solanaRpcConfig: RpcConfig
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -129,7 +133,10 @@ class MainActivity : FragmentActivity() {
                 LocalPaymentController provides paymentController,
             ) {
                 Rinku {
-                    App(tipsEngine = tipsEngine)
+                    App(
+                        tipsEngine = tipsEngine,
+                        solanaRpcConfig = solanaRpcConfig,
+                    )
                 }
             }
         }

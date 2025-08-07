@@ -14,9 +14,8 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.onramp.internal.OnRampViewModel
-import com.flipcash.app.onramp.internal.data.LocalPhantomDepositState
+import com.flipcash.app.onramp.internal.PhantomDeeplinkState
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
-import com.flipcash.app.onramp.internal.data.PhantomDeeplinkState
 import com.flipcash.app.onramp.internal.screens.OnRampProviderListScreen
 import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator

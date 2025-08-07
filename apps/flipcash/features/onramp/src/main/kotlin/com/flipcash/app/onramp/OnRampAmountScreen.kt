@@ -82,5 +82,14 @@ class OnRampAmountScreen : ModalScreen, NamedScreen, Parcelable {
 
                 }.launchIn(this)
         }
+
+        val phantomDepositState = LocalPhantomDepositState.current
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<OnRampViewModel.Event.CreateAndSendTransactionToPhantom>()
+                .map { it.amount }
+                .onEach { phantomDepositState.amount = it }
+                .launchIn(this)
+        }
     }
 }

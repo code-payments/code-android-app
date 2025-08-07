@@ -277,8 +277,12 @@
     <string name="subtitle_onrampPurchaseHint">Enter up to %1$s</string>
     <string name="subtitle_onrampPurchaseExceeded">You can only add up to %1$s</string>
 
-    <string name="error_title_poolBidFailedDueToInsufficientFunds">You Need More Cash</string>
-    <string name="error_description_poolBidFailedDueToInsufficientFunds">Add more cash to your wallet to continue</string>
+    <string name="error_title_youNeedMoreCash">You Need More Cash</string>
+    <string name="error_description_youNeedMoreCash">Add more cash to your wallet to continue</string>
+    <string name="title_addCashToWallet">Add cash to your Flipcash wallet</string>
     <string name="action_addCashToWallet">Add Cash to Your Wallet</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="title_success">Success</string>
+    <string name="subtitle_onrampSuccess">Your cash is on the way and should arrive in a few minutes</string>
+    <string name="subtitle_contactSupportOnRamp">If you have any issues receiving you funds please contact us at support@flipcash.com</string>
 </resources>

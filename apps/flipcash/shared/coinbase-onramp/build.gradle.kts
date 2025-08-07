@@ -11,7 +11,7 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.shared.onramp"
+    namespace = "${Gradle.flipcashNamespace}.shared.onramp.coinbase"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

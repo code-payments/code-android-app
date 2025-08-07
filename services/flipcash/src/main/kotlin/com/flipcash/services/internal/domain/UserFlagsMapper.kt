@@ -26,6 +26,6 @@ internal class UserFlagsMapper @Inject constructor():
                     FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown
                 }
             }
-        )
+        ).also { println(it) }
     }
 }

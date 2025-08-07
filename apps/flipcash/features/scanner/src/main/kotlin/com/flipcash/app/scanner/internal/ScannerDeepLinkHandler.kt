@@ -69,29 +69,22 @@ internal fun ScannerDeeplinkHandler(
 
             is DeeplinkType.PhantomConnection -> {
                 val screens = when (val origin = deeplink.origin) {
-                    PhantomDeeplinkOrigin.Menu -> {
-                        listOf(
-                            ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Root),
-                            ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Menu.Root))
-                        )
-                    }
-                    is PhantomDeeplinkOrigin.PoolWithId -> {
-                        val poolDetailsWithId = NavScreenProvider.HomeScreen.Pools.ChoiceSelection(poolId = origin.id)
-                        listOf(
-                            ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Root),
-                            ScreenRegistry.get(poolDetailsWithId),
-                            ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.ProviderList(poolDetailsWithId))
-                        )
-                    }
-                    is PhantomDeeplinkOrigin.PoolWithRendezvous -> {
-                        val poolDetailsWithRendezvous = NavScreenProvider.HomeScreen.Pools.ChoiceSelection(rendezvous = origin.keyPair)
-                        listOf(
-                            ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Root),
-                            ScreenRegistry.get(poolDetailsWithRendezvous),
-                            ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.ProviderList(poolDetailsWithRendezvous))
-                        )
-                    }
+                    PhantomDeeplinkOrigin.Menu -> buildScreens(NavScreenProvider.HomeScreen.Menu.Root)
+                    is PhantomDeeplinkOrigin.PoolWithId -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(poolId = origin.id))
+                    is PhantomDeeplinkOrigin.PoolWithRendezvous -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(rendezvous = origin.keyPair))
+                    PhantomDeeplinkOrigin.Cash -> buildScreens(NavScreenProvider.HomeScreen.Cash)
                 }
+
+                navigator.show(screens)
+            }
+
+            is DeeplinkType.PhantomSignedTransaction -> {
+                val screens = when (val origin = deeplink.origin) {
+                    PhantomDeeplinkOrigin.Menu -> buildScreens(NavScreenProvider.HomeScreen.Menu.Root)
+                    is PhantomDeeplinkOrigin.PoolWithId -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(poolId = origin.id))
+                    is PhantomDeeplinkOrigin.PoolWithRendezvous -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(rendezvous = origin.keyPair))
+                    PhantomDeeplinkOrigin.Cash -> buildScreens(NavScreenProvider.HomeScreen.Cash)
+                } + ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount)
 
                 navigator.show(screens)
             }
@@ -100,3 +93,8 @@ internal fun ScannerDeeplinkHandler(
         deepLinkSaved = null
     }
 }
+
+private fun buildScreens(origin: NavScreenProvider) = listOf(
+    ScreenRegistry.get(origin),
+    ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.ProviderList(origin)),
+)

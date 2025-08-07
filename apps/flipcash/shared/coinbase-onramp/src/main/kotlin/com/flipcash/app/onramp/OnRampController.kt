@@ -10,7 +10,7 @@ import com.coinbase.onramp.data.OnRampPurchaseResponse
 import com.coinbase.onramp.data.SessionTokenRequest
 import com.flipcash.services.models.GetJwtError
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.onramp.BuildConfig
+import com.flipcash.shared.onramp.coinbase.BuildConfig
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.network.jwt.Jwt
 import com.getcode.network.jwt.JwtSecuredEndpoint
@@ -92,7 +92,7 @@ class OnRampController @Inject constructor(
         amount: Fiat,
     ): Result<String> {
         return requestJwtAndExecute(
-            scheme = onRampApiEndpoint.schema,
+            scheme = onRampApiEndpoint.scheme,
             host = onRampApiEndpoint.host,
             path = "onramp/v1/token",
             method = onRampApiEndpoint.method,
@@ -138,7 +138,7 @@ class OnRampController @Inject constructor(
             apiKey = apiKey,
             endpoint = JwtSecuredEndpoint(
                 provider = ApiProvider.Coinbase,
-                httpSchema = scheme,
+                scheme = scheme,
                 host = host,
                 path = path,
                 method = method,
@@ -160,7 +160,7 @@ class OnRampController @Inject constructor(
         endpoint: OnRampApiConfig,
     ): Result<OnRampPurchaseResponse.PaymentLink> {
         return requestJwtAndExecute(
-            scheme = endpoint.schema,
+            scheme = endpoint.scheme,
             host = endpoint.host,
             path = endpoint.path,
             method = endpoint.method,

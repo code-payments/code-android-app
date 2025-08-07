@@ -58,6 +58,7 @@ sealed class NavScreenProvider : ScreenProvider {
        sealed class OnRamp {
            data class ProviderList(val from: NavScreenProvider? = null): NavScreenProvider()
            data object Amount : NavScreenProvider()
+           data object Success: NavScreenProvider()
        }
 
         sealed class Menu {

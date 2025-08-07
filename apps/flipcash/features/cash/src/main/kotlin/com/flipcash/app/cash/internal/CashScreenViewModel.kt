@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.features.cash.R
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TransactionController
@@ -18,7 +19,6 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.replaceParam
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -89,6 +89,8 @@ internal class CashScreenViewModel @Inject constructor(
         data class OnLimitsChanged(val limits: Limits?) : Event
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
+
+        data object AddCashToWallet : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
     }
@@ -104,9 +106,24 @@ internal class CashScreenViewModel @Inject constructor(
 
         val isOverBalance = enteredInUsdc > balanceInUsdc
         if (isOverBalance || conversionRate == Rate.ignore) {
-            BottomBarManager.showError(
-                resources.getString(R.string.error_title_insufficientFunds),
-                resources.getString(R.string.error_description_insufficientFunds)
+            BottomBarManager.showMessage(
+                resources.getString(R.string.error_title_youNeedMoreCash),
+                resources.getString(R.string.error_description_youNeedMoreCash),
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+                showCancel = false,
+                actions = listOf(
+                    BottomBarAction(
+                        text = resources.getString(R.string.action_addCashToWallet),
+                        style = BottomBarManager.BottomBarButtonStyle.Filled,
+                    ) {
+                        dispatchEvent(Event.AddCashToWallet)
+                    },
+                    BottomBarAction(
+                        text = resources.getString(R.string.action_dismiss),
+                        style = BottomBarManager.BottomBarButtonStyle.Outlined,
+                    )
+                )
             )
         }
         isOverBalance
@@ -279,6 +296,8 @@ internal class CashScreenViewModel @Inject constructor(
                         )
                     )
                 }
+
+                Event.AddCashToWallet -> { state -> state }
 
                 is Event.OnMaxDetermined -> { state ->
                     state.copy(maxForGive = event.max to event.currencyCode)

@@ -160,7 +160,7 @@ internal class MenuScreenViewModel @Inject constructor(
             flags: List<BetaFeature> = emptyList(),
         ): List<MenuItem<Event>> {
             // swap onramp for deposit if enabled
-            val isOnRampEnabled = flags.find { it.flag is FeatureFlag.OnRamp }?.enabled ?: false
+            val isOnRampEnabled = flags.find { it.flag is FeatureFlag.OnRamp }?.enabled ?: true
             return if (isStaff || overrode) {
                 FullMenuList
                     .filter { item ->

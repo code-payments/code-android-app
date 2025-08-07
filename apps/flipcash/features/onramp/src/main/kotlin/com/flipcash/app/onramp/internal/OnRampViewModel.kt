@@ -126,7 +126,7 @@ internal class OnRampViewModel @Inject constructor(
 
         data class OnAmountAccepted(val amount: Fiat) : Event
 
-        data class ConnectAndSendFromPhantom(val amount: Fiat) : Event
+        data class CreateAndSendTransactionToPhantom(val amount: Fiat) : Event
         // endregion
     }
 
@@ -251,7 +251,6 @@ internal class OnRampViewModel @Inject constructor(
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
 
-                dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
                 dispatchEvent(Event.OnAmountAccepted(localizedAmount))
             }.launchIn(viewModelScope)
 
@@ -279,7 +278,7 @@ internal class OnRampViewModel @Inject constructor(
                                         )
 
                                     is OnRampProvider.Coinbase -> when (provider.type) {
-                                        OnRampType.Virtual -> TODO()
+                                        OnRampType.Virtual -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
                                         OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
                                         OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
                                     }
@@ -305,52 +304,36 @@ internal class OnRampViewModel @Inject constructor(
                         when (provider.type) {
                             OnRampType.Virtual -> onRampController.placeOrderExclusiveOfFees(
                                 selectedAmount
-                            )
-                                .onSuccess {
-                                    dispatchEvent(Event.OnPaymentLinkGenerated(it.url))
-                                }.onFailure { error ->
-                                    when (error) {
-                                        is OnRampAuthError.EmailVerificationRequired -> {
-                                            BottomBarManager.showError(
-                                                title = "Email verification required",
-                                                message = "Please verify your email address to continue",
-                                            )
-                                        }
-
-                                        is OnRampAuthError.PhoneVerificationRequired -> {
-                                            BottomBarManager.showError(
-                                                title = "Phone verification required",
-                                                message = "Please verify your phone number to continue",
-                                            )
-                                        }
-
-                                        is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
-                                            BottomBarManager.showError(
-                                                title = "Phone verification required",
-                                                message = "Please verify your phone number with Coinbase to continue",
-                                            ) {
-//                                        dispatchEvent(Event.OnPhoneVerificationRequired(error.url))
-                                            }
-                                        }
-
-                                        else -> {
-                                            BottomBarManager.showError(
-                                                title = "Error",
-                                                message = error.message ?: "Unknown error",
-                                            )
-                                        }
-                                    }
-                                }
+                            ).onSuccess {
+                                dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
+                                dispatchEvent(Event.OnPaymentLinkGenerated(it.url))
+                            }.onFailure { error ->
+                                dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = false))
+                                BottomBarManager.showError(
+                                    title = "Error",
+                                    message = error.message ?: "Unknown error",
+                                )
+                            }
 
                             OnRampType.PhysicalDebit,
                             OnRampType.PhysicalCredit -> {
-                                TODO()
+                                onRampController.generateLegacyOnRampUrl(selectedAmount)
+                                    .onSuccess {
+                                        dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
+                                        dispatchEvent(Event.OnBuyUrlGenerated(it))
+                                    }.onFailure {
+                                        dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = false))
+                                        BottomBarManager.showError(
+                                            title = "Error",
+                                            message = it.message ?: "Unknown error",
+                                        )
+                                    }
                             }
                         }
                     }
 
                     OnRampProvider.Phantom -> {
-                        dispatchEvent(Event.ConnectAndSendFromPhantom(selectedAmount))
+                        dispatchEvent(Event.CreateAndSendTransactionToPhantom(selectedAmount))
                     }
                 }
             }.launchIn(viewModelScope)
@@ -414,7 +397,7 @@ internal class OnRampViewModel @Inject constructor(
                     )
                 }
 
-                is Event.ConnectAndSendFromPhantom,
+                is Event.CreateAndSendTransactionToPhantom,
                 is Event.OnPaymentSuccess,
                 is Event.OnPaymentError,
                 is Event.OnPaymentLinkGenerated,

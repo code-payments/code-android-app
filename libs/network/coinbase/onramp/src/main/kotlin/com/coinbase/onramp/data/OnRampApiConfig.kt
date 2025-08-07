@@ -1,14 +1,14 @@
 package com.coinbase.onramp.data
 
 data class OnRampApiConfig(
-    val schema: String,
+    val scheme: String,
     val host: String,
     val path: String,
     val method: String,
     val useSandbox: Boolean = false,
 ) {
     val baseUrl: String
-        get() = "$schema://$host"
+        get() = "$scheme://$host"
     val url: String
-        get() = "$schema://$host$path"
+        get() = "$scheme://$host$path"
 }

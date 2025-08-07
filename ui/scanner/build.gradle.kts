@@ -43,7 +43,7 @@ dependencies {
 
     api(project(":vendor:kik:scanner"))
 
-    implementation("com.google.guava:guava:33.4.6-android")
+    implementation("com.google.guava:guava:33.4.8-android")
 
     // cameraX
     implementation(Libs.androidx_camerax_core)

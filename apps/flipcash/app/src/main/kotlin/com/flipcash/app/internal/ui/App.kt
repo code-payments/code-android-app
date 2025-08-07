@@ -29,13 +29,11 @@ import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.internal.ui.navigation.AppScreenContent
 import com.flipcash.app.internal.ui.navigation.MainRoot
-import com.flipcash.app.onramp.internal.data.LocalPhantomDepositState
-import com.flipcash.app.onramp.internal.data.PhantomDepositState
-import com.flipcash.app.onramp.internal.data.rememberPhantomDepositState
-import com.flipcash.app.onramp.internal.phantom.PhantomOnRampHandler
+import com.flipcash.app.onramp.LocalPhantomDepositState
+import com.flipcash.app.onramp.PhantomOnRampHandler
+import com.flipcash.app.onramp.rememberPhantomDepositState
 import com.flipcash.app.payments.PaymentScaffold
 import com.flipcash.app.router.LocalRouter
-import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.shareapp.R
@@ -48,6 +46,7 @@ import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
+import com.getcode.solana.rpc.RpcConfig
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.biometrics.BiometricsState
@@ -68,6 +67,7 @@ import dev.theolm.rinku.compose.ext.DeepLinkListener
 @Composable
 internal fun App(
     tipsEngine: TipsEngine,
+    solanaRpcConfig: RpcConfig,
 ) {
     val router = LocalRouter.currentOrThrow
 
@@ -116,7 +116,7 @@ internal fun App(
         )
 
         val barManager = rememberBarManager()
-        val phantomDepositState = rememberPhantomDepositState()
+        val phantomDepositState = rememberPhantomDepositState(solanaRpcConfig)
 
         CompositionLocalProvider(
             LocalPhantomDepositState provides phantomDepositState
@@ -124,110 +124,118 @@ internal fun App(
             AppScreenContent {
                 PaymentScaffold {
                     TipScaffold(tipsEngine = tipsEngine) {
-                        AppNavHost(biometricsState, phantomDepositState, router, deepLink) {
+                        AppNavHost(biometricsState) {
                             val codeNavigator = LocalCodeNavigator.current
-                            CodeScaffold { innerPaddingModifier ->
-                                Navigator(
-                                    screen = MainRoot { deepLink },
-                                ) { navigator ->
-                                    LaunchedEffect(navigator.lastItemOrNull) {
-                                        // update global navigator for platform access to support push/pop from a single
-                                        // navigator current
-                                        codeNavigator.screensNavigator = navigator
-                                    }
+                            PhantomOnRampHandler(
+                                state = LocalPhantomDepositState.current,
+                                router = router,
+                                deepLink = deepLink
+                            ) {
+                                CodeScaffold { innerPaddingModifier ->
+                                    Navigator(
+                                        screen = MainRoot { deepLink },
+                                    ) { navigator ->
+                                        LaunchedEffect(navigator.lastItemOrNull) {
+                                            // update global navigator for platform access to support push/pop from a single
+                                            // navigator current
+                                            codeNavigator.screensNavigator = navigator
+                                        }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(innerPaddingModifier)
-                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(innerPaddingModifier)
+                                        ) {
 
-                                        when (navigator.lastEvent) {
-                                            StackEvent.Push,
-                                            StackEvent.Pop -> {
-                                                when (navigator.lastItemOrNull) {
-                                                    ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
-                                                    ScreenRegistry.get(NavScreenProvider.Permissions.Camera()),
-                                                    is MainRoot -> {
-                                                        CrossfadeTransition(navigator = navigator)
+                                            when (navigator.lastEvent) {
+                                                StackEvent.Push,
+                                                StackEvent.Pop -> {
+                                                    when (navigator.lastItemOrNull) {
+                                                        ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
+                                                        ScreenRegistry.get(NavScreenProvider.Permissions.Camera()),
+                                                        is MainRoot -> {
+                                                            CrossfadeTransition(navigator = navigator)
+                                                        }
+
+                                                        else -> SlideTransition(navigator = navigator)
+                                                    }
+                                                }
+
+                                                StackEvent.Idle,
+                                                StackEvent.Replace -> CurrentScreen()
+                                            }
+                                        }
+
+                                        LaunchedEffect(deepLink) {
+                                            if (codeNavigator.lastItem !is MainRoot) {
+                                                if (deepLink != null) {
+                                                    val screenSet =
+                                                        router.processDestination(deepLink)
+                                                    if (screenSet.isNotEmpty()) {
+                                                        codeNavigator.replaceAll(screenSet)
                                                     }
 
-                                                    else -> SlideTransition(navigator = navigator)
+                                                    deepLink = null
                                                 }
                                             }
-
-                                            StackEvent.Idle,
-                                            StackEvent.Replace -> CurrentScreen()
                                         }
-                                    }
 
-                                    LaunchedEffect(deepLink) {
-                                        if (codeNavigator.lastItem !is MainRoot) {
-                                            if (deepLink != null) {
-                                                val screenSet =
-                                                    router.processDestination(deepLink)
-                                                if (screenSet.isNotEmpty()) {
-                                                    codeNavigator.replaceAll(screenSet)
-                                                }
-
-                                                deepLink = null
+                                        LaunchedEffect(
+                                            loginRequest,
+                                            codeNavigator.lastItem,
+                                            userManager.authState
+                                        ) {
+                                            if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
+                                            if (userManager.authState !is AuthState.LoggedInWithUser) {
+                                                // reset login request here
+                                                // if we are not currently logged in, then the deeplink
+                                                // is most likely being processed in [MainRoot] during launch
+                                                loginRequest = null
+                                                return@LaunchedEffect
                                             }
-                                        }
-                                    }
-
-                                    LaunchedEffect(
-                                        loginRequest,
-                                        codeNavigator.lastItem,
-                                        userManager.authState
-                                    ) {
-                                        if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
-                                        if (userManager.authState !is AuthState.LoggedInWithUser) {
-                                            // reset login request here
-                                            // if we are not currently logged in, then the deeplink
-                                            // is most likely being processed in [MainRoot] during launch
-                                            loginRequest = null
-                                            return@LaunchedEffect
-                                        }
-                                        loginRequest?.let { entropy ->
-                                            viewModel.handleLoginEntropy(
-                                                entropy,
-                                                onSwitchAccount = {
-                                                    loginRequest = null
-                                                    codeNavigator.replaceAll(
-                                                        ScreenRegistry.get(
-                                                            NavScreenProvider.Login.Home(
-                                                                entropy,
-                                                                fromDeeplink = true
+                                            loginRequest?.let { entropy ->
+                                                viewModel.handleLoginEntropy(
+                                                    entropy,
+                                                    onSwitchAccount = {
+                                                        loginRequest = null
+                                                        codeNavigator.replaceAll(
+                                                            ScreenRegistry.get(
+                                                                NavScreenProvider.Login.Home(
+                                                                    entropy,
+                                                                    fromDeeplink = true
+                                                                )
                                                             )
                                                         )
-                                                    )
-                                                },
-                                                onDismissed = { loginRequest = null }
-                                            )
-                                        }
-                                    }
-
-                                    LaunchedEffect(userState.isTimelockUnlocked) {
-                                        if (userState.isTimelockUnlocked) {
-                                            codeNavigator.replaceAll(
-                                                ScreenRegistry.get(
-                                                    NavScreenProvider.AppRestricted(RestrictionType.TIMELOCK_UNLOCKED)
+                                                    },
+                                                    onDismissed = { loginRequest = null }
                                                 )
-                                            )
+                                            }
                                         }
-                                    }
 
-                                    OnLifecycleEvent { _, event ->
-                                        when (event) {
-                                            Lifecycle.Event.ON_RESUME -> {
-                                                session.onAppInForeground()
+                                        LaunchedEffect(userState.isTimelockUnlocked) {
+                                            if (userState.isTimelockUnlocked) {
+                                                codeNavigator.replaceAll(
+                                                    ScreenRegistry.get(
+                                                        NavScreenProvider.AppRestricted(
+                                                            RestrictionType.TIMELOCK_UNLOCKED
+                                                        )
+                                                    )
+                                                )
                                             }
+                                        }
 
-                                            Lifecycle.Event.ON_STOP,
-                                            Lifecycle.Event.ON_DESTROY -> {
-                                                session.onAppInBackground()
+                                        OnLifecycleEvent { _, event ->
+                                            when (event) {
+                                                Lifecycle.Event.ON_RESUME -> {
+                                                    session.onAppInForeground()
+                                                }
+
+                                                Lifecycle.Event.ON_STOP,
+                                                Lifecycle.Event.ON_DESTROY -> {
+                                                    session.onAppInBackground()
+                                                }
+
+                                                else -> Unit
                                             }
-
-                                            else -> Unit
                                         }
                                     }
                                 }
@@ -248,39 +256,16 @@ internal fun App(
 @Composable
 private fun AppNavHost(
     biometricsState: BiometricsState,
-    phantomDepositState: PhantomDepositState,
-    router: Router,
-    deepLink: DeepLink?,
     content: @Composable () -> Unit
 ) {
     var combinedNavigator by remember {
         mutableStateOf<CombinedNavigator?>(null)
     }
-    PhantomOnRampHandler(
-        state = phantomDepositState,
-        navigator = combinedNavigator,
-        router = router,
-        deepLink = deepLink
-    ) {
-        BottomSheetNavigator(
-            modifier = Modifier.fillMaxSize(),
-            sheetBackgroundColor = LocalCodeColors.current.background,
-            sheetContentColor = LocalCodeColors.current.onBackground,
-            sheetContent = { sheetNav ->
-                if (combinedNavigator == null) {
-                    combinedNavigator = CombinedNavigator(sheetNav)
-                }
-                combinedNavigator?.let {
-                    CompositionLocalProvider(
-                        LocalCodeNavigator provides it,
-                        LocalBiometricsState provides biometricsState,
-                    ) {
-                        SheetSlideTransition(navigator = it)
-                    }
-                }
-            },
-            onHide = ModalManager::clear
-        ) { sheetNav ->
+    BottomSheetNavigator(
+        modifier = Modifier.fillMaxSize(),
+        sheetBackgroundColor = LocalCodeColors.current.background,
+        sheetContentColor = LocalCodeColors.current.onBackground,
+        sheetContent = { sheetNav ->
             if (combinedNavigator == null) {
                 combinedNavigator = CombinedNavigator(sheetNav)
             }
@@ -289,8 +274,21 @@ private fun AppNavHost(
                     LocalCodeNavigator provides it,
                     LocalBiometricsState provides biometricsState,
                 ) {
-                    content()
+                    SheetSlideTransition(navigator = it)
                 }
+            }
+        },
+        onHide = ModalManager::clear
+    ) { sheetNav ->
+        if (combinedNavigator == null) {
+            combinedNavigator = CombinedNavigator(sheetNav)
+        }
+        combinedNavigator?.let {
+            CompositionLocalProvider(
+                LocalCodeNavigator provides it,
+                LocalBiometricsState provides biometricsState,
+            ) {
+                content()
             }
         }
     }

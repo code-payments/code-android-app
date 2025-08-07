@@ -11,13 +11,11 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.features.onramp"
+    namespace = "${Gradle.flipcashNamespace}.shared.onramp.phantom"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-
-        buildConfigField("String", "COINBASE_ONRAMP_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "COINBASE_ONRAMP_API_KEY")}\"")
     }
 
     kotlinOptions {
@@ -47,29 +45,18 @@ dependencies {
     ksp(Libs.hilt_compiler)
 
     implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_activities)
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
-    implementation(Libs.compose_webview)
-    implementation(Libs.compose_materialIconsExtended)
 
-    implementation(Libs.androidx_localbroadcastmanager)
-
-    implementation(Libs.kotlinx_serialization_core)
     implementation(Libs.kotlinx_serialization_json)
 
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:shared:coinbase-onramp"))
-    implementation(project(":apps:flipcash:shared:phantom-onramp"))
     implementation(project(":apps:flipcash:shared:router"))
-
     implementation(project(":libs:crypto:solana"))
-    implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
     implementation(project(":ui:analytics"))
-    implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))

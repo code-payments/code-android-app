@@ -8,12 +8,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.cash.internal.GiveScreenContent
 import com.flipcash.app.cash.internal.CashScreenViewModel
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -62,6 +64,20 @@ class CashScreen: ModalScreen, Parcelable {
                 }
             )
             GiveScreenContent(viewModel)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<CashScreenViewModel.Event.AddCashToWallet>()
+                .onEach {
+                    navigator.push(
+                        ScreenRegistry.get(
+                            NavScreenProvider.HomeScreen.OnRamp.ProviderList(
+                                NavScreenProvider.HomeScreen.Cash
+                            )
+                        )
+                    )
+                }.launchIn(this)
         }
     }
 }

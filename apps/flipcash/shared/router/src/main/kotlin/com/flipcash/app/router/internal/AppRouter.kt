@@ -8,7 +8,9 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.core.phantom.PhantomConnectionResult
+import com.flipcash.app.core.phantom.PhantomDeeplinkError
 import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
+import com.flipcash.app.core.phantom.PhantomSigningResult
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.login
@@ -68,6 +70,14 @@ internal class AppRouter(
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                     }
                 }
+
+                is DeeplinkType.PhantomSignedTransaction ->  {
+                    if (userManager.authState is AuthState.LoggedInWithUser) {
+                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                    } else {
+                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    }
+                }
             }
         }.orEmpty()
     }
@@ -79,6 +89,7 @@ internal class AppRouter(
                 deeplink.isCashLink() -> deeplink.handleCashLink()
                 deeplink.isPool() -> deeplink.handlePoolLink()
                 deeplink.isPhantomConnection() -> deeplink.handlePhantomConnect()
+                deeplink.isPhantomSignedTransaction() -> deeplink.handlePhantomSignedTransaction()
                 else -> null
             }
         }
@@ -90,6 +101,9 @@ private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])
 private fun DeepLink.isPool(): Boolean = pool.contains(pathSegments[0])
 private fun DeepLink.isPhantomConnection(): Boolean = phantom.contains(pathSegments.getOrNull(0))
         && pathSegments.getOrNull(1) == "connected"
+
+private fun DeepLink.isPhantomSignedTransaction(): Boolean = phantom.contains(pathSegments.getOrNull(0))
+        && pathSegments.getOrNull(1) == "signed"
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()
@@ -118,29 +132,57 @@ private fun DeepLink.handlePhantomConnect(): DeeplinkType.PhantomConnection? {
     val uri = data.toUri()
     val origin = uri.getQueryParameter("origin")
 
-    val phantomOrigin = when  {
-        origin == "menu" -> PhantomDeeplinkOrigin.Menu
-        origin?.startsWith("pool-") == true -> {
-            val idStringWithPrefix = origin.removePrefix("pool-")
-            val splits = idStringWithPrefix.split("_")
-            val prefix = splits.getOrNull(0) ?: return null
-            when (prefix) {
-                "seed" -> PhantomDeeplinkOrigin.PoolWithRendezvous(Ed25519.createKeyPair(splits[1].decodeBase64()))
-                "id" -> PhantomDeeplinkOrigin.PoolWithId(splits[1].decodeBase58().toList())
-                else -> return null
-            }
-        }
-        else -> return null
-    }
-    val encryptionPublicKey = uri.getQueryParameter("phantom_encryption_public_key")?.decodeBase58()?.toList() ?: return null
-    val nonce = uri.getQueryParameter("nonce")?.decodeBase58()?.toList() ?: return null
-    val data = uri.getQueryParameter("data")?.decodeBase58()?.toList() ?: return null
-    return DeeplinkType.PhantomConnection(
-        origin = phantomOrigin,
-        result = PhantomConnectionResult(
+    val phantomOrigin = PhantomDeeplinkOrigin.fromString(origin) ?: return null
+    val errorCode = uri.getQueryParameter("errorCode")
+    val errorMessage = uri.getQueryParameter("errorMessage")
+
+    val encryptionPublicKey = uri.getQueryParameter("phantom_encryption_public_key")?.decodeBase58()?.toList()
+    val nonce = uri.getQueryParameter("nonce")?.decodeBase58()?.toList()
+    val data = uri.getQueryParameter("data")?.decodeBase58()?.toList()
+
+    val result = if (encryptionPublicKey != null && nonce != null && data != null) {
+        PhantomConnectionResult(
             encryptionPublicKey = encryptionPublicKey,
             nonce = nonce,
             encryptedData = data
         )
+    } else {
+        null
+    }
+
+    return DeeplinkType.PhantomConnection(
+        origin = phantomOrigin,
+        result = result,
+        error = if (errorCode != null && errorMessage != null) {
+            PhantomDeeplinkError(errorCode, errorMessage)
+        } else null,
+    )
+}
+
+private fun DeepLink.handlePhantomSignedTransaction(): DeeplinkType.PhantomSignedTransaction? {
+    val uri = data.toUri()
+    val origin = uri.getQueryParameter("origin")
+
+    val phantomOrigin = PhantomDeeplinkOrigin.fromString(origin) ?: return null
+    val errorCode = uri.getQueryParameter("errorCode")
+    val errorMessage = uri.getQueryParameter("errorMessage")
+    val nonce = uri.getQueryParameter("nonce")?.decodeBase58()?.toList()
+    val data = uri.getQueryParameter("data")?.decodeBase58()?.toList()
+
+    val result = if (nonce != null && data != null) {
+        PhantomSigningResult(
+            nonce = nonce,
+            encryptedData = data
+        )
+    } else {
+        null
+    }
+
+    return DeeplinkType.PhantomSignedTransaction(
+        origin = phantomOrigin,
+        result = result,
+        error = if (errorCode != null && errorMessage != null) {
+            PhantomDeeplinkError(errorCode, errorMessage)
+        } else null,
     )
 }

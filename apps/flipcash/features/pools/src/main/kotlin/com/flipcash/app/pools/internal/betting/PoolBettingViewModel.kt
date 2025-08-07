@@ -1,7 +1,6 @@
 package com.flipcash.app.pools.internal.betting
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.cache.CachePolicy
 import com.flipcash.app.core.cache.DataOrigin
 import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
@@ -365,8 +364,8 @@ internal class PoolBettingViewModel @Inject constructor(
                         when (event.error) {
                             is PaymentError.InsufficientBalance -> {
                                 BottomBarManager.showMessage(
-                                    resources.getString(R.string.error_title_poolBidFailedDueToInsufficientFunds),
-                                    resources.getString(R.string.error_description_poolBidFailedDueToInsufficientFunds),
+                                    resources.getString(R.string.error_title_youNeedMoreCash),
+                                    resources.getString(R.string.error_description_youNeedMoreCash),
                                     type = BottomBarManager.BottomBarMessageType.THEMED,
                                     showScrim = true,
                                     showCancel = false,

@@ -148,6 +148,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:currency-selection:ui"))
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:coinbase-onramp"))
+    implementation(project(":apps:flipcash:shared:phantom-onramp"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:shareable"))
@@ -171,6 +172,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:payments"))
     implementation(project(":apps:flipcash:features:onramp"))
 
+    implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale:bindings"))
     implementation(project(":libs:logging"))

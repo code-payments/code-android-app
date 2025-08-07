@@ -13,6 +13,7 @@ import com.flipcash.app.payments.delegates.PoolResolveDelegate
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 internal class InternalPaymentController(
     private val resources: ResourceHelper,
     private val userManager: UserManager,
+    private val balanceController: BalanceController,
     private val poolBidDelegate: PoolBidDelegate,
     private val poolResolveDelegate: PoolResolveDelegate,
 ) : PaymentController, PoolBidDelegate by poolBidDelegate,
@@ -51,25 +53,36 @@ internal class InternalPaymentController(
 
     override fun requestPaymentConfirmation(request: PaymentRequest<*>) {
         val vault = userManager.accountCluster?.vaultPublicKey ?: return
+        // update the request immediately for usage in early error handling
+        _state.update { it.copy(request = request) }
         _state.update {
             when (request) {
-                is PaymentRequest.PoolBid -> it.copy(
-                    request = request,
-                    poolBidConfirmation = PublicPaymentConfirmation(
-                        state = ConfirmationState.AwaitingConfirmation,
-                        amount = request.pool.buyIn,
-                        destination = vault,
-                        metadata = PoolBidPaymentMetadata(
-                            pool = request.pool,
-                            selectedOutcome = request.outcome,
-                            rendezvous = request.rendezvous
+                is PaymentRequest.PoolBid -> {
+                    val balance = balanceController.rawBalance.value
+
+                    if (balance < request.pool.buyIn) {
+                        scope.launch {
+                            handlePaymentError(PaymentError.InsufficientBalance())
+                        }
+                        return
+                    }
+
+                    it.copy(
+                        poolBidConfirmation = PublicPaymentConfirmation(
+                            state = ConfirmationState.AwaitingConfirmation,
+                            amount = request.pool.buyIn,
+                            destination = vault,
+                            metadata = PoolBidPaymentMetadata(
+                                pool = request.pool,
+                                selectedOutcome = request.outcome,
+                                rendezvous = request.rendezvous
+                            )
                         )
                     )
-                )
+                }
 
                 is PaymentRequest.ResolvePool -> {
                     it.copy(
-                        request = request,
                         poolResolutionConfirmation = PoolResolutionConfirmation(
                             state = ConfirmationState.AwaitingConfirmation,
                             poolId = request.pool.id,
