@@ -38,6 +38,9 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
     data object Cash: PhantomDeeplinkOrigin()
 
     @Parcelize
+    data object Balance: PhantomDeeplinkOrigin()
+
+    @Parcelize
     data class PoolWithId(val id: ID) : PhantomDeeplinkOrigin()
 
     @Parcelize
@@ -49,6 +52,7 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
             is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
             Cash -> "cash"
+            Balance -> "balance"
         }.lowercase()
     }
 
@@ -61,6 +65,7 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
                     provider.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
                     provider.poolId?.let { id -> PoolWithId(id) }
                 }
+                is NavScreenProvider.HomeScreen.Balance -> Balance
 
                 else -> null
             }
@@ -70,6 +75,7 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
             return when {
                 value == "menu" -> Menu
                 value == "cash" -> Cash
+                value == "balance" -> Balance
                 value?.startsWith("pool-") == true -> {
                     val idStringWithPrefix = value.removePrefix("pool-")
                     val splits = idStringWithPrefix.split("_")

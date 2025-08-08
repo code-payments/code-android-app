@@ -285,4 +285,34 @@
     <string name="title_success">Success</string>
     <string name="subtitle_onrampSuccess">Your cash is on the way and should arrive in a few minutes</string>
     <string name="subtitle_contactSupportOnRamp">If you have any issues receiving you funds please contact us at support@flipcash.com</string>
+
+    <string name="error_title_phantomDecryption">Something went wrong</string>
+    <string name="error_title_phantomDeserialization">Something went wrong</string>
+    <string name="error_title_phantomFailedToCreateTransaction">Something went wrong</string>
+    <string name="error_title_phantomFailedToCreateDeeplink">Something went wrong</string>
+    <string name="error_title_phantomFailedToSendTransaction">Something went wrong</string>
+    <string name="error_title_phantomDisconnected">Something went wrong</string>
+    <string name="error_title_phantomUnauthorized">Something went wrong</string>
+    <string name="error_title_phantomUserRejected">Something went wrong</string>
+    <string name="error_title_phantomInvalidInput">Something went wrong</string>
+    <string name="error_title_phantomRequestedResourceNotAvailable">Something went wrong</string>
+    <string name="error_title_phantomTransactionRejected">Something went wrong</string>
+    <string name="error_title_phantomMethodNotFound">Something went wrong</string>
+    <string name="error_title_phantomInternalError">Something went wrong</string>
+    <string name="error_title_phantomUnknown">Something went wrong</string>
+
+    <string name="error_description_phantomDecryption">Failed to decrypt the response from Phantom. Please try again</string>
+    <string name="error_description_phantomDeserialization">Failed to decrypt the response from Phantom. Please try again</string>
+    <string name="error_description_phantomFailedToCreateTransaction">Failed to create a transaction to send to Phantom. Please try again</string>
+    <string name="error_description_phantomFailedToCreateDeeplink">Failed to generate a deeplink to send to Phantom. Please try again</string>
+    <string name="error_description_phantomFailedToSendTransaction">Transaction failed. Please try again</string>
+    <string name="error_description_phantomDisconnected">Phantom could not connect to the network. Please try again</string>
+    <string name="error_description_phantomUnauthorized">The request has not been authorized by the user.</string>
+    <string name="error_description_phantomUserRejected">The user rejected the request.</string>
+    <string name="error_description_phantomInvalidInput">Request was invalid. Please try again</string>
+    <string name="error_description_phantomRequestedResourceNotAvailable">The requested resource is not available. This can occur if a previous confirmation modal was not closed in Phantom before requesting a new approval</string>
+    <string name="error_description_phantomTransactionRejected">The transaction sent to Phantom was invalid</string>
+    <string name="error_description_phantomMethodNotFound">Phantom did not recognize the request.</string>
+    <string name="error_description_phantomInternalError">Something went wrong within Phantom. Please try again</string>
+    <string name="error_description_phantomUnknown">Please try again</string>
 </resources>

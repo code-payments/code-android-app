@@ -80,11 +80,13 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
 
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
-                    .filterIsInstance<BalanceViewModel.Event.OpenDeposit>()
+                    .filterIsInstance<BalanceViewModel.Event.OpenAddFunds>()
                     .onEach {
                         navigator.push(
                             ScreenRegistry.get(
-                                NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming)
+                                NavScreenProvider.HomeScreen.OnRamp.ProviderList(
+                                    NavScreenProvider.HomeScreen.Balance
+                                )
                             )
                         )
                     }.launchIn(this)

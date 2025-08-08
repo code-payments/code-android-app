@@ -1,7 +1,9 @@
 package com.flipcash.app.onramp
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -12,6 +14,7 @@ import com.flipcash.app.onramp.internal.PhantomDepositState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.router.Router
+import com.flipcash.shared.onramp.phantom.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
@@ -42,26 +45,28 @@ fun PhantomOnRampHandler(
     }
 
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     RepeatOnLifecycle(
         targetState = Lifecycle.State.STARTED
     ) {
         state.errors
             .onEach { error ->
-//                val (title, message) = error.messaging()
+                val (title, message) = error.messaging(context)
                 trace(
                     tag = TAG,
                     message = "Something went wrong during phantom onramp",
                     type = TraceType.Error,
                     metadata = {
                         "errorMessage" to error.message
-                        "userMessage" to ""
+                        "userMessage" to message
                         "code" to error.code
-                    }
+                    },
+                    error = error
                 )
 
                 BottomBarManager.showError(
-                    "Something went wrong",
-                    "Please try again"
+                    title = title,
+                    message = message,
                 ) {
                     launch { close() }
                     state.reset()
@@ -177,21 +182,24 @@ fun PhantomOnRampHandler(
 
 private const val TAG = "onramp::phantom"
 
-private fun PhantomOnRampError.messaging(): Pair<String, String> = when (this) {
-    is PhantomOnRampError.DecryptionError -> TODO()
-    is PhantomOnRampError.DeserializationError -> TODO()
-    is PhantomOnRampError.FailedToCreateTransaction -> TODO()
-    is PhantomOnRampError.FailedToGenerateDeeplink -> TODO()
-    is PhantomOnRampError.FailedToSendTransaction -> TODO()
+private typealias Title = String
+private typealias Message = String
+
+private fun PhantomOnRampError.messaging(context: Context): Pair<Title, Message> = when (this) {
+    is PhantomOnRampError.DecryptionError -> context.getString(R.string.error_title_phantomDecryption) to context.getString(R.string.error_description_phantomDecryption)
+    is PhantomOnRampError.DeserializationError -> context.getString(R.string.error_title_phantomDeserialization) to context.getString(R.string.error_description_phantomDeserialization)
+    is PhantomOnRampError.FailedToCreateTransaction -> context.getString(R.string.error_title_phantomFailedToCreateTransaction) to context.getString(R.string.error_description_phantomFailedToCreateTransaction)
+    is PhantomOnRampError.FailedToGenerateDeeplink -> context.getString(R.string.error_title_phantomFailedToCreateDeeplink) to context.getString(R.string.error_description_phantomFailedToCreateDeeplink)
+    is PhantomOnRampError.FailedToSendTransaction -> context.getString(R.string.error_title_phantomFailedToSendTransaction) to context.getString(R.string.error_description_phantomFailedToSendTransaction)
     is PhantomOnRampError.PhantomProvidedError -> when (this.error) {
-        PhantomError.Disconnected -> TODO()
-        PhantomError.Unauthorized -> TODO()
-        PhantomError.UserRejectedRequest -> TODO()
-        PhantomError.InvalidInput -> TODO()
-        PhantomError.RequestedResourceNotAvailable -> TODO()
-        PhantomError.TransactionRejected -> TODO()
-        PhantomError.MethodNotFound -> TODO()
-        PhantomError.InternalError -> TODO()
-        PhantomError.Unknown -> "Something went wrong" to "Please try again"
+        PhantomError.Disconnected -> context.getString(R.string.error_title_phantomDisconnected) to context.getString(R.string.error_description_phantomDisconnected)
+        PhantomError.Unauthorized -> context.getString(R.string.error_title_phantomUnauthorized) to context.getString(R.string.error_description_phantomUnauthorized)
+        PhantomError.UserRejectedRequest -> context.getString(R.string.error_title_phantomUserRejected) to context.getString(R.string.error_description_phantomUserRejected)
+        PhantomError.InvalidInput -> context.getString(R.string.error_title_phantomInvalidInput) to context.getString(R.string.error_description_phantomInvalidInput)
+        PhantomError.RequestedResourceNotAvailable -> context.getString(R.string.error_title_phantomRequestedResourceNotAvailable) to context.getString(R.string.error_description_phantomRequestedResourceNotAvailable)
+        PhantomError.TransactionRejected -> context.getString(R.string.error_title_phantomTransactionRejected) to context.getString(R.string.error_description_phantomTransactionRejected)
+        PhantomError.MethodNotFound -> context.getString(R.string.error_title_phantomMethodNotFound) to context.getString(R.string.error_description_phantomMethodNotFound)
+        PhantomError.InternalError -> context.getString(R.string.error_title_phantomInternalError) to context.getString(R.string.error_description_phantomInternalError)
+        PhantomError.Unknown -> context.getString(R.string.error_title_phantomUnknown) to context.getString(R.string.error_description_phantomUnknown)
     }
 }

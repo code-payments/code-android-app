@@ -73,6 +73,7 @@ internal fun ScannerDeeplinkHandler(
                     is PhantomDeeplinkOrigin.PoolWithId -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(poolId = origin.id))
                     is PhantomDeeplinkOrigin.PoolWithRendezvous -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(rendezvous = origin.keyPair))
                     PhantomDeeplinkOrigin.Cash -> buildScreens(NavScreenProvider.HomeScreen.Cash)
+                    PhantomDeeplinkOrigin.Balance -> buildScreens(NavScreenProvider.HomeScreen.Balance)
                 }
 
                 navigator.show(screens)
@@ -84,6 +85,7 @@ internal fun ScannerDeeplinkHandler(
                     is PhantomDeeplinkOrigin.PoolWithId -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(poolId = origin.id))
                     is PhantomDeeplinkOrigin.PoolWithRendezvous -> buildScreens(NavScreenProvider.HomeScreen.Pools.ChoiceSelection(rendezvous = origin.keyPair))
                     PhantomDeeplinkOrigin.Cash -> buildScreens(NavScreenProvider.HomeScreen.Cash)
+                    PhantomDeeplinkOrigin.Balance -> buildScreens(NavScreenProvider.HomeScreen.Balance)
                 } + ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount)
 
                 navigator.show(screens)

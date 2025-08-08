@@ -241,7 +241,7 @@ class PhantomDepositState(
     }
 
     /**
-     * Reset the state of the onamp flow
+     * Reset the state of the onramp flow
      */
     fun reset() {
         deeplinkState = PhantomDeeplinkState.IDLE

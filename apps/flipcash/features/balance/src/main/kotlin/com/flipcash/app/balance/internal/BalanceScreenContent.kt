@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
@@ -30,16 +29,11 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.balance.internal.components.FeedItem
-import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.feed.ActivityFeedMessage
-import com.flipcash.app.core.money.CurrencySelectionKind
-import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.balance.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -51,7 +45,6 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import kotlinx.coroutines.flow.flowOf
-import kotlin.collections.emptyList
 
 @Composable
 internal fun BalanceScreen(viewModel: BalanceViewModel) {
@@ -116,20 +109,12 @@ private fun FeedList(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
                         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12)
                     ) {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = stringResource(R.string.subtitle_balanceEmptyState),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.textMain,
-                            textAlign = TextAlign.Center,
-                        )
-
                         CodeButton(
                             modifier = Modifier.fillMaxWidth(),
-                            text = stringResource(R.string.action_depositFunds),
+                            text = stringResource(R.string.action_addCashToWallet),
                             buttonState = ButtonState.Filled
                         ) {
-                            dispatchEvent(BalanceViewModel.Event.OpenDeposit)
+                            dispatchEvent(BalanceViewModel.Event.OpenAddFunds)
                         }
                     }
                 }
