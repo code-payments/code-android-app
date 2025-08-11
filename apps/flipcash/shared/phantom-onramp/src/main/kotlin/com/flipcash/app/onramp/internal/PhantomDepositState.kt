@@ -67,20 +67,6 @@ class PhantomDepositState(
      * The amount to transfer selected by the user
      */
     var amount: Fiat? = null
-        set(value) {
-            field = value
-            if (value != null) {
-                scope.launch {
-                    createTransaction()
-                        .onFailure {
-                            errors.emit(PhantomOnRampError.FailedToCreateTransaction(message = it.message))
-                        }.onSuccess {
-                            unsignedTransaction = it
-                            deeplinkState = PhantomDeeplinkState.SIGNING
-                        }
-                }
-            }
-        }
 
     /**
      * The unsigned transaction to be signed by Phantom
@@ -249,6 +235,16 @@ class PhantomDepositState(
         unsignedTransaction = null
         signedTransaction = null
         signingResult = null
+    }
+
+    suspend fun createAndSendTransaction() {
+        createTransaction()
+            .onFailure {
+                errors.emit(PhantomOnRampError.FailedToCreateTransaction(message = it.message))
+            }.onSuccess {
+                unsignedTransaction = it
+                deeplinkState = PhantomDeeplinkState.SIGNING
+            }
     }
 
     private suspend fun createTransaction(): Result<Transaction> {

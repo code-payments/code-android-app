@@ -22,6 +22,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -31,7 +33,10 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class OnRampProviderListScreen: ModalScreen, NamedScreen, Parcelable {
+class OnRampProviderListScreen(
+    val neededAmount: Long? = null,
+    val neededCurrency: CurrencyCode? = null,
+): ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -85,6 +90,9 @@ class OnRampProviderListScreen: ModalScreen, NamedScreen, Parcelable {
                         navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
                     } else {
                         phantomDepositState.setOrigin(OnRampFlowTracker.source)
+                        if (neededAmount != null && neededCurrency != null) {
+                            phantomDepositState.amount = Fiat(neededAmount, neededCurrency)
+                        }
                         phantomDepositState.start()
                     }
                 }

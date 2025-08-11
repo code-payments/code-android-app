@@ -6,6 +6,7 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.core.RestrictionType
 
 sealed class NavScreenProvider : ScreenProvider {
@@ -56,7 +57,10 @@ sealed class NavScreenProvider : ScreenProvider {
         data object ShareApp : NavScreenProvider()
 
        sealed class OnRamp {
-           data class ProviderList(val from: NavScreenProvider? = null): NavScreenProvider()
+           data class ProviderList(
+               val from: NavScreenProvider? = null,
+               val neededAmount: Fiat? = null,
+           ): NavScreenProvider()
            data object Amount : NavScreenProvider()
            data object Success: NavScreenProvider()
        }

@@ -25,6 +25,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -69,11 +70,13 @@ class CashScreen: ModalScreen, Parcelable {
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<CashScreenViewModel.Event.AddCashToWallet>()
-                .onEach {
+                .map { it.amount }
+                .onEach { amount ->
                     navigator.push(
                         ScreenRegistry.get(
                             NavScreenProvider.HomeScreen.OnRamp.ProviderList(
-                                NavScreenProvider.HomeScreen.Cash
+                                NavScreenProvider.HomeScreen.Cash,
+                                neededAmount = amount
                             )
                         )
                     )

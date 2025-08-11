@@ -124,7 +124,10 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.HomeScreen.OnRamp.ProviderList> {
             OnRampFlowTracker.start(it.from)
-            OnRampProviderListScreen()
+            OnRampProviderListScreen(
+                neededAmount = it.neededAmount?.quarks,
+                neededCurrency = it.neededAmount?.currencyCode
+            )
         }
 
         register<NavScreenProvider.HomeScreen.OnRamp.Amount> {

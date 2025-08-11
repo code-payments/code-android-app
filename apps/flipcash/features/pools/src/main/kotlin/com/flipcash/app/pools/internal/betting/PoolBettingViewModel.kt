@@ -172,7 +172,7 @@ internal class PoolBettingViewModel @Inject constructor(
         data class OnFundsDistributed(val isDistributed: Boolean) : Event
         data object OnSharePool : Event
         data object OnFailedToLoad: Event
-        data object AddCashToWallet: Event
+        data class AddCashToWallet(val amount: Fiat): Event
     }
 
     init {
@@ -374,7 +374,7 @@ internal class PoolBettingViewModel @Inject constructor(
                                             text = resources.getString(R.string.action_addCashToWallet),
                                             style = BottomBarManager.BottomBarButtonStyle.Filled,
                                         ) {
-                                            dispatchEvent(Event.AddCashToWallet)
+                                            dispatchEvent(Event.AddCashToWallet(stateFlow.value.metadata.buyIn))
                                         },
                                         BottomBarAction(
                                             text = resources.getString(R.string.action_dismiss),

@@ -126,10 +126,7 @@ fun PhantomOnRampHandler(
                     message = "phantom connected",
                     type = TraceType.Process
                 )
-                // this will always be present in a modal so we can confidently push it into the stack
-                // without worrying about the need to show vs. push
-                delay(300)
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                state.createAndSendTransaction()
             }
 
             PhantomDeeplinkState.SIGNING -> {

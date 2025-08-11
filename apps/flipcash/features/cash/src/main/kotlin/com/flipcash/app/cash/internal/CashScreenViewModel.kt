@@ -90,7 +90,7 @@ internal class CashScreenViewModel @Inject constructor(
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
 
-        data object AddCashToWallet : Event
+        data class AddCashToWallet(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
     }
@@ -117,7 +117,22 @@ internal class CashScreenViewModel @Inject constructor(
                         text = resources.getString(R.string.action_addCashToWallet),
                         style = BottomBarManager.BottomBarButtonStyle.Filled,
                     ) {
-                        dispatchEvent(Event.AddCashToWallet)
+                        viewModelScope.launch {
+                            val rate = exchange.entryRate
+                            // if we are USD we can skip the rate fetch since its 1:1
+                            if (rate.currency != CurrencyCode.USD) {
+                                exchange.fetchRatesIfNeeded()
+                            }
+
+                            val localizedAmount = Fiat(amount, rate.currency)
+
+                            val amountFiat = LocalFiat(
+                                usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                                converted = localizedAmount,
+                                rate = rate,
+                            )
+                            dispatchEvent(Event.AddCashToWallet(amountFiat.usdc))
+                        }
                     },
                     BottomBarAction(
                         text = resources.getString(R.string.action_dismiss),
@@ -297,8 +312,7 @@ internal class CashScreenViewModel @Inject constructor(
                     )
                 }
 
-                Event.AddCashToWallet -> { state -> state }
-
+                is Event.AddCashToWallet -> { state -> state }
                 is Event.OnMaxDetermined -> { state ->
                     state.copy(maxForGive = event.max to event.currencyCode)
                 }
