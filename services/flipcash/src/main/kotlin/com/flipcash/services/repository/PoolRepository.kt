@@ -25,6 +25,7 @@ interface PoolRepository {
         owner: KeyPair,
         poolId: ID,
         excludeBets: Boolean,
+        includeUserProfiles: Boolean,
     ): Result<NetworkPool>
 
     suspend fun getPagedPools(

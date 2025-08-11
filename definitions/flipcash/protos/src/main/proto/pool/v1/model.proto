@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/flipcash-protobuf-api/generated/go
 option java_package = "com.codeinc.flipcash.gen.pool.v1";
 option objc_class_prefix = "FPBPoolV1";
 import "common/v1/common.proto";
+import "profile/v1/model.proto";
 import "google/protobuf/timestamp.proto";
 
 // PoolId uniquely identifies a pool via a rendezvous public key
@@ -63,6 +64,8 @@ message PoolMetadata {
     // Derivation index used to derive the pool account's authority. This is only
     // valid against authenticated RPCs made by the pool creator
     uint64 derivation_index = 6;
+    // The creator's user profile
+    profile.v1.UserProfile creator_profile = 9;
 }
 // BetId uniquely identifies a bet via an intent ID
 message BetId {
@@ -145,4 +148,6 @@ message BetMetadata {
     common.v1.Signature rendezvous_signature = 2;
     // Has the intent for bet payment been submitted?
     bool is_intent_submitted = 3;
+    // The better's user profile
+    profile.v1.UserProfile better_profile = 4;
 }

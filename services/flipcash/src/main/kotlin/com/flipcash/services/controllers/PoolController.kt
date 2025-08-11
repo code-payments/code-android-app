@@ -1,23 +1,16 @@
 package com.flipcash.services.controllers
 
-import com.flipcash.services.internal.network.extensions.toProto
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.NetworkPoolBet
-import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.PoolRepository
 import com.flipcash.services.user.UserManager
-import com.flipcash.services.validators.NetworkPoolValidator
-import com.getcode.crypt.DerivePath
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import com.getcode.utils.CodeServerError
 import kotlinx.datetime.Instant
 import javax.inject.Inject
@@ -61,7 +54,8 @@ class PoolController @Inject constructor(
         return repository.getPool(
             owner = owner.authority.keyPair,
             poolId = rendezvous.publicKeyBytes.toList(),
-            excludeBets = false
+            excludeBets = false,
+            includeUserProfiles = false,
         )
     }
 
@@ -73,7 +67,8 @@ class PoolController @Inject constructor(
         return repository.getPool(
             owner = owner.authority.keyPair,
             poolId = id,
-            excludeBets = false
+            excludeBets = false,
+            includeUserProfiles = false,
         )
     }
 
@@ -84,7 +79,8 @@ class PoolController @Inject constructor(
         return repository.getPool(
             owner = owner.authority.keyPair,
             poolId = id,
-            excludeBets = false
+            excludeBets = false,
+            includeUserProfiles = false,
         ).map { it.bets }
     }
 

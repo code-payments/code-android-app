@@ -57,6 +57,7 @@ internal class PoolApi @Inject constructor(
         val rpcRequest = PoolService.GetPoolRequest.newBuilder()
             .setId(request.poolId.asPoolId())
             .setExcludeBets(request.excludeBets)
+            .setIncludeUserProfiles(request.includeUserProfiles)
             .apply { setAuth(authenticate(owner)) }
             .build()
 

@@ -2,6 +2,7 @@ package com.flipcash.services.internal.network.extensions
 
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
+import com.codeinc.flipcash.gen.profile.v1.ProfileService
 import com.flipcash.services.models.NetworkPoolBetOutcome
 import com.flipcash.services.models.NetworkPoolResolution
 import com.codeinc.flipcash.gen.pool.v1.Model as PoolModels
@@ -10,6 +11,7 @@ import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.PoolMetadata
 import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.SocialAccountLinkRequest
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
@@ -142,4 +144,16 @@ internal fun Pair<ApiProvider, String>.asApiKey(): ThirdPartyModels.ApiKey {
 
 internal fun String.asCountryCode(): Common.CountryCode {
     return Common.CountryCode.newBuilder().setValue(this).build()
+}
+
+internal fun SocialAccountLinkRequest.linkingToken(): ProfileService.LinkSocialAccountRequest.LinkingToken {
+    val builder = ProfileService.LinkSocialAccountRequest.LinkingToken.newBuilder()
+
+    when (this) {
+        is SocialAccountLinkRequest.X -> builder.setX(
+            ProfileService.LinkSocialAccountRequest.LinkingToken.XLinkingToken.newBuilder().setAccessToken(token)
+        )
+    }
+
+    return builder.build()
 }

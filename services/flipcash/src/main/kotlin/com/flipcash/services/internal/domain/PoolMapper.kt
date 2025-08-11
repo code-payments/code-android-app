@@ -3,10 +3,10 @@ package com.flipcash.services.internal.domain
 import com.codeinc.flipcash.gen.pool.v1.Model
 import com.codeinc.flipcash.gen.pool.v1.pagingTokenOrNull
 import com.codeinc.flipcash.gen.pool.v1.userSummaryOrNull
+import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.models.NetworkPool
 import com.flipcash.services.models.NetworkPoolBetSummary
 import com.flipcash.services.models.NetworkPoolUserSummary
-import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import javax.inject.Inject

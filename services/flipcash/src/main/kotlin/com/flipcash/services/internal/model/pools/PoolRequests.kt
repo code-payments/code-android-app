@@ -24,7 +24,17 @@ internal sealed interface PoolRequest {
         }
     }
 
-    data class Get(val poolId: ID, val excludeBets: Boolean): PoolRequest
+    /**
+     * Gets pool metadata by its ID
+     *
+     * > NOTE: Only bet summaries are provided in the response if [excludeBets] is true
+     * > User profiles will be provided alongside pools and bets if [includeUserProfiles] is true
+     */
+    data class Get(
+        val poolId: ID,
+        val excludeBets: Boolean,
+        val includeUserProfiles: Boolean
+    ): PoolRequest
 
     data class GetPage(
         val queryOptions: QueryOptions,

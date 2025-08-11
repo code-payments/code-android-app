@@ -145,3 +145,70 @@ sealed class GetJwtError(
     data class Other(override val cause: Throwable? = null) : GetJwtError(message = cause?.message, cause = cause)
 }
 
+sealed class EmailVerificationError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: EmailVerificationError("Denied")
+    class RateLimited: EmailVerificationError("Rate limited")
+    class InvalidEmailAddress: EmailVerificationError("Invalid email address")
+    class InvalidVerificationCode: EmailVerificationError("Invalid verification code")
+    class NoVerification: EmailVerificationError("No verification")
+    class Unrecognized : EmailVerificationError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : EmailVerificationError(message = cause?.message, cause = cause)
+}
+
+
+sealed class PhoneVerificationError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: PhoneVerificationError("Denied")
+    class RateLimited: PhoneVerificationError("Rate limited")
+    class InvalidPhoneNumber: PhoneVerificationError("Invalid phone number")
+    class UnsupportedPhoneType: PhoneVerificationError("Unsupported phone type")
+    class InvalidVerificationCode: PhoneVerificationError("Invalid verification code")
+    class NoVerification: PhoneVerificationError("No verification")
+    class Unrecognized : PhoneVerificationError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : PhoneVerificationError(message = cause?.message, cause = cause)
+}
+
+sealed class GetUserProfileError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound: GetUserProfileError("Not found")
+    class Unrecognized : GetUserProfileError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : GetUserProfileError(message = cause?.message, cause = cause)
+}
+
+sealed class SetDisplayNameError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class InvalidDisplayName: SetDisplayNameError("Invalid display name")
+    class Denied: SetDisplayNameError("Denied")
+    class Unrecognized : SetDisplayNameError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : SetDisplayNameError(message = cause?.message, cause = cause)
+}
+
+sealed class LinkSocialAccountError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class InvalidLinkingToken: LinkSocialAccountError("Invalid linking token")
+    class ExistingLink: LinkSocialAccountError("Existing link")
+    class Denied: LinkSocialAccountError("Denied")
+    class Unrecognized : LinkSocialAccountError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : LinkSocialAccountError(message = cause?.message, cause = cause)
+}
+
+sealed class UnlinkSocialAccountError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: UnlinkSocialAccountError("Denied")
+    class Unrecognized : UnlinkSocialAccountError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : UnlinkSocialAccountError(message = cause?.message, cause = cause)
+}
+

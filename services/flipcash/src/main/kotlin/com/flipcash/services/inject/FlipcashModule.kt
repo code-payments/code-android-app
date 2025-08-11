@@ -7,21 +7,30 @@ import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
 import com.flipcash.services.internal.domain.PoolBetMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
 import com.flipcash.services.internal.domain.PoolMapper
+import com.flipcash.services.internal.domain.SocialAccountMapper
+import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
+import com.flipcash.services.internal.network.services.EmailVerificationService
+import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.internal.network.services.PoolService
+import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.internal.network.services.PushService
 import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
+import com.flipcash.services.internal.repositories.InternalContactVerificationRepository
 import com.flipcash.services.internal.repositories.InternalPoolRepository
+import com.flipcash.services.internal.repositories.InternalProfileRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
 import com.flipcash.services.internal.repositories.InternalThirdPartyRepository
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
+import com.flipcash.services.repository.ContactVerificationRepository
 import com.flipcash.services.repository.PoolRepository
+import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
 import com.flipcash.services.repository.ThirdPartyRepository
@@ -114,4 +123,19 @@ internal object FlipcashModule {
     internal fun providesThirdPartyRepository(
         service: ThirdPartyService,
     ): ThirdPartyRepository = InternalThirdPartyRepository(service)
+
+    @Provides
+    internal fun providesContactVerificationRepository(
+        emailService: EmailVerificationService,
+        phoneService: PhoneVerificationService,
+    ): ContactVerificationRepository = InternalContactVerificationRepository(emailService, phoneService)
+
+    @Provides
+    internal fun providesProfileRepository(
+        service: ProfileService,
+        userProfileMapper: UserProfileMapper,
+        socialAccountMapper: SocialAccountMapper,
+    ): ProfileRepository = InternalProfileRepository(service, userProfileMapper, socialAccountMapper)
+
+
 }

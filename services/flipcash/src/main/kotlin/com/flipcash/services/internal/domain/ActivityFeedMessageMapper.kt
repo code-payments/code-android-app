@@ -3,17 +3,16 @@ package com.flipcash.services.internal.domain
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.activity.v1.paymentAmountOrNull
 import com.codeinc.flipcash.gen.pool.v1.Model.*
+import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.NotificationState
-import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.Rate
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 

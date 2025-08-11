@@ -42,8 +42,13 @@ internal class InternalPoolRepository(
             .map { request.metadata }
     }
 
-    override suspend fun getPool(owner: KeyPair, poolId: ID, excludeBets: Boolean): Result<NetworkPool> {
-        return service.getPool(owner, request = PoolRequest.Get(poolId, excludeBets))
+    override suspend fun getPool(
+        owner: KeyPair,
+        poolId: ID,
+        excludeBets: Boolean,
+        includeUserProfiles: Boolean
+    ): Result<NetworkPool> {
+        return service.getPool(owner, request = PoolRequest.Get(poolId, excludeBets, includeUserProfiles))
             .onFailure { ErrorUtils.handleError(it) }
             .map { poolMapper.map(it) }
             .fold(

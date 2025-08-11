@@ -1,8 +1,8 @@
 package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.pool.v1.Model
+import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.models.NetworkPoolBet
-import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
 
 class PoolBetMapper @Inject constructor(
