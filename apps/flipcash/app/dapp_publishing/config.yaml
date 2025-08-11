@@ -23,7 +23,7 @@ app:
     - purpose: icon
       uri: ../../../../fastlane/metadata/flipcash/en-US/images/icon.png
 release:
-  address: ''
+  address: BNqxUwVyp2Nu9UKrNH2WNKpZmj1Uv5L95haWuEHg9hqS
   media:
     - purpose: icon
       uri: ../../../../fastlane/metadata/flipcash/en-US/images/icon.png
@@ -47,7 +47,7 @@ release:
       uri: ../../../../fastlane/metadata/flipcash/en-US/dappStore/flipcash_promo.mp4
   files:
     - purpose: install
-      uri: <<UPDATE THIS FIELD>>>>
+      uri: <<<UPDATE THIS FIELD>>>
   catalog:
     en-US:
       name: Flipcash
@@ -64,4 +64,11 @@ release:
       saga_features: None
 solana_mobile_dapp_publisher_portal:
   google_store_package: com.flipcash.android.app
-  testing_instructions: None
+  testing_instructions: |-
+    <<<UPDATE THIS FIELD>>>
+lastSubmittedVersionOnChain:
+  address: BNqxUwVyp2Nu9UKrNH2WNKpZmj1Uv5L95haWuEHg9hqS
+  version_code: 2625
+  apk_hash: DILL5WhA1GvWpYNMrmLWYcPJ7fvPfUmrHxu62YyaCNs=
+lastUpdatedVersionOnStore:
+  address: BNqxUwVyp2Nu9UKrNH2WNKpZmj1Uv5L95haWuEHg9hqS
