@@ -301,14 +301,14 @@
     <string name="error_title_phantomInternalError">Something went wrong</string>
     <string name="error_title_phantomUnknown">Something went wrong</string>
 
-    <string name="error_description_phantomDecryption">Failed to decrypt the response from Phantom. Please try again</string>
-    <string name="error_description_phantomDeserialization">Failed to decrypt the response from Phantom. Please try again</string>
-    <string name="error_description_phantomFailedToCreateTransaction">Failed to create a transaction to send to Phantom. Please try again</string>
-    <string name="error_description_phantomFailedToCreateDeeplink">Failed to generate a deeplink to send to Phantom. Please try again</string>
+    <string name="error_description_phantomDecryption">Response from Phantom failed. Please try again</string>
+    <string name="error_description_phantomDeserialization">Response from Phantom failed. Please try again</string>
+    <string name="error_description_phantomFailedToCreateTransaction">Failed to generate transaction. Please try again</string>
+    <string name="error_description_phantomFailedToCreateDeeplink">Failed to generate transaction. Please try again</string>
     <string name="error_description_phantomFailedToSendTransaction">Transaction failed. Please try again</string>
     <string name="error_description_phantomDisconnected">Phantom could not connect to the network. Please try again</string>
     <string name="error_description_phantomUnauthorized">The request has not been authorized by the user.</string>
-    <string name="error_description_phantomUserRejected">The user rejected the request.</string>
+    <string name="error_description_phantomUserRejected">Request rejected by user in Phantom.</string>
     <string name="error_description_phantomInvalidInput">Request was invalid. Please try again</string>
     <string name="error_description_phantomRequestedResourceNotAvailable">The requested resource is not available. This can occur if a previous confirmation modal was not closed in Phantom before requesting a new approval</string>
     <string name="error_description_phantomTransactionRejected">The transaction sent to Phantom was invalid</string>
