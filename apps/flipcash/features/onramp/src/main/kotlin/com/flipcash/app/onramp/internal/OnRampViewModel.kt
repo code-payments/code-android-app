@@ -20,6 +20,7 @@ import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -251,7 +252,13 @@ internal class OnRampViewModel @Inject constructor(
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
 
-                dispatchEvent(Event.OnAmountAccepted(localizedAmount))
+                val amountFiat = LocalFiat(
+                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                    converted = localizedAmount,
+                    rate = rate,
+                )
+
+                dispatchEvent(Event.OnAmountAccepted(amountFiat.usdc))
             }.launchIn(viewModelScope)
 
         userManager.state
