@@ -8,14 +8,38 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class ProfileController @Inject constructor(
     private val repository: ProfileRepository,
     private val userManager: UserManager,
 ) {
+    suspend fun updateUserProfile() {
+        val accountId = userManager.accountId ?: return
+
+        getProfileForUser(accountId)
+            .onSuccess {
+                trace(
+                    tag = "Profile",
+                    message = "Updated user profile",
+                    type = TraceType.Process
+                )
+                userManager.set(it)
+            }.onFailure {
+                trace(
+                    tag = "Profile",
+                    message = "Failed to update user profile",
+                    type = TraceType.Error
+                )
+            }
+    }
+
     suspend fun getProfileForUser(
-        userId: ID = userManager.accountId.orEmpty(),
+        userId: ID,
     ): Result<UserProfile> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))

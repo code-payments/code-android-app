@@ -1,7 +1,9 @@
 package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
+import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserProfile
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
@@ -93,6 +95,7 @@ class UserManager @Inject constructor(
         val isTimelockUnlocked: Boolean = false,
         val pushToken: String? = null,
         val nextPoolIndex: Long = 0L,
+        val userProfile: UserProfile? = null,
     )
 
     init {
@@ -159,6 +162,10 @@ class UserManager @Inject constructor(
         _state.update { it.copy(pushToken = pushToken) }
     }
 
+    internal fun set(userProfile: UserProfile) {
+        _state.update { it.copy(userProfile = userProfile) }
+    }
+
     fun poolAccountAt(index: Long): PoolAccount {
         return PoolAccount.create(
             mnemonic = mnemnonic!!,
@@ -195,6 +202,7 @@ class UserManager @Inject constructor(
                 cluster = null,
                 accountId =  NoId,
                 isTimelockUnlocked = false,
+                userProfile = null,
             )
         }
     }

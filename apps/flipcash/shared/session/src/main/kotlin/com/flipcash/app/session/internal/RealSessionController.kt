@@ -12,6 +12,7 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
+import com.flipcash.app.core.internal.updater.ProfileUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.pools.PoolUpdater
@@ -95,6 +96,7 @@ class RealSessionController @Inject constructor(
     private val activityFeedUpdater: ActivityFeedUpdater,
     private val poolsUpdater: PoolsUpdater,
     private val poolUpdater: PoolUpdater,
+    private val profileUpdater: ProfileUpdater,
     private val shareSheetController: ShareSheetController,
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
@@ -243,6 +245,8 @@ class RealSessionController @Inject constructor(
             poolsCoordinator.openPool.value?.let { id ->
                 poolUpdater.poll(id, scope = scope, frequency = 10.seconds, startIn = 10.seconds)
             }
+
+            profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
         }
     }
 
