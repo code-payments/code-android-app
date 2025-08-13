@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.PhoneVerificationApi
+import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -12,11 +13,11 @@ internal class PhoneVerificationService @Inject constructor(
     private val api: PhoneVerificationApi,
 ) {
     suspend fun sendVerificationCode(
-        phoneNumber: String,
+        request: ContactMethod.Phone,
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return runCatching {
-            api.sendVerificationCode(phoneNumber, owner)
+            api.sendVerificationCode(request, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -48,12 +49,12 @@ internal class PhoneVerificationService @Inject constructor(
     }
 
     suspend fun checkVerificationCode(
-        phoneNumber: String,
+        request: ContactMethod.Phone,
         code: String,
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return runCatching {
-            api.checkVerificationCode(phoneNumber, code, owner)
+            api.checkVerificationCode(request, code, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -76,6 +77,33 @@ internal class PhoneVerificationService @Inject constructor(
                     else -> Result.failure(PhoneVerificationError.Other())
                 }
 
+            },
+            onFailure = { cause ->
+                Result.failure(PhoneVerificationError.Other(cause))
+            }
+        )
+    }
+
+    suspend fun unlink(
+        request: ContactMethod.Phone,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
+        return runCatching {
+            api.unlink(request, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcPhoneService.UnlinkResponse.Result.OK -> Result.success(Unit)
+                    RpcPhoneService.UnlinkResponse.Result.DENIED -> {
+                        Result.failure(PhoneVerificationError.Denied())
+                    }
+
+                    RpcPhoneService.UnlinkResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(PhoneVerificationError.Unrecognized())
+                    }
+
+                    else -> Result.failure(PhoneVerificationError.Other())
+                }
             },
             onFailure = { cause ->
                 Result.failure(PhoneVerificationError.Other(cause))

@@ -67,7 +67,7 @@ message LinkSocialAccountResponse {
 	}
 	SocialProfile social_profile = 2;
 }
-message 	UnlinkSocialAccountRequest {
+message UnlinkSocialAccountRequest {
 	oneof social_identifier {
 		string x_user_id = 1 ;
 	}

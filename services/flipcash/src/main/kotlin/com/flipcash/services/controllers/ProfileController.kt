@@ -18,15 +18,16 @@ class ProfileController @Inject constructor(
     private val repository: ProfileRepository,
     private val userManager: UserManager,
 ) {
-    suspend fun updateUserProfile() {
-        val accountId = userManager.accountId ?: return
+    suspend fun updateUserProfile(): Result<UserProfile> {
+        val accountId = userManager.accountId ?: return Result.failure(Throwable("No account id in UserManager"))
 
-        getProfileForUser(accountId)
+        return getProfileForUser(accountId)
             .onSuccess {
+                println("profile has ${it.socialAccounts.count()} social accounts, phone ${it.verifiedPhoneNumber != null}, email ${it.verifiedEmailAddress != null}")
                 trace(
                     tag = "Profile",
                     message = "Updated user profile",
-                    type = TraceType.Process
+                    type = TraceType.Process,
                 )
                 userManager.set(it)
             }.onFailure {

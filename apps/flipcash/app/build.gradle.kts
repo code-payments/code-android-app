@@ -151,6 +151,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:phantom-onramp"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:permissions"))
+    implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:transfers"))
     implementation(project(":apps:flipcash:shared:web"))
@@ -171,6 +172,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:pools"))
     implementation(project(":apps:flipcash:features:payments"))
     implementation(project(":apps:flipcash:features:onramp"))
+    implementation(project(":apps:flipcash:features:contact-verification"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))

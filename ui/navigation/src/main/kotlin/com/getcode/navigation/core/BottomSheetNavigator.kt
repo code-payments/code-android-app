@@ -171,17 +171,13 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 
     fun show(screens: List<Screen>) {
         coroutineScope.launch {
-            if (sheetStacks.isEmpty) {
-                replaceAll(screens)
-                // setup stack
-                val firstScreen = items.first()
-                val remainingScreens = items.drop(1)
-                sheetStacks.push(firstScreen to remainingScreens)
-                if (!isVisible) {
-                    sheetState.show()
-                }
-            } else {
-                hideAndShow(screens)
+            replaceAll(screens)
+            // setup stack
+            val firstScreen = items.first()
+            val remainingScreens = items.drop(1)
+            sheetStacks.push(firstScreen to remainingScreens)
+            if (!isVisible) {
+                sheetState.show()
             }
         }
     }

@@ -11,20 +11,24 @@ import com.flipcash.app.core.phantom.PhantomConnectionResult
 import com.flipcash.app.core.phantom.PhantomDeeplinkError
 import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
 import com.flipcash.app.core.phantom.PhantomSigningResult
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.login
 import com.flipcash.app.router.internal.AppRouter.Companion.phantom
 import com.flipcash.app.router.internal.AppRouter.Companion.pool
+import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
+import com.getcode.utils.urlDecode
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.json.JSONObject
 
 internal class AppRouter(
     private val userManager: UserManager,
@@ -34,6 +38,7 @@ internal class AppRouter(
         val cashLink = listOf("c", "cash")
         val pool = listOf("p", "pool")
         val phantom = listOf("phantom")
+        val verification = listOf("verify")
     }
 
     override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
@@ -78,6 +83,14 @@ internal class AppRouter(
                         listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                     }
                 }
+
+                is DeeplinkType.EmailVerification -> {
+                    if (userManager.authState is AuthState.LoggedInWithUser) {
+                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                    } else {
+                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    }
+                }
             }
         }.orEmpty()
     }
@@ -90,6 +103,7 @@ internal class AppRouter(
                 deeplink.isPool() -> deeplink.handlePoolLink()
                 deeplink.isPhantomConnection() -> deeplink.handlePhantomConnect()
                 deeplink.isPhantomSignedTransaction() -> deeplink.handlePhantomSignedTransaction()
+                deeplink.isEmailVerification() -> deeplink.handleEmailVerification()
                 else -> null
             }
         }
@@ -104,6 +118,9 @@ private fun DeepLink.isPhantomConnection(): Boolean = phantom.contains(pathSegme
 
 private fun DeepLink.isPhantomSignedTransaction(): Boolean = phantom.contains(pathSegments.getOrNull(0))
         && pathSegments.getOrNull(1) == "signed"
+
+private fun DeepLink.isEmailVerification(): Boolean = verification.contains(pathSegments[0])
+        && data.toUri().getQueryParameter("email") != null
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()
@@ -185,4 +202,24 @@ private fun DeepLink.handlePhantomSignedTransaction(): DeeplinkType.PhantomSigne
             PhantomDeeplinkError(errorCode, errorMessage)
         } else null,
     )
+}
+
+//  https://app.flipcash.com/verify?email={email}&code={code}&client_data={data}
+private fun DeepLink.handleEmailVerification(): DeeplinkType.EmailVerification? {
+    val uri = data.toUri()
+    val email = uri.getQueryParameter("email")?.urlDecode()
+    val code = uri.getQueryParameter("code")
+    val clientData = uri.getQueryParameter("client_data")?.urlDecode()
+        ?.let { JSONObject(it) }
+
+    val origin = clientData?.getString("origin")?.decodeBase64()?.let { String(it, Charsets.UTF_8) }
+    if (code != null && email != null) {
+        return DeeplinkType.EmailVerification(
+            email = email,
+            code = code,
+            origin = origin,
+        )
+    }
+
+    return null
 }

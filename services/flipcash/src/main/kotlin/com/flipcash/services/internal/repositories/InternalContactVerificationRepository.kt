@@ -16,8 +16,8 @@ internal class InternalContactVerificationRepository(
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return when (method) {
-            is ContactMethod.Email -> emailService.sendVerificationCode(method.emailAddress, owner)
-            is ContactMethod.Phone -> phoneService.sendVerificationCode(method.phoneNumber, owner)
+            is ContactMethod.Email -> emailService.sendVerificationCode(method, owner)
+            is ContactMethod.Phone -> phoneService.sendVerificationCode(method, owner)
         }.onFailure { ErrorUtils.handleError(it) }
     }
 
@@ -27,8 +27,15 @@ internal class InternalContactVerificationRepository(
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return when (method) {
-            is ContactMethod.Email -> emailService.checkVerificationCode(method.emailAddress, code, owner)
-            is ContactMethod.Phone -> phoneService.checkVerificationCode(method.phoneNumber, code, owner)
+            is ContactMethod.Email -> emailService.checkVerificationCode(method, code, owner)
+            is ContactMethod.Phone -> phoneService.checkVerificationCode(method, code, owner)
+        }.onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun unlink(method: ContactMethod, owner: Ed25519.KeyPair): Result<Unit> {
+        return when (method) {
+            is ContactMethod.Email -> emailService.unlink(method, owner)
+            is ContactMethod.Phone -> phoneService.unlink(method, owner)
         }.onFailure { ErrorUtils.handleError(it) }
     }
 }

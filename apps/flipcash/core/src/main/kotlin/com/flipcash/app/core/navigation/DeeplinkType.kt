@@ -7,6 +7,7 @@ import com.flipcash.app.core.phantom.PhantomConnectionResult
 import com.flipcash.app.core.phantom.PhantomDeeplinkError
 import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
 import com.flipcash.app.core.phantom.PhantomSigningResult
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.vendor.Base58
@@ -14,9 +15,10 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 sealed interface DeeplinkType: Parcelable {
+    sealed interface Navigatable
     data class Login(val entropy: String) : DeeplinkType
     data class CashLink(val entropy: String) : DeeplinkType
-    data class Pool(val seed: String) : DeeplinkType {
+    data class Pool(val seed: String) : DeeplinkType, Navigatable {
         val rendezvous: Ed25519.KeyPair
             get() = Ed25519.createKeyPair(Base58.decode(seed))
     }
@@ -25,13 +27,19 @@ sealed interface DeeplinkType: Parcelable {
         val origin: PhantomDeeplinkOrigin,
         val result: PhantomConnectionResult?,
         val error: PhantomDeeplinkError? = null
-    ): DeeplinkType
+    ): DeeplinkType, Navigatable
 
     data class PhantomSignedTransaction(
         val origin: PhantomDeeplinkOrigin,
         val result: PhantomSigningResult?,
         val error: PhantomDeeplinkError? = null
-    ): DeeplinkType
+    ): DeeplinkType, Navigatable
+
+    data class EmailVerification(
+        val email: String,
+        val code: String,
+        val origin: String? = null
+    ): DeeplinkType, Navigatable
 }
 
 val Uri.fragments: Map<Key, String>

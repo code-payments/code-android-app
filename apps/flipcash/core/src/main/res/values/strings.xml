@@ -315,4 +315,23 @@
     <string name="error_description_phantomMethodNotFound">Phantom did not recognize the request.</string>
     <string name="error_description_phantomInternalError">Something went wrong within Phantom. Please try again</string>
     <string name="error_description_phantomUnknown">Please try again</string>
+
+    <string name="title_verifyPhoneNumber">Verify Phone Number</string>
+    <string name="subtitle_enterPhoneNumberToContinue">Please enter your phone number to continue</string>
+    <string name="subtitle_enterPhoneVerificationCode">An SMS message was sent to your phone number with a verification code.\nPlease enter the verification code above</string>
+    <string name="subtitle_enterEmailToContinue">Please enter your email to continue</string>
+
+    <string name="title_verifyEmailAddress">Verify Your Email</string>
+    <string name="subtitle_resend">Resend</string>
+
+    <string name="error_title_failedToSendCodeToPhone">Failed To Send</string>
+    <string name="error_description_failedToSendCodeToPhone">Something went wrong. Please ensure that your phone number is entered correctly</string>
+    <string name="error_title_failedToSendCodeToEmail">Failed To Send</string>
+    <string name="error_description_failedToSendCodeToEmail">Something went wrong. Please ensure that your email address is entered correctly</string>
+
+    <string name="title_email">Email</string>
+    <string name="action_openMail">Open Mail</string>
+    <string name="title_checkYourInbox">Check your inbox</string>
+    <string name="subtitle_linkSentToEmail">Tap the link we sent to</string>
+    <string name="subtitle_didntGetEmail">Didn\'t get an email?</string>
 </resources>

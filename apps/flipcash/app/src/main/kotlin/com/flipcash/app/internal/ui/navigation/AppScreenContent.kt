@@ -1,34 +1,38 @@
 package com.flipcash.app.internal.ui.navigation
 
 import androidx.compose.runtime.Composable
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.Screen
 import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.PreloadBalance
+import com.flipcash.app.cash.CashScreen
+import com.flipcash.app.contact.verification.EmailVerificationFlow
+import com.flipcash.app.contact.verification.PhoneVerificationFlow
+import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.currency.CurrencySelectionModal
 import com.flipcash.app.deposit.DepositScreen
-import com.flipcash.app.cash.CashScreen
-import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.LabsModal
+import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampAmountScreen
-import com.flipcash.app.onramp.OnRampProviderListScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
+import com.flipcash.app.onramp.OnRampProviderListScreen
 import com.flipcash.app.onramp.OnRampSuccessScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.pools.PoolBettingScreen
-import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
 import com.flipcash.app.pools.PoolCreateFlow
 import com.flipcash.app.pools.PoolListScreen
 import com.flipcash.app.pools.create.PoolConfirmationScreen
+import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
 import com.flipcash.app.pools.create.PoolQuestionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
@@ -121,6 +125,39 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         register<NavScreenProvider.HomeScreen.ShareApp> {
             ShareAppScreen()
         }
+
+        register<NavScreenProvider.HomeScreen.Verification.Flow> {
+            VerificationFlowScreen(
+                origin = it.origin,
+                target = it.target,
+                includePhone = it.includePhone,
+                includeEmail = it.includeEmail,
+                emailAddress = it.email,
+                emailVerificationCode = it.emailVerificationCode
+            )
+        }
+
+//        register<NavScreenProvider.HomeScreen.Verification.Phone> {
+//            PhoneVerificationFlow.start(it.origin)
+//            PhoneVerificationScreen()
+//        }
+//
+//        register<NavScreenProvider.HomeScreen.Verification.PhoneCountry> {
+//            PhoneCountryCodeScreen()
+//        }
+//
+//        register<NavScreenProvider.HomeScreen.Verification.PhoneCode> {
+//            PhoneCodeScreen()
+//        }
+//
+//        register<NavScreenProvider.HomeScreen.Verification.Email> {
+//            EmailVerificationFlow.start(it.origin)
+//            EmailVerificationScreen()
+//        }
+//
+//        register<NavScreenProvider.HomeScreen.Verification.EmailMagicLink> {
+//            EmailMagicLinkScreen(it.email, it.code)
+//        }
 
         register<NavScreenProvider.HomeScreen.OnRamp.ProviderList> {
             OnRampFlowTracker.start(it.from)

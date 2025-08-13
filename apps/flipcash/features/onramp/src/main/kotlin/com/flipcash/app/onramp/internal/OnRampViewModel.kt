@@ -4,9 +4,11 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.onramp.CoinbaseOnRampWebError
 import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.OnRampController
+import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.data.OnRampProviderItem
 import com.flipcash.features.onramp.R
@@ -93,12 +95,18 @@ internal class OnRampViewModel @Inject constructor(
     data class State(
         val loading: Boolean = false,
         val providers: List<OnRampProviderItem> = DefaultOnRampOptions,
+        val hasVerifiedPhone: Boolean = false,
+        val hasVerifiedEmail: Boolean = false,
         val selectedProvider: OnRampProvider.ThirdParty? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
     )
 
     sealed interface Event {
         data class OnProvidersUpdated(val providers: List<OnRampProviderItem>) : Event
+
+        data class OnPhoneVerificationChanged(val verified: Boolean) : Event
+        data class OnEmailVerificationChanged(val verified: Boolean) : Event
+
         data class OnProviderSelected(val item: OnRampProviderItem) : Event
 
         data class OnPaymentLinkGenerated(val url: String) : Event
@@ -155,6 +163,13 @@ internal class OnRampViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             exchange.fetchRatesIfNeeded()
         }
+
+        userManager.state
+            .map { it.userProfile }
+            .onEach {
+                dispatchEvent(Event.OnPhoneVerificationChanged(it?.verifiedPhoneNumber != null))
+                dispatchEvent(Event.OnEmailVerificationChanged(it?.verifiedEmailAddress != null))
+            }.launchIn(viewModelScope)
 
         exchange.observeEntryRate()
             .mapNotNull {
@@ -267,7 +282,6 @@ internal class OnRampViewModel @Inject constructor(
                 val providersWithDeposit = providers
                     // always ensure that deposit is available
                     .ifEmpty { listOf(OnRampProvider.CryptoDeposit) }
-//                    .plus(OnRampProvider.Phantom)
                     // ensure deposit is last
                     .sortedBy { if (it is OnRampProvider.CryptoDeposit) 1 else 0 }
 
@@ -284,10 +298,28 @@ internal class OnRampViewModel @Inject constructor(
                                             )
                                         )
 
-                                    is OnRampProvider.Coinbase -> when (provider.type) {
-                                        OnRampType.Virtual -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
-                                        OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
-                                        OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.OnRamp.Amount)
+                                    is OnRampProvider.Coinbase -> {
+                                        val hasVerifiedPhone = stateFlow.value.hasVerifiedPhone
+                                        val hasVerifiedEmail = stateFlow.value.hasVerifiedEmail
+
+                                        val destination = if (!(hasVerifiedPhone && hasVerifiedEmail)) {
+                                            NavScreenProvider.HomeScreen.Verification.Flow(
+                                                origin = NavScreenProvider.HomeScreen.OnRamp.ProviderList(
+                                                    from = OnRampFlowTracker.source!!
+                                                ),
+                                                target = NavScreenProvider.HomeScreen.OnRamp.Amount,
+                                                includePhone = !hasVerifiedPhone,
+                                                includeEmail = !hasVerifiedEmail,
+                                            )
+                                        } else {
+                                            NavScreenProvider.HomeScreen.OnRamp.Amount
+                                        }
+
+                                        when (provider.type) {
+                                            OnRampType.Virtual -> OnRampProviderDestination.Screen(destination)
+                                            OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(destination)
+                                            OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(destination)
+                                        }
                                     }
 
                                     OnRampProvider.Phantom -> {
@@ -351,6 +383,9 @@ internal class OnRampViewModel @Inject constructor(
             when (event) {
                 is Event.OnProviderSelected -> { state -> state.copy(selectedProvider = event.item.provider as? OnRampProvider.ThirdParty) }
                 is Event.OnProvidersUpdated -> { state -> state.copy(providers = event.providers) }
+
+                is Event.OnPhoneVerificationChanged -> { state -> state.copy(hasVerifiedPhone = event.verified) }
+                is Event.OnEmailVerificationChanged -> { state -> state.copy(hasVerifiedEmail = event.verified) }
 
                 is Event.OnAmountAccepted -> { state ->
                     state.copy(

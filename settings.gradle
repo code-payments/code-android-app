@@ -27,6 +27,7 @@ include(
         ":apps:flipcash:shared:persistence:db",
         ":apps:flipcash:shared:persistence:provider",
         ":apps:flipcash:shared:persistence:sources",
+        ":apps:flipcash:shared:phone",
         ":apps:flipcash:shared:pools",
         ":apps:flipcash:shared:router",
         ":apps:flipcash:shared:session",
@@ -52,6 +53,7 @@ include(
         ":apps:flipcash:features:pools",
         ":apps:flipcash:features:payments",
         ":apps:flipcash:features:onramp",
+        ":apps:flipcash:features:contact-verification",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

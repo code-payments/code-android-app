@@ -5,6 +5,7 @@ import com.codeinc.flipcash.gen.email.v1.EmailVerificationService
 import com.codeinc.flipcash.gen.email.v1.Model
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.models.ContactMethod
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import io.grpc.ManagedChannel
@@ -26,11 +27,12 @@ internal class EmailVerificationApi @Inject constructor(
      * resent.
      */
     suspend fun sendVerificationCode(
-        email: String,
+        request: ContactMethod.Email,
         owner: Ed25519.KeyPair
     ): EmailVerificationService.SendVerificationCodeResponse {
         val request = EmailVerificationService.SendVerificationCodeRequest.newBuilder()
-            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(email).build())
+            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
+            .setClientData(request.clientData)
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -40,21 +42,35 @@ internal class EmailVerificationApi @Inject constructor(
     }
 
     /**
-     * Validates a verification code. On success, the email address is linked to the user.
+     * Validates a verification code. On success, the email address is linked to the user. Any previous links are overwritten.
      */
     suspend fun checkVerificationCode(
-        email: String,
+        request: ContactMethod.Email,
         code: String,
         owner: Ed25519.KeyPair
     ): EmailVerificationService.CheckVerificationCodeResponse {
         val request = EmailVerificationService.CheckVerificationCodeRequest.newBuilder()
-            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(email).build())
+            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .setCode(Model.VerificationCode.newBuilder().setValue(code).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
         return withContext(Dispatchers.IO) {
             api.checkVerificationCode(request)
+        }
+    }
+
+    suspend fun unlink(
+        request: ContactMethod.Email,
+        owner: Ed25519.KeyPair
+    ): EmailVerificationService.UnlinkResponse {
+        val request = EmailVerificationService.UnlinkRequest.newBuilder()
+            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            api.unlink(request)
         }
     }
 }

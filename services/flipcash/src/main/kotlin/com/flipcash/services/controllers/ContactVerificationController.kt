@@ -22,4 +22,11 @@ class ContactVerificationController @Inject constructor(
 
         return repository.checkVerificationCode(method, code, owner)
     }
+
+    suspend fun unlink(method: ContactMethod): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unlink(method, owner)
+    }
 }

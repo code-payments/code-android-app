@@ -32,4 +32,9 @@ object IntentUtils {
 
         return shareIntent
     }
+
+    fun emailApp() = Intent(Intent.ACTION_MAIN).apply {
+        addCategory(Intent.CATEGORY_APP_EMAIL)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
 }

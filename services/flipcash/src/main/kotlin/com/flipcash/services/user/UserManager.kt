@@ -1,6 +1,7 @@
 package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
+import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.models.UserProfile
@@ -33,17 +34,21 @@ import javax.inject.Singleton
 sealed interface AuthState {
     // still to determine
     data object Unknown : AuthState
+
     // account has been created but not yet paid for (if required)
     // seenAccessKey used as a flag whether to land them back on
     // access key screen or purchase
     data class Registered(val seenAccessKey: Boolean = true) : AuthState
 
     sealed interface LoggedIn
+
     // account has been created and paid for (if required)
     // and we are waiting for metadata to be pulled from storage
     data object LoggedInAwaitingUser : AuthState, LoggedIn
+
     // account is paid for (if required) and is ready for use in app
     data object LoggedInWithUser : AuthState, LoggedIn
+
     // logged out
     data object LoggedOut : AuthState
 
@@ -85,6 +90,9 @@ class UserManager @Inject constructor(
 
     val nextPoolIndex: Long
         get() = _state.value.nextPoolIndex
+
+    val profile: UserProfile?
+        get() = _state.value.userProfile
 
     data class State(
         val authState: AuthState = AuthState.Unknown,
@@ -142,6 +150,7 @@ class UserManager @Inject constructor(
                     eventBus.send(Events.UpdateLimits(owner = owner, force = true))
                 }
             }
+
             else -> Unit
         }
     }
@@ -200,7 +209,7 @@ class UserManager @Inject constructor(
                 entropy = null,
                 flags = null,
                 cluster = null,
-                accountId =  NoId,
+                accountId = NoId,
                 isTimelockUnlocked = false,
                 userProfile = null,
             )

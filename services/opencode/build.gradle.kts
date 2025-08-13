@@ -6,6 +6,7 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_serialization)
+    id(Plugins.kotlin_parcelize)
 }
 
 android {

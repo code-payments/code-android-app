@@ -21,7 +21,9 @@ import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.OnScreenResult
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.AppBarWithTitle
@@ -36,7 +38,7 @@ import kotlinx.parcelize.Parcelize
 class OnRampProviderListScreen(
     val neededAmount: Long? = null,
     val neededCurrency: CurrencyCode? = null,
-): ModalScreen, NamedScreen, Parcelable {
+): AppScreen(), ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -65,6 +67,12 @@ class OnRampProviderListScreen(
                     onBackIconClicked = { navigator.pop() },
                 )
                 OnRampProviderListScreen(viewModel)
+            }
+        }
+
+        OnScreenResult { result ->
+            if (result == "verified") {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
             }
         }
 

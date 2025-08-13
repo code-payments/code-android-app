@@ -20,6 +20,8 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
 import com.flipcash.app.payments.LocalPaymentController
 import com.flipcash.app.payments.PaymentController
+import com.flipcash.app.phone.LocalPhoneUtils
+import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router
@@ -108,6 +110,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var solanaRpcConfig: RpcConfig
 
+    @Inject
+    lateinit var phoneUtils: PhoneUtils
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -131,6 +136,7 @@ class MainActivity : FragmentActivity() {
                 LocalAppSettings provides appSettingsCoordinator,
                 LocalFeatureFlags provides featureFlagController,
                 LocalPaymentController provides paymentController,
+                LocalPhoneUtils provides phoneUtils,
             ) {
                 Rinku {
                     App(

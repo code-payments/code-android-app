@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.EmailVerificationApi
+import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.EmailVerificationError
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -12,11 +13,11 @@ internal class EmailVerificationService @Inject constructor(
     private val api: EmailVerificationApi,
 ) {
     suspend fun sendVerificationCode(
-        emailAddress: String,
+        request: ContactMethod.Email,
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return runCatching {
-            api.sendVerificationCode(emailAddress, owner)
+            api.sendVerificationCode(request, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -45,12 +46,12 @@ internal class EmailVerificationService @Inject constructor(
     }
 
     suspend fun checkVerificationCode(
-        emailAddress: String,
+        request: ContactMethod.Email,
         code: String,
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return runCatching {
-            api.checkVerificationCode(emailAddress, code, owner)
+            api.checkVerificationCode(request, code, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -73,6 +74,31 @@ internal class EmailVerificationService @Inject constructor(
                     else -> Result.failure(EmailVerificationError.Other())
                 }
 
+            },
+            onFailure = { cause ->
+                Result.failure(EmailVerificationError.Other(cause))
+            }
+        )
+    }
+
+    suspend fun unlink(
+        request: ContactMethod.Email,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
+        return runCatching {
+            api.unlink(request, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcEmailService.UnlinkResponse.Result.OK -> Result.success(Unit)
+                    RpcEmailService.UnlinkResponse.Result.DENIED -> {
+                        Result.failure(EmailVerificationError.Denied())
+                    }
+                    RpcEmailService.UnlinkResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(EmailVerificationError.Unrecognized())
+                    }
+                    else -> Result.failure(EmailVerificationError.Other())
+                }
             },
             onFailure = { cause ->
                 Result.failure(EmailVerificationError.Other(cause))

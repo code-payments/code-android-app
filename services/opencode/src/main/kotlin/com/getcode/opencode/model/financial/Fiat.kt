@@ -1,16 +1,19 @@
 package com.getcode.opencode.model.financial
 
 import android.icu.util.ULocale
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.util.Locale
 
 @Serializable
+@Parcelize
 data class Fiat(
     val quarks: Long, // Changed from ULong to Long to support negative values
     val currencyCode: CurrencyCode = CurrencyCode.USD
-) : Comparable<Fiat> {
+) : Comparable<Fiat>, Parcelable {
 
     val decimalValue: Double
         get() = quarks.toDouble() / MULTIPLIER

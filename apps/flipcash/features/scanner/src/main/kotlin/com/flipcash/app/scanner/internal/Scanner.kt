@@ -47,7 +47,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         mutableStateOf(state.autoStartCamera == true)
     }
 
-    ScannerDeeplinkHandler(
+    ScannerDeepLinkHandler(
         deepLink = deepLink,
         previewing = previewing,
         session = session,
