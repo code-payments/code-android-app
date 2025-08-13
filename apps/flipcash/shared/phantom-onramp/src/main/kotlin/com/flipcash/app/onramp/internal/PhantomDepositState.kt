@@ -66,7 +66,7 @@ class PhantomDepositState(
     /**
      * The amount to transfer selected by the user
      */
-    var amount: Fiat? = null
+    var amount: Fiat? by mutableStateOf(null)
 
     /**
      * The unsigned transaction to be signed by Phantom

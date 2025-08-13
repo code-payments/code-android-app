@@ -26,14 +26,20 @@ import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.times
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -55,12 +61,15 @@ internal class PoolBettingViewModel @Inject constructor(
     resources: ResourceHelper,
     payments: PaymentController,
     analytics: FlipcashAnalyticsService,
+    exchange: Exchange,
+    balanceController: BalanceController,
 ) : BaseViewModel2<PoolBettingViewModel.State, PoolBettingViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
         val loading: Boolean = false,
+        val balance: LocalFiat = LocalFiat.Zero,
         val rendezvous: Ed25519.KeyPair? = null,
         val userId: ID? = null,
         val metadata: Pool = Pool.Empty,
@@ -159,6 +168,7 @@ internal class PoolBettingViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnLoadingChanged(val loading: Boolean) : Event
+        data class OnBalanceChanged(val balance: LocalFiat) : Event
         data class OnPoolIdChanged(val poolId: ID) : Event
         data class OnPoolRendezvousChanged(val rendezvous: Ed25519.KeyPair, val fromUser: Boolean = true) : Event
         data class OnUserIdChanged(val id: ID) : Event
@@ -181,6 +191,19 @@ internal class PoolBettingViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(Event.OnUserIdChanged(it))
             }.launchIn(viewModelScope)
+
+        combine(
+            balanceController.rawBalance,
+            exchange.observeEntryRate(),
+        ) { balance, rate ->
+            LocalFiat(
+                usdc = balance,
+                converted = balance.convertingTo(rate),
+                rate = rate
+            )
+        }.onEach {
+            dispatchEvent(Event.OnBalanceChanged(it))
+        }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnPoolIdChanged>()
@@ -374,7 +397,28 @@ internal class PoolBettingViewModel @Inject constructor(
                                             text = resources.getString(R.string.action_addCashToWallet),
                                             style = BottomBarManager.BottomBarButtonStyle.Filled,
                                         ) {
-                                            dispatchEvent(Event.AddCashToWallet(stateFlow.value.metadata.buyIn))
+                                            viewModelScope.launch {
+                                                val rate = exchange.entryRate
+                                                // if we are USD we can skip the rate fetch since its 1:1
+                                                if (rate.currency != CurrencyCode.USD) {
+                                                    exchange.fetchRatesIfNeeded()
+                                                }
+
+                                                val buyIn = stateFlow.value.metadata.buyIn
+
+                                                val amountFiat = LocalFiat(
+                                                    usdc = buyIn.convertingTo(
+                                                        exchange.rateToUsd(
+                                                            rate.currency
+                                                        )!!
+                                                    ),
+                                                    converted = buyIn,
+                                                    rate = rate,
+                                                )
+
+                                                val neededAmount = amountFiat.usdc - stateFlow.value.balance.usdc
+                                                dispatchEvent(Event.AddCashToWallet(neededAmount))
+                                            }
                                         },
                                         BottomBarAction(
                                             text = resources.getString(R.string.action_dismiss),
@@ -574,6 +618,12 @@ internal class PoolBettingViewModel @Inject constructor(
                 is Event.OnLoadingChanged -> { state ->
                     state.copy(
                         loading = event.loading
+                    )
+                }
+
+                is Event.OnBalanceChanged -> { state ->
+                    state.copy(
+                        balance = event.balance
                     )
                 }
 

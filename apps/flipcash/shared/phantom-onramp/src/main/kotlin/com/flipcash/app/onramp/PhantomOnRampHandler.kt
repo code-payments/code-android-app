@@ -99,7 +99,7 @@ fun PhantomOnRampHandler(
         }
     }
 
-    LaunchedEffect(state.deeplinkState) {
+    LaunchedEffect(state.deeplinkState, state.amount) {
         when (state.deeplinkState) {
             PhantomDeeplinkState.IDLE -> Unit
             PhantomDeeplinkState.STARTING -> Unit
@@ -126,7 +126,12 @@ fun PhantomOnRampHandler(
                     message = "phantom connected",
                     type = TraceType.Process
                 )
-                state.createAndSendTransaction()
+                // if amount was provided, send the transaction
+                if (state.amount != null) {
+                    state.createAndSendTransaction()
+                } else {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                }
             }
 
             PhantomDeeplinkState.SIGNING -> {

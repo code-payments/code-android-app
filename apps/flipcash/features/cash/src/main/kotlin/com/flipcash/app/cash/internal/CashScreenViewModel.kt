@@ -16,6 +16,7 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
+import com.getcode.opencode.model.financial.minus
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -131,7 +132,10 @@ internal class CashScreenViewModel @Inject constructor(
                                 converted = localizedAmount,
                                 rate = rate,
                             )
-                            dispatchEvent(Event.AddCashToWallet(amountFiat.usdc))
+
+                            val neededAmount = amountFiat.usdc - balanceInUsdc
+
+                            dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
                     },
                     BottomBarAction(
