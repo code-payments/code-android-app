@@ -2,7 +2,6 @@ package com.flipcash.app.contact.verification.internal.email
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -31,11 +30,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.debugBounds
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator

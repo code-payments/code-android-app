@@ -60,6 +60,7 @@ class EmailMagicLinkScreen(
         BackHandler {
             flowNavigator.exit()
         }
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,

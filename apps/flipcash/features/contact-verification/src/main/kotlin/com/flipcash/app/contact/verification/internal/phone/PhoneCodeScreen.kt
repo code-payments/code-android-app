@@ -122,7 +122,8 @@ private fun PhoneCodeScreenContent(
                     )
                 } else {
                     val text = buildAnnotatedString {
-                        append(stringResource(R.string.subtitle_didntGetCode))
+                        append(stringResource(R.string.subtitle_didntGetCode)
+                            .replaceParam(state.formattedPhone))
                         append(" ")
                         pushLink(
                             LinkAnnotation.Clickable(

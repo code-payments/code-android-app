@@ -3,7 +3,6 @@ package com.flipcash.app.contact.verification.internal.phone
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
@@ -17,6 +16,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Timer
 import javax.inject.Inject
@@ -52,8 +51,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
         val selectedLocale: CountryLocale = CountryLocale.Stub,
         val sendingCode: LoadingSuccessState = LoadingSuccessState(),
         val verifyingCode: LoadingSuccessState = LoadingSuccessState(),
-        val isResendTimerRunning: Boolean = true,
-        val resetTimeRemaining: Int = RESEND_TIMER_MAX,
+        val isResendTimerRunning: Boolean = false,
+        val resetTimeRemaining: Int = 0,
         val attempts: Int = 0,
     ) {
         internal val otpLength = 6
@@ -278,20 +277,28 @@ internal class PhoneVerificationViewModel @Inject constructor(
         )
 
         timer?.cancel()
-        timer = fixedRateTimer("timer", false, 0L, 1000) {
+        timer = fixedRateTimer("phone-timer", false, 0L, 1000) {
             val remainingTime = stateFlow.value.resetTimeRemaining - 1
-            if (remainingTime <= 0) cancel()
-            dispatchEvent(
-                Event.OnTimerTick(
-                    isRunning = remainingTime > 0,
-                    timeRemaining = remainingTime
+            if (remainingTime <= 0) stopTimer()
+            viewModelScope.launch {
+                dispatchEvent(
+                    Dispatchers.Main,
+                    Event.OnTimerTick(
+                        isRunning = remainingTime > 0,
+                        timeRemaining = remainingTime
+                    )
                 )
-            )
+            }
         }
     }
 
     private fun stopTimer() {
         timer?.cancel()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopTimer()
     }
 
     internal companion object {

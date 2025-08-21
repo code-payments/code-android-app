@@ -48,15 +48,15 @@ class VerificationFlowScreen(
             }
         }
 
+        LifecycleEffectOnce {
+            PhoneVerificationFlow.start(origin)
+            EmailVerificationFlow.start(EmailDeeplinkOrigin.fromScreenProvider(origin))
+        }
+
         val screens = buildScreenSet(includePhone, includeEmail, emailAddress, emailVerificationCode)
         if (screens.isEmpty()) {
             goToTargetOrReturn()
             return
-        }
-
-        LifecycleEffectOnce {
-            PhoneVerificationFlow.start(origin)
-            EmailVerificationFlow.start(EmailDeeplinkOrigin.fromScreenProvider(origin))
         }
 
         Navigator(screens.toList()) { navigator ->
@@ -98,10 +98,11 @@ private fun buildScreenSet(
     }
 
     if (includeEmail) {
+        val vmKey = EmailVerificationFlow.key
         return buildSet {
             add(EmailVerificationScreen())
             if (emailAddress != null && emailVerificationCode != null) {
-                add(EmailMagicLinkScreen(emailAddress, emailVerificationCode))
+                add(EmailMagicLinkScreen( emailAddress, emailVerificationCode))
             }
         }
     }
