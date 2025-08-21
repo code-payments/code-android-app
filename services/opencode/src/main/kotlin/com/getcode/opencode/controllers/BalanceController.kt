@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -129,7 +130,10 @@ class BalanceController @Inject constructor(
                 }
             }?.map { response ->
                 val primary =
-                    response.accounts.values.find { it.accountType == AccountType.Primary }
+                    // for now find the primary account for USDC
+                    response.accounts.values.find {
+                        it.accountType == AccountType.Primary && it.mint == Mint.usdc
+                    }
                 if (primary?.unusable == true) {
                     onTimelockUnlocked()
                 }
