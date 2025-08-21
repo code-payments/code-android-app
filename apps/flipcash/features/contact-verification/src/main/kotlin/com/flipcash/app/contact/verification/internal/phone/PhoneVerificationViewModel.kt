@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.seconds
 
 private const val RESEND_TIMER_MAX = 60
 
@@ -143,9 +144,9 @@ internal class PhoneVerificationViewModel @Inject constructor(
             }.onResult(
                 onSuccess = {
                     dispatchEvent(Event.OnSendingCodeChanged(success = true))
-                    dispatchEvent(Event.OnCodeSent)
                     viewModelScope.launch {
-                        delay(500)
+                        delay(1.seconds)
+                        dispatchEvent(Event.OnCodeSent)
                         dispatchEvent(Event.OnSendingCodeChanged())
                     }
                     startTimer()
@@ -194,9 +195,9 @@ internal class PhoneVerificationViewModel @Inject constructor(
             }.onResult(
                 onSuccess = {
                     dispatchEvent(Event.OnSendingCodeChanged(success = true))
-                    dispatchEvent(Event.OnCodeResent)
                     viewModelScope.launch {
-                        delay(500)
+                        delay(1.seconds)
+                        dispatchEvent(Event.OnCodeResent)
                         dispatchEvent(Event.OnSendingCodeChanged())
                     }
                     startTimer()
@@ -236,12 +237,13 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 onSuccess = {
                     stopTimer()
                     dispatchEvent(Event.OnVerifyingCodeChanged(success = true))
-                    dispatchEvent(Event.OnCodeVerified)
                     viewModelScope.launch {
                         profileController.updateUserProfile()
                     }
+
                     viewModelScope.launch {
-                        delay(500)
+                        delay(1.seconds)
+                        dispatchEvent(Event.OnCodeVerified)
                         dispatchEvent(Event.OnVerifyingCodeChanged())
                     }
                 },

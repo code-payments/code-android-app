@@ -30,10 +30,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.phone.components.OtpInputField
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.OnWindowFocusedRequester
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.utils.replaceParam
 
 @Composable
@@ -50,6 +52,8 @@ private fun PhoneCodeScreenContent(
     dispatchEvent: (PhoneVerificationViewModel.Event) -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    val keyboard = rememberKeyboardController()
+
     CodeScaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -82,6 +86,11 @@ private fun PhoneCodeScreenContent(
                     state = state.codeTextFieldState,
                     lengthNeeded = state.otpLength,
                     focusRequester = focusRequester,
+                    onLengthReached = {
+                        keyboard.hideIfVisible {
+                            dispatchEvent(PhoneVerificationViewModel.Event.OnVerifyCodeClicked)
+                        }
+                    }
                 )
 
                 Text(
@@ -138,5 +147,7 @@ private fun PhoneCodeScreenContent(
                 }
             }
         }
+
+        OnWindowFocusedRequester(focusRequester)
     }
 }

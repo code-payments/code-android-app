@@ -2,6 +2,7 @@ package com.flipcash.app.scanner.internal
 
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.NavScreenProvider.HomeScreen.Verification.*
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
@@ -53,25 +54,43 @@ class NavigationStateRestorer(
                 val screens = when (origin) {
                     is EmailDeeplinkOrigin.OnRamp -> when (val source = origin.source) {
                         is NavScreenProvider.HomeScreen.Pools.ChoiceSelection -> {
-                            buildOnRampScreenFlow(source)  + ScreenRegistry.get(NavScreenProvider.HomeScreen.Verification.Flow(
-                                origin = source,
-                                target = NavScreenProvider.HomeScreen.OnRamp.Amount,
-                                includePhone = false,
-                                email = deeplink.email,
-                                emailVerificationCode = deeplink.code
-                            ))
+                            buildOnRampScreenFlow(source)  + ScreenRegistry.get(
+                                Flow(
+                                    origin = source,
+                                    target = NavScreenProvider.HomeScreen.OnRamp.Amount,
+                                    includePhone = false,
+                                    email = deeplink.email,
+                                    emailVerificationCode = deeplink.code
+                                )
+                            )
                         }
                         is NavScreenProvider.HomeScreen.Menu.Root -> {
-                            buildOnRampScreenFlow(source) + ScreenRegistry.get(NavScreenProvider.HomeScreen.Verification.Flow(
-                                origin = source,
-                                target = NavScreenProvider.HomeScreen.OnRamp.Amount,
-                                includePhone = false,
-                                email = deeplink.email,
-                                emailVerificationCode = deeplink.code
-                            ))
+                            buildOnRampScreenFlow(source) + ScreenRegistry.get(
+                                Flow(
+                                    origin = source,
+                                    target = NavScreenProvider.HomeScreen.OnRamp.Amount,
+                                    includePhone = false,
+                                    email = deeplink.email,
+                                    emailVerificationCode = deeplink.code
+                                )
+                            )
                         }
                         else -> emptyList()
                     }
+
+                    EmailDeeplinkOrigin.MyAccount ->
+                        listOf(
+                            ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Root),
+                            ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.Root)
+                        ) + ScreenRegistry.get(
+                            Flow(
+                                origin = NavScreenProvider.HomeScreen.Menu.MyAccount.Root,
+                                target = null,
+                                includePhone = false,
+                                email = deeplink.email,
+                                emailVerificationCode = deeplink.code
+                            )
+                        )
 
                     null -> emptyList()
                 }

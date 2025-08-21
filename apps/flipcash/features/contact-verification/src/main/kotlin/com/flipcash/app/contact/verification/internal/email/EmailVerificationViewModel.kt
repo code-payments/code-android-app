@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.seconds
 
 private const val RESEND_TIMER_MAX = 60
 
@@ -116,12 +117,13 @@ class EmailVerificationViewModel @Inject constructor(
             }.onResult(
                 onSuccess = {
                     dispatchEvent(Event.OnVerifyingCodeChanged(success = true))
-                    dispatchEvent(Event.OnCodeVerified)
                     viewModelScope.launch {
                         profileController.updateUserProfile()
                     }
+
                     viewModelScope.launch {
-                        delay(500)
+                        delay(1.seconds)
+                        dispatchEvent(Event.OnCodeVerified)
                         dispatchEvent(Event.OnVerifyingCodeChanged())
                     }
                 },
@@ -165,12 +167,12 @@ class EmailVerificationViewModel @Inject constructor(
         verificationController.sendVerificationCode(method)
             .onSuccess {
                 dispatchEvent(Event.OnSendingCodeChanged(success = true))
-                dispatchEvent(Event.OnCodeSent)
-                startTimer()
                 viewModelScope.launch {
-                    delay(500)
-                    dispatchEvent(Event.OnSendingCodeChanged())
+                    delay(1.seconds)
+                    dispatchEvent(Event.OnCodeSent)
+                    dispatchEvent(Event.OnVerifyingCodeChanged())
                 }
+                startTimer()
             }.onFailure {
                 dispatchEvent(Event.OnSendingCodeChanged())
                 val (title, message) = when (it) {

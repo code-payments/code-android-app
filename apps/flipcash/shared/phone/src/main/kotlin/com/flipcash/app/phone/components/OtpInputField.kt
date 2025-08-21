@@ -12,11 +12,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -33,6 +37,10 @@ import com.getcode.theme.WindowSizeClass
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.utils.rememberKeyboardController
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun OtpInputField(
@@ -40,18 +48,32 @@ fun OtpInputField(
     lengthNeeded: Int,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester = remember { FocusRequester() },
+    onLengthReached: (() -> Unit)? = null,
 ) {
     val keyboardController = rememberKeyboardController()
+
+    LaunchedEffect(state) {
+        snapshotFlow { state.text }
+            .map { it.length }
+            .filter { it == lengthNeeded }
+            .onEach {
+                onLengthReached?.invoke()
+            }.launchIn(this)
+    }
+
     Box(modifier = modifier) {
         TextInput(
             modifier = Modifier
                 .alpha(0f)
-                .focusRequester(focusRequester)
-                .onPlaced {
-                    focusRequester.requestFocus()
-                },
+                .focusRequester(focusRequester),
+            inputTransformation = object : InputTransformation {
+                override fun TextFieldBuffer.transformInput() {
+                    if (this.length > lengthNeeded) {
+                        replace(0, lengthNeeded - 1, this.originalText.substring(0, lengthNeeded - 1))
+                    }
+                }
+            },
             state = state,
-            readOnly = state.text.length == lengthNeeded,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
         )
 

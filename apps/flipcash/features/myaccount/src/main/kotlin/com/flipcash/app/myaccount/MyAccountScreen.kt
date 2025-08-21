@@ -82,5 +82,33 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.BackupKey)) }
                 .launchIn(this)
         }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<MyAccountScreenViewModel.Event.OnVerifyPhoneClicked>()
+                .onEach {
+                    val flow = NavScreenProvider.HomeScreen.Verification.Flow(
+                        origin = NavScreenProvider.HomeScreen.Menu.MyAccount.Root,
+                        includePhone = true,
+                        includeEmail = false,
+                    )
+
+                    navigator.push(ScreenRegistry.get(flow)) }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<MyAccountScreenViewModel.Event.OnVerifyEmailClicked>()
+                .onEach {
+                    val flow = NavScreenProvider.HomeScreen.Verification.Flow(
+                        origin = NavScreenProvider.HomeScreen.Menu.MyAccount.Root,
+                        includePhone = false,
+                        includeEmail = true,
+                    )
+
+                    navigator.push(ScreenRegistry.get(flow)) }
+                .launchIn(this)
+        }
     }
 }

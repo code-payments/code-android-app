@@ -9,7 +9,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -18,13 +17,12 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.contact.verification.EmailVerificationFlow
 import com.flipcash.app.contact.verification.internal.email.EmailEntryScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
-import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -45,7 +43,7 @@ class EmailVerificationScreen : Screen, NamedScreen, Parcelable  {
         val codeNavigator = LocalCodeNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = getStackScopedViewModel<EmailVerificationViewModel>(EmailVerificationFlow.key)
-
+        val keyboard = rememberKeyboardController()
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -56,7 +54,7 @@ class EmailVerificationScreen : Screen, NamedScreen, Parcelable  {
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
                 onBackIconClicked = {
-                    if (!navigator.pop()) {
+                    keyboard.hideIfVisible {
                         codeNavigator.pop()
                     }
                 },
@@ -65,7 +63,7 @@ class EmailVerificationScreen : Screen, NamedScreen, Parcelable  {
         }
 
         BackHandler {
-            if (!navigator.pop()) {
+            keyboard.hideIfVisible {
                 codeNavigator.pop()
             }
         }
@@ -74,8 +72,9 @@ class EmailVerificationScreen : Screen, NamedScreen, Parcelable  {
             viewModel.eventFlow
                 .filterIsInstance<EmailVerificationViewModel.Event.OnCodeSent>()
                 .onEach {
-                    navigator.push(EmailMagicLinkScreen())
-//                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Verification.EmailMagicLink()))
+                    keyboard.hideIfVisible {
+                        navigator.push(EmailMagicLinkScreen())
+                    }
                 }.launchIn(this)
         }
     }

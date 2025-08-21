@@ -14,6 +14,7 @@ import kotlinx.serialization.json.Json
 sealed class EmailDeeplinkOrigin {
     data class OnRamp(val source: NavScreenProvider?, val amount: Fiat? = null) :
         EmailDeeplinkOrigin()
+    data object MyAccount : EmailDeeplinkOrigin()
 
 
     fun serialize(): String {
@@ -34,6 +35,8 @@ sealed class EmailDeeplinkOrigin {
                     else -> "onramp|null|$amountString"
                 }
             }
+
+            MyAccount -> "myaccount"
         }
     }
 
@@ -43,6 +46,8 @@ sealed class EmailDeeplinkOrigin {
                 is NavScreenProvider.HomeScreen.OnRamp.ProviderList -> {
                     OnRamp(provider.from, provider.neededAmount)
                 }
+
+                is NavScreenProvider.HomeScreen.Menu.MyAccount.Root -> MyAccount
 
                 else -> null
             }
@@ -78,6 +83,8 @@ sealed class EmailDeeplinkOrigin {
 
                     OnRamp(source, amount)
                 }
+
+                "myaccount" -> MyAccount
 
                 else -> null
             }

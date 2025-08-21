@@ -64,7 +64,7 @@ sealed class NavScreenProvider : ScreenProvider, Parcelable {
         sealed interface Verification {
             data class Flow(
                 val origin: NavScreenProvider,
-                val target: NavScreenProvider,
+                val target: NavScreenProvider? = null,
                 val includePhone: Boolean = true,
                 val includeEmail: Boolean = true,
                 val email: String? = null,

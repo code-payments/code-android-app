@@ -10,7 +10,9 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.lab.internal.LabsScreenContent
+import com.flipcash.app.lab.internal.LabsScreenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
@@ -45,7 +47,9 @@ class LabsModal: ModalScreen, NamedScreen, Parcelable {
                 onBackIconClicked = navigator::pop
             )
 
-            LabsScreenContent()
+            val viewModel = getViewModel<LabsScreenViewModel>()
+
+            LabsScreenContent(viewModel)
         }
     }
 }
@@ -74,7 +78,9 @@ class LabsScreen: Screen, NamedScreen, Parcelable {
                 onBackIconClicked = navigator::pop
             )
 
-            LabsScreenContent()
+            val viewModel = getViewModel<LabsScreenViewModel>()
+
+            LabsScreenContent(viewModel)
         }
     }
 }

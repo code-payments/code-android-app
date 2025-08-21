@@ -22,12 +22,11 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import kotlinx.parcelize.RawValue
 
 @Parcelize
 class VerificationFlowScreen(
     private val origin: NavScreenProvider,
-    private val target: NavScreenProvider,
+    private val target: NavScreenProvider? = null,
     private val includePhone: Boolean = true,
     private val includeEmail: Boolean = true,
     private val emailAddress: String? = null,
@@ -40,9 +39,18 @@ class VerificationFlowScreen(
     @Composable
     override fun ModalContent() {
         val codeNavigator = LocalCodeNavigator.current
+
+        fun goToTargetOrReturn() {
+            if (target != null) {
+                codeNavigator.replace(ScreenRegistry.get(target))
+            } else {
+                codeNavigator.pop()
+            }
+        }
+
         val screens = buildScreenSet(includePhone, includeEmail, emailAddress, emailVerificationCode)
         if (screens.isEmpty()) {
-            codeNavigator.replace(ScreenRegistry.get(target))
+            goToTargetOrReturn()
             return
         }
 
@@ -61,11 +69,11 @@ class VerificationFlowScreen(
                                 if (includeEmail) {
                                     navigator.push(EmailVerificationScreen())
                                 } else {
-                                    codeNavigator.replace(ScreenRegistry.get(target))
+                                    goToTargetOrReturn()
                                 }
                             }
                             VerificationFlowStep.Email -> {
-                                codeNavigator.replace(ScreenRegistry.get(target))
+                                goToTargetOrReturn()
                             }
                         }
                     }

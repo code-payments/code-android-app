@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -27,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.phone.components.PhoneInputField
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.OnWindowFocusedRequester
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -76,10 +79,7 @@ private fun PhoneEntryScreenContent(
                 PhoneInputField(
                     modifier = Modifier
                         .height(CodeTheme.dimens.grid.x12)
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .onPlaced {
-                            focusRequester.requestFocus()
-                        },
+                        .padding(horizontal = CodeTheme.dimens.inset),
                     focusManager = focusManager,
                     focusRequester = focusRequester,
                     locale = state.selectedLocale,
@@ -101,5 +101,7 @@ private fun PhoneEntryScreenContent(
                 )
             }
         }
+
+        OnWindowFocusedRequester(focusRequester)
     }
 }

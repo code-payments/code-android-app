@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -33,10 +34,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
+import com.getcode.ui.components.OnWindowFocusedRequester
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
 internal fun EmailEntryScreen(
@@ -56,6 +59,7 @@ private fun EmailEntryScreenContent(
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboard = rememberKeyboardController()
 
     CodeScaffold(
         modifier = Modifier
@@ -72,7 +76,11 @@ private fun EmailEntryScreenContent(
                 enabled = state.canSendCode && state.sendingCode.isIdle,
                 isLoading = state.sendingCode.loading,
                 isSuccess = state.sendingCode.success,
-            ) { dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked) }
+            ) {
+                keyboard.hideIfVisible {
+                    dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked)
+                }
+            }
         }
     ) { innerPadding ->
         Box(
@@ -89,13 +97,14 @@ private fun EmailEntryScreenContent(
                     state = state.email,
                     modifier = Modifier
                         .height(CodeTheme.dimens.grid.x12)
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .onPlaced {
-                            focusRequester.requestFocus()
-                        },
+                        .padding(horizontal = CodeTheme.dimens.inset),
                     enabled = !state.sendingCode.loading && !state.sendingCode.success,
                     focusRequester = focusRequester,
-                    onSubmit = { dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked) }
+                    onSubmit = {
+                        keyboard.hideIfVisible {
+                            dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked)
+                        }
+                    }
                 )
 
                 Text(
@@ -106,6 +115,8 @@ private fun EmailEntryScreenContent(
                     text = stringResource(R.string.subtitle_enterEmailToContinue)
                 )
             }
+
+            OnWindowFocusedRequester(focusRequester)
         }
     }
 }

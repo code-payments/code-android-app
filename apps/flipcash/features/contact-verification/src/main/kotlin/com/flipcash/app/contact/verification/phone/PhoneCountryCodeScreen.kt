@@ -17,7 +17,6 @@ import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.internal.phone.PhoneCountryCodeScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
 import com.flipcash.features.contact.verification.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.ui.components.AppBarWithTitle

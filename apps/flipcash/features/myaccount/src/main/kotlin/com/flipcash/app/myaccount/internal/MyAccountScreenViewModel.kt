@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.myaccount.R
@@ -30,6 +31,8 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(AccessKey)
+    add(VerifyPhone)
+    add(VerifyEmail)
     add(DeleteAccount)
 }
 
@@ -65,6 +68,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data class ToggleAccountInfo(val show: Boolean) : Event
         data object OnAccessKeyClicked : Event
         data object OnViewAccessKey : Event
+        data object OnVerifyEmailClicked: Event
+        data object OnVerifyPhoneClicked: Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
         data object CopyPublicKey : Event
@@ -181,6 +186,16 @@ internal class MyAccountScreenViewModel @Inject constructor(
     }
 
     internal companion object {
+        private fun buildItemList(
+            isBetaEnabled: Boolean,
+        ): List<MenuItem<Event>> {
+            return if (isBetaEnabled) {
+                FullMenuList
+            } else {
+                FullMenuList.filterNot { item -> item is VerifyEmail || item is VerifyPhone }
+            }
+        }
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnUserAssociated -> { state ->
@@ -191,6 +206,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     )
                 }
 
+                Event.OnVerifyPhoneClicked,
+                Event.OnVerifyEmailClicked,
                 Event.OnViewAccessKey,
                 Event.CopyPublicKey,
                 Event.CopyAccountId,
@@ -201,7 +218,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 Event.OnAccessKeyClicked -> { state -> state }
 
                 is Event.OnBetaFeaturesUnlocked -> { state ->
-                    state.copy(isBetaEnabled = event.unlocked)
+                    state.copy(isBetaEnabled = event.unlocked, items = buildItemList(event.unlocked))
                 }
 
                 is Event.ToggleAccountInfo -> { state ->
