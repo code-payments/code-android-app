@@ -2,6 +2,7 @@ package com.flipcash.app.lab.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.features.lab.R
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.user.AuthState
@@ -34,8 +35,8 @@ class LabsScreenViewModel @Inject constructor(
         val email = userManager.profile?.verifiedEmailAddress
         if (email == null) {
             BottomBarManager.showError(
-                title = "Unable to Unlink Email Address",
-                message = "No email is linked to your profile"
+                title = resources.getString(R.string.error_title_failedToUnlinkEmail),
+                message = resources.getString(R.string.error_description_failedToUnlinkEmailNonePresent)
             )
             return@launch
         }
@@ -43,13 +44,13 @@ class LabsScreenViewModel @Inject constructor(
         contactController.unlink(method)
             .onFailure {
                 BottomBarManager.showError(
-                    title = "Something Went Wrong",
-                    message = "Unable to unlink your email. Please try again"
+                    title = resources.getString(R.string.error_title_failedToUnlinkEmail),
+                    message = resources.getString(R.string.error_description_failedToUnlinkEmail)
                 )
             }.onSuccess {
                 BottomBarManager.showMessage(
-                    title = "Success",
-                    subtitle = "Your email has been unlinked",
+                    title = resources.getString(R.string.prompt_title_emailUnlinked),
+                    subtitle = resources.getString(R.string.prompt_description_emailUnlinked),
                     actions = listOf(
                         BottomBarAction(text = resources.getString(android.R.string.ok))
                     ),
@@ -62,8 +63,8 @@ class LabsScreenViewModel @Inject constructor(
         val phone = userManager.profile?.verifiedPhoneNumber
         if (phone == null) {
             BottomBarManager.showError(
-                title = "Unable to Unlink Phone Number",
-                message = "No phone number is linked to your profile"
+                title = resources.getString(R.string.error_title_failedToUnlinkPhone),
+                message = resources.getString(R.string.error_description_failedToUnlinkPhoneNonePresent)
             )
             return@launch
         }
@@ -71,13 +72,13 @@ class LabsScreenViewModel @Inject constructor(
         contactController.unlink(method)
             .onFailure {
                 BottomBarManager.showError(
-                    title = "Something Went Wrong",
-                    message = "Unable to unlink your phone number. Please try again"
+                    title = resources.getString(R.string.error_title_failedToUnlinkPhone),
+                    message = resources.getString(R.string.error_description_failedToUnlinkPhone)
                 )
             }.onSuccess {
                 BottomBarManager.showMessage(
-                    title = "Success",
-                    subtitle = "Your phone number has been unlinked",
+                    title = resources.getString(R.string.prompt_title_phoneUnlinked),
+                    subtitle = resources.getString(R.string.prompt_description_phoneUnlinked),
                     actions = listOf(
                         BottomBarAction(text = resources.getString(android.R.string.ok))
                     ),

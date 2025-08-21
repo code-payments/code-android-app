@@ -329,6 +329,25 @@
     <string name="error_title_failedToSendCodeToEmail">Failed To Send</string>
     <string name="error_description_failedToSendCodeToEmail">Something went wrong. Please ensure that your email address is entered correctly</string>
 
+    <string name="prompt_title_phoneVerifiedSuccessfully">Verification Successful</string>
+    <string name="prompt_description_phoneVerifiedSuccessfully">Your phone number has been successfully linked to your profile</string>
+    <string name="prompt_title_emailVerifiedSuccessfully">Verification Successful</string>
+    <string name="prompt_description_emailVerifiedSuccessfully">Your email address has been successfully linked to your profile</string>
+    <string name="prompt_title_phoneUnlinked">Phone Number Unlinked</string>
+    <string name="prompt_description_phoneUnlinked">Your phone number has been successfully unlinked from your profile</string>
+    <string name="prompt_title_emailUnlinked">Email Address Unlinked</string>
+    <string name="prompt_description_emailUnlinked">Your email address has been successfully unlinked from your profile</string>
+
+    <string name="error_title_failedToUnlinkEmail">Unable To Unlink Email Address</string>
+    <string name="error_description_failedToUnlinkEmailNonePresent">No email is linked to your profile</string>
+    <string name="error_description_failedToUnlinkEmail">Unable to unlink your email. Please try again</string>
+    <string name="error_title_failedToUnlinkPhone">Unable To Unlink Phone Number</string>
+    <string name="error_description_failedToUnlinkPhoneNonePresent">No phone number is linked to your profile</string>
+    <string name="error_description_failedToUnlinkPhone">Unable to unlink your phone number. Please try again</string>
+
+    <string name="action_unlinkPhone">Unlink Phone</string>
+    <string name="action_unlinkEmail">Unlink Email</string>
+
     <string name="title_email">Email</string>
     <string name="action_openMail">Open Mail</string>
     <string name="title_checkYourInbox">Check your inbox</string>

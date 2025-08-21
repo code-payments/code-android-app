@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -18,6 +19,9 @@ import com.flipcash.app.contact.verification.email.EmailVerificationScreen
 import com.flipcash.app.contact.verification.phone.PhoneVerificationScreen
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
+import com.flipcash.features.contact.verification.R
+import com.getcode.manager.BottomBarAction
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import kotlinx.parcelize.IgnoredOnParcel
@@ -29,6 +33,7 @@ class VerificationFlowScreen(
     private val target: NavScreenProvider? = null,
     private val includePhone: Boolean = true,
     private val includeEmail: Boolean = true,
+    private val showSuccess: Boolean = target == null && (includePhone xor includeEmail),
     private val emailAddress: String? = null,
     private val emailVerificationCode: String? = null,
 ): ModalScreen, Parcelable {
@@ -39,12 +44,41 @@ class VerificationFlowScreen(
     @Composable
     override fun ModalContent() {
         val codeNavigator = LocalCodeNavigator.current
-
-        fun goToTargetOrReturn() {
+        val context = LocalContext.current
+        fun showSuccess() {
+            if (includePhone) {
+                BottomBarManager.showMessage(
+                    title = context.getString(R.string.prompt_title_phoneVerifiedSuccessfully),
+                    subtitle = context.getString(R.string.prompt_description_phoneVerifiedSuccessfully),
+                    actions = listOf(
+                        BottomBarAction(text = context.getString(android.R.string.ok))
+                    ),
+                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
+                ) {
+                    codeNavigator.pop()
+                }
+            } else {
+                BottomBarManager.showMessage(
+                    title = context.getString(R.string.prompt_title_emailVerifiedSuccessfully),
+                    subtitle = context.getString(R.string.prompt_description_emailVerifiedSuccessfully),
+                    actions = listOf(
+                        BottomBarAction(text = context.getString(android.R.string.ok))
+                    ),
+                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
+                ) {
+                    codeNavigator.pop()
+                }
+            }
+        }
+        fun goToTargetOrReturn(wasSuccessful: Boolean) {
             if (target != null) {
                 codeNavigator.replace(ScreenRegistry.get(target))
             } else {
-                codeNavigator.pop()
+                if (wasSuccessful && showSuccess) {
+                    showSuccess()
+                } else {
+                    codeNavigator.pop()
+                }
             }
         }
 
@@ -55,7 +89,7 @@ class VerificationFlowScreen(
 
         val screens = buildScreenSet(includePhone, includeEmail, emailAddress, emailVerificationCode)
         if (screens.isEmpty()) {
-            goToTargetOrReturn()
+            goToTargetOrReturn(false)
             return
         }
 
@@ -69,11 +103,11 @@ class VerificationFlowScreen(
                                 if (includeEmail) {
                                     navigator.push(EmailVerificationScreen())
                                 } else {
-                                    goToTargetOrReturn()
+                                    goToTargetOrReturn(wasSuccessful = true)
                                 }
                             }
                             VerificationFlowStep.Email -> {
-                                goToTargetOrReturn()
+                                goToTargetOrReturn(wasSuccessful = true)
                             }
                         }
                     }

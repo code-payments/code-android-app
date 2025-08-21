@@ -44,7 +44,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
-                        text = "Unlink Phone",
+                        text = stringResource(R.string.action_unlinkPhone),
                         buttonState = ButtonState.Subtle,
                         onClick = viewModel::unlinkPhone
                     )
@@ -53,7 +53,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
-                        text = "Unlink Email",
+                        text = stringResource(R.string.action_unlinkEmail),
                         buttonState = ButtonState.Subtle,
                         onClick = viewModel::unlinkEmail
                     )
