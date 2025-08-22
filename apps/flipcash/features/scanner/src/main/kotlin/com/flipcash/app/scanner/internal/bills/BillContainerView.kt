@@ -76,7 +76,8 @@ internal fun BillContainer(
             BottomBarManager.showError(
                 title = context.getString(R.string.action_allowCameraAccess),
                 message = context.getString(R.string.error_description_cameraAccessRequired),
-                additionalActions = listOf(
+                actions = listOf(
+                    BottomBarAction.Ok,
                     BottomBarAction(
                         text = context.getString(R.string.action_openSettings),
                         style = BottomBarManager.BottomBarButtonStyle.Filled50,

@@ -324,10 +324,10 @@
     <string name="title_verifyEmailAddress">Verify Your Email</string>
     <string name="subtitle_resend">Resend</string>
 
-    <string name="error_title_failedToSendCodeToPhone">Failed To Send</string>
-    <string name="error_description_failedToSendCodeToPhone">Something went wrong. Please ensure that your phone number is entered correctly</string>
-    <string name="error_title_failedToSendCodeToEmail">Failed To Send</string>
-    <string name="error_description_failedToSendCodeToEmail">Something went wrong. Please ensure that your email address is entered correctly</string>
+    <string name="error_title_failedToSendCodeToPhone">Something Went Wrong</string>
+    <string name="error_description_failedToSendCodeToPhone">Please ensure that your phone number is entered correctly</string>
+    <string name="error_title_failedToSendCodeToEmail">Something Went Wrong</string>
+    <string name="error_description_failedToSendCodeToEmail">Please ensure that your email address is entered correctly</string>
 
     <string name="prompt_title_phoneVerifiedSuccessfully">Verification Successful</string>
     <string name="prompt_description_phoneVerifiedSuccessfully">Your phone number has been successfully linked to your profile</string>
@@ -338,12 +338,22 @@
     <string name="prompt_title_emailUnlinked">Email Address Unlinked</string>
     <string name="prompt_description_emailUnlinked">Your email address has been successfully unlinked from your profile</string>
 
+    <string name="error_title_emailVerificationLinkExpired">Verification Link Expired</string>
+    <string name="error_description_emailVerificationLinkExpired">This verification link has expired. Please try again</string>
+    <string name="error_title_emailVerificationLinkInvalid">Verification Link Invalid</string>
+    <string name="error_description_emailVerificationLinkInvalid">This verification link is invalid. Please try again</string>
+
+    <string name="error_title_emailVerificationFailed">Something Went Wrong</string>
+    <string name="error_description_emailVerificationFailed">Please try again</string>
+
     <string name="error_title_failedToUnlinkEmail">Unable To Unlink Email Address</string>
     <string name="error_description_failedToUnlinkEmailNonePresent">No email is linked to your profile</string>
     <string name="error_description_failedToUnlinkEmail">Unable to unlink your email. Please try again</string>
     <string name="error_title_failedToUnlinkPhone">Unable To Unlink Phone Number</string>
     <string name="error_description_failedToUnlinkPhoneNonePresent">No phone number is linked to your profile</string>
     <string name="error_description_failedToUnlinkPhone">Unable to unlink your phone number. Please try again</string>
+
+    <string name="action_resendVerificationEmail">Resend Verification Email</string>
 
     <string name="action_unlinkPhone">Unlink Phone</string>
     <string name="action_unlinkEmail">Unlink Email</string>

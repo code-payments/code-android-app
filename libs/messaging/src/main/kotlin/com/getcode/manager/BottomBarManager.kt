@@ -7,8 +7,19 @@ import java.util.*
 data class BottomBarAction(
     val text: String,
     val style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
+    val isUser: Boolean = true,
     val onClick: () -> Unit = { }
-)
+) {
+    companion object {
+        const val OK_DESCRIPTOR = ":::OK:::"
+        val Ok = BottomBarAction(
+            text = OK_DESCRIPTOR,
+            isUser = false,
+            style = BottomBarManager.BottomBarButtonStyle.Filled
+        )
+    }
+}
+
 
 /**
  * Represents an action related to a selected bottom bar item.
@@ -60,11 +71,11 @@ object BottomBarManager {
             subtitle = subtitle,
             actions = buildList {
                 if (positiveText.isNotBlank()) {
-                    add(BottomBarAction(positiveText, positiveStyle, onPositive))
+                    add(BottomBarAction(positiveText, positiveStyle, true, onPositive))
                 }
 
                 if (negativeText.isNotBlank()) {
-                    add(BottomBarAction(negativeText, negativeStyle, onNegative))
+                    add(BottomBarAction(negativeText, negativeStyle, true, onNegative))
                 }
             },
             showCancel = tertiaryText != null,
@@ -132,20 +143,26 @@ object BottomBarManager {
         title: String,
         message: String,
         additionalInfo: Map<String, Any?> = emptyMap(),
-        additionalActions: List<BottomBarAction> = emptyList(),
-        onDismiss: () -> Unit = { },
+        actions: List<BottomBarAction> = listOf(
+            BottomBarAction(
+                text = "OK",
+                style = BottomBarButtonStyle.Filled
+            )
+        ),
+        showCancel: Boolean = false,
+        onDismiss: (fromAction: Boolean) -> Unit = { },
     ) {
         showMessage(
             BottomBarMessage(
                 title = title,
                 subtitle = message,
                 additionalInfo = additionalInfo,
-                showCancel = false,
-                actions = additionalActions,
+                showCancel = showCancel,
+                actions = actions,
                 type = BottomBarMessageType.ERROR,
                 isDismissible = true,
                 showScrim = true,
-                onClose = { onDismiss() }
+                onClose = { onDismiss(it.index != -1) }
             )
         )
     }

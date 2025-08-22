@@ -10,7 +10,9 @@ import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.EmailVerificationError
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.BottomBarManager.BottomBarButtonStyle
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
@@ -78,6 +80,8 @@ class EmailVerificationViewModel @Inject constructor(
 
         data object OnMaxAttemptsReached : Event
         data object OnCodeVerified : Event
+
+        data object Exit: Event
     }
 
     private var timer: Timer? = null
@@ -132,22 +136,44 @@ class EmailVerificationViewModel @Inject constructor(
                     dispatchEvent(Event.OnVerifyingCodeChanged())
                     val (title, message) = when (it) {
                         is EmailVerificationError -> when (it) {
-                            is EmailVerificationError.Denied -> "Something went wrong" to "You have already sent a verification code"
-                            is EmailVerificationError.RateLimited -> "Something went wrong" to "Too many requests"
-                            is EmailVerificationError.InvalidVerificationCode -> "Something went wrong" to "Invalid verification code"
-                            is EmailVerificationError.NoVerification -> "Something went wrong" to "No verification"
+                            is EmailVerificationError.Denied -> null to null
+                            is EmailVerificationError.RateLimited -> null to null
+                            is EmailVerificationError.InvalidVerificationCode -> resources.getString(R.string.error_title_emailVerificationLinkInvalid) to resources.getString(R.string.error_description_emailVerificationLinkInvalid)
+                            is EmailVerificationError.NoVerification -> resources.getString(R.string.error_title_emailVerificationLinkExpired) to resources.getString(R.string.error_description_emailVerificationLinkExpired)
                             else -> null to null
                         }
 
                         else -> null to null
                     }
 
+                    val (actions, showCancel) = when (it) {
+                        is EmailVerificationError.InvalidVerificationCode,
+                        is EmailVerificationError.NoVerification -> listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_resendVerificationEmail),
+                                onClick = { dispatchEvent(Event.OnResendCodeClicked) }
+                            )
+                        ) to true
+                        else -> listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_ok),
+                                style = BottomBarButtonStyle.Filled
+                            )
+                        ) to false
+                    }
+
                     BottomBarManager.showError(
                         title = title
-                            ?: resources.getString(R.string.error_title_failedToSendCodeToEmail),
+                            ?: resources.getString(R.string.error_title_emailVerificationFailed),
                         message = message
-                            ?: resources.getString(R.string.error_description_failedToSendCodeToEmail),
-                    )
+                            ?: resources.getString(R.string.error_description_emailVerificationFailed),
+                        actions = actions,
+                        showCancel = showCancel,
+                    ) { fromAction ->
+                        if (!fromAction) {
+                            dispatchEvent(Event.Exit)
+                        }
+                    }
                 }
             )
             .launchIn(viewModelScope)
@@ -175,20 +201,9 @@ class EmailVerificationViewModel @Inject constructor(
                 }
                 startTimer()
             }.onFailure {
-                dispatchEvent(Event.OnSendingCodeChanged())
-                val (title, message) = when (it) {
-                    is EmailVerificationError -> when (it) {
-                        is EmailVerificationError.Denied -> "Something went wrong" to "You have already sent a verification code"
-                        is EmailVerificationError.RateLimited -> "Something went wrong" to "Too many requests"
-                        is EmailVerificationError.InvalidEmailAddress -> "Something went wrong" to "Invalid email address"
-                        else -> null to null
-                    }
-                    else -> null to null
-                }
-
                 BottomBarManager.showError(
-                    title = title ?: resources.getString(R.string.error_title_failedToSendCodeToEmail),
-                    message = message ?: resources.getString(R.string.error_description_failedToSendCodeToEmail),
+                    title = resources.getString(R.string.error_title_failedToSendCodeToEmail),
+                    message = resources.getString(R.string.error_description_failedToSendCodeToEmail),
                 )
             }
     }
@@ -255,6 +270,7 @@ class EmailVerificationViewModel @Inject constructor(
                         )
                     )
                 }
+                Event.Exit -> { state -> state }
 
                 Event.OpenMailApp -> { state -> state }
                 is Event.OnCodeVerified -> { state -> state }

@@ -74,7 +74,8 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
             BottomBarManager.showError(
                 title = context.getString(R.string.error_title_failedToSave),
                 message = context.getString(R.string.error_description_failedToSave),
-                additionalActions = listOf(
+                actions = listOf(
+                    BottomBarAction.Ok,
                     BottomBarAction(
                         text = context.getString(R.string.action_openSettings),
                         style = BottomBarManager.BottomBarButtonStyle.Filled50,

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import com.getcode.manager.BottomBarAction
+import com.getcode.manager.BottomBarAction.Companion.OK_DESCRIPTOR
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.theme.Black40
@@ -280,14 +281,12 @@ fun BottomBarView(
                 val okText = stringResource(R.string.action_ok)
                 val actions by remember(bottomBarMessage.actions) {
                     derivedStateOf {
-                        if (bottomBarMessage.type == BottomBarManager.BottomBarMessageType.ERROR) {
-                            buildList {
-                                // error's pass additional actions
-                                add(BottomBarAction(okText))
-                                addAll(bottomBarMessage.actions)
+                        bottomBarMessage.actions.map {
+                            if (it.text == OK_DESCRIPTOR && !it.isUser) {
+                                it.copy(text = okText) // ensure localized
+                            } else {
+                                it
                             }
-                        } else {
-                            bottomBarMessage.actions
                         }
                     }
                 }
@@ -307,7 +306,7 @@ fun BottomBarView(
                             },
                         onClick = {
                             action.onClick()
-                            onClose(SelectedBottomBarAction(index))
+                            onClose(SelectedBottomBarAction(index.takeIf { action.isUser } ?: -1))
                         },
                         textColor = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.ERROR,

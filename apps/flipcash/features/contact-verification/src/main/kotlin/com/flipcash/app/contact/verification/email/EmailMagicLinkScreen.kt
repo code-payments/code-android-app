@@ -97,6 +97,13 @@ class EmailMagicLinkScreen(
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
+                .filterIsInstance<EmailVerificationViewModel.Event.Exit>()
+                .onEach { flowNavigator.exit() }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
                 .filterIsInstance<EmailVerificationViewModel.Event.OnCodeVerified>()
                 .onEach { flowNavigator.continueFlowFrom(VerificationFlowStep.Email) }
                 .launchIn(this)

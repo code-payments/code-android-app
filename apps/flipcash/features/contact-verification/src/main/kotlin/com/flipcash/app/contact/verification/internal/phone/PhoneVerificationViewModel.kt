@@ -3,6 +3,7 @@ package com.flipcash.app.contact.verification.internal.phone
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
@@ -74,7 +75,6 @@ internal class PhoneVerificationViewModel @Inject constructor(
         data object OnCodeSent : Event
         data object OnCodeConfirmed : Event
         data object OnCodeResendClicked : Event
-        data object OnCodeResent : Event
 
         data class OnTimerTick(
             val isRunning: Boolean = true,
@@ -137,38 +137,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .onEach { dispatchEvent(Event.OnSendingCodeChanged(loading = true)) }
-            .map { method ->
-                verificationController.sendVerificationCode(method)
-            }.onResult(
-                onSuccess = {
-                    dispatchEvent(Event.OnSendingCodeChanged(success = true))
-                    viewModelScope.launch {
-                        delay(1.seconds)
-                        dispatchEvent(Event.OnCodeSent)
-                        dispatchEvent(Event.OnSendingCodeChanged())
-                    }
-                    startTimer()
-                },
-                onError = {
-                    dispatchEvent(Event.OnSendingCodeChanged())
-                    val (title, message) = when (it) {
-                        is PhoneVerificationError -> when (it) {
-                            is PhoneVerificationError.Denied -> "Something went wrong" to "You have already sent a verification code"
-                            is PhoneVerificationError.InvalidPhoneNumber -> "Something went wrong" to "Phone number failed verification"
-                            is PhoneVerificationError.RateLimited -> "Something went wrong" to "Too many requests"
-                            is PhoneVerificationError.UnsupportedPhoneType -> resources.getString(R.string.error_title_deviceNotSupported) to resources.getString(R.string.error_description_deviceNotSupported)
-                            else -> null to null
-                        }
-                        else -> null to null
-                    }
-
-                    BottomBarManager.showError(
-                        title = title ?: resources.getString(R.string.error_title_failedToSendCodeToPhone),
-                        message = message ?: resources.getString(R.string.error_description_failedToSendCodeToPhone),
-                    )
-                },
-            ).launchIn(viewModelScope)
+            .onEach { handleSendVerificationCode(it) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnCodeResendClicked>()
@@ -178,48 +148,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .onEach { dispatchEvent(Event.OnSendingCodeChanged(loading = true)) }
-            .mapNotNull { method ->
-                if (stateFlow.value.attempts >= 3) {
-                    dispatchEvent(Event.OnSendingCodeChanged())
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_maxAttemptsReached),
-                        message = resources.getString(R.string.error_description_maxAttemptsReached),
-                    ) {
-
-                    }
-                    return@mapNotNull null
-                }
-                verificationController.sendVerificationCode(method)
-            }.onResult(
-                onSuccess = {
-                    dispatchEvent(Event.OnSendingCodeChanged(success = true))
-                    viewModelScope.launch {
-                        delay(1.seconds)
-                        dispatchEvent(Event.OnCodeResent)
-                        dispatchEvent(Event.OnSendingCodeChanged())
-                    }
-                    startTimer()
-                },
-                onError = {
-                    dispatchEvent(Event.OnSendingCodeChanged())
-                    val (title, message) = when (it) {
-                        is PhoneVerificationError -> when (it) {
-                            is PhoneVerificationError.Denied -> "Something went wrong" to "You have already sent a verification code"
-                            is PhoneVerificationError.InvalidPhoneNumber -> "Something went wrong" to "Phone number failed verification"
-                            is PhoneVerificationError.RateLimited -> "Something went wrong" to "Too many requests"
-                            is PhoneVerificationError.UnsupportedPhoneType -> resources.getString(R.string.error_title_deviceNotSupported) to resources.getString(R.string.error_description_deviceNotSupported)
-                            else -> null to null
-                        }
-                        else -> null to null
-                    }
-
-                    BottomBarManager.showError(
-                        title = title ?: resources.getString(R.string.error_title_failedToSendCodeToPhone),
-                        message = message ?: resources.getString(R.string.error_description_failedToSendCodeToPhone),
-                    )
-                },
-            ).launchIn(viewModelScope)
+            .onEach { handleSendVerificationCode(it) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnVerifyCodeClicked>()
@@ -268,6 +198,54 @@ internal class PhoneVerificationViewModel @Inject constructor(
             ).launchIn(viewModelScope)
     }
 
+    private suspend fun handleSendVerificationCode(method: ContactMethod) {
+        dispatchEvent(Event.OnSendingCodeChanged(loading = true))
+        if (stateFlow.value.attempts >= 3) {
+            dispatchEvent(Event.OnSendingCodeChanged())
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_maxAttemptsReached),
+                message = resources.getString(R.string.error_description_maxAttemptsReached),
+            ) {
+                dispatchEvent(Event.OnMaxAttemptsReached)
+            }
+            return
+        }
+
+        verificationController.sendVerificationCode(method)
+            .onSuccess {
+                dispatchEvent(Event.OnSendingCodeChanged(success = true))
+                viewModelScope.launch {
+                    delay(1.seconds)
+                    dispatchEvent(Event.OnCodeSent)
+                    dispatchEvent(Event.OnSendingCodeChanged())
+                }
+                startTimer()
+            }
+            .onFailure { error ->
+                val (title, message) = when (error) {
+                    is PhoneVerificationError -> when (error) {
+                        is PhoneVerificationError.Denied -> null to null
+                        is PhoneVerificationError.InvalidPhoneNumber -> null to null
+                        is PhoneVerificationError.RateLimited -> null to null
+                        is PhoneVerificationError.UnsupportedPhoneType -> resources.getString(R.string.error_title_deviceNotSupported) to resources.getString(
+                            R.string.error_description_deviceNotSupported
+                        )
+
+                        else -> null to null
+                    }
+
+                    else -> null to null
+                }
+
+                BottomBarManager.showError(
+                    title = title
+                        ?: resources.getString(R.string.error_title_failedToSendCodeToPhone),
+                    message = message
+                        ?: resources.getString(R.string.error_description_failedToSendCodeToPhone),
+                )
+            }
+    }
+
     private fun startTimer() {
         dispatchEvent(
             Event.OnTimerTick(
@@ -310,7 +288,6 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 Event.OnCodeSent -> { state -> state }
                 Event.OnCodeConfirmed -> { state -> state }
                 Event.OnCodeResendClicked -> { state -> state.copy(attempts = state.attempts + 1) }
-                Event.OnCodeResent -> { state -> state }
                 is Event.OnTimerTick -> { state ->
                     state.copy(
                         isResendTimerRunning = event.isRunning,
