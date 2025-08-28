@@ -20,6 +20,7 @@ import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
+import com.getcode.ui.scanner.NoCamerasAvailableException
 import com.getcode.utils.ErrorUtils
 import timber.log.Timber
 import java.util.Timer
@@ -47,6 +48,10 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         mutableStateOf(state.autoStartCamera == true)
     }
 
+    var cameraAvailable by remember {
+        mutableStateOf(true)
+    }
+
     ScannerDeepLinkHandler(
         deepLink = deepLink,
         previewing = previewing,
@@ -67,9 +72,17 @@ internal fun Scanner(deepLink: DeeplinkType?) {
                 scanningEnabled = previewing == true,
                 cameraGesturesEnabled = true,
                 invertedDragZoomEnabled = true,
-                onPreviewStateChanged = { previewing = it },
+                onPreviewStateChanged = {
+                    cameraAvailable = true
+                    previewing = it
+                },
                 onCodeScanned = session::onCodeScan,
-                onError = { ErrorUtils.handleError(it) }
+                onError = {
+                    if (it is NoCamerasAvailableException) {
+                        cameraAvailable = false
+                    }
+                    ErrorUtils.handleError(it)
+                }
             )
         },
     )

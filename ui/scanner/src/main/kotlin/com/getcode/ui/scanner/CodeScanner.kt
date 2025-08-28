@@ -2,7 +2,9 @@ package com.getcode.ui.scanner
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraProvider
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -28,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.getcode.libs.biometrics.Biometrics
@@ -43,6 +46,7 @@ import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -109,12 +113,15 @@ fun CodeScanner(
         val cameraProvider = context.getCameraProvider()
         if (!active) {
             cameraProvider.unbindAll()
-            camera = cameraProvider.bindToLifecycle(
+            cameraProvider.bindToLifecycleSafely(
+                context,
                 lifecycleOwner,
                 cameraSelector,
                 preview,
                 imageAnalysis
-            )
+            ).onSuccess {
+                camera = it
+            }.onFailure { onError(it) }
         } else {
             cameraProvider.unbindAll()
         }
@@ -133,12 +140,15 @@ fun CodeScanner(
                     if (!biometricsState.isAwaitingAuthentication) {
                         val cameraProvider = context.getCameraProvider()
                         cameraProvider.unbindAll()
-                        camera = cameraProvider.bindToLifecycle(
+                        cameraProvider.bindToLifecycleSafely(
+                            context,
                             lifecycleOwner,
                             cameraSelector,
                             preview,
                             imageAnalysis
-                        )
+                        ).onSuccess {
+                            camera = it
+                        }.onFailure { onError(it) }
                     }
                 }
             }
@@ -221,3 +231,45 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider {
         ProcessCameraProvider.getInstance(this@getCameraProvider).get()
     }
 }
+
+private suspend fun ProcessCameraProvider.bindToLifecycleSafely(
+    context: Context,
+    lifecycleOwner: LifecycleOwner,
+    cameraSelector: CameraSelector,
+    preview: Preview,
+    imageAnalysis: ImageAnalysis,
+    retries: Int = 3,
+): Result<Camera> {
+    val hasCamera = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    if (!hasCamera) {
+        return Result.failure(IllegalStateException("No camera available on this device"))
+    }
+
+    return runCatching {
+        bindWithRetry(retries) {
+            bindToLifecycle(
+                lifecycleOwner,
+                cameraSelector,
+                preview,
+                imageAnalysis
+            )
+        }
+    }
+}
+
+suspend fun bindWithRetry(
+    retries: Int = 3,
+    bind: suspend () -> Camera
+): Camera {
+    repeat(retries) { attempt ->
+        try {
+            return bind()
+        } catch (e: Exception) {
+            if (attempt == retries - 1) throw e
+            delay(1000)
+        }
+    }
+    throw NoCamerasAvailableException()
+}
+
+class NoCamerasAvailableException: Throwable()
