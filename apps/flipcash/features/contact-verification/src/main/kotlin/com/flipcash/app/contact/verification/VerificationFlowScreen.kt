@@ -16,6 +16,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipcash.app.contact.verification.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.email.EmailVerificationScreen
+import com.flipcash.app.contact.verification.internal.VerificationFlowIntroScreen
 import com.flipcash.app.contact.verification.phone.PhoneVerificationScreen
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
@@ -36,7 +37,7 @@ class VerificationFlowScreen(
     private val showSuccess: Boolean = target == null && (includePhone xor includeEmail),
     private val emailAddress: String? = null,
     private val emailVerificationCode: String? = null,
-): ModalScreen, Parcelable {
+) : ModalScreen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -70,6 +71,7 @@ class VerificationFlowScreen(
                 }
             }
         }
+
         fun goToTargetOrReturn(wasSuccessful: Boolean) {
             if (target != null) {
                 codeNavigator.replace(ScreenRegistry.get(target))
@@ -87,7 +89,14 @@ class VerificationFlowScreen(
             EmailVerificationFlow.start(EmailDeeplinkOrigin.fromScreenProvider(origin))
         }
 
-        val screens = buildScreenSet(includePhone, includeEmail, emailAddress, emailVerificationCode)
+        val screens =
+            buildScreenSet(
+                origin = origin,
+                includePhone = includePhone,
+                includeEmail = includeEmail,
+                emailAddress = emailAddress,
+                emailVerificationCode = emailVerificationCode
+            )
         if (screens.isEmpty()) {
             goToTargetOrReturn(false)
             return
@@ -99,6 +108,10 @@ class VerificationFlowScreen(
                     exit = { codeNavigator.pop() },
                     continueFlowFrom = { step ->
                         when (step) {
+                            VerificationFlowStep.Intro -> {
+                                navigator.push(PhoneVerificationScreen())
+                            }
+
                             VerificationFlowStep.Phone -> {
                                 if (includeEmail) {
                                     navigator.push(EmailVerificationScreen())
@@ -106,6 +119,7 @@ class VerificationFlowScreen(
                                     goToTargetOrReturn(wasSuccessful = true)
                                 }
                             }
+
                             VerificationFlowStep.Email -> {
                                 goToTargetOrReturn(wasSuccessful = true)
                             }
@@ -122,11 +136,15 @@ class VerificationFlowScreen(
 }
 
 private fun buildScreenSet(
+    origin: NavScreenProvider,
     includePhone: Boolean,
     includeEmail: Boolean,
     emailAddress: String?,
     emailVerificationCode: String?,
 ): Set<Screen> {
+    if (includePhone && includeEmail) {
+        return setOf(VerificationFlowIntroScreen(origin is NavScreenProvider.HomeScreen.OnRamp.ProviderList))
+    }
     if (includePhone) {
         return setOf(PhoneVerificationScreen())
     }
@@ -136,7 +154,7 @@ private fun buildScreenSet(
         return buildSet {
             add(EmailVerificationScreen())
             if (emailAddress != null && emailVerificationCode != null) {
-                add(EmailMagicLinkScreen( emailAddress, emailVerificationCode))
+                add(EmailMagicLinkScreen(emailAddress, emailVerificationCode))
             }
         }
     }
@@ -145,6 +163,7 @@ private fun buildScreenSet(
 }
 
 enum class VerificationFlowStep {
+    Intro,
     Phone,
     Email;
 }

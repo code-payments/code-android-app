@@ -359,6 +359,9 @@
     <string name="action_unlinkPhone">Unlink Phone</string>
     <string name="action_unlinkEmail">Unlink Email</string>
 
+    <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
+    <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>"
+
     <string name="title_email">Email</string>
     <string name="action_openMail">Open Mail</string>
     <string name="title_checkYourInbox">Check your inbox</string>

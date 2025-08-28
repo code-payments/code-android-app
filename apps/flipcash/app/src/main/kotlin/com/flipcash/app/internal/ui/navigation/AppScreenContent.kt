@@ -133,28 +133,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             )
         }
 
-//        register<NavScreenProvider.HomeScreen.Verification.Phone> {
-//            PhoneVerificationFlow.start(it.origin)
-//            PhoneVerificationScreen()
-//        }
-//
-//        register<NavScreenProvider.HomeScreen.Verification.PhoneCountry> {
-//            PhoneCountryCodeScreen()
-//        }
-//
-//        register<NavScreenProvider.HomeScreen.Verification.PhoneCode> {
-//            PhoneCodeScreen()
-//        }
-//
-//        register<NavScreenProvider.HomeScreen.Verification.Email> {
-//            EmailVerificationFlow.start(it.origin)
-//            EmailVerificationScreen()
-//        }
-//
-//        register<NavScreenProvider.HomeScreen.Verification.EmailMagicLink> {
-//            EmailMagicLinkScreen(it.email, it.code)
-//        }
-
         register<NavScreenProvider.HomeScreen.OnRamp.ProviderList> {
             OnRampFlowTracker.start(it.from)
             OnRampProviderListScreen(
