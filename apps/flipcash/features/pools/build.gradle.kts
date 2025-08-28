@@ -52,6 +52,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:pools"))
     implementation(project(":apps:flipcash:shared:shareable"))

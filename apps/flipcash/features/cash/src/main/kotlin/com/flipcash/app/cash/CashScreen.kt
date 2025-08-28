@@ -66,18 +66,10 @@ class CashScreen: ModalScreen, Parcelable {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<CashScreenViewModel.Event.AddCashToWallet>()
-                .map { it.amount }
-                .onEach { amount ->
-                    navigator.push(
-                        ScreenRegistry.get(
-                            NavScreenProvider.HomeScreen.OnRamp.ProviderList(
-                                NavScreenProvider.HomeScreen.Cash,
-                                neededAmount = amount
-                            )
-                        )
-                    )
-                }.launchIn(this)
+                .filterIsInstance<CashScreenViewModel.Event.OpenScreen>()
+                .map { ScreenRegistry.get(it.screen) }
+                .onEach { navigator.push(it) }
+                .launchIn(this)
         }
     }
 }

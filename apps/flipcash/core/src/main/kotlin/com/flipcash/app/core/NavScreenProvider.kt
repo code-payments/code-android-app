@@ -85,7 +85,6 @@ sealed class NavScreenProvider : ScreenProvider, Parcelable {
             ) : NavScreenProvider()
 
             data object Amount : NavScreenProvider()
-            data object Success : NavScreenProvider()
         }
 
         sealed interface Menu {

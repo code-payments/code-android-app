@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.menu.MenuList
+import com.flipcash.app.onramp.AddCashRow
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -102,6 +103,18 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
+            header = {
+                AddCashRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = CodeTheme.dimens.inset,
+                            vertical = CodeTheme.dimens.grid.x4,
+                        ),
+                    onAddCash = { viewModel.dispatchEvent(MenuScreenViewModel.Event.OnAddCashClicked) },
+                    onWithdraw = { viewModel.dispatchEvent(MenuScreenViewModel.Event.OnWithdrawClicked) },
+                )
+            },
             items = state.items,
             contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x6),
             onItemClick = {

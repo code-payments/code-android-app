@@ -60,8 +60,9 @@ dependencies {
     implementation(Libs.kotlinx_serialization_json)
 
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:shared:coinbase-onramp"))
-    implementation(project(":apps:flipcash:shared:phantom-onramp"))
+    implementation(project(":apps:flipcash:shared:onramp:common"))
+    implementation(project(":apps:flipcash:shared:onramp:coinbase"))
+    implementation(project(":apps:flipcash:shared:onramp:phantom"))
     implementation(project(":apps:flipcash:shared:router"))
 
     implementation(project(":libs:crypto:solana"))

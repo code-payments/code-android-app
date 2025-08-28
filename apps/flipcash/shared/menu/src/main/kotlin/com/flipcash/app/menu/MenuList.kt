@@ -30,6 +30,7 @@ fun <T> MenuList(
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     items: List<MenuItem<T>>,
+    header: @Composable (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onItemClick: (MenuItem<T>) -> Unit
 ) {
@@ -42,6 +43,9 @@ fun <T> MenuList(
         state = state,
         contentPadding = contentPadding,
     ) {
+        if (header != null) {
+            item { header() }
+        }
         items(items, key = { it.id }, contentType = { it }) { item ->
             ListItem(modifier = Modifier.animateItem(), item = item) {
                 onItemClick(item)

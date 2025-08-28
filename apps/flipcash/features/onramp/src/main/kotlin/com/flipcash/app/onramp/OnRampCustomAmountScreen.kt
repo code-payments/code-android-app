@@ -31,13 +31,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class OnRampAmountScreen : ModalScreen, NamedScreen, Parcelable {
+class OnRampCustomAmountScreen : ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_amountToAdd)
+        @Composable get() = stringResource(R.string.title_amountToDeposit)
 
     @Composable
     override fun ModalContent() {

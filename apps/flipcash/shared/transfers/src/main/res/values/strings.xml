@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="external_url_withdraw" tools:ignore="TypographyDashes" translatable="false">https://chatgpt.com/share/68431512-cdf8-8002-b944-7538e90dfa48</string>
-    <string name="external_url_deposit" tools:ignore="TypographyDashes" translatable="false">https://chatgpt.com/share/68431710-5824-8002-af0a-c4948970b626</string>
-</resources>

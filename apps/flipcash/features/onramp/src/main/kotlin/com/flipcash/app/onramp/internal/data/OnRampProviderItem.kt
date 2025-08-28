@@ -3,6 +3,7 @@ package com.flipcash.app.onramp.internal.data
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.features.onramp.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -32,25 +33,13 @@ data class OnRampProviderItem(
     val title: String
         @Composable get() = when (provider) {
             is OnRampProvider.Coinbase -> when (provider.type) {
-                OnRampType.Virtual -> "Debit Card with Google Pay"
-                OnRampType.PhysicalDebit -> "Debit Card"
-                OnRampType.PhysicalCredit -> "Credit Card"
+                OnRampType.Virtual -> stringResource(R.string.title_onrampProviderCoinbaseVirtual)
+                OnRampType.PhysicalDebit -> stringResource(R.string.title_onrampProviderCoinbaseDebit)
+                OnRampType.PhysicalCredit -> stringResource(R.string.title_onrampProviderCoinbaseCredit)
             }
 
-            is OnRampProvider.CryptoDeposit -> "Crypto Wallet"
-            OnRampProvider.Phantom -> "Phantom"
-        }
-
-    val description: String
-        @Composable get() = when (provider) {
-            is OnRampProvider.Coinbase -> when (provider.type) {
-                OnRampType.Virtual -> "Add cash to your wallet from your debit card"
-                OnRampType.PhysicalDebit -> "Add cash to your wallet from your debit card"
-                OnRampType.PhysicalCredit -> "Add cash to your wallet from your credit card"
-            }
-
-            is OnRampProvider.CryptoDeposit -> "Deposit USDC from your crypto wallet"
-            OnRampProvider.Phantom -> "Add cash to your wallet from Phantom"
+            is OnRampProvider.CryptoDeposit -> stringResource(R.string.title_onrampProviderCryptoWallet)
+            OnRampProvider.Phantom -> stringResource(R.string.title_onrampProviderPhantom)
         }
 }
 

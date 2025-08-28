@@ -74,7 +74,7 @@ internal data class AmountEntryState(
 private val DefaultOnRampOptions = listOf(
     OnRampProviderItem(
         provider = OnRampProvider.CryptoDeposit,
-        destination = OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming))
+        destination = OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.Menu.Transfers.Deposit)
     )
 )
 
@@ -259,7 +259,9 @@ internal class OnRampViewModel @Inject constructor(
             .filter { !(checkFundingAmount()) }
             .onEach { data ->
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
-                val rate = exchange.entryRate
+                val rate = exchange.rateFor(stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD)
+                    ?: exchange.entryRate
+
                 // if we are USD we can skip the rate fetch since its 1:1
                 if (rate.currency != CurrencyCode.USD) {
                     exchange.fetchRatesIfNeeded()
@@ -293,9 +295,7 @@ internal class OnRampViewModel @Inject constructor(
                                 destination = when (provider) {
                                     OnRampProvider.CryptoDeposit ->
                                         OnRampProviderDestination.Screen(
-                                            NavScreenProvider.HomeScreen.Menu.Transfers.Learn(
-                                                TransferDirection.Incoming
-                                            )
+                                            NavScreenProvider.HomeScreen.Menu.Transfers.Deposit
                                         )
 
                                     is OnRampProvider.Coinbase -> {
@@ -330,6 +330,15 @@ internal class OnRampViewModel @Inject constructor(
                         }
                 dispatchEvent(Event.OnProvidersUpdated(filteredProviders))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnProviderSelected>()
+            .map { it.item.provider }
+            // we are locking Phantom transfers to USD
+            .filterIsInstance<OnRampProvider.Phantom>()
+            .mapNotNull { exchange.getCurrency(CurrencyCode.USD.name) }
+            .onEach { dispatchEvent(Event.OnCurrencyChanged(it)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnAmountAccepted>()

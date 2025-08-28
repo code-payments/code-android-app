@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string translatable="false" name="app_name_without_variant">Flipcash</string>
     <string translatable="false" name="app_name">Flipcash</string>
     <string translatable="false" name="handle">\@flipcashapp</string>
@@ -13,4 +13,8 @@
     <string translatable="false" name="app_download_link_with_ref">https://flipcash.com/download?r=%1$s</string>
     <string translatable="false" name="app_download_link_qr_ref">aqr</string>
     <string translatable="false" name="app_download_link_share_ref">as</string>
+
+    <string translatable="false" name="external_url_withdraw" tools:ignore="TypographyDashes">https://chatgpt.com/share/68431512-cdf8-8002-b944-7538e90dfa48</string>
+    <string translatable="false" name="external_url_deposit" tools:ignore="TypographyDashes">https://chatgpt.com/share/68431710-5824-8002-af0a-c4948970b626</string>
+
 </resources>

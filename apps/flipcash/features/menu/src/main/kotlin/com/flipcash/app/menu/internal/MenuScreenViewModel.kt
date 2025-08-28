@@ -5,11 +5,17 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.onramp.ConfirmationEvent
+import com.flipcash.app.onramp.OnRampAmount
+import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.features.menu.R
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -21,18 +27,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(Deposit)
-    add(OnRamp)
-    add(Withdraw)
     add(MyAccount)
+    add(Deposit)
     add(AppSettings)
     add(SwitchAccount)
     add(Labs)
@@ -47,6 +53,7 @@ internal class MenuScreenViewModel @Inject constructor(
     versionInfo: VersionInfo,
     mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
+    onrampController: OnRampAmountController,
 ) :
     BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -56,6 +63,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
+        val onrampProviders: List<OnRampProvider> = emptyList(),
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
@@ -65,6 +73,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogoTapped: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
+        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: NavScreenProvider) : Event
@@ -72,6 +81,9 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
+        data object OnAddCashClicked: Event
+        data object OpenOnRampAmountModal: Event
+        data object OnWithdrawClicked: Event
     }
 
     init {
@@ -94,6 +106,15 @@ internal class MenuScreenViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
 
+        userManager.state
+            .filter { it.authState is AuthState.LoggedInWithUser }
+            .mapNotNull { it.flags }
+            .map { it.supportedOnRampProviders }
+            .onEach { providers ->
+                dispatchEvent(Event.OnOnRampProvidersChanged(providers))
+            }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnLogoTapped>()
             .map { stateFlow.value.logoTapCount }
@@ -101,6 +122,48 @@ internal class MenuScreenViewModel @Inject constructor(
             .filterNot { stateFlow.value.unlockedBetaFeaturesManually }
             .onEach { featureFlags.enableBetaFeatures() }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnAddCashClicked>()
+            .onEach {
+                val providers = stateFlow.value.onrampProviders
+                if (providers.any { it is OnRampProvider.Coinbase }) {
+                    // has coinbase provider - pop selection for quick add
+                    dispatchEvent(Event.OpenOnRampAmountModal)
+                } else {
+                    // route to provider list
+                    dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Menu.Root)))
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnWithdrawClicked>()
+            .onEach {
+                dispatchEvent(
+                    Event.OpenScreen(
+                        NavScreenProvider.HomeScreen.Menu.Transfers.Learn(
+                            TransferDirection.Outgoing)
+                    )
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OpenOnRampAmountModal>()
+            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
+            .flatMapLatest {
+                onrampController.confirmationEvents.take(1)
+            }.onEach { event ->
+                when (event) {
+                    is ConfirmationEvent.OnConfirmationSuccess -> {
+                        when (event.amount) {
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                            is OnRampAmount.Predefined -> Unit
+                        }
+                    }
+
+                    ConfirmationEvent.Cancelled -> Unit
+                }
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnSwitchAccountsClicked>()
@@ -159,8 +222,6 @@ internal class MenuScreenViewModel @Inject constructor(
             overrode: Boolean,
             flags: List<BetaFeature> = emptyList(),
         ): List<MenuItem<Event>> {
-            // swap onramp for deposit if enabled
-            val isOnRampEnabled = flags.find { it.flag is FeatureFlag.OnRamp }?.enabled ?: true
             return if (isStaff || overrode) {
                 FullMenuList
                     .filter { item ->
@@ -183,12 +244,6 @@ internal class MenuScreenViewModel @Inject constructor(
                             true
                         }
                     }
-            }.filter { item ->
-                when (item) {
-                    Deposit -> !isOnRampEnabled
-                    OnRamp -> isOnRampEnabled
-                    else -> true
-                }
             }
         }
 
@@ -219,8 +274,8 @@ internal class MenuScreenViewModel @Inject constructor(
                         items = buildItemList(
                             isStaff = event.staff,
                             overrode = state.unlockedBetaFeaturesManually,
-                            flags = state.flags
-                        )
+                            flags = state.flags,
+                        ),
                     )
                 }
 
@@ -229,6 +284,13 @@ internal class MenuScreenViewModel @Inject constructor(
                 is Event.OpenScreen,
                 Event.OnLoggedOutCompletely,
                 is Event.OnSwitchAccountTo -> { state -> state }
+
+                Event.OnAddCashClicked -> { state -> state }
+                Event.OnWithdrawClicked -> { state -> state }
+                Event.OpenOnRampAmountModal -> { state -> state }
+                is Event.OnOnRampProvidersChanged -> { state ->
+                    state.copy(onrampProviders = event.providers)
+                }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->
                     state.copy(

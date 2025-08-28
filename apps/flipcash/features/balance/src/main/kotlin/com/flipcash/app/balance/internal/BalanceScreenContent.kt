@@ -32,6 +32,7 @@ import androidx.paging.compose.itemKey
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.balance.internal.components.FeedItem
 import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.onramp.AddCashRow
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.balance.R
 import com.getcode.opencode.compose.ExchangeStub
@@ -73,6 +74,17 @@ private fun BalanceScreenContent(
             dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
         }
 
+        AddCashRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = CodeTheme.dimens.inset,
+                    vertical = CodeTheme.dimens.grid.x4,
+                ),
+            onAddCash = { dispatchEvent(BalanceViewModel.Event.OnAddCashClicked) },
+            onWithdraw = { dispatchEvent(BalanceViewModel.Event.OnWithdrawClicked) },
+        )
+
         FeedList(
             modifier = Modifier.weight(1f),
             state = state,
@@ -109,13 +121,12 @@ private fun FeedList(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
                         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12)
                     ) {
-                        CodeButton(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = stringResource(R.string.action_addCashToWallet),
-                            buttonState = ButtonState.Filled
-                        ) {
-                            dispatchEvent(BalanceViewModel.Event.OpenAddFunds)
-                        }
+                        Text(
+                            text = stringResource(R.string.title_tapAboveToAddCashToWallet),
+                            style = CodeTheme.typography.textMedium,
+                            color = CodeTheme.colors.textSecondary,
+                            textAlign = TextAlign.Center,
+                        )
                     }
                 }
             }

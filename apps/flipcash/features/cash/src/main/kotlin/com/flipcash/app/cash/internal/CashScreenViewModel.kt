@@ -1,9 +1,15 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.app.onramp.ConfirmationEvent
+import com.flipcash.app.onramp.OnRampAmount
+import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.features.cash.R
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
@@ -27,10 +33,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
@@ -41,6 +49,7 @@ internal class CashScreenViewModel @Inject constructor(
     private val exchange: Exchange,
     balanceController: BalanceController,
     transactionController: TransactionController,
+    onrampController: OnRampAmountController,
 ) : BaseViewModel2<CashScreenViewModel.State, CashScreenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -55,7 +64,8 @@ internal class CashScreenViewModel @Inject constructor(
         val limits: Limits? = null,
         val maxForGive: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
-    ) {
+        val onrampProviders: List<OnRampProvider> = emptyList(),
+        ) {
         val canGive: Boolean
             get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0) > 0.00
 
@@ -91,9 +101,14 @@ internal class CashScreenViewModel @Inject constructor(
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
 
+        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
+
         data class AddCashToWallet(val amount: Fiat) : Event
+        data class OpenOnRampAmountModal(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
+
+        data class OpenScreen(val screen: NavScreenProvider) : Event
     }
 
     val checkBalanceLimit: () -> Boolean = {
@@ -110,12 +125,12 @@ internal class CashScreenViewModel @Inject constructor(
             BottomBarManager.showMessage(
                 resources.getString(R.string.error_title_youNeedMoreCash),
                 resources.getString(R.string.error_description_youNeedMoreCash),
-                type = BottomBarManager.BottomBarMessageType.THEMED,
+                type = BottomBarManager.BottomBarMessageType.ERROR,
                 showScrim = true,
                 showCancel = false,
                 actions = listOf(
                     BottomBarAction(
-                        text = resources.getString(R.string.action_addCashToWallet),
+                        text = resources.getString(R.string.action_addMoreCash),
                         style = BottomBarManager.BottomBarButtonStyle.Filled,
                     ) {
                         viewModelScope.launch {
@@ -140,7 +155,7 @@ internal class CashScreenViewModel @Inject constructor(
                     },
                     BottomBarAction(
                         text = resources.getString(R.string.action_dismiss),
-                        style = BottomBarManager.BottomBarButtonStyle.Outlined,
+                        style = BottomBarManager.BottomBarButtonStyle.Text,
                     )
                 )
             )
@@ -280,6 +295,38 @@ internal class CashScreenViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
                 dispatchEvent(Event.PresentBill(bill))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.AddCashToWallet>()
+            .map { it.amount }
+            .onEach { amount ->
+                val providers = stateFlow.value.onrampProviders
+                if (providers.any { it is OnRampProvider.Coinbase }) {
+                    // has coinbase provider - pop selection for quick add
+                    dispatchEvent(Event.OpenOnRampAmountModal(amount))
+                } else {
+                    // route to provider list
+                    dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Cash, amount)))
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OpenOnRampAmountModal>()
+            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
+            .flatMapLatest {
+                onrampController.confirmationEvents.take(1)
+            }.onEach { event ->
+                when (event) {
+                    is ConfirmationEvent.OnConfirmationSuccess -> {
+                        when (event.amount) {
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                            is OnRampAmount.Predefined -> Unit
+                        }
+                    }
+
+                    ConfirmationEvent.Cancelled -> Unit
+                }
+            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -294,6 +341,14 @@ internal class CashScreenViewModel @Inject constructor(
                         amountAnimatedModel = event.amountAnimatedModel
                     )
                 }
+
+                is Event.OnOnRampProvidersChanged -> { state ->
+                    state.copy(onrampProviders = event.providers)
+                }
+
+                is Event.OpenOnRampAmountModal -> { state -> state }
+
+                is Event.OpenScreen -> { state -> state }
 
                 Event.OnBackspace,
                 Event.OnGive,

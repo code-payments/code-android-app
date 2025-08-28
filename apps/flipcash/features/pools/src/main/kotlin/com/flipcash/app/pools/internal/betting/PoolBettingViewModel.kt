@@ -1,6 +1,7 @@
 package com.flipcash.app.pools.internal.betting
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.NavScreenProvider
 import com.flipcash.app.core.cache.DataOrigin
 import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
@@ -11,6 +12,9 @@ import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolBetSummary
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.PoolWithBets
+import com.flipcash.app.onramp.ConfirmationEvent
+import com.flipcash.app.onramp.OnRampAmount
+import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
@@ -21,6 +25,8 @@ import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.pools.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.models.ClosePoolError
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -63,6 +69,7 @@ internal class PoolBettingViewModel @Inject constructor(
     analytics: FlipcashAnalyticsService,
     exchange: Exchange,
     balanceController: BalanceController,
+    onrampController: OnRampAmountController,
 ) : BaseViewModel2<PoolBettingViewModel.State, PoolBettingViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -80,7 +87,8 @@ internal class PoolBettingViewModel @Inject constructor(
         ),
         val selectedOutcome: PoolBetOutcome? = null,
         val isDistributed: Boolean? = null,
-        val bottomBarActions: List<BottomBarAction> = emptyList()
+        val bottomBarActions: List<BottomBarAction> = emptyList(),
+        val onrampProviders: List<OnRampProvider> = emptyList(),
     ) {
         val isLoaded: Boolean
             get() = metadata != Pool.Empty
@@ -183,6 +191,10 @@ internal class PoolBettingViewModel @Inject constructor(
         data object OnSharePool : Event
         data object OnFailedToLoad: Event
         data class AddCashToWallet(val amount: Fiat): Event
+        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
+        data class OpenOnRampAmountModal(val amount: Fiat) : Event
+        data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) : Event
+        data class OpenScreen(val screen: NavScreenProvider) : Event
     }
 
     init {
@@ -389,12 +401,12 @@ internal class PoolBettingViewModel @Inject constructor(
                                 BottomBarManager.showMessage(
                                     resources.getString(R.string.error_title_youNeedMoreCash),
                                     resources.getString(R.string.error_description_youNeedMoreCash),
-                                    type = BottomBarManager.BottomBarMessageType.THEMED,
+                                    type = BottomBarManager.BottomBarMessageType.ERROR,
                                     showScrim = true,
                                     showCancel = false,
                                     actions = listOf(
                                         BottomBarAction(
-                                            text = resources.getString(R.string.action_addCashToWallet),
+                                            text = resources.getString(R.string.action_addMoreCash),
                                             style = BottomBarManager.BottomBarButtonStyle.Filled,
                                         ) {
                                             viewModelScope.launch {
@@ -605,6 +617,42 @@ internal class PoolBettingViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.AddCashToWallet>()
+            .map { it.amount }
+            .onEach { amount ->
+                val providers = stateFlow.value.onrampProviders
+                if (providers.any { it is OnRampProvider.Coinbase }) {
+                    // has coinbase provider - pop selection for quick add
+                    dispatchEvent(Event.OpenOnRampAmountModal(amount))
+                } else {
+                    // route to provider list
+                    val origin = NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                        poolId = stateFlow.value.metadata.id,
+                        rendezvous = stateFlow.value.rendezvous,
+                    )
+                    dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.ProviderList(origin, amount)))
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OpenOnRampAmountModal>()
+            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
+            .flatMapLatest {
+                onrampController.confirmationEvents.take(1)
+            }.onEach { event ->
+                when (event) {
+                    is ConfirmationEvent.OnConfirmationSuccess -> {
+                        when (event.amount) {
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                            is OnRampAmount.Predefined -> Unit
+                        }
+                    }
+
+                    ConfirmationEvent.Cancelled -> Unit
+                }
+            }.launchIn(viewModelScope)
     }
 
     override fun onCleared() {
@@ -684,6 +732,10 @@ internal class PoolBettingViewModel @Inject constructor(
 
                 is Event.OnDistributeFunds -> { state -> state }
                 is Event.AddCashToWallet -> { state -> state }
+                is Event.OnOnRampProvidersChanged -> { state -> state.copy(onrampProviders = event.providers) }
+                is Event.OpenOnRampAmountModal -> { state -> state }
+                is Event.UpdateLoadingState -> { state -> state }
+                is Event.OpenScreen -> { state -> state }
             }
         }
     }

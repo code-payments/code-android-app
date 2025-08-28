@@ -8,11 +8,8 @@ import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.cash.CashScreen
-import com.flipcash.app.contact.verification.EmailVerificationFlow
-import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.currency.CurrencySelectionModal
 import com.flipcash.app.deposit.DepositScreen
 import com.flipcash.app.lab.LabsModal
@@ -22,10 +19,9 @@ import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
-import com.flipcash.app.onramp.OnRampAmountScreen
+import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.OnRampProviderListScreen
-import com.flipcash.app.onramp.OnRampSuccessScreen
 import com.flipcash.app.permissions.CameraPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.pools.PoolBettingScreen
@@ -168,11 +164,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.HomeScreen.OnRamp.Amount> {
-            OnRampAmountScreen()
-        }
-
-        register<NavScreenProvider.HomeScreen.OnRamp.Success> {
-            OnRampSuccessScreen()
+            OnRampCustomAmountScreen()
         }
 
         register<NavScreenProvider.HomeScreen.Menu.Root> {

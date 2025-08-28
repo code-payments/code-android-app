@@ -54,6 +54,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:menu"))
+    implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:core"))
 
     implementation(project(":libs:datetime"))

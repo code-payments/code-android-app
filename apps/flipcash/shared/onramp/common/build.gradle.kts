@@ -6,11 +6,12 @@ plugins {
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
     id(Plugins.kotlin_parcelize)
+    id(Plugins.kotlin_serialization)
     id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.features.cash"
+    namespace = "${Gradle.flipcashNamespace}.shared.onramp.common"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -43,27 +44,20 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
-    implementation(Libs.timber)
-
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
-    implementation(Libs.compose_materialIconsExtended)
 
-    implementation(Libs.kotlin_stdlib)
+    implementation(Libs.kotlinx_serialization_json)
+
     implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:shared:onramp:common"))
-    implementation(project(":apps:flipcash:shared:session"))
-    implementation(project(":libs:datetime"))
+    implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
-    implementation(project(":libs:permissions:bindings"))
     implementation(project(":ui:analytics"))
-    implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
-    implementation(Libs.rinku_compose)
 }

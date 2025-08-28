@@ -59,7 +59,6 @@
     <string name="subtitle_balanceEmptyState">Ask a friend to give you some cash with Flipcash, or deposit USDC from your crypto exchange or another crypto wallet</string>
     <string name="action_depositFunds">Deposit Funds</string>
 
-    <string name="title_addFundsToWallet">Add Funds to Your Wallet</string>
     <string name="title_depositUsdc">Deposit</string>
     <string name="title_withdrawUsdc">Withdraw Funds</string>
 
@@ -108,7 +107,7 @@
     <string name="error_title_failedToDeleteAccount">Something went wrong</string>
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
-    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC to your Deposit Address below. Tap to copy</string>
+    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC on Solana to your deposit address below</string>
 
     <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
     <string name="title_clipboardLabelPublicKey">Public Key</string>
@@ -271,20 +270,21 @@
         <item>Will Jill text her ex before dawn?</item>
     </string-array>
 
-    <string name="title_addCash">Add Cash</string>
-    <string name="title_amountToAdd">Amount to Add</string>
+    <string name="action_addCash">Add Cash</string>
+    <string name="title_selectMethod">Select Method</string>
+    <string name="title_amountToDeposit">Amount to Deposit</string>
+    <string name="title_addCashWithDebitCard">Add Cash with Debit Card</string>
 
     <string name="subtitle_onrampPurchaseHint">Enter up to %1$s</string>
     <string name="subtitle_onrampPurchaseExceeded">You can only add up to %1$s</string>
 
     <string name="error_title_youNeedMoreCash">You Need More Cash</string>
-    <string name="error_description_youNeedMoreCash">Add more cash to your wallet to continue</string>
+    <string name="error_description_youNeedMoreCash">Please add more cash, or try again with a lower amount</string>
     <string name="title_addCashToWallet">Add cash to your Flipcash wallet</string>
-    <string name="action_addCashToWallet">Add Cash to Your Wallet</string>
+    <string name="action_addMoreCash">Add More Cash</string>
+    <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
-    <string name="subtitle_onrampSuccess">Your cash is on the way and should arrive in a few minutes</string>
-    <string name="subtitle_contactSupportOnRamp">If you have any issues receiving you funds please contact us at support@flipcash.com</string>
 
     <string name="error_title_phantomDecryption">Something went wrong</string>
     <string name="error_title_phantomDeserialization">Something went wrong</string>
@@ -363,4 +363,20 @@
     <string name="title_checkYourInbox">Check your inbox</string>
     <string name="subtitle_linkSentToEmail">Tap the link we sent to</string>
     <string name="subtitle_didntGetEmail">Didn\'t get an email?</string>
+
+    <string name="prompt_title_cashOnTheWay">Your Cash Is On Its Way</string>
+    <string name="prompt_description_cashOnTheWay">It should be available in a few minutes. If you have any issues please contact support@flipcash.com</string>
+    <string name="action_notifyMe">Notify Me</string>
+
+    <string name="title_onrampProviderCoinbaseVirtual">Debit Card with Google Pay</string>
+    <string name="title_onrampProviderCoinbaseDebit">Debit Card</string>
+    <string name="title_onrampProviderCoinbaseCredit">Credit Card</string>
+    <string name="title_onrampProviderCryptoWallet">Crypto Wallet</string>
+    <string name="title_onrampProviderPhantom">Phantom Wallet</string>
+
+    <string name="action_addCashWithGooglePay">Add Cash with Google Pay</string>
+    <string name="action_addCashWithDebitCard">Add Cash with Debit Card</string>
+    <string name="action_addCashWithCreditCard">Add Cash with Credit Card</string>
+    <string name="label_confirmIn">Confirm In</string>
+    <string name="label_phantom">Phantom</string>
 </resources>

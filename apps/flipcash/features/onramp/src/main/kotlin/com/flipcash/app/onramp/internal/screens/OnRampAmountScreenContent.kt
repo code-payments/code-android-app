@@ -1,15 +1,28 @@
 package com.flipcash.app.onramp.internal.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.NavScreenProvider
@@ -24,6 +37,10 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.getButtonColors
+import kotlin.collections.emptyMap
+import kotlin.collections.mapOf
+import kotlin.to
 
 @Composable
 internal fun OnRampAmountScreen(
@@ -33,7 +50,7 @@ internal fun OnRampAmountScreen(
 
     OnRampAmountScreenContent(
         state = state.amountEntryState,
-        providerType = (state.selectedProvider as? OnRampProvider.Coinbase)?.type,
+        provider = state.selectedProvider,
         dispatchEvent = viewModel::dispatchEvent,
     )
 }
@@ -41,7 +58,7 @@ internal fun OnRampAmountScreen(
 @Composable
 private fun OnRampAmountScreenContent(
     state: AmountEntryState,
-    providerType: OnRampType?,
+    provider: OnRampProvider.ThirdParty?,
     dispatchEvent: (OnRampViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
@@ -63,7 +80,7 @@ private fun OnRampAmountScreenContent(
                 stringResource(R.string.subtitle_onrampPurchaseHint, state.maxAvailableToAdd)
             },
             decimalPlaces = state.currencyModel.fractionUnits,
-            isClickable = true,
+            isClickable = provider !is OnRampProvider.Phantom,
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(
@@ -80,6 +97,46 @@ private fun OnRampAmountScreenContent(
         )
 
         Box(modifier = Modifier.fillMaxWidth()) {
+            val buttonColors = getButtonColors(state.canAdd, ButtonState.Filled, Color.Unspecified)
+            val (buttonText, assets) = when (provider) {
+                is OnRampProvider.Coinbase -> when (provider.type) {
+                    // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
+                    OnRampType.Virtual -> AnnotatedString(stringResource(R.string.action_addCashWithGooglePay)) to emptyMap()
+                    OnRampType.PhysicalDebit -> AnnotatedString(stringResource(R.string.action_addCashWithDebitCard)) to emptyMap()
+                    OnRampType.PhysicalCredit -> AnnotatedString(stringResource(R.string.action_addCashWithCreditCard)) to emptyMap()
+                }
+
+                OnRampProvider.Phantom -> buildAnnotatedString {
+                    append(stringResource(R.string.label_confirmIn))
+                    appendInlineContent("[icon]", alternateText = " ")
+                    append(stringResource(R.string.label_phantom))
+                } to mapOf(
+                    "[icon]" to InlineTextContent(
+                        placeholder = Placeholder(
+                            width = 25.sp,
+                            height = 14.sp,
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+                        ),
+                        children = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    modifier = Modifier.padding(
+                                        start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
+                                        end = CodeTheme.dimens.staticGrid.x1
+                                    ),
+                                    painter = painterResource(R.drawable.ic_phantom),
+                                    colorFilter = ColorFilter.tint(buttonColors.contentColor(state.canAdd).value),
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    )
+                )
+                null -> AnnotatedString(stringResource(R.string.action_addCash)) to emptyMap<String, InlineTextContent>()
+            }
             CodeButton(
                 enabled = state.canAdd,
                 modifier = Modifier
@@ -90,12 +147,8 @@ private fun OnRampAmountScreenContent(
                 buttonState = ButtonState.Filled,
                 isLoading = state.confirmingAmount.loading,
                 isSuccess = state.confirmingAmount.success,
-                text = when (providerType) {
-                    OnRampType.Virtual ->  "Add Cash with Google Pay"
-                    OnRampType.PhysicalDebit -> "Add Cash with a Debit Card"
-                    OnRampType.PhysicalCredit -> "Add Cash with a Credit Card"
-                    null -> "Add Cash"
-                },
+                text = buttonText,
+                inlineContent = assets,
             ) {
                 dispatchEvent(OnRampViewModel.Event.OnAmountConfirmed)
             }

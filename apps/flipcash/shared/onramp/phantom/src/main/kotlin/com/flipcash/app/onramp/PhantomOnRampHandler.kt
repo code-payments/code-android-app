@@ -1,8 +1,11 @@
 package com.flipcash.app.onramp
 
+import android.Manifest
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
@@ -14,10 +17,14 @@ import com.flipcash.app.onramp.internal.PhantomDepositState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.router.Router
+import com.flipcash.services.analytics.Action
 import com.flipcash.shared.onramp.phantom.R
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.util.permissions.LocalPermissionChecker
+import com.getcode.util.permissions.notificationPermissionCheck
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
@@ -35,7 +42,15 @@ fun PhantomOnRampHandler(
     content: @Composable () -> Unit
 ) {
     val navigator = LocalCodeNavigator.current
-    val close = suspend {
+    val permissions = LocalPermissionChecker.current
+
+    suspend fun close(exit: Boolean) {
+        if (exit) {
+            delay(300)
+            navigator.hide()
+            return
+        }
+
         state.origin?.let { screenProvider ->
             val screen = ScreenRegistry.get(screenProvider)
             delay(300)
@@ -43,9 +58,17 @@ fun PhantomOnRampHandler(
             if (!popped) navigator.popAll()
         } ?: run { navigator.popAll() }
     }
-
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+
+    val composeScope = rememberCoroutineScope()
+    val onNotificationResult: (Boolean) -> Unit = { isGranted ->
+        composeScope.launch { close(true) }
+    }
+
+    val notificationPermissionCheck =
+        notificationPermissionCheck { onNotificationResult(it) }
+
     RepeatOnLifecycle(
         targetState = Lifecycle.State.STARTED
     ) {
@@ -68,7 +91,7 @@ fun PhantomOnRampHandler(
                     title = title,
                     message = message,
                 ) {
-                    launch { close() }
+                    launch { close(false) }
                     state.reset()
                 }
             }.launchIn(this)
@@ -173,7 +196,40 @@ fun PhantomOnRampHandler(
                     type = TraceType.Process
                 )
                 state.reset()
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Success))
+                val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
+                BottomBarManager.showMessage(
+                    title = context.getString(R.string.prompt_title_cashOnTheWay),
+                    subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
+                    actions = buildList {
+                        if (hasPushPerms) {
+                            add(
+                                BottomBarAction(
+                                    text = context.getString(R.string.action_ok),
+                                ) {
+                                    launch { close(true) }
+                                }
+                            )
+                        } else {
+                            add(
+                                BottomBarAction(
+                                    text = context.getString(R.string.action_notifyMe)
+                                ) {
+                                    notificationPermissionCheck(true)
+                                }
+                            )
+
+                            add(
+                                BottomBarAction(
+                                    text = context.getString(R.string.action_dismiss),
+                                    style = BottomBarManager.BottomBarButtonStyle.Text
+                                ) {
+                                    launch { close(true) }
+                                }
+                            )
+                        }
+                    },
+                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
+                )
             }
         }
     }

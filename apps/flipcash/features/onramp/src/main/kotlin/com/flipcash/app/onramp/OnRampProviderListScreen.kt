@@ -44,7 +44,7 @@ class OnRampProviderListScreen(
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_addCash)
+        @Composable get() = stringResource(R.string.title_selectMethod)
 
     @Composable
     override fun ModalContent() {

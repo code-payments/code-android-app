@@ -329,7 +329,10 @@ fun BottomBarView(
                                 else -> Color.Black
                             }
 
-                            BottomBarManager.BottomBarMessageType.SUCCESS -> Color.Black
+                            BottomBarManager.BottomBarMessageType.SUCCESS -> when (action.style) {
+                                BottomBarManager.BottomBarButtonStyle.Text -> White50
+                                else -> Color.Black
+                            }
                         },
                         buttonState = when (action.style) {
                             BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled

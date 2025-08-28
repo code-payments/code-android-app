@@ -1,10 +1,6 @@
 package com.getcode.ui.theme
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Box
@@ -12,11 +8,11 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
@@ -40,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -60,6 +57,7 @@ enum class ButtonState {
     Bordered,
     Filled,
     Filled50,
+    Filled20,
     Subtle
 }
 
@@ -107,6 +105,43 @@ fun CodeButton(
         sizeKey = text
     ) {
         Text(text = text)
+    }
+}
+
+@Composable
+fun CodeButton(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    inlineContent: Map<String, InlineTextContent> = emptyMap(),
+    isLoading: Boolean = false,
+    isSuccess: Boolean = false,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        top = CodeTheme.dimens.grid.x2,
+        bottom = CodeTheme.dimens.grid.x2,
+    ),
+    overrideContentPadding: Boolean = false,
+    buttonState: ButtonState = ButtonState.Bordered,
+    textColor: Color = Color.Unspecified,
+    shape: Shape = CodeTheme.shapes.small,
+    style: TextStyle = CodeTheme.typography.textMedium,
+    onClick: () -> Unit,
+) {
+    CodeButton(
+        modifier = modifier,
+        onClick = onClick,
+        isLoading = isLoading,
+        isSuccess = isSuccess,
+        enabled = enabled,
+        buttonState = buttonState,
+        contentPadding = contentPadding,
+        overrideContentPadding = overrideContentPadding,
+        shape = shape,
+        contentColor = textColor,
+        style = style,
+        sizeKey = text
+    ) {
+        Text(text = text, inlineContent = inlineContent)
     }
 }
 
@@ -237,6 +272,7 @@ fun getRipple(
         ButtonState.Bordered -> White
         ButtonState.Filled -> CodeTheme.colors.textSecondary
         ButtonState.Filled50 -> White50
+        ButtonState.Filled20 -> White20
         ButtonState.Subtle -> White
     }
 )
@@ -266,6 +302,13 @@ fun getButtonColors(
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = White50,
                 disabledContentColor = White50,
+                contentColor = textColor.takeOrElse { White },
+            )
+
+        ButtonState.Filled20 ->
+            ButtonDefaults.outlinedButtonColors(
+                backgroundColor = White20,
+                disabledContentColor = White20,
                 contentColor = textColor.takeOrElse { White },
             )
 

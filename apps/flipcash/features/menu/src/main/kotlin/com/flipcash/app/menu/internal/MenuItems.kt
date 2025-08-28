@@ -21,9 +21,9 @@ internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_deposit)
     override val name: String
-        @Composable get() = stringResource(R.string.title_addFundsToWallet)
+        @Composable get() = stringResource(R.string.title_depositUsdc)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Incoming)
+        NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Menu.Root)
     )
 }
 
@@ -55,16 +55,6 @@ internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = stringResource(R.string.title_appSettings)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
         NavScreenProvider.HomeScreen.Menu.AppSettings
-    )
-}
-
-internal data object OnRamp : FullMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_deposit)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_addFundsToWallet)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Menu.Root)
     )
 }
 

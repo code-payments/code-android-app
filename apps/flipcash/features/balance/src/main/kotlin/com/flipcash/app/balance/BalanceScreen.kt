@@ -27,6 +27,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.RepeatOnLifecycle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -80,16 +81,10 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
 
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
-                    .filterIsInstance<BalanceViewModel.Event.OpenAddFunds>()
-                    .onEach {
-                        navigator.push(
-                            ScreenRegistry.get(
-                                NavScreenProvider.HomeScreen.OnRamp.ProviderList(
-                                    NavScreenProvider.HomeScreen.Balance
-                                )
-                            )
-                        )
-                    }.launchIn(this)
+                    .filterIsInstance<BalanceViewModel.Event.OpenScreen>()
+                    .map { ScreenRegistry.get(it.screen) }
+                    .onEach { navigator.push(it) }
+                    .launchIn(this)
             }
         }
     }
