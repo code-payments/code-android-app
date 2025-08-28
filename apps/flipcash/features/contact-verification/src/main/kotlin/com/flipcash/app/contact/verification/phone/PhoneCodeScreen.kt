@@ -34,7 +34,7 @@ class PhoneCodeScreen: Screen, NamedScreen, Parcelable {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_verifyPhoneNumber)
+        @Composable get() = stringResource(R.string.title_enterTheCode)
 
     @Composable
     override fun Content() {

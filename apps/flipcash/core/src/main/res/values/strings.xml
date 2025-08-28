@@ -324,6 +324,7 @@
     <string name="title_verifyEmailAddress">Verify Your Email</string>
     <string name="subtitle_resend">Resend</string>
 
+    <string name="title_enterTheCode">Enter The Code</string>
     <string name="error_title_failedToSendCodeToPhone">Something Went Wrong</string>
     <string name="error_description_failedToSendCodeToPhone">Please ensure that your phone number is entered correctly</string>
     <string name="error_title_failedToSendCodeToEmail">Something Went Wrong</string>
