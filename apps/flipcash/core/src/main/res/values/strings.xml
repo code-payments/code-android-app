@@ -368,7 +368,7 @@
     <string name="subtitle_linkSentToEmail">Tap the link we sent to</string>
     <string name="subtitle_didntGetEmail">Didn\'t get an email?</string>
 
-    <string name="prompt_title_cashOnTheWay">Your Cash Is On Its Way</string>
+    <string name="prompt_title_cashOnTheWay">Success! Your Cash Is On Its Way</string>
     <string name="prompt_description_cashOnTheWay">It should be available in a few minutes. If you have any issues please contact support@flipcash.com</string>
     <string name="action_notifyMe">Notify Me</string>
 
