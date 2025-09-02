@@ -232,6 +232,8 @@ class PhantomDepositState(
     fun reset() {
         deeplinkState = PhantomDeeplinkState.IDLE
         amount = null
+        walletConnection = null
+        connectionResult = null
         unsignedTransaction = null
         signedTransaction = null
         signingResult = null
