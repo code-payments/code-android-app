@@ -21,6 +21,7 @@ import com.flipcash.services.analytics.Action
 import com.flipcash.shared.onramp.phantom.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.util.permissions.LocalPermissionChecker
@@ -37,31 +38,36 @@ import kotlin.to
 @Composable
 fun PhantomOnRampHandler(
     state: PhantomDepositState,
+    navigator: CodeNavigator,
     router: Router,
     deepLink: DeepLink?,
     content: @Composable () -> Unit
 ) {
-    val navigator = LocalCodeNavigator.current
     val permissions = LocalPermissionChecker.current
+    val composeScope = rememberCoroutineScope()
 
-    suspend fun close(exit: Boolean) {
+    fun close(exit: Boolean) {
         if (exit) {
-            delay(300)
-            navigator.hide()
+            composeScope.launch {
+                delay(300)
+                navigator.hide()
+            }
             return
         }
 
         state.origin?.let { screenProvider ->
             val screen = ScreenRegistry.get(screenProvider)
-            delay(300)
-            val popped = navigator.popUntil { it::class == screen::class }
-            if (!popped) navigator.popAll()
+            composeScope.launch {
+                delay(300)
+                val popped = navigator.popUntil { it::class == screen::class }
+                if (!popped) navigator.popAll()
+            }
         } ?: run { navigator.popAll() }
     }
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
-    val composeScope = rememberCoroutineScope()
+
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         composeScope.launch { close(true) }
     }
@@ -91,7 +97,7 @@ fun PhantomOnRampHandler(
                     title = title,
                     message = message,
                 ) {
-                    launch { close(false) }
+                    close(false)
                     state.reset()
                 }
             }.launchIn(this)
@@ -206,7 +212,7 @@ fun PhantomOnRampHandler(
                                 BottomBarAction(
                                     text = context.getString(R.string.action_ok),
                                 ) {
-                                    launch { close(true) }
+                                    close(true)
                                 }
                             )
                         } else {
@@ -223,7 +229,7 @@ fun PhantomOnRampHandler(
                                     text = context.getString(R.string.action_dismiss),
                                     style = BottomBarManager.BottomBarButtonStyle.Text
                                 ) {
-                                    launch { close(true) }
+                                    close(true)
                                 }
                             )
                         }

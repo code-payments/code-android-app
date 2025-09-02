@@ -96,62 +96,76 @@ private fun OnRampAmountScreenContent(
             onDecimal = { dispatchEvent(OnRampViewModel.Event.OnDecimalPressed) }
         )
 
-        Box(modifier = Modifier.fillMaxWidth()) {
-            val buttonColors = getButtonColors(state.canAdd, ButtonState.Filled, Color.Unspecified)
-            val (buttonText, assets) = when (provider) {
-                is OnRampProvider.Coinbase -> when (provider.type) {
-                    // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
-                    OnRampType.Virtual -> AnnotatedString(stringResource(R.string.action_addCashWithGooglePay)) to emptyMap()
-                    OnRampType.PhysicalDebit -> AnnotatedString(stringResource(R.string.action_addCashWithDebitCard)) to emptyMap()
-                    OnRampType.PhysicalCredit -> AnnotatedString(stringResource(R.string.action_addCashWithCreditCard)) to emptyMap()
-                }
+        ConfirmationButton(
+            modifier = Modifier
+                .fillMaxWidth(),
+            state = state,
+            provider = provider,
+            dispatchEvent = dispatchEvent
+        )
+    }
+}
 
-                OnRampProvider.Phantom -> buildAnnotatedString {
-                    append(stringResource(R.string.label_confirmIn))
-                    appendInlineContent("[icon]", alternateText = " ")
-                    append(stringResource(R.string.label_phantom))
-                } to mapOf(
-                    "[icon]" to InlineTextContent(
-                        placeholder = Placeholder(
-                            width = 25.sp,
-                            height = 14.sp,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                        ),
-                        children = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    modifier = Modifier.padding(
-                                        start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
-                                        end = CodeTheme.dimens.staticGrid.x1
-                                    ),
-                                    painter = painterResource(R.drawable.ic_phantom),
-                                    colorFilter = ColorFilter.tint(buttonColors.contentColor(state.canAdd).value),
-                                    contentDescription = null
-                                )
-                            }
-                        }
-                    )
-                )
-                null -> AnnotatedString(stringResource(R.string.action_addCash)) to emptyMap<String, InlineTextContent>()
-            }
-            CodeButton(
-                enabled = state.canAdd,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x2)
-                    .navigationBarsPadding(),
-                buttonState = ButtonState.Filled,
-                isLoading = state.confirmingAmount.loading,
-                isSuccess = state.confirmingAmount.success,
-                text = buttonText,
-                inlineContent = assets,
-            ) {
-                dispatchEvent(OnRampViewModel.Event.OnAmountConfirmed)
-            }
+@Composable
+private fun ConfirmationButton(
+    state: AmountEntryState,
+    provider: OnRampProvider.ThirdParty?,
+    modifier: Modifier = Modifier,
+    dispatchEvent: (OnRampViewModel.Event) -> Unit
+) {
+    val buttonColors = getButtonColors(state.canAdd, ButtonState.Filled, Color.Unspecified)
+    val (buttonText, assets) = when (provider) {
+        is OnRampProvider.Coinbase -> when (provider.type) {
+            // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
+            OnRampType.Virtual -> AnnotatedString(stringResource(R.string.action_addCashWithGooglePay)) to emptyMap()
+            OnRampType.PhysicalDebit -> AnnotatedString(stringResource(R.string.action_addCashWithDebitCard)) to emptyMap()
+            OnRampType.PhysicalCredit -> AnnotatedString(stringResource(R.string.action_addCashWithCreditCard)) to emptyMap()
         }
+
+        OnRampProvider.Phantom -> buildAnnotatedString {
+            append(stringResource(R.string.label_confirmIn))
+            appendInlineContent("[icon]", alternateText = " ")
+            append(stringResource(R.string.label_phantom))
+        } to mapOf(
+            "[icon]" to InlineTextContent(
+                placeholder = Placeholder(
+                    width = 25.sp,
+                    height = 14.sp,
+                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+                ),
+                children = {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            modifier = Modifier.padding(
+                                start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
+                                end = CodeTheme.dimens.staticGrid.x1
+                            ),
+                            painter = painterResource(R.drawable.ic_phantom),
+                            colorFilter = ColorFilter.tint(buttonColors.contentColor(state.canAdd).value),
+                            contentDescription = null
+                        )
+                    }
+                }
+            )
+        )
+
+        null -> AnnotatedString(stringResource(R.string.action_addCash)) to emptyMap<String, InlineTextContent>()
+    }
+    CodeButton(
+        enabled = state.canAdd,
+        modifier = modifier
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(bottom = CodeTheme.dimens.grid.x2)
+            .navigationBarsPadding(),
+        buttonState = ButtonState.Filled,
+        isLoading = state.confirmingAmount.loading,
+        isSuccess = state.confirmingAmount.success,
+        text = buttonText,
+        inlineContent = assets,
+    ) {
+        dispatchEvent(OnRampViewModel.Event.OnAmountConfirmed)
     }
 }

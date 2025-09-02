@@ -130,6 +130,7 @@ internal fun App(
                                 val codeNavigator = LocalCodeNavigator.current
                                 PhantomOnRampHandler(
                                     state = LocalPhantomDepositState.current,
+                                    navigator = codeNavigator,
                                     router = router,
                                     deepLink = deepLink
                                 ) {
