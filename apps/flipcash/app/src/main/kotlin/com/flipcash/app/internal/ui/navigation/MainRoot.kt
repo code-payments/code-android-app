@@ -29,7 +29,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.android.app.R
 import com.flipcash.app.core.LocalUserManager
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.internal.model.account.UserFlags
@@ -148,19 +148,19 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                         if (userFlags?.requiresIapForRegistration == true) {
                             addAll(
                                 listOf(
-                                    ScreenRegistry.get(NavScreenProvider.Login.Home()),
-                                    ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
-                                    ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase())
+                                    ScreenRegistry.get(AppRoute.Onboarding.Login()),
+                                    ScreenRegistry.get(AppRoute.Onboarding.AccessKey),
+                                    ScreenRegistry.get(AppRoute.Onboarding.Purchase())
                                 )
                             )
                         } else {
-                            listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                            listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
                         }
                     }
                 } else {
                     listOf(
-                        ScreenRegistry.get(NavScreenProvider.Login.Home()),
-                        ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey)
+                        ScreenRegistry.get(AppRoute.Onboarding.Login()),
+                        ScreenRegistry.get(AppRoute.Onboarding.AccessKey)
                     )
                 }
             }
@@ -169,7 +169,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
                 val screens = router.processDestination(deepLink())
 
                 screens.ifEmpty {
-                    listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                    listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
                 }
             }
 
@@ -177,7 +177,7 @@ internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcela
             AuthState.Unknown -> {
                 val screens = router.processDestination(deepLink())
                 screens.ifEmpty {
-                    listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                 }
             }
 

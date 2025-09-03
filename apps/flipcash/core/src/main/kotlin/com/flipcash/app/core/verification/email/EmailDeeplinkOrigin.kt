@@ -1,6 +1,6 @@
 package com.flipcash.app.core.verification.email
 
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.base64
@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 sealed class EmailDeeplinkOrigin {
-    data class OnRamp(val source: NavScreenProvider?, val amount: Fiat? = null) :
+    data class OnRamp(val source: AppRoute?, val amount: Fiat? = null) :
         EmailDeeplinkOrigin()
     data object MyAccount : EmailDeeplinkOrigin()
 
@@ -22,7 +22,7 @@ sealed class EmailDeeplinkOrigin {
             is OnRamp -> {
                 val amountString = amount?.let { Json.Default.encodeToString(Fiat.Companion.serializer(), it) }
                 when (source) {
-                    is NavScreenProvider.HomeScreen.Pools.ChoiceSelection -> {
+                    is AppRoute.Pool.Details -> {
                         when {
                             source.rendezvous != null -> "onramp|pool|seed_${source.rendezvous.seed.base64}|$amountString"
                             source.poolId != null -> "onramp|pool|id_${source.poolId.base58}|$amountString"
@@ -30,7 +30,7 @@ sealed class EmailDeeplinkOrigin {
                         }
                     }
 
-                    is NavScreenProvider.HomeScreen.Menu.Root -> "onramp|menu|$amountString"
+                    is AppRoute.Sheets.Menu -> "onramp|menu|$amountString"
 
                     else -> "onramp|null|$amountString"
                 }
@@ -41,13 +41,13 @@ sealed class EmailDeeplinkOrigin {
     }
 
     companion object {
-        fun fromScreenProvider(provider: NavScreenProvider?): EmailDeeplinkOrigin? {
-            return when (provider) {
-                is NavScreenProvider.HomeScreen.OnRamp.ProviderList -> {
-                    OnRamp(provider.from, provider.neededAmount)
+        fun fromRoute(route: AppRoute?): EmailDeeplinkOrigin? {
+            return when (route) {
+                is AppRoute.OnRamp.ProviderList -> {
+                    OnRamp(route.from, route.neededAmount)
                 }
 
-                is NavScreenProvider.HomeScreen.Menu.MyAccount.Root -> MyAccount
+                is AppRoute.Menu.MyAccount -> MyAccount
 
                 else -> null
             }
@@ -60,20 +60,20 @@ sealed class EmailDeeplinkOrigin {
                     val source = when (splits[1]) {
                         "pool" -> {
                             if (splits[2].startsWith("seed")) {
-                                NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                                AppRoute.Pool.Details(
                                     rendezvous = Ed25519.createKeyPair(
                                         splits[2].removePrefix("seed_").decodeBase64()
                                     )
                                 )
                             } else if (splits[2].startsWith("id")) {
-                                NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                                AppRoute.Pool.Details(
                                     poolId = splits[2].removePrefix("id_").decodeBase58().toList()
                                 )
                             } else {
                                 null
                             }
                         }
-                        "menu" -> NavScreenProvider.HomeScreen.Menu.Root
+                        "menu" -> AppRoute.Sheets.Menu
 
                         else -> null
                     }

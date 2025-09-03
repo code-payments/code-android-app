@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.onramp.internal.AmountEntryState
@@ -84,7 +84,7 @@ private fun OnRampAmountScreenContent(
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.CurrencySelection(
+                        AppRoute.Main.CurrencySelection(
                             kind = CurrencySelectionKind.Entry
                         )
                     )

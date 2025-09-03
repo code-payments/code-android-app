@@ -4,14 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.features.onramp.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 
 sealed interface OnRampProviderDestination {
     data object PhantomConnection: OnRampProviderDestination
-    data class Screen(val screen: NavScreenProvider): OnRampProviderDestination
+    data class Screen(val screen: AppRoute): OnRampProviderDestination
 }
 data class OnRampProviderItem(
     val provider: OnRampProvider.Defined,

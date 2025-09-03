@@ -3,7 +3,7 @@ package com.flipcash.app.balance.internal
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
@@ -77,7 +77,7 @@ internal class BalanceViewModel @Inject constructor(
         data object OnAddCashClicked : Event
         data object OpenOnRampAmountModal : Event
         data object OnWithdrawClicked : Event
-        data class OpenScreen(val screen: NavScreenProvider) : Event
+        data class OpenScreen(val screen: AppRoute) : Event
     }
 
     init {
@@ -182,7 +182,7 @@ internal class BalanceViewModel @Inject constructor(
                     dispatchEvent(Event.OpenOnRampAmountModal)
                 } else {
                     // route to provider list
-                    dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Balance)))
+                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Balance)))
                 }
             }.launchIn(viewModelScope)
 
@@ -191,8 +191,7 @@ internal class BalanceViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(
                     Event.OpenScreen(
-                        NavScreenProvider.HomeScreen.Menu.Transfers.Learn(
-                            TransferDirection.Outgoing)
+                        AppRoute.Transfers.Learn(TransferDirection.Outgoing)
                     )
                 )
             }.launchIn(viewModelScope)
@@ -206,7 +205,7 @@ internal class BalanceViewModel @Inject constructor(
                 when (event) {
                     is ConfirmationEvent.OnConfirmationSuccess -> {
                         when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
                             is OnRampAmount.Predefined -> Unit
                         }
                     }

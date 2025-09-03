@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
@@ -23,7 +23,7 @@ internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_depositUsdc)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Menu.Root)
+        AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Menu)
     )
 }
 
@@ -34,7 +34,7 @@ internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = stringResource(R.string.title_withdrawUsdc)
 
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.Transfers.Learn(TransferDirection.Outgoing)
+        AppRoute.Transfers.Learn(TransferDirection.Outgoing)
     )
 }
 
@@ -44,7 +44,7 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_myAccount)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.MyAccount.Root
+        AppRoute.Menu.MyAccount
     )
 }
 
@@ -54,7 +54,7 @@ internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_appSettings)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.AppSettings
+        AppRoute.Menu.AppSettings
     )
 }
 
@@ -73,7 +73,7 @@ internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_betaFlags)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        NavScreenProvider.HomeScreen.Menu.Lab
+        AppRoute.Menu.Lab
     )
 }
 

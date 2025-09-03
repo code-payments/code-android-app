@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.features.pools.R
@@ -36,7 +36,7 @@ internal fun PoolCustomBidAmountScreen(viewModel: PoolCreateViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PoolCreateViewModel.Event.OnAmountAccepted>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Create.Confirmation))
+                navigator.push(ScreenRegistry.get(AppRoute.Pool.Create.Confirmation))
             }.launchIn(this)
     }
 }
@@ -69,7 +69,7 @@ private fun PoolCustomBidAmountScreenContent(
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.CurrencySelection(
+                        AppRoute.Main.CurrencySelection(
                             kind = CurrencySelectionKind.Entry
                         )
                     )

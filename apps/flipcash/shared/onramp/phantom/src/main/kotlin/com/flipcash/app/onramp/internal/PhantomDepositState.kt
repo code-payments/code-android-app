@@ -3,7 +3,7 @@ package com.flipcash.app.onramp.internal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.encryption.boxOpen
 import com.flipcash.app.core.encryption.toPublicKey
 import com.flipcash.app.core.phantom.PhantomConnectionResult
@@ -50,7 +50,7 @@ class PhantomDepositState(
     /**
      * The origin of the flow for onramping via Phantom (menu screen, pool)
      */
-    internal var origin by mutableStateOf<NavScreenProvider?>(null)
+    internal var origin by mutableStateOf<AppRoute?>(null)
 
     internal val keyPair = Box.keypair()
     val curvePublicKey: String?
@@ -211,7 +211,7 @@ class PhantomDepositState(
     /**
      * Set the origin of the flow for onramping via Phantom
      */
-    fun setOrigin(provider: NavScreenProvider?) {
+    fun setOrigin(provider: AppRoute?) {
         origin = provider
     }
 

@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.withdrawal.WithdrawalViewModel
@@ -40,7 +40,7 @@ internal fun WithdrawalEntryScreen(viewModel: WithdrawalViewModel) {
             .onEach {
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Destination
+                        AppRoute.Transfers.Withdrawal.Destination
                     )
                 )
             }.launchIn(this)
@@ -79,7 +79,7 @@ private fun WithdrawalEntryScreenContent(
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.CurrencySelection(
+                        AppRoute.Main.CurrencySelection(
                             kind = CurrencySelectionKind.Entry
                         )
                     )

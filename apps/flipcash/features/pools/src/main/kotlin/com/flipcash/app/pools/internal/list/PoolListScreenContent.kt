@@ -33,7 +33,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.pools.internal.list.components.AnimatedPoolPreviewCarousel
 import com.flipcash.app.pools.internal.list.components.PoolListItem
 import com.flipcash.app.pools.internal.list.components.PoolStatusSeparator
@@ -69,7 +69,7 @@ internal fun PoolListScreen(
             .onEach { item ->
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                        AppRoute.Pool.Details(
                             poolId = item.id,
                         )
                     )
@@ -81,7 +81,7 @@ internal fun PoolListScreen(
         viewModel.eventFlow
             .filterIsInstance<PoolListViewModel.Event.OnCreatePool>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Create.Name))
+                navigator.push(ScreenRegistry.get(AppRoute.Pool.Create.Name))
             }.launchIn(this)
     }
 }

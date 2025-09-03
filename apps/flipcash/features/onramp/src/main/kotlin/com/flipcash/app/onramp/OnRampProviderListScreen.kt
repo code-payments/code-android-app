@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.PhantomDeeplinkState
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
@@ -72,7 +72,7 @@ class OnRampProviderListScreen(
 
         OnScreenResult { result ->
             if (result == "verified") {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
             }
         }
 
@@ -95,7 +95,7 @@ class OnRampProviderListScreen(
                 .onEach {
                     if (phantomDepositState.deeplinkState == PhantomDeeplinkState.CONNECTED) {
                         // we are connected, so we can move forward
-                        navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                        navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
                     } else {
                         phantomDepositState.setOrigin(OnRampFlowTracker.source)
                         if (neededAmount != null && neededCurrency != null) {

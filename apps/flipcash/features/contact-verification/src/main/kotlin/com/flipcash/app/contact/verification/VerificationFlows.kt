@@ -1,7 +1,7 @@
 package com.flipcash.app.contact.verification
 
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.getcode.opencode.utils.base64
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -13,11 +13,11 @@ object PhoneVerificationFlow {
     internal var key: String = ""
         private set
 
-    internal var source: NavScreenProvider? = null
+    internal var source: AppRoute? = null
         private set
 
     @OptIn(ExperimentalUuidApi::class)
-    fun start(origin: NavScreenProvider?) {
+    fun start(origin: AppRoute?) {
         source = origin
         key = Uuid.Companion.random().toString()
     }

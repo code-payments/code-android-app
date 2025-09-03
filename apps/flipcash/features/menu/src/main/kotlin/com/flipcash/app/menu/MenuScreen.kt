@@ -7,7 +7,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.menu.internal.MenuScreenContent
 import com.flipcash.app.menu.internal.MenuScreenViewModel
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -38,7 +38,7 @@ class MenuScreen : ModalScreen, Parcelable {
                 .filterIsInstance<MenuScreenViewModel.Event.OnLoggedOutCompletely>()
                 .onEach {
                     navigator.hide()
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home())) }
+                    navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login())) }
                 .launchIn(this)
         }
 
@@ -56,7 +56,7 @@ class MenuScreen : ModalScreen, Parcelable {
                 .map { it.entropy }
                 .onEach {
                     navigator.hide()
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(it))) }
+                    navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login(it))) }
                 .launchIn(this)
         }
     }

@@ -25,7 +25,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipcash.app.core.LocalUserManager
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.internal.ui.navigation.AppScreenContent
 import com.flipcash.app.internal.ui.navigation.MainRoot
@@ -153,8 +153,8 @@ internal fun App(
                                                     StackEvent.Push,
                                                     StackEvent.Pop -> {
                                                         when (navigator.lastItemOrNull) {
-                                                            ScreenRegistry.get(NavScreenProvider.Login.SeedInput),
-                                                            ScreenRegistry.get(NavScreenProvider.Permissions.Camera()),
+                                                            ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
+                                                            ScreenRegistry.get(AppRoute.Onboarding.CameraPermission()),
                                                             is MainRoot -> {
                                                                 CrossfadeTransition(navigator = navigator)
                                                             }
@@ -202,7 +202,7 @@ internal fun App(
                                                             loginRequest = null
                                                             codeNavigator.replaceAll(
                                                                 ScreenRegistry.get(
-                                                                    NavScreenProvider.Login.Home(
+                                                                    AppRoute.Onboarding.Login(
                                                                         entropy,
                                                                         fromDeeplink = true
                                                                     )
@@ -218,7 +218,7 @@ internal fun App(
                                                 if (userState.isTimelockUnlocked) {
                                                     codeNavigator.replaceAll(
                                                         ScreenRegistry.get(
-                                                            NavScreenProvider.AppRestricted(
+                                                            AppRoute.Main.AppRestricted(
                                                                 RestrictionType.TIMELOCK_UNLOCKED
                                                             )
                                                         )

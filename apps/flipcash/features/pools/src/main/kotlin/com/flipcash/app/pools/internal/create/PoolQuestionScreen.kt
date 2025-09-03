@@ -25,7 +25,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.features.pools.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -51,7 +51,7 @@ internal fun PoolQuestionScreen(viewModel: PoolCreateViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PoolCreateViewModel.Event.OnNameConfirmed>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Pools.Create.Amount))
+                navigator.push(ScreenRegistry.get(AppRoute.Pool.Create.Amount))
             }.launchIn(this)
     }
 }

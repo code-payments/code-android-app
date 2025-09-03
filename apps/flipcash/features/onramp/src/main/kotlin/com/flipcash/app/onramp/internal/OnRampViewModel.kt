@@ -1,7 +1,7 @@
 package com.flipcash.app.onramp.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
@@ -74,7 +74,7 @@ internal data class AmountEntryState(
 private val DefaultOnRampOptions = listOf(
     OnRampProviderItem(
         provider = OnRampProvider.CryptoDeposit,
-        destination = OnRampProviderDestination.Screen(NavScreenProvider.HomeScreen.Menu.Transfers.Deposit)
+        destination = OnRampProviderDestination.Screen(AppRoute.Transfers.Deposit)
     )
 )
 
@@ -295,7 +295,7 @@ internal class OnRampViewModel @Inject constructor(
                                 destination = when (provider) {
                                     OnRampProvider.CryptoDeposit ->
                                         OnRampProviderDestination.Screen(
-                                            NavScreenProvider.HomeScreen.Menu.Transfers.Deposit
+                                            AppRoute.Transfers.Deposit
                                         )
 
                                     is OnRampProvider.Coinbase -> {
@@ -303,16 +303,16 @@ internal class OnRampViewModel @Inject constructor(
                                         val hasVerifiedEmail = stateFlow.value.hasVerifiedEmail
 
                                         val destination = if (!(hasVerifiedPhone && hasVerifiedEmail)) {
-                                            NavScreenProvider.HomeScreen.Verification.Flow(
-                                                origin = NavScreenProvider.HomeScreen.OnRamp.ProviderList(
+                                            AppRoute.Verification(
+                                                origin = AppRoute.OnRamp.ProviderList(
                                                     from = OnRampFlowTracker.source!!
                                                 ),
-                                                target = NavScreenProvider.HomeScreen.OnRamp.Amount,
+                                                target = AppRoute.OnRamp.AmountEntry,
                                                 includePhone = !hasVerifiedPhone,
                                                 includeEmail = !hasVerifiedEmail,
                                             )
                                         } else {
-                                            NavScreenProvider.HomeScreen.OnRamp.Amount
+                                            AppRoute.OnRamp.AmountEntry
                                         }
 
                                         when (provider.type) {

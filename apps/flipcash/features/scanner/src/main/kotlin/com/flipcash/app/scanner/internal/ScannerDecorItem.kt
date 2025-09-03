@@ -1,13 +1,11 @@
 package com.flipcash.app.scanner.internal
 
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 
-sealed class ScannerDecorItem(val screen: NavScreenProvider) {
-//    data object Give : ScannerDecorItem(NavScreenProvider.HomeScreen.Give)
-    data object Cash : ScannerDecorItem(NavScreenProvider.HomeScreen.Cash)
-//    data object Send : ScannerDecorItem(NavScreenProvider.HomeScreen.Send)
-    data object Balance : ScannerDecorItem(NavScreenProvider.HomeScreen.Balance)
-    data object Menu : ScannerDecorItem(NavScreenProvider.HomeScreen.Menu.Root)
-    data object Logo: ScannerDecorItem(NavScreenProvider.HomeScreen.ShareApp)
-    data object Pools : ScannerDecorItem(NavScreenProvider.HomeScreen.Pools.Root)
+sealed class ScannerDecorItem(val screen: AppRoute) {
+    data object Cash : ScannerDecorItem(AppRoute.Sheets.Cash)
+    data object Balance : ScannerDecorItem(AppRoute.Sheets.Balance)
+    data object Menu : ScannerDecorItem(AppRoute.Sheets.Menu)
+    data object Logo: ScannerDecorItem(AppRoute.Sheets.ShareApp)
+    data object Pools : ScannerDecorItem(AppRoute.Sheets.PoolList)
 }

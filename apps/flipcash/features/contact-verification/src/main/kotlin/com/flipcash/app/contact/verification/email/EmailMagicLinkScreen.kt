@@ -23,7 +23,7 @@ import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.features.contact.verification.R

@@ -9,8 +9,8 @@ import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
-import com.flipcash.app.core.NavScreenProvider
-import com.flipcash.app.currency.CurrencySelectionModal
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.currency.CurrencySelectionScreen
 import com.flipcash.app.deposit.DepositScreen
 import com.flipcash.app.lab.LabsModal
 import com.flipcash.app.lab.LabsScreen
@@ -43,86 +43,83 @@ import com.getcode.navigation.modal.ModalScreen
 @Composable
 internal fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
-        register<NavScreenProvider.AppRestricted> {
-            AppRestrictedScreen(it.restrictionType)
-        }
-        register<NavScreenProvider.Login.Home> {
+        register<AppRoute.Onboarding.Login> {
             LoginRouter(it.seed, it.fromDeeplink)
         }
 
-        register<NavScreenProvider.Login.SeedInput> {
+        register<AppRoute.Onboarding.Lab> {
+            LabsScreen()
+        }
+
+        register<AppRoute.Onboarding.SeedInput> {
             SeedInputScreen()
         }
 
-        register<NavScreenProvider.CreateAccount.AccessKey> {
+        register<AppRoute.Onboarding.AccessKey> {
             AccessKeyScreen()
         }
 
-        register<NavScreenProvider.CreateAccount.Purchase> {
+        register<AppRoute.Onboarding.Purchase> {
             PurchaseAccountScreen(it.fromLogin)
         }
 
-        register<NavScreenProvider.Permissions.Notification> {
-            NotificationPermissionScreen(it.fromOnboarding)
+        register<AppRoute.Onboarding.NotificationPermission> {
+            NotificationPermissionScreen(it.postCreate)
         }
 
-        register<NavScreenProvider.Permissions.Camera> {
-            CameraPermissionScreen(it.fromOnboarding)
+        register<AppRoute.Onboarding.CameraPermission> {
+            CameraPermissionScreen(it.postCreate)
         }
 
-        register<NavScreenProvider.HomeScreen.Scanner> {
+        register<AppRoute.Main.AppRestricted> {
+            AppRestrictedScreen(it.restrictionType)
+        }
+
+        register<AppRoute.Main.Scanner> {
             ScannerScreen(it.deeplink)
         }
 
-//        register<NavScreenProvider.HomeScreen.Give> {
-//            CashScreen()
-//        }
-//
-//        register<NavScreenProvider.HomeScreen.Send> {
-//            SendScreen()
-//        }
-
-        register<NavScreenProvider.HomeScreen.Cash> {
+        register<AppRoute.Sheets.Cash> {
             CashScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Balance> {
+        register<AppRoute.Sheets.Balance> {
             BalanceScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Pools.Root> {
+        register<AppRoute.Sheets.PoolList> {
             PoolListScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Pools.Create.Name> {
+        register<AppRoute.Pool.Create.Name> {
             PoolCreateFlow.start()
             PoolQuestionScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Pools.Create.Amount> {
+        register<AppRoute.Pool.Create.Amount> {
             PoolCustomBidEntryScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Pools.Create.Confirmation> {
+        register<AppRoute.Pool.Create.Confirmation> {
             PoolConfirmationScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Pools.ChoiceSelection> {
+        register<AppRoute.Pool.Details> {
              PoolBettingScreen(
                  poolId = it.poolId,
                  rendezvous = it.rendezvous
              )
         }
 
-        register<NavScreenProvider.HomeScreen.CurrencySelection> {
-            CurrencySelectionModal(it.kind)
+        register<AppRoute.Main.CurrencySelection> {
+            CurrencySelectionScreen(it.kind)
         }
         
-        register<NavScreenProvider.HomeScreen.ShareApp> {
+        register<AppRoute.Sheets.ShareApp> {
             ShareAppScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Verification.Flow> {
+        register<AppRoute.Verification> {
             VerificationFlowScreen(
                 origin = it.origin,
                 target = it.target,
@@ -133,7 +130,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             )
         }
 
-        register<NavScreenProvider.HomeScreen.OnRamp.ProviderList> {
+        register<AppRoute.OnRamp.ProviderList> {
             OnRampFlowTracker.start(it.from)
             OnRampProviderListScreen(
                 neededAmount = it.neededAmount?.quarks,
@@ -141,52 +138,48 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             )
         }
 
-        register<NavScreenProvider.HomeScreen.OnRamp.Amount> {
+        register<AppRoute.OnRamp.AmountEntry> {
             OnRampCustomAmountScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Root> {
+        register<AppRoute.Sheets.Menu> {
             MenuScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.AppSettings> {
+        register<AppRoute.Menu.AppSettings> {
             AppSettingsScreen()
         }
 
-        register<NavScreenProvider.Login.Lab> {
-            LabsScreen()
-        }
-
-        register<NavScreenProvider.HomeScreen.Menu.Lab> {
+        register<AppRoute.Menu.Lab> {
             LabsModal()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Transfers.Learn> {
+        register<AppRoute.Transfers.Learn> {
             TransferInformationalScreen(it.direction)
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Transfers.Deposit> {
+        register<AppRoute.Transfers.Deposit> {
             DepositScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Amount> {
+        register<AppRoute.Transfers.Withdrawal.Amount> {
             WithdrawalFlow.start()
             WithdrawalEntryScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Destination> {
+        register<AppRoute.Transfers.Withdrawal.Destination> {
             WithdrawalDestinationScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Confirmation> {
+        register<AppRoute.Transfers.Withdrawal.Confirmation> {
             WithdrawalConfirmationScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.MyAccount.Root> {
+        register<AppRoute.Menu.MyAccount> {
             MyAccountScreen()
         }
 
-        register<NavScreenProvider.HomeScreen.Menu.MyAccount.BackupKey> {
+        register<AppRoute.Menu.BackupKey> {
             BackupKeyScreen()
         }
     }

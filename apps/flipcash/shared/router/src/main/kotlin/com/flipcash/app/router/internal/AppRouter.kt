@@ -3,7 +3,7 @@ package com.flipcash.app.router.internal
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
@@ -47,48 +47,48 @@ internal class AppRouter(
             when (type) {
                 is DeeplinkType.Login -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
                     } else {
-                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home(type.entropy, true)))
+                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login(type.entropy, true)))
                     }
                 }
                 is DeeplinkType.CashLink -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
                     } else {
-                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                     }
                 }
 
                 is DeeplinkType.Pool -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
                     } else {
-                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                     }
                 }
 
                 is DeeplinkType.PhantomConnection -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
                     } else {
-                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                     }
                 }
 
                 is DeeplinkType.PhantomSignedTransaction ->  {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
                     } else {
-                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                     }
                 }
 
                 is DeeplinkType.EmailVerification -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner(type)))
+                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
                     } else {
-                        listOf(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                     }
                 }
             }

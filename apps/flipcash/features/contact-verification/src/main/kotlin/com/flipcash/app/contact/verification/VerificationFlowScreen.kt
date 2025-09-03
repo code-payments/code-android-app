@@ -18,7 +18,7 @@ import com.flipcash.app.contact.verification.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.email.EmailVerificationScreen
 import com.flipcash.app.contact.verification.internal.VerificationFlowIntroScreen
 import com.flipcash.app.contact.verification.phone.PhoneVerificationScreen
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.features.contact.verification.R
 import com.getcode.manager.BottomBarAction
@@ -30,8 +30,8 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 class VerificationFlowScreen(
-    private val origin: NavScreenProvider,
-    private val target: NavScreenProvider? = null,
+    private val origin: AppRoute,
+    private val target: AppRoute? = null,
     private val includePhone: Boolean = true,
     private val includeEmail: Boolean = true,
     private val showSuccess: Boolean = target == null && (includePhone xor includeEmail),
@@ -86,7 +86,7 @@ class VerificationFlowScreen(
 
         LifecycleEffectOnce {
             PhoneVerificationFlow.start(origin)
-            EmailVerificationFlow.start(EmailDeeplinkOrigin.fromScreenProvider(origin))
+            EmailVerificationFlow.start(EmailDeeplinkOrigin.fromRoute(origin))
         }
 
         val screens =
@@ -136,14 +136,14 @@ class VerificationFlowScreen(
 }
 
 private fun buildScreenSet(
-    origin: NavScreenProvider,
+    origin: AppRoute,
     includePhone: Boolean,
     includeEmail: Boolean,
     emailAddress: String?,
     emailVerificationCode: String?,
 ): Set<Screen> {
     if (includePhone && includeEmail) {
-        return setOf(VerificationFlowIntroScreen(origin is NavScreenProvider.HomeScreen.OnRamp.ProviderList))
+        return setOf(VerificationFlowIntroScreen(origin is AppRoute.OnRamp.ProviderList))
     }
     if (includePhone) {
         return setOf(PhoneVerificationScreen())

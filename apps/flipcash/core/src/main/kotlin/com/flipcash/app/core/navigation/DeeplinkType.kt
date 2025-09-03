@@ -2,7 +2,7 @@ package com.flipcash.app.core.navigation
 
 import android.net.Uri
 import android.os.Parcelable
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.phantom.PhantomConnectionResult
 import com.flipcash.app.core.phantom.PhantomDeeplinkError
 import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin

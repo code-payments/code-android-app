@@ -12,7 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.features.cash.R
@@ -49,7 +49,7 @@ internal fun GiveScreenContent(viewModel: CashScreenViewModel) {
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.CurrencySelection(
+                        AppRoute.Main.CurrencySelection(
                             kind = CurrencySelectionKind.Entry
                         )
                     )

@@ -1,7 +1,7 @@
 package com.flipcash.app.pools.internal.betting
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.cache.DataOrigin
 import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
@@ -194,7 +194,7 @@ internal class PoolBettingViewModel @Inject constructor(
         data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
         data class OpenOnRampAmountModal(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) : Event
-        data class OpenScreen(val screen: NavScreenProvider) : Event
+        data class OpenScreen(val screen: AppRoute) : Event
     }
 
     init {
@@ -628,11 +628,11 @@ internal class PoolBettingViewModel @Inject constructor(
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {
                     // route to provider list
-                    val origin = NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                    val origin = AppRoute.Pool.Details(
                         poolId = stateFlow.value.metadata.id,
                         rendezvous = stateFlow.value.rendezvous,
                     )
-                    dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.ProviderList(origin, amount)))
+                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(origin, amount)))
                 }
             }.launchIn(viewModelScope)
 
@@ -645,7 +645,7 @@ internal class PoolBettingViewModel @Inject constructor(
                 when (event) {
                     is ConfirmationEvent.OnConfirmationSuccess -> {
                         when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
                             is OnRampAmount.Predefined -> Unit
                         }
                     }

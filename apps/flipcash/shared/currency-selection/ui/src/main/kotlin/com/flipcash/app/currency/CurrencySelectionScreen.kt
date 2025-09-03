@@ -19,12 +19,11 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.ui.components.AppBarWithTitle
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class CurrencySelectionModal(
+class CurrencySelectionScreen(
     private val kind: CurrencySelectionKind
 ) : ModalScreen, NamedScreen, Parcelable {
 

@@ -14,7 +14,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.balance.internal.BalanceScreen
 import com.flipcash.app.balance.internal.BalanceViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.CurrencySelectionKind
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.core.R
@@ -71,7 +71,7 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
                     .onEach {
                         navigator.push(
                             ScreenRegistry.get(
-                                NavScreenProvider.HomeScreen.CurrencySelection(
+                                AppRoute.Main.CurrencySelection(
                                     CurrencySelectionKind.Balance
                                 )
                             )

@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.features.login.R
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.AccountController
@@ -136,17 +136,17 @@ class SeedInputViewModel @Inject constructor(
         delay(1.seconds)
         when {
             !flags.isRegistered && flags.requiresIapForRegistration -> {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase(true)))
+                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Purchase(true)))
             }
             permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Notification()))
+                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.NotificationPermission()))
             }
 
             permissionChecker.isDenied(Manifest.permission.CAMERA) -> {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera()))
+                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission()))
             }
 
-            else -> navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+            else -> navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
         }
     }
 
@@ -202,7 +202,7 @@ class SeedInputViewModel @Inject constructor(
                 positiveText = resources.getString(R.string.action_createNewFlipcashAccount),
                 tertiaryText = resources.getString(R.string.action_tryDifferentFlipcashAccount),
                 onPositive = {
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                    navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login()))
                 }
             )
         )

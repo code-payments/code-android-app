@@ -27,14 +27,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.services.analytics.Action
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.DesignSystem
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeButtonSpacer
@@ -49,7 +48,7 @@ internal enum class Permission {
 @Composable
 internal fun PermissionScreenContent(
     permission: Permission,
-    fromOnboarding: Boolean
+    postCreate: Boolean
 ) {
     val navigator = LocalCodeNavigator.current
     val permissionChecker = LocalPermissionChecker.current
@@ -58,23 +57,23 @@ internal fun PermissionScreenContent(
     when (permission) {
         Permission.Camera -> CameraPermissionScreenContent(
             onGranted = {
-                if (fromOnboarding) {
+                if (postCreate) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
             },
             onNotGranted = {
-                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
             }
         )
         Permission.Notifications -> NotificationScreenContent {
             if (permissionChecker.isDenied(Manifest.permission.CAMERA)) {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera()))
+                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission(postCreate)))
             } else {
-                if (fromOnboarding) {
+                if (postCreate) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
             }
         }
     }

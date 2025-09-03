@@ -47,7 +47,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.login.internal.AccessKeyScreen
 import com.flipcash.features.login.R
@@ -102,19 +102,19 @@ class AccessKeyScreen : Screen, NamedScreen, Parcelable {
             )
             AccessKeyScreen(viewModel) { requiresIap ->
                 if (requiresIap) {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.Purchase()))
+                    navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Purchase()))
                 } else {
                     when {
                         permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                            navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Notification(true)))
+                            navigator.push(ScreenRegistry.get(AppRoute.Onboarding.NotificationPermission(true)))
                         }
 
                         permissions.isDenied(Manifest.permission.CAMERA) -> {
-                            navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera(true)))
+                            navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission(true)))
                         }
 
                         else -> {
-                            navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                            navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
                         }
                     }
                 }

@@ -23,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.purchase.R
@@ -57,15 +57,15 @@ internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
             .onEach {
                 when {
                     permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                        navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Notification(true)))
+                        navigator.push(ScreenRegistry.get(AppRoute.Onboarding.NotificationPermission(true)))
                     }
 
                     permissions.isDenied(Manifest.permission.CAMERA) -> {
-                        navigator.push(ScreenRegistry.get(NavScreenProvider.Permissions.Camera(true)))
+                        navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission(true)))
                     }
 
                     else -> {
-                        navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner()))
+                        navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
                     }
                 }
             }.launchIn(this)

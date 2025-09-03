@@ -14,7 +14,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.cash.internal.CashScreenViewModel
 import com.flipcash.app.cash.internal.GiveScreenContent
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen

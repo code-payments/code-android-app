@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.FlagWithFiat
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
@@ -59,7 +59,7 @@ internal fun PoolConfirmationScreen(viewModel: PoolCreateViewModel) {
             .onEach { id ->
                 navigator.push(
                     ScreenRegistry.get(
-                        NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                        AppRoute.Pool.Details(
                             poolId = id,
                         )
                     )

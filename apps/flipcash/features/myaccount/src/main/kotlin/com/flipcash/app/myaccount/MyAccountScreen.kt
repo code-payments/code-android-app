@@ -14,7 +14,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.myaccount.internal.MyAccountScreen
 import com.flipcash.app.myaccount.internal.MyAccountScreenViewModel
 import com.flipcash.core.R
@@ -71,7 +71,7 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
                 .filterIsInstance<MyAccountScreenViewModel.Event.OnAccountDeleted>()
                 .onEach {
                     navigator.hide()
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home())) }
+                    navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login())) }
                 .launchIn(this)
         }
 
@@ -79,7 +79,7 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
             viewModel.eventFlow
                 .filterIsInstance<MyAccountScreenViewModel.Event.OnViewAccessKey>()
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.MyAccount.BackupKey)) }
+                    navigator.push(ScreenRegistry.get(AppRoute.Menu.BackupKey)) }
                 .launchIn(this)
         }
 
@@ -87,8 +87,8 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
             viewModel.eventFlow
                 .filterIsInstance<MyAccountScreenViewModel.Event.OnVerifyPhoneClicked>()
                 .onEach {
-                    val flow = NavScreenProvider.HomeScreen.Verification.Flow(
-                        origin = NavScreenProvider.HomeScreen.Menu.MyAccount.Root,
+                    val flow = AppRoute.Verification(
+                        origin = AppRoute.Menu.MyAccount,
                         includePhone = true,
                         includeEmail = false,
                     )
@@ -101,8 +101,8 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
             viewModel.eventFlow
                 .filterIsInstance<MyAccountScreenViewModel.Event.OnVerifyEmailClicked>()
                 .onEach {
-                    val flow = NavScreenProvider.HomeScreen.Verification.Flow(
-                        origin = NavScreenProvider.HomeScreen.Menu.MyAccount.Root,
+                    val flow = AppRoute.Verification(
+                        origin = AppRoute.Menu.MyAccount,
                         includePhone = false,
                         includeEmail = true,
                     )

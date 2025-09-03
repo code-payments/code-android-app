@@ -10,7 +10,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.login.internal.LoginRouterScreenContent
 import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.coroutines.delay
@@ -40,7 +40,7 @@ class LoginRouter(
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
                 .onEach { delay(2.seconds) }
-                .onEach { navigator.push(ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey)) }
+                .onEach { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.AccessKey)) }
                 .launchIn(this)
         }
 
@@ -48,7 +48,7 @@ class LoginRouter(
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
                 .onEach { delay(1.333.seconds) }
-                .onEach { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.HomeScreen.Scanner())) }
+                .onEach { navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner())) }
                 .launchIn(this)
         }
 
@@ -59,9 +59,9 @@ class LoginRouter(
                 .onEach {
                     navigator.push(
                         items = listOf(
-                            ScreenRegistry.get(NavScreenProvider.CreateAccount.AccessKey),
+                            ScreenRegistry.get(AppRoute.Onboarding.AccessKey),
                             ScreenRegistry.get(
-                                NavScreenProvider.CreateAccount.Purchase(true)
+                                AppRoute.Onboarding.Purchase(true)
                             )
                         )
                     )
@@ -79,10 +79,10 @@ class LoginRouter(
             isCreatingAccount = state.creatingAccount,
             isLoggingIn = state.loggingIn,
             createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
-            login = { navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput)) },
+            login = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.SeedInput)) },
             isLabsOpen = state.betaOptionsVisible,
             onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-            openBetaFlags = { navigator.push(ScreenRegistry.get(NavScreenProvider.Login.Lab)) }
+            openBetaFlags = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Lab)) }
         )
     }
 }

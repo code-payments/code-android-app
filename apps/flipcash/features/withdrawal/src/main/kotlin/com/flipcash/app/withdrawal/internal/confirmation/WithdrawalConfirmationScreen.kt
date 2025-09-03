@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
 import com.flipcash.app.withdrawal.WithdrawalFlow
 import com.flipcash.app.withdrawal.WithdrawalViewModel
@@ -65,7 +65,7 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                             )
                         ),
                         onClose = {
-                            navigator.popUntil { it == ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Root) }
+                            navigator.popUntil { it == ScreenRegistry.get(AppRoute.Sheets.Menu) }
                         }
                     )
                 )

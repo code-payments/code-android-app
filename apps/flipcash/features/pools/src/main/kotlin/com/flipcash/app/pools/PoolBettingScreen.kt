@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.pools.internal.betting.PoolBettingScreen
 import com.flipcash.app.pools.internal.betting.PoolBettingViewModel
 import com.getcode.ed25519.Ed25519
@@ -70,8 +70,8 @@ class PoolBettingScreen(
                     .onEach {
                         navigator.push(
                             ScreenRegistry.get(
-                                NavScreenProvider.HomeScreen.OnRamp.ProviderList(
-                                    NavScreenProvider.HomeScreen.Pools.ChoiceSelection(
+                                AppRoute.OnRamp.ProviderList(
+                                    AppRoute.Pool.Details(
                                         poolId = poolId,
                                         rendezvous = rendezvous
                                     )

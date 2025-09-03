@@ -10,7 +10,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 internal fun buildConnectDeeplink(state: PhantomDepositState): Uri {
-    val origin = PhantomDeeplinkOrigin.fromScreenProvider(state.origin)
+    val origin = PhantomDeeplinkOrigin.fromRoute(state.origin)
     val originEncoded = origin?.forUri() ?: "unknown"
     val redirectUrl = "https://app.flipcash.com/phantom/connected?origin=$originEncoded"
     return Uri.Builder()
@@ -39,7 +39,7 @@ internal fun buildTransactionDeeplink(state: PhantomDepositState): Uri? {
         nonce = nonce,
     ).getOrNull() ?: return null
 
-    val origin = PhantomDeeplinkOrigin.fromScreenProvider(state.origin)
+    val origin = PhantomDeeplinkOrigin.fromRoute(state.origin)
     val originEncoded = origin?.forUri() ?: "unknown"
 
     val redirectUrl = "https://app.flipcash.com/phantom/signed?origin=$originEncoded"

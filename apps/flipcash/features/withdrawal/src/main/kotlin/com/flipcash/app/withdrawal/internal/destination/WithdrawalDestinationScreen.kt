@@ -29,7 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.features.withdrawal.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -54,7 +54,7 @@ internal fun WithdrawalDestinationScreen(viewModel: WithdrawalViewModel) {
         viewModel.eventFlow
             .filterIsInstance<WithdrawalViewModel.Event.OnDestinationConfirmed>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.Menu.Transfers.Withdrawal.Confirmation))
+                navigator.push(ScreenRegistry.get(AppRoute.Transfers.Withdrawal.Confirmation))
             }.launchIn(this)
     }
 }

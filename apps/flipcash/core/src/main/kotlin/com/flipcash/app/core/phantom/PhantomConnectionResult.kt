@@ -1,7 +1,7 @@
 package com.flipcash.app.core.phantom
 
 import android.os.Parcelable
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.base64
@@ -9,7 +9,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
-import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -57,15 +56,15 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
     }
 
     companion object {
-        fun fromScreenProvider(provider: NavScreenProvider?): PhantomDeeplinkOrigin? {
-            return when (provider) {
-                is NavScreenProvider.HomeScreen.Menu.Root -> Menu
-                is NavScreenProvider.HomeScreen.Cash -> Cash
-                is NavScreenProvider.HomeScreen.Pools.ChoiceSelection -> {
-                    provider.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
-                    provider.poolId?.let { id -> PoolWithId(id) }
+        fun fromRoute(route: AppRoute?): PhantomDeeplinkOrigin? {
+            return when (route) {
+                is AppRoute.Sheets.Menu -> Menu
+                is AppRoute.Sheets.Cash -> Cash
+                is AppRoute.Pool.Details -> {
+                    route.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
+                    route.poolId?.let { id -> PoolWithId(id) }
                 }
-                is NavScreenProvider.HomeScreen.Balance -> Balance
+                is AppRoute.Sheets.Balance -> Balance
 
                 else -> null
             }

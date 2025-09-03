@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.onramp.internal.PhantomDeeplinkState
 import com.flipcash.app.onramp.internal.PhantomDepositState
@@ -159,7 +159,7 @@ fun PhantomOnRampHandler(
                 if (state.amount != null) {
                     state.createAndSendTransaction()
                 } else {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                    navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
                 }
             }
 

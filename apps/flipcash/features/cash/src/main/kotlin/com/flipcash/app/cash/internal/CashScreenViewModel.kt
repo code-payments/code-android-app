@@ -1,7 +1,7 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.ConfirmationEvent
@@ -108,7 +108,7 @@ internal class CashScreenViewModel @Inject constructor(
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
 
-        data class OpenScreen(val screen: NavScreenProvider) : Event
+        data class OpenScreen(val screen: AppRoute) : Event
     }
 
     val checkBalanceLimit: () -> Boolean = {
@@ -306,7 +306,7 @@ internal class CashScreenViewModel @Inject constructor(
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {
                     // route to provider list
-                    dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.ProviderList(NavScreenProvider.HomeScreen.Cash, amount)))
+                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Cash, amount)))
                 }
             }.launchIn(viewModelScope)
 
@@ -319,7 +319,7 @@ internal class CashScreenViewModel @Inject constructor(
                 when (event) {
                     is ConfirmationEvent.OnConfirmationSuccess -> {
                         when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(NavScreenProvider.HomeScreen.OnRamp.Amount))
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
                             is OnRampAmount.Predefined -> Unit
                         }
                     }

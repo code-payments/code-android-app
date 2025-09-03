@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
-import com.flipcash.app.core.NavScreenProvider
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.internal.ui.HomeViewModel
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
@@ -27,7 +27,7 @@ class AppRestrictedScreen(private val restrictionType: RestrictionType): Screen,
                     .onSuccess {
                         navigator.replaceAll(
                             ScreenRegistry.get(
-                                NavScreenProvider.Login.Home()
+                                AppRoute.Onboarding.Login()
                             )
                         )
                     }
