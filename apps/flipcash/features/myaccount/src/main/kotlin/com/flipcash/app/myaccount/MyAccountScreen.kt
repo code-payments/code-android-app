@@ -90,7 +90,7 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
                     val flow = NavScreenProvider.HomeScreen.Verification.Flow(
                         origin = NavScreenProvider.HomeScreen.Menu.MyAccount.Root,
                         includePhone = true,
-                        includeEmail = true,
+                        includeEmail = false,
                     )
 
                     navigator.push(ScreenRegistry.get(flow)) }

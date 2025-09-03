@@ -70,12 +70,6 @@ sealed class NavScreenProvider : ScreenProvider, Parcelable {
                 val email: String? = null,
                 val emailVerificationCode: String? = null,
             ): NavScreenProvider()
-
-//            data class Phone(val origin: NavScreenProvider? = null) : NavScreenProvider()
-//            data object PhoneCountry : NavScreenProvider()
-//            data object PhoneCode : NavScreenProvider()
-//            data class Email(val origin: EmailDeeplinkOrigin? = null) : NavScreenProvider()
-//            data class EmailMagicLink(val email: String? = null, val code: String? = null) : NavScreenProvider()
         }
 
         sealed interface OnRamp {
