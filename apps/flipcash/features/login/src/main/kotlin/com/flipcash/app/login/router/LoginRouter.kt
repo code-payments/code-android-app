@@ -82,7 +82,7 @@ class LoginRouter(
             login = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.SeedInput)) },
             isLabsOpen = state.betaOptionsVisible,
             onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-            openBetaFlags = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Lab)) }
+            openBetaFlags = { navigator.show(ScreenRegistry.get(AppRoute.Sheets.Lab)) }
         )
     }
 }

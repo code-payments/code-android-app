@@ -15,15 +15,17 @@ import com.flipcash.app.lab.internal.LabsScreenContent
 import com.flipcash.app.lab.internal.LabsScreenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 
 @Parcelize
-class LabsModal: ModalScreen, NamedScreen, Parcelable {
+class LabsScreen: ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -47,7 +49,7 @@ class LabsModal: ModalScreen, NamedScreen, Parcelable {
                 onBackIconClicked = navigator::pop
             )
 
-            val viewModel = getViewModel<LabsScreenViewModel>()
+            val viewModel = getActivityScopedViewModel<LabsScreenViewModel>()
 
             LabsScreenContent(viewModel)
         }
@@ -55,7 +57,7 @@ class LabsModal: ModalScreen, NamedScreen, Parcelable {
 }
 
 @Parcelize
-class LabsScreen: Screen, NamedScreen, Parcelable {
+class StandaloneLabsScreen: ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -64,7 +66,7 @@ class LabsScreen: Screen, NamedScreen, Parcelable {
         @Composable get() = stringResource(R.string.title_betaFlags)
 
     @Composable
-    override fun Content() {
+    override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
 
         Column(
@@ -74,13 +76,20 @@ class LabsScreen: Screen, NamedScreen, Parcelable {
             AppBarWithTitle(
                 title = name,
                 titleAlignment = Alignment.CenterHorizontally,
-                backButton = true,
-                onBackIconClicked = navigator::pop
+                isInModal = true,
+                endContent = {
+                    AppBarDefaults.Close { navigator.hide() }
+                }
             )
 
-            val viewModel = getViewModel<LabsScreenViewModel>()
+            val viewModel = getActivityScopedViewModel<LabsScreenViewModel>()
 
             LabsScreenContent(viewModel)
         }
     }
+}
+
+@Composable
+fun PreloadLabs() {
+    val viewModel = getActivityScopedViewModel<LabsScreenViewModel>()
 }

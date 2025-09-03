@@ -12,8 +12,9 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.CurrencySelectionScreen
 import com.flipcash.app.deposit.DepositScreen
-import com.flipcash.app.lab.LabsModal
 import com.flipcash.app.lab.LabsScreen
+import com.flipcash.app.lab.PreloadLabs
+import com.flipcash.app.lab.StandaloneLabsScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
@@ -47,10 +48,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             LoginRouter(it.seed, it.fromDeeplink)
         }
 
-        register<AppRoute.Onboarding.Lab> {
-            LabsScreen()
-        }
-
         register<AppRoute.Onboarding.SeedInput> {
             SeedInputScreen()
         }
@@ -69,6 +66,10 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Onboarding.CameraPermission> {
             CameraPermissionScreen(it.postCreate)
+        }
+
+        register<AppRoute.Sheets.Lab> {
+            StandaloneLabsScreen()
         }
 
         register<AppRoute.Main.AppRestricted> {
@@ -151,7 +152,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Menu.Lab> {
-            LabsModal()
+            LabsScreen()
         }
 
         register<AppRoute.Transfers.Learn> {
@@ -185,6 +186,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
     }
 
     PreloadBalance()
+    PreloadLabs()
 
     content()
 }

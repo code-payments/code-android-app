@@ -19,7 +19,6 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     sealed interface Onboarding: AppRoute {
         data class Login(val seed: String? = null, val fromDeeplink: Boolean = false) : Onboarding
         data object SeedInput : Onboarding
-        data object Lab : Onboarding
         data object AccessKey : Onboarding
         data class Purchase(val fromLogin: Boolean = false) : Onboarding
         data class NotificationPermission(val postCreate: Boolean = false) : Onboarding
@@ -51,6 +50,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data object Cash : Sheets
         data object Balance : Sheets
         data object Menu : Sheets
+        data object Lab: Sheets
         data object ShareApp : Sheets
         data object PoolList : Sheets
     }

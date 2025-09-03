@@ -64,7 +64,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         ) {
-            items(betaFlags) { feature ->
+            items(betaFlags, key = { it.flag.key }) { feature ->
                 SettingsSwitchRow(
                     title = feature.flag.title,
                     subtitle = feature.flag.message,

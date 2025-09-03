@@ -66,6 +66,11 @@ sealed interface FeatureFlag {
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
+
+        val availableEntries: List<FeatureFlag>
+            get() = entries
+                .filterNot { it.launched }
+                .filter { it.visible }
     }
 }
 
