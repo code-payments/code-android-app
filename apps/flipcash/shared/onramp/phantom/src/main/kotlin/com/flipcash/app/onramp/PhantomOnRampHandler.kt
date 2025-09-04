@@ -9,6 +9,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -41,6 +43,7 @@ fun PhantomOnRampHandler(
     navigator: CodeNavigator,
     router: Router,
     deepLink: DeepLink?,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     content: @Composable () -> Unit
 ) {
     val permissions = LocalPermissionChecker.current
@@ -76,7 +79,8 @@ fun PhantomOnRampHandler(
         notificationPermissionCheck { onNotificationResult(it) }
 
     RepeatOnLifecycle(
-        targetState = Lifecycle.State.STARTED
+        targetState = Lifecycle.State.RESUMED,
+        lifecycleOwner = lifecycleOwner,
     ) {
         state.errors
             .onEach { error ->

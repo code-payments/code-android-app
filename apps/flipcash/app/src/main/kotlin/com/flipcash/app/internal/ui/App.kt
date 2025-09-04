@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.stack.StackEvent
@@ -130,6 +131,7 @@ internal fun App(
                                 val codeNavigator = LocalCodeNavigator.current
                                 PhantomOnRampHandler(
                                     state = LocalPhantomDepositState.current,
+                                    lifecycleOwner = LocalLifecycleOwner.current,
                                     navigator = codeNavigator,
                                     router = router,
                                     deepLink = deepLink

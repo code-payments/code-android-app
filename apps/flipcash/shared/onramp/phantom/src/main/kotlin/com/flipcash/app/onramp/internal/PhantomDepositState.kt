@@ -197,13 +197,15 @@ class PhantomDepositState(
                             "message" to error.message
                         }
                     )
-                    errors.emit(
-                        PhantomOnRampError.FailedToSendTransaction(
-                            code = code ?: -99,
-                            message = error.message,
-                            cause = error
+                    scope.launch {
+                        errors.emit(
+                            PhantomOnRampError.FailedToSendTransaction(
+                                code = code ?: -99,
+                                message = error.message,
+                                cause = error
+                            )
                         )
-                    )
+                    }
                 }
         }
     }
@@ -230,7 +232,9 @@ class PhantomDepositState(
      * Reset the state of the onramp flow
      */
     fun reset() {
+        origin = null
         deeplinkState = PhantomDeeplinkState.IDLE
+        phantomEncryptionPublicKey = null
         amount = null
         walletConnection = null
         connectionResult = null
