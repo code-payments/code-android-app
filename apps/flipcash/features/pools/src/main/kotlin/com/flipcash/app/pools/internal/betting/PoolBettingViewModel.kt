@@ -88,7 +88,7 @@ internal class PoolBettingViewModel @Inject constructor(
         val selectedOutcome: PoolBetOutcome? = null,
         val isDistributed: Boolean? = null,
         val bottomBarActions: List<BottomBarAction> = emptyList(),
-        val onrampProviders: List<OnRampProvider> = emptyList(),
+        val preferredOnRampProvider: OnRampProvider? = null,
     ) {
         val isLoaded: Boolean
             get() = metadata != Pool.Empty
@@ -191,7 +191,7 @@ internal class PoolBettingViewModel @Inject constructor(
         data object OnSharePool : Event
         data object OnFailedToLoad: Event
         data class AddCashToWallet(val amount: Fiat): Event
-        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
+        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?): Event
         data class OpenOnRampAmountModal(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) : Event
         data class OpenScreen(val screen: AppRoute) : Event
@@ -622,8 +622,9 @@ internal class PoolBettingViewModel @Inject constructor(
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
             .onEach { amount ->
-                val providers = stateFlow.value.onrampProviders
-                if (providers.any { it is OnRampProvider.Coinbase }) {
+                val provider = stateFlow.value.preferredOnRampProvider
+                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
+                    // has coinbase provider supporting google pay - pop selection for quick add
                     // has coinbase provider - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {
@@ -732,7 +733,7 @@ internal class PoolBettingViewModel @Inject constructor(
 
                 is Event.OnDistributeFunds -> { state -> state }
                 is Event.AddCashToWallet -> { state -> state }
-                is Event.OnOnRampProvidersChanged -> { state -> state.copy(onrampProviders = event.providers) }
+                is Event.OnPreferredOnRampProviderChanged -> { state -> state.copy(preferredOnRampProvider = event.provider) }
                 is Event.OpenOnRampAmountModal -> { state -> state }
                 is Event.UpdateLoadingState -> { state -> state }
                 is Event.OpenScreen -> { state -> state }

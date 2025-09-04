@@ -64,8 +64,8 @@ internal class CashScreenViewModel @Inject constructor(
         val limits: Limits? = null,
         val maxForGive: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
-        val onrampProviders: List<OnRampProvider> = emptyList(),
-        ) {
+        val preferredOnRampProvider: OnRampProvider? = null,
+    ) {
         val canGive: Boolean
             get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0) > 0.00
 
@@ -101,7 +101,7 @@ internal class CashScreenViewModel @Inject constructor(
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
 
-        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
+        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
 
         data class AddCashToWallet(val amount: Fiat) : Event
         data class OpenOnRampAmountModal(val amount: Fiat) : Event
@@ -113,7 +113,9 @@ internal class CashScreenViewModel @Inject constructor(
 
     val checkBalanceLimit: () -> Boolean = {
         val amount = stateFlow.value.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
-        val conversionRate = exchange.rateToUsd(stateFlow.value.currencyModel.code ?: CurrencyCode.USD) ?: Rate.ignore
+        val conversionRate =
+            exchange.rateToUsd(stateFlow.value.currencyModel.code ?: CurrencyCode.USD)
+                ?: Rate.ignore
         val enteredInUsdc = Fiat(
             fiat = amount,
             currencyCode = stateFlow.value.currencyModel.code ?: CurrencyCode.USD
@@ -300,13 +302,20 @@ internal class CashScreenViewModel @Inject constructor(
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
             .onEach { amount ->
-                val providers = stateFlow.value.onrampProviders
-                if (providers.any { it is OnRampProvider.Coinbase }) {
-                    // has coinbase provider - pop selection for quick add
+                val provider = stateFlow.value.preferredOnRampProvider
+                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
+                    // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {
                     // route to provider list
-                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Cash, amount)))
+                    dispatchEvent(
+                        Event.OpenScreen(
+                            AppRoute.OnRamp.ProviderList(
+                                AppRoute.Sheets.Cash,
+                                amount
+                            )
+                        )
+                    )
                 }
             }.launchIn(viewModelScope)
 
@@ -342,8 +351,8 @@ internal class CashScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnOnRampProvidersChanged -> { state ->
-                    state.copy(onrampProviders = event.providers)
+                is Event.OnPreferredOnRampProviderChanged -> { state ->
+                    state.copy(preferredOnRampProvider = event.provider)
                 }
 
                 is Event.OpenOnRampAmountModal -> { state -> state }

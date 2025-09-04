@@ -7,7 +7,6 @@ import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.BetaFeature
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.onramp.ConfirmationEvent
@@ -63,7 +62,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
-        val onrampProviders: List<OnRampProvider> = emptyList(),
+        val preferredOnRampProvider: OnRampProvider? = null,
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
@@ -73,7 +72,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogoTapped: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
-        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>): Event
+        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
@@ -109,9 +108,9 @@ internal class MenuScreenViewModel @Inject constructor(
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
             .mapNotNull { it.flags }
-            .map { it.supportedOnRampProviders }
-            .onEach { providers ->
-                dispatchEvent(Event.OnOnRampProvidersChanged(providers))
+            .map { it.preferredOnRampProvider }
+            .onEach { provider ->
+                dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
             }
             .launchIn(viewModelScope)
 
@@ -126,9 +125,9 @@ internal class MenuScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAddCashClicked>()
             .onEach {
-                val providers = stateFlow.value.onrampProviders
-                if (providers.any { it is OnRampProvider.Coinbase }) {
-                    // has coinbase provider - pop selection for quick add
+                val provider = stateFlow.value.preferredOnRampProvider
+                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
+                    // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal)
                 } else {
                     // route to provider list
@@ -287,8 +286,8 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.OnAddCashClicked -> { state -> state }
                 Event.OnWithdrawClicked -> { state -> state }
                 Event.OpenOnRampAmountModal -> { state -> state }
-                is Event.OnOnRampProvidersChanged -> { state ->
-                    state.copy(onrampProviders = event.providers)
+                is Event.OnPreferredOnRampProviderChanged -> { state ->
+                    state.copy(preferredOnRampProvider = event.provider)
                 }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->

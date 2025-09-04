@@ -59,14 +59,14 @@ internal class BalanceViewModel @Inject constructor(
     data class State(
         val balance: LocalFiat? = null,
         val canViewDetails: Boolean = false,
-        val onrampProviders: List<OnRampProvider> = emptyList(),
+        val preferredOnRampProvider: OnRampProvider? = null,
         val expandedItem: ID? = null,
     )
 
     sealed interface Event {
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
         data class OnTransactionDetailsEnabled(val enabled: Boolean) : Event
-        data class OnOnRampProvidersChanged(val providers: List<OnRampProvider>) : Event
+        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
         data class ViewDetails(val id: ID?) : Event
         data object ResetSelections : Event
         data class OnCancelRequested(val message: ActivityFeedMessage) : Event
@@ -167,18 +167,18 @@ internal class BalanceViewModel @Inject constructor(
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
             .mapNotNull { it.flags }
-            .map { it.supportedOnRampProviders }
-            .onEach { providers ->
-                dispatchEvent(Event.OnOnRampProvidersChanged(providers))
+            .map { it.preferredOnRampProvider }
+            .onEach { provider ->
+                dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
             }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnAddCashClicked>()
             .onEach {
-                val providers = stateFlow.value.onrampProviders
-                if (providers.any { it is OnRampProvider.Coinbase }) {
-                    // has coinbase provider - pop selection for quick add
+                val provider = stateFlow.value.preferredOnRampProvider
+                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
+                    // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal)
                 } else {
                     // route to provider list
@@ -222,8 +222,8 @@ internal class BalanceViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 Event.OpenCurrencySelection -> { state -> state }
-                is Event.OnOnRampProvidersChanged -> { state ->
-                    state.copy(onrampProviders = event.providers)
+                is Event.OnPreferredOnRampProviderChanged -> { state ->
+                    state.copy(preferredOnRampProvider = event.provider)
                 }
 
                 Event.OnAddCashClicked -> { state -> state }
