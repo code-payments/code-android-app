@@ -1,10 +1,10 @@
 package com.flipcash.app.contact.verification
 
+import android.content.Context
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
@@ -20,9 +20,13 @@ import com.flipcash.app.contact.verification.internal.VerificationFlowIntroScree
 import com.flipcash.app.contact.verification.phone.PhoneVerificationScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
+import com.flipcash.app.navigation.FlowNavigator
+import com.flipcash.app.navigation.LocalFlowNavigator
+import com.flipcash.app.navigation.NavigationFlowStep
 import com.flipcash.features.contact.verification.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import kotlinx.parcelize.IgnoredOnParcel
@@ -103,32 +107,17 @@ class VerificationFlowScreen(
         }
 
         Navigator(screens.toList()) { navigator ->
-            val flowNavigator = remember {
-                VerificationFlowNavigator(
-                    exit = { codeNavigator.pop() },
-                    continueFlowFrom = { step ->
-                        when (step) {
-                            VerificationFlowStep.Intro -> {
-                                navigator.push(PhoneVerificationScreen())
-                            }
+            val flowNavigator = rememberFlowNavigator(
+                target = target,
+                includePhone = includePhone,
+                includeEmail = includeEmail,
+                showSuccess = showSuccess,
+                navigator = navigator,
+                context = context,
+                goToTargetOrReturn = { success -> goToTargetOrReturn(success) }
+            )
 
-                            VerificationFlowStep.Phone -> {
-                                if (includeEmail) {
-                                    navigator.push(EmailVerificationScreen())
-                                } else {
-                                    goToTargetOrReturn(wasSuccessful = true)
-                                }
-                            }
-
-                            VerificationFlowStep.Email -> {
-                                goToTargetOrReturn(wasSuccessful = true)
-                            }
-                        }
-                    }
-                )
-            }
-
-            CompositionLocalProvider(LocalVerificationFlowNavigator provides flowNavigator) {
+            CompositionLocalProvider(LocalFlowNavigator provides flowNavigator) {
                 SlideTransition(navigator = navigator)
             }
         }
@@ -150,7 +139,6 @@ private fun buildScreenSet(
     }
 
     if (includeEmail) {
-        val vmKey = EmailVerificationFlow.key
         return buildSet {
             add(EmailVerificationScreen())
             if (emailAddress != null && emailVerificationCode != null) {
@@ -162,15 +150,45 @@ private fun buildScreenSet(
     return emptySet()
 }
 
-enum class VerificationFlowStep {
+enum class VerificationFlowStep: NavigationFlowStep {
     Intro,
     Phone,
     Email;
 }
 
-class VerificationFlowNavigator(
-    val exit: () -> Unit = { },
-    val continueFlowFrom: (VerificationFlowStep) -> Unit = { },
-)
+@Composable
+fun rememberFlowNavigator(
+    target: AppRoute?,
+    includePhone: Boolean,
+    includeEmail: Boolean,
+    showSuccess: Boolean,
+    navigator: Navigator,
+    context: Context = LocalContext.current,
+    goToTargetOrReturn: (Boolean) -> Unit = {},
+): FlowNavigator<VerificationFlowStep> {
+    return remember(navigator, target, includePhone, includeEmail, showSuccess, context) {
+        object : FlowNavigator<VerificationFlowStep> {
+            override fun exit(success: Boolean) {
+                goToTargetOrReturn(success)
+            }
 
-val LocalVerificationFlowNavigator = staticCompositionLocalOf { VerificationFlowNavigator() }
+            override fun continueFlowFrom(step: VerificationFlowStep) {
+                when (step) {
+                    VerificationFlowStep.Intro -> {
+                        navigator.push(PhoneVerificationScreen())
+                    }
+                    VerificationFlowStep.Phone -> {
+                        if (includeEmail) {
+                            navigator.push(EmailVerificationScreen())
+                        } else {
+                            goToTargetOrReturn(true)
+                        }
+                    }
+                    VerificationFlowStep.Email -> {
+                        goToTargetOrReturn(true)
+                    }
+                }
+            }
+        }
+    }
+}

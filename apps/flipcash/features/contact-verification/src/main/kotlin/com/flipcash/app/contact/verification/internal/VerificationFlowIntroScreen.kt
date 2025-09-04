@@ -26,8 +26,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.contact.verification.LocalVerificationFlowNavigator
 import com.flipcash.app.contact.verification.VerificationFlowStep
+import com.flipcash.app.navigation.FlowNavigator
+import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -50,7 +51,7 @@ class VerificationFlowIntroScreen(
     @Composable
     override fun Content() {
         val codeNavigator = LocalCodeNavigator.current
-        val flowNavigator = LocalVerificationFlowNavigator.current
+        val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
         val keyboard = rememberKeyboardController()
 
         VerificationFlowIntroScreenContent(

@@ -12,11 +12,12 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.contact.verification.LocalVerificationFlowNavigator
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.phone.PhoneCodeScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
+import com.flipcash.app.navigation.FlowNavigator
+import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.screens.NamedScreen
@@ -38,10 +39,10 @@ class PhoneCodeScreen: Screen, NamedScreen, Parcelable {
 
     @Composable
     override fun Content() {
-        val flowNavigator = LocalVerificationFlowNavigator.current
+        val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
         val viewModel = getStackScopedViewModel<PhoneVerificationViewModel>(key = PhoneVerificationFlow.key)
 
-        BackHandler { flowNavigator.exit() }
+        BackHandler { flowNavigator.exit(false) }
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -51,7 +52,7 @@ class PhoneCodeScreen: Screen, NamedScreen, Parcelable {
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
-                onBackIconClicked = { flowNavigator.exit() },
+                onBackIconClicked = { flowNavigator.exit(false) },
             )
             PhoneCodeScreen(viewModel)
         }
@@ -59,7 +60,7 @@ class PhoneCodeScreen: Screen, NamedScreen, Parcelable {
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<PhoneVerificationViewModel.Event.OnMaxAttemptsReached>()
-                .onEach { flowNavigator.exit() }
+                .onEach { flowNavigator.exit(false) }
                 .launchIn(this)
         }
 

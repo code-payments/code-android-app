@@ -5,13 +5,11 @@ plugins {
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_ksp)
     id(Plugins.hilt)
-    id(Plugins.kotlin_parcelize)
-    id(Plugins.kotlin_serialization)
     id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.features.contact.verification"
+    namespace = "${Gradle.flipcashNamespace}.shared.navigation.flow"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -43,24 +41,18 @@ dependencies {
     ksp(Libs.hilt_android_compiler)
     ksp(Libs.hilt_compiler)
 
+    implementation(Libs.timber)
+
     implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_activities)
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
 
-    implementation(Libs.kotlinx_serialization_json)
 
-    implementation(project(":apps:flipcash:core"))
-    implementation(project(":apps:flipcash:shared:navigation-flow"))
-    implementation(project(":apps:flipcash:shared:phone"))
-    implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-    implementation(project(":ui:analytics"))
-    implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
+    implementation(project(":apps:flipcash:core"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
-    implementation(Libs.rinku_compose)
+    api(Libs.rinku_compose)
 }

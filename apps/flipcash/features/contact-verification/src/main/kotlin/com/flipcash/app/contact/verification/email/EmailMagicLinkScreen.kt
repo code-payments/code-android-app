@@ -10,31 +10,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.contact.verification.EmailVerificationFlow
-import com.flipcash.app.contact.verification.LocalVerificationFlowNavigator
-import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
-import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
-import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
+import com.flipcash.app.navigation.FlowNavigator
+import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.features.contact.verification.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -53,12 +44,12 @@ class EmailMagicLinkScreen(
 
     @Composable
     override fun Content() {
-        val flowNavigator = LocalVerificationFlowNavigator.current
+        val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
         val viewModel =
             getStackScopedViewModel<EmailVerificationViewModel>(EmailVerificationFlow.key)
 
         BackHandler {
-            flowNavigator.exit()
+            flowNavigator.exit(false)
         }
 
         Column(
@@ -70,7 +61,7 @@ class EmailMagicLinkScreen(
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
-                onBackIconClicked = { flowNavigator.exit() },
+                onBackIconClicked = { flowNavigator.exit(false) },
             )
             EmailMagicLinkScreen(viewModel)
         }
@@ -91,14 +82,14 @@ class EmailMagicLinkScreen(
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<EmailVerificationViewModel.Event.OnMaxAttemptsReached>()
-                .onEach { flowNavigator.exit() }
+                .onEach { flowNavigator.exit(false) }
                 .launchIn(this)
         }
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<EmailVerificationViewModel.Event.Exit>()
-                .onEach { flowNavigator.exit() }
+                .onEach { flowNavigator.exit(false) }
                 .launchIn(this)
         }
 
