@@ -6,5 +6,6 @@ data class UserFlags(
     val isStaff: Boolean,
     val isRegistered: Boolean,
     val requiresIapForRegistration: Boolean,
+    val preferredOnRampProvider: OnRampProvider?,
     val supportedOnRampProviders: List<OnRampProvider>,
 )
