@@ -55,9 +55,9 @@ dependencies {
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))
 
-    implementation("androidx.emoji2:emoji2:1.5.0")
+    implementation("androidx.emoji2:emoji2:1.6.0")
     // Optional: Include a bundled emoji font (offline support)
-    implementation("androidx.emoji2:emoji2-bundled:1.5.0")
+    implementation("androidx.emoji2:emoji2-bundled:1.6.0")
 
     api(Libs.androidx_annotation)
     api(Libs.kotlin_stdlib)
