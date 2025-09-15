@@ -86,7 +86,7 @@
 
                 <data
                     android:host="app.flipcash.com"
-                    android:pathPattern="/phantom/connected"
+                    android:pathPattern="/external/.*/connected"
                     android:scheme="https" />
             </intent-filter>
 
@@ -98,7 +98,7 @@
 
                 <data
                     android:host="app.flipcash.com"
-                    android:pathPattern="/phantom/signed"
+                    android:pathPattern="/external/.*/signed"
                     android:scheme="https" />
             </intent-filter>
 

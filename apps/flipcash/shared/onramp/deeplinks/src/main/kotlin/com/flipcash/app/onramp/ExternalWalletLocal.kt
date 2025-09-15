@@ -6,16 +6,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.core.LocalUserManager
-import com.flipcash.app.onramp.internal.PhantomDepositState
+import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
 import com.getcode.solana.rpc.RpcConfig
 
 @Composable
-fun rememberPhantomDepositState(
-    rpcConfig: RpcConfig): PhantomDepositState {
+fun rememberExternalWalletState(
+    rpcConfig: RpcConfig
+): ExternalWalletDeeplinkState {
     val userManager = LocalUserManager.currentOrThrow
     val scope = rememberCoroutineScope()
     return remember(userManager, scope, rpcConfig) {
-        PhantomDepositState(
+        ExternalWalletDeeplinkState(
             userManager,
             scope,
             rpcConfig.rpcUrl,
@@ -24,5 +25,5 @@ fun rememberPhantomDepositState(
     }
 }
 
-val LocalPhantomDepositState =
-    compositionLocalOf<PhantomDepositState> { throw IllegalStateException() }
+val LocalExternalWalletState =
+    compositionLocalOf<ExternalWalletDeeplinkState> { throw IllegalStateException() }

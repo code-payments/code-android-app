@@ -25,8 +25,10 @@ private fun FlipcashAccountService.UserFlags.OnRampProvider.toDomain(): OnRampPr
         FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_VIRTUAL -> OnRampProvider.Coinbase(OnRampType.Virtual)
         FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_DEBIT -> OnRampProvider.Coinbase(OnRampType.PhysicalDebit)
         FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_CREDIT -> OnRampProvider.Coinbase(OnRampType.PhysicalCredit)
-        FlipcashAccountService.UserFlags.OnRampProvider.CRYPTO_WALLET -> OnRampProvider.CryptoDeposit
+        FlipcashAccountService.UserFlags.OnRampProvider.MANUAL_DEPOSIT -> OnRampProvider.ManualDeposit
         FlipcashAccountService.UserFlags.OnRampProvider.PHANTOM -> OnRampProvider.Phantom
+        FlipcashAccountService.UserFlags.OnRampProvider.SOLFLARE -> OnRampProvider.Solflare
+        FlipcashAccountService.UserFlags.OnRampProvider.BACKPACK -> OnRampProvider.Backpack
 
         FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN,
         FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown

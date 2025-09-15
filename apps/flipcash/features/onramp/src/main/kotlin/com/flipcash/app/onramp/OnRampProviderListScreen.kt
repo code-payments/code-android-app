@@ -13,8 +13,8 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.OnRampViewModel
-import com.flipcash.app.onramp.internal.PhantomDeeplinkState
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.screens.OnRampProviderListScreen
 import com.flipcash.features.onramp.R
@@ -52,7 +52,7 @@ class OnRampProviderListScreen(
 
         val viewModel = getStackScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
 
-        val phantomDepositState = LocalPhantomDepositState.current
+        val externalWalletOnRamp = LocalExternalWalletState.current
 
         Box {
             Column(
@@ -91,18 +91,14 @@ class OnRampProviderListScreen(
             viewModel.eventFlow
                 .filterIsInstance<OnRampViewModel.Event.OnProviderSelected>()
                 .map { it.item.destination }
-                .filterIsInstance<OnRampProviderDestination.PhantomConnection>()
-                .onEach {
-                    if (phantomDepositState.deeplinkState == PhantomDeeplinkState.CONNECTED) {
-                        // we are connected, so we can move forward
-                        navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
-                    } else {
-                        phantomDepositState.setOrigin(OnRampFlowTracker.source)
-                        if (neededAmount != null && neededCurrency != null) {
-                            phantomDepositState.amount = Fiat(neededAmount, neededCurrency)
-                        }
-                        phantomDepositState.start()
-                    }
+                .filterIsInstance<OnRampProviderDestination.ExternalWalletConnection>()
+                .onEach { type ->
+                    // bring up amount picker in flow always to match coinbase onramp flow
+                    // i.e no delta passed
+//                    if (neededAmount != null && neededCurrency != null) {
+//                        externalWalletOnRamp.amount = Fiat(neededAmount, neededCurrency)
+//                    }
+                    externalWalletOnRamp.start(OnRampFlowTracker.source, type.wallet)
                 }
                 .launchIn(this)
         }

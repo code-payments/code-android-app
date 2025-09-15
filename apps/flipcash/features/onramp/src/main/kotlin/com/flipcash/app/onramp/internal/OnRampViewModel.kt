@@ -2,11 +2,8 @@ package com.flipcash.app.onramp.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.core.ui.CurrencyHolder
-import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.onramp.CoinbaseOnRampWebError
-import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.OnRampController
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
@@ -73,7 +70,7 @@ internal data class AmountEntryState(
 
 private val DefaultOnRampOptions = listOf(
     OnRampProviderItem(
-        provider = OnRampProvider.CryptoDeposit,
+        provider = OnRampProvider.ManualDeposit,
         destination = OnRampProviderDestination.Screen(AppRoute.Transfers.Deposit)
     )
 )
@@ -135,7 +132,7 @@ internal class OnRampViewModel @Inject constructor(
 
         data class OnAmountAccepted(val amount: Fiat) : Event
 
-        data class CreateAndSendTransactionToPhantom(val amount: Fiat) : Event
+        data class CreateAndSendTransactionToWallet(val amount: Fiat) : Event
         // endregion
     }
 
@@ -283,9 +280,9 @@ internal class OnRampViewModel @Inject constructor(
             .onEach { providers ->
                 val providersWithDeposit = providers
                     // always ensure that deposit is available
-                    .ifEmpty { listOf(OnRampProvider.CryptoDeposit) }
+                    .ifEmpty { listOf(OnRampProvider.ManualDeposit) }
                     // ensure deposit is last
-                    .sortedBy { if (it is OnRampProvider.CryptoDeposit) 1 else 0 }
+                    .sortedBy { if (it is OnRampProvider.ManualDeposit) 1 else 0 }
 
                 val filteredProviders =
                     providersWithDeposit.filterIsInstance<OnRampProvider.Defined>()
@@ -293,7 +290,7 @@ internal class OnRampViewModel @Inject constructor(
                             OnRampProviderItem(
                                 provider = provider,
                                 destination = when (provider) {
-                                    OnRampProvider.CryptoDeposit ->
+                                    OnRampProvider.ManualDeposit ->
                                         OnRampProviderDestination.Screen(
                                             AppRoute.Transfers.Deposit
                                         )
@@ -322,8 +319,8 @@ internal class OnRampViewModel @Inject constructor(
                                         }
                                     }
 
-                                    OnRampProvider.Phantom -> {
-                                        OnRampProviderDestination.PhantomConnection
+                                    is OnRampProvider.UsesDeeplinks -> {
+                                        OnRampProviderDestination.ExternalWalletConnection(provider)
                                     }
                                 }
                             )
@@ -380,8 +377,8 @@ internal class OnRampViewModel @Inject constructor(
                         }
                     }
 
-                    OnRampProvider.Phantom -> {
-                        dispatchEvent(Event.CreateAndSendTransactionToPhantom(selectedAmount))
+                    is OnRampProvider.UsesDeeplinks -> {
+                        dispatchEvent(Event.CreateAndSendTransactionToWallet(selectedAmount))
                     }
                 }
             }.launchIn(viewModelScope)
@@ -448,7 +445,7 @@ internal class OnRampViewModel @Inject constructor(
                     )
                 }
 
-                is Event.CreateAndSendTransactionToPhantom,
+                is Event.CreateAndSendTransactionToWallet,
                 is Event.OnPaymentSuccess,
                 is Event.OnPaymentError,
                 is Event.OnPaymentLinkGenerated,

@@ -149,7 +149,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
-    implementation(project(":apps:flipcash:shared:onramp:phantom"))
+    implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:phone"))

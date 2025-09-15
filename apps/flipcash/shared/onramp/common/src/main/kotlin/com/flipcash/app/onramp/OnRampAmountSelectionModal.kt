@@ -107,9 +107,7 @@ fun OnRampAmountSelectionModal(
                 buttonState = ButtonState.Filled,
                 text = when (provider) {
                     is OnRampProvider.Coinbase -> "Add with Google Pay"
-                    OnRampProvider.CryptoDeposit -> stringResource(R.string.action_next)
-                    OnRampProvider.Phantom -> stringResource(R.string.action_next)
-                    OnRampProvider.Unknown -> stringResource(R.string.action_next)
+                    else -> stringResource(R.string.action_next)
                 }
             ) { onConfirm() }
         }

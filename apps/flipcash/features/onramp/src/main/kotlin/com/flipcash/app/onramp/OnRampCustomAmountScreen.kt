@@ -83,12 +83,12 @@ class OnRampCustomAmountScreen : ModalScreen, NamedScreen, Parcelable {
                 }.launchIn(this)
         }
 
-        val phantomDepositState = LocalPhantomDepositState.current
+        val externalWalletOnRamp = LocalExternalWalletState.current
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<OnRampViewModel.Event.CreateAndSendTransactionToPhantom>()
+                .filterIsInstance<OnRampViewModel.Event.CreateAndSendTransactionToWallet>()
                 .map { it.amount }
-                .onEach { phantomDepositState.amount = it }
+                .onEach { externalWalletOnRamp.amount = it }
                 .launchIn(this)
         }
     }

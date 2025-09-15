@@ -2,14 +2,11 @@ package com.flipcash.app.core.navigation
 
 import android.net.Uri
 import android.os.Parcelable
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.phantom.PhantomConnectionResult
-import com.flipcash.app.core.phantom.PhantomDeeplinkError
-import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
-import com.flipcash.app.core.phantom.PhantomSigningResult
-import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
+import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkConnectionResult
+import com.flipcash.app.core.onramp.deeplinks.ExternalWalletDeeplinkError
+import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
+import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkSigningResult
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.model.core.ID
 import com.getcode.vendor.Base58
 import kotlinx.parcelize.Parcelize
 
@@ -23,17 +20,21 @@ sealed interface DeeplinkType: Parcelable {
             get() = Ed25519.createKeyPair(Base58.decode(seed))
     }
 
-    data class PhantomConnection(
-        val origin: PhantomDeeplinkOrigin,
-        val result: PhantomConnectionResult?,
-        val error: PhantomDeeplinkError? = null
-    ): DeeplinkType, Navigatable
+    sealed interface ExternalWalletStep {
+        val origin: OnRampDeeplinkOrigin
+    }
 
-    data class PhantomSignedTransaction(
-        val origin: PhantomDeeplinkOrigin,
-        val result: PhantomSigningResult?,
-        val error: PhantomDeeplinkError? = null
-    ): DeeplinkType, Navigatable
+    data class ExternalWalletConnection(
+        override val origin: OnRampDeeplinkOrigin,
+        val result: WalletDeeplinkConnectionResult?,
+        val error: ExternalWalletDeeplinkError? = null
+    ): DeeplinkType, ExternalWalletStep, Navigatable
+
+    data class ExternalWalletSignedTransaction(
+        override val origin: OnRampDeeplinkOrigin,
+        val result: WalletDeeplinkSigningResult?,
+        val error: ExternalWalletDeeplinkError? = null
+    ): DeeplinkType, ExternalWalletStep, Navigatable
 
     data class EmailVerification(
         val email: String,

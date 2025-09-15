@@ -1,36 +1,33 @@
 package com.getcode.solana.rpc
 
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.base58
-import com.getcode.solana.keys.base64
 import com.solana.networking.Rpc20Driver
-import com.solana.rpccore.JsonRpc20Request
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.addJsonObject
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.put
 import org.sol4k.Connection
 
-class SolanaConnection(
-    val rpcUrl: String,
-) {
+class SolanaConnection(rpcUrl: String,) {
     private val connection = Connection(rpcUrl)
-    suspend fun getLatestBlockhash(): String = connection.getLatestBlockhash()
+    fun getLatestBlockhash(): String = connection.getLatestBlockhash()
 }
 
+/**
+ * Checks if an account exists on the blockchain.
+ *
+ * This function queries the Solana RPC endpoint to determine if an account
+ * associated with the provided public key has been initialized on the network.
+ *
+ * @param publicKey The public key of the account to check.
+ * @return A [Result] which is [Result.success] with [Unit] if the account exists,
+ * or [Result.failure] with an [RpcException] or other [Throwable] if an error occurs
+ * (e.g., network issue, account not found, or RPC error).
+ */
 suspend fun Rpc20Driver.doesAccountExist(publicKey: PublicKey): Result<Unit> {
-    val request = JsonRpc20Request(
-        method = "getAccountInfo",
-        params = buildJsonArray {
-            add(publicKey.base58())
-            addJsonObject { put("encoding", "base64") }
-        },
-        id = "1"
+    val response = makeRequest(
+        request = GetAccountInfo(publicKey),
+        resultSerializer = JsonElement.serializer()
     )
-    val response = makeRequest(request, JsonElement.serializer())
     val error = response.error
     if (error != null) {
         return Result.failure(RpcException(error.code, error.message))
@@ -44,14 +41,19 @@ suspend fun Rpc20Driver.doesAccountExist(publicKey: PublicKey): Result<Unit> {
     return Result.success(Unit)
 }
 
+/**
+ * Sends a transaction to the Solana blockchain.
+ *
+ * @param encodedTransaction The base58 encoded transaction string.
+ * @return A [Result] object containing the transaction signature as a [String] on success,
+ * or an [RpcException] on failure.
+ */
 suspend fun Rpc20Driver.sendTransaction(encodedTransaction: String): Result<String> {
     println("sending transaction on the blockchain => $encodedTransaction")
-    val request = JsonRpc20Request(
-        method = "sendTransaction",
-        params = buildJsonArray { add(encodedTransaction) },
-        id = "1"
+    val response = makeRequest(
+        request = SendTransaction(encodedTransaction),
+        resultSerializer = JsonElement.serializer()
     )
-    val response = makeRequest(request, JsonElement.serializer())
     val error = response.error
     if (error != null) {
         return Result.failure(RpcException(error.code, error.message))
@@ -63,31 +65,45 @@ suspend fun Rpc20Driver.sendTransaction(encodedTransaction: String): Result<Stri
     return Result.success(signature.toString())
 }
 
-suspend fun Rpc20Driver.simulateTransaction(encodedTransaction: String): Result<String> {
+/**
+ * Simulates a transaction on the Solana blockchain.
+ *
+ * This function sends a transaction simulation request to the Solana RPC endpoint.
+ * It allows you to see the potential outcome of a transaction, including any errors
+ * and logs, without actually committing it to the blockchain.
+ *
+ * @param encodedTransaction The base58 encoded transaction string to simulate.
+ * @return A [Result] object which is [Result.success] with the simulated transaction's
+ * "signature" (often null or a placeholder in simulation, the actual value depends on the RPC node's response structure for simulations)
+ * as a [String] if the simulation is successful.
+ * If the simulation encounters an error, it returns [Result.failure] with an [RpcException]
+ * containing the error code, message, and potentially additional details like `err` and `logs`
+ * from the RPC response. It can also return [Result.failure] with a generic [Throwable]
+ * if essential parts of the response (like the result or signature field) are missing.
+ */
+suspend fun Rpc20Driver.simulateTransaction(
+    encodedTransaction: String,
+    commitment: String = "confirmed",
+): Result<String> {
     println("simulating transaction on the blockchain => $encodedTransaction")
-    val request = JsonRpc20Request(
-        method = "simulateTransaction",
-        params = buildJsonArray {
-            add(encodedTransaction)
-            addJsonObject { put("encoding", "base64") }
-        },
-        id = "1"
+    val response = makeRequest(
+        request = SimulateTransaction(encodedTransaction, commitment),
+        resultSerializer = JsonElement.serializer()
     )
-    val response = makeRequest(request, JsonElement.serializer())
     val error = response.error
-    if (error != null) {
-        val errorDetails = response.result?.jsonObject?.get("err")?.toString() ?: "Unknown error"
+    val errorDetails = response.result?.jsonObject?.get("err")?.toString()
+    if (error != null || errorDetails != null) {
         val logs = response.result?.jsonObject?.get("logs")?.toString() ?: "No logs available"
         return Result.failure(
             RpcException(
-                error.code,
-                "${error.message}, err: $errorDetails, logs: $logs"
+                error?.code ?: -1,
+                "${error?.message}, err: $errorDetails, logs: $logs"
             )
         )
     }
 
-    val signature = response.result?.jsonObject?.get("result")
-        ?: return Result.failure(Throwable("Missing signature"))
+    val signature = response.result
+        ?: return Result.failure(Throwable("Failed to simulate"))
 
     return Result.success(signature.toString())
 }

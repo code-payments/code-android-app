@@ -1,6 +1,6 @@
 package com.flipcash.app.onramp
 
-sealed class PhantomOnRampError(
+sealed class DeeplinkOnRampError(
     open val code: Int = -99,
     override val message: String?,
     override val cause: Throwable? = null,
@@ -8,33 +8,36 @@ sealed class PhantomOnRampError(
 
     class FailedToGenerateDeeplink(
         override val message: String? = null
-    ) : PhantomOnRampError(message = message)
+    ) : DeeplinkOnRampError(message = message)
     class FailedToCreateTransaction(override val message: String?) :
-        PhantomOnRampError(message = message)
+        DeeplinkOnRampError(message = message)
+
+    class FailedToSimulateTransaction(override val message: String?) :
+        DeeplinkOnRampError(message = message)
 
     class FailedToSendTransaction(
         override val code: Int = -99,
         override val message: String?,
         override val cause: Throwable? = null
-    ) : PhantomOnRampError(code = code, message = message, cause = cause)
+    ) : DeeplinkOnRampError(code = code, message = message, cause = cause)
 
     class DecryptionError(
         override val message: String?,
         override val cause: Throwable? = null
-    ) : PhantomOnRampError(message = message, cause = cause)
+    ) : DeeplinkOnRampError(message = message, cause = cause)
 
     class DeserializationError(
         override val message: String?,
         override val cause: Throwable? = null
-    ) : PhantomOnRampError(message = message, cause = cause)
+    ) : DeeplinkOnRampError(message = message, cause = cause)
 
-    class PhantomProvidedError(
-        val error: PhantomError,
+    class WalletProvidedError(
+        val error: DeeplinkError,
         override val message: String?,
-    ): PhantomOnRampError(code = error.code, message = message)
+    ): DeeplinkOnRampError(code = error.code, message = message)
 }
 
-enum class PhantomError(val code: Int) {
+enum class DeeplinkError(val code: Int) {
     Unknown(-999),
     Disconnected(4900),
     Unauthorized(4100),
@@ -45,7 +48,7 @@ enum class PhantomError(val code: Int) {
     MethodNotFound(-32601),
     InternalError(-32603);
 
-    companion object {
+    companion object Companion {
         fun fromCode(code: Int?) = entries.firstOrNull { it.code == code } ?: Unknown
         fun fromCode(code: String?) = fromCode(code?.toIntOrNull())
     }

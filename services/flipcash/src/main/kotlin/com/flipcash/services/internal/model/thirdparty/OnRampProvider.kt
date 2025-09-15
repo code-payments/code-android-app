@@ -6,12 +6,15 @@ sealed interface OnRampProvider {
 
     sealed interface Defined
     sealed interface ThirdParty: Defined
+    sealed interface UsesDeeplinks: Defined
 
-    data object CryptoDeposit : OnRampProvider, Defined
+    data object ManualDeposit : OnRampProvider, Defined
 
     data class Coinbase(val type: OnRampType) : OnRampProvider, ThirdParty
 
-    data object Phantom: OnRampProvider, ThirdParty
+    data object Phantom: OnRampProvider, ThirdParty, UsesDeeplinks
+    data object Solflare: OnRampProvider, ThirdParty, UsesDeeplinks
+    data object Backpack: OnRampProvider, ThirdParty, UsesDeeplinks
 }
 
 enum class OnRampType {

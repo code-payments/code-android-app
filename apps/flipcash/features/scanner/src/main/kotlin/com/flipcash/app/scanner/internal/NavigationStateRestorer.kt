@@ -3,7 +3,7 @@ package com.flipcash.app.scanner.internal
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.app.core.phantom.PhantomDeeplinkOrigin
+import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.ui.core.scaled
@@ -24,25 +24,13 @@ class NavigationStateRestorer(
                 )
             }
 
-            is DeeplinkType.PhantomConnection -> {
+            is DeeplinkType.ExternalWalletStep -> {
                 val screens = when (val origin = deeplink.origin) {
-                    PhantomDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu)
-                    is PhantomDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id))
-                    is PhantomDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair))
-                    PhantomDeeplinkOrigin.Cash -> buildOnRampScreenFlow(AppRoute.Sheets.Cash)
-                    PhantomDeeplinkOrigin.Balance -> buildOnRampScreenFlow(AppRoute.Sheets.Balance)
-                }
-
-                navigator.show(screens)
-            }
-
-            is DeeplinkType.PhantomSignedTransaction -> {
-                val screens = when (val origin = deeplink.origin) {
-                    PhantomDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu)
-                    is PhantomDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id))
-                    is PhantomDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair))
-                    PhantomDeeplinkOrigin.Cash -> buildOnRampScreenFlow(AppRoute.Sheets.Cash)
-                    PhantomDeeplinkOrigin.Balance -> buildOnRampScreenFlow(AppRoute.Sheets.Balance)
+                    OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu)
+                    is OnRampDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id))
+                    is OnRampDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair))
+                    OnRampDeeplinkOrigin.Cash -> buildOnRampScreenFlow(AppRoute.Sheets.Cash)
+                    OnRampDeeplinkOrigin.Balance -> buildOnRampScreenFlow(AppRoute.Sheets.Balance)
                 } + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
 
                 navigator.show(screens)

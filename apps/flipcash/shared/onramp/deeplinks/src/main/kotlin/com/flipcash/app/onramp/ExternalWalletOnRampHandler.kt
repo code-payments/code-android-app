@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -14,17 +13,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.app.onramp.internal.PhantomDeeplinkState
-import com.flipcash.app.onramp.internal.PhantomDepositState
+import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
+import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.router.Router
-import com.flipcash.services.analytics.Action
-import com.flipcash.shared.onramp.phantom.R
+import com.flipcash.shared.onramp.deeplinks.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.notificationPermissionCheck
@@ -38,8 +35,8 @@ import kotlinx.coroutines.launch
 import kotlin.to
 
 @Composable
-fun PhantomOnRampHandler(
-    state: PhantomDepositState,
+fun ExternalWalletOnRampHandler(
+    state: ExternalWalletDeeplinkState,
     navigator: CodeNavigator,
     router: Router,
     deepLink: DeepLink?,
@@ -87,7 +84,7 @@ fun PhantomOnRampHandler(
                 val (title, message) = error.messaging(context)
                 trace(
                     tag = TAG,
-                    message = "Something went wrong during phantom onramp",
+                    message = "Something went wrong during deeplink onramp",
                     type = TraceType.Error,
                     metadata = {
                         "errorMessage" to error.message
@@ -109,89 +106,89 @@ fun PhantomOnRampHandler(
 
     LaunchedEffect(deepLink) {
         val type = router.processType(deepLink)
-        if (type is DeeplinkType.PhantomConnection) {
+        if (type is DeeplinkType.ExternalWalletConnection) {
             val result = type.result
             val error = type.error
             if (result != null) {
                 state.decrypt(connectionResult = result)
             } else {
-                val resolvedError = PhantomError.fromCode(error?.errorCode)
+                val resolvedError = DeeplinkError.fromCode(error?.errorCode)
                 val message = error?.errorMessage ?: "Something went wrong"
-                state.errors.emit(PhantomOnRampError.PhantomProvidedError(resolvedError, message = message))
+                state.errors.emit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
             }
-        } else if (type is DeeplinkType.PhantomSignedTransaction) {
+        } else if (type is DeeplinkType.ExternalWalletSignedTransaction) {
             val result = type.result
             val error = type.error
             if (result != null) {
                 state.decrypt(signingResult = result)
             } else {
-                val resolvedError = PhantomError.fromCode(error?.errorCode)
+                val resolvedError = DeeplinkError.fromCode(error?.errorCode)
                 val message = error?.errorMessage ?: "Something went wrong"
-                state.errors.emit(PhantomOnRampError.PhantomProvidedError(resolvedError, message = message))
+                state.errors.emit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
             }
         }
     }
 
     LaunchedEffect(state.deeplinkState, state.amount) {
         when (state.deeplinkState) {
-            PhantomDeeplinkState.IDLE -> Unit
-            PhantomDeeplinkState.STARTING -> Unit
-            PhantomDeeplinkState.STARTED -> {
+            ExternalWalletState.IDLE -> Unit
+            ExternalWalletState.STARTING -> Unit
+            ExternalWalletState.STARTED -> {
                 val uri = buildConnectDeeplink(state)
                 trace(
                     tag = TAG,
-                    message = "Phantom connect uri: $uri",
+                    message = "wallet connect uri: $uri",
                     type = TraceType.Process
                 )
                 uriHandler.openUri(uri.toString())
-                state.deeplinkState = PhantomDeeplinkState.CONNECTING
+                state.deeplinkState = ExternalWalletState.CONNECTING
             }
 
-            PhantomDeeplinkState.CONNECTING -> {
+            ExternalWalletState.CONNECTING -> {
                 state.walletConnection?.let {
-                    state.deeplinkState = PhantomDeeplinkState.CONNECTED
+                    state.deeplinkState = ExternalWalletState.CONNECTED
                 }
             }
 
-            PhantomDeeplinkState.CONNECTED -> {
-                trace(
-                    tag = TAG,
-                    message = "phantom connected",
-                    type = TraceType.Process
-                )
+            ExternalWalletState.CONNECTED -> {
                 // if amount was provided, send the transaction
                 if (state.amount != null) {
                     state.createAndSendTransaction()
                 } else {
+                    trace(
+                        tag = TAG,
+                        message = "wallet connected",
+                        type = TraceType.Process
+                    )
                     navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
                 }
             }
 
-            PhantomDeeplinkState.SIGNING -> {
+            ExternalWalletState.SIGNING -> {
                 val uri = buildTransactionDeeplink(state)
                 if (uri == null) {
-                    state.errors.tryEmit(PhantomOnRampError.FailedToGenerateDeeplink())
+                    state.errors.tryEmit(DeeplinkOnRampError.FailedToGenerateDeeplink())
                     return@LaunchedEffect
                 }
 
                 trace(
                     tag = TAG,
-                    message = "Phantom transact uri: $uri",
+                    message = "wallet transact uri: $uri",
                     type = TraceType.Process
                 )
                 uriHandler.openUri(uri.toString())
             }
 
-            PhantomDeeplinkState.SIGNED -> {
+            ExternalWalletState.SIGNED -> {
                 trace(
                     tag = TAG,
-                    message = "phantom transaction signed!",
+                    message = "wallet transaction signed!",
                     type = TraceType.Process
                 )
                 state.sendTransaction()
             }
 
-            PhantomDeeplinkState.TRANSACTING -> {
+            ExternalWalletState.TRANSACTING -> {
                 trace(
                     tag = TAG,
                     message = "transaction in progress",
@@ -199,7 +196,7 @@ fun PhantomOnRampHandler(
                 )
             }
 
-            PhantomDeeplinkState.TRANSACTED -> {
+            ExternalWalletState.TRANSACTED -> {
                 trace(
                     tag = TAG,
                     message = "transaction complete",
@@ -248,26 +245,27 @@ fun PhantomOnRampHandler(
 }
 
 
-private const val TAG = "onramp::phantom"
+private const val TAG = "onramp::deeplinks"
 
 private typealias Title = String
 private typealias Message = String
 
-private fun PhantomOnRampError.messaging(context: Context): Pair<Title, Message> = when (this) {
-    is PhantomOnRampError.DecryptionError -> context.getString(R.string.error_title_phantomDecryption) to context.getString(R.string.error_description_phantomDecryption)
-    is PhantomOnRampError.DeserializationError -> context.getString(R.string.error_title_phantomDeserialization) to context.getString(R.string.error_description_phantomDeserialization)
-    is PhantomOnRampError.FailedToCreateTransaction -> context.getString(R.string.error_title_phantomFailedToCreateTransaction) to context.getString(R.string.error_description_phantomFailedToCreateTransaction)
-    is PhantomOnRampError.FailedToGenerateDeeplink -> context.getString(R.string.error_title_phantomFailedToCreateDeeplink) to context.getString(R.string.error_description_phantomFailedToCreateDeeplink)
-    is PhantomOnRampError.FailedToSendTransaction -> context.getString(R.string.error_title_phantomFailedToSendTransaction) to context.getString(R.string.error_description_phantomFailedToSendTransaction)
-    is PhantomOnRampError.PhantomProvidedError -> when (this.error) {
-        PhantomError.Disconnected -> context.getString(R.string.error_title_phantomDisconnected) to context.getString(R.string.error_description_phantomDisconnected)
-        PhantomError.Unauthorized -> context.getString(R.string.error_title_phantomUnauthorized) to context.getString(R.string.error_description_phantomUnauthorized)
-        PhantomError.UserRejectedRequest -> context.getString(R.string.error_title_phantomUserRejected) to context.getString(R.string.error_description_phantomUserRejected)
-        PhantomError.InvalidInput -> context.getString(R.string.error_title_phantomInvalidInput) to context.getString(R.string.error_description_phantomInvalidInput)
-        PhantomError.RequestedResourceNotAvailable -> context.getString(R.string.error_title_phantomRequestedResourceNotAvailable) to context.getString(R.string.error_description_phantomRequestedResourceNotAvailable)
-        PhantomError.TransactionRejected -> context.getString(R.string.error_title_phantomTransactionRejected) to context.getString(R.string.error_description_phantomTransactionRejected)
-        PhantomError.MethodNotFound -> context.getString(R.string.error_title_phantomMethodNotFound) to context.getString(R.string.error_description_phantomMethodNotFound)
-        PhantomError.InternalError -> context.getString(R.string.error_title_phantomInternalError) to context.getString(R.string.error_description_phantomInternalError)
-        PhantomError.Unknown -> context.getString(R.string.error_title_phantomUnknown) to context.getString(R.string.error_description_phantomUnknown)
+private fun DeeplinkOnRampError.messaging(context: Context): Pair<Title, Message> = when (this) {
+    is DeeplinkOnRampError.DecryptionError -> context.getString(R.string.error_title_deeplinkOnRampDecryption) to context.getString(R.string.error_description_deeplinkOnRampDecryption)
+    is DeeplinkOnRampError.DeserializationError -> context.getString(R.string.error_title_deeplinkOnRampDeserialization) to context.getString(R.string.error_description_deeplinkOnRampDeserialization)
+    is DeeplinkOnRampError.FailedToCreateTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToCreateTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToCreateTransaction)
+    is DeeplinkOnRampError.FailedToSimulateTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSimulateTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSimulateTransaction)
+    is DeeplinkOnRampError.FailedToGenerateDeeplink -> context.getString(R.string.error_title_deeplinkOnRampFailedToCreateDeeplink) to context.getString(R.string.error_description_deeplinkOnRampFailedToCreateDeeplink)
+    is DeeplinkOnRampError.FailedToSendTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction)
+    is DeeplinkOnRampError.WalletProvidedError -> when (this.error) {
+        DeeplinkError.Disconnected -> context.getString(R.string.error_title_deeplinkOnRampDisconnected) to context.getString(R.string.error_description_deeplinkOnRampDisconnected)
+        DeeplinkError.Unauthorized -> context.getString(R.string.error_title_deeplinkOnRampUnauthorized) to context.getString(R.string.error_description_deeplinkOnRampUnauthorized)
+        DeeplinkError.UserRejectedRequest -> context.getString(R.string.error_title_deeplinkOnRampUserRejected) to context.getString(R.string.error_description_deeplinkOnRampUserRejected)
+        DeeplinkError.InvalidInput -> context.getString(R.string.error_title_deeplinkOnRampInvalidInput) to context.getString(R.string.error_description_deeplinkOnRampInvalidInput)
+        DeeplinkError.RequestedResourceNotAvailable -> context.getString(R.string.error_title_deeplinkOnRampRequestedResourceNotAvailable) to context.getString(R.string.error_description_deeplinkOnRampRequestedResourceNotAvailable)
+        DeeplinkError.TransactionRejected -> context.getString(R.string.error_title_deeplinkOnRampTransactionRejected) to context.getString(R.string.error_description_deeplinkOnRampTransactionRejected)
+        DeeplinkError.MethodNotFound -> context.getString(R.string.error_title_deeplinkOnRampMethodNotFound) to context.getString(R.string.error_description_deeplinkOnRampMethodNotFound)
+        DeeplinkError.InternalError -> context.getString(R.string.error_title_deeplinkOnRampInternalError) to context.getString(R.string.error_description_deeplinkOnRampInternalError)
+        DeeplinkError.Unknown -> context.getString(R.string.error_title_deeplinkOnRampUnknown) to context.getString(R.string.error_description_deeplinkOnRampUnknown)
     }
 }

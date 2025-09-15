@@ -30,10 +30,10 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.internal.ui.navigation.AppScreenContent
 import com.flipcash.app.internal.ui.navigation.MainRoot
-import com.flipcash.app.onramp.LocalPhantomDepositState
+import com.flipcash.app.onramp.ExternalWalletOnRampHandler
+import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.OnRampAmountScaffold
-import com.flipcash.app.onramp.PhantomOnRampHandler
-import com.flipcash.app.onramp.rememberPhantomDepositState
+import com.flipcash.app.onramp.rememberExternalWalletState
 import com.flipcash.app.payments.PaymentScaffold
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
@@ -118,10 +118,10 @@ internal fun App(
         )
 
         val barManager = rememberBarManager()
-        val phantomDepositState = rememberPhantomDepositState(solanaRpcConfig)
+        val externalWalletOnRamp = rememberExternalWalletState(solanaRpcConfig)
 
         CompositionLocalProvider(
-            LocalPhantomDepositState provides phantomDepositState
+            LocalExternalWalletState provides externalWalletOnRamp
         ) {
             AppScreenContent {
                 PaymentScaffold {
@@ -129,8 +129,8 @@ internal fun App(
                         TipScaffold(tipsEngine = tipsEngine) {
                             AppNavHost(biometricsState) {
                                 val codeNavigator = LocalCodeNavigator.current
-                                PhantomOnRampHandler(
-                                    state = LocalPhantomDepositState.current,
+                                ExternalWalletOnRampHandler(
+                                    state = externalWalletOnRamp,
                                     lifecycleOwner = LocalLifecycleOwner.current,
                                     navigator = codeNavigator,
                                     router = router,

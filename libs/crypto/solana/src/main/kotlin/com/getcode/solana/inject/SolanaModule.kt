@@ -8,6 +8,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
+import org.sol4k.RpcUrl
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -23,7 +24,7 @@ object SolanaModule {
 
     @Provides
     @Named("solana-rpc-url")
-    fun providesSolanaRpcUrl(): String = "https://api.mainnet-beta.solana.com"
+    fun providesSolanaRpcUrl(): String = RpcUrl.MAINNNET.value
 
     @Provides
     @Singleton

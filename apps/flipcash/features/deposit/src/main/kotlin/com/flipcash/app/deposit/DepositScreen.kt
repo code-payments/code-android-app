@@ -26,7 +26,7 @@ class DepositScreen : ModalScreen, NamedScreen, Parcelable {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_onrampProviderCryptoWallet)
+        @Composable get() = stringResource(R.string.title_onrampProviderManualDeposit)
 
     @Composable
     override fun ModalContent() {

@@ -15,7 +15,7 @@ include(
         ":apps:flipcash:shared:activityfeed",
         ":apps:flipcash:shared:onramp:common",
         ":apps:flipcash:shared:onramp:coinbase",
-        ":apps:flipcash:shared:onramp:phantom",
+        ":apps:flipcash:shared:onramp:deeplinks",
         ':apps:flipcash:shared:google-play-billing',
         ":apps:flipcash:shared:currency-selection:core",
         ":apps:flipcash:shared:currency-selection:ui",

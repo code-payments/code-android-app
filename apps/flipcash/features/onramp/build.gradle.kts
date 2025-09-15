@@ -62,7 +62,7 @@ dependencies {
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
-    implementation(project(":apps:flipcash:shared:onramp:phantom"))
+    implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:router"))
 
     implementation(project(":libs:crypto:solana"))

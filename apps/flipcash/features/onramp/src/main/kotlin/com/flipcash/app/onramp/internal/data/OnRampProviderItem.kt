@@ -10,9 +10,12 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 
 sealed interface OnRampProviderDestination {
-    data object PhantomConnection: OnRampProviderDestination
-    data class Screen(val screen: AppRoute): OnRampProviderDestination
+    data class ExternalWalletConnection(
+        val wallet: OnRampProvider.UsesDeeplinks
+    ) : OnRampProviderDestination
+    data class Screen(val screen: AppRoute) : OnRampProviderDestination
 }
+
 data class OnRampProviderItem(
     val provider: OnRampProvider.Defined,
     val destination: OnRampProviderDestination,
@@ -26,8 +29,10 @@ data class OnRampProviderItem(
                 OnRampType.PhysicalCredit -> painterResource(R.drawable.ic_debit_card)
             }
 
-            OnRampProvider.CryptoDeposit -> painterResource(R.drawable.ic_wallet)
-            OnRampProvider.Phantom ->  painterResource(R.drawable.ic_phantom)
+            OnRampProvider.ManualDeposit -> painterResource(R.drawable.ic_wallet)
+            OnRampProvider.Phantom -> painterResource(R.drawable.ic_phantom_wallet)
+            OnRampProvider.Backpack -> painterResource(R.drawable.ic_backpack_wallet)
+            OnRampProvider.Solflare -> painterResource(R.drawable.ic_solflare_wallet)
         }
 
     val title: String
@@ -38,8 +43,10 @@ data class OnRampProviderItem(
                 OnRampType.PhysicalCredit -> stringResource(R.string.title_onrampProviderCoinbaseCredit)
             }
 
-            is OnRampProvider.CryptoDeposit -> stringResource(R.string.title_onrampProviderCryptoWallet)
+            is OnRampProvider.ManualDeposit -> stringResource(R.string.title_onrampProviderManualDeposit)
             OnRampProvider.Phantom -> stringResource(R.string.title_onrampProviderPhantom)
+            OnRampProvider.Backpack -> stringResource(R.string.title_onrampProviderBackpack)
+            OnRampProvider.Solflare -> stringResource(R.string.title_onrampProviderSolflare)
         }
 }
 

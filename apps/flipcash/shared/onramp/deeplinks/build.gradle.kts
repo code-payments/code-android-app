@@ -11,7 +11,7 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.shared.onramp.phantom"
+    namespace = "${Gradle.flipcashNamespace}.shared.onramp.deeplinks"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

@@ -92,7 +92,7 @@ object TransactionBuilder {
                     destination = destination,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    kin = amount
+                    quarks = amount.quarks
                 ).instruction(),
             )
         )

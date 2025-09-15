@@ -1,4 +1,4 @@
-package com.flipcash.app.core.phantom
+package com.flipcash.app.core.onramp.deeplinks
 
 import android.os.Parcelable
 import com.flipcash.app.core.AppRoute
@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @Parcelize
-data class PhantomWalletConnection(
+data class ExternalWalletConnection(
     @SerialName("public_key")
     val publicKey: PublicKey,
     val session: String,
@@ -23,27 +23,27 @@ data class PhantomWalletConnection(
 
 @Serializable
 @Parcelize
-data class PhantomSignedTransaction(
+data class ExternallySignedTransaction(
     @SerialName("transaction")
     val serializedTransaction: String,
 ): Parcelable
 
 @Parcelize
-sealed class PhantomDeeplinkOrigin: Parcelable {
+sealed class OnRampDeeplinkOrigin: Parcelable {
     @Parcelize
-    data object Menu : PhantomDeeplinkOrigin()
+    data object Menu : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data object Cash: PhantomDeeplinkOrigin()
+    data object Cash: OnRampDeeplinkOrigin()
 
     @Parcelize
-    data object Balance: PhantomDeeplinkOrigin()
+    data object Balance: OnRampDeeplinkOrigin()
 
     @Parcelize
-    data class PoolWithId(val id: ID) : PhantomDeeplinkOrigin()
+    data class PoolWithId(val id: ID) : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data class PoolWithRendezvous(val keyPair: Ed25519.KeyPair) : PhantomDeeplinkOrigin()
+    data class PoolWithRendezvous(val keyPair: Ed25519.KeyPair) : OnRampDeeplinkOrigin()
 
     fun forUri(): String {
         return when(this) {
@@ -55,8 +55,8 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
         }.lowercase()
     }
 
-    companion object {
-        fun fromRoute(route: AppRoute?): PhantomDeeplinkOrigin? {
+    companion object Companion {
+        fun fromRoute(route: AppRoute?): OnRampDeeplinkOrigin? {
             return when (route) {
                 is AppRoute.Sheets.Menu -> Menu
                 is AppRoute.Sheets.Cash -> Cash
@@ -70,7 +70,7 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
             }
         }
 
-        fun fromString(value: String?): PhantomDeeplinkOrigin? {
+        fun fromString(value: String?): OnRampDeeplinkOrigin? {
             return when {
                 value == "menu" -> Menu
                 value == "cash" -> Cash
@@ -93,21 +93,21 @@ sealed class PhantomDeeplinkOrigin: Parcelable {
 }
 
 @Parcelize
-data class PhantomConnectionResult(
+data class WalletDeeplinkConnectionResult(
     val encryptionPublicKey: List<Byte>,
     val nonce: List<Byte>,
     val encryptedData: List<Byte>
 ): Parcelable
 
 @Parcelize
-data class PhantomSigningResult(
+data class WalletDeeplinkSigningResult(
     val nonce: List<Byte>,
     val encryptedData: List<Byte>,
 ): Parcelable
 
 @Serializable
 @Parcelize
-data class PhantomDeeplinkError(
+data class ExternalWalletDeeplinkError(
     val errorCode: String,
     val errorMessage: String,
 ): Parcelable
