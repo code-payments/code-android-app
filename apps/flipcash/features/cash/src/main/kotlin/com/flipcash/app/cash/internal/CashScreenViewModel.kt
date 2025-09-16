@@ -311,7 +311,7 @@ internal class CashScreenViewModel @Inject constructor(
                     dispatchEvent(
                         Event.OpenScreen(
                             AppRoute.OnRamp.ProviderList(
-                                AppRoute.Sheets.Cash,
+                                AppRoute.Sheets.Give,
                                 amount
                             )
                         )

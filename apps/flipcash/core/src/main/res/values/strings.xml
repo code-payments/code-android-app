@@ -389,4 +389,8 @@
     <string name="label_phantom">Phantom</string>
     <string name="label_solflare">Solflare</string>
     <string name="label_backpack">Backpack</string>
+
+    <string name="title_advancedFeatures">Advanced Features</string>
+    <string name="title_wallet">Wallet</string>
+    <string name="action_wallet">Wallet</string>
 </resources>

@@ -182,7 +182,7 @@ internal class BalanceViewModel @Inject constructor(
                     dispatchEvent(Event.OpenOnRampAmountModal)
                 } else {
                     // route to provider list
-                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Balance)))
+                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Wallet)))
                 }
             }.launchIn(viewModelScope)
 

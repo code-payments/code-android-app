@@ -1,77 +1,67 @@
-package com.flipcash.app.pools
+package com.flipcash.app.advanced
 
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.pools.internal.list.PoolListScreen
-import com.flipcash.features.pools.R
+import com.flipcash.app.advanced.internal.AdvancedFeaturesScreen
+import com.flipcash.app.advanced.internal.AdvancedFeaturesScreenViewModel
+import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
-import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class PoolListScreen: ModalScreen, NamedScreen, Parcelable {
+class AdvancedFeaturesScreen: ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_pools)
+        @Composable get() = stringResource(R.string.title_advancedFeatures)
 
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
+
+        val viewModel = getViewModel<AdvancedFeaturesScreenViewModel>()
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                isInModal = true,
                 title = name,
                 titleAlignment = Alignment.CenterHorizontally,
+                isInModal = true,
                 backButton = true,
-                onBackIconClicked = { navigator.pop() },
+                onBackIconClicked = { navigator.pop() }
             )
-            PoolListScreen(getViewModel())
+
+            AdvancedFeaturesScreen(viewModel)
         }
-    }
-}
 
-@Parcelize
-class PoolListSheet: ModalScreen, NamedScreen, Parcelable {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    override val name: String
-        @Composable get() = stringResource(R.string.title_pools)
-
-    @Composable
-    override fun ModalContent() {
-        val navigator = LocalCodeNavigator.current
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            AppBarWithTitle(
-                isInModal = true,
-                title = name,
-                titleAlignment = Alignment.CenterHorizontally,
-                endContent = {
-                    AppBarDefaults.Close { navigator.hide() }
-                }
-            )
-            PoolListScreen(getViewModel())
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OpenScreen>()
+                .map { ScreenRegistry.get(it.screen) }
+                .onEach { navigator.push(it) }
+                .launchIn(this)
         }
     }
 }

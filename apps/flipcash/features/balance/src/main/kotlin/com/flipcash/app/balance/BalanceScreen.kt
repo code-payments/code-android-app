@@ -40,7 +40,7 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
             ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_balance)
+        @Composable get() = stringResource(R.string.title_wallet)
 
     @Composable
     override fun ModalContent() {

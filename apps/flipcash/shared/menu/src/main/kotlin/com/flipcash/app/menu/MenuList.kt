@@ -14,13 +14,16 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flipcash.shared.menu.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -30,6 +33,7 @@ fun <T> MenuList(
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     items: List<MenuItem<T>>,
+    showChevrons: Boolean = false,
     header: @Composable (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onItemClick: (MenuItem<T>) -> Unit
@@ -47,7 +51,7 @@ fun <T> MenuList(
             item { header() }
         }
         items(items, key = { it.id }, contentType = { it }) { item ->
-            ListItem(modifier = Modifier.animateItem(), item = item) {
+            ListItem(modifier = Modifier.animateItem(), item = item, showChevron = showChevrons) {
                 onItemClick(item)
             }
         }
@@ -58,6 +62,7 @@ fun <T> MenuList(
 private fun <T> ListItem(
     modifier: Modifier = Modifier,
     item: MenuItem<T>,
+    showChevron: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
@@ -90,6 +95,14 @@ private fun <T> ListItem(
 
         if (item.isStaffOnly) {
             BetaIndicator()
+        }
+
+        if (showChevron) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = CodeTheme.colors.secondary,
+            )
         }
     }
 

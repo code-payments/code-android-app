@@ -34,10 +34,10 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Menu : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data object Cash: OnRampDeeplinkOrigin()
+    data object Give: OnRampDeeplinkOrigin()
 
     @Parcelize
-    data object Balance: OnRampDeeplinkOrigin()
+    data object Wallet: OnRampDeeplinkOrigin()
 
     @Parcelize
     data class PoolWithId(val id: ID) : OnRampDeeplinkOrigin()
@@ -50,8 +50,8 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             is PoolWithId -> "pool-id_${id.base58}"
             is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
-            Cash -> "cash"
-            Balance -> "balance"
+            Give -> "give"
+            Wallet -> "wallet"
         }.lowercase()
     }
 
@@ -59,12 +59,12 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
         fun fromRoute(route: AppRoute?): OnRampDeeplinkOrigin? {
             return when (route) {
                 is AppRoute.Sheets.Menu -> Menu
-                is AppRoute.Sheets.Cash -> Cash
+                is AppRoute.Sheets.Give -> Give
                 is AppRoute.Pool.Details -> {
                     route.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
                     route.poolId?.let { id -> PoolWithId(id) }
                 }
-                is AppRoute.Sheets.Balance -> Balance
+                is AppRoute.Sheets.Wallet -> Wallet
 
                 else -> null
             }
@@ -73,8 +73,8 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
         fun fromString(value: String?): OnRampDeeplinkOrigin? {
             return when {
                 value == "menu" -> Menu
-                value == "cash" -> Cash
-                value == "balance" -> Balance
+                value == "give" -> Give
+                value == "wallet" -> Wallet
                 value?.startsWith("pool-") == true -> {
                     val idStringWithPrefix = value.removePrefix("pool-")
                     val splits = idStringWithPrefix.split("_")

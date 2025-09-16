@@ -3,6 +3,7 @@ package com.flipcash.app.internal.ui.navigation
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
+import com.flipcash.app.advanced.AdvancedFeaturesScreen
 import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
@@ -28,6 +29,7 @@ import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.pools.PoolBettingScreen
 import com.flipcash.app.pools.PoolCreateFlow
 import com.flipcash.app.pools.PoolListScreen
+import com.flipcash.app.pools.PoolListSheet
 import com.flipcash.app.pools.create.PoolConfirmationScreen
 import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
 import com.flipcash.app.pools.create.PoolQuestionScreen
@@ -80,16 +82,16 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             ScannerScreen(it.deeplink)
         }
 
-        register<AppRoute.Sheets.Cash> {
+        register<AppRoute.Sheets.Give> {
             CashScreen()
         }
 
-        register<AppRoute.Sheets.Balance> {
+        register<AppRoute.Sheets.Wallet> {
             BalanceScreen()
         }
 
         register<AppRoute.Sheets.PoolList> {
-            PoolListScreen()
+            PoolListSheet()
         }
 
         register<AppRoute.Pool.Create.Name> {
@@ -159,10 +161,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             TransferInformationalScreen(it.direction)
         }
 
-        register<AppRoute.Transfers.Deposit> {
-            DepositScreen()
-        }
-
         register<AppRoute.Transfers.Withdrawal.Amount> {
             WithdrawalFlow.start()
             WithdrawalEntryScreen()
@@ -182,6 +180,18 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Menu.BackupKey> {
             BackupKeyScreen()
+        }
+
+        register<AppRoute.Menu.AdvancedFeatures> {
+            AdvancedFeaturesScreen()
+        }
+
+        register<AppRoute.Advanced.Deposit> {
+            DepositScreen()
+        }
+
+        register<AppRoute.Advanced.PoolList> {
+            PoolListScreen()
         }
     }
 

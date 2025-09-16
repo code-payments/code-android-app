@@ -66,28 +66,18 @@ internal fun ScannerNavigationBar(
     ) {
         BottomBarAction(
             modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_send),
+            label = stringResource(R.string.action_give),
             painter = painterResource(R.drawable.ic_cash_bill),
             badgeCount = 0,
-            onClick = { onAction(ScannerDecorItem.Cash) }
-        )
-
-
-        BottomBarAction(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_pool),
-            painter = painterResource(R.drawable.ic_flipcash_pools),
-            badgeCount = 0,
-            onClick = { onAction(ScannerDecorItem.Pools) },
-            toast = {}
+            onClick = { onAction(ScannerDecorItem.Give) }
         )
 
         BottomBarAction(
             modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_balance),
+            label = stringResource(R.string.action_wallet),
             painter = painterResource(R.drawable.ic_flipcash_balance),
             badgeCount = state.notificationUnreadCount,
-            onClick = { onAction(ScannerDecorItem.Balance) },
+            onClick = { onAction(ScannerDecorItem.Wallet) },
             toast = {
                 AnimatedVisibility(
                     visible = billState.showToast && billState.toast != null,

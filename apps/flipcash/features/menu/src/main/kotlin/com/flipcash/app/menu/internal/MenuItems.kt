@@ -17,27 +17,6 @@ import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.features.menu.R
 import com.getcode.util.resources.icons.Delete
 
-internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_deposit)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_depositUsdc)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Menu)
-    )
-}
-
-internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_withdraw)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_withdrawUsdc)
-
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        AppRoute.Transfers.Learn(TransferDirection.Outgoing)
-    )
-}
-
 internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_account)
@@ -45,6 +24,16 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
         @Composable get() = stringResource(R.string.title_myAccount)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
         AppRoute.Menu.MyAccount
+    )
+}
+
+internal data object AdvancedFeatures : FullMenuItem<MenuScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_advanced_features)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_advancedFeatures)
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        AppRoute.Menu.AdvancedFeatures
     )
 }
 

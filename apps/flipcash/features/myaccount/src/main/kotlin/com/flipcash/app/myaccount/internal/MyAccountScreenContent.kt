@@ -61,6 +61,7 @@ private fun MyAccountScreenContent(
         MenuList(
             modifier = Modifier.weight(1f),
             items = state.items,
+            showChevrons = true,
             onItemClick = { dispatch(it.action) }
         )
     }

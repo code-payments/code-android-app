@@ -48,6 +48,7 @@ include(
         ":apps:flipcash:features:lab",
         ":apps:flipcash:features:appsettings",
         ":apps:flipcash:features:deposit",
+        ":apps:flipcash:features:advanced",
         ":apps:flipcash:features:myaccount",
         ":apps:flipcash:features:backupkey",
         ":apps:flipcash:features:shareapp",

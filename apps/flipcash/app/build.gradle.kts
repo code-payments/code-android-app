@@ -164,6 +164,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:balance"))
     implementation(project(":apps:flipcash:features:menu"))
     implementation(project(":apps:flipcash:features:lab"))
+    implementation(project(":apps:flipcash:features:advanced"))
     implementation(project(":apps:flipcash:features:appsettings"))
     implementation(project(":apps:flipcash:features:deposit"))
     implementation(project(":apps:flipcash:features:myaccount"))
