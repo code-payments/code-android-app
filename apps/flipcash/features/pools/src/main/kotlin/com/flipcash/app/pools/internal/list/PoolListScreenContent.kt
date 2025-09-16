@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +41,7 @@ import com.flipcash.app.pools.internal.list.components.PoolStatusSeparator
 import com.flipcash.app.pools.internal.list.components.PoolSummaryRow
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.pools.R
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -79,7 +81,7 @@ internal fun PoolListScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<PoolListViewModel.Event.OnCreatePool>()
+            .filterIsInstance<PoolListViewModel.Event.CreateNewPool>()
             .onEach {
                 navigator.push(ScreenRegistry.get(AppRoute.Pool.Create.Name))
             }.launchIn(this)

@@ -393,4 +393,8 @@
     <string name="title_advancedFeatures">Advanced Features</string>
     <string name="title_wallet">Wallet</string>
     <string name="action_wallet">Wallet</string>
+
+    <string name="error_title_poolCreateDisabled">Pools Winding Down</string>
+    <string name="error_description_poolCreateDisabled">New pools cannot be created. Existing pools should be closed out</string>
+
 </resources>
