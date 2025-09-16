@@ -331,8 +331,8 @@ internal class OnRampViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnProviderSelected>()
             .map { it.item.provider }
-            // we are locking Phantom transfers to USD
-            .filterIsInstance<OnRampProvider.Phantom>()
+            // we are locking deeplink transfers to USD
+            .filterIsInstance<OnRampProvider.UsesDeeplinks>()
             .mapNotNull { exchange.getCurrency(CurrencyCode.USD.name) }
             .onEach { dispatchEvent(Event.OnCurrencyChanged(it)) }
             .launchIn(viewModelScope)
