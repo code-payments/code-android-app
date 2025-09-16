@@ -385,7 +385,7 @@ class RealSessionController @Inject constructor(
                         } else {
                             billController.update {
                                 it.copy(
-                                    primaryAction = BillState.Action.Send(
+                                    primaryAction = BillState.Action.SendAsLink(
                                         action = {
                                             billController.cancelAwaitForGrab()
 

@@ -50,6 +50,13 @@ data class BillState(
                 @Composable get() = painterResource(id = R.drawable.ic_send_outlined)
         }
 
+        data class SendAsLink(override val action: () -> Unit): Action {
+            override val label: String
+                @Composable get() = stringResource(R.string.action_sendAsLink)
+            override val asset: Painter
+                @Composable get() = painterResource(id = R.drawable.ic_send_outlined)
+        }
+
         data class Share(override val action: () -> Unit): Action {
             override val label: String
                 @Composable get() = stringResource(R.string.action_shareAsURL)

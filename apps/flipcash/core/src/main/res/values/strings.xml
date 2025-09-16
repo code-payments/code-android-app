@@ -398,4 +398,6 @@
     <string name="error_title_poolCreateDisabled">Pools Winding Down</string>
     <string name="error_description_poolCreateDisabled">New pools cannot be created. Existing pools should be closed out</string>
 
+    <string name="action_sendAsLink">Send as a Link</string>
+
 </resources>
