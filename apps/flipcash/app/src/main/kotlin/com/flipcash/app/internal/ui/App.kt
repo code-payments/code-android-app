@@ -164,8 +164,16 @@ internal fun App(
                                                         }
                                                     }
 
-                                                    StackEvent.Idle,
-                                                    StackEvent.Replace -> CurrentScreen()
+                                                    StackEvent.Idle -> CurrentScreen()
+                                                    StackEvent.Replace -> {
+                                                        when (navigator.lastItemOrNull) {
+                                                            ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
+                                                            ScreenRegistry.get(AppRoute.Onboarding.AccessKey) -> {
+                                                                CrossfadeTransition(navigator = navigator)
+                                                            }
+                                                            else -> CurrentScreen()
+                                                        }
+                                                    }
                                                 }
                                             }
 
