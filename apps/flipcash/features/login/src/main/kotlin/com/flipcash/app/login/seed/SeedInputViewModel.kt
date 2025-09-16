@@ -138,13 +138,6 @@ class SeedInputViewModel @Inject constructor(
             !flags.isRegistered && flags.requiresIapForRegistration -> {
                 navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Purchase(true)))
             }
-            permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.NotificationPermission()))
-            }
-
-            permissionChecker.isDenied(Manifest.permission.CAMERA) -> {
-                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission()))
-            }
 
             else -> navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
         }

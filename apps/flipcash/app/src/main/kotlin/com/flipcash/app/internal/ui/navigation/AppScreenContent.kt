@@ -24,8 +24,6 @@ import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.OnRampProviderListScreen
-import com.flipcash.app.permissions.CameraPermissionScreen
-import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.pools.PoolBettingScreen
 import com.flipcash.app.pools.PoolCreateFlow
 import com.flipcash.app.pools.PoolListScreen
@@ -60,14 +58,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Onboarding.Purchase> {
             PurchaseAccountScreen(it.fromLogin)
-        }
-
-        register<AppRoute.Onboarding.NotificationPermission> {
-            NotificationPermissionScreen(it.postCreate)
-        }
-
-        register<AppRoute.Onboarding.CameraPermission> {
-            CameraPermissionScreen(it.postCreate)
         }
 
         register<AppRoute.Sheets.Lab> {

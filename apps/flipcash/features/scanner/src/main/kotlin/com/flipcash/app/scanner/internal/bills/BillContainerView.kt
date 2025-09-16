@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -135,6 +136,7 @@ internal fun BillContainer(
             else -> {
                 CameraPermissionsMissingView(
                     modifier = Modifier.fillMaxSize(),
+                    backgroundColor = Color.Black,
                     onClick = { checkPermission(true) }
                 )
             }

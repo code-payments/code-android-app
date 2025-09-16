@@ -55,19 +55,7 @@ internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
             .onEach {
-                when {
-                    permissions.isDenied(Manifest.permission.POST_NOTIFICATIONS) -> {
-                        navigator.push(ScreenRegistry.get(AppRoute.Onboarding.NotificationPermission(true)))
-                    }
-
-                    permissions.isDenied(Manifest.permission.CAMERA) -> {
-                        navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission(true)))
-                    }
-
-                    else -> {
-                        navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
-                    }
-                }
+                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
             }.launchIn(this)
     }
 

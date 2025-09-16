@@ -21,7 +21,9 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data object SeedInput : Onboarding
         data object AccessKey : Onboarding
         data class Purchase(val fromLogin: Boolean = false) : Onboarding
+        @Deprecated("Onboarding streamlined; permissions now requested at time of use")
         data class NotificationPermission(val postCreate: Boolean = false) : Onboarding
+        @Deprecated("Onboarding streamlined; permissions now requested at time of use")
         data class CameraPermission(val postCreate: Boolean = false) : Onboarding
     }
 

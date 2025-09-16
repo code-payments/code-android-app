@@ -156,7 +156,6 @@ internal fun App(
                                                     StackEvent.Pop -> {
                                                         when (navigator.lastItemOrNull) {
                                                             ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
-                                                            ScreenRegistry.get(AppRoute.Onboarding.CameraPermission()),
                                                             is MainRoot -> {
                                                                 CrossfadeTransition(navigator = navigator)
                                                             }

@@ -23,10 +23,11 @@ import com.getcode.ui.theme.CodeButton
 @Composable
 fun CameraPermissionsMissingView(
     modifier: Modifier = Modifier,
+    backgroundColor: Color = CodeTheme.colors.background,
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = modifier.background(CodeTheme.colors.background),
+        modifier = modifier.background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
         Column(Modifier.fillMaxWidth(0.85f)) {
