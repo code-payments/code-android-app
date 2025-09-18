@@ -119,7 +119,8 @@ private fun FeedList(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12)
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = stringResource(R.string.title_tapAboveToAddCashToWallet),
