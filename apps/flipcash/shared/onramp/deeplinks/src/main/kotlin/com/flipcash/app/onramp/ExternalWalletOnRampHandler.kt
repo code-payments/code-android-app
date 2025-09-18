@@ -18,6 +18,7 @@ import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.router.Router
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -81,7 +82,15 @@ fun ExternalWalletOnRampHandler(
     ) {
         state.errors
             .onEach { error ->
-                val (title, message) = error.messaging(context)
+                val (title, message) = error.messaging(
+                    context = context,
+                    provider = when (state.provider) {
+                        OnRampProvider.Backpack -> context.getString(R.string.label_backpack)
+                        OnRampProvider.Phantom -> context.getString(R.string.label_phantom)
+                        OnRampProvider.Solflare -> context.getString(R.string.label_solflare)
+                        null -> ""
+                    }
+                )
                 trace(
                     tag = TAG,
                     message = "Something went wrong during deeplink onramp",
@@ -250,21 +259,21 @@ private const val TAG = "onramp::deeplinks"
 private typealias Title = String
 private typealias Message = String
 
-private fun DeeplinkOnRampError.messaging(context: Context): Pair<Title, Message> = when (this) {
-    is DeeplinkOnRampError.DecryptionError -> context.getString(R.string.error_title_deeplinkOnRampDecryption) to context.getString(R.string.error_description_deeplinkOnRampDecryption)
-    is DeeplinkOnRampError.DeserializationError -> context.getString(R.string.error_title_deeplinkOnRampDeserialization) to context.getString(R.string.error_description_deeplinkOnRampDeserialization)
+private fun DeeplinkOnRampError.messaging(context: Context, provider: String): Pair<Title, Message> = when (this) {
+    is DeeplinkOnRampError.DecryptionError -> context.getString(R.string.error_title_deeplinkOnRampDecryption) to context.getString(R.string.error_description_deeplinkOnRampDecryption).format(provider)
+    is DeeplinkOnRampError.DeserializationError -> context.getString(R.string.error_title_deeplinkOnRampDeserialization) to context.getString(R.string.error_description_deeplinkOnRampDeserialization).format(provider)
     is DeeplinkOnRampError.FailedToCreateTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToCreateTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToCreateTransaction)
     is DeeplinkOnRampError.FailedToSimulateTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSimulateTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSimulateTransaction)
     is DeeplinkOnRampError.FailedToGenerateDeeplink -> context.getString(R.string.error_title_deeplinkOnRampFailedToCreateDeeplink) to context.getString(R.string.error_description_deeplinkOnRampFailedToCreateDeeplink)
-    is DeeplinkOnRampError.FailedToSendTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction)
+    is DeeplinkOnRampError.FailedToSendTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction).format(provider)
     is DeeplinkOnRampError.WalletProvidedError -> when (this.error) {
-        DeeplinkError.Disconnected -> context.getString(R.string.error_title_deeplinkOnRampDisconnected) to context.getString(R.string.error_description_deeplinkOnRampDisconnected)
+        DeeplinkError.Disconnected -> context.getString(R.string.error_title_deeplinkOnRampDisconnected) to context.getString(R.string.error_description_deeplinkOnRampDisconnected).format(provider)
         DeeplinkError.Unauthorized -> context.getString(R.string.error_title_deeplinkOnRampUnauthorized) to context.getString(R.string.error_description_deeplinkOnRampUnauthorized)
-        DeeplinkError.UserRejectedRequest -> context.getString(R.string.error_title_deeplinkOnRampUserRejected) to context.getString(R.string.error_description_deeplinkOnRampUserRejected)
+        DeeplinkError.UserRejectedRequest -> context.getString(R.string.error_title_deeplinkOnRampUserRejected).format(provider) to context.getString(R.string.error_description_deeplinkOnRampUserRejected).format(provider)
         DeeplinkError.InvalidInput -> context.getString(R.string.error_title_deeplinkOnRampInvalidInput) to context.getString(R.string.error_description_deeplinkOnRampInvalidInput)
-        DeeplinkError.RequestedResourceNotAvailable -> context.getString(R.string.error_title_deeplinkOnRampRequestedResourceNotAvailable) to context.getString(R.string.error_description_deeplinkOnRampRequestedResourceNotAvailable)
-        DeeplinkError.TransactionRejected -> context.getString(R.string.error_title_deeplinkOnRampTransactionRejected) to context.getString(R.string.error_description_deeplinkOnRampTransactionRejected)
-        DeeplinkError.MethodNotFound -> context.getString(R.string.error_title_deeplinkOnRampMethodNotFound) to context.getString(R.string.error_description_deeplinkOnRampMethodNotFound)
+        DeeplinkError.RequestedResourceNotAvailable -> context.getString(R.string.error_title_deeplinkOnRampRequestedResourceNotAvailable) to context.getString(R.string.error_description_deeplinkOnRampRequestedResourceNotAvailable).format(provider)
+        DeeplinkError.TransactionRejected -> context.getString(R.string.error_title_deeplinkOnRampTransactionRejected) to context.getString(R.string.error_description_deeplinkOnRampTransactionRejected).format(provider)
+        DeeplinkError.MethodNotFound -> context.getString(R.string.error_title_deeplinkOnRampMethodNotFound) to context.getString(R.string.error_description_deeplinkOnRampMethodNotFound).format(provider)
         DeeplinkError.InternalError -> context.getString(R.string.error_title_deeplinkOnRampInternalError) to context.getString(R.string.error_description_deeplinkOnRampInternalError)
         DeeplinkError.Unknown -> context.getString(R.string.error_title_deeplinkOnRampUnknown) to context.getString(R.string.error_description_deeplinkOnRampUnknown)
     }

@@ -295,7 +295,7 @@
     <string name="error_title_deeplinkOnRampFailedToSendTransaction">Transaction Failed</string>
     <string name="error_title_deeplinkOnRampDisconnected">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampUnauthorized">Something Went Wrong</string>
-    <string name="error_title_deeplinkOnRampUserRejected">Request Rejected in Phantom</string>
+    <string name="error_title_deeplinkOnRampUserRejected">Request Rejected in %1$s</string>
     <string name="error_title_deeplinkOnRampInvalidInput">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampRequestedResourceNotAvailable">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampTransactionRejected">Something Went Wrong</string>
@@ -303,20 +303,20 @@
     <string name="error_title_deeplinkOnRampInternalError">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampUnknown">Something Went Wrong</string>
 
-    <string name="error_description_deeplinkOnRampDecryption">Response from Phantom failed. Please try again</string>
-    <string name="error_description_deeplinkOnRampDeserialization">Response from Phantom failed. Please try again</string>
+    <string name="error_description_deeplinkOnRampDecryption">Response from %1$s failed. Please try again</string>
+    <string name="error_description_deeplinkOnRampDeserialization">Response from %1$s failed. Please try again</string>
     <string name="error_description_deeplinkOnRampFailedToCreateTransaction">Failed to generate transaction. Please try again</string>
     <string name="error_description_deeplinkOnRampFailedToSimulateTransaction">Failed to simulate transaction on chain. Please try again</string>
     <string name="error_description_deeplinkOnRampFailedToCreateDeeplink">Failed to generate transaction. Please try again</string>
-    <string name="error_description_deeplinkOnRampFailedToSendTransaction">Make sure you have enough Solana USDC and enough SOL in your Phantom account to complete the transaction</string>
-    <string name="error_description_deeplinkOnRampDisconnected">Phantom could not connect to the network. Please try again</string>
+    <string name="error_description_deeplinkOnRampFailedToSendTransaction">Make sure you have enough Solana USDC and enough SOL in your %1$s account to complete the transaction</string>
+    <string name="error_description_deeplinkOnRampDisconnected">%1$s could not connect to the network. Please try again</string>
     <string name="error_description_deeplinkOnRampUnauthorized">The request has not been authorized by the user</string>
-    <string name="error_description_deeplinkOnRampUserRejected">Make sure you have enough Solana USDC and enough SOL in your Phantom account to complete the transaction</string>
+    <string name="error_description_deeplinkOnRampUserRejected">Make sure you have enough Solana USDC and enough SOL in your %1$s account to complete the transaction</string>
     <string name="error_description_deeplinkOnRampInvalidInput">The request was invalid. Please try again</string>
-    <string name="error_description_deeplinkOnRampRequestedResourceNotAvailable">The requested resource is not available. This can occur if a previous confirmation modal was not closed in Phantom before requesting a new approval</string>
-    <string name="error_description_deeplinkOnRampTransactionRejected">The transaction sent to Phantom was invalid</string>
-    <string name="error_description_deeplinkOnRampMethodNotFound">Phantom did not recognize the request</string>
-    <string name="error_description_deeplinkOnRampInternalError">Something went wrong within Phantom. Please try again</string>
+    <string name="error_description_deeplinkOnRampRequestedResourceNotAvailable">The requested resource is not available. This can occur if a previous confirmation modal was not closed in %1$s before requesting a new approval</string>
+    <string name="error_description_deeplinkOnRampTransactionRejected">The transaction sent to %1$s was invalid</string>
+    <string name="error_description_deeplinkOnRampMethodNotFound">%1$s did not recognize the request</string>
+    <string name="error_description_deeplinkOnRampInternalError">Something went wrong within %1$s. Please try again</string>
     <string name="error_description_deeplinkOnRampUnknown">Please try again</string>
 
     <string name="title_verifyPhoneNumber">Verify Phone Number</string>
