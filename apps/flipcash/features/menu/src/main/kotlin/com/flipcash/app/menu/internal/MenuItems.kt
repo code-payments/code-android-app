@@ -27,6 +27,16 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
     )
 }
 
+internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_menu_deposit)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_depositUsdc)
+    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
+        AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Menu)
+    )
+}
+
 internal data object AdvancedFeatures : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_advanced_features)

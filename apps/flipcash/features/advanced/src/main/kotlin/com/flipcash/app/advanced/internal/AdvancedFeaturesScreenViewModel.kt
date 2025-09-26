@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(Deposit)
     add(Pools)
 }
 

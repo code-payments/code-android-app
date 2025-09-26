@@ -71,7 +71,7 @@ internal data class AmountEntryState(
 private val DefaultOnRampOptions = listOf(
     OnRampProviderItem(
         provider = OnRampProvider.ManualDeposit,
-        destination = OnRampProviderDestination.Screen(AppRoute.Advanced.Deposit)
+        destination = OnRampProviderDestination.Screen(AppRoute.Menu.Deposit)
     )
 )
 
@@ -292,7 +292,7 @@ internal class OnRampViewModel @Inject constructor(
                                 destination = when (provider) {
                                     OnRampProvider.ManualDeposit ->
                                         OnRampProviderDestination.Screen(
-                                            AppRoute.Advanced.Deposit
+                                            AppRoute.Menu.Deposit
                                         )
 
                                     is OnRampProvider.Coinbase -> {

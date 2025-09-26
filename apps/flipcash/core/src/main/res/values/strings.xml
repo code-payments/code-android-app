@@ -400,4 +400,6 @@
 
     <string name="action_sendAsLink">Send as a Link</string>
 
+    <string name="subtitle_addUsdcToWallet">Add Solana USDC to your Flipcash wallet</string>
+
 </resources>

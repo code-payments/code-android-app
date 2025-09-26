@@ -168,16 +168,16 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             MyAccountScreen()
         }
 
+        register<AppRoute.Menu.Deposit> {
+            DepositScreen()
+        }
+
         register<AppRoute.Menu.BackupKey> {
             BackupKeyScreen()
         }
 
         register<AppRoute.Menu.AdvancedFeatures> {
             AdvancedFeaturesScreen()
-        }
-
-        register<AppRoute.Advanced.Deposit> {
-            DepositScreen()
         }
 
         register<AppRoute.Advanced.PoolList> {

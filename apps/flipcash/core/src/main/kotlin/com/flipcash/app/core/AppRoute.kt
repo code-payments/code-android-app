@@ -97,6 +97,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     @Parcelize
     sealed interface Menu: AppRoute {
         data object MyAccount : Menu
+        data object Deposit : Menu
         data object BackupKey : Menu
         data object AppSettings : Menu
         data object AdvancedFeatures : Menu
@@ -106,6 +107,5 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     @Parcelize
     sealed interface Advanced: AppRoute {
         data object PoolList : Advanced
-        data object Deposit : Transfers
     }
 }

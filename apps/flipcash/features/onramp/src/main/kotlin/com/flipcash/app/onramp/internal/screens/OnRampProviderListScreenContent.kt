@@ -1,11 +1,15 @@
 package com.flipcash.app.onramp.internal.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,12 +22,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.OnRampViewModel
+import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.data.OnRampProviderItem
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.onramp.R
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.ui.core.rememberedClickable
 
 @Composable
@@ -46,7 +58,27 @@ private fun OnRampProviderListScreenContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
     ) {
+        item {
+            Column(
+                modifier = Modifier.fillParentMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x7),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Spacer(Modifier.height(CodeTheme.dimens.grid.x4))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_usdc_on_solana),
+                    contentDescription = null
+                )
+                Text(
+                    text = stringResource(R.string.subtitle_addUsdcToWallet),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary,
+                )
+                Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
+            }
+        }
         items(state.providers) { provider ->
             OnRampProviderCell(
                 provider = provider,
@@ -66,10 +98,14 @@ private fun OnRampProviderCell(
 ) {
     Row(
         modifier = modifier
+            .background(
+                color = CodeTheme.colors.surfaceVariant,
+                shape = CodeTheme.shapes.extraSmall,
+            )
             .rememberedClickable(onClick = onClick)
             .padding(
-                horizontal = CodeTheme.dimens.grid.x2,
-                vertical = CodeTheme.dimens.grid.x4,
+                horizontal = CodeTheme.dimens.grid.x4,
+                vertical = CodeTheme.dimens.grid.x5,
             ),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
@@ -92,5 +128,28 @@ private fun OnRampProviderCell(
             contentDescription = null,
             tint = CodeTheme.colors.secondary,
         )
+    }
+}
+
+@Composable
+@Preview
+private fun ProviderCellPreview() {
+    FlipcashDesignSystem {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(CodeTheme.colors.background)
+                .padding(horizontal = CodeTheme.dimens.inset),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+        ) {
+            OnRampProvider.types.fastForEach {
+                OnRampProviderCell(
+                    provider = OnRampProviderItem(
+                        provider = it,
+                        destination = OnRampProviderDestination.Screen(AppRoute.OnRamp.AmountEntry),
+                    ),
+                ) { }
+            }
+        }
     }
 }
