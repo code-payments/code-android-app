@@ -82,6 +82,7 @@ include(
         ":libs:crypto:kin",
         ":libs:crypto:solana",
         ":libs:currency",
+        ":libs:currency-math",
         ":libs:datetime",
         ":libs:emojis",
         ":libs:encryption:base58",
