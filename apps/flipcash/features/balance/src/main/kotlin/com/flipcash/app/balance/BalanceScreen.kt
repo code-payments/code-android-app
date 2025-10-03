@@ -61,10 +61,6 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
             val viewModel = getActivityScopedViewModel<BalanceViewModel>()
             BalanceScreen(viewModel)
 
-            RepeatOnLifecycle(Lifecycle.State.RESUMED) {
-                viewModel.dispatchEvent(BalanceViewModel.Event.ResetSelections)
-            }
-
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
                     .filterIsInstance<BalanceViewModel.Event.OpenCurrencySelection>()

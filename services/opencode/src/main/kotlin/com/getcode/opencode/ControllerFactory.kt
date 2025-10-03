@@ -2,7 +2,6 @@ package com.getcode.opencode
 
 import android.content.Context
 import com.getcode.opencode.controllers.AccountController
-import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TokenController
@@ -15,13 +14,6 @@ object ControllerFactory {
         return AccountController(
             accountRepository = RepositoryFactory.createAccountRepository(context, config),
             transactionController = createTransactionController(context, config),
-            networkObserver = NetworkFactory.createNetworkObserver(context),
-        )
-    }
-
-    fun createBalanceController(context: Context,config: ProtocolConfig): BalanceController {
-        return BalanceController(
-            accountController = createAccountController(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
         )
     }
@@ -54,7 +46,6 @@ object ControllerFactory {
     fun createTokenController(context: Context, config: ProtocolConfig): TokenController {
         return TokenController(
             accountController = createAccountController(context, config),
-            balanceController = createBalanceController(context, config),
             currencyController = createCurrencyController(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
         )

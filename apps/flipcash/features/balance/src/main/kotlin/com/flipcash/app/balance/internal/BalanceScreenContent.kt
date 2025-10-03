@@ -4,13 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
@@ -24,37 +28,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.paging.LoadState
-import androidx.paging.PagingData
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemKey
 import com.flipcash.app.balance.internal.components.BalanceHeader
-import com.flipcash.app.balance.internal.components.FeedItem
-import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.onramp.AddCashRow
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.balance.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.opencode.model.financial.toFiat
+import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
-import kotlinx.coroutines.flow.flowOf
 
 @Composable
 internal fun BalanceScreen(viewModel: BalanceViewModel) {
     val state by viewModel.stateFlow.collectAsState()
-    val feed = viewModel.feed.collectAsLazyPagingItems()
 
     BalanceScreenContent(
         state = state,
-        feed = feed,
         dispatchEvent = viewModel::dispatchEvent
     )
 }
@@ -62,7 +54,6 @@ internal fun BalanceScreen(viewModel: BalanceViewModel) {
 @Composable
 private fun BalanceScreenContent(
     state: BalanceViewModel.State,
-    feed: LazyPagingItems<ActivityFeedMessage>,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
     Column {
@@ -85,20 +76,18 @@ private fun BalanceScreenContent(
             onWithdraw = { dispatchEvent(BalanceViewModel.Event.OnWithdrawClicked) },
         )
 
-        FeedList(
+        TokenList(
             modifier = Modifier.weight(1f),
             state = state,
-            feed = feed,
             dispatchEvent = dispatchEvent
         )
     }
 }
 
 @Composable
-private fun FeedList(
+private fun TokenList(
     modifier: Modifier = Modifier,
     state: BalanceViewModel.State,
-    feed: LazyPagingItems<ActivityFeedMessage>,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -109,16 +98,23 @@ private fun FeedList(
                 color = CodeTheme.colors.background,
                 showAtEnd = true
             ),
+        contentPadding = PaddingValues(
+            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        ),
         state = listState
     ) {
-        if (feed.itemCount == 0 && feed.loadState.append is LoadState.NotLoading) {
+        if (state.balances != null && state.balances.isEmpty()) {
             item {
                 Box(
-                    modifier = Modifier.fillParentMaxSize().padding(bottom = CodeTheme.dimens.inset),
+                    modifier = Modifier
+                        .fillParentMaxSize()
+                        .padding(bottom = CodeTheme.dimens.inset),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset),
                         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -132,25 +128,16 @@ private fun FeedList(
                 }
             }
         } else {
-            items(feed.itemCount, key = feed.itemKey { item -> item.id }) { index ->
-                val message = feed[index] ?: return@items
-                FeedItem(
-                    modifier = Modifier
-                        .fillParentMaxWidth()
-                        .animateItem(),
-                    message = message,
-                    canViewDetails = state.canViewDetails,
-                    isExpanded = state.expandedItem == message.id,
-                    dispatch = dispatchEvent
-                )
+            itemsIndexed(
+                state.balances.orEmpty(),
+                key = { index, item -> item.token.address.base58() }) { index, item ->
+                TokenBalanceRow(
+                    modifier = Modifier.fillParentMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset),
+                    tokenWithBalance = item
+                ) { }
 
-                if (index < feed.itemCount - 1) {
-                    Divider(color = CodeTheme.colors.dividerVariant)
-                }
-            }
-
-            item {
-                Spacer(Modifier.windowInsetsPadding(WindowInsets.navigationBars))
+                Divider(color = CodeTheme.colors.dividerVariant)
             }
         }
     }
@@ -177,7 +164,6 @@ private fun Preview_BalanceScreen_Empty() {
                     state = BalanceViewModel.State(
                         balances = emptyList()
                     ),
-                    feed = flowOf(PagingData.empty<ActivityFeedMessage>()).collectAsLazyPagingItems(),
                     dispatchEvent = {}
                 )
             }

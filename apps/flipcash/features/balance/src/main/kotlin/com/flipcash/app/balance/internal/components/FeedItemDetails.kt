@@ -27,7 +27,7 @@ import com.getcode.utils.base58
 internal fun FeedItemDetails(
     message: ActivityFeedMessage,
     modifier: Modifier = Modifier,
-    dispatch: (BalanceViewModel.Event) -> Unit
+    onCancel: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -88,9 +88,7 @@ internal fun FeedItemDetails(
                 modifier = Modifier
                     .padding(vertical = CodeTheme.dimens.grid.x3)
                     .align(Alignment.End)
-                    .unboundedClickable {
-                        dispatch(BalanceViewModel.Event.OnCancelRequested(message))
-                    },
+                    .unboundedClickable(onClick = onCancel),
                 text = "Cancel",
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary,

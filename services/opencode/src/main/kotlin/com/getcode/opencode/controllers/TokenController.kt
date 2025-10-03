@@ -34,7 +34,6 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @OptIn(ExperimentalAtomicApi::class)
 class TokenController @Inject constructor(
     private val accountController: AccountController,
-    private val balanceController: BalanceController,
     private val currencyController: CurrencyController,
     private val networkObserver: NetworkConnectivityListener,
 ) {
@@ -80,7 +79,7 @@ class TokenController @Inject constructor(
     }
 
     fun balanceForToken(token: Token): Fiat {
-        return balanceController.mintBalanceMap.value[token.address] ?: Fiat.Zero
+        return mintBalances.value[token.address] ?: Fiat.Zero
     }
 
     suspend fun add(token: Token, fiat: LocalFiat) {

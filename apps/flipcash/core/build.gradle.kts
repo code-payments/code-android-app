@@ -64,6 +64,9 @@ dependencies {
     implementation(Libs.androidx_credentials_play_auth)
     implementation(Libs.androidx_datastore)
 
+    api(Libs.coil3)
+    api(Libs.coil3_network)
+
     api(project(":services:flipcash-compose"))
 
     implementation(project(":libs:messaging"))

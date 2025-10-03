@@ -44,7 +44,8 @@ internal fun FeedItem(
     canViewDetails: Boolean,
     isExpanded: Boolean,
     modifier: Modifier = Modifier,
-    dispatch: (BalanceViewModel.Event) -> Unit,
+    onCancel: () -> Unit,
+    onViewDetails: () -> Unit,
 ) {
     val elevation by animateDpAsState(if (isExpanded) 8.dp else 0.dp)
 
@@ -60,7 +61,8 @@ internal fun FeedItem(
                 canViewDetails = canViewDetails,
                 modifier = Modifier
                     .fillMaxWidth(),
-                dispatch = dispatch,
+                onCancel = onCancel,
+                onViewDetails = onViewDetails,
             )
         }
 
@@ -75,7 +77,7 @@ internal fun FeedItem(
                 FeedItemDetails(
                     message = message,
                     modifier = Modifier.fillMaxWidth(),
-                    dispatch = dispatch
+                    onCancel = onCancel
                 )
             } else {
                 Spacer(modifier = Modifier.fillMaxWidth())
@@ -121,7 +123,9 @@ private fun Preview_CollapsedItem() {
                     message = sampleItem,
                     isExpanded = false,
                     canViewDetails = true,
-                ) { }
+                    onCancel = {},
+                    onViewDetails = {}
+                )
             }
         }
     }
@@ -142,7 +146,9 @@ private fun Preview_ExpandedItem() {
                     message = sampleItem,
                     isExpanded = true,
                     canViewDetails = true,
-                ) { }
+                    onViewDetails = {},
+                    onCancel = {}
+                )
             }
         }
     }
