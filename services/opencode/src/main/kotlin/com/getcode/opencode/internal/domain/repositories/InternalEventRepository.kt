@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.domain.repositories
 
-import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.transactions.AirdropType
@@ -20,7 +21,8 @@ import javax.inject.Inject
 
 internal class InternalEventRepository @Inject constructor(
     eventBus: ChannelEventBus,
-    private val balanceController: BalanceController,
+    private val accountController: AccountController,
+    private val tokenController: TokenController,
     private val transactionController: TransactionController,
 ): EventRepository {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -28,13 +30,14 @@ internal class InternalEventRepository @Inject constructor(
     init {
         eventBus.handle(Events.FetchBalance) {
             scope.launch {
-                balanceController.fetchBalance()
+                tokenController.update()
             }
         }
 
         eventBus.handle(Events.OnLoggedIn) {
             scope.launch {
-                balanceController.onUserLoggedIn(it.owner)
+                accountController.onUserLoggedIn(it.owner)
+                tokenController.onUserLoggedIn(it.owner)
             }
         }
 

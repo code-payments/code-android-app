@@ -1,0 +1,216 @@
+package com.getcode.opencode.controllers
+
+import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.accounts.AccountFilter
+import com.getcode.opencode.model.accounts.AccountType
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.plus
+import com.getcode.solana.keys.Mint
+import com.getcode.utils.TraceType
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.network.retryable
+import com.getcode.utils.trace
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+
+@Singleton
+@OptIn(ExperimentalAtomicApi::class)
+class TokenController @Inject constructor(
+    private val accountController: AccountController,
+    private val balanceController: BalanceController,
+    private val currencyController: CurrencyController,
+    private val networkObserver: NetworkConnectivityListener,
+) {
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val cluster = MutableStateFlow<AccountCluster?>(null)
+
+    private val tokenFetchState = mutableMapOf<Mint, AtomicBoolean>()
+    private fun isFetchingToken(mint: Mint): Boolean {
+        return tokenFetchState[mint]?.load() ?: false
+    }
+
+    private val mintBalances = MutableStateFlow(mapOf<Mint, Fiat>())
+    val tokens = MutableStateFlow(emptyList<Token>())
+
+    val tokenBalances: Flow<List<TokenWithBalance>>
+        get() = tokens.map {
+            it.map { token ->
+                val balance = mintBalances.value[token.address] ?: Fiat.Zero
+                TokenWithBalance(token, balance)
+            }
+        }
+
+
+    fun onUserLoggedIn(cluster: AccountCluster) {
+        trace(
+            tag = "Balance",
+            message = "onUserLoggedIn",
+            type = TraceType.User
+        )
+        this.cluster.value = cluster
+    }
+
+    init {
+        cluster.filterNotNull()
+            .flatMapLatest { networkObserver.state }
+            .map { it.connected }
+            .onEach { connected ->
+                if (connected) {
+                    retryable { update() }
+                }
+            }.launchIn(scope)
+    }
+
+    fun balanceForToken(token: Token): Fiat {
+        return balanceController.mintBalanceMap.value[token.address] ?: Fiat.Zero
+    }
+
+    suspend fun add(token: Token, fiat: LocalFiat) {
+        val balance = balanceForToken(token)
+        if (balance.doubleValue == 0.0) {
+            // attempt to fetch prior to append
+            fetchBalanceForToken(token)
+        } else {
+            mintBalances.update { it + (token.address to (balance + fiat.usdc)) }
+        }
+    }
+
+    suspend fun subtract(token: Token, fiat: LocalFiat) {
+        val balance = balanceForToken(token)
+        if (balance.doubleValue == 0.0) {
+            // attempt to fetch prior to append
+            fetchBalanceForToken(token)
+        } else {
+            mintBalances.update { it + (token.address to (balance - fiat.usdc)) }
+        }
+    }
+
+    suspend fun update() {
+        updateTokens()
+    }
+
+    private suspend fun updateTokens() {
+        val owner = cluster.value
+        if (owner == null) {
+            trace(
+                tag = "Token",
+                message = "Missing owner while updating tokens",
+                type = TraceType.Error
+            )
+            return
+        }
+
+        retryable(
+            maxRetries = 3,
+            call = suspend {
+                accountController.getAccounts(
+                    accountOwner = owner,
+                    requestingOwner = owner,
+                    filter = AccountFilter.AccountType(AccountType.Primary)
+                )
+            }
+        )?.map { response ->
+            response.accounts.values
+                .mapNotNull { account ->
+                    val token = currencyController.getMintMetadata(listOf(account.mint))
+                        .getOrDefault(emptyList())
+                        .firstOrNull() ?: return@mapNotNull null
+
+                    val tokenBalance = if (token.address == Mint.usdc) {
+                        Fiat(account.balance)
+                    } else {
+                        Fiat.tokenBalance(account.balance, token)
+                    }
+
+                    TokenWithBalance(token, tokenBalance)
+                }
+        }?.onSuccess { tokensWithBalance ->
+            tokensWithBalance.onEach { (token, balance) ->
+                trace(
+                    tag = "Tokens",
+                    message = "Updated balance for ${token.symbol} is ${balance.formatted()} USD",
+                    type = TraceType.Process
+                )
+
+                mintBalances.update { it + (token.address to balance) }
+                tokens.update { (it + token).distinctBy { t -> t.address } }
+            }
+        }
+    }
+
+    private suspend fun fetchBalanceForToken(token: Token) {
+        val owner = cluster.value
+        if (owner == null) {
+            trace(
+                tag = "Token",
+                message = "Missing owner while fetching token balance for ${token.symbol}",
+                type = TraceType.Error
+            )
+            return
+        }
+
+        if (!isFetchingToken(token.address)) {
+            tokenFetchState[token.address]?.store(true)
+
+            trace(
+                tag = "Tokens",
+                message = "Fetching Balance for ${token.symbol}",
+                type = TraceType.Process
+            )
+
+            retryable(
+                maxRetries = 3,
+                call = suspend {
+                    accountController.getAccounts(
+                        accountOwner = owner,
+                        requestingOwner = owner,
+                        filter = AccountFilter.MintAddress(token.address)
+                    )
+                }
+            )?.map {
+                it.accounts.values.toList()
+                    .firstOrNull { accountInfo -> accountInfo.accountType == AccountType.Primary  && accountInfo.mint == token.address }
+            }?.map { account ->
+                when {
+                    account == null -> throw IllegalStateException("No account found for ${token.symbol}")
+                    account.mint == Mint.usdc -> Fiat(account.balance)
+                    else -> Fiat.tokenBalance(account.balance, token)
+                }
+            }?.onSuccess { tokenBalance ->
+                mintBalances.update { it + (token.address to tokenBalance) }
+                trace(
+                    tag = "Tokens",
+                    message = "Updated balance for ${token.symbol} is ${tokenBalance.formatted()} USD",
+                    type = TraceType.Process
+                )
+                tokenFetchState[token.address]?.store(false)
+            }?.onFailure {
+                tokenFetchState[token.address]?.store(false)
+            }
+        }
+    }
+
+    fun reset() {
+        mintBalances.value = emptyMap()
+        tokens.value = emptyList()
+        cluster.value = null
+    }
+}

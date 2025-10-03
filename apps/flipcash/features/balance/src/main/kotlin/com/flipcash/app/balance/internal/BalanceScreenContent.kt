@@ -69,7 +69,7 @@ private fun BalanceScreenContent(
         BalanceHeader(
             modifier = Modifier
                 .fillMaxWidth(),
-            balance = state.balance
+            balance = state.totalBalance
         ) {
             dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
         }
@@ -175,27 +175,12 @@ private fun Preview_BalanceScreen_Empty() {
             Box(modifier = Modifier.background(CodeTheme.colors.background)) {
                 BalanceScreenContent(
                     state = BalanceViewModel.State(
-                        balance = LocalFiat(0.toFiat())
+                        balances = emptyList()
                     ),
                     feed = flowOf(PagingData.empty<ActivityFeedMessage>()).collectAsLazyPagingItems(),
                     dispatchEvent = {}
                 )
             }
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun Preview_FeedList_Empty() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            FeedList(
-                state = BalanceViewModel.State(
-                    balance = LocalFiat(0.toFiat())
-                ),
-                feed = flowOf(PagingData.empty<ActivityFeedMessage>()).collectAsLazyPagingItems()
-            ) { }
         }
     }
 }

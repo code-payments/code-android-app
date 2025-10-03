@@ -4,7 +4,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.repositories.CurrencyRepository
-import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,9 +24,9 @@ class CurrencyController @Inject constructor(
         return repository.getRates(from)
     }
 
-    suspend fun getMints(
-        addresses: List<PublicKey>
+    suspend fun getMintMetadata(
+        addresses: List<Mint>
     ): Result<List<MintMetadata>> {
-        return repository.getMints(addresses)
+        return repository.getMintMetadata(addresses)
     }
 }

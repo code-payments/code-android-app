@@ -3,7 +3,9 @@ package com.getcode.opencode.inject
 import android.content.Context
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
@@ -115,9 +117,10 @@ object OpenCodeModule {
     @Singleton
     internal fun providesEventRepository(
         eventBus: ChannelEventBus,
-        balanceController: BalanceController,
+        accountController: AccountController,
+        tokenController: TokenController,
         transactionController: TransactionController,
-    ): EventRepository = InternalEventRepository(eventBus, balanceController, transactionController)
+    ): EventRepository = InternalEventRepository(eventBus, accountController, tokenController, transactionController)
 
     @Provides
     @Singleton

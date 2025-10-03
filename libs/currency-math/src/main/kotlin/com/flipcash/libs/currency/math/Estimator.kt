@@ -1,15 +1,14 @@
 package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
-import jakarta.inject.Inject
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class Estimator @Inject constructor() {
-    fun currentPriceFor(quarks: Long): Result<BigDecimal> {
+object Estimator {
+    fun currentPriceFor(currentSupplyInQuarks: Long): Result<BigDecimal> {
         return runCatching {
             val scale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val unscaledCurrentSupply = BigDecimal(quarks, mc)
+            val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks, mc)
             val scaledCurrentSupply = unscaledCurrentSupply.divide(scale, mc)
             scaledCurrentSupply
         }.fold(
@@ -74,8 +73,8 @@ class Estimator @Inject constructor() {
             val feesQuarks = unscaledFees
 
             BuyEstimation(
-                netTokensToReceive = tokensQuarks.toBigInteger(),
-                fees = feesQuarks.toBigInteger(),
+                netTokensToReceive = tokensQuarks,
+                fees = feesQuarks,
             )
         }
     }
@@ -110,19 +109,19 @@ class Estimator @Inject constructor() {
             val feesQuarks = unscaledFees
 
             SellEstimation(
-                netAmountToReceive = amountQuarks.toBigInteger(),
-                fees = feesQuarks.toBigInteger(),
+                netAmountToReceive = amountQuarks,
+                fees = feesQuarks,
             )
         }
     }
 }
 
 data class BuyEstimation(
-    val netTokensToReceive: BigInteger,
-    val fees: BigInteger,
+    val netTokensToReceive: BigDecimal,
+    val fees: BigDecimal,
 )
 
 data class SellEstimation(
-    val netAmountToReceive: BigInteger,
-    val fees: BigInteger,
+    val netAmountToReceive: BigDecimal,
+    val fees: BigDecimal,
 )

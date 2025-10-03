@@ -11,9 +11,8 @@ class EstimationTests {
     @Test
     fun `estimate current price`() {
         val curve = ExponentialCurve.getOrThrow()
-        val estimator = Estimator()
-        val priceForZero = estimator.currentPriceFor(0).getOrThrow()
-        val priceForAll = estimator.currentPriceFor(DefaultMintMaxQuarkSupply).getOrThrow()
+        val priceForZero = Estimator.currentPriceFor(0).getOrThrow()
+        val priceForAll = Estimator.currentPriceFor(DefaultMintMaxQuarkSupply).getOrThrow()
 
         val spot0 = curve.spotPriceAtSupply(BigDecimal.ZERO).getOrThrow()
         val spotMax = curve.spotPriceAtSupply(MAX_SUPPLY).getOrThrow()
@@ -24,10 +23,9 @@ class EstimationTests {
 
     @Test
     fun `estimate value exchange`() {
-        val estimator = Estimator()
-        val quarks = estimator.valueExchange(
-            valueInQuarks = 5_000_000,                // $5,
-            currentSupplyInQuarks = 7232649000000000, // 723,264.9 tokens
+        val quarks = Estimator.valueExchange(
+            valueInQuarks = 1_000_000_000, // 5_000_000,                // $5,
+            currentSupplyInQuarks = 149130130273636, // 7232649000000000, // 723,264.9 tokens
             mintDecimals = 6,
         ).getOrThrow()
 
@@ -38,8 +36,7 @@ class EstimationTests {
 
     @Test
     fun `estimate buys`() {
-        val estimator = Estimator()
-        val (received, fees) = estimator.buy(
+        val (received, fees) = Estimator.buy(
             amountInQuarks = 100_000_000,             // $100
             currentSupplyInQuarks = 7179502000000000, // 717,950.2 tokens
             mintDecimals = 6,
@@ -49,7 +46,7 @@ class EstimationTests {
         val expectedTotal = BigInteger("53147450513564")
         assertEquals( expectedTotal, received + fees)
 
-        val (received2, fees2) = estimator.buy(
+        val (received2, fees2) = Estimator.buy(
             amountInQuarks = 100_000_000,             // $100
             currentSupplyInQuarks = 7179502000000000, // 717,950.2 tokens
             mintDecimals = 6,
@@ -61,8 +58,7 @@ class EstimationTests {
 
     @Test
     fun `estimate sells`() {
-        val estimator = Estimator()
-        val (received, fees) = estimator.sell(
+        val (received, fees) = Estimator.sell(
             amountInQuarks = 2651496281136,          // 265.1496281136 tokens
             currentValueInQuarks = 10100000000,      // $10100
             mintDecimals = 6,
@@ -72,7 +68,7 @@ class EstimationTests {
         val expectedTotal = BigInteger("5000000")
         assertEquals( expectedTotal, received + fees)
 
-        val (received2, fees2) = estimator.sell(
+        val (received2, fees2) = Estimator.sell(
             amountInQuarks = 2651496281136,          // 265.1496281136 tokens
             currentValueInQuarks = 10100000000,      // $10100
             mintDecimals = 6,

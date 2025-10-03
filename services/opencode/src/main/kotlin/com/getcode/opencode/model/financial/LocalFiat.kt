@@ -49,3 +49,14 @@ data class LocalFiat(
         )
     }
 }
+
+fun Iterable<LocalFiat>.sum(): LocalFiat {
+    return this.fold(LocalFiat.Zero) { acc, localFiat ->
+        LocalFiat(
+            usdc = acc.usdc + localFiat.usdc,
+            converted = acc.converted + localFiat.converted,
+            rate = localFiat.rate
+        )
+    }
+
+}

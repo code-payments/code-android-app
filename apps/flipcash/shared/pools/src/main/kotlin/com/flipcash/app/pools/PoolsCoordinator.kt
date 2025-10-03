@@ -31,10 +31,7 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -177,7 +174,7 @@ class PoolsCoordinator @Inject constructor(
             requestingOwner = owner,
             filter = AccountFilter.TokenAddress(pool.fundingDestination)
         ).map {
-            it.balance == Fiat.Zero
+            it.balance == 0L
         }.onFailure {
             return Result.failure(it)
         }

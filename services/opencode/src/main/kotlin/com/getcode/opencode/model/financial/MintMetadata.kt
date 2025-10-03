@@ -1,10 +1,22 @@
 package com.getcode.opencode.model.financial
 
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
+data class TokenWithBalance(
+    val token: Token,
+    val balance: Fiat
+)
+
+data class TokenWithLocalizedBalance(
+    val token: Token,
+    val balance: LocalFiat
+)
+
+typealias Token = MintMetadata
 
 /**
- * Represents metadata associated with a mint account.
+ * Represents metadata associated with a token account.
  *
  * @property address Token mint address
  * @property decimals The number of decimals configured for the mint
@@ -19,7 +31,7 @@ import com.getcode.solana.keys.PublicKey
  * bonding curve
  */
 data class MintMetadata(
-    val address: PublicKey,
+    val address: Mint,
     val decimals: Int,
     val name: String,
     val symbol: String,

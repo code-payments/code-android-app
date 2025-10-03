@@ -10,9 +10,9 @@ import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
-import com.flipcash.app.core.internal.updater.BalanceUpdater
 import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.core.internal.updater.ProfileUpdater
+import com.flipcash.app.core.internal.updater.TokenUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.pools.PoolUpdater
@@ -37,7 +37,7 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -91,7 +91,7 @@ class RealSessionController @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
-    private val balanceUpdater: BalanceUpdater,
+    private val tokenUpdater: TokenUpdater,
     private val exchangeUpdater: ExchangeUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
     private val poolsUpdater: PoolsUpdater,
@@ -101,7 +101,7 @@ class RealSessionController @Inject constructor(
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
-    private val balanceController: BalanceController,
+    private val tokenController: TokenController,
     private val featureFlagController: FeatureFlagController,
     private val analytics: FlipcashAnalyticsService,
     appSettingsCoordinator: AppSettingsCoordinator,
@@ -237,7 +237,7 @@ class RealSessionController @Inject constructor(
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
-            balanceUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
+            tokenUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             // TODO: once we have streams setup for pool this can be removed
             poolsUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 45.seconds)
@@ -252,7 +252,7 @@ class RealSessionController @Inject constructor(
 
     private fun stopPolling() {
         exchangeUpdater.stop()
-        balanceUpdater.stop()
+        tokenUpdater.stop()
         activityFeedUpdater.stop()
         // TODO: once we have streams setup for pool this can be removed
         poolsUpdater.stop()
@@ -627,7 +627,7 @@ class RealSessionController @Inject constructor(
         ).onFailure {
             dismissBill(PutInWallet)
         }.onSuccess {
-            balanceController.fetchBalance()
+            tokenController.update()
             checkPendingItemsInFeed()
             dismissBill(PutInWallet)
         }

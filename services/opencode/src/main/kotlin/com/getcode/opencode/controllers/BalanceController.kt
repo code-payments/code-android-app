@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.sum
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
@@ -34,6 +35,10 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @Singleton
+@Deprecated(
+    message = "Replaced by multi-token controller TokenController",
+    replaceWith = ReplaceWith("TokenController")
+)
 @OptIn(ExperimentalAtomicApi::class)
 class BalanceController @Inject constructor(
     private val accountController: AccountController,
@@ -42,6 +47,8 @@ class BalanceController @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _rawBalance = MutableStateFlow(Fiat.Zero)
+
+    internal val mintBalanceMap = MutableStateFlow(mapOf<Mint, Fiat>())
 
     private val cluster = MutableStateFlow<AccountCluster?>(null)
 
@@ -138,14 +145,16 @@ class BalanceController @Inject constructor(
                     onTimelockUnlocked()
                 }
                 onNextIndexDetermined(response.nextPoolIndex)
-                retrieveBalanceFromAccounts(response.accounts)
-            }?.onSuccess { newBalance ->
+                retrieveBalancesFromAccounts(response.accounts)
+            }?.onSuccess { balances ->
+                val totalBalance = balances.values.sum()
+                mintBalanceMap.value = balances
                 trace(
                     tag = "Balance",
-                    message = "Updated balance is ${newBalance.formatted()} USD",
+                    message = "Updated balance is ${totalBalance.formatted()} USD",
                     type = TraceType.Process
                 )
-                _rawBalance.update { newBalance }
+                _rawBalance.update { totalBalance }
                 fetching.store(false)
             }?.onFailure {
                 fetching.store(false)
@@ -153,8 +162,8 @@ class BalanceController @Inject constructor(
         }
     }
 
-    private fun retrieveBalanceFromAccounts(accounts: Map<PublicKey, AccountInfo>): Fiat {
-        var balance = Fiat.Zero
+    private fun retrieveBalancesFromAccounts(accounts: Map<PublicKey, AccountInfo>): Map<PublicKey, Fiat> {
+        val balances = mutableMapOf<PublicKey, Fiat>()
         timedTrace(
             tag = "Balance",
             message = "parsing balance from accounts",
@@ -162,16 +171,17 @@ class BalanceController @Inject constructor(
         ) {
             for ((_, info) in accounts) {
                 if (info.accountType == AccountType.Primary) {
-                    balance += info.balance
+//                    balances[info.mint] = info.balance
                 }
             }
         }
 
-        return balance
+        return balances
     }
 
     fun reset() {
         _rawBalance.value = Fiat.Zero
+        mintBalanceMap.value = emptyMap()
         cluster.value = null
     }
 }

@@ -55,6 +55,7 @@
     <string name="error_description_linkExpired">The cash was automatically returned to the sender because it wasn\'t collected within 7 days. Please ask them to send the cash again</string>
 
     <string name="subtitle_balanceIsHeldInUsdStablecoins">Your balance is held in US dollar stablecoins</string>
+    <string name="subtitle_currentValueOfAllCurrencies">The current value of your currencies</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
     <string name="subtitle_balanceEmptyState">Ask a friend to give you some cash with Flipcash, or deposit USDC from your crypto exchange or another crypto wallet</string>
     <string name="action_depositFunds">Deposit Funds</string>

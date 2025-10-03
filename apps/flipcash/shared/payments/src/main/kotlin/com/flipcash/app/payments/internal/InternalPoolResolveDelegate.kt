@@ -21,7 +21,6 @@ import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.base58
-import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
 import javax.inject.Inject
 
@@ -162,8 +161,8 @@ class InternalPoolResolveDelegate @Inject constructor(
         val winnerCount = matchingBets.count()
 
         // Calculate base amount per winner and remainder
-        val baseAmountPerWinner = poolBalance.quarks / winnerCount
-        val remainderQuarks = poolBalance.quarks % winnerCount
+        val baseAmountPerWinner = poolBalance / winnerCount
+        val remainderQuarks = poolBalance % winnerCount
 
         // 2. otherwise, pay out all winning (matching bets)
         // unequal remainder is added to the 'remainderQuarks' winners

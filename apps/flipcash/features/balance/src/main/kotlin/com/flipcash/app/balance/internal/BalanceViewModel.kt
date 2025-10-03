@@ -21,11 +21,13 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.opencode.model.financial.sum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -44,27 +46,30 @@ import javax.inject.Inject
 
 @HiltViewModel
 internal class BalanceViewModel @Inject constructor(
-    balanceController: BalanceController,
+    tokenController: TokenController,
     feedCoordinator: ActivityFeedCoordinator,
     transactionController: TransactionController,
     featureFlags: FeatureFlagController,
     userManager: UserManager,
     resources: ResourceHelper,
-    private val exchange: Exchange,
+    exchange: Exchange,
     onrampController: OnRampAmountController,
 ) : BaseViewModel2<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
-        val balance: LocalFiat? = null,
+        val balances: List<TokenWithLocalizedBalance>? = null,
         val canViewDetails: Boolean = false,
         val preferredOnRampProvider: OnRampProvider? = null,
         val expandedItem: ID? = null,
-    )
+    ) {
+        val totalBalance: LocalFiat?
+            get() = balances.orEmpty().map { it.balance }.sum()
+    }
 
     sealed interface Event {
-        data class OnBalanceUpdated(val balance: LocalFiat) : Event
+        data class OnBalancesUpdated(val balances: List<TokenWithLocalizedBalance>) : Event
         data class OnTransactionDetailsEnabled(val enabled: Boolean) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
         data class ViewDetails(val id: ID?) : Event
@@ -82,16 +87,22 @@ internal class BalanceViewModel @Inject constructor(
 
     init {
         combine(
-            balanceController.rawBalance,
+            tokenController.tokenBalances,
             exchange.observeBalanceRate(),
-        ) { balance, rate ->
-            LocalFiat(
-                usdc = balance,
-                converted = balance.convertingTo(rate),
-                rate = rate
-            )
+        ) { balances, rate ->
+            balances.map {
+                TokenWithLocalizedBalance(
+                    token = it.token,
+                    balance = LocalFiat(
+                        usdc = it.balance,
+                        converted = it.balance.convertingTo(rate),
+                        rate = rate
+
+                    )
+                )
+            }.sortedByDescending { it.balance.converted }
         }.onEach {
-            dispatchEvent(Event.OnBalanceUpdated(it))
+            dispatchEvent(Event.OnBalancesUpdated(it))
         }.launchIn(viewModelScope)
 
         featureFlags.observe(FeatureFlag.TransactionDetails)
@@ -159,7 +170,7 @@ internal class BalanceViewModel @Inject constructor(
                 onSuccess = {
                     viewModelScope.launch {
                         feedCoordinator.checkPendingMessagesForUpdates()
-                        balanceController.fetchBalance()
+                        tokenController.update()
                     }
                 }
             ).launchIn(viewModelScope)
@@ -232,7 +243,7 @@ internal class BalanceViewModel @Inject constructor(
                 Event.ResetSelections -> { state -> state }
                 is Event.OnCancelRequested -> { state -> state }
                 is Event.CancelTransfer -> { state -> state }
-                is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
+                is Event.OnBalancesUpdated -> { state -> state.copy(balances = event.balances) }
                 is Event.OnTransactionDetailsEnabled -> { state -> state.copy(canViewDetails = event.enabled) }
                 is Event.ViewDetails -> { state ->
                     val currentlyExpanded = state.expandedItem

@@ -50,12 +50,14 @@ object RepositoryFactory {
 
         val bus = module.providesEventBus()
 
+        val accountController = ControllerFactory.createAccountController(context, config)
         val transactionController = ControllerFactory.createTransactionController(context, config)
-        val balanceController = ControllerFactory.createBalanceController(context, config)
+        val tokenController = ControllerFactory.createTokenController(context, config)
 
         return module.providesEventRepository(
             eventBus = bus,
-            balanceController = balanceController,
+            accountController = accountController,
+            tokenController = tokenController,
             transactionController = transactionController
         )
     }

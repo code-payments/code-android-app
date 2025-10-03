@@ -5,18 +5,18 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.repositories.CurrencyRepository
-import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Mint
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 internal class InternalCurrencyRepository @Inject constructor(
     private val service: CurrencyService,
-): CurrencyRepository{
+): CurrencyRepository {
     override suspend fun getRates(from: Instant?): Result<Map<CurrencyCode, Rate>> {
         return service.getRates(from)
     }
 
-    override suspend fun getMints(addresses: List<PublicKey>): Result<List<MintMetadata>> {
+    override suspend fun getMintMetadata(addresses: List<Mint>): Result<List<MintMetadata>> {
         return service.getMints(addresses)
     }
 }

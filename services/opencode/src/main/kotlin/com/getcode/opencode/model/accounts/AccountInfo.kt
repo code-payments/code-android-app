@@ -3,7 +3,6 @@ package com.getcode.opencode.model.accounts
 import com.codeinc.opencode.gen.account.v1.AccountService
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.extensions.toPublicKey
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -47,7 +46,7 @@ data class AccountInfo(
      * on the blockchain and could be non-zero even if the account hasn't been created.
      * Use [balanceSource] to determine how this value was calculated.
      */
-    val balance: Fiat,
+    val balance: Long,
 
     /**
      * The state of the account as it pertains to Code's ability to manage funds.
@@ -119,7 +118,7 @@ data class AccountInfo(
                 owner = owner,
                 authority = authority,
                 balanceSource = balanceSource,
-                balance = Fiat(info.balance),
+                balance = info.balance,
                 managementState = managementState,
                 blockchainState = blockchainState,
                 claimState = claimState,
