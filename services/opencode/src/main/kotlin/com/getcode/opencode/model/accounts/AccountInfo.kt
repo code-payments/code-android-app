@@ -289,8 +289,6 @@ data class AccountInfo(
 
 val AccountInfo.displayName: String
     get() = when (val type = accountType) {
-        AccountType.Incoming -> "Incoming $index"
-        AccountType.Outgoing -> "Outgoing $index"
         AccountType.Primary -> "Primary"
         AccountType.RemoteSend -> "Remote Send"
         AccountType.Swap -> "Swap (USDC)"

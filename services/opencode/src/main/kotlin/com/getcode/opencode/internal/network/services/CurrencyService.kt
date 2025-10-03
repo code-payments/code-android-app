@@ -1,16 +1,21 @@
 package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
+import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.GetRatesError
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.PublicKey
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 internal class CurrencyService @Inject constructor(
     private val api: CurrencyApi,
+    private val mintMapper: MintMapper,
 ) {
     suspend fun getRates(
         from: Instant?
@@ -38,6 +43,31 @@ internal class CurrencyService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(GetRatesError.Other(cause = cause))
+            }
+        )
+    }
+
+    suspend fun getMints(
+        mintAddresses: List<PublicKey>
+    ): Result<List<MintMetadata>> {
+        return runCatching {
+            api.getMints(mintAddresses)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    CurrencyService.GetMintsResponse.Result.OK -> {
+                        val mints = response.metadataByAddressMap.values.toList()
+                            .map { mintMapper.map(it) }
+
+                        Result.success(mints)
+                    }
+                    CurrencyService.GetMintsResponse.Result.NOT_FOUND -> Result.failure(GetMintsError.NotFound())
+                    CurrencyService.GetMintsResponse.Result.UNRECOGNIZED -> Result.failure(GetMintsError.Unrecognized())
+                    else -> Result.failure(GetMintsError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(GetMintsError.Other(cause = cause))
             }
         )
     }

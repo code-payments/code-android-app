@@ -45,11 +45,13 @@ class AccountController @Inject constructor(
 
     suspend fun getAccounts(
         accountOwner: AccountCluster,
-        requestingOwner: AccountCluster
+        requestingOwner: AccountCluster,
+        filter: AccountFilter? = null,
     ): Result<AccountResponse> {
         return accountRepository.getAccounts(
             accountOwner = accountOwner.authority.keyPair,
-            requestingOwner = requestingOwner.authority.keyPair
+            requestingOwner = requestingOwner.authority.keyPair,
+            filter = filter,
         )
     }
 

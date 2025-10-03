@@ -52,6 +52,15 @@ sealed class GetRatesError(
     data class Other(override val cause: Throwable? = null) : GetRatesError(message = cause?.message, cause = cause)
 }
 
+sealed class GetMintsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound : GetMintsError("Not found")
+    class Unrecognized : GetMintsError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : GetMintsError(message = cause?.message, cause = cause)
+}
+
 sealed class OpenMessageStreamError(
     override val message: String? = null,
     override val cause: Throwable? = null

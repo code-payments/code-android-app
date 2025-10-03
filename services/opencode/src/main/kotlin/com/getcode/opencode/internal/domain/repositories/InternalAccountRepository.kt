@@ -18,13 +18,14 @@ internal class InternalAccountRepository @Inject constructor(
     override suspend fun getAccounts(
         accountOwner: Ed25519.KeyPair,
         requestingOwner: Ed25519.KeyPair,
-    ): Result<AccountResponse> = service.getAccounts(accountOwner, requestingOwner)
+        filter: AccountFilter?,
+    ): Result<AccountResponse> = service.getAccounts(accountOwner, requestingOwner, filter)
 
     override suspend fun getAccount(
         accountOwner: Ed25519.KeyPair,
         requestingOwner: Ed25519.KeyPair,
         filter: AccountFilter,
-    ): Result<AccountInfo> = service.getAccounts(accountOwner, requestingOwner, filter)
+    ): Result<AccountInfo> = getAccounts(accountOwner, requestingOwner, filter)
         .map { response -> response.accounts.values.firstOrNull() }
         .fold(
             onSuccess = {

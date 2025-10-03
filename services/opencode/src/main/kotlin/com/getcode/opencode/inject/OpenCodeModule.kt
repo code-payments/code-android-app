@@ -9,6 +9,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository
+import com.getcode.opencode.internal.domain.repositories.InternalCurrencyRepository
 import com.getcode.opencode.internal.domain.repositories.InternalEventRepository
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
@@ -18,6 +19,7 @@ import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
 import com.getcode.opencode.repositories.TransactionRepository
@@ -117,6 +119,11 @@ object OpenCodeModule {
         transactionController: TransactionController,
     ): EventRepository = InternalEventRepository(eventBus, balanceController, transactionController)
 
+    @Provides
+    @Singleton
+    internal fun providesCurrencyRepository(
+        service: CurrencyService
+    ): CurrencyRepository = InternalCurrencyRepository(service)
     @Provides
     @Singleton
     internal fun providesEventBus(): ChannelEventBus = ChannelEventBus()

@@ -2,14 +2,20 @@ package com.getcode.opencode
 
 import android.content.Context
 import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
 import com.getcode.opencode.internal.network.api.AccountApi
+import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.services.AccountService
+import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
 import com.getcode.opencode.repositories.TransactionRepository
@@ -83,5 +89,27 @@ object RepositoryFactory {
         val mapper = TransactionMetadataMapper()
         val service = TransactionService(api, mapper)
         return module.providesTransactionRepository(service)
+    }
+
+    fun createCurrencyRepository(
+        context: Context,
+        config: ProtocolConfig
+    ): CurrencyRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = CurrencyApi(module.provideManagedChannel(context, config))
+        val mintMapper = MintMapper(
+            vmMetadataMapper = VmMetadataMapper(),
+            launchpadMetadataMapper = LaunchpadMetadataMapper(),
+        )
+        val service = CurrencyService(api, mintMapper)
+        return module.providesCurrencyRepository(service)
     }
 }

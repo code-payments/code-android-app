@@ -8,6 +8,6 @@ import com.getcode.solana.keys.PublicKey
 
 interface AccountRepository {
     suspend fun isCodeAccount(owner: KeyPair): Result<Boolean>
-    suspend fun getAccounts(accountOwner: KeyPair, requestingOwner: KeyPair): Result<AccountResponse>
+    suspend fun getAccounts(accountOwner: KeyPair, requestingOwner: KeyPair, filter: AccountFilter?): Result<AccountResponse>
     suspend fun getAccount(accountOwner: KeyPair, requestingOwner: KeyPair, filter: AccountFilter): Result<AccountInfo>
 }

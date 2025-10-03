@@ -5,12 +5,11 @@ import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
+import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
+import com.getcode.solana.keys.PublicKey
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 internal class CurrencyApi @Inject constructor(
@@ -43,6 +42,28 @@ internal class CurrencyApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getAllRates(request)
+        }
+    }
+
+    /**
+     * Gets mint account metadata by address
+     *
+     * @param mintAddresses The list of mint addresses to query
+     *
+     * @return The [CurrencyService.GetMintsResponse] with mint account metadata by address
+     */
+    suspend fun getMints(
+        mintAddresses: List<PublicKey>
+    ): CurrencyService.GetMintsResponse {
+        val request = CurrencyService.GetMintsRequest.newBuilder()
+            .apply {
+                mintAddresses.forEachIndexed { index, address ->
+                    addAddresses(index, address.asSolanaAccountId())
+                }
+            }.build()
+
+        return withContext(Dispatchers.IO) {
+            api.getMints(request)
         }
     }
 }
