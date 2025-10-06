@@ -30,12 +30,6 @@ class ProfileController @Inject constructor(
                     type = TraceType.Process,
                 )
                 userManager.set(it)
-            }.onFailure {
-                trace(
-                    tag = "Profile",
-                    message = "Failed to update user profile",
-                    type = TraceType.Error
-                )
             }
     }
 

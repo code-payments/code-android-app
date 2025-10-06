@@ -5,6 +5,7 @@ import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.utils.trace
 import javax.inject.Inject
 
 class AccountController @Inject constructor(
@@ -31,7 +32,9 @@ class AccountController @Inject constructor(
         val userId = userManager.accountId
             ?: return Result.failure(Throwable("No user ID in UserManager"))
 
-        val countryCode = localeHelper.getDefaultCountry()
+        val countryCode = localeHelper.getDefaultCountry().orEmpty()
+
+        trace("user's device country code is $countryCode")
 
         return repository.getUserFlags(
             owner = owner,
