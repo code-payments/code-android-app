@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +62,7 @@ private fun OnRampProviderListScreenContent(
         item {
             Column(
                 modifier = Modifier.fillParentMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x7),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.height(CodeTheme.dimens.grid.x4))
@@ -72,11 +71,11 @@ private fun OnRampProviderListScreenContent(
                     contentDescription = null
                 )
                 Text(
+                    modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(R.string.subtitle_addUsdcToWallet),
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textSecondary,
                 )
-                Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
             }
         }
         items(state.providers) { provider ->
@@ -85,7 +84,6 @@ private fun OnRampProviderListScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { dispatchEvent(OnRampViewModel.Event.OnProviderSelected(provider)) },
             )
-            Divider(color = CodeTheme.colors.divider)
         }
     }
 }
