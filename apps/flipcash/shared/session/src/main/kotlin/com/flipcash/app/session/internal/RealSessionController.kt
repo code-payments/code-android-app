@@ -169,6 +169,11 @@ class RealSessionController @Inject constructor(
                 }
             }.launchIn(scope)
 
+        tokenController.tokens
+            .onEach { tokens ->
+                _state.update { it.copy(tokens = tokens.map { it.address }) }
+            }.launchIn(scope)
+
         state
             .map { it.isCameraUp }
             .distinctUntilChanged() // Emit only when value changes

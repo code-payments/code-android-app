@@ -11,7 +11,7 @@ import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.currency.CurrencySelectionScreen
+import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositScreen
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.PreloadLabs
@@ -34,6 +34,7 @@ import com.flipcash.app.pools.create.PoolQuestionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
+import com.flipcash.app.tokens.SelectTokenScreen
 import com.flipcash.app.transfers.TransferInformationalScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
@@ -72,8 +73,12 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             ScannerScreen(it.deeplink)
         }
 
-        register<AppRoute.Sheets.Give> {
-            CashScreen()
+        register<AppRoute.Main.Give> {
+            CashScreen(it.tokenAddress)
+        }
+
+        register<AppRoute.Sheets.TokenSelection> {
+            SelectTokenScreen()
         }
 
         register<AppRoute.Sheets.Wallet> {
@@ -104,8 +109,8 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
              )
         }
 
-        register<AppRoute.Main.CurrencySelection> {
-            CurrencySelectionScreen(it.kind)
+        register<AppRoute.Main.RegionSelection> {
+            RegionSelectionScreen(it.kind)
         }
         
         register<AppRoute.Sheets.ShareApp> {

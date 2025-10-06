@@ -1,6 +1,6 @@
 package com.flipcash.app.core.money
 
-enum class CurrencySelectionKind {
+enum class RegionSelectionKind {
     Entry,
     Balance;
 }

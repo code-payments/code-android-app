@@ -7,11 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.currency.internal.components.CurrencyList
+import com.flipcash.app.currency.internal.components.RegionList
 import com.flipcash.app.currency.internal.components.SearchBar
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -22,10 +21,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 
 @Composable
-internal fun CurrencySelectionModalContent(viewModel: CurrencyViewModel) {
+internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val keyboard = rememberKeyboardController()
@@ -57,7 +55,7 @@ internal fun CurrencySelectionModalContent(viewModel: CurrencyViewModel) {
             state = state.searchState
         )
 
-        CurrencyList(
+        RegionList(
             modifier = Modifier.weight(1f),
             items = state.listItems,
             isLoading = state.loading,

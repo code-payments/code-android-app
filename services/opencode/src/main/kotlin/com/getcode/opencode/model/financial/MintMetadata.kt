@@ -1,7 +1,9 @@
 package com.getcode.opencode.model.financial
 
+import android.os.Parcelable
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import kotlinx.parcelize.Parcelize
 
 data class TokenWithBalance(
     val token: Token,
@@ -30,6 +32,7 @@ typealias Token = MintMetadata
  * can be used for calculating price, market cap, etc. based on the exponential
  * bonding curve
  */
+@Parcelize
 data class MintMetadata(
     val address: Mint,
     val decimals: Int,
@@ -39,7 +42,7 @@ data class MintMetadata(
     val imageUrl: String,
     val vmMetadata: VmMetadata?,
     val launchpadMetadata: LaunchpadMetadata?
-)
+): Parcelable
 
 /**
  * Represents metadata associated with a VM.
@@ -49,11 +52,12 @@ data class MintMetadata(
  * @property lockDurationInDays Lock duration of Virtual Timelock Accounts on the VM, currently hardcoded
  * to 21 days
  */
+@Parcelize
 data class VmMetadata(
     val vm: PublicKey,
     val authority: PublicKey,
     val lockDurationInDays: Int // currently hardcoded to 21 days
-)
+): Parcelable
 
 /**
  * Represents metadata associated with a launchpad.
@@ -69,6 +73,7 @@ data class VmMetadata(
  * @property coreMintLockedQuarks The current core mint quarks locked in the liquidity pool
  * @property sellFeeBps Precent fee for sells in basis points, currently hardcoded to 1%
  */
+@Parcelize
 data class LaunchpadMetadata(
     val currencyConfig: PublicKey,
     val liquidityPool: PublicKey,
@@ -80,5 +85,5 @@ data class LaunchpadMetadata(
     val currentCirculatingSupplyQuarks: Long,
     val coreMintLockedQuarks: Long,
     val sellFeeBps: Int, // currently hardcoded to 1%
-)
+): Parcelable
 

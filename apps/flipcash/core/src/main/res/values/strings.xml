@@ -403,4 +403,10 @@
 
     <string name="subtitle_addUsdcToWallet">Add Solana USDC to your Flipcash wallet</string>
 
+    <string name="title_selectCurrency">Select Currency</string>
+    <string name="title_selectRegion">Select Region</string>
+    <string name="title_recentRegions">Recent Regions</string>
+    <string name="title_otherRegions">Other Regions</string>
+    <string name="subtitle_searchRegions">Search regions</string>
+    <string name="title_enterAmount">Enter Amount</string>
 </resources>

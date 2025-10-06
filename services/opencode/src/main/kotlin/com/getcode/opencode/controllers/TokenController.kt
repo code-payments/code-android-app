@@ -82,6 +82,10 @@ class TokenController @Inject constructor(
         return mintBalances.value[token.address] ?: Fiat.Zero
     }
 
+    fun balanceForToken(tokenAddress: Mint): Flow<Fiat> {
+        return mintBalances.map { it[tokenAddress] ?: Fiat.Zero }
+    }
+
     suspend fun add(token: Token, fiat: LocalFiat) {
         val balance = balanceForToken(token)
         if (balance.doubleValue == 0.0) {

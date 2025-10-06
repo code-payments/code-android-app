@@ -34,6 +34,7 @@ include(
         ":apps:flipcash:shared:router",
         ":apps:flipcash:shared:session",
         ":apps:flipcash:shared:shareable",
+        ":apps:flipcash:shared:tokens",
         ":apps:flipcash:shared:theme",
         ":apps:flipcash:shared:transfers",
         ":apps:flipcash:shared:workers",
@@ -57,6 +58,7 @@ include(
         ":apps:flipcash:features:payments",
         ":apps:flipcash:features:onramp",
         ":apps:flipcash:features:contact-verification",
+        ":apps:flipcash:features:tokens",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

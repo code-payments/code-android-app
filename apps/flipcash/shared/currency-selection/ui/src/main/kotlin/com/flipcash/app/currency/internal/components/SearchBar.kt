@@ -33,7 +33,7 @@ internal fun SearchBar(
                 tint = White50,
             )
         },
-        placeholder = stringResource(id = R.string.subtitle_searchCurrencies),
+        placeholder = stringResource(id = R.string.subtitle_searchRegions),
         placeholderStyle = CodeTheme.typography.textMedium,
         trailingIcon = {
             if (state.text.isNotEmpty()) {

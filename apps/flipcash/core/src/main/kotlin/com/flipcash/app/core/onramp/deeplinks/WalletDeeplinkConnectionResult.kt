@@ -4,8 +4,10 @@ import android.os.Parcelable
 import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.base64
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
@@ -34,7 +36,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Menu : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data object Give: OnRampDeeplinkOrigin()
+    data class Give(val tokenAddress: PublicKey?) : OnRampDeeplinkOrigin()
 
     @Parcelize
     data object Wallet: OnRampDeeplinkOrigin()
@@ -50,7 +52,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             is PoolWithId -> "pool-id_${id.base58}"
             is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
-            Give -> "give"
+            is Give -> "give-${tokenAddress?.base58()}"
             Wallet -> "wallet"
         }.lowercase()
     }
@@ -59,7 +61,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
         fun fromRoute(route: AppRoute?): OnRampDeeplinkOrigin? {
             return when (route) {
                 is AppRoute.Sheets.Menu -> Menu
-                is AppRoute.Sheets.Give -> Give
+                is AppRoute.Main.Give -> Give(route.tokenAddress)
                 is AppRoute.Pool.Details -> {
                     route.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
                     route.poolId?.let { id -> PoolWithId(id) }
@@ -73,7 +75,12 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
         fun fromString(value: String?): OnRampDeeplinkOrigin? {
             return when {
                 value == "menu" -> Menu
-                value == "give" -> Give
+                value?.startsWith("give-") == true -> {
+                    val tokenAddress = value.removePrefix("give-")
+                    Give(tokenAddress = runCatching {
+                        PublicKey.fromBase58(tokenAddress)
+                    }.getOrNull())
+                }
                 value == "wallet" -> Wallet
                 value?.startsWith("pool-") == true -> {
                     val idStringWithPrefix = value.removePrefix("pool-")
