@@ -1,23 +1,19 @@
 package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
-import com.flipcash.services.controllers.ContactVerificationController
-import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.models.UserProfile
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.events.Events
-import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.MnemonicManager
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
-import com.getcode.opencode.utils.Base58String
 import com.getcode.services.opencode.BuildConfig
-import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.trace
 import com.google.firebase.ktx.Firebase
@@ -64,7 +60,7 @@ class UserManager @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val mixpanelAPI: MixpanelAPI,
     private val eventBus: ChannelEventBus,
-    balanceController: BalanceController,
+    accountController: AccountController,
 ) {
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State>
@@ -107,11 +103,11 @@ class UserManager @Inject constructor(
     )
 
     init {
-        balanceController.onTimelockUnlocked = {
+        accountController.onTimelockUnlocked = {
             didDetectUnlockedAccount()
         }
 
-        balanceController.onNextIndexDetermined = { nextIndex ->
+        accountController.onNextIndexDetermined = { nextIndex ->
             trace("next pool index determined => $nextIndex")
             _state.update { it.copy(nextPoolIndex = nextIndex) }
         }

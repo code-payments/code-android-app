@@ -15,7 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.money.CurrencySelectionKind
+import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.features.withdrawal.R
@@ -79,8 +79,8 @@ private fun WithdrawalEntryScreenContent(
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(
-                        AppRoute.Main.CurrencySelection(
-                            kind = CurrencySelectionKind.Entry
+                        AppRoute.Main.RegionSelection(
+                            kind = RegionSelectionKind.Entry
                         )
                     )
                 )

@@ -29,7 +29,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 
 @Composable
-internal fun CurrencyList(
+internal fun RegionList(
     items: List<CurrencyListItem>,
     isLoading: Boolean,
     selected: Currency?,

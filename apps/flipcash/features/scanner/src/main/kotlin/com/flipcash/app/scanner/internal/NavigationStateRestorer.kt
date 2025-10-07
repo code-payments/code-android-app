@@ -29,7 +29,7 @@ class NavigationStateRestorer(
                     OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu)
                     is OnRampDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id))
                     is OnRampDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair))
-                    OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Sheets.Give)
+                    is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress))
                     OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet)
                 } + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
 

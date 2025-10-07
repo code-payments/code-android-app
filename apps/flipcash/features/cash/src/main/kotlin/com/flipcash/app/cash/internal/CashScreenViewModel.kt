@@ -15,6 +15,7 @@ import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -24,7 +25,9 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -35,6 +38,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -50,6 +54,7 @@ internal class CashScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
     balanceController: BalanceController,
+    tokenController: TokenController,
     transactionController: TransactionController,
     onrampController: OnRampAmountController,
     analytics: FlipcashAnalyticsService,
@@ -61,7 +66,8 @@ internal class CashScreenViewModel @Inject constructor(
     private val numberInputHelper = NumberInputHelper()
 
     internal data class State(
-        val balance: LocalFiat = LocalFiat.Zero,
+        val selectedTokenAddress: Mint? = null,
+        val token: TokenWithLocalizedBalance? = null,
         val currencyModel: CurrencyHolder = CurrencyHolder(),
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
         val limits: Limits? = null,
@@ -92,7 +98,8 @@ internal class CashScreenViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnBalanceChanged(val balance: LocalFiat) : Event
+        data class OnTokenSelected(val address: Mint) : Event
+        data class OnTokenUpdated(val token: TokenWithLocalizedBalance) : Event
         data class OnNumberPressed(val number: Int) : Event
         data object OnDecimalPressed : Event
         data object OnBackspace : Event
@@ -123,7 +130,7 @@ internal class CashScreenViewModel @Inject constructor(
             fiat = amount,
             currencyCode = stateFlow.value.currencyModel.code ?: CurrencyCode.USD
         ).convertingTo(conversionRate)
-        val balanceInUsdc = stateFlow.value.balance.usdc
+        val balanceInUsdc = stateFlow.value.token?.balance?.usdc ?: Fiat.Zero
 
         val isOverBalance = enteredInUsdc > balanceInUsdc
         if (isOverBalance || conversionRate == Rate.ignore) {
@@ -189,22 +196,33 @@ internal class CashScreenViewModel @Inject constructor(
             exchange.fetchRatesIfNeeded()
         }
 
-        combine(
-            balanceController.rawBalance,
-            exchange.observeEntryRate(),
-        ) { balance, rate ->
-            LocalFiat(
-                usdc = balance,
-                converted = balance.convertingTo(rate),
-                rate = rate
-            )
-        }.onEach {
-            dispatchEvent(Event.OnBalanceChanged(it))
-        }.mapNotNull {
-            exchange.getCurrency(it.rate.currency.name)
-        }.onEach {
-            dispatchEvent(Event.OnCurrencyChanged(it))
-        }.launchIn(viewModelScope)
+        stateFlow
+            .mapNotNull { it.selectedTokenAddress }
+            .flatMapLatest { tokenAddress ->
+                combine(
+                    tokenController.tokens,
+                    tokenController.balanceForToken(tokenAddress),
+                    exchange.observeEntryRate(),
+                ) { tokens, balance, rate ->
+                    val token = tokens.find { it.address == tokenAddress } ?: return@combine null
+                    TokenWithLocalizedBalance(
+                        token = token,
+                        balance = LocalFiat(
+                            usdc = balance,
+                            converted = balance.convertingTo(rate),
+                            rate = rate
+
+                        )
+                    )
+                }
+            }.filterNotNull()
+            .onEach {
+                dispatchEvent(Event.OnTokenUpdated(it))
+            }.mapNotNull { (token, balance) ->
+                exchange.getCurrency(balance.rate.currency.name)
+            }.onEach {
+                dispatchEvent(Event.OnCurrencyChanged(it))
+            }.launchIn(viewModelScope)
 
         exchange.observeEntryRate()
             .onEach {
@@ -268,7 +286,7 @@ internal class CashScreenViewModel @Inject constructor(
 
         stateFlow
             .filter { it.limits != null }
-            .map { it.limits to it.balance }
+            .map { it.limits to (it.token?.balance ?: LocalFiat.Zero) }
             .onEach { (limits, balance) ->
                 val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero
                 val nextTransactionLimit = sendLimit.nextTransaction
@@ -315,7 +333,7 @@ internal class CashScreenViewModel @Inject constructor(
                     dispatchEvent(
                         Event.OpenScreen(
                             AppRoute.OnRamp.ProviderList(
-                                AppRoute.Sheets.Give,
+                                AppRoute.Main.Give(tokenAddress = stateFlow.value.token?.token?.address),
                                 amount
                             )
                         )
@@ -345,8 +363,12 @@ internal class CashScreenViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnBalanceChanged -> { state ->
-                    state.copy(balance = event.balance)
+                is Event.OnTokenSelected -> { state ->
+                    state.copy(selectedTokenAddress = event.address)
+                }
+
+                is Event.OnTokenUpdated -> { state ->
+                    state.copy(token = event.token)
                 }
 
                 is Event.OnAmountChanged -> { state ->

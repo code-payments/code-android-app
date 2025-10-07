@@ -3,12 +3,14 @@ package com.getcode.opencode.inject
 import android.content.Context
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
-import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository
+import com.getcode.opencode.internal.domain.repositories.InternalCurrencyRepository
 import com.getcode.opencode.internal.domain.repositories.InternalEventRepository
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
@@ -18,6 +20,7 @@ import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
 import com.getcode.opencode.repositories.TransactionRepository
@@ -113,10 +116,16 @@ object OpenCodeModule {
     @Singleton
     internal fun providesEventRepository(
         eventBus: ChannelEventBus,
-        balanceController: BalanceController,
+        accountController: AccountController,
+        tokenController: TokenController,
         transactionController: TransactionController,
-    ): EventRepository = InternalEventRepository(eventBus, balanceController, transactionController)
+    ): EventRepository = InternalEventRepository(eventBus, accountController, tokenController, transactionController)
 
+    @Provides
+    @Singleton
+    internal fun providesCurrencyRepository(
+        service: CurrencyService
+    ): CurrencyRepository = InternalCurrencyRepository(service)
     @Provides
     @Singleton
     internal fun providesEventBus(): ChannelEventBus = ChannelEventBus()

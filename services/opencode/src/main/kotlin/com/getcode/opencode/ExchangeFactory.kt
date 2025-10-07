@@ -3,6 +3,9 @@ package com.getcode.opencode
 import android.content.Context
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.util.locale.LocaleModule
@@ -27,9 +30,13 @@ object ExchangeFactory {
 
 
         val api = CurrencyApi(module.provideManagedChannel(context, config))
+        val mintMapper = MintMapper(
+            vmMetadataMapper = VmMetadataMapper(),
+            launchpadMetadataMapper = LaunchpadMetadataMapper(),
+        )
         val locale = localeModule.bindLocaleHelper(context)
         val resources = AndroidResources(context)
-        val service = CurrencyService(api)
+        val service = CurrencyService(api, mintMapper)
         return module.providesExchange(service, resources, locale)
     }
 }

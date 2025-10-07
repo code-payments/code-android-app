@@ -11,7 +11,6 @@ import com.getcode.opencode.model.accounts.AccountFilter
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,7 +72,10 @@ internal class AccountApi @Inject constructor(
                             setFilterByAccountType(filter.accountType.getAccountType())
                         }
                         is AccountFilter.TokenAddress -> {
-                            setFilterByTokenAddress(filter.tokenAddress.asSolanaAccountId())
+                            setFilterByTokenAddress(filter.address.asSolanaAccountId())
+                        }
+                        is AccountFilter.MintAddress -> {
+                            setFilterByMintAddress(filter.address.asSolanaAccountId())
                         }
                     }
                 }

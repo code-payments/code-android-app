@@ -56,6 +56,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:activityfeed"))
     implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))

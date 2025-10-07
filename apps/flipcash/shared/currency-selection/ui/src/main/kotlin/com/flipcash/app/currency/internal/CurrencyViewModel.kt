@@ -3,11 +3,11 @@ package com.flipcash.app.currency.internal
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.money.CurrencySelectionKind
+import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.currency.PreferredCurrencyController
+import com.flipcash.features.currency.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
-import com.getcode.util.resources.R
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +32,7 @@ class CurrencyViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
 ) {
     data class State(
-        val kind: CurrencySelectionKind? = null,
+        val kind: RegionSelectionKind? = null,
         val loading: Boolean = false,
         val listItems: List<CurrencyListItem> = emptyList(),
         val currencies: List<Currency> = emptyList(),
@@ -43,7 +43,7 @@ class CurrencyViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnKindChanged(val kind: CurrencySelectionKind): Event
+        data class OnKindChanged(val kind: RegionSelectionKind): Event
         data class OnLoadingChanged(val loading: Boolean) : Event
         data class OnItemsPopulated(val currencies: List<CurrencyListItem>) : Event
         data class OnCurrenciesUpdated(val currencies: List<Currency>): Event
@@ -123,8 +123,8 @@ class CurrencyViewModel @Inject constructor(
         // Add title based on search state
         val titleRes = when {
             isSearch -> R.string.title_results
-            sortedRecents.isNotEmpty() -> R.string.title_recentCurrencies
-            else -> R.string.title_otherCurrencies
+            sortedRecents.isNotEmpty() -> R.string.title_recentRegions
+            else -> R.string.title_otherRegions
         }
         add(CurrencyListItem.TitleItem(resources.getString(titleRes)))
 
@@ -134,7 +134,7 @@ class CurrencyViewModel @Inject constructor(
                 add(CurrencyListItem.RegionCurrencyItem(currency, isRecent = true))
             }
             // Add "Other Currencies" title if there are recent currencies
-            add(CurrencyListItem.TitleItem(resources.getString(R.string.title_otherCurrencies)))
+            add(CurrencyListItem.TitleItem(resources.getString(R.string.title_otherRegions)))
         }
 
         sortedCurrencies

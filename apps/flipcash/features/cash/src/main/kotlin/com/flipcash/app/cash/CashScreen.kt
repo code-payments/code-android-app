@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -14,11 +15,11 @@ import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.cash.internal.CashScreenViewModel
 import com.flipcash.app.cash.internal.GiveScreenContent
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.features.cash.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
-import com.getcode.ui.components.AppBarDefaults
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -28,7 +29,9 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class CashScreen: ModalScreen, Parcelable {
+class CashScreen(
+    private val selectedTokenAddress: Mint?
+): ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -56,12 +59,18 @@ class CashScreen: ModalScreen, Parcelable {
         ) {
             AppBarWithTitle(
                 isInModal = true,
+                title = stringResource(R.string.title_enterAmount),
                 titleAlignment = Alignment.CenterHorizontally,
-                endContent = {
-                    AppBarDefaults.Close { navigator.hide() }
-                }
+                backButton = true,
+                onBackIconClicked = { navigator.pop() },
             )
             GiveScreenContent(viewModel)
+        }
+
+        LaunchedEffect(viewModel, selectedTokenAddress) {
+            if (selectedTokenAddress != null) {
+                viewModel.dispatchEvent(CashScreenViewModel.Event.OnTokenSelected(selectedTokenAddress))
+            }
         }
 
         LaunchedEffect(viewModel) {

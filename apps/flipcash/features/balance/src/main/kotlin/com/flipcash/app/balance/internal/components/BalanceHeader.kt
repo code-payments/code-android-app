@@ -35,7 +35,7 @@ internal fun BalanceHeader(
             }
         } else {
             Crossfade(balance.converted) { amount ->
-                val captionText = stringResource(R.string.subtitle_balanceIsHeldInUsdStablecoins)
+                val captionText = stringResource(R.string.subtitle_currentValueOfAllCurrencies)
                 AmountArea(
                     amountText = amount.formatted(),
                     isAltCaption = false,

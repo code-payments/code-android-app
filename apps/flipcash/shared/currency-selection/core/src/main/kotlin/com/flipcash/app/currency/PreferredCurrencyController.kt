@@ -9,7 +9,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.flipcash.app.core.money.CurrencySelectionKind
+import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -42,7 +42,7 @@ class PreferredCurrencyController @Inject constructor(
             booleanPreferencesKey("init-$userIdentifier")
 
         fun kindKeyForUser(
-            kind: CurrencySelectionKind,
+            kind: RegionSelectionKind,
             userIdentifier: String
         ) = stringPreferencesKey("${kind.name.lowercase()}-$userIdentifier")
 
@@ -79,14 +79,14 @@ class PreferredCurrencyController @Inject constructor(
                     }
 
                     val entryCurrency = prefs[kindKeyForUser(
-                        kind = CurrencySelectionKind.Entry,
+                        kind = RegionSelectionKind.Entry,
                         userId
                     )]?.let { CurrencyCode.tryValueOf(it) }
                         ?: CurrencyCode.tryValueOf(locale.getDefaultCurrencyName())
                         ?: CurrencyCode.USD
 
                     val balanceCurrency = prefs[kindKeyForUser(
-                        kind = CurrencySelectionKind.Balance,
+                        kind = RegionSelectionKind.Balance,
                         userId
                     )]?.let { CurrencyCode.tryValueOf(it) }
                         ?: CurrencyCode.tryValueOf(locale.getDefaultCurrencyName())
@@ -100,7 +100,7 @@ class PreferredCurrencyController @Inject constructor(
     }
 
     fun observePreferredForKind(
-        kind: CurrencySelectionKind
+        kind: RegionSelectionKind
     ): Flow<String> {
         val identifier = userManager.accountId?.base58 ?: return emptyFlow()
 
@@ -117,7 +117,7 @@ class PreferredCurrencyController @Inject constructor(
     }
 
     suspend fun updateSelection(
-        kind: CurrencySelectionKind,
+        kind: RegionSelectionKind,
         currency: Currency
     ) {
         val identifier = userManager.accountId?.base58 ?: return
@@ -130,13 +130,13 @@ class PreferredCurrencyController @Inject constructor(
             prefs[recentKey] = updateRecents(recents, currency.code)
         }
         when (kind) {
-            CurrencySelectionKind.Entry -> {
+            RegionSelectionKind.Entry -> {
                 val code = CurrencyCode.tryValueOf(currency.code)
                 if (code != null) {
                     exchange.setPreferredEntryCurrency(code)
                 }
             }
-            CurrencySelectionKind.Balance -> {
+            RegionSelectionKind.Balance -> {
                 val code = CurrencyCode.tryValueOf(currency.code)
                 if (code != null) {
                     exchange.setPreferredBalanceCurrency(code)

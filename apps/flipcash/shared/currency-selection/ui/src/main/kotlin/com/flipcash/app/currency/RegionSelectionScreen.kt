@@ -11,8 +11,8 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.money.CurrencySelectionKind
-import com.flipcash.app.currency.internal.CurrencySelectionModalContent
+import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.app.currency.internal.RegionSelectionModalContent
 import com.flipcash.app.currency.internal.CurrencyViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -23,15 +23,15 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class CurrencySelectionScreen(
-    private val kind: CurrencySelectionKind
+class RegionSelectionScreen(
+    private val kind: RegionSelectionKind
 ) : ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_selectCurrency)
+        @Composable get() = stringResource(R.string.title_selectRegion)
 
     @Composable
     override fun ModalContent() {
@@ -51,7 +51,7 @@ class CurrencySelectionScreen(
             )
 
             val viewModel = getViewModel<CurrencyViewModel>()
-            CurrencySelectionModalContent(viewModel)
+            RegionSelectionModalContent(viewModel)
 
             LaunchedEffect(viewModel, kind) {
                 viewModel.dispatchEvent(CurrencyViewModel.Event.OnKindChanged(kind))

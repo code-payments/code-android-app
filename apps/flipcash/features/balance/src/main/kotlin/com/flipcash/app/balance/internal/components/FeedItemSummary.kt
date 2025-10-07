@@ -25,19 +25,22 @@ internal fun FeedItemSummary(
     message: ActivityFeedMessage,
     canViewDetails: Boolean,
     modifier: Modifier = Modifier,
-    dispatch: (BalanceViewModel.Event) -> Unit,
+    onViewDetails: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     Row(
         modifier = modifier
             .addIf(canViewDetails) {
-                Modifier.noRippleClickable(enabled = message.isTransaction) {
-                    dispatch(BalanceViewModel.Event.ViewDetails(message.id))
-                }
+                Modifier.noRippleClickable(
+                    enabled = message.isTransaction,
+                    onClick = onViewDetails
+                )
             }
             .addIf(!canViewDetails) {
-                Modifier.clickable(enabled = message.canCancel) {
-                    dispatch(BalanceViewModel.Event.OnCancelRequested(message))
-                }
+                Modifier.clickable(
+                    enabled = message.canCancel,
+                    onClick = onCancel
+                )
             }
             .padding(
                 horizontal = CodeTheme.dimens.inset,

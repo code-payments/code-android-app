@@ -154,6 +154,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:transfers"))
     implementation(project(":apps:flipcash:shared:web"))
     implementation(project(":apps:flipcash:shared:workers"))
@@ -175,6 +176,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:payments"))
     implementation(project(":apps:flipcash:features:onramp"))
     implementation(project(":apps:flipcash:features:contact-verification"))
+    implementation(project(":apps:flipcash:features:tokens"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))
@@ -202,7 +204,7 @@ dependencies {
     implementation(Libs.androidx_lifecycle_viewmodel)
     implementation(Libs.androidx_navigation_ui)
     implementation(Libs.androidx_work)
-    implementation("androidx.webkit:webkit:1.13.0")
+    implementation("androidx.webkit:webkit:1.14.0")
 
     //hilt dependency injection
     implementation(Libs.hilt)
@@ -216,7 +218,7 @@ dependencies {
     testImplementation(Libs.hilt_android_test)
     kspTest(Libs.hilt_android_compiler)
 
-    androidTestImplementation("io.mockk:mockk:1.13.17")
+    androidTestImplementation("io.mockk:mockk:1.14.6")
 
     //Jetpack compose
     implementation(platform(Libs.compose_bom))
@@ -230,9 +232,6 @@ dependencies {
     implementation(Libs.compose_view_models)
 
     implementation(Libs.androidx_activity)
-
-    implementation(Libs.coil3)
-    implementation(Libs.coil3_network)
 
     implementation(Libs.androidx_browser)
 

@@ -2,8 +2,11 @@ package com.getcode.opencode.model.financial
 
 import android.icu.util.ULocale
 import android.os.Parcelable
+import com.flipcash.libs.currency.math.Estimator
+import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.util.Locale
@@ -39,10 +42,21 @@ data class Fiat(
         currencyCode = currencyCode
     )
 
+    private constructor(
+        estimation: () -> BigDecimal,
+        tokenMintDecimals: Int,
+    ) : this(
+        fiat = parseStringToDouble(
+            estimation().toPlainString(),
+            decimalPlaces = tokenMintDecimals
+        ),
+        currencyCode = CurrencyCode.USD
+    )
+
     sealed interface Formatting {
-        data object Truncated: Formatting
-        data object None: Formatting
-        data class Length(val decimalPlaces: Int): Formatting
+        data object Truncated : Formatting
+        data object None : Formatting
+        data class Length(val decimalPlaces: Int) : Formatting
     }
 
     // Formatting
@@ -58,7 +72,8 @@ data class Fiat(
         }
 
         val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
-            val decimalDigits = java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
+            val decimalDigits =
+                java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
             val preferredDigits = when (formatting) {
                 is Formatting.Length -> formatting.decimalPlaces
                 Formatting.None -> decimalDigits
@@ -69,9 +84,10 @@ data class Fiat(
             minimumFractionDigits = preferredDigits
             maximumFractionDigits = preferredDigits
             roundingMode = RoundingMode.DOWN.ordinal
-            (this as android.icu.text.DecimalFormat).decimalFormatSymbols = decimalFormatSymbols.apply {
-                currencySymbol = ""
-            }
+            (this as android.icu.text.DecimalFormat).decimalFormatSymbols =
+                decimalFormatSymbols.apply {
+                    currencySymbol = ""
+                }
 
             val prefix = currencyCode.singleCharacterCurrencySymbol.orEmpty()
 
@@ -101,13 +117,38 @@ data class Fiat(
 
         val Zero = Fiat(0, CurrencyCode.USD)
 
-        private fun parseStringToDouble(stringAmount: String): Double {
+        private fun parseStringToDouble(stringAmount: String, decimalPlaces: Int = 6): Double {
             val formatter = DecimalFormat.getNumberInstance(Locale.getDefault()).apply {
                 isParseIntegerOnly = false
+                minimumFractionDigits = decimalPlaces
+                maximumFractionDigits = decimalPlaces
             }
             val amount = formatter.parse(stringAmount)?.toDouble()
                 ?: throw IllegalArgumentException("Invalid amount format: $stringAmount")
             return amount
+        }
+
+        fun tokenBalance(
+            quarks: Long,
+            token: Token
+        ): Fiat {
+            if (token.address == Mint.usdc) {
+                throw IllegalArgumentException(
+                    "Cannot create Fiat from USDC Token directly, use the Fiat(quarks: Long, currencyCode: CurrencyCode) constructor instead"
+                )
+            }
+
+            return Fiat(
+                estimation = {
+                    Estimator.sell(
+                        amountInQuarks = (quarks / MULTIPLIER).toLong(),
+                        currentValueInQuarks = token.launchpadMetadata?.coreMintLockedQuarks ?: 0,
+                        mintDecimals = 6, // The desired value here is USDC which is 6
+                        feeBps = 0,
+                    ).getOrThrow().netAmountToReceive
+                },
+                tokenMintDecimals = token.decimals
+            )
         }
     }
 }
@@ -129,6 +170,10 @@ operator fun Fiat.times(rhs: Int): Fiat {
 
 operator fun Fiat.div(rhs: Int): Fiat {
     return Fiat(quarks = this.quarks / rhs, currencyCode = currencyCode)
+}
+
+fun Iterable<Fiat>.sum(): Fiat {
+    return this.fold(Fiat.Zero) { acc, fiat -> acc + fiat }
 }
 
 fun Number.toFiat(currencyCode: CurrencyCode = CurrencyCode.USD): Fiat = when (this) {

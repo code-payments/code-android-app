@@ -47,6 +47,7 @@ android {
 
 dependencies {
     implementation(project(":definitions:opencode:models"))
+    api(project(":libs:currency-math"))
     api(project(":libs:datetime"))
     api(project(":libs:encryption:base58"))
     api(project(":libs:encryption:ed25519"))

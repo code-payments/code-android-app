@@ -175,7 +175,13 @@ message GetLimitsResponse {
     double usd_transacted = 6;
 }
 message CanWithdrawToAccountRequest {
+    // The destination account attempted to be withdrawn to. Can be an owner or
+    // token account.
    common.v1.SolanaAccountId account = 1;
+   // The mint that the withdraw will be operating against. For backwards
+   // compatibility, if no mint is set, then it is assumed to be the core
+   // mint.
+   common.v1.SolanaAccountId mint = 2;
 }
 message CanWithdrawToAccountResponse {
     // Server-controlled flag to indicate if the account can be withdrawn to.
@@ -202,6 +208,8 @@ message CanWithdrawToAccountResponse {
     // the intent.
     //
     // This will be set when requires_initialization = true
+    //
+    // Note: The fee is always paid in the core mint.
     ExchangeDataWithoutRate fee_amount = 4;
 }
 message AirdropRequest {
@@ -282,6 +290,10 @@ message OpenAccountsMetadata {
         USER = 0; // Opens a set of user accounts
         POOL = 1; // Opens a pool account
     }
+    // The mint that this action will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 2;
 }
 // Send a payment to a destination account publicly.
 //
@@ -319,6 +331,10 @@ message SendPublicPaymentMetadata {
     bool is_withdrawal = 3;
     // Is the payment going to a new gift card? Note is_withdrawal must be false.
     bool is_remote_send = 5;
+    // The mint that this intent will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 7;
 }
 // Receive funds into a user-owned account publicly. All use cases of this intent
 // close the account, so all funds must be moved.
@@ -340,6 +356,10 @@ message ReceivePaymentsPubliclyMetadata {
     // part of creating the gift card account. This is purely a server-provided value.
     // SubmitIntent will disallow this being set.
     ExchangeData exchange_data = 5;
+    // The mint that this intent will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 6;
 }
 // Distribute funds from a pool account publicly to one or more user-owned accounts.
 //
@@ -364,6 +384,10 @@ message PublicDistributionMetadata {
         // The amount of funds to distribute to the destination
         uint64 quarks = 2;
     }
+    // The mint that this intent will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 3;
 }
 //
 // Action Definitions
@@ -406,6 +430,10 @@ message OpenAccountAction {
     // using the private key of the authority account. This provides a proof
     // of authorization to link authority to owner.
     common.v1.Signature authority_signature = 6;
+    // The mint that this action will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 7;
 }
 // Compact message signature required
 message NoPrivacyTransferAction {
@@ -417,6 +445,10 @@ message NoPrivacyTransferAction {
     common.v1.SolanaAccountId destination = 3;
     // The core mint quark amount to transfer
     uint64 amount = 4;
+    // The mint that this action will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 5;
 }
 // Compact message signature required
 message NoPrivacyWithdrawAction {
@@ -435,6 +467,10 @@ message NoPrivacyWithdrawAction {
     // scheduling at its own discretion to return funds back to the owner (to their primary
     // account) that funded source.
     bool is_auto_return = 6;
+    // The mint that this action will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 7;
 }
 // Compact message signature required
 message FeePaymentAction {
@@ -450,6 +486,10 @@ message FeePaymentAction {
     common.v1.SolanaAccountId source = 3;
     // The core mint quark amount to transfer
     uint64 amount = 4;
+    // The mint that this action will be operating against. For backwards
+    // compatibility, if no mint is set, then it is assumed to be the core
+    // mint.
+    common.v1.SolanaAccountId mint = 5;
 }
 //
 // Server Parameter Definitions
@@ -551,6 +591,10 @@ message ExchangeData {
     // The exact amount of quarks to send. This will be used as the source of
     // truth for validating transaction transfer amounts.
     uint64 quarks = 4;
+    // The crypto mint that is being operated against for the exchange.
+    // For backwards compatibility, if no mint is set, then it is assumed
+    // to be the core mint.
+    common.v1.SolanaAccountId mint = 5;
 }
 message ExchangeDataWithoutRate {
     // ISO 4217 alpha-3 currency code.

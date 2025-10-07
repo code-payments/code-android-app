@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
+import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.destinationOrNull
@@ -9,6 +10,8 @@ import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LaunchpadMetadata
+import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -79,4 +82,28 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
             }
         )
     }
+}
+
+internal fun CurrencyService.VmMetadata.toMetadata(): VmMetadata {
+    return VmMetadata(
+        vm = vm.toPublicKey(),
+        authority = authority.toPublicKey(),
+        lockDurationInDays = lockDurationInDays,
+    )
+}
+
+internal fun CurrencyService.LaunchpadMetadata.toMetadata(): LaunchpadMetadata {
+    return LaunchpadMetadata(
+        currencyConfig = currencyConfig.toPublicKey(),
+        liquidityPool = liquidityPool.toPublicKey(),
+        seed = seed.toPublicKey(),
+        authority = authority.toPublicKey(),
+        mintVault = mintVault.toPublicKey(),
+        coreMintVault = coreMintVault.toPublicKey(),
+        coreMintFees = coreMintFees.toPublicKey(),
+        currentCirculatingSupplyQuarks = supplyFromBonding,
+        coreMintLockedQuarks = coreMintLocked,
+        sellFeeBps = sellFeeBps,
+
+    )
 }
