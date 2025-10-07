@@ -13,6 +13,8 @@ import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.features.menu.R
+import com.flipcash.services.analytics.AnalyticsEvent
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
@@ -54,6 +56,7 @@ internal class MenuScreenViewModel @Inject constructor(
     mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
     onrampController: OnRampAmountController,
+    analytics: FlipcashAnalyticsService,
 ) :
     BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -126,6 +129,7 @@ internal class MenuScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAddCashClicked>()
             .onEach {
+                analytics.openOnramp(AnalyticsEvent.OnRampOpenEvent.Settings)
                 val provider = stateFlow.value.preferredOnRampProvider
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
                     // has coinbase provider supporting google pay - pop selection for quick add

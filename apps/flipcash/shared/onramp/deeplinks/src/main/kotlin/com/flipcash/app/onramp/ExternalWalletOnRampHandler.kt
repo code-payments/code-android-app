@@ -18,8 +18,11 @@ import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.router.Router
+import com.flipcash.services.analytics.FlipcashAnalyticsManager
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
@@ -46,6 +49,7 @@ fun ExternalWalletOnRampHandler(
 ) {
     val permissions = LocalPermissionChecker.current
     val composeScope = rememberCoroutineScope()
+    val analytics = LocalAnalytics.current as FlipcashAnalyticsService
 
     fun close(exit: Boolean) {
         if (exit) {
@@ -91,6 +95,13 @@ fun ExternalWalletOnRampHandler(
                         null -> ""
                     }
                 )
+
+                if (error is DeeplinkOnRampError.WalletProvidedError && error.code == DeeplinkError.UserRejectedRequest.code) {
+                    analytics.walletTransactionCancelled(state.provider!!)
+                } else if (error is DeeplinkOnRampError.FailedToSendTransaction) {
+                    analytics.walletTransactionFailed(state.provider!!)
+                }
+
                 trace(
                     tag = TAG,
                     message = "Something went wrong during deeplink onramp",
@@ -149,6 +160,7 @@ fun ExternalWalletOnRampHandler(
                     message = "wallet connect uri: $uri",
                     type = TraceType.Process
                 )
+                analytics.connectWallet(state.provider!!)
                 uriHandler.openUri(uri.toString())
                 state.deeplinkState = ExternalWalletState.CONNECTING
             }
@@ -185,6 +197,7 @@ fun ExternalWalletOnRampHandler(
                     message = "wallet transact uri: $uri",
                     type = TraceType.Process
                 )
+                analytics.amountSelectedForWalletTransfer(state.provider!!, state.amount!!)
                 uriHandler.openUri(uri.toString())
             }
 
@@ -211,6 +224,7 @@ fun ExternalWalletOnRampHandler(
                     message = "transaction complete",
                     type = TraceType.Process
                 )
+                analytics.transactionSubmittedToWallet(state.provider!!)
                 state.reset()
                 val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
                 BottomBarManager.showMessage(

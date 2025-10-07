@@ -23,6 +23,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -31,6 +33,9 @@ import com.flipcash.app.navigation.FlowNavigator
 import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.contact.verification.R
+import com.flipcash.services.analytics.AnalyticsEvent
+import com.flipcash.services.analytics.FlipcashAnalyticsService
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
@@ -48,6 +53,7 @@ class VerificationFlowIntroScreen(
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @OptIn(ExperimentalVoyagerApi::class)
     @Composable
     override fun Content() {
         val codeNavigator = LocalCodeNavigator.current
@@ -58,6 +64,11 @@ class VerificationFlowIntroScreen(
             isForOnRamp = isForOnRamp,
             onClick = { flowNavigator.continueFlowFrom(VerificationFlowStep.Intro) },
         )
+
+        val analytics = LocalAnalytics.current as FlipcashAnalyticsService
+        LifecycleEffectOnce {
+            analytics.onrampVerification(AnalyticsEvent.OnRampVerificationEvent.ShowInfo)
+        }
 
         BackHandler {
             keyboard.hideIfVisible {

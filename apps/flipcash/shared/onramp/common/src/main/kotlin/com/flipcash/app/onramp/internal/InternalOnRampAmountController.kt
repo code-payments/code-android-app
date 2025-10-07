@@ -4,6 +4,8 @@ import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.onramp.State
+import com.flipcash.services.analytics.AnalyticsEvent
+import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +20,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal class InternalOnRampAmountController : OnRampAmountController {
+internal class InternalOnRampAmountController(
+    private val analytics: FlipcashAnalyticsService,
+) : OnRampAmountController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -43,6 +47,11 @@ internal class InternalOnRampAmountController : OnRampAmountController {
                         if (amount.fiat == currentSelection.fiat) {
                             it.copy(selectedAmount = null)
                         } else {
+                            analytics.onrampPurchase(
+                                purchaseEvent = AnalyticsEvent.OnRampPurchaseEvent.PresetSelected,
+                                fiat = amount.fiat
+                            )
+
                             it.copy(selectedAmount = amount)
                         }
                     } else {
@@ -53,6 +62,10 @@ internal class InternalOnRampAmountController : OnRampAmountController {
                     if (amount is OnRampAmount.Custom) {
                         it.copy(selectedAmount = null)
                     } else {
+                        analytics.onrampPurchase(
+                            purchaseEvent = AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount,
+                        )
+
                         it.copy(selectedAmount = amount)
                     }
                 }

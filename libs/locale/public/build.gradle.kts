@@ -32,6 +32,7 @@ android {
 dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:currency"))
+    implementation(Libs.okhttp)
     api(Libs.androidx_annotation)
     api(Libs.kotlin_stdlib)
     api(Libs.kotlinx_coroutines_core)
