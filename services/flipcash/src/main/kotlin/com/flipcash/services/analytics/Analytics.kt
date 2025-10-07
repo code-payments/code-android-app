@@ -1,5 +1,6 @@
 package com.flipcash.services.analytics
 
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
@@ -46,6 +47,17 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun poolCreated(id: ID)
     fun placedBidInPool(id: ID)
     fun declaredOutcomeInPool(id: ID)
+
+    fun connectWallet(
+        provider: OnRampProvider.UsesDeeplinks
+    )
+    fun amountSelectedForWalletTransfer(
+        provider: OnRampProvider.UsesDeeplinks,
+        amount: Fiat
+    )
+    fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
+    fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks)
+    fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks)
 }
 
 class FlipcashAnalyticsManager @Inject constructor(
@@ -118,6 +130,38 @@ class FlipcashAnalyticsManager @Inject constructor(
 
     override fun declaredOutcomeInPool(id: ID) {
         val event = AnalyticsEvent.DeclaredOutcome(id)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
+        val event = AnalyticsEvent.WalletConnect(provider)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) {
+        val event = AnalyticsEvent.WalletRequestAmount(provider)
+        val properties = event.properties(
+            nativeAmount = amount
+        )
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) {
+        val event = AnalyticsEvent.WalletSubmitTransaction(provider)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) {
+        val event = AnalyticsEvent.WalletTransactionFailed(provider)
+        val properties = event.properties()
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
+    override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) {
+        val event = AnalyticsEvent.WalletTransactionCancelled(provider)
         val properties = event.properties()
         track(event.name, *properties.toList().toTypedArray())
     }
@@ -219,6 +263,30 @@ sealed interface AnalyticsEvent {
     data class DeclaredOutcome(override val id: ID) : PoolEvent {
         override val name: String = "Pool: Declared Outcome"
     }
+
+    sealed interface WalletEvent : AnalyticsEvent {
+        val provider: OnRampProvider.UsesDeeplinks
+    }
+
+    data class WalletConnect(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+        override val name: String = "Wallet: Connect"
+    }
+
+    data class WalletRequestAmount(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+        override val name: String = "Wallet: Request Amount"
+    }
+
+    data class WalletSubmitTransaction(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+        override val name: String = "Wallet: Transactions Submitted"
+    }
+
+    data class WalletTransactionFailed(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+        override val name: String = "Wallet: Transactions Failed"
+    }
+
+    data class WalletTransactionCancelled(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+        override val name: String = "Wallet: Cancel"
+    }
 }
 
 private fun AnalyticsEvent.properties(
@@ -234,6 +302,16 @@ private fun AnalyticsEvent.properties(
             } else {
                 put("State", "Failure")
             }
+        }
+
+        val providerName = if (this@properties is AnalyticsEvent.WalletEvent) {
+            when (provider) {
+                OnRampProvider.Backpack -> "Backpack"
+                OnRampProvider.Solflare -> "Solflare"
+                OnRampProvider.Phantom -> "Phantom"
+            }
+        } else {
+            ""
         }
 
         when (val event = this@properties) {
@@ -258,6 +336,24 @@ private fun AnalyticsEvent.properties(
 
             is AnalyticsEvent.PoolEvent -> {
                 put("ID", event.id.base58)
+            }
+
+            is AnalyticsEvent.WalletConnect -> {
+                put("Provider", providerName)
+            }
+            is AnalyticsEvent.WalletRequestAmount -> {
+                put("Provider", providerName)
+                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
+            }
+            is AnalyticsEvent.WalletSubmitTransaction -> {
+                put("Provider", providerName)
+            }
+            is AnalyticsEvent.WalletTransactionCancelled -> {
+                put("Provider", providerName)
+            }
+            is AnalyticsEvent.WalletTransactionFailed -> {
+                put("Provider", providerName)
             }
         }
 
