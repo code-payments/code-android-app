@@ -32,14 +32,25 @@ sealed interface MessageKind {
 
     // region Cash
     /**
-     * Represents a request to send a pulled out bill to the specified address.
+     * Represents a request that a pulled out bill be sent to the requested address.
      * <p>
      * This message type can only be initiated by clients.
      *
-     * @param requestor is the Kin token account on Solana to which a payment should be sent.
+     * @param requestor is the virtual token account on the VM to which a payment
      */
     data class RequestToGrabBill(
         val requestor: PublicKey
+    ): MessageKind
+
+    /**
+     * Represents a request that a bill be given in the desired mint
+     * <p>
+     * This message type can only be initiated by clients.
+     *
+     * @param mint is the mint that the bill will be received in
+     */
+    data class RequestToGiveBill(
+        val mint: PublicKey
     ): MessageKind
     // endregion
 

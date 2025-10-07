@@ -52,6 +52,12 @@ internal fun MessagingService.RequestToGrabBill.toMessageKind(): MessageKind.Req
     )
 }
 
+internal fun MessagingService.RequestToGiveBill.toMessageKind(): MessageKind.RequestToGiveBill {
+    return MessageKind.RequestToGiveBill(
+        mint = mint.toPublicKey()
+    )
+}
+
 internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     return when (val case = typeCase) {
         TransactionService.Metadata.TypeCase.OPEN_ACCOUNTS -> TransactionMetadata.OpenAccount(openAccounts.accountSet.toAccountType())

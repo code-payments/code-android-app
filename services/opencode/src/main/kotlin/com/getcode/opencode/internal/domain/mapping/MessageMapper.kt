@@ -21,6 +21,7 @@ internal class MessageMapper @Inject constructor():
             signature = signature,
             kind = when(from.kindCase) {
                 MessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL -> from.requestToGrabBill.toMessageKind()
+                MessagingService.Message.KindCase.REQUEST_TO_GIVE_BILL -> from.requestToGiveBill.toMessageKind()
                 MessagingService.Message.KindCase.KIND_NOT_SET -> MessageKind.Unknown
                 else -> MessageKind.Unknown
             }

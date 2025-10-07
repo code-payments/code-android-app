@@ -209,7 +209,7 @@ message CanWithdrawToAccountResponse {
     //
     // This will be set when requires_initialization = true
     //
-    // Note: The fee is always paid in the core mint.
+    // Note: The fee is always paid in the target mint.
     ExchangeDataWithoutRate fee_amount = 4;
 }
 message AirdropRequest {
@@ -345,7 +345,7 @@ message SendPublicPaymentMetadata {
 message ReceivePaymentsPubliclyMetadata {
     // The remote send gift card to receive funds from
     common.v1.SolanaAccountId source = 1;
-    // The exact amount of core mint quarks being received
+    // The exact amount of quarks being received
     uint64 quarks = 2;
     // Is the receipt of funds from a remote send gift card? Currently, this is
     // the only use case for this intent and validation enforces the flag to true.
@@ -443,7 +443,7 @@ message NoPrivacyTransferAction {
     common.v1.SolanaAccountId source = 2;
     // The destination account where funds are transferred to
     common.v1.SolanaAccountId destination = 3;
-    // The core mint quark amount to transfer
+    // The quark amount to transfer
     uint64 amount = 4;
     // The mint that this action will be operating against. For backwards
     // compatibility, if no mint is set, then it is assumed to be the core
@@ -458,7 +458,7 @@ message NoPrivacyWithdrawAction {
     common.v1.SolanaAccountId source = 2;
     // The destination account where funds are transferred to
     common.v1.SolanaAccountId destination = 3;
-    // The intended core mint quark amount to withdraw
+    // The quark amount to withdraw
     uint64 amount = 4;
     // Whether the account is closed afterwards. This is always true, since there
     // are no current se cases to leave it open.
@@ -484,7 +484,7 @@ message FeePaymentAction {
     common.v1.SolanaAccountId authority = 2;
     // The source account where funds are transferred from
     common.v1.SolanaAccountId source = 3;
-    // The core mint quark amount to transfer
+    // The quark amount to transfer
     uint64 amount = 4;
     // The mint that this action will be operating against. For backwards
     // compatibility, if no mint is set, then it is assumed to be the core

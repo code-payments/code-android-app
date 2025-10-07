@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.OpenAccountsMetadata.AccountSet
@@ -182,6 +183,12 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
         is MessageKind.RequestToGrabBill -> {
             builder.requestToGrabBill = requestToGrabBill {
                 requestorAccount = kind.requestor.asSolanaAccountId()
+            }
+        }
+
+        is MessageKind.RequestToGiveBill -> {
+            builder.requestToGiveBill = requestToGiveBill {
+                mint = kind.mint.asSolanaAccountId()
             }
         }
 
