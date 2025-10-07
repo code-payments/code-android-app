@@ -10,8 +10,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
-import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.getPublicKeyBase58
@@ -47,6 +45,21 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun poolCreated(id: ID)
     fun placedBidInPool(id: ID)
     fun declaredOutcomeInPool(id: ID)
+
+    fun openOnramp(
+        openEvent: AnalyticsEvent.OnRampOpenEvent,
+    )
+
+    fun onrampVerification(
+        verificationEvent: AnalyticsEvent.OnRampVerificationEvent,
+    )
+
+    fun onrampPurchase(
+        purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent,
+        fiat: Fiat? = null,
+        successful: Boolean = true,
+        error: Throwable? = null
+    )
 
     fun connectWallet(
         provider: OnRampProvider.UsesDeeplinks
@@ -134,6 +147,26 @@ class FlipcashAnalyticsManager @Inject constructor(
         track(event.name, *properties.toList().toTypedArray())
     }
 
+    override fun openOnramp(openEvent: AnalyticsEvent.OnRampOpenEvent) {
+        val properties = openEvent.properties()
+        track(openEvent.name, *properties.toList().toTypedArray())
+    }
+
+    override fun onrampVerification(verificationEvent: AnalyticsEvent.OnRampVerificationEvent) {
+        val properties = verificationEvent.properties()
+        track(verificationEvent.name, *properties.toList().toTypedArray())
+    }
+
+    override fun onrampPurchase(
+        purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent,
+        fiat: Fiat?,
+        successful: Boolean,
+        error: Throwable?
+    ) {
+        val properties = purchaseEvent.properties(nativeAmount = fiat, successful = successful, error = error)
+        track(purchaseEvent.name, *properties.toList().toTypedArray())
+    }
+
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
         val event = AnalyticsEvent.WalletConnect(provider)
         val properties = event.properties()
@@ -181,6 +214,28 @@ class FlipcashAnalyticsManager @Inject constructor(
         }
         mixpanelAPI.track(name, jsonObject)
     }
+}
+
+class StubFlipcashAnalytics: FlipcashAnalyticsService {
+    override fun onAppStart() = Unit
+    override fun onAppStarted() = Unit
+    override fun unintentionalLogout() = Unit
+    override fun action(action: AppAction, source: AppActionSource?) = Unit
+    override fun transfer(event: AnalyticsEvent.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) = Unit
+    override fun transfer(event: AnalyticsEvent.Transfer, fiat: Fiat?, successful: Boolean, error: Throwable?) = Unit
+    override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
+    override fun poolOpenedFromDeeplink(id: ID) = Unit
+    override fun poolCreated(id: ID) = Unit
+    override fun placedBidInPool(id: ID) = Unit
+    override fun declaredOutcomeInPool(id: ID) = Unit
+    override fun openOnramp(openEvent: AnalyticsEvent.OnRampOpenEvent) = Unit
+    override fun onrampVerification(verificationEvent: AnalyticsEvent.OnRampVerificationEvent) = Unit
+    override fun onrampPurchase(purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent, fiat: Fiat?, successful: Boolean, error: Throwable?) = Unit
+    override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
+    override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) = Unit
+    override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
+    override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) = Unit
+    override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) = Unit
 }
 
 sealed class Action : AppAction {
@@ -262,6 +317,64 @@ sealed interface AnalyticsEvent {
 
     data class DeclaredOutcome(override val id: ID) : PoolEvent {
         override val name: String = "Pool: Declared Outcome"
+    }
+
+    sealed interface OnRampOpenEvent: AnalyticsEvent {
+        data object Settings : OnRampOpenEvent {
+            override val name: String = "Onramp: Opened From Settings"
+        }
+
+        data object Balance: OnRampOpenEvent {
+            override val name: String = "Onramp: Opened From Balance"
+        }
+
+        data object Give: OnRampOpenEvent {
+            override val name: String = "Onramp: Opened From Give"
+        }
+    }
+
+    sealed interface OnRampVerificationEvent: AnalyticsEvent {
+        data object ShowInfo : OnRampVerificationEvent {
+            override val name: String = "Onramp: Show Verification Info"
+        }
+
+        data object EnterPhone: OnRampVerificationEvent {
+            override val name: String = "Onramp: Show Enter Phone"
+        }
+
+        data object ConfirmPhone: OnRampVerificationEvent {
+            override val name: String = "Onramp: Show Confirm Phone"
+        }
+
+        data object EnterEmail: OnRampVerificationEvent {
+            override val name: String = "Onramp: Show Enter Email"
+        }
+
+        data object ConfirmEmail: OnRampVerificationEvent {
+            override val name: String = "Onramp: Show Confirm Email"
+        }
+    }
+
+    sealed interface OnRampPurchaseEvent: AnalyticsEvent {
+        data object PresetSelected: OnRampPurchaseEvent {
+            override val name: String = "Onramp: Amount Selected"
+        }
+
+        data object EnterCustomAmount: OnRampPurchaseEvent {
+            override val name: String = "Onramp: Enter Custom Amount"
+        }
+
+        data object InvokePayment: OnRampPurchaseEvent {
+            override val name: String = "Onramp: Invoke Payment"
+        }
+
+        data object InvokePaymentCustom: OnRampPurchaseEvent {
+            override val name: String = "Onramp: Invoke Payment Custom"
+        }
+
+        data object Completed: OnRampPurchaseEvent {
+            override val name: String = "Onramp: Completed"
+        }
     }
 
     sealed interface WalletEvent : AnalyticsEvent {
@@ -354,6 +467,26 @@ private fun AnalyticsEvent.properties(
             }
             is AnalyticsEvent.WalletTransactionFailed -> {
                 put("Provider", providerName)
+            }
+
+            is AnalyticsEvent.OnRampOpenEvent -> Unit
+            is AnalyticsEvent.OnRampVerificationEvent -> Unit
+            AnalyticsEvent.OnRampPurchaseEvent.Completed -> {
+                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
+            }
+            AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount -> Unit
+            AnalyticsEvent.OnRampPurchaseEvent.InvokePayment -> {
+                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
+            }
+            AnalyticsEvent.OnRampPurchaseEvent.InvokePaymentCustom -> {
+                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
+            }
+            AnalyticsEvent.OnRampPurchaseEvent.PresetSelected -> {
+                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
         }
 

@@ -24,6 +24,9 @@ import com.flipcash.app.navigation.FlowNavigator
 import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.app.navigation.NavigationFlowStep
 import com.flipcash.features.contact.verification.R
+import com.flipcash.services.analytics.AnalyticsEvent
+import com.flipcash.services.analytics.FlipcashAnalyticsService
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator

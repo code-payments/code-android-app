@@ -27,17 +27,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.onramp.internal.InternalOnRampAmountController
 import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.services.analytics.StubFlipcashAnalytics
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.shared.onramp.common.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.Modal
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.flipcash.shared.onramp.common.R
-import com.getcode.ui.components.Modal
 
 
 private val amounts = listOf(
@@ -184,7 +184,7 @@ private fun ClickableCell(
 @Composable
 @Preview
 private fun OnRampAmountSelectionModal_Preview() {
-    val controller = InternalOnRampAmountController().apply {
+    val controller = InternalOnRampAmountController(StubFlipcashAnalytics()).apply {
         requestAmountSelection(OnRampProvider.Phantom)
         selectAmount(OnRampAmount.Predefined(amounts.first()))
     }
