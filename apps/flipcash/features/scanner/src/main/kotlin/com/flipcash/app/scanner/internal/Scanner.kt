@@ -60,25 +60,13 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         navigator = navigator
     )
 
-
-
     BillContainer(
         isPaused = isPaused,
         isCameraReady = previewing == true,
         isCameraStarted = cameraStarted,
         onStartCamera = { cameraStarted = true },
         onAction = {
-            when (it) {
-                ScannerDecorItem.Give -> {
-                    val tokens = session.state.value.tokens
-                    if (tokens.count() < 2) {
-                        navigator.show(ScreenRegistry.get(AppRoute.Main.Give(tokens.firstOrNull())))
-                    } else {
-                        navigator.show(ScreenRegistry.get(AppRoute.Sheets.TokenSelection))
-                    }
-                }
-                else -> navigator.show(ScreenRegistry.get(it.screen))
-            }
+            navigator.show(ScreenRegistry.get(it.screen))
         },
         scannerView = {
             CodeScanner(
