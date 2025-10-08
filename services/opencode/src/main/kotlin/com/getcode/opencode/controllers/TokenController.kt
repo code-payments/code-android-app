@@ -10,6 +10,7 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
@@ -86,23 +87,23 @@ class TokenController @Inject constructor(
         return mintBalances.map { it[tokenAddress] ?: Fiat.Zero }
     }
 
-    suspend fun add(token: Token, fiat: LocalFiat) {
-        val balance = balanceForToken(token)
+    suspend fun add(token: Mint, fiat: LocalFiat) {
+        val balance = mintBalances.value[token] ?: Fiat.Zero
         if (balance.doubleValue == 0.0) {
             // attempt to fetch prior to append
             fetchBalanceForToken(token)
         } else {
-            mintBalances.update { it + (token.address to (balance + fiat.usdc)) }
+            mintBalances.update { it + (token to (balance + fiat.nativeAmount)) }
         }
     }
 
-    suspend fun subtract(token: Token, fiat: LocalFiat) {
-        val balance = balanceForToken(token)
+    suspend fun subtract(token: Mint, fiat: LocalFiat) {
+        val balance = mintBalances.value[token] ?: Fiat.Zero
         if (balance.doubleValue == 0.0) {
             // attempt to fetch prior to append
             fetchBalanceForToken(token)
         } else {
-            mintBalances.update { it + (token.address to (balance - fiat.usdc)) }
+            mintBalances.update { it + (token to (balance - fiat.nativeAmount)) }
         }
     }
 
@@ -159,23 +160,23 @@ class TokenController @Inject constructor(
         }
     }
 
-    private suspend fun fetchBalanceForToken(token: Token) {
+    private suspend fun fetchBalanceForToken(mint: Mint) {
         val owner = cluster.value
         if (owner == null) {
             trace(
                 tag = "Token",
-                message = "Missing owner while fetching token balance for ${token.symbol}",
+                message = "Missing owner while fetching token balance",
                 type = TraceType.Error
             )
             return
         }
 
-        if (!isFetchingToken(token.address)) {
-            tokenFetchState[token.address]?.store(true)
+        if (!isFetchingToken(mint)) {
+            tokenFetchState[mint]?.store(true)
 
             trace(
                 tag = "Tokens",
-                message = "Fetching Balance for ${token.symbol}",
+                message = "Fetching Balance for token ${mint.base58()}",
                 type = TraceType.Process
             )
 
@@ -185,30 +186,59 @@ class TokenController @Inject constructor(
                     accountController.getAccounts(
                         accountOwner = owner,
                         requestingOwner = owner,
-                        filter = AccountFilter.MintAddress(token.address)
+                        filter = AccountFilter.MintAddress(mint)
                     )
                 }
             )?.map {
                 it.accounts.values.toList()
-                    .firstOrNull { accountInfo -> accountInfo.accountType == AccountType.Primary  && accountInfo.mint == token.address }
-            }?.map { account ->
-                when {
-                    account == null -> throw IllegalStateException("No account found for ${token.symbol}")
-                    account.mint == Mint.usdc -> Fiat(account.balance)
-                    else -> Fiat.tokenBalance(account.balance, token)
+                    .firstOrNull { accountInfo -> accountInfo.accountType == AccountType.Primary && accountInfo.mint == mint }
+            }?.fold(
+                onSuccess = { account ->
+                    val token = getTokenMetadata(mint).getOrNull()
+
+                    if (token == null) {
+                        trace(
+                            tag = "Tokens",
+                            message = "Failed to fetch metadata for token ${mint.base58()}",
+                            type = TraceType.Error
+                        )
+                        return@fold Result.failure(IllegalStateException("No metadata found for token ${mint.base58()}"))
+                    }
+
+                    Result.success(account to token)
+                },
+                onFailure = {
+                    trace(
+                        tag = "Tokens",
+                        message = "Failed to fetch balance for token ${mint.base58()}",
+                        type = TraceType.Error
+                    )
+                    Result.failure(it)
                 }
-            }?.onSuccess { tokenBalance ->
-                mintBalances.update { it + (token.address to tokenBalance) }
-                trace(
-                    tag = "Tokens",
-                    message = "Updated balance for ${token.symbol} is ${tokenBalance.formatted()} USD",
-                    type = TraceType.Process
-                )
-                tokenFetchState[token.address]?.store(false)
-            }?.onFailure {
-                tokenFetchState[token.address]?.store(false)
-            }
+            )?.map { (account, token) ->
+                    when {
+                        account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
+                        account.mint == Mint.usdc -> token to Fiat(account.balance)
+                        else -> token to Fiat.tokenBalance(account.balance, token)
+                    }
+                }?.onSuccess { (token, tokenBalance) ->
+                    mintBalances.update { it + (mint to tokenBalance) }
+                    trace(
+                        tag = "Tokens",
+                        message = "Updated balance for ${token.symbol} is ${tokenBalance.formatted()} USD",
+                        type = TraceType.Process
+                    )
+                    tokenFetchState[mint]?.store(false)
+                }?.onFailure {
+                    tokenFetchState[mint]?.store(false)
+                }
         }
+    }
+
+    suspend fun getTokenMetadata(mint: Mint): Result<Token> {
+        return currencyController.getMintMetadata(listOf(mint))
+            .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint }
+                ?: throw IllegalStateException("No metadata found for token $mint") }
     }
 
     fun reset() {

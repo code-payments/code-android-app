@@ -409,4 +409,6 @@
     <string name="title_otherRegions">Other Regions</string>
     <string name="subtitle_searchRegions">Search regions</string>
     <string name="title_enterAmount">Enter Amount</string>
+
+    <string name="of">of</string>
 </resources>

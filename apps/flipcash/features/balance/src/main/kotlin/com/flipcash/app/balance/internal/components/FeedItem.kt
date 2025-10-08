@@ -1,7 +1,6 @@
 package com.flipcash.app.balance.internal.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -16,24 +15,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.theme.FlipcashDesignSystem
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.toFiat
-import com.getcode.solana.keys.PublicKey
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.decodeBase58
 import kotlinx.datetime.Instant
@@ -97,7 +91,7 @@ val rates = mapOf(
 )
 private val oneDollarLocalized = LocalFiat(
     usdc = oneDollarCad.convertingTo(usdCadRate),
-    converted = oneDollarCad,
+    nativeAmount = oneDollarCad,
 )
 private val sampleItem = ActivityFeedMessage(
     id = "3GHjGey5F3fVProC3mYpiBpi7dCegFNz3wYtHSTiQnPt".decodeBase58().toList(),
@@ -105,7 +99,7 @@ private val sampleItem = ActivityFeedMessage(
     amount = oneDollarLocalized,
     timestamp = Instant.parse("2025-06-03T16:25:00-04:00"),
     state = MessageState.COMPLETED,
-    metadata = MessageMetadata.GaveUsdc
+    metadata = MessageMetadata.GaveCrypto
 )
 
 @Preview

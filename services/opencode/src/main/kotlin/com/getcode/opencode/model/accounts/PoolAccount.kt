@@ -4,6 +4,7 @@ import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
+import com.getcode.solana.keys.Mint
 
 class PoolAccount(
     val rendezvous: Ed25519.KeyPair,
@@ -19,7 +20,7 @@ class PoolAccount(
                 ).keyPair,
                 mnemonic = mnemonic,
                 cluster = AccountCluster.newInstance(
-                    authority = DerivedKey.derive(DerivePath.getPool(index), mnemonic = mnemonic)
+                    authority = DerivedKey.derive(DerivePath.getPool(index), mnemonic = mnemonic),
                 )
             )
         }

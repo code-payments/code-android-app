@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.flipcash.libs.currency.math.Estimator
 import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -11,7 +12,9 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.solana.intents.actions.ActionType
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import kotlin.math.min
 import kotlin.math.sign
 
 internal class ActionPublicTransfer(
@@ -19,6 +22,7 @@ internal class ActionPublicTransfer(
     override var serverParameter: ServerParameter? = null,
     override val signer: KeyPair,
 
+    val mint: Mint,
     val amount: Fiat,
     val source: PublicKey,
     val destination: PublicKey,
@@ -53,6 +57,7 @@ internal class ActionPublicTransfer(
                     .setDestination(destination.asSolanaAccountId())
                     .setAuthority(signer.asSolanaAccountId())
                     .setAmount(amount.quarks)
+                    .setMint(mint.asSolanaAccountId())
                     .build()
             ).build()
     }
@@ -60,6 +65,7 @@ internal class ActionPublicTransfer(
     internal companion object {
         fun newInstance(
             amount: Fiat,
+            mint: Mint,
             source: PublicKey,
             owner: KeyPair,
             destination: PublicKey
@@ -68,6 +74,7 @@ internal class ActionPublicTransfer(
                 id = 0,
                 signer = owner,
                 amount = amount,
+                mint = mint,
                 source = source,
                 destination = destination
             )

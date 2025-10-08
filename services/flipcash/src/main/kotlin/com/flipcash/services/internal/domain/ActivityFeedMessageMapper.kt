@@ -3,9 +3,11 @@ package com.flipcash.services.internal.domain
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.activity.v1.paymentAmountOrNull
 import com.codeinc.flipcash.gen.pool.v1.Model.*
+import com.flipcash.libs.currency.math.units
 import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toId
+import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.NotificationMetadata
@@ -13,7 +15,9 @@ import com.flipcash.services.models.NotificationState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Rate
 import kotlinx.datetime.Instant
+import java.math.BigDecimal
 import javax.inject.Inject
 
 internal class ActivityFeedMessageMapper @Inject constructor(
@@ -23,9 +27,13 @@ internal class ActivityFeedMessageMapper @Inject constructor(
             id = from.id.toId(),
             text = from.localizedText,
             amount = from.paymentAmountOrNull?.let {
+                val units = BigDecimal(it.quarks).units()
+                val rate = Rate(1f / units.toDouble(), CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD)
                 LocalFiat(
-                    usdc = Fiat(quarks = it.quarks),
-                    converted = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
+                    underlyingTokenAmount = Fiat(quarks = it.quarks),
+                    mint = it.mint.toPublicKey(),
+                    rate = rate,
+                    nativeAmount = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
                 )
             },
             timestamp = Instant.fromEpochSeconds(from.ts.seconds),
@@ -38,20 +46,20 @@ internal class ActivityFeedMessageMapper @Inject constructor(
             },
             metadata = when (from.additionalMetadataCase) {
                 Model.Notification.AdditionalMetadataCase.WELCOME_BONUS -> NotificationMetadata.WelcomeBonus
-                Model.Notification.AdditionalMetadataCase.GAVE_USDC -> NotificationMetadata.GaveUsdc
-                Model.Notification.AdditionalMetadataCase.RECEIVED_USDC -> NotificationMetadata.ReceivedUsdc
-                Model.Notification.AdditionalMetadataCase.WITHDREW_USDC -> NotificationMetadata.WithdrewUsdc
-                Model.Notification.AdditionalMetadataCase.SENT_USDC -> NotificationMetadata.SentUsdc(
-                    creator = from.sentUsdc.vault.value.toByteArray().toPublicKey(),
-                    canCancel = from.sentUsdc.canInitiateCancelAction
+                Model.Notification.AdditionalMetadataCase.GAVE_CRYPTO -> NotificationMetadata.GaveCrypto
+                Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> NotificationMetadata.ReceivedCrypto
+                Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto
+                Model.Notification.AdditionalMetadataCase.SENT_CRYPTO -> NotificationMetadata.SentCrypto(
+                    creator = from.sentCrypto.vault.value.toByteArray().toPublicKey(),
+                    canCancel = from.sentCrypto.canInitiateCancelAction
                 )
-                Model.Notification.AdditionalMetadataCase.DEPOSITED_USDC -> NotificationMetadata.DepositedUsdc
-                Model.Notification.AdditionalMetadataCase.PAID_USDC -> NotificationMetadata.PaidUsdc(
-                    poolId = from.paidUsdc.pool.poolId.value.toList()
+                Model.Notification.AdditionalMetadataCase.DEPOSITED_CRYPTO -> NotificationMetadata.DepositedCrypto
+                Model.Notification.AdditionalMetadataCase.PAID_CRYPTO -> NotificationMetadata.PaidCrypto(
+                    poolId = from.paidCrypto.pool.poolId.value.toList()
                 )
-                Model.Notification.AdditionalMetadataCase.DISTRIBUTED_USDC -> NotificationMetadata.DistributedUsdc(
-                    poolId = from.distributedUsdc.pool.poolId.value.toList(),
-                    outcome = when (from.distributedUsdc.pool.outcome) {
+                Model.Notification.AdditionalMetadataCase.DISTRIBUTED_CRYPTO -> NotificationMetadata.DistributedUsdc(
+                    poolId = from.distributedCrypto.pool.poolId.value.toList(),
+                    outcome = when (from.distributedCrypto.pool.outcome) {
                         UserOutcome.WIN_OUTCOME -> NetworkPoolResolution.BooleanResolution(true)
                         UserOutcome.LOSE_OUTCOME -> NetworkPoolResolution.BooleanResolution(false)
                         UserOutcome.REFUND_OUTCOME -> NetworkPoolResolution.Refund

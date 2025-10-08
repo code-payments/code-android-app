@@ -8,9 +8,11 @@ import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentRemoteSend(
@@ -25,28 +27,32 @@ internal class IntentRemoteSend(
     internal companion object {
         fun create(
             rendezvous: PublicKey,
-            sourceCluster: AccountCluster,
+            owner: AccountCluster,
+            source: AccountCluster,
             giftCard: GiftCardAccount,
             amount: LocalFiat,
+            token: Token,
         ): IntentRemoteSend {
             // 1. Open gift card account
-            val openGiftCardAccount = ActionOpenAccount.createGiftCard(giftCard.cluster)
+            val openGiftCardAccount = ActionOpenAccount.createGiftCard(giftCard.cluster, token.address)
 
             // 2. Transfer all funds from primary account to the created gift card
             val transferToGiftCardAccount = ActionPublicTransfer.newInstance(
-                amount = amount.usdc,
-                owner = sourceCluster.authority.keyPair,
-                source = sourceCluster.vaultPublicKey,
-                destination = openGiftCardAccount.owner.vaultPublicKey
+                amount = amount.underlyingTokenAmount,
+                owner = owner.authority.keyPair,
+                source = source.vaultPublicKey,
+                destination = openGiftCardAccount.owner.vaultPublicKey,
+                mint = token.address
             )
 
             // 3. Allow auto-returning back to the primary if not collected
             val withdrawToDestination = ActionPublicWithdraw.newInstance(
-                amount = amount.usdc,
+                amount = amount.underlyingTokenAmount,
                 owner = giftCard.cluster,
                 source = giftCard.cluster,
-                destination = sourceCluster.vaultPublicKey,
-                canAutoReturn = true
+                destination = source.vaultPublicKey,
+                canAutoReturn = true,
+                mint = token.address
             )
 
             val actions = ActionGroup().apply {
@@ -60,9 +66,10 @@ internal class IntentRemoteSend(
             return IntentRemoteSend(
                 id = rendezvous,
                 metadata = TransactionMetadata.SendPublicPayment(
-                    source = sourceCluster.vaultPublicKey,
+                    source = source.vaultPublicKey,
                     destination = giftCard.cluster.vaultPublicKey,
                     amount = amount,
+                    mint = token.address,
                     isRemoteSend = true,
                     isWithdrawal = false
                 ),

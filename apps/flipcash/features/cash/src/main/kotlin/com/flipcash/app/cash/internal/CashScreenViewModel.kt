@@ -14,7 +14,6 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -53,7 +52,6 @@ import kotlin.math.min
 internal class CashScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
-    balanceController: BalanceController,
     tokenController: TokenController,
     transactionController: TransactionController,
     onrampController: OnRampAmountController,
@@ -130,9 +128,9 @@ internal class CashScreenViewModel @Inject constructor(
             fiat = amount,
             currencyCode = stateFlow.value.currencyModel.code ?: CurrencyCode.USD
         ).convertingTo(conversionRate)
-        val balanceInUsdc = stateFlow.value.token?.balance?.usdc ?: Fiat.Zero
+        val tokenBalance = stateFlow.value.token?.balance?.underlyingTokenAmount ?: Fiat.Zero
 
-        val isOverBalance = enteredInUsdc > balanceInUsdc
+        val isOverBalance = enteredInUsdc > tokenBalance
         if (isOverBalance || conversionRate == Rate.ignore) {
             BottomBarManager.showMessage(
                 resources.getString(R.string.error_title_youNeedMoreCash),
@@ -153,14 +151,21 @@ internal class CashScreenViewModel @Inject constructor(
                             }
 
                             val localizedAmount = Fiat(amount, rate.currency)
+                            val token = stateFlow.value.token!!.token
+                            val amountFiat = if (token.address == Mint.usdc) {
+                                 LocalFiat(
+                                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                                    nativeAmount = localizedAmount,
+                                )
+                            } else {
+                                LocalFiat.valueExchangeIn(
+                                    localizedAmount,
+                                    token = token,
+                                    currencyCode = rate.currency
+                                )
+                            }
 
-                            val amountFiat = LocalFiat(
-                                usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                                converted = localizedAmount,
-                                rate = rate,
-                            )
-
-                            val neededAmount = amountFiat.usdc - balanceInUsdc
+                            val neededAmount = amountFiat.underlyingTokenAmount - tokenBalance
 
                             dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
@@ -209,9 +214,7 @@ internal class CashScreenViewModel @Inject constructor(
                         token = token,
                         balance = LocalFiat(
                             usdc = balance,
-                            converted = balance.convertingTo(rate),
-                            rate = rate
-
+                            nativeAmount = balance.convertingTo(rate),
                         )
                     )
                 }
@@ -290,7 +293,7 @@ internal class CashScreenViewModel @Inject constructor(
             .onEach { (limits, balance) ->
                 val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero
                 val nextTransactionLimit = sendLimit.nextTransaction
-                val max = min(nextTransactionLimit, balance.converted.doubleValue)
+                val max = min(nextTransactionLimit, balance.nativeAmount.doubleValue)
                 dispatchEvent(Event.OnMaxDetermined(max, balance.rate.currency))
             }.launchIn(viewModelScope)
 
@@ -300,21 +303,35 @@ internal class CashScreenViewModel @Inject constructor(
             .filter { !(checkBalanceLimit() || checkSendLimit()) }
             .onEach { data ->
                 dispatchEvent(Event.UpdateLoadingState(loading = true))
+                val token = stateFlow.value.token!!.token
                 val rate = exchange.entryRate
                 // if we are USD we can skip the rate fetch since its 1:1
-                if (rate.currency != CurrencyCode.USD) {
-                    exchange.fetchRatesIfNeeded()
+                if (token.address == Mint.usdc) {
+                    if (rate.currency != CurrencyCode.USD) {
+                        exchange.fetchRatesIfNeeded()
+                    }
                 }
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
 
-                val amountFiat = LocalFiat(
-                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                    converted = localizedAmount,
-                    rate = rate,
+                val amountFiat = if (token.address == Mint.usdc) {
+                    LocalFiat(
+                        usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                        nativeAmount = localizedAmount,
+                    )
+                } else {
+                    LocalFiat.valueExchangeIn(
+                        localizedAmount,
+                        token = token,
+                        currencyCode = rate.currency
+                    )
+                }
+
+                val bill = Bill.Cash(
+                    token = stateFlow.value.token!!.token,
+                    amount = amountFiat
                 )
 
-                val bill = Bill.Cash(amount = amountFiat)
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
                 dispatchEvent(Event.PresentBill(bill))
             }.launchIn(viewModelScope)

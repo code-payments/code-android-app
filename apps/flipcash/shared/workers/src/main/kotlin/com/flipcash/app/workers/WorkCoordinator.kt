@@ -6,6 +6,8 @@ import androidx.work.WorkManager
 import com.flipcash.app.workers.internal.GiftCardFundingWorker
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -20,6 +22,7 @@ class WorkCoordinator @Inject constructor(
     fun scheduleGiftCardFunding(
         giftCardAccount: GiftCardAccount,
         amount: LocalFiat,
+        token: Token,
         initialDelay: Duration = 70.seconds,
     ) {
         val request = OneTimeWorkRequestBuilder<GiftCardFundingWorker>()
@@ -27,7 +30,8 @@ class WorkCoordinator @Inject constructor(
             .setInputData(
                 GiftCardFundingWorker.buildInputData(
                     giftCardAccount = giftCardAccount,
-                    amount = amount
+                    amount = amount,
+                    token = token,
                 )
             ).addTag(GiftCardFundingWorker.tagFor(giftCardAccount))
             .build()

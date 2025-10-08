@@ -1,17 +1,14 @@
 package com.flipcash.app.scanner.internal.bills
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.bill.Bill
+import com.getcode.opencode.model.core.OpenCodePayload
+import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.core.OpenCodePayload
-import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.theme.DesignSystem
 
@@ -37,7 +34,7 @@ fun Preview_CashBill() {
         val usdcBase = Fiat(3.00, CurrencyCode.USD)
         val cadRate = Rate(1.4, CurrencyCode.CAD)
         val payload = OpenCodePayload(
-            PayloadKind.Cash,
+            PayloadKind.MultiMintCash,
             value = usdcBase,
             nonce = listOf(
                 -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
@@ -47,8 +44,7 @@ fun Preview_CashBill() {
         CashBill(
             amount = LocalFiat(
                 usdc = usdcBase,
-                converted = usdcBase.convertingTo(cadRate),
-                rate = cadRate
+                nativeAmount = usdcBase.convertingTo(cadRate),
             ),
             payloadData = payload.codeData.toList(),
         )

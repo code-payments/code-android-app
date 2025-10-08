@@ -6,6 +6,8 @@ import com.getcode.opencode.managers.BillTransactionManager
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -33,35 +35,37 @@ class BillController @Inject constructor(
 
     fun awaitGrab(
         amount: LocalFiat,
+        token: Token,
         owner: AccountCluster,
         present: (List<Byte>) -> Unit,
         onGrabbed: () -> Unit,
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
-    ) = transactionManager.awaitGrabFromRecipient(amount, owner, present, onGrabbed, onTimeout, onError)
+    ) = transactionManager.awaitGrabFromRecipient(token, amount, owner, present, onGrabbed, onTimeout, onError)
 
     fun cancelAwaitForGrab() = transactionManager.cancelAwaitForGrab()
 
     fun attemptGrab(
         owner: AccountCluster,
         payload: OpenCodePayload,
-        onGrabbed: (LocalFiat) -> Unit,
+        onGrabbed: (Token, LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.attemptGrabFromSender(owner, payload, onGrabbed, onError)
 
     fun fundGiftCard(
         giftCard: GiftCardAccount,
         amount: LocalFiat,
+        token: Token,
         owner: AccountCluster,
         onFunded: (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
-    ) = transactionManager.fundGiftCard(giftCard, amount, owner, onFunded, onError)
+    ) = transactionManager.fundGiftCard(giftCard, amount, owner, token, onFunded, onError)
 
     fun receiveGiftCard(
         entropy: String,
         owner: AccountCluster,
         claimIfOwned: Boolean,
-        onReceived: (LocalFiat) -> Unit,
+        onReceived: (Token, LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.receiveGiftCard(owner, entropy, claimIfOwned, onReceived, onError)
 }

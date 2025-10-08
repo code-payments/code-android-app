@@ -7,6 +7,8 @@ import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import kotlin.time.Duration
 
 data class BillState(
@@ -85,6 +87,7 @@ data class BillState(
 sealed interface Bill {
     val didReceive: Boolean
     val confirmationDelay: Duration
+    val token: Token
     val amount: LocalFiat
     val data: List<Byte>
 
@@ -103,6 +106,7 @@ sealed interface Bill {
         get() {
             return when (this) {
                 is Cash -> Metadata(
+                    token = token,
                     amount = amount,
                     data = data
                 )
@@ -110,6 +114,7 @@ sealed interface Bill {
         }
 
     data class Cash(
+        override val token: Token,
         override val amount: LocalFiat,
         override val didReceive: Boolean = false,
         override val confirmationDelay: Duration = Duration.ZERO,
@@ -135,6 +140,7 @@ data class BillToast(
 }
 
 data class Metadata(
+    val token: Token,
     val amount: LocalFiat,
     val data: List<Byte>,
     val request: DeepLinkRequest? = null

@@ -18,12 +18,12 @@ class MessageEntityToFeedMessageMapper @Inject constructor() : Mapper<MessageEnt
         val nativeAmount = from.amountNative
         val currencyCode = CurrencyCode.tryValueOf(from.nativeCurrency)
         val fx = from.rate
-
-        val amount = if (usdcAmount != null && nativeAmount != null && currencyCode != null && fx != null) {
+        val mint = from.mint
+        val amount = if (usdcAmount != null && nativeAmount != null && currencyCode != null && fx != null && mint != null) {
             val usdc = Fiat(usdcAmount, CurrencyCode.USD)
             val native = Fiat(nativeAmount, currencyCode)
             val rate = Rate(fx, currencyCode)
-            LocalFiat(usdc, native, rate)
+            LocalFiat(usdc, native, rate, mint)
         } else {
             null
         }

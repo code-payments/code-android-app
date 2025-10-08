@@ -210,8 +210,7 @@ internal class PoolBettingViewModel @Inject constructor(
         ) { balance, rate ->
             LocalFiat(
                 usdc = balance,
-                converted = balance.convertingTo(rate),
-                rate = rate
+                nativeAmount = balance.convertingTo(rate),
             )
         }.onEach {
             dispatchEvent(Event.OnBalanceChanged(it))
@@ -424,11 +423,10 @@ internal class PoolBettingViewModel @Inject constructor(
                                                             rate.currency
                                                         )!!
                                                     ),
-                                                    converted = buyIn,
-                                                    rate = rate,
+                                                    nativeAmount = buyIn,
                                                 )
 
-                                                val neededAmount = amountFiat.usdc - stateFlow.value.balance.usdc
+                                                val neededAmount = amountFiat.underlyingTokenAmount - stateFlow.value.balance.underlyingTokenAmount
                                                 dispatchEvent(Event.AddCashToWallet(neededAmount))
                                             }
                                         },

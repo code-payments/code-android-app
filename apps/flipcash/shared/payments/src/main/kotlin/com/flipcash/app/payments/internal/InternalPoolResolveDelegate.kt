@@ -20,6 +20,7 @@ import com.getcode.opencode.model.core.RandomId
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import javax.inject.Inject
@@ -75,6 +76,7 @@ class InternalPoolResolveDelegate @Inject constructor(
             owner = owner,
             from = poolAccount.cluster,
             distributions = distributions,
+            mint = Mint.usdc,
         ).map {
             it.id.bytes
         }.onSuccess {
@@ -131,12 +133,12 @@ class InternalPoolResolveDelegate @Inject constructor(
                 ?: throw IllegalArgumentException("No rate found for ${pool.buyIn.currencyCode}")
             val localizedAmount = LocalFiat(
                 usdc = pool.buyIn.convertingTo(rate),
-                converted = pool.buyIn,
+                nativeAmount = pool.buyIn,
             )
             val distros = paidBets.map {
                 Distribution(
                     destination = it.payoutDestination,
-                    amount = localizedAmount.usdc,
+                    amount = localizedAmount.underlyingTokenAmount,
                 )
             }
 

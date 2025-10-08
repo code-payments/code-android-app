@@ -3,6 +3,7 @@ package com.getcode.opencode.model.transactions
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 sealed interface TransactionMetadata {
@@ -17,7 +18,7 @@ sealed interface TransactionMetadata {
      *   actions.push_back(OpenAccountAction(account))
      * ```
      */
-    data class OpenAccount(val type: AccountType): TransactionMetadata
+    data class OpenAccount(val type: AccountType, val mint: Mint): TransactionMetadata
 
     sealed interface PublicPayment {
         val source: PublicKey
@@ -49,27 +50,31 @@ sealed interface TransactionMetadata {
         val destinationOwner: PublicKey? = null,
         override val exchangeData: ExchangeData.WithRate,
         val isRemoteSend: Boolean,
-        val isWithdrawal: Boolean
+        val isWithdrawal: Boolean,
+        val mint: Mint,
     ): TransactionMetadata, PublicPayment {
         constructor(
             source: PublicKey,
             destination: PublicKey,
             destinationOwner: PublicKey? = null,
             amount: LocalFiat,
+            mint: Mint,
             isRemoteSend: Boolean,
             isWithdrawal: Boolean,
         ) : this(
-            source,
-            destination,
-            destinationOwner,
-            ExchangeData.WithRate(
+            source = source,
+            destination = destination,
+            destinationOwner = destinationOwner,
+            exchangeData = ExchangeData.WithRate(
                 currencyCode = amount.rate.currency.name,
                 exchangeRate = amount.rate.fx,
-                nativeAmount = amount.converted.doubleValue,
-                quarks = amount.usdc.quarks
+                nativeAmount = amount.nativeAmount.doubleValue,
+                quarks = amount.underlyingTokenAmount.quarks,
+                mint = mint,
             ),
-            isRemoteSend,
-            isWithdrawal
+            isRemoteSend = isRemoteSend,
+            isWithdrawal = isWithdrawal,
+            mint = mint,
         )
     }
 
@@ -100,21 +105,25 @@ sealed interface TransactionMetadata {
         val quarks: Long,
         val isRemoteSend: Boolean,
         override val exchangeData: ExchangeData.WithRate,
+        val mint: Mint,
     ): TransactionMetadata, PublicPayment {
         constructor(
             source: PublicKey,
             amount: LocalFiat,
+            mint: Mint,
             isRemoteSend: Boolean,
         ) : this(
-            source,
-            amount.usdc.quarks,
-            isRemoteSend,
-            ExchangeData.WithRate(
+            source = source,
+            quarks = amount.underlyingTokenAmount.quarks,
+            isRemoteSend = isRemoteSend,
+            exchangeData = ExchangeData.WithRate(
                 currencyCode = amount.rate.currency.name,
                 exchangeRate = amount.rate.fx,
-                nativeAmount = amount.converted.doubleValue,
-                quarks = amount.usdc.quarks
-            )
+                nativeAmount = amount.nativeAmount.doubleValue,
+                quarks = amount.underlyingTokenAmount.quarks,
+                mint = mint
+            ),
+            mint = mint,
         )
     }
 
@@ -140,7 +149,8 @@ sealed interface TransactionMetadata {
      */
     data class PublicDistribution(
         val source: PublicKey,
-        val distributions: List<Distribution>
+        val distributions: List<Distribution>,
+        val mint: Mint,
     ): TransactionMetadata
 
     data object Unknown: TransactionMetadata

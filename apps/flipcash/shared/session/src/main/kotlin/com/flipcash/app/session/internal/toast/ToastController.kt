@@ -40,14 +40,14 @@ class ToastController @Inject constructor(
         isDeposit: Boolean,
         initialDelay: Duration = INITIAL_DELAY
     ) {
-        if (amount.converted.doubleValue == 0.0) {
+        if (amount.nativeAmount.doubleValue == 0.0) {
             return
         }
 
         synchronized(toastQueue) {
             // Check for matching toast (same amount, opposite isDeposit)
             val matchingToast = toastQueue.find { toast ->
-                toast.amount.converted.doubleValue == amount.converted.doubleValue &&
+                toast.amount.nativeAmount.doubleValue == amount.nativeAmount.doubleValue &&
                         toast.isDeposit != isDeposit
             }
 
@@ -85,7 +85,7 @@ class ToastController @Inject constructor(
             billController.update {
                 it.copy(
                     showToast = true,
-                    toast = BillToast(amount = toast.amount.converted, isDeposit = toast.isDeposit)
+                    toast = BillToast(amount = toast.amount.nativeAmount, isDeposit = toast.isDeposit)
                 )
             }
 

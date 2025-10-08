@@ -12,7 +12,7 @@ data class ProgramDerivedAccount(val publicKey: PublicKey, val bump: Int)
 class TimelockDerivedAccounts(
     val owner: PublicKey,
     val state: ProgramDerivedAccount,
-    val vault: ProgramDerivedAccount
+    val vault: ProgramDerivedAccount,
 ) {
     companion object {
         const val lockoutInDays: Long = 21

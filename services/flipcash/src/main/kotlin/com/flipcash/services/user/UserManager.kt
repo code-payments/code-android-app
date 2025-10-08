@@ -13,7 +13,10 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.services.opencode.BuildConfig
+import com.getcode.solana.keys.Mint
 import com.getcode.utils.base58
 import com.getcode.utils.trace
 import com.google.firebase.ktx.Firebase
@@ -120,7 +123,7 @@ class UserManager @Inject constructor(
     fun establish(entropy: String) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(DerivePath.primary, mnemonic)
-        val cluster = AccountCluster.newInstance(authority)
+        val cluster = AccountCluster.newInstance(authority = authority, token = Token.usdc)
         _state.update {
             it.copy(
                 entropy = entropy,

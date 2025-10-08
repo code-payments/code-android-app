@@ -56,29 +56,29 @@ sealed interface NotificationMetadata {
     data object WelcomeBonus : NotificationMetadata
 
     @Serializable
-    data object GaveUsdc : NotificationMetadata
+    data object GaveCrypto : NotificationMetadata
 
     /**
      * @param creator The vault of the gift card account that was created for the cash link
      * @param canCancel Whether the cancel action can be initiated by the user
      */
     @Serializable
-    data class SentUsdc(
+    data class SentCrypto(
         val creator: PublicKey,
         val canCancel: Boolean,
     ) : NotificationMetadata
 
     @Serializable
-    data object DepositedUsdc : NotificationMetadata
+    data object DepositedCrypto : NotificationMetadata
 
     @Serializable
-    data object ReceivedUsdc : NotificationMetadata
+    data object ReceivedCrypto : NotificationMetadata
 
     @Serializable
-    data object WithdrewUsdc : NotificationMetadata
+    data object WithdrewCrypto : NotificationMetadata
 
     @Serializable
-    data class PaidUsdc(
+    data class PaidCrypto(
         val poolId: ID,
     ) : NotificationMetadata
 

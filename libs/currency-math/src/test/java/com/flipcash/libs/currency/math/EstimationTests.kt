@@ -24,8 +24,8 @@ class EstimationTests {
     @Test
     fun `estimate value exchange`() {
         val quarks = Estimator.valueExchange(
-            valueInQuarks = 1_000_000_000, // 5_000_000,                // $5,
-            currentSupplyInQuarks = 149130130273636, // 7232649000000000, // 723,264.9 tokens
+            valueInQuarks = 5_000_000,                 // $5,
+            currentSupplyInQuarks =  7232649000000000, // 723,264.9 tokens
             mintDecimals = 6,
         ).getOrThrow()
 
@@ -44,7 +44,7 @@ class EstimationTests {
         ).getOrThrow()
 
         val expectedTotal = BigInteger("53147450513564")
-        assertEquals( expectedTotal, received + fees)
+        assertEquals( expectedTotal, (received + fees).toBigInteger())
 
         val (received2, fees2) = Estimator.buy(
             amountInQuarks = 100_000_000,             // $100
@@ -53,7 +53,7 @@ class EstimationTests {
             feeBps = 100, // 1%
         ).getOrThrow()
 
-        assertEquals( expectedTotal, received2 + fees2)
+        assertEquals( expectedTotal, (received2 + fees2).toBigInteger())
     }
 
     @Test
@@ -66,7 +66,7 @@ class EstimationTests {
         ).getOrThrow()
 
         val expectedTotal = BigInteger("5000000")
-        assertEquals( expectedTotal, received + fees)
+        assertEquals( expectedTotal, (received + fees).toBigInteger())
 
         val (received2, fees2) = Estimator.sell(
             amountInQuarks = 2651496281136,          // 265.1496281136 tokens
@@ -75,6 +75,6 @@ class EstimationTests {
             feeBps = 100, // 1%
         ).getOrThrow()
 
-        assertEquals( expectedTotal, received2 + fees2)
+        assertEquals( expectedTotal, (received2 + fees2).toBigInteger())
     }
 }

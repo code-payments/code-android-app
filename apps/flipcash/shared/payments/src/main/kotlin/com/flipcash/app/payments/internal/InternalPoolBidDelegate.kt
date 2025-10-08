@@ -11,6 +11,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
@@ -43,7 +44,7 @@ internal class InternalPoolBidDelegate @Inject constructor(
 
         val localizedAmount = LocalFiat(
             usdc = amount.convertingTo(exchange.rateToUsd(amount.currencyCode)!!),
-            converted = amount,
+            nativeAmount = amount,
         )
 
         transactionController.transfer(
@@ -51,6 +52,7 @@ internal class InternalPoolBidDelegate @Inject constructor(
             amount = localizedAmount,
             rendezvous = PublicKey(bidId),
             source = userManager.accountCluster!!,
+            mint = Mint.usdc, // TODO: support multi-mint
         ).map { it.id.bytes }.onSuccess {
             // update balance on successful bid payment
             activityFeedCoordinator.fetchSinceLatest()

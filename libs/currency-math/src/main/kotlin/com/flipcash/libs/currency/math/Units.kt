@@ -1,0 +1,6 @@
+package com.flipcash.libs.currency.math
+
+import com.flipcash.libs.currency.math.internal.DefaultMintQuarksPerUnit
+import java.math.BigDecimal
+
+fun BigDecimal.units(): BigDecimal = this.divide(BigDecimal(DefaultMintQuarksPerUnit), mc)

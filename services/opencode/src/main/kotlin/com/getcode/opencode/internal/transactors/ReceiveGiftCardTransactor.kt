@@ -1,6 +1,10 @@
 package com.getcode.opencode.internal.transactors
 
+import com.getcode.crypt.DerivePath
+import com.getcode.crypt.DerivedKey
+import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.managers.GiftCardManager
 import com.getcode.opencode.managers.MnemonicManager
@@ -8,53 +12,58 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.transactions.TransactionMetadata
-import com.getcode.solana.keys.PublicKey
+import com.getcode.opencode.model.financial.Token
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.timedTrace
 import com.getcode.utils.timedTraceSuspend
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 
 internal class ReceiveGiftCardTransactor(
     private val accountController: AccountController,
     private val transactionController: TransactionController,
+    private val tokenController: TokenController,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
-): Transactor<ReceiveGiftTransactorError>("Transactor::Receive") {
+) : Transactor<ReceiveGiftTransactorError>("Transactor::Receive") {
     private var owner: AccountCluster? = null
+    private var mnemonic: MnemonicPhrase? = null
     private var giftCardAccount: GiftCardAccount? = null
+
+    private var giftCardOwner: AccountCluster? = null
 
     fun with(owner: AccountCluster, entropy: String) {
         this.owner = owner
-        val mnemonic = mnemonicManager.fromEntropyBase58(entropy)
-        giftCardAccount = giftCardManager.createGiftCard(mnemonic)
+        mnemonic = mnemonicManager.fromEntropyBase58(entropy)
+        giftCardOwner = AccountCluster.newInstance(
+            DerivedKey.derive(DerivePath.primary, mnemonic = mnemonic!!),
+        )
     }
 
-    suspend fun start(claimIfOwned: Boolean): Result<LocalFiat> {
-        val ownerKey = owner ?: return logAndFail(ReceiveGiftTransactorError.Other(message = "No owner key. Did you call with() first?"))
-        val giftCard = giftCardAccount ?: return logAndFail(
+    suspend fun start(claimIfOwned: Boolean): Result<Pair<Token, LocalFiat>> {
+        val requestingOwner = owner
+            ?: return logAndFail(ReceiveGiftTransactorError.Other(message = "No owner key. Did you call with() first?"))
+        val accountOwner = giftCardOwner ?: return logAndFail(
             ReceiveGiftTransactorError.Other(
-                message = "No gift card account. Did you call with() first?"
+                message = "No account owner. Did you call with() first?"
             )
         )
+        val mnemonicPhrase = mnemonic
+            ?: return logAndFail(ReceiveGiftTransactorError.Other(message = "No mnemonic. Did you call with() first?"))
 
         return timedTraceSuspend("Gift card claim processing") { onStep ->
 
-        // before we can receive the gift card
-        // we need to determine the balance of it
-        val accounts = accountController.getAccounts(
-            accountOwner = giftCard.cluster,
-            requestingOwner = ownerKey
-        ).getOrElse {
-            onStep("account query")
-            return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
-        }.takeIf { it.accounts.isNotEmpty() }?.accounts
-            ?: run {
+            // before we can receive the gift card
+            // we need to determine the balance of it
+            val accounts = accountController.getAccounts(
+                accountOwner = accountOwner,
+                requestingOwner = requestingOwner
+            ).getOrElse {
                 onStep("account query")
-                return@timedTraceSuspend  logAndFail(ReceiveGiftTransactorError.FailedToQuery())
-            }
+                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
+            }.takeIf { it.accounts.isNotEmpty() }?.accounts
+                ?: run {
+                    onStep("account query")
+                    return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
+                }
 
             onStep("account query")
             val info = accounts.values.first()
@@ -74,17 +83,32 @@ internal class ReceiveGiftCardTransactor(
                 return@timedTraceSuspend Result.failure(ReceiveGiftTransactorError.UsersGiftCard())
             }
 
-            val exchangeData = info.originalExchangeData
-            val amount = LocalFiat(exchangeData)
+            val tokenMint = info.mint
+
+            val token = tokenController.getTokenMetadata(tokenMint)
+                .getOrNull()
+
+            if (token == null) {
+                onStep("intent")
+                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.Other(message = "Token not found"))
+            }
+
+            val giftCard = giftCardManager.createGiftCard(mnemonicPhrase, token)
+
+            val amount = LocalFiat(info.originalExchangeData)
+
+            val requestingTokenOwner = requestingOwner.withTimelockForToken(token)
 
             return@timedTraceSuspend transactionController.receiveRemotely(
                 giftCard = giftCard,
                 amount = amount,
-                owner = ownerKey
+                owner = requestingTokenOwner,
+                mint = token.address
             ).fold(
                 onSuccess = {
                     onStep("intent")
-                    Result.success(amount) },
+                    Result.success(token to amount)
+                },
                 onFailure = {
                     onStep("intent")
                     if (it !is ReceiveGiftTransactorError) {
@@ -106,10 +130,10 @@ sealed class ReceiveGiftTransactorError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class FailedToQuery: GrabTransactorError(message = "Failed to query account")
-    class AlreadyClaimed: GrabTransactorError(message = "Already claimed")
-    class UsersGiftCard: GrabTransactorError(message = "User is gift card issuer")
-    class Expired: GrabTransactorError(message = "Expired")
+    class FailedToQuery : GrabTransactorError(message = "Failed to query account")
+    class AlreadyClaimed : GrabTransactorError(message = "Already claimed")
+    class UsersGiftCard : GrabTransactorError(message = "User is gift card issuer")
+    class Expired : GrabTransactorError(message = "Expired")
 
     data class Other(
         override val message: String? = null,

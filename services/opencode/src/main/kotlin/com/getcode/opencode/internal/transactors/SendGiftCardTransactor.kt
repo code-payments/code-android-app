@@ -10,19 +10,16 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.nonce
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.trace
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
-import kotlin.math.log
 
 internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
 ): Transactor<SendGiftCardTransactor.SendTransactorError>("Transactor::Send") {
     private var giftCardAccount: GiftCardAccount? = null
+    private var token: Token? = null
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
     private var payload: OpenCodePayload? = null
@@ -30,14 +27,15 @@ internal class SendGiftCardTransactor(
 
     private var rendezvousKey: KeyPair? = null
 
-    fun with(giftCard: GiftCardAccount, amount: LocalFiat, owner: AccountCluster) {
+    fun with(giftCard: GiftCardAccount, amount: LocalFiat, token: Token, owner: AccountCluster) {
         this.giftCardAccount = giftCard
+        this.token = token
         this.amount = amount
         this.owner = owner
 
         val payloadInfo = OpenCodePayload(
-            kind = PayloadKind.Cash,
-            value = amount.converted,
+            kind = PayloadKind.MultiMintCash,
+            value = amount.nativeAmount,
             nonce = nonce
         )
 
@@ -47,18 +45,25 @@ internal class SendGiftCardTransactor(
     }
 
     suspend fun start(): Result<IntentRemoteSend> {
-        val ownerKey = owner
-            ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
-        val rendezvous = rendezvousKey
+       val rendezvous = rendezvousKey
             ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
         val giftCard = giftCardAccount
             ?: return logAndFail(GiveTransactorError.Other(message = "No gift card account. Did you call with() first?"))
+        val desiredToken = token
+            ?: return logAndFail(GiveTransactorError.Other(message = "No token mint. Did you call with() first?"))
+
+        val ownerKey = owner
+            ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
+
+        val source = ownerKey.withTimelockForToken(desiredToken)
 
         return transactionController.remoteSend(
             rendezvous = rendezvous.toPublicKey(),
             owner = ownerKey,
+            source = source,
             amount = amount!!,
-            giftCard = giftCard
+            giftCard = giftCard,
+            token = desiredToken,
         ).map { it as IntentRemoteSend }
             .fold(
                 onSuccess = { Result.success(it) },
@@ -74,6 +79,7 @@ internal class SendGiftCardTransactor(
 
     fun dispose() {
         amount = null
+        giftCardAccount = null
         owner = null
         payload = null
         data = null

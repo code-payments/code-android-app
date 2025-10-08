@@ -9,7 +9,9 @@ import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.intents.CompactMessageArgs
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.solana.intents.actions.ActionType
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import kotlin.math.min
 
 class ActionPublicWithdraw(
     override var id: Int,
@@ -18,6 +20,7 @@ class ActionPublicWithdraw(
     val source: AccountCluster,
     val destination: PublicKey,
     val amount: Fiat,
+    val mint: Mint,
     val canAutoReturn: Boolean,
 ): ActionType() {
 
@@ -48,6 +51,7 @@ class ActionPublicWithdraw(
                     .setAmount(amount.quarks)
                     .setShouldClose(true)
                     .setIsAutoReturn(canAutoReturn)
+                    .setMint(mint.asSolanaAccountId())
                     .build()
             )
             .build()
@@ -56,6 +60,7 @@ class ActionPublicWithdraw(
     internal companion object {
         fun newInstance(
             amount: Fiat,
+            mint: Mint,
             owner: AccountCluster,
             source: AccountCluster,
             destination: PublicKey,
@@ -65,6 +70,7 @@ class ActionPublicWithdraw(
                 id = 0,
                 signer = owner.authority.keyPair,
                 amount = amount,
+                mint = mint,
                 source = source,
                 destination = destination,
                 canAutoReturn = canAutoReturn

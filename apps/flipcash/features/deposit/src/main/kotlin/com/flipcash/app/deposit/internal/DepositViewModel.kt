@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.features.deposit.R
 import com.flipcash.services.user.UserManager
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -40,7 +41,7 @@ internal class DepositViewModel @Inject constructor(
 
     init {
         userManager.state
-            .mapNotNull { it.cluster?.depositAddress?.base58() }
+            .mapNotNull { it.cluster?.usdcDepositAddress?.base58() }
             .onEach { address -> dispatchEvent(Event.OnDepositAddressChanged(address)) }
             .launchIn(viewModelScope)
 

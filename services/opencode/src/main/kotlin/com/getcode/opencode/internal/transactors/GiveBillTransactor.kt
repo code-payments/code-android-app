@@ -10,8 +10,10 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
@@ -24,6 +26,7 @@ internal class GiveBillTransactor(
     private val scope: CoroutineScope,
     private val exchange: Exchange,
 ): Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
+    private var token: Token? = null
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
 
@@ -34,15 +37,16 @@ internal class GiveBillTransactor(
     var data: List<Byte> = emptyList()
         private set
 
-    fun with(amount: LocalFiat, owner: AccountCluster) {
+    fun with(token: Token, amount: LocalFiat, owner: AccountCluster) {
+        this.token = token
         this.amount = amount
         this.owner = owner
 
         receivingAccount = null
 
         val payloadInfo = OpenCodePayload(
-            kind = PayloadKind.Cash,
-            value = amount.converted,
+            kind = PayloadKind.MultiMintCash,
+            value = amount.nativeAmount,
             nonce = nonce
         )
 
@@ -51,31 +55,17 @@ internal class GiveBillTransactor(
         data = payloadInfo.codeData.toList()
     }
 
-    fun with(payload: OpenCodePayload, owner: AccountCluster) {
-        this.owner = owner
-
-        receivingAccount = null
-
-        payload.fiat?.let { native ->
-            this.amount = LocalFiat(
-                usdc = native.convertingTo(exchange.rateToUsd(native.currencyCode)!!),
-                converted = native,
-                rate = exchange.rateFor(native.currencyCode)!!
-            )
-        }
-
-        this.payload = payload
-        rendezvousKey = payload.rendezvous
-        data = payload.codeData.toList()
-    }
-
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
         val ownerKey = owner
             ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val rendezvous = rendezvousKey
             ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
+
         val transferRequest = messagingController.awaitRequestToGrabBill(scope, rendezvous)
             ?: return logAndFail(GiveTransactorError.Other(message = "No message received"))
+
+        val desiredToken = token
+            ?: return logAndFail(GiveTransactorError.Other(message = "No token. Did you call with() first?"))
 
         // 1. Validate that destination hasn't been tampered with by
         // verifying the signature matches one that has been signed
@@ -98,20 +88,34 @@ internal class GiveBillTransactor(
 
         receivingAccount = transferRequest.account
 
-
-        return transactionController.transfer(
-            scope = scope,
-            amount = amount!!,
-            source = ownerKey,
-            destination = transferRequest.account,
-            rendezvous = rendezvous.toPublicKey()
+        return messagingController.sendRequestToGiveBill(
+            payload = payload,
+            tokenMint = desiredToken.address
+        ).fold(
+            onSuccess = {
+                transactionController.transfer(
+                    scope = scope,
+                    amount = amount!!,
+                    mint = desiredToken.address,
+                    source = ownerKey,
+                    destination = transferRequest.account,
+                    rendezvous = rendezvous.toPublicKey()
+                )
+            },
+            onFailure = {
+                if (it !is GiveTransactorError)  {
+                    ErrorUtils.handleError(it)
+                }
+                logAndFail(it)
+            }
         ).fold(
             onSuccess = {
                 transactionController.pollIntentMetadata(
                     owner = ownerKey.authority.keyPair,
                     intentId = it.id
                 )
-            }, onFailure = {
+            },
+            onFailure = {
                 if (it !is GiveTransactorError)  {
                     ErrorUtils.handleError(it)
                 }

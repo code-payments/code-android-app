@@ -75,14 +75,14 @@ internal fun TransactionReceipt(
         val transferAmount by remember(amount, fee) {
             derivedStateOf {
                 (if (fee != null) {
-                    val amountAfterFee = amount.usdc - fee
+                    val amountAfterFee = amount.underlyingTokenAmount - fee
                     if (amountAfterFee.isNegative) {
                         "-${amountAfterFee.formatted()}"
                     } else {
                         amountAfterFee.formatted()
                     }
                 } else {
-                    amount.usdc.formatted()
+                    amount.underlyingTokenAmount.formatted()
                 })
             }
         }
@@ -92,7 +92,7 @@ internal fun TransactionReceipt(
             isAltCaption = false,
             isAltCaptionKinIcon = false,
             isClickable = false,
-            currencyResId = exchange.getFlagByCurrency(amount.usdc.currencyCode.name),
+            currencyResId = exchange.getFlagByCurrency(amount.underlyingTokenAmount.currencyCode.name),
         )
 
         if (amount.rate.currency != CurrencyCode.USD || fee != null) {
@@ -119,13 +119,13 @@ private fun LineItems(
         LineItem(
             modifier = Modifier.fillMaxWidth(),
             label = AnnotatedString("Withdrawal amount"),
-            amount = amount.converted.formatted()
+            amount = amount.nativeAmount.formatted()
         )
         if (amount.rate.currency != CurrencyCode.USD) {
             LineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = AnnotatedString("Converted to USD"),
-                amount = amount.usdc.formatted()
+                amount = amount.nativeAmount.formatted()
             )
         }
         if (fee != null) {
@@ -213,8 +213,7 @@ private fun Preview_CadWithdrawalWithFeeReceipt() {
             TransactionReceipt(
                 amount = LocalFiat(
                     usdc = fiveCad.convertingTo(cadToUsdRate),
-                    converted = fiveCad,
-                    rate = usdToCadRate
+                    nativeAmount = fiveCad,
                 ),
                 fee = fee,
             ) {
@@ -238,8 +237,7 @@ private fun Preview_CadWithdrawalWithNoFeeReceipt() {
             TransactionReceipt(
                 amount = LocalFiat(
                     usdc = fiveCad.convertingTo(cadToUsdRate),
-                    converted = fiveCad,
-                    rate = usdToCadRate
+                    nativeAmount = fiveCad,
                 ),
                 fee = null,
             ) {
@@ -263,8 +261,7 @@ private fun Preview_UsdWithdrawalWithFeeReceipt() {
             TransactionReceipt(
                 amount = LocalFiat(
                     usdc = fiveUsd,
-                    converted = fiveUsd,
-                    rate = Rate.oneToOne
+                    nativeAmount = fiveUsd,
                 ),
                 fee = fee,
             ) {
@@ -288,8 +285,7 @@ private fun Preview_UsdWithdrawalWithNoFeeReceipt() {
             TransactionReceipt(
                 amount = LocalFiat(
                     usdc = fiveUsd,
-                    converted = fiveUsd,
-                    rate = Rate.oneToOne
+                    nativeAmount = fiveUsd,
                 ),
                 fee = null,
             ) {
@@ -313,8 +309,7 @@ private fun Preview_CadWithdrawalWithFeeButTooSmallReceipt() {
             TransactionReceipt(
                 amount = LocalFiat(
                     usdc = halfDollarCad.convertingTo(cadToUsdRate),
-                    converted = halfDollarCad,
-                    rate = usdToCadRate
+                    nativeAmount = halfDollarCad,
                 ),
                 fee = fee,
             ) {

@@ -45,8 +45,11 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.utils.nonce
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -117,6 +120,8 @@ class RealSessionController @Inject constructor(
         get() = billController.state
 
     private val scannedRendezvous = mutableListOf<String>()
+
+    private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
     init {
         // reset state on logouts
@@ -305,11 +310,12 @@ class RealSessionController @Inject constructor(
             delay(1.seconds)
             val payloadInfo = OpenCodePayload(
                 kind = PayloadKind.Cash,
-                value = amount.converted,
+                value = amount.nativeAmount,
                 nonce = nonce
             )
 
             val bill = Bill.Cash(
+                token = Token.usdc,
                 data = payloadInfo.codeData.toList(),
                 amount = amount,
                 didReceive = true,
@@ -357,7 +363,7 @@ class RealSessionController @Inject constructor(
     }
 
     override fun showBill(bill: Bill) {
-        if (bill.amount.converted.doubleValue == 0.0) return
+        if (bill.amount.nativeAmount.doubleValue == 0.0) return
         val owner = userManager.accountCluster ?: return
 
         if (!networkObserver.isConnected) {
@@ -394,7 +400,7 @@ class RealSessionController @Inject constructor(
                                         action = {
                                             billController.cancelAwaitForGrab()
 
-                                            shareGiftCard(bill.amount, owner) {
+                                            shareGiftCard(bill.amount, bill.token, owner) {
                                                 trace(
                                                     tag = "Session",
                                                     message = "Cash link not sent. Restarting awaiting grab",
@@ -421,6 +427,7 @@ class RealSessionController @Inject constructor(
     private fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
         billController.awaitGrab(
             amount = bill.amount,
+            token = bill.token,
             owner = owner,
             onGrabbed = {
                 analytics.transfer(AnalyticsEvent.GiveBill, bill.amount)
@@ -464,10 +471,11 @@ class RealSessionController @Inject constructor(
 
     private fun shareGiftCard(
         amount: LocalFiat,
+        token: Token,
         owner: AccountCluster,
         restartBillGrabber: () -> Unit
     ) {
-        val giftCard = GiftCardAccount.create()
+        val giftCard = GiftCardAccount.create(token)
         val shareable = Shareable.CashLink(
             giftCardAccount = giftCard,
             amount = amount,
@@ -480,7 +488,7 @@ class RealSessionController @Inject constructor(
                     is ShareResult.ActionTaken -> {
                         scope.launch action@{
                             // immediately fund the gift card
-                            val fundingResult = initiateGiftCardFunding(giftCard, owner, amount)
+                            val fundingResult = initiateGiftCardFunding(giftCard, owner, amount, token)
                             if (fundingResult.isFailure) {
                                 return@action
                             }
@@ -602,10 +610,12 @@ class RealSessionController @Inject constructor(
         giftCard: GiftCardAccount,
         owner: AccountCluster,
         amount: LocalFiat,
+        token: Token,
     ): Result<LocalFiat> = suspendCancellableCoroutine { cont ->
         billController.fundGiftCard(
             giftCard = giftCard,
             amount = amount,
+            token = token,
             owner = owner,
             onFunded = {
                 shareSheetController.reset()
@@ -666,6 +676,7 @@ class RealSessionController @Inject constructor(
 
         when (codePayload.kind) {
             PayloadKind.Cash -> onCashScanned(codePayload)
+            PayloadKind.MultiMintCash -> onCashScanned(codePayload)
             PayloadKind.Unknown -> Unit
         }
     }
@@ -685,7 +696,10 @@ class RealSessionController @Inject constructor(
             return
         }
 
-        claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
+        if (giftCardClaimInProgress.value == null) {
+            giftCardClaimInProgress.value = entropy
+            claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
+        }
     }
 
     private fun claimGiftCard(
@@ -703,16 +717,18 @@ class RealSessionController @Inject constructor(
             entropy = entropy,
             owner = owner,
             claimIfOwned = claimIfOwned,
-            onReceived = {
-                analytics.transfer(AnalyticsEvent.ClaimedCashLink, amount = it)
-                toastController.enqueue(it, isDeposit = true)
+            onReceived = { token, amount ->
+                giftCardClaimInProgress.value = null
+                analytics.transfer(AnalyticsEvent.ClaimedCashLink, amount = amount)
+                toastController.enqueue(amount, isDeposit = true)
                 showBill(
-                    bill = Bill.Cash(amount = it, didReceive = true),
+                    bill = Bill.Cash(amount = amount, token = token, didReceive = true),
                 )
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
             onError = { cause ->
+                giftCardClaimInProgress.value = null
                 if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
                     analytics.transfer(
                         AnalyticsEvent.ClaimedCashLink,
@@ -789,12 +805,12 @@ class RealSessionController @Inject constructor(
         billController.attemptGrab(
             owner = owner,
             payload = payload,
-            onGrabbed = { amount ->
+            onGrabbed = { token, amount ->
                 analytics.transfer(AnalyticsEvent.GrabBill, amount)
                 BottomBarManager.clear()
                 toastController.enqueue(amount, isDeposit = true)
                 showBill(
-                    bill = Bill.Cash(amount = amount, didReceive = true),
+                    bill = Bill.Cash(amount = amount, token = token, didReceive = true),
                 )
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
@@ -818,7 +834,7 @@ class RealSessionController @Inject constructor(
         if (bill.didReceive) {
             billController.update {
                 it.copy(
-                    valuation = PaymentValuation(bill.amount.converted),
+                    valuation = PaymentValuation(bill.amount.nativeAmount),
                 )
             }
 
@@ -837,8 +853,9 @@ class RealSessionController @Inject constructor(
                     amount = bill.amount,
                     didReceive = bill.didReceive,
                     confirmationDelay = bill.confirmationDelay,
+                    token = bill.token,
                 ),
-                valuation = PaymentValuation(bill.amount.converted),
+                valuation = PaymentValuation(bill.amount.nativeAmount),
             )
         }
 

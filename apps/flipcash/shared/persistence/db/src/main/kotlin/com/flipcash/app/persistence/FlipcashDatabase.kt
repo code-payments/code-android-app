@@ -38,8 +38,9 @@ import org.kin.sdk.base.tools.subByteArray
         AutoMigration(from = 5, to = 6, spec = FlipcashDatabase.Migration5To6::class),
         AutoMigration(from = 6, to = 7, spec = FlipcashDatabase.Migration6To7::class),
         AutoMigration(from = 7, to = 8, spec = FlipcashDatabase.Migration7To8::class),
+        AutoMigration(from = 8, to = 9),
     ],
-    version = 8,
+    version = 9,
 )
 @TypeConverters(PoolResolutionConverter::class, BetOutcomeConverter::class)
 abstract class FlipcashDatabase : RoomDatabase() {

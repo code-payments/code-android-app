@@ -67,7 +67,7 @@ internal fun FeedItemSummary(
             Column(
                 horizontalAlignment = Alignment.End
             ) {
-                FlagWithFiat(fiat = amount.converted)
+                FlagWithFiat(fiat = amount.nativeAmount)
             }
         }
     }

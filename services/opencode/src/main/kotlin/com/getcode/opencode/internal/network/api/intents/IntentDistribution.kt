@@ -11,6 +11,7 @@ import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.buildActionGroup
 import com.getcode.opencode.utils.generate
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentDistribution(
@@ -37,7 +38,8 @@ internal class IntentDistribution(
         fun create(
             owner: AccountCluster,
             source: AccountCluster,
-            distributions: List<Distribution>
+            distributions: List<Distribution>,
+            mint: Mint,
         ): IntentDistribution {
             val distroActions = buildActionGroup {
                 distributions.dropLast(1).forEach { dist ->
@@ -46,7 +48,8 @@ internal class IntentDistribution(
                             owner = source.authority.keyPair,
                             source = source.vaultPublicKey,
                             amount = dist.amount,
-                            destination = dist.destination
+                            destination = dist.destination,
+                            mint = mint,
                         )
                     )
                 }
@@ -57,7 +60,8 @@ internal class IntentDistribution(
                             owner = source,
                             source = source,
                             destination = dist.destination,
-                            canAutoReturn = false
+                            canAutoReturn = false,
+                            mint = mint
                         )
                     )
                 }
@@ -68,6 +72,7 @@ internal class IntentDistribution(
                 metadata = TransactionMetadata.PublicDistribution(
                     source = source.vaultPublicKey,
                     distributions = distributions,
+                    mint = mint
                 ),
                 actionGroup = distroActions,
             )

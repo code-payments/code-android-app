@@ -5,6 +5,7 @@ import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.destinationOrNull
+import com.codeinc.opencode.gen.transaction.v2.mintOrNull
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
@@ -15,6 +16,7 @@ import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal fun Model.IntentId.toId(): ID = value.toByteArray().toList()
@@ -35,7 +37,8 @@ internal fun TransactionService.ExchangeData.toModel(): ExchangeData.WithRate {
         currencyCode = this.currency,
         exchangeRate = this.exchangeRate,
         nativeAmount = this.nativeAmount,
-        quarks = this.quarks
+        quarks = this.quarks,
+        mint = this.mint.toPublicKey(),
     )
 }
 
@@ -60,21 +63,26 @@ internal fun MessagingService.RequestToGiveBill.toMessageKind(): MessageKind.Req
 
 internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     return when (val case = typeCase) {
-        TransactionService.Metadata.TypeCase.OPEN_ACCOUNTS -> TransactionMetadata.OpenAccount(openAccounts.accountSet.toAccountType())
+        TransactionService.Metadata.TypeCase.OPEN_ACCOUNTS -> TransactionMetadata.OpenAccount(
+            type = openAccounts.accountSet.toAccountType(),
+            mint = openAccounts.mint.toPublicKey(),
+        )
         TransactionService.Metadata.TypeCase.SEND_PUBLIC_PAYMENT -> TransactionMetadata.SendPublicPayment(
             source = sendPublicPayment.source.toPublicKey(),
             destination = sendPublicPayment.destination.toPublicKey(),
             destinationOwner = sendPublicPayment.destinationOrNull?.toPublicKey(),
             exchangeData = sendPublicPayment.exchangeData.toModel(),
             isRemoteSend = sendPublicPayment.isRemoteSend,
-            isWithdrawal = sendPublicPayment.isWithdrawal
+            isWithdrawal = sendPublicPayment.isWithdrawal,
+            mint = sendPublicPayment.mint.toPublicKey(),
         )
 
         TransactionService.Metadata.TypeCase.RECEIVE_PAYMENTS_PUBLICLY -> TransactionMetadata.ReceivePublicPayment(
             source = receivePaymentsPublicly.source.toPublicKey(),
             quarks = receivePaymentsPublicly.quarks,
             isRemoteSend = receivePaymentsPublicly.isRemoteSend,
-            exchangeData = receivePaymentsPublicly.exchangeData.toModel()
+            exchangeData = receivePaymentsPublicly.exchangeData.toModel(),
+            mint = receivePaymentsPublicly.mint.toPublicKey(),
         )
 
         TransactionService.Metadata.TypeCase.TYPE_NOT_SET -> TransactionMetadata.Unknown
@@ -85,7 +93,8 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
                     destination = distribution.destination.toPublicKey(),
                     amount = Fiat(distribution.quarks)
                 )
-            }
+            },
+            mint = publicDistribution.mint.toPublicKey(),
         )
     }
 }
@@ -110,6 +119,5 @@ internal fun CurrencyService.LaunchpadMetadata.toMetadata(): LaunchpadMetadata {
         currentCirculatingSupplyQuarks = supplyFromBonding,
         coreMintLockedQuarks = coreMintLocked,
         sellFeeBps = sellFeeBps,
-
     )
 }

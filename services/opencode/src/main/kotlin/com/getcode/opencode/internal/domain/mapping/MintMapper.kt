@@ -13,11 +13,8 @@ internal class MintMapper @Inject constructor(
     private val launchpadMetadataMapper: LaunchpadMetadataMapper,
 ) : Mapper<CurrencyService.Mint, MintMetadata> {
     override fun map(from: CurrencyService.Mint): MintMetadata {
-        val vmMetadata = from.vmMetadataOrNull ?.let {
-            vmMetadataMapper.map(it)
-        }
-
-        val launchpadMetadata = from.launchpadMetadataOrNull ?.let {
+        val vmMetadata = vmMetadataMapper.map(from.vmMetadata)
+        val launchpadMetadata = from.launchpadMetadataOrNull?.let {
             launchpadMetadataMapper.map(it)
         }
 

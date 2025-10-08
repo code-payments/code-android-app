@@ -9,6 +9,7 @@ import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.intents.actions.ActionType
+import com.getcode.solana.keys.Mint
 
 internal class ActionOpenAccount(
     override var id: Int,
@@ -16,8 +17,9 @@ internal class ActionOpenAccount(
     override val signer: Ed25519.KeyPair? = null,
     private val accountType: AccountType,
     val owner: AccountCluster,
+    private val mint: Mint,
     private val authority: AccountCluster,
-    private val token: AccountCluster,
+    val token: AccountCluster,
     private val index: Long = 0
 ) : ActionType() {
 
@@ -34,6 +36,7 @@ internal class ActionOpenAccount(
                     .setAccountType(accountType.getAccountType())
                     .setAuthority(authority.authorityPublicKey.asSolanaAccountId())
                     .setToken(token.vaultPublicKey.asSolanaAccountId())
+                    .setMint(mint.asSolanaAccountId())
                     .apply {
                         setAuthoritySignature(sign(this@ActionOpenAccount.authority.authority.keyPair))
                     }
@@ -43,23 +46,25 @@ internal class ActionOpenAccount(
     }
 
     companion object {
-        fun createPrimary(owner: AccountCluster): ActionOpenAccount {
+        fun createPrimary(owner: AccountCluster, mint: Mint): ActionOpenAccount {
             return ActionOpenAccount(
                 id = 0,
                 owner = owner,
                 authority = owner,
                 token = owner,
-                accountType = AccountType.Primary
+                accountType = AccountType.Primary,
+                mint = mint,
             )
         }
 
-        fun createGiftCard(owner: AccountCluster): ActionOpenAccount {
+        fun createGiftCard(owner: AccountCluster, mint: Mint): ActionOpenAccount {
             return ActionOpenAccount(
                 id = 0,
                 owner = owner,
                 authority = owner,
                 token = owner,
-                accountType = AccountType.RemoteSend
+                accountType = AccountType.RemoteSend,
+                mint = mint,
             )
         }
 
@@ -70,7 +75,8 @@ internal class ActionOpenAccount(
                 authority = pool,
                 token = pool,
                 accountType = AccountType.Pool,
-                index = index
+                index = index,
+                mint = Mint.usdc,
             )
         }
     }

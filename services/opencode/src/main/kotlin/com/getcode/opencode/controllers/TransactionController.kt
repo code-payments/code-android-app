@@ -15,12 +15,14 @@ import com.getcode.opencode.model.financial.FeeType
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
@@ -102,6 +104,7 @@ class TransactionController @Inject constructor(
 
     suspend fun transfer(
         amount: LocalFiat,
+        mint: Mint,
         source: AccountCluster,
         destination: PublicKey,
         rendezvous: PublicKey,
@@ -109,6 +112,7 @@ class TransactionController @Inject constructor(
     ): Result<IntentType> {
         val intent = IntentTransfer.create(
             amount = amount,
+            mint = mint,
             sourceCluster = source,
             destination = destination,
             rendezvous = rendezvous,
@@ -119,6 +123,7 @@ class TransactionController @Inject constructor(
 
     suspend fun withdraw(
         amount: LocalFiat,
+        mint: Mint,
         owner: AccountCluster,
         destination: PublicKey,
         destinationOwner: PublicKey?,
@@ -127,6 +132,7 @@ class TransactionController @Inject constructor(
     ): Result<IntentType> {
         val intent = IntentWithdraw.create(
             amount = amount,
+            mint = mint,
             fee = fee?.let { Fee(it, FeeType.CreateOnSendWithdrawal) },
             sourceCluster = owner,
             destination = destination,
@@ -142,13 +148,17 @@ class TransactionController @Inject constructor(
     suspend fun remoteSend(
         giftCard: GiftCardAccount,
         amount: LocalFiat,
+        token: Token,
         owner: AccountCluster,
+        source: AccountCluster,
         rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
         val intent = IntentRemoteSend.create(
             amount = amount,
-            sourceCluster = owner,
+            token = token,
+            owner = owner,
+            source = source,
             giftCard = giftCard,
             rendezvous = rendezvous
         )
@@ -188,11 +198,13 @@ class TransactionController @Inject constructor(
         owner: AccountCluster,
         giftCard: GiftCardAccount,
         amount: LocalFiat,
+        mint: Mint,
     ): Result<IntentType> {
         val intent = IntentRemoteReceive.create(
             amount = amount,
             giftCard = giftCard,
-            owner = owner
+            owner = owner,
+            mint = mint
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)
@@ -201,12 +213,14 @@ class TransactionController @Inject constructor(
     suspend fun distributeFunds(
         owner: AccountCluster,
         from: AccountCluster,
-        distributions: List<Distribution>
+        distributions: List<Distribution>,
+        mint: Mint,
     ): Result<IntentType> {
         val intent = IntentDistribution.create(
             owner = owner,
             source = from,
-            distributions = distributions
+            distributions = distributions,
+            mint = mint
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)

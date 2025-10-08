@@ -15,6 +15,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -24,6 +25,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -70,7 +72,8 @@ internal class WithdrawalViewModel @Inject constructor(
     transactionController: TransactionController,
     clipboardManager: ClipboardManager,
     activityFeedCoordinator: ActivityFeedCoordinator,
-    analytics: FlipcashAnalyticsService
+    analytics: FlipcashAnalyticsService,
+    tokenController: TokenController,
 ) : BaseViewModel2<WithdrawalViewModel.State, WithdrawalViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -93,7 +96,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 if (amountEntryState.amountAnimatedModel.amountData.amount.isEmpty()) return false
 
                 if ((amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                        ?: 0.0) <= balance.converted.doubleValue
+                        ?: 0.0) <= balance.nativeAmount.doubleValue
                 ) {
                     return false
                 }
@@ -159,9 +162,9 @@ internal class WithdrawalViewModel @Inject constructor(
             fiat = amount,
             currencyCode = stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
         ).convertingTo(conversionRate)
-        val balanceInUsdc = stateFlow.value.balance.usdc
+        val tokenBalance = stateFlow.value.balance.underlyingTokenAmount
 
-        val isOverBalance = enteredInUsdc > balanceInUsdc
+        val isOverBalance = enteredInUsdc > tokenBalance
         if (isOverBalance || conversionRate == Rate.ignore) {
             BottomBarManager.showError(
                 title = resources.getString(R.string.error_title_insufficientFunds),
@@ -184,8 +187,7 @@ internal class WithdrawalViewModel @Inject constructor(
         ) { balance, rate ->
             LocalFiat(
                 usdc = balance,
-                converted = balance.convertingTo(rate),
-                rate = rate
+                nativeAmount = balance.convertingTo(rate),
             )
         }.onEach {
             dispatchEvent(Event.OnBalanceChanged(it))
@@ -267,8 +269,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
                 val amountFiat = LocalFiat(
                     usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                    converted = localizedAmount,
-                    rate = rate,
+                    nativeAmount = localizedAmount,
                 )
 
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
@@ -345,7 +346,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val amount = stateFlow.value.amountEntryState.selectedAmount
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val fee = withdrawalChecks?.feeAmount
-                if (amount.usdc - (fee ?: Fiat.Zero) < Fiat.Zero) {
+                if (amount.underlyingTokenAmount - (fee ?: Fiat.Zero) < Fiat.Zero) {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     dispatchEvent(Event.OnWithdrawalTooSmall)
                     return@onEach
@@ -398,6 +399,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
                 transactionController.withdraw(
                     amount = amount,
+                    mint = Mint.usdc, // TODO: support multi-mint
                     fee = fee,
                     destination = resolvedDestination,
                     // only provide the destination account if we are dealing with an owner account

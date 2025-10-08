@@ -85,7 +85,7 @@ class BalanceController @Inject constructor(
             // attempt to fetch prior to append
             fetchBalance()
         } else {
-            _rawBalance.value += fiat.usdc
+            _rawBalance.value += fiat.underlyingTokenAmount
         }
     }
 
@@ -94,7 +94,7 @@ class BalanceController @Inject constructor(
             // attempt to fetch prior to append
             fetchBalance()
         } else {
-            _rawBalance.value = (_rawBalance.value - fiat.usdc).coerceAtLeast(Fiat.Zero)
+            _rawBalance.value = (_rawBalance.value - fiat.underlyingTokenAmount).coerceAtLeast(Fiat.Zero)
         }
     }
 
@@ -125,7 +125,7 @@ class BalanceController @Inject constructor(
             )?.recoverCatching { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
-                    val createResult = accountController.createUserAccount(owner)
+                    val createResult = accountController.createUserAccount(owner, Mint.usdc)
                     if (createResult.isSuccess) {
                         accountController.getAccounts(owner, owner)
                             .getOrElse { throw it }

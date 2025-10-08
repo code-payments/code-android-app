@@ -10,6 +10,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.generate
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentCreateAccount(
@@ -23,12 +24,12 @@ internal class IntentCreateAccount(
     }
 
     companion object {
-        fun createUserAccount(owner: AccountCluster): IntentCreateAccount {
+        fun createUserAccount(owner: AccountCluster, mint: Mint): IntentCreateAccount {
             return IntentCreateAccount(
                 id = PublicKey.generate(),
-                metadata = TransactionMetadata.OpenAccount(AccountType.Primary),
+                metadata = TransactionMetadata.OpenAccount(AccountType.Primary, mint),
                 actionGroup = ActionGroup().apply {
-                    actions = listOf(ActionOpenAccount.createPrimary(owner))
+                    actions = listOf(ActionOpenAccount.createPrimary(owner, mint))
                 }
             )
         }
@@ -36,7 +37,7 @@ internal class IntentCreateAccount(
         fun createPoolAccount(owner: AccountCluster, pool: AccountCluster, index: Long): IntentCreateAccount {
             return IntentCreateAccount(
                 id = PublicKey.generate(),
-                metadata = TransactionMetadata.OpenAccount(AccountType.Pool),
+                metadata = TransactionMetadata.OpenAccount(AccountType.Pool, Mint.usdc),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(ActionOpenAccount.createPool(owner, pool, index))
                 }

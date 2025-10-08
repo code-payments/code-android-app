@@ -65,7 +65,8 @@ data class OpenCodePayload(
 
             val value = when (kind) {
                 PayloadKind.Unknown -> Fiat.Zero
-                PayloadKind.Cash -> {
+                PayloadKind.Cash,
+                PayloadKind.MultiMintCash -> {
                     // grab currency
                     val currencyIndex = list[1].byteToUnsignedInt()
                     val currency = CurrencyCode.entries.toList()[currencyIndex]
@@ -87,8 +88,7 @@ data class OpenCodePayload(
 enum class PayloadKind(val value: Int) {
     Unknown(-1),
     Cash(0),
-//    GiftCard(1),
-//    RequestPayment(2),
+    MultiMintCash(1),
 //    Login(3),
 //    RequestPaymentV2(4),
 }

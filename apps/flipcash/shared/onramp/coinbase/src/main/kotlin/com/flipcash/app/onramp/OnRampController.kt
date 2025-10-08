@@ -17,6 +17,7 @@ import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.base64
@@ -47,7 +48,7 @@ class OnRampController @Inject constructor(
         }
 
         val userRef = userManager.accountId?.base64 ?: return Result.failure(Throwable("User ID not found"))
-        val destination = userManager.accountCluster?.depositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+        val destination = userManager.accountCluster?.usdcDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
         val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.InclusiveOfFees(
@@ -73,7 +74,7 @@ class OnRampController @Inject constructor(
         }
 
         val userRef = userManager.accountId?.base64 ?: return Result.failure(Throwable("User ID not found"))
-        val destination = userManager.accountCluster?.depositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+        val destination = userManager.accountCluster?.usdcDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
         val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.ExclusiveOfFees(
@@ -99,7 +100,7 @@ class OnRampController @Inject constructor(
         ) { jwt ->
             requestSessionToken(jwt) { token ->
                 val userRef = userManager.accountId?.base58 ?: return@requestSessionToken Result.failure(Throwable("User ID not found"))
-                val destination = userManager.accountCluster?.depositAddress?.base58() ?: return@requestSessionToken Result.failure(Throwable("Deposit address not found"))
+                val destination = userManager.accountCluster?.usdcDepositAddress?.base58() ?: return@requestSessionToken Result.failure(Throwable("Deposit address not found"))
                 val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
 
                 val url = Uri.Builder()
@@ -200,7 +201,7 @@ class OnRampController @Inject constructor(
         jwt: Jwt,
         block: (String) -> Result<String>
     ): Result<String> {
-        val destination = userManager.accountCluster?.depositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+        val destination = userManager.accountCluster?.usdcDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
         val blockchain = "solana"
         val addresses = listOf(CoinbaseAddress(destination, blockchain))
         return runCatching {

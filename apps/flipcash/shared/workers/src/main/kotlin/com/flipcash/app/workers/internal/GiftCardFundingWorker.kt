@@ -12,10 +12,13 @@ import com.getcode.opencode.managers.GiftCardManager
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import com.getcode.utils.trace
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.coroutines.resume
 
@@ -39,15 +42,17 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, workerParams) {
     internal companion object {
         fun tagFor(giftCard: GiftCardAccount) = "gift_card_funding-${giftCard.entropy}"
-        fun buildInputData(giftCardAccount: GiftCardAccount, amount: LocalFiat): Data {
+        fun buildInputData(giftCardAccount: GiftCardAccount, amount: LocalFiat, token: Token): Data {
             return Data.Builder()
                 .putString(KEY_GIFT_CARD, giftCardAccount.entropy)
                 .putString(KEY_AMOUNT, Json.encodeToString(LocalFiat.serializer(), amount))
+                .putString(KEY_TOKEN, Json.encodeToString(token))
                 .build()
         }
 
         private const val KEY_GIFT_CARD = "gift_card"
         private const val KEY_AMOUNT = "amount"
+        private const val KEY_TOKEN = "token"
     }
 
     override suspend fun doWork(): Result {
@@ -68,9 +73,28 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
             return Result.failure()
         }
 
-        val giftCard = giftCardManager.createGiftCardFromEntropy58(giftCardValue)
+        val tokenValue = workerParams.inputData.getString(KEY_TOKEN)
+        if (tokenValue == null) {
+            trace(
+                tag = "GiftCardFundingWorker",
+                message = "Token value is null"
+            )
+            return Result.failure()
+        }
+
+        val token = runCatching { Json.decodeFromString<Token>(tokenValue) }.getOrNull()
+        if (token == null) {
+            trace(
+                tag = "GiftCardFundingWorker",
+                message = "Failed to deserialize token from $tokenValue"
+            )
+            return Result.failure()
+        }
+
+        val giftCard = giftCardManager.createGiftCardFromEntropy58(giftCardValue, token)
         val amount = runCatching { Json.decodeFromString<LocalFiat>(amountValue) }
             .getOrNull()
+
 
         if (amount == null) {
             trace(
@@ -81,7 +105,7 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
         }
 
         return try {
-            val result = fundGiftCard(giftCard, amount)
+            val result = fundGiftCard(giftCard, amount, token)
             if (result.isSuccess) {
                 Result.success()
             } else {
@@ -95,12 +119,14 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
     private suspend fun fundGiftCard(
         giftCard: GiftCardAccount,
         amount: LocalFiat,
+        token: Token,
     ): kotlin.Result<LocalFiat> = suspendCancellableCoroutine { cont ->
         authenticateIfNeeded {
             try {
                 transactionManager.fundGiftCard(
                     giftCard = giftCard,
                     amount = amount,
+                    token = token,
                     owner = userManager.accountCluster!!,
                     onFunded = {
                         trace(

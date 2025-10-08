@@ -13,6 +13,7 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -21,6 +22,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SendLimit
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -82,6 +84,7 @@ internal class OnRampViewModel @Inject constructor(
     transactionController: TransactionController,
     resources: ResourceHelper,
     onRampController: OnRampController,
+    tokenController: TokenController,
 ) : BaseViewModel2<OnRampViewModel.State, OnRampViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -268,11 +271,10 @@ internal class OnRampViewModel @Inject constructor(
 
                 val amountFiat = LocalFiat(
                     usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                    converted = localizedAmount,
-                    rate = rate,
+                    nativeAmount = localizedAmount,
                 )
 
-                dispatchEvent(Event.OnAmountAccepted(amountFiat.usdc))
+                dispatchEvent(Event.OnAmountAccepted(amountFiat.underlyingTokenAmount))
             }.launchIn(viewModelScope)
 
         userManager.state

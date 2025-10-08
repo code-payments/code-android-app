@@ -1,7 +1,6 @@
 package com.flipcash.app.core.feed
 
 import com.flipcash.app.core.pools.PoolResolution
-import com.flipcash.services.models.NetworkPoolResolution
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
@@ -24,7 +23,7 @@ data class ActivityFeedMessage(
         get() {
             metadata ?: return false
             val metadata =
-                (metadata as? MessageMetadata.SentUsdc) ?: return false
+                (metadata as? MessageMetadata.SentCrypto) ?: return false
             return metadata.canCancel
         }
 }
@@ -52,30 +51,30 @@ sealed interface MessageMetadata {
     data object WelcomeBonus : MessageMetadata
 
     @Serializable
-    data object GaveUsdc : MessageMetadata
+    data object GaveCrypto : MessageMetadata
 
     @Serializable
-    data class SentUsdc(
+    data class SentCrypto(
         val creator: PublicKey,
         val canCancel: Boolean,
     ) : MessageMetadata
 
     @Serializable
-    data object ReceivedUsdc : MessageMetadata
+    data object ReceivedCrypto : MessageMetadata
 
     @Serializable
-    data object WithdrewUsdc : MessageMetadata
+    data object WithdrewCrypto : MessageMetadata
 
     @Serializable
-    data object DepositedUsdc : MessageMetadata
+    data object DepositedCrypto : MessageMetadata
 
     @Serializable
-    data class PaidUsdc(
+    data class PaidCrypto(
         val poolId: ID,
     ): MessageMetadata
 
     @Serializable
-    data class DistributedUsdc(
+    data class DistributedCrypto(
         val poolId: ID,
         val outcome: PoolResolution,
     ): MessageMetadata

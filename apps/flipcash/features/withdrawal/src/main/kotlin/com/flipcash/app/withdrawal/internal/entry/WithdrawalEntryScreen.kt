@@ -70,9 +70,9 @@ private fun WithdrawalEntryScreenContent(
             prefix = entryState.currencyModel.selected?.symbol.orEmpty(),
             placeholder = "0",
             hint = if (state.isError) {
-                stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.balance.converted.formatted())
+                stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.balance.nativeAmount.formatted())
             } else {
-                stringResource(R.string.subtitle_giveCashHint, state.balance.converted.formatted())
+                stringResource(R.string.subtitle_giveCashHint, state.balance.nativeAmount.formatted())
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
             isClickable = true,

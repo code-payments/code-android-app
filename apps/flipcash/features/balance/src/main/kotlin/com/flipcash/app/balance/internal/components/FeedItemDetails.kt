@@ -73,12 +73,12 @@ internal fun FeedItemDetails(
                 )
                 DetailItem(
                     label = "Currency",
-                    value = amount.converted.currencyCode.name,
+                    value = amount.nativeAmount.currencyCode.name,
                     modifier = Modifier.weight(1f)
                 )
                 DetailItem(
                     label = "USDC",
-                    value = amount.usdc.formatted(formatting = Fiat.Formatting.Length(6)),
+                    value = amount.underlyingTokenAmount.formatted(formatting = Fiat.Formatting.Length(6)),
                 )
             }
         }

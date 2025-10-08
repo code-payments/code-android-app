@@ -34,7 +34,7 @@ internal fun BalanceHeader(
                 CodeCircularProgressIndicator()
             }
         } else {
-            Crossfade(balance.converted) { amount ->
+            Crossfade(balance.nativeAmount) { amount ->
                 val captionText = stringResource(R.string.subtitle_currentValueOfAllCurrencies)
                 AmountArea(
                     amountText = amount.formatted(),

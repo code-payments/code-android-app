@@ -10,6 +10,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentTransfer(
@@ -24,6 +25,7 @@ internal class IntentTransfer(
     companion object {
         fun create(
             amount: LocalFiat,
+            mint: Mint,
             sourceCluster: AccountCluster,
             destination: PublicKey,
             rendezvous: PublicKey,
@@ -32,7 +34,8 @@ internal class IntentTransfer(
                 owner = sourceCluster.authority.keyPair,
                 source = sourceCluster.vaultPublicKey,
                 destination = destination,
-                amount = amount.usdc
+                amount = amount.underlyingTokenAmount,
+                mint = mint,
             )
 
             return IntentTransfer(
@@ -41,6 +44,7 @@ internal class IntentTransfer(
                     source = sourceCluster.vaultPublicKey,
                     destination = destination,
                     amount = amount,
+                    mint = mint,
                     isRemoteSend = false,
                     isWithdrawal = false,
                 ),

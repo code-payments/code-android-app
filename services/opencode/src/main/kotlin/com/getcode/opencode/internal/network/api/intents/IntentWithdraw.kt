@@ -16,6 +16,7 @@ import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.buildActionGroup
 import com.getcode.opencode.utils.generate
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentWithdraw(
@@ -30,13 +31,14 @@ internal class IntentWithdraw(
     companion object {
         fun create(
             amount: LocalFiat,
+            mint: Mint,
             sourceCluster: AccountCluster,
             destination: PublicKey,
             destinationOwner: PublicKey?,
             fee: Fee? = null,
         ): IntentWithdraw {
             // transfer the amount less any fee
-            val transferAmount = amount.usdc - (fee?.fiat ?: Fiat.Zero)
+            val transferAmount = amount.underlyingTokenAmount - (fee?.fiat ?: Fiat.Zero)
 
             val actionGroup = buildActionGroup {
                 add(
@@ -45,6 +47,7 @@ internal class IntentWithdraw(
                         source = sourceCluster.vaultPublicKey,
                         destination = destination,
                         amount = transferAmount,
+                        mint = mint,
                     )
                 )
 
@@ -65,6 +68,7 @@ internal class IntentWithdraw(
                     destination = destination,
                     destinationOwner = destinationOwner,
                     amount = amount,
+                    mint = mint,
                     isRemoteSend = false,
                     isWithdrawal = true,
                 ),

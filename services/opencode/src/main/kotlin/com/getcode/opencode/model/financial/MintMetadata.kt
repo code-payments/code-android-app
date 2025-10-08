@@ -1,6 +1,9 @@
 package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
+import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
+import com.getcode.opencode.internal.solana.vmAuthority
+import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.parcelize.Parcelize
@@ -16,6 +19,25 @@ data class TokenWithLocalizedBalance(
 )
 
 typealias Token = MintMetadata
+
+val MintMetadata.Companion.usdc: Token
+    get() = MintMetadata(
+        address = Mint.usdc,
+        decimals = 6,
+        name = "USDC",
+        symbol = "USDC",
+        description = "",
+        imageUrl = "",
+        vmMetadata = VmMetadata(
+            authority = vmAuthority,
+            vm = PublicKey.deriveVirtualMachineAccount(
+                mint = Mint.usdc,
+                lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
+            ).publicKey,
+            lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
+        ),
+        launchpadMetadata = null
+    )
 
 /**
  * Represents metadata associated with a token account.
@@ -40,9 +62,11 @@ data class MintMetadata(
     val symbol: String,
     val description: String,
     val imageUrl: String,
-    val vmMetadata: VmMetadata?,
+    val vmMetadata: VmMetadata,
     val launchpadMetadata: LaunchpadMetadata?
-): Parcelable
+) : Parcelable {
+    companion object
+}
 
 /**
  * Represents metadata associated with a VM.
@@ -57,7 +81,7 @@ data class VmMetadata(
     val vm: PublicKey,
     val authority: PublicKey,
     val lockDurationInDays: Int // currently hardcoded to 21 days
-): Parcelable
+) : Parcelable
 
 /**
  * Represents metadata associated with a launchpad.
@@ -85,5 +109,5 @@ data class LaunchpadMetadata(
     val currentCirculatingSupplyQuarks: Long,
     val coreMintLockedQuarks: Long,
     val sellFeeBps: Int, // currently hardcoded to 1%
-): Parcelable
+) : Parcelable
 

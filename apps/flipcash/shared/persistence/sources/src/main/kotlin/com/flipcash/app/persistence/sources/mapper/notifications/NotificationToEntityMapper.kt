@@ -7,6 +7,8 @@ import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.NotificationMetadata
 import com.getcode.opencode.mapper.Mapper
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -26,12 +28,13 @@ class SingleNotificationToEntityMapper @Inject constructor(
     Mapper<ActivityFeedNotification, MessageEntity> {
     override fun map(from: ActivityFeedNotification): MessageEntity {
 
-        val (usdc, native, currency, fx) = from.amount?.let { amount ->
+        val (usdc, native, currency, fx, mint) = from.amount?.let { amount ->
             AmountHolder(
-                usdc = amount.usdc.quarks,
-                native = amount.converted.quarks,
-                currency = amount.converted.currencyCode.name,
-                fx = amount.rate.fx
+                usdc = amount.underlyingTokenAmount.quarks,
+                native = amount.nativeAmount.quarks,
+                currency = amount.nativeAmount.currencyCode.name,
+                fx = amount.rate.fx,
+                mint = amount.mint
             )
         } ?: AmountHolder()
 
@@ -45,7 +48,8 @@ class SingleNotificationToEntityMapper @Inject constructor(
             amountUsdc = usdc,
             amountNative = native,
             nativeCurrency = currency,
-            rate = fx
+            rate = fx,
+            mintBase58 = mint?.base58()
         )
     }
 }
@@ -54,14 +58,14 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
     override fun map(from: NotificationMetadata?): MessageMetadata? {
         from ?: return null
         return when (from) {
-            NotificationMetadata.GaveUsdc -> MessageMetadata.GaveUsdc
-            NotificationMetadata.ReceivedUsdc -> MessageMetadata.ReceivedUsdc
-            is NotificationMetadata.SentUsdc -> MessageMetadata.SentUsdc(from.creator, from.canCancel)
+            NotificationMetadata.GaveCrypto -> MessageMetadata.GaveCrypto
+            NotificationMetadata.ReceivedCrypto -> MessageMetadata.ReceivedCrypto
+            is NotificationMetadata.SentCrypto -> MessageMetadata.SentCrypto(from.creator, from.canCancel)
             NotificationMetadata.Unknown -> MessageMetadata.Unknown
             NotificationMetadata.WelcomeBonus -> MessageMetadata.WelcomeBonus
-            NotificationMetadata.WithdrewUsdc -> MessageMetadata.WithdrewUsdc
-            NotificationMetadata.DepositedUsdc -> MessageMetadata.DepositedUsdc
-            is NotificationMetadata.DistributedUsdc -> MessageMetadata.DistributedUsdc(
+            NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto
+            NotificationMetadata.DepositedCrypto -> MessageMetadata.DepositedCrypto
+            is NotificationMetadata.DistributedUsdc -> MessageMetadata.DistributedCrypto(
                 from.poolId,
                 when (val outcome = from.outcome) {
                     is NetworkPoolResolution.BooleanResolution -> PoolResolution.BooleanResolution(outcome.value)
@@ -69,7 +73,7 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
                     NetworkPoolResolution.Refund -> PoolResolution.Refund
                 }
             )
-            is NotificationMetadata.PaidUsdc -> MessageMetadata.PaidUsdc(poolId = from.poolId)
+            is NotificationMetadata.PaidCrypto -> MessageMetadata.PaidCrypto(poolId = from.poolId)
         }
     }
 }
@@ -78,5 +82,6 @@ private data class AmountHolder(
     val usdc: Long? = null,
     val native: Long? = null,
     val currency: String? = null,
-    val fx: Double? = null
+    val fx: Double? = null,
+    val mint: Mint? = null,
 )

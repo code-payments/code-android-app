@@ -85,6 +85,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
         is TransactionMetadata.OpenAccount -> {
             builder.setOpenAccounts(
                 TransactionService.OpenAccountsMetadata.newBuilder()
+                    .setMint(mint.asSolanaAccountId())
                     .setAccountSet(
                         when (type) {
                             AccountType.Pool -> AccountSet.POOL
@@ -100,6 +101,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
             builder.setReceivePaymentsPublicly(
                 TransactionService.ReceivePaymentsPubliclyMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
+                    .setMint(mint.asSolanaAccountId())
                     .setQuarks(quarks)
                     .setIsRemoteSend(isRemoteSend)
                     // exchange data cannot be set on outgoing transactions
@@ -112,6 +114,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
             builder.setSendPublicPayment(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
+                    .setMint(mint.asSolanaAccountId())
                     .setExchangeData(exchangeData.asProtobufExchangeData())
                     .setDestination(destination.asSolanaAccountId())
                     .apply {
@@ -129,6 +132,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
             builder.setPublicDistribution(
                 TransactionService.PublicDistributionMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
+                    .setMint(mint.asSolanaAccountId())
                     .apply {
                         distributions.forEachIndexed { index, distribution ->
                             addDistributions(
@@ -155,6 +159,7 @@ internal fun ExchangeData.WithRate.asProtobufExchangeData(): TransactionService.
         .setExchangeRate(exchangeRate)
         .setNativeAmount(nativeAmount)
         .setQuarks(quarks)
+        .setMint(mint.asSolanaAccountId())
         .build()
 }
 
@@ -200,9 +205,9 @@ internal fun Message.asProtobufMessage(): MessagingService.Message {
 
 internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
     return TransactionService.ExchangeData.newBuilder()
-        .setQuarks(usdc.quarks)
-        .setCurrency(converted.currencyCode.name.lowercase())
+        .setQuarks(underlyingTokenAmount.quarks)
+        .setCurrency(rate.currency.name.lowercase())
         .setExchangeRate(rate.fx)
-        .setNativeAmount(converted.doubleValue)
+        .setNativeAmount(nativeAmount.doubleValue)
         .build()
 }

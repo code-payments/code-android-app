@@ -170,8 +170,7 @@ internal class PoolCreateViewModel @Inject constructor(
         ) { balance, rate ->
             LocalFiat(
                 usdc = balance,
-                converted = balance.convertingTo(rate),
-                rate = rate
+                nativeAmount = balance.convertingTo(rate),
             )
         }.onEach {
             dispatchEvent(Event.OnBalanceChanged(it))

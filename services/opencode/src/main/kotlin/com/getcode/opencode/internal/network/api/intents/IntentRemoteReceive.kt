@@ -10,6 +10,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.generate
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentRemoteReceive(
@@ -26,15 +27,17 @@ internal class IntentRemoteReceive(
             giftCard: GiftCardAccount,
             owner: AccountCluster,
             amount: LocalFiat,
+            mint: Mint,
         ): IntentRemoteReceive {
 
             // 1. Move all funds from the gift card to the primary account
             val withdrawFromGiftCard = ActionPublicWithdraw.newInstance(
-                amount = amount.usdc,
+                amount = amount.underlyingTokenAmount,
                 owner = giftCard.cluster,
                 source = giftCard.cluster,
                 destination = owner.vaultPublicKey,
                 canAutoReturn = false,
+                mint = mint,
             )
 
             return IntentRemoteReceive(
@@ -42,6 +45,7 @@ internal class IntentRemoteReceive(
                 metadata = TransactionMetadata.ReceivePublicPayment(
                     source = giftCard.cluster.vaultPublicKey,
                     amount = amount,
+                    mint = mint,
                     isRemoteSend = true,
                 ),
                 actionGroup = ActionGroup().apply {

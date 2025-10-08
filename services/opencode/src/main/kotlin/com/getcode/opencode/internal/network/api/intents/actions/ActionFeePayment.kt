@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.FeeType
 import com.getcode.opencode.solana.intents.CompactMessageArgs
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.solana.intents.actions.ActionType
+import com.getcode.solana.keys.Mint
 
 internal class ActionFeePayment(
     override var id: Int,
@@ -56,6 +57,7 @@ internal class ActionFeePayment(
                     )
                     .setAuthority(source.authority.keyPair.asSolanaAccountId())
                     .setAmount(fee.fiat.quarks)
+                    .setMint(Mint.usdc.asSolanaAccountId())
                     .build()
             ).build()
     }

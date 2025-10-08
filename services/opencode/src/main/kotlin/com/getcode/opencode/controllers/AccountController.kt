@@ -31,6 +31,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.math.min
 
 @OptIn(ExperimentalAtomicApi::class)
 @Singleton
@@ -42,6 +43,12 @@ class AccountController @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val cluster = MutableStateFlow<AccountCluster?>(null)
+
+    private val accounts = MutableStateFlow<List<AccountInfo>>(emptyList())
+
+    fun hasAccountFor(mint: Mint): Boolean {
+        return accounts.value.any { it.mint == mint }
+    }
 
     private val fetching = AtomicBoolean(false)
 
@@ -68,9 +75,9 @@ class AccountController @Inject constructor(
             }.launchIn(scope)
     }
 
-    suspend fun createUserAccount(owner: AccountCluster): Result<ID> {
+    suspend fun createUserAccount(owner: AccountCluster, mint: Mint): Result<ID> {
         // Authority is the owner of the account
-        val intent = IntentCreateAccount.createUserAccount(owner)
+        val intent = IntentCreateAccount.createUserAccount(owner, mint)
 
         return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
             .map { it.id.bytes }
@@ -136,7 +143,7 @@ class AccountController @Inject constructor(
             )?.recoverCatching { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
-                    val createResult = createUserAccount(owner)
+                    val createResult = createUserAccount(owner, mint = Mint.usdc)
                     if (createResult.isSuccess) {
                         getAccounts(owner, owner)
                             .getOrElse { throw it }
@@ -151,6 +158,9 @@ class AccountController @Inject constructor(
                     response.accounts.values.find {
                         it.accountType == AccountType.Primary && it.mint == Mint.usdc
                     }
+
+                accounts.value = response.accounts.values.toList()
+
                 if (primary?.unusable == true) {
                     onTimelockUnlocked()
                 }

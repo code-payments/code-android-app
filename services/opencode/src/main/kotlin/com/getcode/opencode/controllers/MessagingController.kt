@@ -7,6 +7,7 @@ import com.getcode.opencode.internal.network.services.OcpMessageStreamReference
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.repositories.MessagingRepository
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -112,6 +113,22 @@ class MessagingController @Inject constructor(
 
         val message = MessagingService.Message.newBuilder()
             .setRequestToGrabBill(paymentRequest)
+
+        return repository.sendMessage(
+            message = message,
+            rendezvous = payload.rendezvous
+        )
+    }
+
+    suspend fun sendRequestToGiveBill(
+        tokenMint: Mint,
+        payload: OpenCodePayload,
+    ): Result<PublicKey> {
+        val paymentRequest = MessagingService.RequestToGiveBill.newBuilder()
+            .setMint(tokenMint.asSolanaAccountId())
+
+        val message = MessagingService.Message.newBuilder()
+            .setRequestToGiveBill(paymentRequest)
 
         return repository.sendMessage(
             message = message,

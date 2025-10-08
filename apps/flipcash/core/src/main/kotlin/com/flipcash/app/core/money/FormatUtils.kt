@@ -41,5 +41,5 @@ fun Int.withCommas(): String {
 }
 
 fun LocalFiat.formatted(formatting: Fiat.Formatting = Fiat.Formatting.None, suffix: String? = null): String {
-    return converted.formatted(formatting = formatting, suffix = suffix)
+    return nativeAmount.formatted(formatting = formatting, suffix = suffix)
 }

@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram
 import com.getcode.opencode.internal.solana.programs.TimelockProgram
 import com.getcode.opencode.internal.solana.programs.TokenProgram
 import com.getcode.opencode.solana.keys.ProgramDerivedAccount
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -42,12 +43,12 @@ internal fun PublicKey.Companion.deriveDepositAccount(vm: PublicKey, depositor: 
     )
 }
 
-internal fun PublicKey.Companion.deriveTimelockStateAccount(owner: PublicKey, lockout: UByte): ProgramDerivedAccount {
+internal fun PublicKey.Companion.deriveTimelockStateAccount(owner: PublicKey, mint: Mint, authority: PublicKey, lockout: UByte): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
             "timelock_state".toByteArray(Charsets.UTF_8),
-            usdc.bytes.toByteArray(),
-            vmAuthority.bytes.toByteArray(),
+            mint.bytes.toByteArray(),
+            authority.bytes.toByteArray(),
             owner.bytes.toByteArray(),
             byteArrayOf(lockout.toByte())
         ),

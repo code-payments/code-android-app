@@ -51,7 +51,7 @@ internal fun Receipt(
             .padding(horizontal = CodeTheme.dimens.inset),
         contentAlignment = Alignment.Center
     ) {
-        val mW = maxWidth
+        val mW = this.maxWidth
         val codeSize = remember { mW * 0.65f }
 
         Column(
@@ -88,7 +88,7 @@ internal fun Receipt(
                         value = CodeTheme.typography.textMedium
                             .monospace(weight = FontWeight.W500)
                     ) {
-                        PriceWithFlag(currencyCode = currencyCode.name, flag = exchange.getFlag(currencyCode.name), amount = amount.converted.formatted())
+                        PriceWithFlag(currencyCode = currencyCode.name, flag = exchange.getFlag(currencyCode.name), amount = amount.nativeAmount.formatted())
                     }
                 }
             }

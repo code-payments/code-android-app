@@ -296,7 +296,7 @@ class ExternalWalletDeeplinkState(
                     mint = PublicKey(usdcMint.base58())
                 )
                 val destinationTokenAccount = PublicKey.deriveAssociatedAccount(
-                    owner = PublicKey(owner.depositAddress.base58()),
+                    owner = PublicKey(owner.usdcDepositAddress.base58()),
                     mint = PublicKey(usdcMint.base58())
                 )
 
@@ -314,7 +314,7 @@ class ExternalWalletDeeplinkState(
                     }.map { true }.getOrElse { false }
 
                 println("sender: ${sender.base58()}")
-                println("owner: ${owner.depositAddress.base58()}")
+                println("owner: ${owner.usdcDepositAddress.base58()}")
                 println("senderTokenAccount(exists: $senderAtaExists): ${senderTokenAccount.publicKey.base58()}")
                 println("destinationTokenAccount(exists: $recipientAtaExists): ${destinationTokenAccount.publicKey.base58()}")
 
@@ -336,7 +336,7 @@ class ExternalWalletDeeplinkState(
                         add(
                             createAssociatedTokenAccountInstruction(
                                 payer = sender,
-                                owner = owner.depositAddress,
+                                owner = owner.usdcDepositAddress,
                                 ata = destinationTokenAccount.publicKey,
                                 mint = usdcMint
                             )

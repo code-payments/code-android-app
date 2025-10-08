@@ -10,6 +10,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
+import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.getPublicKeyBase58
@@ -504,10 +505,11 @@ private fun AnalyticsEvent.properties(
 
 private fun LocalFiat.asProperties(): Map<String, String> {
     return buildMap {
-        putAll(usdc.asProperties())
-        "Fiat" to converted.doubleValue.toString()
+        putAll(underlyingTokenAmount.asProperties())
+        "Fiat" to nativeAmount.doubleValue.toString()
         "Exchange Rate" to rate.fx.toString()
         "Currency" to rate.currency.name
+        "Mint" to mint.base58()
     }
 }
 

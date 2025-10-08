@@ -65,12 +65,10 @@ class SelectTokenViewModel @Inject constructor(
                             token = it.token,
                             balance = LocalFiat(
                                 usdc = it.balance,
-                                converted = it.balance.convertingTo(rate),
-                                rate = rate
-
+                                nativeAmount = it.balance.convertingTo(rate),
                             )
                         )
-                    }.sortedByDescending { it.balance.converted }
+                    }.sortedByDescending { it.balance.nativeAmount }
                 }
             }.onEach { dispatchEvent(Event.OnTokensUpdated(it)) }
             .launchIn(viewModelScope)
