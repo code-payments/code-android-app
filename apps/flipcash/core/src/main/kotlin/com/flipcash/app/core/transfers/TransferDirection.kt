@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.core.R
+import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -40,7 +41,7 @@ sealed interface TransferDirection : Parcelable {
 
     data object Outgoing : TransferDirection {
         @IgnoredOnParcel
-        override val nextScreen: AppRoute = AppRoute.Transfers.Withdrawal.Amount
+        override val nextScreen: AppRoute = AppRoute.Transfers.Withdrawal.Amount(Mint.usdc)
         override val title: String
             @Composable get() = stringResource(R.string.title_withdrawUsdc)
         override val description: String

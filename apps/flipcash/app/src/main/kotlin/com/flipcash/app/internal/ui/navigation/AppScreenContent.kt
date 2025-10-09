@@ -74,11 +74,11 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Main.Give> {
-            CashScreen(it.tokenAddress)
+            CashScreen(it.mint)
         }
 
         register<AppRoute.Sheets.TokenSelection> {
-            SelectTokenScreen()
+            SelectTokenScreen(it.purpose)
         }
 
         register<AppRoute.Sheets.Wallet> {
@@ -158,7 +158,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Transfers.Withdrawal.Amount> {
             WithdrawalFlow.start()
-            WithdrawalEntryScreen()
+            WithdrawalEntryScreen(it.mint)
         }
 
         register<AppRoute.Transfers.Withdrawal.Destination> {

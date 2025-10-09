@@ -350,7 +350,7 @@ internal class CashScreenViewModel @Inject constructor(
                     dispatchEvent(
                         Event.OpenScreen(
                             AppRoute.OnRamp.ProviderList(
-                                AppRoute.Main.Give(tokenAddress = stateFlow.value.token?.token?.address),
+                                AppRoute.Main.Give(mint = stateFlow.value.selectedTokenAddress!!),
                                 amount
                             )
                         )

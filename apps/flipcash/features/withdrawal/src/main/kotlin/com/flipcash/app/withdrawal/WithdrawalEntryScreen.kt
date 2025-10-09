@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -15,6 +16,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -22,7 +24,9 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Parcelize
-class WithdrawalEntryScreen: ModalScreen, NamedScreen, Parcelable {
+class WithdrawalEntryScreen(
+    private val selectedMint: Mint
+): ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -43,7 +47,12 @@ class WithdrawalEntryScreen: ModalScreen, NamedScreen, Parcelable {
                 onBackIconClicked = { navigator.pop() },
                 titleAlignment = Alignment.CenterHorizontally,
             )
-            WithdrawalEntryScreen(getStackScopedViewModel<WithdrawalViewModel>(key = WithdrawalFlow.key))
+            val viewModel = getStackScopedViewModel<WithdrawalViewModel>(key = WithdrawalFlow.key)
+            WithdrawalEntryScreen(viewModel)
+
+            LaunchedEffect(viewModel) {
+                // TODO:
+            }
         }
     }
 }

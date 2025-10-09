@@ -4,11 +4,12 @@ import android.os.Parcelable
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
 
@@ -38,7 +39,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data class RegionSelection(val kind: RegionSelectionKind) : Main
 
 
-        data class Give(val tokenAddress: PublicKey?) : Main
+        data class Give(val mint: Mint) : Main
     }
 
     @Parcelize
@@ -53,7 +54,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
 
     @Parcelize
     sealed interface Sheets: AppRoute {
-        data object TokenSelection: Sheets
+        data class TokenSelection(val purpose: TokenPurpose): Sheets
         data object Wallet : Sheets
         data object Menu : Sheets
         data object Lab: Sheets
@@ -92,7 +93,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data class Learn(val direction: TransferDirection) : Transfers
 
         sealed interface Withdrawal {
-            data object Amount : Transfers
+            data class Amount(val mint: Mint) : Transfers
             data object Destination : Transfers
             data object Confirmation : Transfers
         }

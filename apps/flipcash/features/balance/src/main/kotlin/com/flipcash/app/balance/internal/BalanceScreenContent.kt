@@ -19,11 +19,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.balance.internal.components.BalanceHeader
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.onramp.AddCashRow
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.app.tokens.SelectTokenViewModel
 import com.flipcash.app.tokens.TokenList
-import com.flipcash.app.tokens.TokenPurpose
 import com.flipcash.features.balance.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange

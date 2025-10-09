@@ -5,6 +5,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -145,7 +146,7 @@ internal class MenuScreenViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(
                     Event.OpenScreen(
-                        AppRoute.Transfers.Learn(TransferDirection.Outgoing)
+                        AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw)
                     )
                 )
             }.launchIn(viewModelScope)

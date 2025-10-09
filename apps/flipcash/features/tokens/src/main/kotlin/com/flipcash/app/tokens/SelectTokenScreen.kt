@@ -13,6 +13,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -28,7 +29,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class SelectTokenScreen : ModalScreen, NamedScreen, Parcelable {
+class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -46,14 +47,20 @@ class SelectTokenScreen : ModalScreen, NamedScreen, Parcelable {
             AppBarWithTitle(
                 isInModal = true,
                 title = name,
+                backButton = purpose !is TokenPurpose.Send,
+                onBackIconClicked = { navigator.pop() },
                 titleAlignment = Alignment.CenterHorizontally,
-                endContent = { AppBarDefaults.Close { navigator.hide() } },
+                endContent = {
+                    if (purpose is TokenPurpose.Send) {
+                        AppBarDefaults.Close { navigator.hide() }
+                    }
+                },
             )
             val viewModel = getViewModel<SelectTokenViewModel>()
             SelectTokenScreen(viewModel)
 
             LaunchedEffect(viewModel) {
-                viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(TokenPurpose.Send))
+                viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(purpose))
             }
 
 
@@ -62,9 +69,15 @@ class SelectTokenScreen : ModalScreen, NamedScreen, Parcelable {
                     .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
                     .map { it.token }
                     .onEach { token ->
-                        navigator.push(
-                            ScreenRegistry.get(AppRoute.Main.Give(token.address))
-                        )
+                        when (purpose) {
+                            TokenPurpose.Balance -> Unit
+                            TokenPurpose.Send -> {
+                                navigator.push(
+                                    ScreenRegistry.get(AppRoute.Main.Give(token.address))
+                                )
+                            }
+                            TokenPurpose.Withdraw -> TODO()
+                        }
                     }.launchIn(this)
             }
         }

@@ -2,6 +2,7 @@ package com.flipcash.app.balance.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
@@ -78,7 +79,7 @@ internal class BalanceViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(
                     Event.OpenScreen(
-                        AppRoute.Transfers.Learn(TransferDirection.Outgoing)
+                        AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw)
                     )
                 )
             }.launchIn(viewModelScope)

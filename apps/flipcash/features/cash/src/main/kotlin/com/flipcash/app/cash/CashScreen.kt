@@ -30,7 +30,7 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 class CashScreen(
-    private val selectedTokenAddress: Mint?
+    private val selectedMint: Mint
 ): ModalScreen, Parcelable {
 
     @IgnoredOnParcel
@@ -67,10 +67,8 @@ class CashScreen(
             GiveScreenContent(viewModel)
         }
 
-        LaunchedEffect(viewModel, selectedTokenAddress) {
-            if (selectedTokenAddress != null) {
-                viewModel.dispatchEvent(CashScreenViewModel.Event.OnTokenSelected(selectedTokenAddress))
-            }
+        LaunchedEffect(viewModel, selectedMint) {
+            viewModel.dispatchEvent(CashScreenViewModel.Event.OnTokenSelected(selectedMint))
         }
 
         LaunchedEffect(viewModel) {

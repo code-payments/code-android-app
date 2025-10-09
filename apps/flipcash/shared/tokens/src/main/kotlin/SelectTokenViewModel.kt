@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.LocalFiat
@@ -9,9 +10,7 @@ import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -19,10 +18,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-sealed interface TokenPurpose {
-    data object Send : TokenPurpose
-    data object Balance : TokenPurpose
-}
 @HiltViewModel
 class SelectTokenViewModel @Inject constructor(
     tokenController: TokenController,
@@ -54,10 +49,10 @@ class SelectTokenViewModel @Inject constructor(
             .flatMapLatest { purpose ->
                 combine(
                     tokenController.tokenBalances,
-                    if (purpose == TokenPurpose.Send) {
-                        exchange.observeEntryRate()
-                    } else {
-                        exchange.observeBalanceRate()
+                    when (purpose) {
+                        TokenPurpose.Balance -> exchange.observeBalanceRate()
+                        TokenPurpose.Send -> exchange.observeEntryRate()
+                        TokenPurpose.Withdraw -> exchange.observeEntryRate()
                     }
                 ) { balances, rate ->
                     balances.map {

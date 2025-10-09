@@ -4,7 +4,6 @@ import android.os.Parcelable
 import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.base64
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
@@ -36,7 +35,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Menu : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data class Give(val tokenAddress: PublicKey?) : OnRampDeeplinkOrigin()
+    data class Give(val tokenAddress: PublicKey) : OnRampDeeplinkOrigin()
 
     @Parcelize
     data object Wallet: OnRampDeeplinkOrigin()
@@ -61,7 +60,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
         fun fromRoute(route: AppRoute?): OnRampDeeplinkOrigin? {
             return when (route) {
                 is AppRoute.Sheets.Menu -> Menu
-                is AppRoute.Main.Give -> Give(route.tokenAddress)
+                is AppRoute.Main.Give -> Give(route.mint)
                 is AppRoute.Pool.Details -> {
                     route.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
                     route.poolId?.let { id -> PoolWithId(id) }
@@ -77,9 +76,10 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 value == "menu" -> Menu
                 value?.startsWith("give-") == true -> {
                     val tokenAddress = value.removePrefix("give-")
-                    Give(tokenAddress = runCatching {
+                    val mint = runCatching {
                         PublicKey.fromBase58(tokenAddress)
-                    }.getOrNull())
+                    }.getOrNull() ?: return null
+                    Give(mint)
                 }
                 value == "wallet" -> Wallet
                 value?.startsWith("pool-") == true -> {
