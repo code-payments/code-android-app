@@ -12,19 +12,23 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.utils.base58
 import com.getcode.opencode.utils.nonce
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
+import com.getcode.utils.base58
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 internal class GiveBillTransactor(
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
-    private val exchange: Exchange,
 ): Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
     private var token: Token? = null
     private var amount: LocalFiat? = null
@@ -58,16 +62,41 @@ internal class GiveBillTransactor(
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
         val ownerKey = owner
             ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
+        val desiredToken = token
+            ?: return logAndFail(GiveTransactorError.Other(message = "No token. Did you call with() first?"))
         val rendezvous = rendezvousKey
             ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
 
+        // 1. Send request to "give" the bill to the recipient
+        // This provides the recipient with the desired token mint of the cash
+        messagingController.sendRequestToGiveBill(desiredToken.address, rendezvous)
+            .onSuccess {
+                trace(
+                    tag = "Messaging",
+                    message = "Successfully sent request to give bill for ${desiredToken.symbol}",
+                    type = TraceType.Log
+                )
+            }.onFailure { cause ->
+                trace(
+                    tag = "Messaging",
+                    message = "Failed to send request to give bill for ${desiredToken.symbol}",
+                    type = TraceType.Error,
+                    error = cause
+                )
+            }
+
+        trace(
+            tag = "Messaging",
+            message = "Waiting for request to grab bill for ${desiredToken.symbol} on ${rendezvous.publicKeyBytes.base58}",
+            type = TraceType.Log
+        )
+
+        // 2. Wait for recipient to grab the bill
         val transferRequest = messagingController.awaitRequestToGrabBill(scope, rendezvous)
             ?: return logAndFail(GiveTransactorError.Other(message = "No message received"))
 
-        val desiredToken = token
-            ?: return logAndFail(GiveTransactorError.Other(message = "No token. Did you call with() first?"))
 
-        // 1. Validate that destination hasn't been tampered with by
+        // 3. Validate that destination hasn't been tampered with by
         // verifying the signature matches one that has been signed
         // with the rendezvous key.
         val data = transferRequest.asProtobufMessage().toByteArray()
@@ -77,7 +106,6 @@ internal class GiveBillTransactor(
             return logAndFail(GiveTransactorError.DestinationSignatureInvalidException())
         }
 
-        // 2. Send the funds to destination
         if (receivingAccount == transferRequest.account) {
             // Ensure that we're processing one, and only one
             // transaction for each instance of SendTransaction.
@@ -86,32 +114,22 @@ internal class GiveBillTransactor(
             return logAndFail(GiveTransactorError.DuplicateTransferException())
         }
 
+        val sendingVault = ownerKey.withTimelockForToken(desiredToken)
+
         receivingAccount = transferRequest.account
 
-        return messagingController.sendRequestToGiveBill(
-            payload = payload,
-            tokenMint = desiredToken.address
-        ).fold(
-            onSuccess = {
-                transactionController.transfer(
-                    scope = scope,
-                    amount = amount!!,
-                    mint = desiredToken.address,
-                    source = ownerKey,
-                    destination = transferRequest.account,
-                    rendezvous = rendezvous.toPublicKey()
-                )
-            },
-            onFailure = {
-                if (it !is GiveTransactorError)  {
-                    ErrorUtils.handleError(it)
-                }
-                logAndFail(it)
-            }
+        // 4. Send the funds to destination
+        return transactionController.transfer(
+            scope = scope,
+            amount = amount!!,
+            mint = desiredToken.address,
+            source = sendingVault,
+            destination = transferRequest.account,
+            rendezvous = rendezvous.toPublicKey()
         ).fold(
             onSuccess = {
                 transactionController.pollIntentMetadata(
-                    owner = ownerKey.authority.keyPair,
+                    owner = sendingVault.authority.keyPair,
                     intentId = it.id
                 )
             },
@@ -130,6 +148,7 @@ internal class GiveBillTransactor(
         data = emptyList()
         rendezvousKey = null
         receivingAccount = null
+        token = null
 
         scope.cancel()
     }

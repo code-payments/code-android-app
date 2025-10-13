@@ -1,21 +1,15 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.flipcash.libs.currency.math.Estimator
-import com.getcode.crypt.DerivedKey
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.intents.CompactMessageArgs
 import com.getcode.opencode.solana.intents.ServerParameter
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.solana.SolanaTransaction
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.solana.intents.actions.ActionType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
-import kotlin.math.min
-import kotlin.math.sign
 
 internal class ActionPublicTransfer(
     override var id: Int,

@@ -161,7 +161,7 @@ internal class CashScreenViewModel @Inject constructor(
                                 LocalFiat.valueExchangeIn(
                                     localizedAmount,
                                     token = token,
-                                    currencyCode = rate.currency
+                                    rate = rate,
                                 )
                             }
 
@@ -313,7 +313,7 @@ internal class CashScreenViewModel @Inject constructor(
                 }
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
-
+                // TOD is there a way to consolidate all of this into valueExchangeIn?
                 val amountFiat = if (token.address == Mint.usdc) {
                     LocalFiat(
                         usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
@@ -321,9 +321,9 @@ internal class CashScreenViewModel @Inject constructor(
                     )
                 } else {
                     LocalFiat.valueExchangeIn(
-                        localizedAmount,
+                        amount = localizedAmount,
                         token = token,
-                        currencyCode = rate.currency
+                        rate = rate,
                     )
                 }
 

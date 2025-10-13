@@ -74,7 +74,6 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
             exchangeData = sendPublicPayment.exchangeData.toModel(),
             isRemoteSend = sendPublicPayment.isRemoteSend,
             isWithdrawal = sendPublicPayment.isWithdrawal,
-            mint = sendPublicPayment.mint.toPublicKey(),
         )
 
         TransactionService.Metadata.TypeCase.RECEIVE_PAYMENTS_PUBLICLY -> TransactionMetadata.ReceivePublicPayment(

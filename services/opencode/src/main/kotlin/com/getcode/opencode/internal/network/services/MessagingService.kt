@@ -28,6 +28,7 @@ internal class MessagingService @Inject constructor(
     fun openMessageStreamWithKeepAlive(
         scope: CoroutineScope,
         rendezvous: KeyPair,
+        messageFilter: (List<RpcMessagingService.Message>) -> Boolean = { true },
         onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit,
     ): OcpMessageStreamReference {
         trace("Message Opening stream.")
@@ -41,13 +42,14 @@ internal class MessagingService @Inject constructor(
                     scope = scope,
                     rendezvous = rendezvous,
                     streamRef = streamReference,
+                    messageFilter = messageFilter,
                     onEvent = onEvent
                 )
             }
         }
 
         streamReference.coroutineScope.launch {
-            openMessageStream(scope, rendezvous, streamReference, onEvent)
+            openMessageStream(scope, rendezvous, streamReference, messageFilter, onEvent)
         }
 
         return streamReference
@@ -58,6 +60,7 @@ internal class MessagingService @Inject constructor(
         scope: CoroutineScope,
         rendezvous: KeyPair,
         streamRef: OcpMessageStreamReference,
+        messageFilter: (List<RpcMessagingService.Message>) -> Boolean,
         onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit
     ) {
         openBidirectionalStream(
@@ -72,13 +75,16 @@ internal class MessagingService @Inject constructor(
             reconnectOnCancelled = true,
             reconnectHandler = {
                 streamRef.coroutineScope.launch {
-                    openMessageStream(scope, rendezvous, streamRef, onEvent)
+                    openMessageStream(scope, rendezvous, streamRef, messageFilter, onEvent)
                 }
             },
             responseHandler = { response, onResult, requestChannel ->
                 when (response.responseOrPingCase) {
                     MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
-                        onResult(Result.success(response.response.messagesList))
+                        val messages = response.response.messagesList
+                        if (messageFilter(messages)) {
+                            onResult(Result.success(messages))
+                        }
                     }
 
                     MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.PING -> {

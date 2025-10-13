@@ -20,7 +20,7 @@ sealed interface TransactionMetadata {
      */
     data class OpenAccount(val type: AccountType, val mint: Mint): TransactionMetadata
 
-    sealed interface PublicPayment {
+    sealed interface PublicPayment: TransactionMetadata {
         val source: PublicKey
         val exchangeData: ExchangeData.WithRate
     }
@@ -51,8 +51,7 @@ sealed interface TransactionMetadata {
         override val exchangeData: ExchangeData.WithRate,
         val isRemoteSend: Boolean,
         val isWithdrawal: Boolean,
-        val mint: Mint,
-    ): TransactionMetadata, PublicPayment {
+    ): PublicPayment {
         constructor(
             source: PublicKey,
             destination: PublicKey,
@@ -74,7 +73,6 @@ sealed interface TransactionMetadata {
             ),
             isRemoteSend = isRemoteSend,
             isWithdrawal = isWithdrawal,
-            mint = mint,
         )
     }
 
@@ -106,7 +104,7 @@ sealed interface TransactionMetadata {
         val isRemoteSend: Boolean,
         override val exchangeData: ExchangeData.WithRate,
         val mint: Mint,
-    ): TransactionMetadata, PublicPayment {
+    ): PublicPayment {
         constructor(
             source: PublicKey,
             amount: LocalFiat,

@@ -25,7 +25,7 @@ data class OpenCodePayload(
 
     val fiat: Fiat?
         get() {
-            return value as? Fiat ?: return null
+            return value as? Fiat
         }
 
     val codeData: ByteArray
@@ -42,7 +42,7 @@ data class OpenCodePayload(
 
         data[1] = fiat.currencyCode.ordinal.toByte()
 
-        fiat.quarks.toLong().longToByteArray().forEachIndexed { index, byte ->
+        fiat.quarks.longToByteArray().forEachIndexed { index, byte ->
             data[index + OFFSET_QUARKS] = byte
         }
 
@@ -95,7 +95,7 @@ enum class PayloadKind(val value: Int) {
 
 /*
 
- Layout 0: Cash
+ Layout 0: Single token supported Cash (USDC)
 
    0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -123,11 +123,7 @@ enum class PayloadKind(val value: Int) {
  This field is an 11-byte randomly-generated nonce. It should be regenerated
  each time a new payment is initiated.
 
- Layout 1: Gift Card
-
- Same as layout 0.
-
- Layout 2: Payment Request
+ Layout 1: Multi-token supported Cash
 
  Same as layout 0.
 */

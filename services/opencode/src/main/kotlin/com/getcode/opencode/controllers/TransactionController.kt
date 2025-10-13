@@ -276,6 +276,15 @@ class TransactionController @Inject constructor(
                     Result.failure(e)
                 }
             }
+            .onEach {
+                if (debugLogs) {
+                    trace(
+                        tag = "CodeScan",
+                        message = "pollIntentMetadata: [$it] received metadata",
+                        type = TraceType.Process
+                    )
+                }
+            }
             .filter { !stopped.get() }
             .mapNotNull { result ->
                 result.fold(

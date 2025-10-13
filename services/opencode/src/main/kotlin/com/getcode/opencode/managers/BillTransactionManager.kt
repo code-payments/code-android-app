@@ -14,7 +14,6 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -69,7 +68,6 @@ class BillTransactionManager @Inject constructor(
                 messagingController,
                 transactionController,
                 childScope,
-                exchange
             ).apply {
                 with(token, amount, owner)
             }
@@ -83,7 +81,7 @@ class BillTransactionManager @Inject constructor(
                 .onSuccess {
                     childScope.cancel()
                     onGrabbed()
-                    tokenController.subtract(token.address,LocalFiat(it.exchangeData))
+                    tokenController.subtract(token.address, LocalFiat(it.exchangeData))
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     onError(it)
@@ -103,7 +101,13 @@ class BillTransactionManager @Inject constructor(
         sharedScope.launch {
             val childScope = CoroutineScope(sharedScope.coroutineContext + Job())
             val transactor =
-                GrabBillTransactor(messagingController, transactionController, childScope).apply {
+                GrabBillTransactor(
+                    accountController = accountController,
+                    messagingController,
+                    transactionController,
+                    tokenController,
+                    childScope
+                ).apply {
                     with(owner, payload)
                 }
 
@@ -128,7 +132,7 @@ class BillTransactionManager @Inject constructor(
 
                     trace(
                         tag = "Bill",
-                        message = "Grabbed ${amount.nativeAmount.formatted()} from sender"
+                        message = "Grabbed ${amount.nativeAmount.formatted()} of ${token.symbol} from sender"
                     )
                     onGrabbed(token, amount)
                     tokenController.add(mint, amount)

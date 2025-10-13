@@ -13,8 +13,10 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
-import com.getcode.opencode.model.transactions.TransferRequest
+import com.getcode.opencode.model.transactions.GiveRequest
+import com.getcode.opencode.model.transactions.GrabRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.ByteString
@@ -36,6 +38,10 @@ internal fun KeyPair.asSolanaAccountId(): Model.SolanaAccountId {
 
 internal fun PublicKey.asSolanaAccountId(): Model.SolanaAccountId {
     return Model.SolanaAccountId.newBuilder().setValue(this.byteArray.toByteString()).build()
+}
+
+internal fun PublicKey.asMessageId(): MessagingService.MessageId {
+    return MessagingService.MessageId.newBuilder().setValue(this.byteArray.toByteString()).build()
 }
 
 internal fun PublicKey.asIntentId(): Model.IntentId {
@@ -114,7 +120,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
             builder.setSendPublicPayment(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
-                    .setMint(mint.asSolanaAccountId())
+                    .setMint(exchangeData.mint.asSolanaAccountId())
                     .setExchangeData(exchangeData.asProtobufExchangeData())
                     .setDestination(destination.asSolanaAccountId())
                     .apply {
@@ -171,13 +177,23 @@ internal fun ExchangeData.WithoutRate.asProtobufExchangeData(): TransactionServi
 }
 
 internal fun TransferRequest.asProtobufMessage(): MessagingService.Message {
-    return MessagingService.Message
-        .newBuilder()
-        .setRequestToGrabBill(
-            MessagingService.RequestToGrabBill
-                .newBuilder()
-                .setRequestorAccount(account.asSolanaAccountId())
-        ).build()
+    return when (this) {
+        is GiveRequest -> MessagingService.Message
+            .newBuilder()
+            .setRequestToGiveBill(
+                MessagingService.RequestToGiveBill
+                    .newBuilder()
+                    .setMint(mint.asSolanaAccountId())
+            ).build()
+
+        is GrabRequest -> MessagingService.Message
+            .newBuilder()
+            .setRequestToGrabBill(
+                MessagingService.RequestToGrabBill
+                    .newBuilder()
+                    .setRequestorAccount(account.asSolanaAccountId())
+            ).build()
+    }
 }
 
 internal fun Message.asProtobufMessage(): MessagingService.Message {

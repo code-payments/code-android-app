@@ -1,7 +1,6 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
@@ -31,7 +30,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.math.min
 
 @OptIn(ExperimentalAtomicApi::class)
 @Singleton
@@ -75,11 +73,21 @@ class AccountController @Inject constructor(
             }.launchIn(scope)
     }
 
-    suspend fun createUserAccount(owner: AccountCluster, mint: Mint): Result<ID> {
+    /**
+     * Creates a new user account for the given owner and mint.
+     *
+     * @param ownerForMint The AccountCluster to create the account for.
+     * @param mint The Mint to create the account for.
+     *
+     * NOTE: The cluster should be updated for the corresponding Token associated with the Mint to ensure the vault is correct.
+     *
+     * @return The ID of the created account.
+     */
+    suspend fun createUserAccount(ownerForMint: AccountCluster, mint: Mint): Result<ID> {
         // Authority is the owner of the account
-        val intent = IntentCreateAccount.createUserAccount(owner, mint)
+        val intent = IntentCreateAccount.createUserAccount(ownerForMint, mint)
 
-        return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
+        return transactionController.submitIntent(scope, intent, ownerForMint.authority.keyPair)
             .map { it.id.bytes }
     }
 
