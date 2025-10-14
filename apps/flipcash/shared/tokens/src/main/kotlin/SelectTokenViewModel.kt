@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
@@ -63,7 +64,7 @@ class SelectTokenViewModel @Inject constructor(
                                 nativeAmount = it.balance.convertingTo(rate),
                             )
                         )
-                    }.sortedByDescending { it.balance.nativeAmount }
+                    }.sortedByDescending { it.balance.nativeAmount }.filter { it.balance.nativeAmount > Fiat.Zero }
                 }
             }.onEach { dispatchEvent(Event.OnTokensUpdated(it)) }
             .launchIn(viewModelScope)
