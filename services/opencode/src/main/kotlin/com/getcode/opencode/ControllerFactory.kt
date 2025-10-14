@@ -48,6 +48,7 @@ object ControllerFactory {
             accountController = createAccountController(context, config),
             currencyController = createCurrencyController(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
+            exchange = ExchangeFactory.createOpenCodeExchange(context, config),
         )
     }
 }

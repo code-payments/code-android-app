@@ -190,7 +190,7 @@ internal class OpenCodeExchange @Inject constructor(
                 trace(
                     tag = "Background",
                     message = "Updated the local currency: $balanceCurrency, " +
-                            "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
+                            "Staleness ${(System.currentTimeMillis() - rates.dateMillis).minutes} mins, " +
                             "Date: ${Date(rates.dateMillis)}",
                     type = TraceType.Process
                 )

@@ -81,7 +81,7 @@ class BillTransactionManager @Inject constructor(
                 .onSuccess {
                     childScope.cancel()
                     onGrabbed()
-                    tokenController.subtract(token.address, LocalFiat(it.exchangeData))
+                    tokenController.subtract(token, LocalFiat(it.exchangeData))
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     onError(it)
@@ -135,7 +135,7 @@ class BillTransactionManager @Inject constructor(
                         message = "Grabbed ${amount.nativeAmount.formatted()} of ${token.symbol} from sender"
                     )
                     onGrabbed(token, amount)
-                    tokenController.add(mint, amount)
+                    tokenController.add(token, amount)
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     onError(it)
@@ -163,7 +163,7 @@ class BillTransactionManager @Inject constructor(
             transactor.start()
                 .onSuccess {
                     onFunded(amount)
-                    tokenController.subtract(token.address, amount)
+                    tokenController.subtract(token, amount)
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     ErrorUtils.handleError(it)
@@ -198,7 +198,7 @@ class BillTransactionManager @Inject constructor(
             receiveTransactor?.start(claimIfOwned)
                 ?.onSuccess { (token, amount) ->
                     onReceived(token, amount)
-                    tokenController.add(token.address, amount)
+                    tokenController.add(token, amount)
                 }?.onFailure {
                     onError(it)
                     transactor.dispose()

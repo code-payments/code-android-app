@@ -1,10 +1,14 @@
 package com.getcode.opencode.model.financial
 
 import com.flipcash.libs.currency.math.Estimator
+import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
 
 typealias Usd = Fiat
@@ -80,11 +84,11 @@ data class LocalFiat(
             // determine the "full units" of the token being exchanged
             val units = estimatedTokens.units()
             // determine the exchange rate (native amount / units of token) (USD based)
-            val usdFx = usdValue.decimalValue / units.toDouble()
+            val usdFx = BigDecimal(usdValue.decimalValue).divideWithHighPrecision(units)
 
             // determine the relative exchange rate of the token in the currency selected
             // USD is a 1:1 fx so we can be blind here
-            val fx = rate.fx * usdFx
+            val fx = rate.fx * usdFx.toDouble()
 
             return LocalFiat(
                 underlyingTokenAmount = Fiat(estimatedTokens.toLong(), CurrencyCode.USD),
@@ -98,9 +102,21 @@ data class LocalFiat(
 
 fun Iterable<LocalFiat>.sum(): LocalFiat {
     return this.fold(LocalFiat.Zero) { acc, localFiat ->
-        acc.copy(
-            underlyingTokenAmount = acc.underlyingTokenAmount + localFiat.underlyingTokenAmount,
-            nativeAmount = acc.nativeAmount + localFiat.nativeAmount,
+        val base = if (acc == LocalFiat.Zero) {
+            // update to the currency of the incoming localFiat
+            LocalFiat(
+                Fiat.Zero,
+                Fiat.Zero.copy(currencyCode = localFiat.rate.currency),
+                localFiat.rate,
+                localFiat.mint
+            )
+        } else {
+            acc
+        }
+
+        base.copy(
+            underlyingTokenAmount = base.underlyingTokenAmount + localFiat.underlyingTokenAmount,
+            nativeAmount = base.nativeAmount + localFiat.nativeAmount,
         )
     }
 }

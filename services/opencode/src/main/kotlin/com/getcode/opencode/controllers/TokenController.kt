@@ -1,5 +1,6 @@
 package com.getcode.opencode.controllers
 
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
@@ -37,6 +38,7 @@ class TokenController @Inject constructor(
     private val accountController: AccountController,
     private val currencyController: CurrencyController,
     private val networkObserver: NetworkConnectivityListener,
+    private val exchange: Exchange,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -87,24 +89,25 @@ class TokenController @Inject constructor(
         return mintBalances.map { it[tokenAddress] ?: Fiat.Zero }
     }
 
-    suspend fun add(token: Mint, fiat: LocalFiat) {
-        val balance = mintBalances.value[token] ?: Fiat.Zero
+    private suspend fun modifyBalance(token: Token, operation: (Fiat) -> Fiat) {
+        val balance = mintBalances.value[token.address] ?: Fiat.Zero
         if (balance.doubleValue == 0.0) {
-            // attempt to fetch prior to append
-            fetchBalanceForToken(token)
+            // attempt to fetch prior to modifying balance
+            fetchBalanceForToken(token.address)
         } else {
-            mintBalances.update { it + (token to (balance + fiat.nativeAmount)) }
+            val updatedBalance = operation(balance)
+            mintBalances.update { it + (token.address to updatedBalance) }
         }
     }
 
-    suspend fun subtract(token: Mint, fiat: LocalFiat) {
-        val balance = mintBalances.value[token] ?: Fiat.Zero
-        if (balance.doubleValue == 0.0) {
-            // attempt to fetch prior to append
-            fetchBalanceForToken(token)
-        } else {
-            mintBalances.update { it + (token to (balance - fiat.nativeAmount)) }
-        }
+    suspend fun add(token: Token, fiat: LocalFiat) {
+        val balanceAdditionAmount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        modifyBalance(token) { it + balanceAdditionAmount }
+    }
+
+    suspend fun subtract(token: Token, fiat: LocalFiat) {
+        val balanceReductionAmount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        modifyBalance(token) { it - balanceReductionAmount }
     }
 
     suspend fun update() {
