@@ -102,7 +102,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     @Parcelize
     sealed interface Menu: AppRoute {
         data object MyAccount : Menu
-        data object Deposit : Menu
+        data class Deposit(val mint: Mint) : Menu
         data object BackupKey : Menu
         data object AppSettings : Menu
         data object AdvancedFeatures : Menu

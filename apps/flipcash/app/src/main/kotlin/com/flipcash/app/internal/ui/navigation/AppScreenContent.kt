@@ -174,7 +174,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Menu.Deposit> {
-            DepositScreen()
+            DepositScreen(it.mint)
         }
 
         register<AppRoute.Menu.BackupKey> {

@@ -7,5 +7,6 @@ import kotlinx.parcelize.Parcelize
 sealed interface TokenPurpose: Parcelable {
     data object Send : TokenPurpose
     data object Withdraw: TokenPurpose
+    data object Deposit: TokenPurpose
     data object Balance : TokenPurpose
 }

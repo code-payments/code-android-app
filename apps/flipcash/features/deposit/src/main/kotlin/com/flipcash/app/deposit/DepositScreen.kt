@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -16,12 +17,15 @@ import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class DepositScreen : ModalScreen, NamedScreen, Parcelable {
+class DepositScreen(
+    private val mint: Mint,
+) : ModalScreen, NamedScreen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -46,6 +50,10 @@ class DepositScreen : ModalScreen, NamedScreen, Parcelable {
                 onBackIconClicked = { navigator.pop() },
             )
             DepositScreen(viewModel)
+        }
+
+        LaunchedEffect(viewModel, mint) {
+            viewModel.dispatchEvent(DepositViewModel.Event.OnMintSelected(mint))
         }
     }
 }

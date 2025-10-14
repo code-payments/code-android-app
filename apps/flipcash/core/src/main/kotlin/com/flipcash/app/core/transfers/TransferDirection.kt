@@ -28,7 +28,7 @@ sealed interface TransferDirection : Parcelable {
 
     data object Incoming : TransferDirection {
         @IgnoredOnParcel
-        override val nextScreen: AppRoute = AppRoute.Menu.Deposit
+        override val nextScreen: AppRoute = AppRoute.Menu.Deposit(Mint.usdc)
         override val title: String
             @Composable get() = stringResource(R.string.title_depositUsdc)
         override val description: String

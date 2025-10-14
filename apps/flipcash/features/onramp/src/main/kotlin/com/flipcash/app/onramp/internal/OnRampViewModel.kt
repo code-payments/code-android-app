@@ -2,6 +2,7 @@ package com.flipcash.app.onramp.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampWebError
 import com.flipcash.app.onramp.OnRampController
@@ -22,7 +23,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SendLimit
-import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -73,7 +73,7 @@ internal data class AmountEntryState(
 private val DefaultOnRampOptions = listOf(
     OnRampProviderItem(
         provider = OnRampProvider.ManualDeposit,
-        destination = OnRampProviderDestination.Screen(AppRoute.Menu.Deposit)
+        destination = OnRampProviderDestination.Screen(AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit))
     )
 )
 
@@ -294,7 +294,7 @@ internal class OnRampViewModel @Inject constructor(
                                 destination = when (provider) {
                                     OnRampProvider.ManualDeposit ->
                                         OnRampProviderDestination.Screen(
-                                            AppRoute.Menu.Deposit
+                                            AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit)
                                         )
 
                                     is OnRampProvider.Coinbase -> {

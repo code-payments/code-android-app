@@ -411,4 +411,7 @@
     <string name="title_enterAmount">Enter Amount</string>
 
     <string name="of">of</string>
+
+    <string name="error_title_tokenNotFound">Something Went Wrong</string>
+    <string name="error_description_tokenNotFound">Failed to fetch token metadata. Please try again</string>
 </resources>

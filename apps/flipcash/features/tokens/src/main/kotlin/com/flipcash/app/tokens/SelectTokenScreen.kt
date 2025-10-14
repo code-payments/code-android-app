@@ -13,6 +13,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.AppRoute.Main.*
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.features.tokens.R
@@ -73,10 +74,15 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                             TokenPurpose.Balance -> Unit
                             TokenPurpose.Send -> {
                                 navigator.push(
-                                    ScreenRegistry.get(AppRoute.Main.Give(token.address))
+                                    ScreenRegistry.get(Give(token.address))
                                 )
                             }
                             TokenPurpose.Withdraw -> TODO()
+                            TokenPurpose.Deposit -> {
+                                navigator.push(
+                                    ScreenRegistry.get(AppRoute.Menu.Deposit(token.address))
+                                )
+                            }
                         }
                     }.launchIn(this)
             }

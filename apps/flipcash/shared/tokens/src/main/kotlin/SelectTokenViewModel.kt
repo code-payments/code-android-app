@@ -54,6 +54,7 @@ class SelectTokenViewModel @Inject constructor(
                         TokenPurpose.Balance -> exchange.observeBalanceRate()
                         TokenPurpose.Send -> exchange.observeEntryRate()
                         TokenPurpose.Withdraw -> exchange.observeEntryRate()
+                        TokenPurpose.Deposit -> exchange.observeEntryRate()
                     }
                 ) { balances, rate ->
                     balances.map {
@@ -64,7 +65,14 @@ class SelectTokenViewModel @Inject constructor(
                                 nativeAmount = it.balance.convertingTo(rate),
                             )
                         )
-                    }.sortedByDescending { it.balance.nativeAmount }.filter { it.balance.nativeAmount > Fiat.Zero }
+                    }.sortedByDescending { it.balance.nativeAmount }
+                        .filter {
+                            if (purpose == TokenPurpose.Deposit) {
+                                true
+                            } else {
+                                it.balance.nativeAmount > Fiat.Zero
+                            }
+                        }
                 }
             }.onEach { dispatchEvent(Event.OnTokensUpdated(it)) }
             .launchIn(viewModelScope)
