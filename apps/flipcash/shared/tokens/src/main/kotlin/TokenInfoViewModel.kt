@@ -35,6 +35,7 @@ class TokenInfoViewModel @Inject constructor(
         val token: Token? = null,
         val marketCap: Fiat? = null,
         val balance: LocalFiat = LocalFiat.Zero,
+        val appreciation: Fiat = Fiat.Zero,
         val descriptionExpanded: Boolean = false,
     )
 
@@ -42,6 +43,7 @@ class TokenInfoViewModel @Inject constructor(
         data class OnTokenChanged(val token: Token): Event
         data class OnMarketCapChanged(val mcap: Fiat?): Event
         data class OnBalanceUpdated(val balance: LocalFiat): Event
+        data class OnAppreciationUpdated(val amount: Fiat): Event
         data class ExpandDescription(val expand: Boolean): Event
         data object Share: Event
         data class OpenScreen(val screen: AppRoute): Event
@@ -97,6 +99,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
+                is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
                 is Event.OpenScreen -> { state -> state }
                 is Event.Share -> { state -> state }

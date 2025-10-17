@@ -20,6 +20,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -29,6 +30,7 @@ import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.toYesOrNo
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.app.tokens.TokenInfoViewModel
@@ -37,6 +39,9 @@ import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
+import com.getcode.theme.extraSmall
+import com.getcode.ui.components.CodeChip
 import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.components.text.ExpandableText
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -93,7 +98,8 @@ private fun TokenInfoScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
-                        balance = state.balance,
+                        balance = state.balance.nativeAmount,
+                        appreciation = state.appreciation,
                         onClick = {
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
@@ -154,7 +160,8 @@ private fun TokenInfoScreen(
 @Composable
 private fun TokenBalance(
     modifier: Modifier = Modifier,
-    balance: LocalFiat?,
+    balance: Fiat?,
+    appreciation: Fiat,
     onClick: () -> Unit
 ) {
     val exchange = LocalExchange.current
@@ -171,7 +178,7 @@ private fun TokenBalance(
                 CodeCircularProgressIndicator()
             }
         } else {
-            Crossfade(balance.nativeAmount) { amount ->
+            Crossfade(balance) { amount ->
                 AmountArea(
                     amountText = amount.formatted(),
                     isAltCaption = false,
@@ -182,6 +189,38 @@ private fun TokenBalance(
                     textStyle = CodeTheme.typography.displayLarge,
                     onClick = onClick
                 )
+            }
+
+            if (appreciation > Fiat.Zero) {
+                Crossfade(appreciation) { amount ->
+                    val relativeAmount = remember(amount) {
+                        val prefix = if (amount.isNegative) "-" else "+"
+                        val value = amount.formatted()
+                        "$prefix$value"
+                    }
+
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                    ) {
+                        CodeChip(
+                            shape = CodeTheme.shapes.extraSmall,
+                            label = relativeAmount,
+                            contentPadding = PaddingValues(
+                                horizontal = 4.dp,
+                                vertical = 2.dp,
+                            ),
+                            backgroundColor = CodeTheme.colors.surfaceSuccess,
+                            contentColor = CodeTheme.colors.successText,
+                        )
+                        Text(
+                            text = "from currency appreciation",
+                            style = CodeTheme.typography.textSmall.bolded(),
+                            color = CodeTheme.colors.successText,
+                        )
+                    }
+                }
             }
         }
     }
