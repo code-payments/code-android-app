@@ -7,6 +7,7 @@ import com.flipcash.app.core.onramp.deeplinks.ExternalWalletDeeplinkError
 import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
 import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkSigningResult
 import com.getcode.ed25519.Ed25519
+import com.getcode.solana.keys.Mint
 import com.getcode.vendor.Base58
 import kotlinx.parcelize.Parcelize
 
@@ -19,6 +20,8 @@ sealed interface DeeplinkType: Parcelable {
         val rendezvous: Ed25519.KeyPair
             get() = Ed25519.createKeyPair(Base58.decode(seed))
     }
+
+    data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
 
     sealed interface ExternalWalletStep {
         val origin: OnRampDeeplinkOrigin

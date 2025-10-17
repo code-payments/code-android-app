@@ -100,7 +100,7 @@ private fun BalanceScreenContent(
             onTokenSelected = {
                 dispatchEvent(
                     BalanceViewModel.Event.OpenScreen(
-                        AppRoute.Main.TokenInfo(it)
+                        AppRoute.Main.TokenInfo(it.address)
                     )
                 )
             }

@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
+    implementation(project(":libs:messaging"))
     implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))

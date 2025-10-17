@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -15,7 +17,7 @@ import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
-import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -27,7 +29,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TokenInfoScreen(private val token: Token) : ModalScreen, Parcelable {
+class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -40,14 +42,17 @@ class TokenInfoScreen(private val token: Token) : ModalScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val viewModel = getViewModel<TokenInfoViewModel>()
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             AppBarWithTitle(
                 isInModal = true,
                 title = {
-                    TokenIconWithName(
-                        token = token,
-                        imageSize = CodeTheme.dimens.staticGrid.x5,
-                        spacing = CodeTheme.dimens.grid.x1,
-                    )
+                    state.token?.let { token ->
+                        TokenIconWithName(
+                            token = token,
+                            imageSize = CodeTheme.dimens.staticGrid.x5,
+                            spacing = CodeTheme.dimens.grid.x1,
+                        )
+                    }
                 },
                 titleAlignment = Alignment.CenterHorizontally,
                 leftIcon = {
@@ -62,8 +67,15 @@ class TokenInfoScreen(private val token: Token) : ModalScreen, Parcelable {
 
             TokenInfoScreen(viewModel)
 
+            LaunchedEffect(viewModel, mint) {
+                viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))
+            }
+
             LaunchedEffect(viewModel) {
-                viewModel.dispatchEvent(TokenInfoViewModel.Event.OnTokenChanged(token))
+                viewModel.eventFlow
+                    .filterIsInstance<TokenInfoViewModel.Event.Exit>()
+                    .onEach { navigator.pop() }
+                    .launchIn(this)
             }
 
             LaunchedEffect(viewModel) {

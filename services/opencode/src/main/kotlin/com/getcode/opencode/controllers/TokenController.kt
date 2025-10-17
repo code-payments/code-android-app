@@ -31,6 +31,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 @Singleton
 @OptIn(ExperimentalAtomicApi::class)
@@ -239,7 +241,10 @@ class TokenController @Inject constructor(
     }
 
     suspend fun getTokenMetadata(mint: Mint): Result<Token> {
-        return currencyController.getMintMetadata(listOf(mint))
+        val cachedToken = tokens.value.find { it.address == mint }
+
+        return cachedToken?.let { Result.success(it) } ?: currencyController.getMintMetadata(listOf(mint))
+            .onSuccess { token -> tokens.update { (it + token).distinctBy { t -> t.address } } }
             .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint }
                 ?: throw IllegalStateException("No metadata found for token $mint") }
     }

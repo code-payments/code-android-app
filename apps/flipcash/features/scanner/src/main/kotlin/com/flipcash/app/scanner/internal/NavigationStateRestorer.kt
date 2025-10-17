@@ -24,6 +24,17 @@ class NavigationStateRestorer(
                 )
             }
 
+            is DeeplinkType.TokenInfo -> {
+                delay(200.scaled(animationScale))
+                navigator.show(
+                    listOf(
+                        ScreenRegistry.get(AppRoute.Sheets.Wallet),
+                        ScreenRegistry.get(AppRoute.Main.TokenInfo(deeplink.mint))
+                    )
+                )
+            }
+
+
             is DeeplinkType.ExternalWalletStep -> {
                 val screens = when (val origin = deeplink.origin) {
                     OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu)

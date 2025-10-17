@@ -79,7 +79,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Main.TokenInfo> {
-            TokenInfoScreen(it.token)
+            TokenInfoScreen(it.mint)
         }
 
         register<AppRoute.Sheets.TokenSelection> {
