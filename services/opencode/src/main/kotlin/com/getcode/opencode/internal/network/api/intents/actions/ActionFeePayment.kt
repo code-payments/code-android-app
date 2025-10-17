@@ -15,7 +15,7 @@ internal class ActionFeePayment(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
     override val signer: Ed25519.KeyPair,
-
+    val mint: Mint,
     val fee: Fee,
     val source: AccountCluster,
 ): ActionType() {
@@ -57,7 +57,7 @@ internal class ActionFeePayment(
                     )
                     .setAuthority(source.authority.keyPair.asSolanaAccountId())
                     .setAmount(fee.fiat.quarks)
-                    .setMint(Mint.usdc.asSolanaAccountId())
+                    .setMint(mint.asSolanaAccountId())
                     .build()
             ).build()
     }
@@ -66,12 +66,14 @@ internal class ActionFeePayment(
         fun newInstance(
             fee: Fee,
             source: AccountCluster,
+            mint: Mint,
         ): ActionFeePayment {
             return ActionFeePayment(
                 id = 0,
                 signer = source.authority.keyPair,
                 fee = fee,
                 source = source,
+                mint = mint,
             )
         }
     }

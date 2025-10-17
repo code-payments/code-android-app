@@ -5,8 +5,6 @@ import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
-import com.getcode.utils.TraceType
-import com.getcode.utils.trace
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
@@ -73,8 +71,8 @@ data class LocalFiat(
                 amount
             }
 
-            // determine tokens to exchange for the desired amount
-            val estimatedTokens = Estimator.valueExchange(
+            // determine quarks to exchange for the desired amount
+            val quarks = Estimator.valueExchangeAsQuarks(
                 valueInQuarks = usdValue.quarks,
                 currentSupplyInQuarks = token.launchpadMetadata?.currentCirculatingSupplyQuarks
                     ?: 0,
@@ -82,7 +80,7 @@ data class LocalFiat(
             ).getOrThrow()
 
             // determine the "full units" of the token being exchanged
-            val units = estimatedTokens.units()
+            val units = quarks.units()
             // determine the exchange rate (native amount / units of token) (USD based)
             val usdFx = BigDecimal(usdValue.decimalValue).divideWithHighPrecision(units)
 
@@ -91,7 +89,7 @@ data class LocalFiat(
             val fx = rate.fx * usdFx.toDouble()
 
             return LocalFiat(
-                underlyingTokenAmount = Fiat(estimatedTokens.toLong(), CurrencyCode.USD),
+                underlyingTokenAmount = Fiat(quarks.toLong(), CurrencyCode.USD),
                 nativeAmount = amount,
                 mint = token.address,
                 rate = Rate(fx = fx, currency = rate.currency)

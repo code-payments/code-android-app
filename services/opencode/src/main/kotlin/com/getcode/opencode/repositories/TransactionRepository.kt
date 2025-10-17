@@ -7,6 +7,7 @@ import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Instant
@@ -30,7 +31,8 @@ interface TransactionRepository {
     ): Result<Limits>
 
     suspend fun withdrawalAvailability(
-        destination: PublicKey
+        destination: PublicKey,
+        mint: Mint,
     ): Result<WithdrawalAvailability>
 
     suspend fun airdrop(

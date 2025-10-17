@@ -22,6 +22,7 @@ import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
@@ -133,9 +134,11 @@ class TransactionApi @Inject constructor(
      */
     suspend fun canWithdrawToAccount(
         destination: PublicKey,
+        mint: Mint,
     ): CanWithdrawToAccountResponse {
         val request = CanWithdrawToAccountRequest.newBuilder()
             .setAccount(destination.asSolanaAccountId())
+            .setMint(mint.asSolanaAccountId())
             .build()
 
         return withContext(Dispatchers.IO) {

@@ -23,7 +23,7 @@ class EstimationTests {
 
     @Test
     fun `estimate value exchange`() {
-        val quarks = Estimator.valueExchange(
+        val quarks = Estimator.valueExchangeAsQuarks(
             valueInQuarks = 5_000_000,                 // $5,
             currentSupplyInQuarks =  7232649000000000, // 723,264.9 tokens
             mintDecimals = 6,

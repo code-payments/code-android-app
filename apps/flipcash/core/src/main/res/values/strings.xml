@@ -414,4 +414,6 @@
 
     <string name="error_title_tokenNotFound">Something Went Wrong</string>
     <string name="error_description_tokenNotFound">Failed to fetch token metadata. Please try again</string>
+
+    <string name="subtitle_youReceive">You Receive</string>
 </resources>

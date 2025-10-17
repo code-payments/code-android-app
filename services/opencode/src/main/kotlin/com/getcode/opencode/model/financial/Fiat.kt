@@ -62,6 +62,7 @@ data class Fiat(
     // Formatting
     fun formatted(
         formatting: Formatting = Formatting.None,
+        showPrefix: Boolean = true,
         suffix: String? = null,
     ): String {
         val shouldTruncate = if (formatting is Formatting.Truncated) {
@@ -89,7 +90,9 @@ data class Fiat(
                     currencySymbol = ""
                 }
 
-            val prefix = currencyCode.singleCharacterCurrencySymbol.orEmpty()
+            val prefix = currencyCode.singleCharacterCurrencySymbol
+                .takeIf { showPrefix }
+                .orEmpty()
 
             positivePrefix = prefix
             negativePrefix = prefix
@@ -111,6 +114,28 @@ data class Fiat(
 
     // Comparable implementation
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
+
+    fun estimatedTokenAmountIn(token: Token?, fractionDigits: Int? = token?.decimals): String {
+        if (token?.address == Mint.usdc) {
+            return formatted(showPrefix = false)
+        }
+
+        val quarks = (Estimator.valueExchangeAsTokens(
+            valueInQuarks = this.quarks,
+            currentSupplyInQuarks = token?.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
+            mintDecimals = 6,
+        ).getOrNull() ?: BigDecimal.ZERO)
+
+        val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
+            if (fractionDigits != null) {
+                maximumFractionDigits = fractionDigits
+                minimumFractionDigits = fractionDigits
+            }
+            roundingMode = RoundingMode.DOWN.ordinal
+        }
+
+        return formatter.format(quarks.toDouble())
+    }
 
     companion object {
         const val MULTIPLIER: Double = 1_000_000.0

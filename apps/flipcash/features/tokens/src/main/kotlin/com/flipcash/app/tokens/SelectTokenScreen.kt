@@ -77,7 +77,11 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                                     ScreenRegistry.get(Give(token.address))
                                 )
                             }
-                            TokenPurpose.Withdraw -> TODO()
+                            TokenPurpose.Withdraw -> {
+                                navigator.push(
+                                    ScreenRegistry.get(AppRoute.Transfers.Withdrawal.Amount(token.address))
+                                )
+                            }
                             TokenPurpose.Deposit -> {
                                 navigator.push(
                                     ScreenRegistry.get(AppRoute.Menu.Deposit(token.address))

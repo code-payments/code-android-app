@@ -10,7 +10,9 @@ import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.model.financial.Fee
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
@@ -56,6 +58,7 @@ internal class IntentWithdraw(
                         ActionFeePayment.newInstance(
                             fee = fee,
                             source = sourceCluster,
+                            mint = mint,
                         )
                     )
                 }
@@ -76,8 +79,4 @@ internal class IntentWithdraw(
             )
         }
     }
-}
-
-sealed class IntentPublicTransferException : Exception() {
-    class BalanceMismatchException : IntentPublicTransferException()
 }

@@ -309,6 +309,7 @@ class TransactionController @Inject constructor(
 
     suspend fun checkWithdrawalAvailability(
         address: String,
+        mint: Mint,
     ): Result<WithdrawalAvailability> {
         val result: Result<PublicKey> = runCatching {
             val decoded = Base58.decode(address)
@@ -321,7 +322,8 @@ class TransactionController @Inject constructor(
         }
 
         return repository.withdrawalAvailability(
-            destination = result.getOrNull()!!
+            destination = result.getOrNull()!!,
+            mint = mint,
         )
     }
 }

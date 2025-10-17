@@ -9,6 +9,7 @@ import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Instant
@@ -35,7 +36,8 @@ internal class InternalTransactionRepository @Inject constructor(
 
     override suspend fun withdrawalAvailability(
         destination: PublicKey,
-    ): Result<WithdrawalAvailability> = service.withdrawalAvailability(destination)
+        mint: Mint,
+    ): Result<WithdrawalAvailability> = service.withdrawalAvailability(destination, mint)
 
     override suspend fun airdrop(
         type: AirdropType,

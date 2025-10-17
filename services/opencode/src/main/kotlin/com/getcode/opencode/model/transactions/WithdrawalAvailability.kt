@@ -51,14 +51,14 @@ data class WithdrawalAvailability(
     val requiresInitialization: Boolean,
 
     /**
-     * ```
+     *
      * The WITHDRAWAL_CREATE_ON_SEND fee, in USD, that must be paid in order to
      * submit a withdrawal to subsidize the creation of the account at time of
      * send. The user must explicitly agree to this fee amount before submitting
      * the intent.
      *
      * This will be set when requires_initialization = true
-     * ```
+     *
      */
     val feeAmount: Fiat?
 ) {
@@ -94,6 +94,7 @@ data class WithdrawalAvailability(
             destination: PublicKey,
             isValid: Boolean,
             kind: Kind,
+            mint: Mint,
             requiresInitialization: Boolean,
             feeAmount: ExchangeData.WithoutRate?,
         ): WithdrawalAvailability {
@@ -111,7 +112,7 @@ data class WithdrawalAvailability(
                     resolvedDestination =
                         AssociatedTokenAccount.newInstance(
                             owner = destination,
-                            mint = Mint.usdc
+                            mint = mint,
                         ).ata.publicKey
                 }
             }

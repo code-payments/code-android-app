@@ -9,6 +9,7 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.features.withdrawal.R
+import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
@@ -23,6 +24,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.solana.keys.Mint
@@ -42,6 +44,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -82,7 +85,8 @@ internal class WithdrawalViewModel @Inject constructor(
     private val numberInputHelper = NumberInputHelper()
 
     internal data class State(
-        val balance: LocalFiat = LocalFiat.Zero,
+        val selectedTokenAddress: Mint? = null,
+        val token: TokenWithLocalizedBalance? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
         val destinationState: DestinationState = DestinationState(),
         val withdrawalState: LoadingSuccessState = LoadingSuccessState(),
@@ -91,12 +95,16 @@ internal class WithdrawalViewModel @Inject constructor(
             get() = (amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
                 ?: 0.0) > 0.00
 
+        val tokenBalance: Fiat
+            get() = token?.balance?.nativeAmount ?: Fiat.Zero
+
         val isError: Boolean
             get() {
                 if (amountEntryState.amountAnimatedModel.amountData.amount.isEmpty()) return false
 
-                if ((amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                        ?: 0.0) <= balance.nativeAmount.doubleValue
+                if (
+                    (amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
+                        ?: 0.0) <= tokenBalance.doubleValue
                 ) {
                     return false
                 }
@@ -107,7 +115,8 @@ internal class WithdrawalViewModel @Inject constructor(
 
     internal sealed interface Event {
         // common
-        data class OnBalanceChanged(val balance: LocalFiat) : Event
+        data class OnMintSelected(val mint: Mint) : Event
+        data class OnTokenUpdated(val token: TokenWithLocalizedBalance) : Event
 
         // amount
         data class OnNumberPressed(val number: Int) : Event
@@ -156,13 +165,12 @@ internal class WithdrawalViewModel @Inject constructor(
         val conversionRate =
             exchange.rateToUsd(
                 stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
-            )
-                ?: Rate.ignore
+            ) ?: Rate.ignore
         val enteredInUsdc = Fiat(
             fiat = amount,
             currencyCode = stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
         ).convertingTo(conversionRate)
-        val tokenBalance = stateFlow.value.balance.underlyingTokenAmount
+        val tokenBalance = stateFlow.value.token?.balance?.nativeAmount ?: Fiat.Zero
 
         val isOverBalance = enteredInUsdc > tokenBalance
         if (isOverBalance || conversionRate == Rate.ignore) {
@@ -181,21 +189,31 @@ internal class WithdrawalViewModel @Inject constructor(
             exchange.fetchRatesIfNeeded()
         }
 
-        combine(
-            balanceController.rawBalance,
-            exchange.observeEntryRate(),
-        ) { balance, rate ->
-            LocalFiat(
-                usdc = balance,
-                nativeAmount = balance.convertingTo(rate),
-            )
-        }.onEach {
-            dispatchEvent(Event.OnBalanceChanged(it))
-        }.mapNotNull {
-            exchange.getCurrency(it.rate.currency.name)
-        }.onEach {
-            dispatchEvent(Event.OnCurrencyChanged(it))
-        }.launchIn(viewModelScope)
+        stateFlow
+            .mapNotNull { it.selectedTokenAddress }
+            .flatMapLatest { tokenAddress ->
+                combine(
+                    tokenController.tokens,
+                    tokenController.balanceForToken(tokenAddress),
+                    exchange.observeEntryRate(),
+                ) { tokens, balance, rate ->
+                    val token = tokens.find { it.address == tokenAddress } ?: return@combine null
+                    TokenWithLocalizedBalance(
+                        token = token,
+                        balance = LocalFiat(
+                            usdc = balance,
+                            nativeAmount = balance.convertingTo(rate),
+                        )
+                    )
+                }
+            }.filterNotNull()
+            .onEach {
+                dispatchEvent(Event.OnTokenUpdated(it))
+            }.mapNotNull { (token, balance) ->
+                exchange.getCurrency(balance.rate.currency.name)
+            }.onEach {
+                dispatchEvent(Event.OnCurrencyChanged(it))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnCurrencyChanged>()
@@ -267,10 +285,19 @@ internal class WithdrawalViewModel @Inject constructor(
                 }
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
-                val amountFiat = LocalFiat(
-                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                    nativeAmount = localizedAmount,
-                )
+                val token = stateFlow.value.token!!.token
+                val amountFiat = if (token.address == Mint.usdc) {
+                    LocalFiat(
+                        usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                        nativeAmount = localizedAmount,
+                    )
+                } else {
+                    LocalFiat.valueExchangeIn(
+                        localizedAmount,
+                        token = token,
+                        rate = rate,
+                    )
+                }
 
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
                 dispatchEvent(Event.OnAmountAccepted(amountFiat))
@@ -308,7 +335,12 @@ internal class WithdrawalViewModel @Inject constructor(
             .map { it.destinationState.textFieldState }
             .flatMapLatest { ts -> snapshotFlow { ts.text } }
             .debounce(500)
-            .map { transactionController.checkWithdrawalAvailability(it.toString()) }
+            .map {
+                transactionController.checkWithdrawalAvailability(
+                    address = it.toString(),
+                    mint = stateFlow.value.selectedTokenAddress!!
+                )
+            }
             .onResult(
                 onError = {
                     dispatchEvent(Event.OnAvailabilityChecked(null))
@@ -346,7 +378,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val amount = stateFlow.value.amountEntryState.selectedAmount
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val fee = withdrawalChecks?.feeAmount
-                if (amount.underlyingTokenAmount - (fee ?: Fiat.Zero) < Fiat.Zero) {
+                if (amount.nativeAmount - (fee ?: Fiat.Zero) < Fiat.Zero) {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     dispatchEvent(Event.OnWithdrawalTooSmall)
                     return@onEach
@@ -381,14 +413,15 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterIsInstance<Event.OnWithdrawalConfirmed>()
             .onEach { dispatchEvent(Event.UpdateWithdrawalState(loading = true)) }
             .mapNotNull {
+                val token = stateFlow.value.token?.token
                 val amount = stateFlow.value.amountEntryState.selectedAmount
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val rawDestination = withdrawalChecks?.destination
                 val resolvedDestination = withdrawalChecks?.resolvedDestination
-                val fee = withdrawalChecks?.feeAmount
+                val feeInUsd = withdrawalChecks?.feeAmount
 
                 val owner = userManager.accountCluster
-                if (resolvedDestination == null || owner == null || rawDestination == null) {
+                if (token == null || resolvedDestination == null || owner == null || rawDestination == null) {
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedWithdrawal),
@@ -397,14 +430,28 @@ internal class WithdrawalViewModel @Inject constructor(
                     return@mapNotNull null
                 }
 
+                val sendingVault = owner.withTimelockForToken(token)
+
+                val feeInMint = feeInUsd?.let { fee ->
+                    if (token.address != Mint.usdc) {
+                        LocalFiat.valueExchangeIn(
+                            fee,
+                            token = token,
+                            rate = exchange.rateToUsd(CurrencyCode.USD)!!
+                        ).underlyingTokenAmount
+                    } else {
+                        feeInUsd
+                    }
+                }
+
                 transactionController.withdraw(
                     amount = amount,
-                    mint = Mint.usdc, // TODO: support multi-mint
-                    fee = fee,
+                    mint = token.address,
+                    fee = feeInMint,
                     destination = resolvedDestination,
                     // only provide the destination account if we are dealing with an owner account
                     destinationOwner = rawDestination.takeUnless { withdrawalChecks.kind == WithdrawalAvailability.Kind.TokenAccount },
-                    owner = owner,
+                    owner = sendingVault,
                 )
             }.onResult(
                 onError = {
@@ -441,9 +488,8 @@ internal class WithdrawalViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnBalanceChanged -> { state ->
-                    state.copy(balance = event.balance)
-                }
+                is Event.OnMintSelected -> { state -> state.copy(selectedTokenAddress = event.mint) }
+                is Event.OnTokenUpdated -> { state -> state.copy(token = event.token) }
 
                 is Event.OnAmountChanged -> { state ->
                     val entryState = state.amountEntryState

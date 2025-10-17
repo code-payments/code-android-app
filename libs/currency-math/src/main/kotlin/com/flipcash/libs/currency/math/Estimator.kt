@@ -2,7 +2,6 @@ package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
 import java.math.BigDecimal
-import java.math.BigInteger
 
 object Estimator {
     /**
@@ -53,10 +52,43 @@ object Estimator {
      * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDC).
      * @param currentSupplyInQuarks The current total supply of the token, expressed in its smallest unit ("quarks").
      * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDC typically has 6).
-     * @return A [Result] containing the estimated number of tokens to be received, expressed in "quarks" as a [BigDecimal] on success.
+     * @return A [Result] containing the estimated number of quarks to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
-    fun valueExchange(
+    fun valueExchangeAsQuarks(
+        valueInQuarks: Long,
+        currentSupplyInQuarks: Long,
+        mintDecimals: Int,
+    ): Result<BigDecimal> {
+        return runCatching {
+            val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
+            val tokens = valueExchangeAsTokens(valueInQuarks, currentSupplyInQuarks, mintDecimals).getOrThrow()
+            val unscaledTokens = tokens.multiply(tokenScale, mc)
+            unscaledTokens
+        }
+    }
+
+    /**
+     * Estimates the number of tokens that can be obtained by exchanging a certain value.
+     *
+     * This function models a "value exchange" on the bonding curve, which is mathematically
+     * equivalent to a "buy" operation without any fees. It calculates how many tokens
+     * would be minted for a given input value, based on the current state of the curve.
+     *
+     * The process involves:
+     * 1. Scaling the input `valueInQuarks` from its smallest unit to its standard decimal representation
+     *    using `mintDecimals`.
+     * 2. Scaling the `currentSupplyInQuarks` of the token to its standard decimal representation.
+     * 3. Using the exponential curve model (`ExponentialCurve.tokensForValueExchange`) to determine
+     *    the quantity of tokens that correspond to the input value.
+     *
+     * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDC).
+     * @param currentSupplyInQuarks The current total supply of the token, expressed in its smallest unit ("quarks").
+     * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDC typically has 6).
+     * @return A [Result] containing the estimated number of tokens to be received as a [BigDecimal] on success.
+     *         On failure, it returns a `Result.failure` wrapping the exception.
+     */
+    fun valueExchangeAsTokens(
         valueInQuarks: Long,
         currentSupplyInQuarks: Long,
         mintDecimals: Int,
@@ -71,10 +103,7 @@ object Estimator {
             val unscaledCurrentSupply = BigDecimal("$currentSupplyInQuarks")
             val scaledCurrentSupply = unscaledCurrentSupply.divide(tokenScale, mc)
 
-            val scaledTokens = curve.tokensForValueExchange(scaledCurrentSupply, scaledValue).getOrThrow()
-            val unscaledTokens = scaledTokens.multiply(tokenScale, mc)
-
-            unscaledTokens
+            curve.tokensForValueExchange(scaledCurrentSupply, scaledValue).getOrThrow()
         }
     }
 

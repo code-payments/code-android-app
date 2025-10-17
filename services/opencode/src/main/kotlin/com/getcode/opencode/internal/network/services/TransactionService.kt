@@ -27,6 +27,7 @@ import com.getcode.opencode.solana.diff
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.services.opencode.BuildConfig
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
@@ -139,9 +140,10 @@ internal class TransactionService @Inject constructor(
 
     suspend fun withdrawalAvailability(
         destination: PublicKey,
+        mint: Mint,
     ): Result<WithdrawalAvailability> {
         return runCatching {
-            api.canWithdrawToAccount(destination)
+            api.canWithdrawToAccount(destination, mint)
         }.foldWithSuppression(
             onSuccess = { response ->
                 val availability = WithdrawalAvailability.newInstance(
@@ -150,7 +152,8 @@ internal class TransactionService @Inject constructor(
                     kind = WithdrawalAvailability.Kind.tryValueOf(response.accountType.name)
                         ?: WithdrawalAvailability.Kind.Unknown,
                     requiresInitialization = response.requiresInitialization,
-                    feeAmount = response.feeAmountOrNull?.toModel()
+                    feeAmount = response.feeAmountOrNull?.toModel(),
+                    mint = mint,
                 )
 
                 Result.success(availability)

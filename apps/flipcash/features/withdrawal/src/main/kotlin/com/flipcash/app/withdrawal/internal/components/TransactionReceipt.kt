@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +15,6 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -34,27 +35,31 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.features.withdrawal.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.text.AmountArea
+import com.getcode.theme.bolded
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkObserverStub
 
 @Composable
 internal fun TransactionReceipt(
-    amount: LocalFiat,
+    tokenWithBalance: TokenWithBalance,
     fee: Fiat?,
     modifier: Modifier = Modifier,
     onLearnMoreClicked: () -> Unit
 ) {
-    val exchange = LocalExchange.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -72,34 +77,38 @@ internal fun TransactionReceipt(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val transferAmount by remember(amount, fee) {
+        val netTransferAmount by remember(tokenWithBalance, fee) {
             derivedStateOf {
-                (if (fee != null) {
-                    val amountAfterFee = amount.underlyingTokenAmount - fee
-                    if (amountAfterFee.isNegative) {
-                        "-${amountAfterFee.formatted()}"
-                    } else {
-                        amountAfterFee.formatted()
-                    }
-                } else {
-                    amount.underlyingTokenAmount.formatted()
-                })
+                tokenWithBalance.balance - (fee ?: Fiat.Zero)
             }
         }
 
-        AmountArea(
-            amountText = transferAmount,
-            isAltCaption = false,
-            isAltCaptionKinIcon = false,
-            isClickable = false,
-            currencyResId = exchange.getFlagByCurrency(amount.underlyingTokenAmount.currencyCode.name),
+        LineItems(
+            tokenWithBalance = tokenWithBalance,
+            transferAmount = netTransferAmount,
+            fee = fee,
+            onLearnMoreClicked = onLearnMoreClicked,
         )
 
-        if (amount.rate.currency != CurrencyCode.USD || fee != null) {
-            LineItems(
-                amount = amount,
-                fee = fee,
-                onLearnMoreClicked = onLearnMoreClicked,
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.subtitle_youReceive),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+
+            TokenBalanceRow(
+                tokenWithBalance = tokenWithBalance.copy(balance = netTransferAmount),
+                showName = false,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                formattedBalance = { amount ->
+                    amount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
+                },
+                balanceTextStyle = CodeTheme.typography.displayMedium.bolded(),
+                contentPadding = PaddingValues(0.dp),
             )
         }
     }
@@ -107,7 +116,8 @@ internal fun TransactionReceipt(
 
 @Composable
 private fun LineItems(
-    amount: LocalFiat,
+    tokenWithBalance: TokenWithBalance,
+    transferAmount: Fiat,
     fee: Fiat?,
     modifier: Modifier = Modifier,
     onLearnMoreClicked: () -> Unit,
@@ -119,15 +129,9 @@ private fun LineItems(
         LineItem(
             modifier = Modifier.fillMaxWidth(),
             label = AnnotatedString("Withdrawal amount"),
-            amount = amount.nativeAmount.formatted()
+            amount = tokenWithBalance.balance.formatted()
         )
-        if (amount.rate.currency != CurrencyCode.USD) {
-            LineItem(
-                modifier = Modifier.fillMaxWidth(),
-                label = AnnotatedString("Converted to USD"),
-                amount = amount.nativeAmount.formatted()
-            )
-        }
+
         if (fee != null) {
             val inlineContentMap = mapOf(
                 "icon" to InlineTextContent(
@@ -157,7 +161,27 @@ private fun LineItems(
                 amount = "-${fee.formatted()}",
                 inlineContentMap = inlineContentMap
             )
+
+            val netAmount = remember(transferAmount) {
+                if (transferAmount.isNegative) {
+                    "-${transferAmount.formatted()}"
+                } else {
+                    transferAmount.formatted()
+                }
+            }
+            
+            LineItem(
+                modifier = Modifier.fillMaxWidth(),
+                label = AnnotatedString("Net amount"),
+                amount = netAmount
+            )
         }
+
+        LineItem(
+            modifier = Modifier.fillMaxWidth(),
+            label = AnnotatedString("Amount in ${tokenWithBalance.token.name}"),
+            amount = transferAmount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
+        )
     }
 }
 
@@ -211,9 +235,9 @@ private fun Preview_CadWithdrawalWithFeeReceipt() {
             ),
         ) {
             TransactionReceipt(
-                amount = LocalFiat(
-                    usdc = fiveCad.convertingTo(cadToUsdRate),
-                    nativeAmount = fiveCad,
+                tokenWithBalance = TokenWithBalance(
+                    token = Token.usdc,
+                    balance = fiveCad
                 ),
                 fee = fee,
             ) {
@@ -235,9 +259,9 @@ private fun Preview_CadWithdrawalWithNoFeeReceipt() {
             ),
         ) {
             TransactionReceipt(
-                amount = LocalFiat(
-                    usdc = fiveCad.convertingTo(cadToUsdRate),
-                    nativeAmount = fiveCad,
+                tokenWithBalance = TokenWithBalance(
+                    token = Token.usdc,
+                    balance = fiveCad
                 ),
                 fee = null,
             ) {
@@ -259,9 +283,9 @@ private fun Preview_UsdWithdrawalWithFeeReceipt() {
             ),
         ) {
             TransactionReceipt(
-                amount = LocalFiat(
-                    usdc = fiveUsd,
-                    nativeAmount = fiveUsd,
+                tokenWithBalance = TokenWithBalance(
+                    token = Token.usdc,
+                    balance = fiveUsd
                 ),
                 fee = fee,
             ) {
@@ -283,9 +307,9 @@ private fun Preview_UsdWithdrawalWithNoFeeReceipt() {
             ),
         ) {
             TransactionReceipt(
-                amount = LocalFiat(
-                    usdc = fiveUsd,
-                    nativeAmount = fiveUsd,
+                tokenWithBalance = TokenWithBalance(
+                    token = Token.usdc,
+                    balance = fiveUsd
                 ),
                 fee = null,
             ) {
@@ -307,9 +331,9 @@ private fun Preview_CadWithdrawalWithFeeButTooSmallReceipt() {
             ),
         ) {
             TransactionReceipt(
-                amount = LocalFiat(
-                    usdc = halfDollarCad.convertingTo(cadToUsdRate),
-                    nativeAmount = halfDollarCad,
+                tokenWithBalance = TokenWithBalance(
+                    token = Token.usdc,
+                    balance = halfDollarCad
                 ),
                 fee = fee,
             ) {

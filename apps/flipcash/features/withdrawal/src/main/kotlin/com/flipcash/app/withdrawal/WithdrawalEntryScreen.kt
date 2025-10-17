@@ -48,11 +48,7 @@ class WithdrawalEntryScreen(
                 titleAlignment = Alignment.CenterHorizontally,
             )
             val viewModel = getStackScopedViewModel<WithdrawalViewModel>(key = WithdrawalFlow.key)
-            WithdrawalEntryScreen(viewModel)
-
-            LaunchedEffect(viewModel) {
-                // TODO:
-            }
+            WithdrawalEntryScreen(viewModel, selectedMint)
         }
     }
 }

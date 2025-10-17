@@ -32,6 +32,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -107,7 +108,8 @@ private fun WithdrawalConfirmationScreenContent(
     CodeScaffold(
         bottomBar = {
             CodeButton(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .navigationBarsPadding()
                     .imePadding()
                     .padding(horizontal = CodeTheme.dimens.inset)
@@ -125,25 +127,36 @@ private fun WithdrawalConfirmationScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = CodeTheme.dimens.inset,),
+                .padding(horizontal = CodeTheme.dimens.inset),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset, Alignment.CenterVertically)
-        ) {
-            TransferInfo(
-                amount = state.amountEntryState.selectedAmount,
-                destination = state.destinationState.textFieldState.text.toString(),
-                fee = state.destinationState.availability?.feeAmount,
-                onLearnMoreClicked = {
-                    dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
-                }
+            verticalArrangement = Arrangement.spacedBy(
+                CodeTheme.dimens.inset,
+                Alignment.CenterVertically
             )
+        ) {
+            with(state.token!!.token) {
+                TransferInfo(
+                    tokenWithBalance = TokenWithBalance(
+                        token = this,
+                        balance = Fiat.tokenBalance(
+                            state.amountEntryState.selectedAmount.underlyingTokenAmount.quarks,
+                            this
+                        )
+                    ),
+                    destination = state.destinationState.textFieldState.text.toString(),
+                    fee = state.destinationState.availability?.feeAmount,
+                    onLearnMoreClicked = {
+                        dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun TransferInfo(
-    amount: LocalFiat,
+    tokenWithBalance: TokenWithBalance,
     fee: Fiat?,
     destination: String,
     onLearnMoreClicked: () -> Unit,
@@ -155,7 +168,7 @@ private fun TransferInfo(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
     ) {
         TransactionReceipt(
-            amount = amount,
+            tokenWithBalance = tokenWithBalance,
             fee = fee,
             onLearnMoreClicked = onLearnMoreClicked
         )

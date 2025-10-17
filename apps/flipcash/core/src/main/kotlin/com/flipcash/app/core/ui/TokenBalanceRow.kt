@@ -2,31 +2,47 @@ package com.flipcash.app.core.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 
 @Composable
 fun TokenBalanceRow(
     tokenWithBalance: TokenWithLocalizedBalance,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    showName: Boolean = true,
+    formattedBalance: (Fiat) -> String = { it.formatted() },
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
+    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
+    onClick: (() -> Unit)? = null,
 ) {
     val (token, balance) = tokenWithBalance
     TokenBalanceRow(
         token = token,
         balance = balance.nativeAmount,
+        formattedBalance = formattedBalance,
+        nameTextStyle = nameTextStyle,
+        balanceTextStyle = balanceTextStyle,
         modifier = modifier,
+        showName = showName,
+        horizontalArrangement = horizontalArrangement,
+        contentPadding = contentPadding,
         onClick = onClick
     )
 }
@@ -35,13 +51,25 @@ fun TokenBalanceRow(
 fun TokenBalanceRow(
     tokenWithBalance: TokenWithBalance,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    showName: Boolean = true,
+    formattedBalance: (Fiat) -> String = { it.formatted() },
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
+    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
+    onClick: (() -> Unit)? = null,
 ) {
     val (token, balance) = tokenWithBalance
     TokenBalanceRow(
         token = token,
         balance = balance,
+        showName = showName,
         modifier = modifier,
+        nameTextStyle = nameTextStyle,
+        balanceTextStyle = balanceTextStyle,
+        formattedBalance = formattedBalance,
+        horizontalArrangement = horizontalArrangement,
+        contentPadding = contentPadding,
         onClick = onClick
     )
 }
@@ -52,31 +80,44 @@ fun TokenBalanceRow(
     token: Token,
     balance: Fiat,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    showName: Boolean = true,
+    formattedBalance: (Fiat) -> String = { it.formatted() },
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
+    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .addIf(onClick != null) {
+                Modifier.clickable {
+                    onClick?.invoke()
+                }
+            }
             .then(modifier)
-            .padding(
-                vertical = CodeTheme.dimens.inset,
-            ),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            .padding(contentPadding),
+        horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TokenIconWithName(
-            token = token,
-            imageSize = CodeTheme.dimens.staticGrid.x6,
-            textStyle = CodeTheme.typography.screenTitle,
-            textColor = CodeTheme.colors.textMain,
-            spacing = CodeTheme.dimens.grid.x2,
-        )
-
-        Spacer(Modifier.weight(1f))
+        if (showName) {
+            TokenIconWithName(
+                token = token,
+                imageSize = CodeTheme.dimens.staticGrid.x6,
+                textStyle = nameTextStyle,
+                textColor = CodeTheme.colors.textMain,
+                spacing = CodeTheme.dimens.grid.x2,
+            )
+        } else {
+            TokenIcon(
+                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6,),
+                token = token,
+            )
+        }
 
         Text(
-            text = balance.formatted(),
-            style = CodeTheme.typography.screenTitle,
+            text = formattedBalance(balance),
+            style = balanceTextStyle,
             color = CodeTheme.colors.textMain,
         )
     }

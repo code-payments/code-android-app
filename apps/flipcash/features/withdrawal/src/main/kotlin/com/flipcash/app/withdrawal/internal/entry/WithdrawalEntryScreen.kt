@@ -20,6 +20,7 @@ import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.features.withdrawal.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -28,11 +29,15 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun WithdrawalEntryScreen(viewModel: WithdrawalViewModel) {
+internal fun WithdrawalEntryScreen(viewModel: WithdrawalViewModel, mint: Mint) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     WithdrawalEntryScreenContent(state, viewModel::dispatchEvent)
+
+    LaunchedEffect(viewModel) {
+        viewModel.dispatchEvent(WithdrawalViewModel.Event.OnMintSelected(mint))
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
@@ -70,9 +75,9 @@ private fun WithdrawalEntryScreenContent(
             prefix = entryState.currencyModel.selected?.symbol.orEmpty(),
             placeholder = "0",
             hint = if (state.isError) {
-                stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.balance.nativeAmount.formatted())
+                stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.tokenBalance.formatted())
             } else {
-                stringResource(R.string.subtitle_giveCashHint, state.balance.nativeAmount.formatted())
+                stringResource(R.string.subtitle_giveCashHint, state.tokenBalance.formatted())
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
             isClickable = true,
