@@ -316,7 +316,8 @@ object Libs {
 
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 
-    const val haze = "dev.chrisbanes.haze:haze:0.7.3"
+    const val haze = "dev.chrisbanes.haze:haze:1.6.10"
+    const val haze_materials = "dev.chrisbanes.haze:haze-materials:1.6.10"
     const val rinku = "dev.theolm:rinku:1.4.0"
     const val rinku_compose = "dev.theolm:rinku-compose-ext:1.4.0"
 

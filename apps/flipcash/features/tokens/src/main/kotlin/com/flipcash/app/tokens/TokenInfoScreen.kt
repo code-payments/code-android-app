@@ -1,0 +1,80 @@
+package com.flipcash.app.tokens
+
+import android.os.Parcelable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
+import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.tokens.internal.TokenInfoScreen
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.modal.ModalScreen
+import com.getcode.opencode.model.financial.Token
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithTitle
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+class TokenInfoScreen(private val token: Token) : ModalScreen, Parcelable {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun ModalContent() {
+        val navigator = LocalCodeNavigator.current
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            val viewModel = getViewModel<TokenInfoViewModel>()
+            AppBarWithTitle(
+                isInModal = true,
+                title = {
+                    TokenIconWithName(
+                        token = token,
+                        imageSize = CodeTheme.dimens.staticGrid.x5,
+                        spacing = CodeTheme.dimens.grid.x1,
+                    )
+                },
+                titleAlignment = Alignment.CenterHorizontally,
+                leftIcon = {
+                    AppBarDefaults.UpNavigation { navigator.pop() }
+                },
+                rightContents = {
+                    AppBarDefaults.Share {
+                        viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
+                    }
+                },
+            )
+
+            TokenInfoScreen(viewModel)
+
+            LaunchedEffect(viewModel) {
+                viewModel.dispatchEvent(TokenInfoViewModel.Event.OnTokenChanged(token))
+            }
+
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
+                    .filterIsInstance<TokenInfoViewModel.Event.OpenScreen>()
+                    .map { it.screen }
+                    .onEach {
+                        navigator.push(ScreenRegistry.get(it))
+                    }.launchIn(this)
+            }
+        }
+    }
+
+}

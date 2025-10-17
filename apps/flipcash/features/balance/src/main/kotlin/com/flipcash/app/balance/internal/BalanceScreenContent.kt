@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.balance.internal.components.BalanceHeader
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.onramp.AddCashRow
 import com.flipcash.app.theme.FlipcashDesignSystem
@@ -96,6 +97,13 @@ private fun BalanceScreenContent(
                 }
             },
             tokens = tokens,
+            onTokenSelected = {
+                dispatchEvent(
+                    BalanceViewModel.Event.OpenScreen(
+                        AppRoute.Main.TokenInfo(it)
+                    )
+                )
+            }
         )
     }
 }

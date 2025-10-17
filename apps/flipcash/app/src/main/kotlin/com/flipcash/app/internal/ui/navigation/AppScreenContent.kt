@@ -35,6 +35,7 @@ import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.SelectTokenScreen
+import com.flipcash.app.tokens.TokenInfoScreen
 import com.flipcash.app.transfers.TransferInformationalScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
@@ -75,6 +76,10 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Main.Give> {
             CashScreen(it.mint)
+        }
+
+        register<AppRoute.Main.TokenInfo> {
+            TokenInfoScreen(it.token)
         }
 
         register<AppRoute.Sheets.TokenSelection> {

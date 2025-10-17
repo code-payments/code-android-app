@@ -416,4 +416,10 @@
     <string name="error_description_tokenNotFound">Failed to fetch token metadata. Please try again</string>
 
     <string name="subtitle_youReceive">You Receive</string>
+
+    <string name="action_give">Give</string>
+    <string name="action_transactionHistory">Transaction History</string>
+    <string name="subtitle_marketCap">Market Cap</string>
+    <string name="subtitle_currencyInfo">Currency Info</string>
+    <string name="title_shareToken">Check out %1$s on Flipcash</string>
 </resources>

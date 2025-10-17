@@ -26,4 +26,7 @@
     <string name="subtitle_listener">Listener</string>
 
     <string name="action_search">Search</string>
+
+    <string name="action_showMore">Show More</string>
+    <string name="action_showLess">Show Less</string>
 </resources>

@@ -24,6 +24,7 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.base64
 import com.getcode.opencode.utils.base64UrlSafe
 import com.getcode.util.resources.ResourceHelper
@@ -104,6 +105,7 @@ internal class InternalShareSheetController(
 
                 Shareable.DownloadLink -> Unit
                 is Shareable.Pool -> Unit
+                is Shareable.TokenInfo -> Unit
             }
         }
     }
@@ -143,6 +145,10 @@ internal class InternalShareSheetController(
 
             is Shareable.Pool -> {
                 sharePool(shareable.pool, shareable.rendezvous)
+            }
+
+            is Shareable.TokenInfo -> {
+                shareToken(shareable.token)
             }
         }
     }
@@ -230,6 +236,29 @@ internal class InternalShareSheetController(
             putExtra(
                 Intent.EXTRA_SUBJECT,
                 pool.name,
+            )
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        context.startActivity(share)
+    }
+
+    private fun shareToken(token: Token) {
+        val url = Linkify.tokenInfo(token)
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(
+                Intent.EXTRA_TITLE,
+                resources.getString(R.string.title_shareToken, token.name)
+            )
+            putExtra(
+                Intent.EXTRA_SUBJECT,
+                resources.getString(R.string.title_shareToken, token.name)
             )
             putExtra(Intent.EXTRA_TEXT, url)
             type = "text/plain"

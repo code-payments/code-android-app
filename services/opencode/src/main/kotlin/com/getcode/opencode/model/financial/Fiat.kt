@@ -120,7 +120,7 @@ data class Fiat(
             return formatted(showPrefix = false)
         }
 
-        val quarks = (Estimator.valueExchangeAsTokens(
+        val tokens = (Estimator.valueExchangeAsTokens(
             valueInQuarks = this.quarks,
             currentSupplyInQuarks = token?.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
             mintDecimals = 6,
@@ -134,7 +134,7 @@ data class Fiat(
             roundingMode = RoundingMode.DOWN.ordinal
         }
 
-        return formatter.format(quarks.toDouble())
+        return formatter.format(tokens.toDouble())
     }
 
     companion object {

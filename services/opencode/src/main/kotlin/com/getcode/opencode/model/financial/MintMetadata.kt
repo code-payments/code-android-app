@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.financial
 
+import android.icu.util.ULocale
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
@@ -9,6 +10,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.parcelize.Parcelize
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 data class TokenWithBalance(
     val token: Token,
@@ -67,6 +69,14 @@ data class MintMetadata(
     val vmMetadata: VmMetadata,
     val launchpadMetadata: LaunchpadMetadata?
 ) : Parcelable {
+    fun marketCap(): Fiat? {
+        val launchpad = launchpadMetadata ?: return null
+        val currentCirculatingSupplyQuarks = launchpad.currentCirculatingSupplyQuarks
+        return Estimator.currentMarketCap(currentCirculatingSupplyQuarks, decimals)
+            .map {
+                Fiat(it.toDouble(), CurrencyCode.USD)
+            }.getOrNull()
+    }
     companion object
 }
 

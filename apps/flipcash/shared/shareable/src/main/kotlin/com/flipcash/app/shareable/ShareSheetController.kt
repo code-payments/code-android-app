@@ -5,6 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -34,6 +35,12 @@ sealed interface Shareable {
         val pool: com.flipcash.app.core.pools.Pool,
         val rendezvous: Ed25519.KeyPair
     ) : Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
+
+    data class TokenInfo(
+        val token: Token
+    ): Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 }

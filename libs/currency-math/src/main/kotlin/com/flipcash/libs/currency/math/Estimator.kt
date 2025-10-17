@@ -2,6 +2,7 @@ package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
 import java.math.BigDecimal
+import kotlin.math.min
 
 object Estimator {
     /**
@@ -212,6 +213,16 @@ object Estimator {
                 netAmountToReceive = amountQuarks,
                 fees = feesQuarks,
             )
+        }
+    }
+
+    fun currentMarketCap(
+        currentSupplyInQuarks: Long,
+        mintDecimals: Int,
+    ): Result<BigDecimal> {
+        return runCatching {
+            val spotPrice = currentPriceFor(currentSupplyInQuarks).getOrThrow()
+            (currentSupplyInQuarks.toBigDecimal() * spotPrice).divide(BigDecimal.TEN.pow(mintDecimals, mc), mc)
         }
     }
 }
