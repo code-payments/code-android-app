@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens.internal
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -147,8 +148,7 @@ private fun TokenInfoScreen(
                 item {
                     CurrencyInfoSection(
                         modifier = Modifier
-                            .fillParentMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset),
+                            .fillParentMaxWidth(),
                         state = state,
                         dispatch = dispatch
                     )

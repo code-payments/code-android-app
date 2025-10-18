@@ -1,5 +1,6 @@
 package com.getcode.ui.components.text
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +45,7 @@ fun ExpandableText(
 ) {
     var hasOverflow by remember(text) { mutableStateOf(false) }
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.animateContentSize()) {
         Column {
             if (isExpanded) {
                 Text(
