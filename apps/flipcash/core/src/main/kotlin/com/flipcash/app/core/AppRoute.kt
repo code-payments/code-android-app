@@ -9,7 +9,6 @@ import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
@@ -40,7 +39,6 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data class RegionSelection(val kind: RegionSelectionKind) : Main
 
         data class Give(val mint: Mint) : Main
-        data class TokenInfo(val mint: Mint): Main
     }
 
     @Parcelize
@@ -62,6 +60,12 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data object ShareApp : Sheets
         @Deprecated("Moved to Advanced Features; this exist for deep link routing")
         data object PoolList : Sheets
+    }
+
+    @Parcelize
+    sealed interface Token: AppRoute {
+        data class Info(val mint: Mint): AppRoute.Token
+        data class Transactions(val mint: Mint): Main
     }
 
     @Parcelize

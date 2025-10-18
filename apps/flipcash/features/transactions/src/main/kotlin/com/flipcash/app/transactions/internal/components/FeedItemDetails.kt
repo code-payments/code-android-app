@@ -1,4 +1,4 @@
-package com.flipcash.app.balance.internal.components
+package com.flipcash.app.transactions.internal.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme

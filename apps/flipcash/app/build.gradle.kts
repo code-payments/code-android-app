@@ -177,6 +177,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:onramp"))
     implementation(project(":apps:flipcash:features:contact-verification"))
     implementation(project(":apps:flipcash:features:tokens"))
+    implementation(project(":apps:flipcash:features:transactions"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))

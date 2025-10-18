@@ -1,4 +1,4 @@
-package com.flipcash.app.balance.internal.components
+package com.flipcash.app.transactions.internal.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateDpAsState

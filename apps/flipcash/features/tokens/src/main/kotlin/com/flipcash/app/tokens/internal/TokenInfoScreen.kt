@@ -1,7 +1,6 @@
 package com.flipcash.app.tokens.internal
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,14 +29,12 @@ import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.toYesOrNo
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.app.tokens.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
@@ -119,9 +116,13 @@ private fun TokenInfoScreen(
                                 top = CodeTheme.dimens.grid.x5,
                             ),
                         buttonState = ButtonState.Filled10,
-                        text = stringResource(R.string.action_transactionHistory),
+                        text = stringResource(R.string.action_viewTransactionHistory),
                     ) {
-
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Token.Transactions(state.token?.address!!)
+                            )
+                        )
                     }
 
                     Divider(

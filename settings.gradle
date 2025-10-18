@@ -59,6 +59,7 @@ include(
         ":apps:flipcash:features:onramp",
         ":apps:flipcash:features:contact-verification",
         ":apps:flipcash:features:tokens",
+        ":apps:flipcash:features:transactions",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

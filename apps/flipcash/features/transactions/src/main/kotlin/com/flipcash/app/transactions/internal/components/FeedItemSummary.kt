@@ -1,4 +1,4 @@
-package com.flipcash.app.balance.internal.components
+package com.flipcash.app.transactions.internal.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +9,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.ui.FlagWithFiat
 import com.getcode.theme.CodeTheme
