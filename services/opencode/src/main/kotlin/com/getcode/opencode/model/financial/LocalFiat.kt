@@ -71,6 +71,20 @@ data class LocalFiat(
                 amount
             }
 
+            if (token.address == Mint.usdc) {
+                // this doesn't need a calcuated value exchange since we are USDC
+               return if (rate.currency != CurrencyCode.USD) {
+                   LocalFiat(
+                       usdc = usdValue,
+                       nativeAmount = amount
+                   )
+               } else {
+                   LocalFiat(usdc = usdValue)
+               }
+            }
+
+
+
             // determine quarks to exchange for the desired amount
             val quarks = Estimator.valueExchangeAsQuarks(
                 valueInQuarks = usdValue.quarks,

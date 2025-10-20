@@ -284,20 +284,12 @@ internal class WithdrawalViewModel @Inject constructor(
                     exchange.fetchRatesIfNeeded()
                 }
 
-                val localizedAmount = Fiat(data.amountData.amount, rate.currency)
                 val token = stateFlow.value.token!!.token
-                val amountFiat = if (token.address == Mint.usdc) {
-                    LocalFiat(
-                        usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                        nativeAmount = localizedAmount,
-                    )
-                } else {
-                    LocalFiat.valueExchangeIn(
-                        localizedAmount,
-                        token = token,
-                        rate = rate,
-                    )
-                }
+                val amountFiat = LocalFiat.valueExchangeIn(
+                    amount = Fiat(data.amountData.amount, rate.currency),
+                    token = token,
+                    rate = rate,
+                )
 
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
                 dispatchEvent(Event.OnAmountAccepted(amountFiat))
@@ -433,15 +425,11 @@ internal class WithdrawalViewModel @Inject constructor(
                 val sendingVault = owner.withTimelockForToken(token)
 
                 val feeInMint = feeInUsd?.let { fee ->
-                    if (token.address != Mint.usdc) {
-                        LocalFiat.valueExchangeIn(
-                            fee,
-                            token = token,
-                            rate = exchange.rateToUsd(CurrencyCode.USD)!!
-                        ).underlyingTokenAmount
-                    } else {
-                        feeInUsd
-                    }
+                    LocalFiat.valueExchangeIn(
+                        fee,
+                        token = token,
+                        rate = exchange.rateToUsd(CurrencyCode.USD)!!
+                    ).underlyingTokenAmount
                 }
 
                 transactionController.withdraw(

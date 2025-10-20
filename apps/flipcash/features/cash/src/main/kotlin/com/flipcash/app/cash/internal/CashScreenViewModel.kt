@@ -152,18 +152,11 @@ internal class CashScreenViewModel @Inject constructor(
 
                             val localizedAmount = Fiat(amount, rate.currency)
                             val token = stateFlow.value.token!!.token
-                            val amountFiat = if (token.address == Mint.usdc) {
-                                 LocalFiat(
-                                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                                    nativeAmount = localizedAmount,
-                                )
-                            } else {
-                                LocalFiat.valueExchangeIn(
-                                    localizedAmount,
-                                    token = token,
-                                    rate = rate,
-                                )
-                            }
+                            val amountFiat = LocalFiat.valueExchangeIn(
+                                amount =  Fiat(amount, rate.currency),
+                                token = token,
+                                rate = rate,
+                            )
 
                             val neededAmount = amountFiat.underlyingTokenAmount - tokenBalance
 
@@ -312,20 +305,11 @@ internal class CashScreenViewModel @Inject constructor(
                     }
                 }
 
-                val localizedAmount = Fiat(data.amountData.amount, rate.currency)
-                // TOD is there a way to consolidate all of this into valueExchangeIn?
-                val amountFiat = if (token.address == Mint.usdc) {
-                    LocalFiat(
-                        usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                        nativeAmount = localizedAmount,
-                    )
-                } else {
-                    LocalFiat.valueExchangeIn(
-                        amount = localizedAmount,
-                        token = token,
-                        rate = rate,
-                    )
-                }
+                val amountFiat = LocalFiat.valueExchangeIn(
+                    amount = Fiat(data.amountData.amount, rate.currency),
+                    token = token,
+                    rate = rate,
+                )
 
                 val bill = Bill.Cash(
                     token = stateFlow.value.token!!.token,
