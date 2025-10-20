@@ -423,4 +423,7 @@
     <string name="subtitle_marketCap">Market Cap</string>
     <string name="subtitle_currencyInfo">Currency Info</string>
     <string name="title_shareToken">Check out %1$s on Flipcash</string>
+
+    <string name="title_noTransactionHistory">No Activity</string>
+    <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 </resources>

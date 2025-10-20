@@ -1,6 +1,8 @@
 package com.flipcash.app.transactions.internal
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,10 +12,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -21,6 +25,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.transactions.internal.components.FeedItem
+import com.flipcash.features.transactions.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
 
@@ -69,7 +74,22 @@ private fun FeedList(
                     modifier = Modifier.fillParentMaxSize().padding(bottom = CodeTheme.dimens.inset),
                     contentAlignment = Alignment.Center
                 ) {
-
+                    Column(
+                        modifier = Modifier.fillParentMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.title_noTransactionHistory),
+                            style = CodeTheme.typography.textLarge,
+                            color = CodeTheme.colors.textMain,
+                        )
+                        Text(
+                            text = stringResource(R.string.description_noTransactionHistory),
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.textSecondary,
+                        )
+                    }
                 }
             }
         } else {
