@@ -1,18 +1,25 @@
 package com.flipcash.app.core.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
@@ -25,6 +32,7 @@ fun TokenBalanceRow(
     tokenWithBalance: TokenWithLocalizedBalance,
     modifier: Modifier = Modifier,
     showName: Boolean = true,
+    showFlag: Boolean = false,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
@@ -41,6 +49,7 @@ fun TokenBalanceRow(
         balanceTextStyle = balanceTextStyle,
         modifier = modifier,
         showName = showName,
+        showFlag = showFlag,
         horizontalArrangement = horizontalArrangement,
         contentPadding = contentPadding,
         onClick = onClick
@@ -52,6 +61,7 @@ fun TokenBalanceRow(
     tokenWithBalance: TokenWithBalance,
     modifier: Modifier = Modifier,
     showName: Boolean = true,
+    showFlag: Boolean = false,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
@@ -64,6 +74,7 @@ fun TokenBalanceRow(
         token = token,
         balance = balance,
         showName = showName,
+        showFlag = showFlag,
         modifier = modifier,
         nameTextStyle = nameTextStyle,
         balanceTextStyle = balanceTextStyle,
@@ -81,6 +92,7 @@ fun TokenBalanceRow(
     balance: Fiat,
     modifier: Modifier = Modifier,
     showName: Boolean = true,
+    showFlag: Boolean = false,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
@@ -88,6 +100,7 @@ fun TokenBalanceRow(
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
+    val exchange = LocalExchange.current
     Row(
         modifier = Modifier
             .addIf(onClick != null) {
@@ -115,10 +128,29 @@ fun TokenBalanceRow(
             )
         }
 
-        Text(
-            text = formattedBalance(balance),
-            style = balanceTextStyle,
-            color = CodeTheme.colors.textMain,
-        )
+        val flag = exchange.getFlagByCurrency(balance.currencyCode.name)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (showFlag) {
+                flag?.let {
+                    Image(
+                        modifier = Modifier
+                            .height(CodeTheme.dimens.staticGrid.x3)
+                            .width(CodeTheme.dimens.staticGrid.x3)
+                            .clip(CircleShape),
+                        painter = painterResource(it),
+                        contentDescription = ""
+                    )
+                }
+            }
+
+            Text(
+                text = formattedBalance(balance),
+                style = balanceTextStyle,
+                color = CodeTheme.colors.textMain,
+            )
+        }
     }
 }

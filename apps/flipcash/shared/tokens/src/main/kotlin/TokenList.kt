@@ -23,6 +23,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 fun TokenList(
     tokens: List<TokenWithLocalizedBalance>?,
     modifier: Modifier = Modifier,
+    showFlags: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     onTokenSelected: (Token) -> Unit = { },
 ) {
@@ -51,7 +52,8 @@ fun TokenList(
                     modifier = Modifier
                         .fillParentMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset),
-                    tokenWithBalance = item
+                    tokenWithBalance = item,
+                    showFlag = showFlags,
                 ) { onTokenSelected(item.token) }
 
                 Divider(color = CodeTheme.colors.dividerVariant)

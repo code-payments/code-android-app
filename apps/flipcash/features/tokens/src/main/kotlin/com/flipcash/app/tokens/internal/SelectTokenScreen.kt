@@ -28,6 +28,7 @@ private fun SelectTokenScreenContent(
     TokenList(
         modifier = Modifier.fillMaxSize(),
         tokens = tokens,
+        showFlags = true,
         onTokenSelected = { dispatch(SelectTokenViewModel.Event.OnTokenSelected(it)) }
     )
 }
