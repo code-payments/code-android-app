@@ -72,7 +72,7 @@ data class MintMetadata(
     fun marketCap(): Fiat? {
         val launchpad = launchpadMetadata ?: return null
         val currentCirculatingSupplyQuarks = launchpad.currentCirculatingSupplyQuarks
-        return Estimator.currentMarketCap(currentCirculatingSupplyQuarks, decimals)
+        return Estimator.currentMarketCap(currentCirculatingSupplyQuarks)
             .map {
                 Fiat(it.toDouble(), CurrencyCode.USD)
             }.getOrNull()

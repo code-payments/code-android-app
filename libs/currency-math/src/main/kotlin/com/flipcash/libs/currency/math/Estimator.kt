@@ -218,11 +218,10 @@ object Estimator {
 
     fun currentMarketCap(
         currentSupplyInQuarks: Long,
-        mintDecimals: Int,
     ): Result<BigDecimal> {
         return runCatching {
             val spotPrice = currentPriceFor(currentSupplyInQuarks).getOrThrow()
-            (currentSupplyInQuarks.toBigDecimal() * spotPrice).divide(BigDecimal.TEN.pow(mintDecimals, mc), mc)
+            (currentSupplyInQuarks.toBigDecimal() * spotPrice).divide(BigDecimal.TEN.pow(DefaultMintDecimals, mc), mc)
         }
     }
 }
