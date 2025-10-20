@@ -127,11 +127,11 @@ private fun WithdrawalConfirmationScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = CodeTheme.dimens.inset),
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(top = CodeTheme.dimens.grid.x8),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(
                 CodeTheme.dimens.inset,
-                Alignment.CenterVertically
             )
         ) {
             with(state.token!!.token) {
