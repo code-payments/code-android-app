@@ -221,7 +221,7 @@ Java_com_getcode_ed25519_Ed25519_Verify(
             jbyteArrayToCharVector(env, sig),
             jbyteArrayToCharVector(env, message),
             jbyteArrayToCharVector(env, pubKey)
-        );
+    );
 }
 
 extern "C"

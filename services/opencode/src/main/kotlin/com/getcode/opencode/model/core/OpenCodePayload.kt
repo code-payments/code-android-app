@@ -1,16 +1,14 @@
 package com.getcode.opencode.model.core
 
-import com.getcode.codeScanner.CodeScanner
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
 import com.getcode.opencode.internal.solana.utils.DataSlice.suffix
-import com.getcode.opencode.internal.solana.utils.DataSlice.toLong
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.deriveRendezvousKey
+import com.kik.scan.Scanner
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.longToByteArray
-import java.nio.ByteBuffer
 
 data class OpenCodePayload(
     val kind: PayloadKind,
@@ -29,7 +27,7 @@ data class OpenCodePayload(
         }
 
     val codeData: ByteArray
-        get() = CodeScanner.encode(encode().toByteArray())
+        get() = Scanner.encode(encode().toByteArray()) ?: ByteArray(20)
 
     fun encode(): List<Byte> {
         return encode(kind, value, nonce)

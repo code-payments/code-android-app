@@ -237,7 +237,7 @@ internal class TransactionService @Inject constructor(
                     val errors = handleErrors(intent, response.error.errorDetailsList)
                     trace(
                         tag = "SubmitIntent",
-                        message = "Error: ${errors.joinToString("\n")}",
+                        message = "Error: ($intent) ${errors.joinToString("\n")}",
                         type = TraceType.Error
                     )
                     streamRef.complete()

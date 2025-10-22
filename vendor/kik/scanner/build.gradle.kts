@@ -12,6 +12,18 @@ android {
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
+        ndkVersion = "28.1.13356709"
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++11"
+                cppFlags += listOf(
+                    "-O3",
+                    "-ffast-math",
+                    "-funsafe-math-optimizations",
+                    "-funroll-loops",
+                )
+            }
+        }
     }
 
     kotlinOptions {
@@ -30,13 +42,21 @@ android {
     buildFeatures {
         compose = true
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("CMakeLists.txt")
+        }
+    }
 }
 
 dependencies {
-    api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.androidx_camerax_core)
     implementation(Libs.inject)
     implementation(Libs.hilt)
+
+    implementation(project(":libs:encryption:ed25519"))
+    implementation(project(":vendor:opencv:sdk"))
 }

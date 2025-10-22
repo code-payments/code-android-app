@@ -65,6 +65,8 @@ dependencies {
 
     api(project(":libs:analytics"))
 
+    api(project(":vendor:kik:scanner"))
+
     implementation(Libs.inject)
 
     implementation(Libs.kotlinx_coroutines_core)

@@ -1,6 +1,5 @@
 plugins {
     id(Plugins.android_library)
-    id(Plugins.kotlin_serialization)
 }
 
 android {
@@ -8,9 +7,7 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        // temporarily bump this down until we create
-        // JNI bindings for scanning
-        ndkVersion = "23.1.7779620" // "28.1.13356709"
+        ndkVersion = "28.1.13356709"
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++11"
@@ -38,6 +35,5 @@ android {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-
     implementation(Libs.kotlinx_serialization_json)
 }

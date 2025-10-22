@@ -1,11 +1,10 @@
 buildscript {
     repositories {
         gradlePluginPortal()
-        google()
         mavenCentral()
-        maven(url = "https://plugins.gradle.org/m2/")
         maven(url = "https://jitpack.io")
-        mavenCentral()
+        google()
+        maven(url = "https://repo.gradle.org/gradle/libs-releases")
     }
 
     dependencies {
@@ -23,6 +22,7 @@ buildscript {
         classpath(Classpath.protobuf_plugin)
         classpath(Classpath.versioning_gradle_plugin)
         classpath(Classpath.androidx_room_gradle_plugin)
+        classpath("com.ahasbini.tools:android-opencv-gradle-plugin:0.1.3-dev")
     }
 }
 
