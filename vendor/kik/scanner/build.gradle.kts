@@ -12,9 +12,10 @@ android {
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-        ndkVersion = "28.1.13356709"
+        ndkVersion = "29.0.14206865"
         externalNativeBuild {
             cmake {
+                ndkVersion = "29.0.14206865"
                 cppFlags += "-std=c++11"
                 cppFlags += listOf(
                     "-O3",
