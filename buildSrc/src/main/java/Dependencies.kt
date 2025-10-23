@@ -101,7 +101,7 @@ object Classpath {
     const val crashlytics_gradle =
         "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
     const val bugsnag_android_gradle_plugin = "com.bugsnag:bugsnag-android-gradle-plugin:8.2.0"
-    const val bugsnag_gradle_plugin = "com.bugsnag:bugsnag-gradle-plugin:0.4.0"
+    const val bugsnag_gradle_plugin = "com.bugsnag:bugsnag-gradle-plugin:1.0.0"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
@@ -307,7 +307,7 @@ object Libs {
     const val markwon_ext_strikethrough = "io.noties.markwon:ext-strikethrough:${Versions.markwon}"
 
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
-    const val bugsnag = "com.bugsnag:bugsnag-android:6.13.0"
+    const val bugsnag = "com.bugsnag:bugsnag-android:6.19.0"
 
     const val cloudy = "com.github.skydoves:cloudy:0.2.7"
 
