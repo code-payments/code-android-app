@@ -111,7 +111,6 @@ versioning {
 bugsnag {
     variants {
         release {
-            autoUploadBundle = true
             autoCreateBuild = true
         }
         debug {

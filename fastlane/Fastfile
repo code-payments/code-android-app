@@ -155,6 +155,17 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
       #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
       )
 
+#       gradle(
+#               task: "apps:flipcash:app:bugsnagUploadReleaseBundle",
+#               properties: {
+#                 #"versionPatch" => ENV["BUILD_NUMBER"],
+#                 "android.injected.signing.store.file" => ENV["STORE_FILE"],
+#                 "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
+#                 "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
+#                 "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+#               }
+#             )
+
       gradle(
         task: "apps:flipcash:app:bugsnagUploadReleaseProguardMapping",
         properties: {
