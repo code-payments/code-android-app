@@ -17,7 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import xyz.flipchat.app.BuildConfig
 import java.util.Optional
 import kotlin.coroutines.resume

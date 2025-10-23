@@ -18,19 +18,20 @@ android {
     buildFeatures {
         compose = true
     }
+}
 
-    kotlinOptions {
-        jvmTarget = JvmTarget.fromTarget(Versions.java).target
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.RequiresOptIn"
-        )
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.java))
     }
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Versions.java))
-        }
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        optIn.addAll(
+            "kotlin.time.ExperimentalTime",
+            "kotlin.ExperimentalUnsignedTypes",
+            "kotlin.RequiresOptIn"
+        )
     }
 }
 

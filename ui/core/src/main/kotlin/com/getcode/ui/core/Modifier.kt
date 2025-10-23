@@ -96,11 +96,12 @@ fun Modifier.debugBounds(color: Color = Color.Magenta, shape: Shape = RectangleS
 fun Modifier.rememberedClickable(
     enabled: Boolean = true,
     onClickLabel: String? = null,
+    interactionSource: MutableInteractionSource? = null,
     role: Role? = null,
     onClick: () -> Unit
 ) = composed {
-    val clicker = remember(enabled, onClickLabel, role, onClick) {
-        Modifier.clickable(enabled, onClickLabel, role, onClick)
+    val clicker = remember(enabled, onClickLabel, role, interactionSource, onClick) {
+        Modifier.clickable(enabled, onClickLabel, role, interactionSource, onClick)
     }
 
     this.then(clicker)

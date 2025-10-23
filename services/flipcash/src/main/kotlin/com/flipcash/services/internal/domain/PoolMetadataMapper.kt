@@ -26,8 +26,8 @@ class PoolMetadataMapper @Inject constructor(): Mapper<Model.SignedPoolMetadata,
             isOpen = from.isOpen,
             resolution = from.resolution.toResolution(),
             fundingDestination = from.fundingDestination.value.toByteArray().toPublicKey(),
-            createdAt = Instant.Companion.fromEpochMilliseconds(from.createdAt.seconds * 1000L),
-            closedAt = from.closedAtOrNull?.let { Instant.Companion.fromEpochMilliseconds(it.seconds * 1000L) },
+            createdAt = Instant.fromEpochMilliseconds(from.createdAt.seconds * 1000L),
+            closedAt = from.closedAtOrNull?.let { Instant.fromEpochMilliseconds(it.seconds * 1000L) },
         )
     }
 }

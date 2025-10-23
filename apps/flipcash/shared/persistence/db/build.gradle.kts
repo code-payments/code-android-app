@@ -16,22 +16,23 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
     }
 
-    kotlinOptions {
-        jvmTarget = JvmTarget.fromTarget(Versions.java).target
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.RequiresOptIn"
-        )
-    }
-
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Versions.java))
-        }
-    }
-
     room {
         schemaDirectory("$projectDir/schemas")
+    }
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.java))
+    }
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        optIn.addAll(
+            "kotlin.time.ExperimentalTime",
+            "kotlin.ExperimentalUnsignedTypes",
+            "kotlin.RequiresOptIn"
+        )
     }
 }
 
@@ -55,6 +56,7 @@ dependencies {
     implementation(project(":apps:flipcash:core"))
 
     implementation(project(":libs:logging"))
+    implementation(project(":libs:models"))
     implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:crypto:kin"))

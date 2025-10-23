@@ -26,14 +26,6 @@ android {
         }
     }
 
-    kotlinOptions {
-        jvmTarget = JvmTarget.fromTarget(Versions.java).target
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.RequiresOptIn"
-        )
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.toVersion(Versions.java)
         targetCompatibility = JavaVersion.toVersion(Versions.java)
@@ -47,6 +39,21 @@ android {
         cmake {
             path = file("CMakeLists.txt")
         }
+    }
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.java))
+    }
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        optIn.addAll(
+            "kotlin.time.ExperimentalTime",
+            "kotlin.ExperimentalUnsignedTypes",
+            "kotlin.RequiresOptIn"
+        )
     }
 }
 

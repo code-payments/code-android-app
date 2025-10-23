@@ -1,4 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id(Plugins.android_library)
@@ -36,9 +37,18 @@ android {
     }
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
-    kotlinOptions {
-        freeCompilerArgs = listOf("-opt-in=kotlin.RequiresOptIn")
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.java))
+    }
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        optIn.addAll(
+            "kotlin.time.ExperimentalTime",
+            "kotlin.ExperimentalUnsignedTypes",
+            "kotlin.RequiresOptIn"
+        )
     }
 }
 

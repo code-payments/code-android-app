@@ -7,6 +7,7 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.getcode.opencode.model.core.ID
+import com.getcode.serialization.InstantIso8601Serializer
 import com.getcode.solana.keys.PublicKey
 import com.getcode.vendor.Base58
 import kotlinx.datetime.Instant
@@ -47,9 +48,11 @@ data class PoolEntity(
     val fundingDestination: PublicKey = PublicKey.fromBase58(fundingDestinationBase58)
 
     @Ignore
+    @Serializable(with = InstantIso8601Serializer::class)
     val createdAt: Instant = Instant.fromEpochMilliseconds(timestamp)
 
     @Ignore
+    @Serializable(with = InstantIso8601Serializer::class)
     val closedAt: Instant? = closedTimestamp?.let { Instant.fromEpochMilliseconds(it) }
 }
 

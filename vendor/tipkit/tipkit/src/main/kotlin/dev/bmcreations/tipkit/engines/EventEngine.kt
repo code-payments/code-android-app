@@ -17,11 +17,17 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 class EventEngine(
@@ -265,12 +271,14 @@ private sealed class DbTriggerOccurrenceEvent {
 @Serializable
 private data class InstantEvent(
     override val id: String,
+    @Serializable(with = InstantIso8601Serializer::class)
     override val timestamp: Instant
 ) : DbTriggerOccurrenceEvent()
 
 @Serializable
 private data class BooleanEvent(
     override val id: String,
+    @Serializable(with = InstantIso8601Serializer::class)
     override val timestamp: Instant,
     val value: Boolean
 ) : DbTriggerOccurrenceEvent()
@@ -278,6 +286,7 @@ private data class BooleanEvent(
 @Serializable
 private data class IntEvent(
     override val id: String,
+    @Serializable(with = InstantIso8601Serializer::class)
     override val timestamp: Instant,
     val value: Int
 ) : DbTriggerOccurrenceEvent()
@@ -285,6 +294,7 @@ private data class IntEvent(
 @Serializable
 private data class DoubleEvent(
     override val id: String,
+    @Serializable(with = InstantIso8601Serializer::class)
     override val timestamp: Instant,
     val value: Double
 ) : DbTriggerOccurrenceEvent()
@@ -292,6 +302,7 @@ private data class DoubleEvent(
 @Serializable
 private data class LongEvent(
     override val id: String,
+    @Serializable(with = InstantIso8601Serializer::class)
     override val timestamp: Instant,
     val value: Long
 ) : DbTriggerOccurrenceEvent()
@@ -299,6 +310,7 @@ private data class LongEvent(
 @Serializable
 private data class FloatEvent(
     override val id: String,
+    @Serializable(with = InstantIso8601Serializer::class)
     override val timestamp: Instant,
     val value: Float
 ) : DbTriggerOccurrenceEvent()
@@ -307,6 +319,7 @@ sealed interface Event {
     @Serializable
     data class TriggerOccurrence(
         val id: String,
+        @Serializable(with = InstantIso8601Serializer::class)
         val timestamp: Instant,
         @Polymorphic
         val value: Any
@@ -317,3 +330,42 @@ sealed interface Event {
         val timestamp: Instant
     ): Event
 }
+
+private class InstantIso8601Serializer : KSerializer<Instant> {
+    override val descriptor: SerialDescriptor
+        get() = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): Instant {
+        return Instant.Companion.parse(fixBasicTz(decoder.decodeString()))
+    }
+
+    override fun serialize(encoder: Encoder, value: Instant) {
+        encoder.encodeString(value.toString())
+    }
+}
+
+/**
+ * Insert a colon in the time zone offset if not provided.
+ *
+ * iOS seems to return a string formatted '2022-02-01T04:01:14.874+0000' which is a mix of basic and
+ * extended format ISO8601. Java only supports extended format at this stage so appends a ":00" at
+ * the end and then fails to parse.
+ *
+ * Ref https://github.com/Kotlin/kotlinx-datetime/issues/139
+ */
+fun fixBasicTz(timeString: String): String {
+    if (timeString.contains(basicFormatTimeZoneRegex)) {
+        val pos = timeString.length - 2
+        return timeString.replaceRange(pos, pos, ":")
+    }
+    if (timeString.contains(badFormatTimeZoneRegex)) {
+        return timeString.dropLast(1)
+    }
+    return timeString
+}
+
+@Suppress("RegExpSimplifiable") // clearer with consistent numeric range style
+private val basicFormatTimeZoneRegex = Regex("[+-][0-2][0-9][0-5][0-9]$")
+
+@Suppress("RegExpSimplifiable") // clearer with consistent numeric range style
+private val badFormatTimeZoneRegex = Regex("[+-][0-2][0-9]:[0-5][0-9]Z$")

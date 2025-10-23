@@ -15,9 +15,9 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.perf.ktx.performance
+import com.google.firebase.Firebase
 import com.google.firebase.perf.metrics.Trace
+import com.google.firebase.perf.performance
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import org.json.JSONObject
 import javax.inject.Inject

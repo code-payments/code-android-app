@@ -1,5 +1,6 @@
 package com.coinbase.onramp.data
 
+import com.getcode.serialization.InstantIso8601Serializer
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
@@ -49,7 +50,9 @@ data class OnRampPurchaseResponse(
         val paymentNetwork: String,
         val status: String,
         val txHash: String,
+        @Serializable(with = InstantIso8601Serializer::class)
         val createdAt: Instant,
+        @Serializable(with = InstantIso8601Serializer::class)
         val updatedAt: Instant,
     )
 
