@@ -87,18 +87,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Versions.java))
-        }
-    }
-
-    kotlinOptions {
-        jvmTarget = JvmTarget.fromTarget(Versions.java).target
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn"
-        )
-    }
     packaging {
         resources.excludes.add("**/*.proto")
         resources.excludes.add("META-INF/LICENSE.md")

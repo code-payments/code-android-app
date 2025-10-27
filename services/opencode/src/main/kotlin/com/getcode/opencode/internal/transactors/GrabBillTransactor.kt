@@ -8,7 +8,9 @@ import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.transactors.GiveBillTransactor.GiveTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
+import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +37,35 @@ internal class GrabBillTransactor(
         val data = payload
             ?: return logAndFail(GrabTransactorError.Other(message = "No payload available. Did you call with() first?"))
 
+        val kind = payload?.kind
+            ?: return logAndFail(GrabTransactorError.Other(message = "No payload kind available. Did you call with() first?"))
+
+
+        return when (kind) {
+            PayloadKind.Unknown -> logAndFail(GrabTransactorError.Other(message = "Unknown payload kind"))
+            PayloadKind.Cash -> handleLegacyScan(ownerKey, data)
+            PayloadKind.MultiMintCash -> handleMultiMintScan(ownerKey, data)
+        }
+    }
+
+    fun dispose() {
+        owner = null
+        payload = null
+
+        scope.cancel()
+    }
+
+    private suspend fun handleLegacyScan(
+        ownerKey: AccountCluster,
+        data: OpenCodePayload
+    ): Result<TransactionMetadata.PublicPayment> {
+        return requestGrab(ownerKey, data)
+    }
+
+    private suspend fun handleMultiMintScan(
+        ownerKey: AccountCluster,
+        data: OpenCodePayload
+    ): Result<TransactionMetadata.PublicPayment> {
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
         val (messageId, giveRequestMint) = messagingController.pollForGiveRequest(data.rendezvous)
             .getOrNull()
@@ -59,32 +90,50 @@ internal class GrabBillTransactor(
 
         // 4. Send the grab request to the recipient with the correct vault
         return userAccountResult.map {
-                messagingController.sendRequestToGrabBill(
-                    destination = tokenizedCluster.vaultPublicKey,
-                    payload = data
-                )
-            }.fold(
-                onSuccess = {
-                    // 5. Wait for confirmation
-                    transactionController.pollIntentMetadata(
-                        owner = tokenizedCluster.authority.keyPair,
-                        intentId = data.rendezvous.toPublicKey(),
-                        debugLogs = true
-                    )
-                }, onFailure = {
-                    if (it !is GrabTransactorError) {
-                        ErrorUtils.handleError(it)
-                    }
-                    logAndFail(it)
-                }
+            requestGrab(tokenizedCluster, data)
+            messagingController.sendRequestToGrabBill(
+                destination = tokenizedCluster.vaultPublicKey,
+                payload = data
             )
+        }.fold(
+            onSuccess = {
+                // 5. Wait for confirmation
+                transactionController.pollIntentMetadata(
+                    owner = tokenizedCluster.authority.keyPair,
+                    intentId = data.rendezvous.toPublicKey(),
+                    debugLogs = true
+                )
+            }, onFailure = {
+                if (it !is GrabTransactorError) {
+                    ErrorUtils.handleError(it)
+                }
+                logAndFail(it)
+            }
+        )
     }
 
-    fun dispose() {
-        owner = null
-        payload = null
-
-        scope.cancel()
+    private suspend fun requestGrab(
+        owner: AccountCluster,
+        data: OpenCodePayload
+    ): Result<TransactionMetadata.PublicPayment> {
+        return messagingController.sendRequestToGrabBill(
+            destination = owner.vaultPublicKey,
+            payload = data
+        ).fold(
+            onSuccess = {
+                // 5. Wait for confirmation
+                transactionController.pollIntentMetadata(
+                    owner = owner.authority.keyPair,
+                    intentId = data.rendezvous.toPublicKey(),
+                    debugLogs = true
+                )
+            }, onFailure = {
+                if (it !is GrabTransactorError) {
+                    ErrorUtils.handleError(it)
+                }
+                logAndFail(it)
+            }
+        )
     }
 }
 

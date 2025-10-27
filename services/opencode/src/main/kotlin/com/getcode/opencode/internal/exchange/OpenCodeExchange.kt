@@ -7,7 +7,6 @@ import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.services.opencode.R
 import com.getcode.util.format
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
@@ -22,10 +21,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import java.util.Date
 import javax.inject.Inject
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 

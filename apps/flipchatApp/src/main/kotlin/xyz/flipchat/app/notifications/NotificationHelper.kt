@@ -13,7 +13,7 @@ import androidx.core.app.Person
 import androidx.core.app.RemoteInput
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import xyz.flipchat.app.MainActivity
 import xyz.flipchat.app.R
 import xyz.flipchat.app.notifications.FcNotificationService.Companion.KEY_NOTIFICATION_ID

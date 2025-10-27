@@ -149,8 +149,6 @@ internal class CashScreenViewModel @Inject constructor(
                             if (rate.currency != CurrencyCode.USD) {
                                 exchange.fetchRatesIfNeeded()
                             }
-
-                            val localizedAmount = Fiat(amount, rate.currency)
                             val token = stateFlow.value.token!!.token
                             val amountFiat = LocalFiat.valueExchangeIn(
                                 amount =  Fiat(amount, rate.currency),

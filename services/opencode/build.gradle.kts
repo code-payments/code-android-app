@@ -26,22 +26,23 @@ android {
         )
     }
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Versions.java))
-        }
-    }
-
-    kotlinOptions {
-        jvmTarget = JvmTarget.fromTarget(Versions.java).target
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.RequiresOptIn"
-        )
-    }
-
     buildFeatures {
         buildConfig = true
+    }
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.java))
+    }
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        optIn.addAll(
+            "kotlin.time.ExperimentalTime",
+            "kotlin.ExperimentalUnsignedTypes",
+            "kotlin.RequiresOptIn"
+        )
     }
 }
 
@@ -64,6 +65,8 @@ dependencies {
     implementation(project(":ui:resources"))
 
     api(project(":libs:analytics"))
+
+    api(project(":vendor:kik:scanner"))
 
     implementation(Libs.inject)
 

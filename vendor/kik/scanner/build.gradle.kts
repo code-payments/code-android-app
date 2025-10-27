@@ -12,14 +12,19 @@ android {
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    kotlinOptions {
-        jvmTarget = JvmTarget.fromTarget(Versions.java).target
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.RequiresOptIn"
-        )
+        ndkVersion = "29.0.14206865"
+        externalNativeBuild {
+            cmake {
+                ndkVersion = "29.0.14206865"
+                cppFlags += "-std=c++11"
+                cppFlags += listOf(
+                    "-O3",
+                    "-ffast-math",
+                    "-funsafe-math-optimizations",
+                    "-funroll-loops",
+                )
+            }
+        }
     }
 
     compileOptions {
@@ -30,13 +35,36 @@ android {
     buildFeatures {
         compose = true
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("CMakeLists.txt")
+        }
+    }
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.java))
+    }
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        optIn.addAll(
+            "kotlin.time.ExperimentalTime",
+            "kotlin.ExperimentalUnsignedTypes",
+            "kotlin.RequiresOptIn"
+        )
+    }
 }
 
 dependencies {
-    api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.androidx_camerax_core)
     implementation(Libs.inject)
     implementation(Libs.hilt)
+
+    implementation(project(":libs:encryption:ed25519"))
+    implementation(project(":vendor:opencv:sdk"))
 }

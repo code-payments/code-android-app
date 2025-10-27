@@ -3,9 +3,9 @@
 object Versions {
     const val java = "21"
     const val kotlin = "2.1.20"
-    const val kotlinx_coroutines = "1.9.0"
-    const val kotlinx_serialization = "1.7.3"
-    const val kotlinx_datetime = "0.6.1"
+    const val kotlinx_coroutines = "1.10.2"
+    const val kotlinx_serialization = "1.9.0"
+    const val kotlinx_datetime = "0.7.1"
 
     private const val ksp = "2.0.1"
     const val kotlin_ksp = "$kotlin-$ksp"
@@ -21,6 +21,7 @@ object Versions {
     const val androidx_credentials = "1.5.0"
     const val androidx_core = "1.13.1"
     const val androidx_constraint_layout = "2.1.3"
+    const val androidx_datastore = "1.1.7"
     const val androidx_lifecycle = "2.7.0"
     const val androidx_navigation = "2.8.0"
     const val androidx_browser = "1.4.0"
@@ -29,15 +30,15 @@ object Versions {
     const val androidx_work = "2.10.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2025.05.00"
+    const val compose = "2025.10.00"
 
-    const val compose_activities: String = "1.8.2"
+    const val compose_activities: String = "1.11.0"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.8.0"
-    const val compose_paging = "3.3.0"
+    const val compose_paging = "3.3.6"
     const val compose_webview = "0.33.6"
 
-    const val hilt = "2.56.2"
+    const val hilt = "2.57.2"
     const val hilt_jetpack = "1.2.0"
     const val okhttp = "4.12.0"
     const val retrofit = "2.11.0"
@@ -49,11 +50,11 @@ object Versions {
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
-    const val firebase_bom: String = "33.13.0"
+    const val firebase_bom: String = "34.4.0"
     const val crashlytics_gradle: String = "3.0.2"
-    const val play_service_auth = "21.0.0"
-    const val play_service_auth_phone = "18.0.2"
-    const val google_play_billing = "7.1.1"
+    const val play_service_auth = "21.4.0"
+    const val play_service_auth_phone = "18.3.0"
+    const val google_play_billing = "8.0.0"
 
     const val grpc: String = "1.62.2"
     const val grpc_okhttp: String = "1.33.1"
@@ -69,20 +70,30 @@ object Versions {
     const val junit = "4.13.1"
     const val androidx_junit = "1.1.3"
     const val espresso = "3.4.0"
-    const val mixpanel = "8.2.0"
+    const val mixpanel = "8.2.4"
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
     const val voyager = "1.1.0-beta03"
     const val protobuf_plugin = "0.9.4"
 
-    const val sodium_bindings = "0.9.2"
+    const val sodium_bindings = "0.9.4"
 
     const val desugaring = "2.1.2"
 
     const val eventBus = "0.1.0"
 
     const val solana_mwa = "2.0.3"
+
+    const val bugsnag = "6.19.0"
+    const val bugsnag_agp = "8.2.0"
+    const val bugsnag_gradle_plugin = "1.0.0"
+
+    const val rinku = "1.5.0"
+
+    const val haze = "1.6.10"
+
+    const val cloudy = "0.2.7"
 }
 
 object Classpath {
@@ -100,8 +111,8 @@ object Classpath {
 
     const val crashlytics_gradle =
         "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
-    const val bugsnag_android_gradle_plugin = "com.bugsnag:bugsnag-android-gradle-plugin:8.2.0"
-    const val bugsnag_gradle_plugin = "com.bugsnag:bugsnag-gradle-plugin:0.4.0"
+    const val bugsnag_android_gradle_plugin = "com.bugsnag:bugsnag-android-gradle-plugin:${Versions.bugsnag_agp}"
+    const val bugsnag_gradle_plugin = "com.bugsnag:bugsnag-gradle-plugin:${Versions.bugsnag_gradle_plugin}"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
     const val secrets_gradle_plugin =
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
@@ -204,7 +215,7 @@ object Libs {
     const val okhttp_logging_interceptor =
         "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
 
-    const val androidx_datastore = "androidx.datastore:datastore-preferences:1.1.1"
+    const val androidx_datastore = "androidx.datastore:datastore-preferences:${Versions.androidx_datastore}"
     const val androidx_constraint_layout_compose =
         "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     const val androidx_lifecycle_viewmodel =
@@ -307,19 +318,19 @@ object Libs {
     const val markwon_ext_strikethrough = "io.noties.markwon:ext-strikethrough:${Versions.markwon}"
 
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
-    const val bugsnag = "com.bugsnag:bugsnag-android:6.13.0"
+    const val bugsnag = "com.bugsnag:bugsnag-android:${Versions.bugsnag}"
 
-    const val cloudy = "com.github.skydoves:cloudy:0.2.7"
+    const val cloudy = "com.github.skydoves:cloudy:${Versions.cloudy}"
 
     const val sodium_bindings =
         "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
 
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 
-    const val haze = "dev.chrisbanes.haze:haze:1.6.10"
-    const val haze_materials = "dev.chrisbanes.haze:haze-materials:1.6.10"
-    const val rinku = "dev.theolm:rinku:1.4.0"
-    const val rinku_compose = "dev.theolm:rinku-compose-ext:1.4.0"
+    const val haze = "dev.chrisbanes.haze:haze:${Versions.haze}"
+    const val haze_materials = "dev.chrisbanes.haze:haze-materials:${Versions.haze}"
+    const val rinku = "dev.theolm:rinku:${Versions.rinku}"
+    const val rinku_compose = "dev.theolm:rinku-compose-ext:${Versions.rinku}"
 
     const val eventBus = "io.github.hoc081098:channel-event-bus:${Versions.eventBus}"
 

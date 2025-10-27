@@ -365,8 +365,9 @@ internal class GooglePlayBillingClient(
 
             client.queryProductDetailsAsync(
                 queryProductDetailsParams
-            ) { result, productDetailsList ->
-                printLog("QUERY $productId ${result.debugMessage}")
+            ) { billingResult, productDetailsResult ->
+                printLog("QUERY $productId ${billingResult.debugMessage}")
+                val productDetailsList = productDetailsResult.productDetailsList
                 printLog("products for $productId = ${productDetailsList.count()}")
                 if (productDetailsList.isNotEmpty()) {
                     productDetails[productId] = productDetailsList.first()

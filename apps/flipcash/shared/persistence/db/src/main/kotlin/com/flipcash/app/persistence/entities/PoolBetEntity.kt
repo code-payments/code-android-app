@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.getcode.opencode.model.core.ID
+import com.getcode.serialization.InstantIso8601Serializer
 import com.getcode.solana.keys.PublicKey
 import com.getcode.vendor.Base58
 import kotlinx.datetime.Instant
@@ -36,5 +37,6 @@ data class PoolBetEntity(
     val payoutDestination: PublicKey = PublicKey.fromBase58(payoutDestinationBase58)
 
     @Ignore
+    @Serializable(with = InstantIso8601Serializer::class)
     val placedAt: Instant = Instant.fromEpochMilliseconds(timestamp)
 }

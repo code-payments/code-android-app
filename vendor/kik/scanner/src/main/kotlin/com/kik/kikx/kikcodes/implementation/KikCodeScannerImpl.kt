@@ -17,13 +17,13 @@ class KikCodeScannerImpl : KikCodeScanner {
         return when (this) {
             is GroupKikCode -> {
                 val inviteCodeAsBase64 = Base64.encodeToString(
-                    inviteCode,
+                    inviteCode(),
                     Base64.URL_SAFE or Base64.NO_PADDING
                 ).trim() // for some reason adds a line break at the end
-                ScannableKikCode.GroupKikCode(GroupInviteCode(GroupInviteCode.Id(inviteCodeAsBase64.toByteArray())), colour)
+                ScannableKikCode.GroupKikCode(GroupInviteCode(GroupInviteCode.Id(inviteCodeAsBase64.toByteArray())), colour())
             }
-            is UsernameKikCode -> ScannableKikCode.UsernameKikCode(username, nonce, colour)
-            is RemoteKikCode -> ScannableKikCode.RemoteKikCode(payloadId, colour)
+            is UsernameKikCode -> ScannableKikCode.UsernameKikCode(username(), nonce(), colour())
+            is RemoteKikCode -> ScannableKikCode.RemoteKikCode(payload(), colour())
             else -> throw KikCodeScanner.UnsupportedKikCodeFoundException(this)
         }
     }
@@ -32,13 +32,12 @@ class KikCodeScannerImpl : KikCodeScanner {
         val source = PlanarYUVLuminanceSource(imageData, width, height)
 
         try {
-            val scanResult = Scanner.scan(source.matrix, width, height, quality.headerValue)
+            val code = Scanner.scan(source.matrix, width, height, quality.headerValue)
                 ?: return Result.failure(KikCodeScanner.NoKikCodeFoundException())
+            println("Kik code: $code")
 
-            val kikCode = KikCode.parse(scanResult.data)
-                ?: return Result.failure(KikCodeScanner.FailedToParseCodeException(scanResult))
-
-            val scannable = kikCode.toModelKikCode() // will throw UnsupportedKikCodeFoundException
+            val scannable = code.toModelKikCode() // will throw UnsupportedKikCodeFoundException
+            println("Scannable: $scannable")
 
             return Result.success(scannable)
         } catch (e: Exception) {

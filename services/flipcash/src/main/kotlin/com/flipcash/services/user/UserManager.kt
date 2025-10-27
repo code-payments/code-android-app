@@ -16,11 +16,10 @@ import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdc
 import com.getcode.services.opencode.BuildConfig
-import com.getcode.solana.keys.Mint
 import com.getcode.utils.base58
 import com.getcode.utils.trace
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.messaging.ktx.messaging
+import com.google.firebase.Firebase
+import com.google.firebase.messaging.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow

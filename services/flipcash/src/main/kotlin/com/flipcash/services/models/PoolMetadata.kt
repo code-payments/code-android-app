@@ -4,7 +4,7 @@ import com.flipcash.services.internal.model.pools.PoolRequest
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.PublicKey
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import javax.annotation.concurrent.Immutable
