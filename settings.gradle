@@ -13,6 +13,8 @@ include(
         ":apps:flipcash:shared:appsettings",
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",
+        ":apps:flipcash:shared:bills",
+        ":apps:flipcash:shared:bill-customization",
         ":apps:flipcash:shared:onramp:common",
         ":apps:flipcash:shared:onramp:coinbase",
         ":apps:flipcash:shared:onramp:deeplinks",
@@ -60,6 +62,7 @@ include(
         ":apps:flipcash:features:contact-verification",
         ":apps:flipcash:features:tokens",
         ":apps:flipcash:features:transactions",
+        ":apps:flipcash:features:bill-customization",
 
         // protobuf model and service implementations for Code
         ":definitions:code:models",

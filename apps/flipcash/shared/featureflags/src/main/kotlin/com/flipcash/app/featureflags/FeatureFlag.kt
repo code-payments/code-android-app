@@ -63,6 +63,15 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object BillCustomizer: FeatureFlag {
+        override val key: String = "bill_customizer_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
@@ -82,6 +91,7 @@ val FeatureFlag.title: String
         FeatureFlag.TransactionDetails -> "Transaction Details"
         FeatureFlag.Pools -> "Betting Pools"
         FeatureFlag.OnRamp -> "Onramp"
+        FeatureFlag.BillCustomizer -> "Bill Customizer"
     }
 
 val FeatureFlag.message: String
@@ -92,6 +102,7 @@ val FeatureFlag.message: String
         FeatureFlag.TransactionDetails -> "When enabled, you'll gain the ability to view details of each transaction from the balance screen"
         FeatureFlag.Pools -> "When enabled, you'll be able to participate in and create betting pools with other users for a chance to win a share of the prize"
         FeatureFlag.OnRamp -> "When enabled, you'll gain the ability to fund your wallet from external sources via providers using a debit card or via another wallet (like Phantom)"
+        FeatureFlag.BillCustomizer -> "When enabled, you'll gain access to the bill customization playground"
     }
 
 

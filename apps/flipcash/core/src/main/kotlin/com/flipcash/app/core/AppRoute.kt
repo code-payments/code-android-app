@@ -64,8 +64,8 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
 
     @Parcelize
     sealed interface Token: AppRoute {
-        data class Info(val mint: Mint): AppRoute.Token
-        data class Transactions(val mint: Mint): Main
+        data class Info(val mint: Mint): Token
+        data class Transactions(val mint: Mint): Token
     }
 
     @Parcelize

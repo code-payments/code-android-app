@@ -34,10 +34,8 @@ class KikCodeScannerImpl : KikCodeScanner {
         try {
             val code = Scanner.scan(source.matrix, width, height, quality.headerValue)
                 ?: return Result.failure(KikCodeScanner.NoKikCodeFoundException())
-            println("Kik code: $code")
 
             val scannable = code.toModelKikCode() // will throw UnsupportedKikCodeFoundException
-            println("Scannable: $scannable")
 
             return Result.success(scannable)
         } catch (e: Exception) {

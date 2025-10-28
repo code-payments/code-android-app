@@ -5,7 +5,6 @@ import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.destinationOrNull
-import com.codeinc.opencode.gen.transaction.v2.mintOrNull
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
@@ -118,5 +117,6 @@ internal fun CurrencyService.LaunchpadMetadata.toMetadata(): LaunchpadMetadata {
         currentCirculatingSupplyQuarks = supplyFromBonding,
         coreMintLockedQuarks = coreMintLocked,
         sellFeeBps = sellFeeBps,
+        billCustomizations = null,
     )
 }

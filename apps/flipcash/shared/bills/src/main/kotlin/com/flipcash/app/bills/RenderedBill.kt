@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills
+package com.flipcash.app.bills
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,6 +10,8 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.theme.DesignSystem
 
 @Composable
@@ -21,7 +23,8 @@ internal fun RenderedBill(
         is Bill.Cash -> CashBill(
             modifier = modifier,
             payloadData = bill.data,
-            amount = bill.amount
+            amount = bill.amount,
+            token = bill.token
         )
     }
 }
@@ -46,6 +49,7 @@ fun Preview_CashBill() {
                 usdc = usdcBase,
                 nativeAmount = usdcBase.convertingTo(cadRate),
             ),
+            token = Token.usdc,
             payloadData = payload.codeData.toList(),
         )
     }

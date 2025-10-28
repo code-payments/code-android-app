@@ -90,6 +90,7 @@ sealed interface Bill {
     val token: Token
     val amount: LocalFiat
     val data: List<Byte>
+    val disableGestures: Boolean
 
     enum class Kind {
         cash, airdrop
@@ -97,7 +98,7 @@ sealed interface Bill {
 
     val canSwipeToDismiss: Boolean
         get() = when (this) {
-            is Cash -> true
+            is Cash -> !disableGestures
         }
 
     val canFlip: Boolean
@@ -117,6 +118,7 @@ sealed interface Bill {
         override val token: Token,
         override val amount: LocalFiat,
         override val didReceive: Boolean = false,
+        override val disableGestures: Boolean = false,
         override val confirmationDelay: Duration = Duration.ZERO,
         override val data: List<Byte> = emptyList(),
         val kind: Kind = Kind.cash,

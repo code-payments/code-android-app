@@ -2,6 +2,8 @@ package com.getcode.theme
 
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.graphics.Color
+import android.graphics.Color as AndroidColor
+import androidx.core.graphics.toColorInt
 
 val Brand = Color(0xFF0F0C1F)
 val BrandLight = Color(0xFF7379A0)

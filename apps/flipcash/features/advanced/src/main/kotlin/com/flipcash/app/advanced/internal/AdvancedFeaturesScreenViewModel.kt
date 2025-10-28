@@ -2,6 +2,7 @@ package com.flipcash.app.advanced.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.services.user.UserManager
@@ -11,20 +12,22 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(Pools)
+    add(BillCustomizer)
 }
 
 @HiltViewModel
 internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     userManager: UserManager,
     featureFlagController: FeatureFlagController,
-): BaseViewModel2<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
+) : BaseViewModel2<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
-){
+) {
     data class State(
         val isBetaEnabled: Boolean = false,
         val items: List<MenuItem<Event>> = FullMenuList
@@ -32,10 +35,16 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
+        data class OnBillCustomizerEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
     }
 
     init {
+        featureFlagController.observe(FeatureFlag.BillCustomizer)
+            .onEach {
+                dispatchEvent(Event.OnBillCustomizerEnabled(it))
+            }.launchIn(viewModelScope)
+
         combine(
             featureFlagController.observeOverride(),
             userManager.state.map { it.flags?.isStaff == true }
@@ -50,8 +59,21 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnBetaFeaturesUnlocked -> { state ->
-                    state.copy(isBetaEnabled = event.unlocked)
+                    state.copy(
+                        isBetaEnabled = event.unlocked,
+                    )
                 }
+
+                is Event.OnBillCustomizerEnabled -> { state ->
+                    state.copy(
+                        items = if (event.enabled) {
+                            FullMenuList
+                        } else {
+                            FullMenuList.filterNot { it is BillCustomizer }
+                        }
+                    )
+                }
+
                 is Event.OpenScreen -> { state -> state }
             }
         }

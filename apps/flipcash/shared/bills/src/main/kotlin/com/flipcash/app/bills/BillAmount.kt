@@ -1,24 +1,20 @@
-package com.flipcash.app.scanner.internal.bills
+package com.flipcash.app.bills
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.flipcash.shared.bills.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.scanner.R
 import com.getcode.ui.utils.nonScaledSp
 
 @Composable
 @Preview
-fun BillAmount(modifier: Modifier = Modifier, text: String = "", flag: Int? = R.drawable.ic_flag_us) {
+internal fun BillAmount(modifier: Modifier = Modifier, text: String = "", flag: Int? = R.drawable.ic_flag_us) {
     Box(modifier = modifier) {
         Row(
             modifier = Modifier

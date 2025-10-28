@@ -34,7 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.flipcash.app.bill.customization.LocalBillPlaygroundController
+import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.scanner.internal.ScannerDecorItem
@@ -47,6 +50,7 @@ import com.flipcash.app.session.PutInWallet
 import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.core.measured
 import com.getcode.ui.scanner.views.CameraDisabledView
@@ -69,7 +73,6 @@ internal fun BillContainer(
     onAction: (ScannerDecorItem) -> Unit
 ) {
     val session = LocalSessionController.currentOrThrow
-
     val context = LocalContext.current
     val onPermissionResult = { result: PermissionResult ->
         session.onCameraPermissionResult(result)
@@ -202,7 +205,12 @@ internal fun BillContainer(
             modifier = Modifier.fillMaxSize(),
             dismissState = billDismissState,
             dismissed = dismissed,
-            contentPadding = PaddingValues(bottom = managementHeight),
+            contentPadding = PaddingValues(
+                start = CodeTheme.dimens.inset,
+                end = CodeTheme.dimens.inset,
+                top = CodeTheme.dimens.grid.x2,
+                bottom = managementHeight + CodeTheme.dimens.grid.x2
+            ),
             bill = updatedBillState.bill,
             transitionSpec = {
                 when (updatedState.billResult) {

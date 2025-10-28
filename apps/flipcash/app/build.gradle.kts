@@ -142,6 +142,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:accesskey"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:bill-customization"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
@@ -180,6 +181,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:contact-verification"))
     implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:features:transactions"))
+    implementation(project(":apps:flipcash:features:bill-customization"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))

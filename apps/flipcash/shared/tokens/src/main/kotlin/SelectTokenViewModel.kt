@@ -55,6 +55,7 @@ class SelectTokenViewModel @Inject constructor(
                         TokenPurpose.Send -> exchange.observeEntryRate()
                         TokenPurpose.Withdraw -> exchange.observeEntryRate()
                         TokenPurpose.Deposit -> exchange.observeEntryRate()
+                        TokenPurpose.BillPlayground -> exchange.observeBalanceRate()
                     }
                 ) { balances, rate ->
                     balances.map {

@@ -9,4 +9,5 @@ sealed interface TokenPurpose: Parcelable {
     data object Withdraw: TokenPurpose
     data object Deposit: TokenPurpose
     data object Balance : TokenPurpose
+    data object BillPlayground: TokenPurpose
 }

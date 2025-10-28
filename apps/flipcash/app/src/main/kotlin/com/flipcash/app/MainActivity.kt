@@ -12,6 +12,8 @@ import androidx.fragment.app.FragmentActivity
 import com.flipcash.android.app.BuildConfig
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.appsettings.LocalAppSettings
+import com.flipcash.app.bill.customization.BillPlaygroundController
+import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.billing.LocalBillingClient
 import com.flipcash.app.core.LocalUserManager
@@ -118,6 +120,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var onRampAmountController: OnRampAmountController
 
+    @Inject
+    lateinit var billPlaygroundController: BillPlaygroundController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -143,6 +148,7 @@ class MainActivity : FragmentActivity() {
                 LocalPaymentController provides paymentController,
                 LocalOnRampAmountController provides onRampAmountController,
                 LocalPhoneUtils provides phoneUtils,
+                LocalBillPlaygroundController provides billPlaygroundController,
             ) {
                 Rinku {
                     App(

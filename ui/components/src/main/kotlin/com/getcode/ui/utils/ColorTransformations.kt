@@ -1,17 +1,22 @@
 package com.getcode.ui.utils
 
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 data class Rgb(val r: Float, val g: Float, val b: Float)
 data class Hls(val h: Float, val l: Float, val s: Float)
+data class Hsv(val h: Float, val s: Float, val v: Float)
 
 val Color.hue: Float
     get() = colorToHls(this).h
 
 val Color.hls: Hls
     get() = colorToHls(this)
+
+val Color.hsv: Hsv
+    get() = colorToHsv(this)
 
 val Color.rgb: Rgb
     get() = colorToRgb(this)
@@ -63,6 +68,10 @@ private fun colorToHls(color: Color): Hls {
     return rgbToHls(color.red, color.green, color.blue)
 }
 
+private fun colorToHsv(color: Color): Hsv {
+    return  rgbToHsv(color.rgb)
+}
+
 fun rgbToHls(r: Float, g: Float, b: Float): Hls {
     return rgbToHls(Rgb(r, g, b))
 }
@@ -83,6 +92,27 @@ private fun rgbToHls(rgb: Rgb): Hls {
     }
     return Hls((h + 360) % 360, l, s)
 }
+
+private fun rgbToHsv(rgb: Rgb): Hsv {
+    val (r, g, b) = rgb
+    val max = maxOf(r, g, b)
+    val min = minOf(r, g, b)
+    val delta = max - min
+
+    val h = when (max) {
+        min -> 0f
+        r -> 60f * (((g - b) / delta) % 6)
+        g -> 60f * (((b - r) / delta) + 2)
+        b -> 60f * (((r - g) / delta) + 4)
+        else -> 0f
+    }
+
+    val s = if (max == 0f) 0f else delta / max
+    val v = max / 255f
+
+    return Hsv((h + 360) % 360, s, v)
+}
+
 
 fun hlsToRgb(h: Float, l: Float, s: Float): Rgb {
     return hlsToRgb(Hls(h, l, s))
@@ -139,6 +169,10 @@ private fun invertColor(color: Color): Color {
         blue = 1f - color.blue,
         alpha = color.alpha
     )
+}
+
+fun hexToColor(hex: String): Color {
+    return Color(hex.toColorInt())
 }
 
 fun adjustBrightness(color: Color, factor: Float): Color {

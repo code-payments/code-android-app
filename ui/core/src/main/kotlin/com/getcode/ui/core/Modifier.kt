@@ -201,18 +201,18 @@ fun Modifier.circleBackground(color: Color, padding: Dp): Modifier {
     return this then backgroundModifier then layoutModifier
 }
 
-fun Modifier.punchRectangle(color: Color) = this.drawWithContent {
+fun Modifier.punchRectangle(brush: Brush) = this.drawWithContent {
     drawRect(
-        color,
+        brush,
         blendMode = BlendMode.Src
     )
 
     drawContent()
 }
 
-fun Modifier.punchCircle(color: Color) = this.drawWithContent {
+fun Modifier.punchCircle(brush: Brush) = this.drawWithContent {
     drawCircle(
-        color,
+        brush,
         blendMode = BlendMode.Src
     )
 
@@ -257,6 +257,38 @@ fun Modifier.drawWithGradient(
                     startY = startY(height.toPx()),
                     endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY } ?: height.toPx(),
                     colors = colors,
+                ),
+                blendMode = blendMode
+            )
+        }
+}
+
+fun Modifier.drawWithGradient(
+    brush: (Float, Float) -> Brush,
+    startY: ContentDrawScope.(Float) -> Float,
+    endY: ContentDrawScope.(Float) -> Float = { Float.POSITIVE_INFINITY },
+    blendMode: BlendMode = BlendMode.SrcOver
+) = this.composed {
+    var height by remember {
+        mutableStateOf(0.dp)
+    }
+
+    val density = LocalDensity.current
+
+
+    Modifier
+        .onPlaced {
+            height = with(density) { it.size.height.toDp() }
+        }
+        .graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+        }
+        .drawWithContent {
+            drawContent()
+            drawRect(
+                brush = brush(
+                    startY(height.toPx()),
+                    endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY } ?: height.toPx()
                 ),
                 blendMode = blendMode
             )

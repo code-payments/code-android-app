@@ -25,6 +25,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -126,127 +127,130 @@ internal fun App(
             AppScreenContent {
                 PaymentScaffold {
                     OnRampAmountScaffold {
-                        TipScaffold(tipsEngine = tipsEngine) {
-                            AppNavHost(biometricsState) {
-                                val codeNavigator = LocalCodeNavigator.current
-                                ExternalWalletOnRampHandler(
-                                    state = externalWalletOnRamp,
-                                    lifecycleOwner = LocalLifecycleOwner.current,
-                                    navigator = codeNavigator,
-                                    router = router,
-                                    deepLink = deepLink
-                                ) {
-                                    CodeScaffold { innerPaddingModifier ->
-                                        Navigator(
-                                            screen = MainRoot { deepLink },
-                                        ) { navigator ->
-                                            LaunchedEffect(navigator.lastItemOrNull) {
-                                                // update global navigator for platform access to support push/pop from a single
-                                                // navigator current
-                                                codeNavigator.screensNavigator = navigator
-                                            }
+                        BillPlaygroundScaffold {
+                            TipScaffold(tipsEngine = tipsEngine) {
+                                AppNavHost(biometricsState) {
+                                    val codeNavigator = LocalCodeNavigator.current
+                                    ExternalWalletOnRampHandler(
+                                        state = externalWalletOnRamp,
+                                        lifecycleOwner = LocalLifecycleOwner.current,
+                                        navigator = codeNavigator,
+                                        router = router,
+                                        deepLink = deepLink
+                                    ) {
+                                        CodeScaffold { innerPaddingModifier ->
+                                            Navigator(
+                                                screen = MainRoot { deepLink },
+                                            ) { navigator ->
+                                                LaunchedEffect(navigator.lastItemOrNull) {
+                                                    // update global navigator for platform access to support push/pop from a single
+                                                    // navigator current
+                                                    codeNavigator.screensNavigator = navigator
+                                                }
 
-                                            Box(
-                                                modifier = Modifier
-                                                    .padding(innerPaddingModifier)
-                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(innerPaddingModifier)
+                                                ) {
 
-                                                when (navigator.lastEvent) {
-                                                    StackEvent.Push,
-                                                    StackEvent.Pop -> {
-                                                        when (navigator.lastItemOrNull) {
-                                                            ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
-                                                            is MainRoot -> {
-                                                                CrossfadeTransition(navigator = navigator)
+                                                    when (navigator.lastEvent) {
+                                                        StackEvent.Push,
+                                                        StackEvent.Pop -> {
+                                                            when (navigator.lastItemOrNull) {
+                                                                ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
+                                                                is MainRoot -> {
+                                                                    CrossfadeTransition(navigator = navigator)
+                                                                }
+
+                                                                else -> SlideTransition(navigator = navigator)
+                                                            }
+                                                        }
+
+                                                        StackEvent.Idle -> CurrentScreen()
+                                                        StackEvent.Replace -> {
+                                                            when (navigator.lastItemOrNull) {
+                                                                ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
+                                                                ScreenRegistry.get(AppRoute.Onboarding.AccessKey) -> {
+                                                                    CrossfadeTransition(navigator = navigator)
+                                                                }
+
+                                                                else -> CurrentScreen()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                LaunchedEffect(deepLink) {
+                                                    if (codeNavigator.lastItem !is MainRoot) {
+                                                        if (deepLink != null) {
+                                                            val screenSet =
+                                                                router.processDestination(deepLink)
+                                                            if (screenSet.isNotEmpty()) {
+                                                                codeNavigator.replaceAll(screenSet)
                                                             }
 
-                                                            else -> SlideTransition(navigator = navigator)
-                                                        }
-                                                    }
-
-                                                    StackEvent.Idle -> CurrentScreen()
-                                                    StackEvent.Replace -> {
-                                                        when (navigator.lastItemOrNull) {
-                                                            ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
-                                                            ScreenRegistry.get(AppRoute.Onboarding.AccessKey) -> {
-                                                                CrossfadeTransition(navigator = navigator)
-                                                            }
-                                                            else -> CurrentScreen()
+                                                            deepLink = null
                                                         }
                                                     }
                                                 }
-                                            }
 
-                                            LaunchedEffect(deepLink) {
-                                                if (codeNavigator.lastItem !is MainRoot) {
-                                                    if (deepLink != null) {
-                                                        val screenSet =
-                                                            router.processDestination(deepLink)
-                                                        if (screenSet.isNotEmpty()) {
-                                                            codeNavigator.replaceAll(screenSet)
-                                                        }
-
-                                                        deepLink = null
+                                                LaunchedEffect(
+                                                    loginRequest,
+                                                    codeNavigator.lastItem,
+                                                    userManager.authState
+                                                ) {
+                                                    if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
+                                                    if (userManager.authState !is AuthState.LoggedInWithUser) {
+                                                        // reset login request here
+                                                        // if we are not currently logged in, then the deeplink
+                                                        // is most likely being processed in [MainRoot] during launch
+                                                        loginRequest = null
+                                                        return@LaunchedEffect
                                                     }
-                                                }
-                                            }
-
-                                            LaunchedEffect(
-                                                loginRequest,
-                                                codeNavigator.lastItem,
-                                                userManager.authState
-                                            ) {
-                                                if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
-                                                if (userManager.authState !is AuthState.LoggedInWithUser) {
-                                                    // reset login request here
-                                                    // if we are not currently logged in, then the deeplink
-                                                    // is most likely being processed in [MainRoot] during launch
-                                                    loginRequest = null
-                                                    return@LaunchedEffect
-                                                }
-                                                loginRequest?.let { entropy ->
-                                                    viewModel.handleLoginEntropy(
-                                                        entropy,
-                                                        onSwitchAccount = {
-                                                            loginRequest = null
-                                                            codeNavigator.replaceAll(
-                                                                ScreenRegistry.get(
-                                                                    AppRoute.Onboarding.Login(
-                                                                        entropy,
-                                                                        fromDeeplink = true
+                                                    loginRequest?.let { entropy ->
+                                                        viewModel.handleLoginEntropy(
+                                                            entropy,
+                                                            onSwitchAccount = {
+                                                                loginRequest = null
+                                                                codeNavigator.replaceAll(
+                                                                    ScreenRegistry.get(
+                                                                        AppRoute.Onboarding.Login(
+                                                                            entropy,
+                                                                            fromDeeplink = true
+                                                                        )
                                                                     )
                                                                 )
-                                                            )
-                                                        },
-                                                        onDismissed = { loginRequest = null }
-                                                    )
+                                                            },
+                                                            onDismissed = { loginRequest = null }
+                                                        )
+                                                    }
                                                 }
-                                            }
 
-                                            LaunchedEffect(userState.isTimelockUnlocked) {
-                                                if (userState.isTimelockUnlocked) {
-                                                    codeNavigator.replaceAll(
-                                                        ScreenRegistry.get(
-                                                            AppRoute.Main.AppRestricted(
-                                                                RestrictionType.TIMELOCK_UNLOCKED
+                                                LaunchedEffect(userState.isTimelockUnlocked) {
+                                                    if (userState.isTimelockUnlocked) {
+                                                        codeNavigator.replaceAll(
+                                                            ScreenRegistry.get(
+                                                                AppRoute.Main.AppRestricted(
+                                                                    RestrictionType.TIMELOCK_UNLOCKED
+                                                                )
                                                             )
                                                         )
-                                                    )
+                                                    }
                                                 }
-                                            }
 
-                                            OnLifecycleEvent { _, event ->
-                                                when (event) {
-                                                    Lifecycle.Event.ON_RESUME -> {
-                                                        session.onAppInForeground()
+                                                OnLifecycleEvent { _, event ->
+                                                    when (event) {
+                                                        Lifecycle.Event.ON_RESUME -> {
+                                                            session.onAppInForeground()
+                                                        }
+
+                                                        Lifecycle.Event.ON_STOP,
+                                                        Lifecycle.Event.ON_DESTROY -> {
+                                                            session.onAppInBackground()
+                                                        }
+
+                                                        else -> Unit
                                                     }
-
-                                                    Lifecycle.Event.ON_STOP,
-                                                    Lifecycle.Event.ON_DESTROY -> {
-                                                        session.onAppInBackground()
-                                                    }
-
-                                                    else -> Unit
                                                 }
                                             }
                                         }

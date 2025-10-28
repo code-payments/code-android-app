@@ -34,6 +34,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.SessionState
@@ -52,93 +54,96 @@ internal fun DecorView(
     modifier: Modifier = Modifier,
     onAction: (ScannerDecorItem) -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(modifier)
-    ) {
-
-        Image(
+    val billPlayground = LocalBillPlaygroundController.current
+    val playgroundState by billPlayground.state.collectAsStateWithLifecycle()
+    AnimatedVisibility(!playgroundState.isCustomizing) {
+        Box(
             modifier = Modifier
-                .statusBarsPadding()
-                .padding(vertical = CodeTheme.dimens.grid.x3)
-                .padding(horizontal = CodeTheme.dimens.grid.x3)
-                .align(Alignment.TopStart)
-                .width(CodeTheme.dimens.staticGrid.x18)
-                .rememberedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    onAction(ScannerDecorItem.Logo)
-                },
-            painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
-            contentDescription = "Tap to share the app",
-        )
-
-        Column(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(vertical = CodeTheme.dimens.grid.x2)
-                .padding(horizontal = CodeTheme.dimens.grid.x3)
-                .align(Alignment.TopEnd),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+                .fillMaxSize()
+                .then(modifier)
         ) {
             Image(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .unboundedClickable {
-                        onAction(ScannerDecorItem.Menu)
+                    .statusBarsPadding()
+                    .padding(vertical = CodeTheme.dimens.grid.x3)
+                    .padding(horizontal = CodeTheme.dimens.grid.x3)
+                    .align(Alignment.TopStart)
+                    .width(CodeTheme.dimens.staticGrid.x18)
+                    .rememberedClickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        onAction(ScannerDecorItem.Logo)
                     },
-                painter = painterResource(R.drawable.ic_home_options),
-                contentDescription = "",
+                painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
+                contentDescription = "Tap to share the app",
             )
-        }
 
-        Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-            val networkState by LocalNetworkObserver.current.state.collectAsState()
-
-            AnimatedVisibility(
+            Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally),
-                visible = state.showNetworkOffline && !networkState.connected,
-                enter = fadeIn(animationSpec = tween(500, 100)),
-                exit = fadeOut(animationSpec = tween(500, 100)),
+                    .statusBarsPadding()
+                    .padding(vertical = CodeTheme.dimens.grid.x2)
+                    .padding(horizontal = CodeTheme.dimens.grid.x3)
+                    .align(Alignment.TopEnd),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
-                Row(
+                Image(
                     modifier = Modifier
-                        .wrapContentSize()
-                        .clip(CodeTheme.shapes.xxl)
-                        .background(CodeTheme.colors.error)
-                        .padding(
-                            horizontal = CodeTheme.dimens.grid.x2,
-                            vertical = CodeTheme.dimens.grid.x1
-                        ),
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        modifier = Modifier.size(16.dp),
-                        painter = painterResource(id = R.drawable.ic_wifi_slash),
-                        contentDescription = null
-                    )
-                    Text(
-                        text = stringResource(id = R.string.title_badge_no_connection),
-                        color = Color.White,
-                        style = CodeTheme.typography.caption
-                    )
-                }
+                        .clip(CircleShape)
+                        .unboundedClickable {
+                            onAction(ScannerDecorItem.Menu)
+                        },
+                    painter = painterResource(R.drawable.ic_home_options),
+                    contentDescription = "",
+                )
             }
 
-            ScannerNavigationBar(
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = CodeTheme.dimens.grid.x3),
-                state = state,
-                billState = billState,
-                isPaused = isPaused,
-                onAction = onAction
-            )
+            Column(modifier = Modifier.align(Alignment.BottomCenter)) {
+                val networkState by LocalNetworkObserver.current.state.collectAsState()
+
+                AnimatedVisibility(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally),
+                    visible = state.showNetworkOffline && !networkState.connected,
+                    enter = fadeIn(animationSpec = tween(500, 100)),
+                    exit = fadeOut(animationSpec = tween(500, 100)),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .clip(CodeTheme.shapes.xxl)
+                            .background(CodeTheme.colors.error)
+                            .padding(
+                                horizontal = CodeTheme.dimens.grid.x2,
+                                vertical = CodeTheme.dimens.grid.x1
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(16.dp),
+                            painter = painterResource(id = R.drawable.ic_wifi_slash),
+                            contentDescription = null
+                        )
+                        Text(
+                            text = stringResource(id = R.string.title_badge_no_connection),
+                            color = Color.White,
+                            style = CodeTheme.typography.caption
+                        )
+                    }
+                }
+
+                ScannerNavigationBar(
+                    modifier = Modifier
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
+                    state = state,
+                    billState = billState,
+                    isPaused = isPaused,
+                    onAction = onAction
+                )
+            }
         }
     }
 }

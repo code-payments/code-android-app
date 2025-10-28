@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills
+package com.flipcash.app.bills
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
@@ -43,7 +44,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -53,32 +54,106 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.flipcash.app.core.money.formatted
-import com.flipcash.features.scanner.R
+import com.flipcash.shared.bills.R
 import com.getcode.opencode.compose.LocalExchange
+import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.solana.keys.Mint
+import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.punchCircle
 import com.getcode.ui.core.punchRectangle
 import com.getcode.ui.utils.Geometry
+import com.getcode.ui.utils.hexToColor
 import com.getcode.ui.utils.nonScaledSp
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+private enum class Punch {
+    SecurityStrip, Code
+}
+
 @Suppress("ConstPropertyName")
 private object CashBillDefaults {
     const val AspectRatio = 0.555f
-    val BillColor: Color
-        @Composable get() = CodeTheme.colors.cashBillColor
+
+    fun billColor(
+        token: Token,
+        alpha: Float = 1f,
+        startY: Float = 0f,
+        endY: Float = Float.POSITIVE_INFINITY,
+    ): Brush {
+        val billCustomizations = token.launchpadMetadata?.billCustomizations
+        if (billCustomizations == null) {
+            return Brush.verticalGradient(
+                listOf(Color(0xFF06450F), Color(0xFF06450F))
+            )
+        }
+
+        when (val background = billCustomizations.background) {
+            is BillBackground.Gradient -> {
+                val colors = background.colors.map { hexToColor(it) }
+                val lastIndex = (colors.size - 1).coerceAtLeast(1)
+                val colorStops = colors.mapIndexed { index, color ->
+                    (index.toFloat() / lastIndex) to color.copy(alpha)
+                }
+                return Brush.verticalGradient(
+                    colorStops = colorStops.toTypedArray(),
+                    startY = startY,
+                    endY = endY
+                )
+            }
+            is BillBackground.Solid -> {
+                val color = hexToColor(background.colorHex)
+                return Brush.verticalGradient(
+                    listOf(color, color)
+                )
+            }
+        }
+    }
 
     const val CodeBackgroundOpacity = 0.8f
 
-    val PunchColor: Color
-        @Composable get() =
-            Color.Black.copy(0.15f)
-                .compositeOver(BillColor.copy(CodeBackgroundOpacity))
+    @Composable
+    fun punchBrushIn(punch: Punch, token: Token): Brush {
+        val billCustomizations = token.launchpadMetadata?.billCustomizations
+        if (billCustomizations?.background == null) {
+            val color = Color.Black.copy(0.15f)
+                .compositeOver(CodeTheme.colors.cashBillColor.copy(alpha = CodeBackgroundOpacity))
+            return Brush.verticalGradient(
+                colors = listOf(color, color)
+            )
+        }
+
+        return when (val bg = billCustomizations.background) {
+            is BillBackground.Gradient -> {
+                // select the middle color if 3, otherwise take last
+                val colorHex = when (punch) {
+                    Punch.SecurityStrip -> bg.colors.first()
+                    Punch.Code -> when (bg.colors.size) {
+                        3 -> bg.colors[1]
+                        else -> bg.colors.last()
+                    }
+                }
+
+                val color = Color.Black.copy(0.15f)
+                    .compositeOver(hexToColor(colorHex).copy(alpha = CodeBackgroundOpacity))
+
+                Brush.verticalGradient(
+                    colors = listOf(color, color)
+                )
+            }
+            is BillBackground.Solid -> {
+                val color = Color.Black.copy(0.15f)
+                    .compositeOver(hexToColor(bg.colorHex).copy(alpha = CodeBackgroundOpacity))
+
+                Brush.verticalGradient(
+                    colors = listOf(color, color)
+                )
+            }
+        }
+    }
 
     const val SecurityStripCount = 3
 
@@ -149,16 +224,13 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
 internal fun CashBill(
     modifier: Modifier = Modifier,
     payloadData: List<Byte>,
+    token: Token,
     amount: LocalFiat,
 ) {
     val exchange = LocalExchange.current
     Box(
         modifier = modifier
-            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
-            .padding(
-                horizontal = CodeTheme.dimens.inset,
-                vertical = CodeTheme.dimens.grid.x2
-            ),
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
         contentAlignment = Alignment.Center
     ) {
         BoxWithConstraints(
@@ -166,7 +238,7 @@ internal fun CashBill(
                 .aspectRatio(CashBillDefaults.AspectRatio, matchHeightConstraintsFirst = true)
                 .fillMaxHeight()
                 .fillMaxWidth(0.95f)
-                .background(CashBillDefaults.BillColor)
+                .background(CashBillDefaults.billColor(token))
                 .clipToBounds()
         ) {
             val geometry = remember(maxWidth, maxHeight) {
@@ -217,7 +289,14 @@ internal fun CashBill(
                     .fillMaxHeight()
                     .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) }
                     .drawWithGradient(
-                        color = CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity),
+                        brush = { startY, endY ->
+                            CashBillDefaults.billColor(
+                                token,
+                                alpha = CashBillDefaults.CodeBackgroundOpacity,
+                                startY = startY,
+                                endY = endY
+                            )
+                        },
                         startY = { it / 2f },
                         blendMode = BlendMode.DstIn
                     ),
@@ -227,12 +306,12 @@ internal fun CashBill(
             )
 
             // Security strip
-            SecurityStrip(geometry = geometry)
+            SecurityStrip(geometry = geometry, token = token)
 
 
             // Bill Value Top Left
             BillAmount(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .align(Alignment.TopStart)
                     .padding(top = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(start = geometry.valuePadding),
@@ -242,7 +321,7 @@ internal fun CashBill(
 
             // Bill Value Bottom Right
             BillAmount(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .align(Alignment.BottomEnd)
                     .padding(bottom = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(end = geometry.valuePadding),
@@ -269,14 +348,14 @@ internal fun CashBill(
                     Lines(count = 31, spacing = geometry.lineSpacing)
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.Companion.weight(1f))
 
                 Row(
                     modifier = Modifier.padding(bottom = geometry.mintPadding)
                 ) {
                     // Mint
                     Text(
-                        text = Mint.usdc.base58(),
+                        text = token.address.base58(),
                         fontSize = 8.nonScaledSp,
                         color = CashBillDefaults.DecorColor,
                     )
@@ -321,7 +400,8 @@ internal fun CashBill(
             BillCode(
                 modifier = Modifier.align(Alignment.Center),
                 geometry = geometry,
-                data = payloadData
+                data = payloadData,
+                token = token
             )
         }
     }
@@ -331,12 +411,13 @@ internal fun CashBill(
 private fun SecurityStrip(
     modifier: Modifier = Modifier,
     geometry: CashBillGeometry,
+    token: Token,
 ) {
     Row(
         modifier = modifier
             .size(geometry.securityStripSize)
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
-            .punchRectangle(CashBillDefaults.PunchColor),
+            .punchRectangle(CashBillDefaults.punchBrushIn(punch = Punch.SecurityStrip, token)),
     ) {
         for (i in 0 until CashBillDefaults.SecurityStripCount) {
             Image(
@@ -399,17 +480,23 @@ private fun BillDecorImage(
 }
 
 @Composable
-private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, data: List<Byte>) {
+private fun BillCode(
+    modifier: Modifier = Modifier,
+    geometry: CashBillGeometry,
+    data: List<Byte>,
+    token: Token
+) {
     Box(
         modifier = modifier
-            .punchCircle(CashBillDefaults.PunchColor),
+            .punchCircle(CashBillDefaults.punchBrushIn(punch = Punch.Code, token)),
         contentAlignment = Alignment.Center
     ) {
         if (data.isNotEmpty()) {
             ScannableCode(
                 modifier = Modifier
                     .size(geometry.codeSize),
-                data = data
+                data = data,
+                token = token
             )
         }
     }
@@ -419,8 +506,8 @@ private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, 
 private fun loadBillAsset(drawableRes: Int): ImageBitmap {
     val option = BitmapFactory.Options()
     option.inPreferredConfig = Bitmap.Config.ARGB_8888
-   return BitmapFactory.decodeResource(
-        LocalContext.current.resources,
+    return BitmapFactory.decodeResource(
+        LocalResources.current,
         drawableRes,
         option
     ).asImageBitmap()

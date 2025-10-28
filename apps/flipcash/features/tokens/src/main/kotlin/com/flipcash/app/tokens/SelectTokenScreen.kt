@@ -12,8 +12,10 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.AppRoute.Main.*
+import com.flipcash.app.bill.customization.LocalBillPlaygroundController
+import com.flipcash.app.core.AppRoute.Main.Give
+import com.flipcash.app.core.AppRoute.Menu.Deposit
+import com.flipcash.app.core.AppRoute.Transfers.Withdrawal.Amount
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.features.tokens.R
@@ -64,7 +66,7 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                 viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(purpose))
             }
 
-
+            val billPlayground = LocalBillPlaygroundController.current
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
                     .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
@@ -79,13 +81,18 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                             }
                             TokenPurpose.Withdraw -> {
                                 navigator.push(
-                                    ScreenRegistry.get(AppRoute.Transfers.Withdrawal.Amount(token.address))
+                                    ScreenRegistry.get(Amount(token.address))
                                 )
                             }
                             TokenPurpose.Deposit -> {
                                 navigator.push(
-                                    ScreenRegistry.get(AppRoute.Menu.Deposit(token.address))
+                                    ScreenRegistry.get(Deposit(token.address))
                                 )
+                            }
+
+                            TokenPurpose.BillPlayground -> {
+                                navigator.hide()
+                                billPlayground.customizeFor(token)
                             }
                         }
                     }.launchIn(this)

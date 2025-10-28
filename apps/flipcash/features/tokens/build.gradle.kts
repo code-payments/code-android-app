@@ -53,6 +53,7 @@ dependencies {
     implementation(Libs.compose_materialIconsExtended)
 
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:bill-customization"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:core"))
 

@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills
+package com.flipcash.app.bills
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -15,23 +15,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.bill.Bill
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CustomSwipeToDismiss
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun AnimatedBill(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(),
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = CodeTheme.dimens.inset,
+        vertical = CodeTheme.dimens.grid.x2
+    ),
     dismissState: DismissState,
     dismissed: Boolean,
     transitionSpec: AnimatedContentTransitionScope<Bill?>.() -> ContentTransform,
+    contentKey: (Bill?) -> Any? = { it },
     bill: Bill?,
 ) {
     AnimatedContent(
         modifier = modifier,
         targetState = bill,
         label = "animate bill",
-        transitionSpec = transitionSpec
+        transitionSpec = transitionSpec,
+        contentKey = contentKey,
     ) { b ->
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -50,7 +56,11 @@ fun AnimatedBill(
                         )
                     }
                 },
-                directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
+                directions = if (b?.disableGestures ?: false) {
+                    emptySet()
+                } else {
+                    setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd)
+                },
             )
         }
     }

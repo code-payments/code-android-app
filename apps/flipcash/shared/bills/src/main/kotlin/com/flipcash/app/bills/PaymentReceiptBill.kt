@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills
+package com.flipcash.app.bills
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DashEffect
 import com.getcode.theme.monospace
@@ -41,6 +42,7 @@ internal fun Receipt(
     modifier: Modifier = Modifier,
     data: List<Byte>,
     amount: LocalFiat,
+    token: Token,
     currencyCode: CurrencyCode?,
 ) {
     val exchange = LocalExchange.current
@@ -55,8 +57,7 @@ internal fun Receipt(
         val codeSize = remember { mW * 0.65f }
 
         Column(
-            modifier = Modifier
-                .background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.receipt())
+            modifier = Modifier.background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.receipt())
                 .padding(top = CodeTheme.dimens.grid.x12)
                 .heightIn(0.dp, 800.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -64,10 +65,10 @@ internal fun Receipt(
         ) {
             if (data.isNotEmpty()) {
                 ScannableCode(
-                    modifier = Modifier
-                        .size(codeSize)
+                    modifier = Modifier.size(codeSize)
                         .background(CodeTheme.colors.brandMuted, CircleShape),
-                    data = data
+                    data = data,
+                    token = token,
                 )
             }
 
