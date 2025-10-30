@@ -1,9 +1,17 @@
 package com.flipcash.app.bill.customization.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.animateBounds
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +37,11 @@ import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -44,10 +54,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.Event
+import com.flipcash.app.bill.customization.PlaygroundMode
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.bill.playground.R
@@ -64,6 +76,7 @@ import com.getcode.ui.utils.hexToColor
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun BillPlayground(
+    mode: PlaygroundMode,
     selectedSlot: Int,
     maxSlots: Int,
     colorOptions: List<BillBackground>,
@@ -159,96 +172,162 @@ internal fun BillPlayground(
             }
         }
 
-        // color bar
-        LazyHorizontalGrid(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(112.dp),
-            rows = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            contentPadding = PaddingValues(horizontal = CodeTheme.dimens.grid.x5)
-        ) {
-            item(
-                span = { GridItemSpan(maxLineSpan) }
-            ) {
-                // hue control trigger
-                Box(
-                    modifier = Modifier
-                        .width(50.dp) // Set a fixed width matching other items
-                        .fillMaxHeight() // Fill the available height of the grid
-                        .rainbowBackground()
-                        .padding(CodeTheme.dimens.thickBorder)
-                        .background(
-                            color = Color.Black.copy(0.50f),
-                            shape = CodeTheme.shapes.small
+        val selectedSlotColor by rememberUpdatedState(selectedColors[selectedSlot])
+
+        // color options
+        AnimatedContent(
+            targetState = mode,
+            transitionSpec = {
+                if (targetState == PlaygroundMode.ColorPanel) {
+                    // ColorPanel is entering, slide in from the left
+                    slideInHorizontally(
+                        spring(
+                            dampingRatio = 0.9f,
+                            stiffness = Spring.StiffnessMediumLow,
+                            visibilityThreshold = IntOffset.VisibilityThreshold,
                         )
-                        .padding(CodeTheme.dimens.grid.x3),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_color_tune_hsl),
-                        contentDescription = "Color manipulation",
-                        tint = Color.White
-                    )
+                    ) { width -> -width } togetherWith
+                        slideOutHorizontally { width -> width } + fadeOut()
+                } else { // targetState == PlaygroundMode.Presets
+                    // ColorPanel is exiting, slide out to the left
+                    slideInHorizontally(
+                        spring(
+                            dampingRatio = 0.9f,
+                            stiffness = Spring.StiffnessMediumLow,
+                            visibilityThreshold = IntOffset.VisibilityThreshold,
+                        ),
+                    ) { width -> width } togetherWith
+                        slideOutHorizontally { width -> -width } + fadeOut()
                 }
             }
-
-            items(colorOptions.size) { index ->
-                val numRows = 2
-                val itemsPerRow = (colorOptions.size + numRows - 1) / numRows
-                val col = index / numRows
-                val row = index % numRows
-                val newIndex = if (row == 0) {
-                    col
-                } else {
-                    itemsPerRow + col
-                }
-                if (newIndex < colorOptions.size) {
-                    val option = colorOptions[newIndex]
-                    Box(
+        ) { mode ->
+            when (mode) {
+                PlaygroundMode.ColorPanel -> {
+                    ColorPanel(
+                        selectedColor = selectedSlotColor,
                         modifier = Modifier
-                            .size(50.dp)
-                            .presenceBorder()
-                            .addIf(option is BillBackground.Solid) {
-                                Modifier.background(
-                                    color = hexToColor((option as BillBackground.Solid).colorHex),
-                                    shape = CodeTheme.shapes.small
-                                )
-                            }
-                            .addIf(option is BillBackground.Gradient) {
-                                val colors =
-                                    (option as BillBackground.Gradient).colors.map { hexToColor(it) }
-                                Modifier.background(
-                                    brush = Brush.verticalGradient(
-                                        colors = colors,
-                                    ),
-                                    shape = CodeTheme.shapes.small
-                                )
-                            }
-                            .rememberedClickable {
-                                when (option) {
-                                    is BillBackground.Gradient -> dispatchEvent(
-                                        Event.LoadBackground(
-                                            option
-                                        )
-                                    )
-
-                                    is BillBackground.Solid -> dispatchEvent(
-                                        Event.ChangeColor(
-                                            hexToColor(option.colorHex)
-                                        )
-                                    )
-                                }
-                            }
+                            .fillMaxWidth()
+                            .height(CodeTheme.dimens.grid.x14 * 2)
+                            .padding(horizontal = CodeTheme.dimens.grid.x5)
+                            .padding(vertical = CodeTheme.dimens.grid.x3),
+                        onChange = { dispatchEvent(Event.ChangeColor(it)) },
+                        onClose = {
+                            dispatchEvent(Event.CloseHueControls)
+                        }
                     )
+                }
+                PlaygroundMode.Presets -> {
+                    LazyHorizontalGrid(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(CodeTheme.dimens.grid.x14 * 2)
+                            .padding(vertical = CodeTheme.dimens.grid.x3),
+                        rows = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                        contentPadding = PaddingValues(horizontal = CodeTheme.dimens.grid.x5)
+                    ) {
+                        item(
+                            span = { GridItemSpan(maxLineSpan) }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(CodeTheme.dimens.grid.x10)
+                                    .fillMaxHeight()
+                                    .rainbowBackground()
+                                    .padding(CodeTheme.dimens.thickBorder)
+                                    .background(
+                                        color = Color.Black.copy(0.50f),
+                                        shape = CodeTheme.shapes.small
+                                    )
+                                    .clip(CodeTheme.shapes.small)
+                                    .rememberedClickable {
+                                        dispatchEvent(Event.OpenHueControls)
+                                    }
+                                    .padding(CodeTheme.dimens.grid.x3),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_color_tune_hsl),
+                                    contentDescription = "Color manipulation",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                        items(colorOptions.size) { index ->
+                            ColorOptionItem(colorOptions, index) { event ->
+                                dispatchEvent(event)
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-private fun Modifier.presenceBorder(
+@Composable
+private fun ColorOptionItem(
+    colorOptions: List<BillBackground>,
+    index: Int,
+    dispatchEvent: (Event) -> Unit
+) {
+    val numRows = 2
+    val itemsPerRow = (colorOptions.size + numRows - 1) / numRows
+    val col = index / numRows
+    val row = index % numRows
+    val newIndex = if (row == 0) {
+        col
+    } else {
+        itemsPerRow + col
+    }
+    if (newIndex < colorOptions.size) {
+        val option = colorOptions[newIndex]
+        Box(
+            modifier = Modifier
+                .width(CodeTheme.dimens.grid.x10)
+                .presenceBorder()
+                .addIf(option is BillBackground.Solid) {
+                    Modifier.background(
+                        color = hexToColor((option as BillBackground.Solid).colorHex),
+                        shape = CodeTheme.shapes.small
+                    )
+                }
+                .addIf(option is BillBackground.Gradient) {
+                    val colors =
+                        (option as BillBackground.Gradient).colors.map {
+                            hexToColor(
+                                it
+                            )
+                        }
+                    Modifier.background(
+                        brush = Brush.verticalGradient(
+                            colors = colors,
+                        ),
+                        shape = CodeTheme.shapes.small
+                    )
+                }
+                .rememberedClickable {
+                    when (option) {
+                        is BillBackground.Gradient -> dispatchEvent(
+                            Event.LoadBackground(
+                                option
+                            )
+                        )
+
+                        is BillBackground.Solid -> dispatchEvent(
+                            Event.ChangeColor(
+                                hexToColor(option.colorHex)
+                            )
+                        )
+                    }
+                }
+        )
+    }
+}
+
+internal fun Modifier.presenceBorder(
     width: Dp = 2.dp,
     color: Color = Color.White.copy(0.30f)
 ): Modifier = this.composed {
@@ -342,6 +421,7 @@ private fun PreviewCustomizationControls() {
                     .presenceBorder(),
             )
             BillPlayground(
+                mode = state.mode,
                 selectedSlot = state.selectedSlot,
                 maxSlots = state.maxSlots,
                 selectedColors = state.selectedColors,

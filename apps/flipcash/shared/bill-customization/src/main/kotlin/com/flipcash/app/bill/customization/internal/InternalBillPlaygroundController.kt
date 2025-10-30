@@ -3,6 +3,7 @@ package com.flipcash.app.bill.customization.internal
 import androidx.compose.ui.graphics.Color
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.Event
+import com.flipcash.app.bill.customization.PlaygroundMode
 import com.flipcash.app.bill.customization.State
 import com.flipcash.app.core.bill.Bill
 import com.getcode.opencode.exchange.Exchange
@@ -28,8 +29,6 @@ import kotlinx.coroutines.flow.update
 class InternalBillPlaygroundController(
     private val exchange: Exchange,
 ): BillPlaygroundController {
-
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     override val state: StateFlow<State>
@@ -142,13 +141,13 @@ class InternalBillPlaygroundController(
 
     private fun openHueControls() {
         _state.update { s ->
-            s.copy(hueControlsOpen = true)
+            s.copy(mode = PlaygroundMode.ColorPanel)
         }
     }
 
     private fun closeHueControls() {
         _state.update { s ->
-            s.copy(hueControlsOpen = false)
+            s.copy(mode = PlaygroundMode.Presets)
         }
     }
 

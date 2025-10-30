@@ -154,6 +154,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 BillPlayground(
+                    mode = state.mode,
                     selectedColors = state.selectedColors,
                     selectedSlot = state.selectedSlot,
                     maxSlots = state.maxSlots,

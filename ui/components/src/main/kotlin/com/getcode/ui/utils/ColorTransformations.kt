@@ -37,6 +37,9 @@ val Hls.rgb: Rgb
 val Hls.color: Color
     get() = hlsToColor(this)
 
+val Hsv.color: Color
+    get() = hsvToColor(this)
+
 val Rgb.hls: Hls
     get() = rgbToHls(this)
 
@@ -151,15 +154,13 @@ private fun hlsToColor(h: Float, l: Float, s: Float): Color {
 }
 
 private fun hlsToColor(hls: Hls): Color {
-    val (_, _, m) = hlsToComponents(hls)
-    val (r, g, b) = hlsToRgb(hls)
-
-    return Color(
-        red = r + m,
-        green = g + m,
-        blue = b + m,
-        alpha = 1f
+    return Color.hsl(
+       hls.h, hls.s, hls.l,
     )
+}
+
+private fun hsvToColor(hsv: Hsv): Color {
+    return Color.hsv(hsv.h, hsv.s, hsv.v)
 }
 
 private fun invertColor(color: Color): Color {
@@ -192,14 +193,6 @@ fun deriveTargetColor(sourceColor: Color, targetLightness: Float, targetSaturati
     val newHue = hls.h
     val newLightness = (hls.l + targetLightness).coerceIn(0f, 1f) // Increase lightness
     val newSaturation = (hls.s + targetSaturation).coerceIn(0f, 1f) // Increase saturation
-
-    return hlsToColor(newHue, newLightness, newSaturation)
-}
-
-fun deriveTargetColor(sourceColor: Color, hls: Hls): Color {
-    val newHue = sourceColor.hue
-    val newLightness = (hls.l + hls.l).coerceIn(0f, 1f) // Increase lightness
-    val newSaturation = (hls.s + hls.s).coerceIn(0f, 1f) // Increase saturation
 
     return hlsToColor(newHue, newLightness, newSaturation)
 }

@@ -18,15 +18,19 @@ interface BillPlaygroundController {
     fun cancel()
 }
 
+enum class PlaygroundMode {
+    ColorPanel, Presets
+}
+
 data class State(
     val bill: Bill? = null,
-    val hueControlsOpen: Boolean = false,
+    val mode: PlaygroundMode = PlaygroundMode.Presets,
     val selectedSlot: Int = 0,
     val maxSlots: Int = MaxGradientColors,
-    val selectedColors: List<Color> = DefaultColorOptions.filterIsInstance<BillBackground.Gradient>()
-        .random().colors.map { hexToColor(it) },
+    val selectedColors: List<Color> = buildGradient(),
     val colorOptions: List<BillBackground> = DefaultColorOptions
 ) {
+
     val isCustomizing: Boolean
         get() = bill != null
 
@@ -54,19 +58,36 @@ private const val MaxGradientColors = 3
 
 @OptIn(ExperimentalStdlibApi::class)
 private val DefaultColorOptions = listOf(
-    BillBackground.Solid("#FFFFFFFF"),
-    BillBackground.Solid("#FF000000"),
-    BillBackground.Solid("#FFFF453A"),
+    BillBackground.Solid("#FFFF453A"), // Red
     BillBackground.Solid("#FFFF9F0A"), // Orange
-    BillBackground.Solid("#FFFFD60A"),
-    BillBackground.Solid("#FF30D158"),
-    BillBackground.Gradient(listOf("#FFE2EAF3", "#FF5487C1")),
-    BillBackground.Gradient(listOf("#FFCDB3FF", "#FFECE0E5", "#FFFB9655")),
-    BillBackground.Gradient(listOf("#FFFFD5E7", "#FF31D9AA")),
-    BillBackground.Gradient(listOf("#FFE4307B", "#FF6123FF", "#FF8A02CE")),
-    BillBackground.Gradient(listOf("#FFCCCC31", "#FFC65A24")),
-    BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
+    BillBackground.Solid("#FFFFD60A"), // Yellow
+    BillBackground.Solid("#FF30D158"), // Green
+    BillBackground.Solid("#FF00FFE9"), // Cyan
+    BillBackground.Solid("#FF0054FF"), // Blue
+    BillBackground.Solid("#FF32CD32"), // Electric Lime
+    BillBackground.Solid("#FFFF1493"), // Hot Pink
+    BillBackground.Solid("#FF00D4FF"), // Cyan Blue
+    BillBackground.Solid("#FFFF4500"), // Coral Red
+    BillBackground.Solid("#FF00FF7F"), // Spring Green
+    BillBackground.Solid("#FF8B4513"), // Brown
+//    BillBackground.Gradient(listOf("#FFE2EAF3", "#FF5487C1")),
+//    BillBackground.Gradient(listOf("#FFCDB3FF", "#FFECE0E5", "#FFFB9655")),
+//    BillBackground.Gradient(listOf("#FFFFD5E7", "#FF31D9AA")),
+//    BillBackground.Gradient(listOf("#FFE4307B", "#FF6123FF", "#FF8A02CE")),
+//    BillBackground.Gradient(listOf("#FFCCCC31", "#FFC65A24")),
+//    BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
 )
+
+private fun buildGradient(): List<Color> {
+    val swatches = DefaultColorOptions.filterIsInstance<BillBackground.Solid>()
+
+    // return a random 3 color gradient
+    return listOf(
+        hexToColor(swatches.random().colorHex),
+        hexToColor(swatches.random().colorHex),
+        hexToColor(swatches.random().colorHex),
+    )
+}
 
 internal object StubPlaygroundController : BillPlaygroundController {
     override val state: StateFlow<State> = MutableStateFlow(State())

@@ -65,6 +65,7 @@ import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.punchCircle
 import com.getcode.ui.core.punchRectangle
 import com.getcode.ui.utils.Geometry
+import com.getcode.ui.utils.deriveTargetColor
 import com.getcode.ui.utils.hexToColor
 import com.getcode.ui.utils.nonScaledSp
 import kotlin.math.ceil
@@ -128,29 +129,61 @@ private object CashBillDefaults {
 
         return when (val bg = billCustomizations.background) {
             is BillBackground.Gradient -> {
-                // select the middle color if 3, otherwise take last
-                val colorHex = when (punch) {
-                    Punch.SecurityStrip -> bg.colors.first()
-                    Punch.Code -> when (bg.colors.size) {
-                        3 -> bg.colors[1]
-                        else -> bg.colors.last()
+                when (punch) {
+                    Punch.SecurityStrip -> {
+                        val color = Color.Black.copy(0.15f)
+                            .compositeOver(
+                                hexToColor(bg.colors.first())
+                                    .copy(alpha = CodeBackgroundOpacity)
+                            )
+
+                        Brush.verticalGradient(
+                            colors = listOf(color, color)
+                        )
+                    }
+                    Punch.Code -> {
+                        val bgColors = if (bg.colors.size == 3) {
+                            bg.colors.slice(listOf(0, 2))
+                        } else {
+                            bg.colors
+                        }
+
+                        Brush.verticalGradient(
+                            colors = bgColors.map { hexToColor(it) }
+                                .map {
+                                    deriveTargetColor(
+                                        sourceColor = it,
+                                        targetLightness = -0.314f,
+                                        targetSaturation = -0.203f
+                                    ).copy(alpha = 0.62f)
+                                }
+                        )
                     }
                 }
-
-                val color = Color.Black.copy(0.15f)
-                    .compositeOver(hexToColor(colorHex).copy(alpha = CodeBackgroundOpacity))
-
-                Brush.verticalGradient(
-                    colors = listOf(color, color)
-                )
             }
-            is BillBackground.Solid -> {
-                val color = Color.Black.copy(0.15f)
-                    .compositeOver(hexToColor(bg.colorHex).copy(alpha = CodeBackgroundOpacity))
 
-                Brush.verticalGradient(
-                    colors = listOf(color, color)
-                )
+            is BillBackground.Solid -> {
+                when (punch) {
+                    Punch.SecurityStrip -> {
+                        val color = Color.Black.copy(0.15f)
+                            .compositeOver(hexToColor(bg.colorHex).copy(alpha = 0.62f))
+
+                        Brush.verticalGradient(
+                            colors = listOf(color, color)
+                        )
+                    }
+                    Punch.Code -> {
+                        val color = deriveTargetColor(
+                            sourceColor = hexToColor(bg.colorHex),
+                            targetLightness = -0.314f,
+                            targetSaturation = -0.203f
+                        ).copy(alpha = 0.62f)
+
+                        Brush.verticalGradient(
+                            colors = listOf(color, color)
+                        )
+                    }
+                }
             }
         }
     }
@@ -488,7 +521,10 @@ private fun BillCode(
 ) {
     Box(
         modifier = modifier
-            .punchCircle(CashBillDefaults.punchBrushIn(punch = Punch.Code, token)),
+            .punchCircle(
+                brush = CashBillDefaults.punchBrushIn(punch = Punch.Code, token),
+                blendMode = BlendMode.SrcOver,
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (data.isNotEmpty()) {

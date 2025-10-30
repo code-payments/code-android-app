@@ -201,19 +201,37 @@ fun Modifier.circleBackground(color: Color, padding: Dp): Modifier {
     return this then backgroundModifier then layoutModifier
 }
 
-fun Modifier.punchRectangle(brush: Brush) = this.drawWithContent {
+fun Modifier.punchRectangle(color: Color, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
     drawRect(
-        brush,
-        blendMode = BlendMode.Src
+        color,
+        blendMode = blendMode
     )
 
     drawContent()
 }
 
-fun Modifier.punchCircle(brush: Brush) = this.drawWithContent {
+fun Modifier.punchRectangle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
+    drawRect(
+        brush,
+        blendMode = blendMode
+    )
+
+    drawContent()
+}
+
+fun Modifier.punchCircle(color: Color, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
+    drawCircle(
+        color,
+        blendMode = blendMode
+    )
+
+    drawContent()
+}
+
+fun Modifier.punchCircle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
     drawCircle(
         brush,
-        blendMode = BlendMode.Src
+        blendMode = blendMode
     )
 
     drawContent()
