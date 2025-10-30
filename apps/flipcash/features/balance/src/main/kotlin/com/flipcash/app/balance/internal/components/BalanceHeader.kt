@@ -27,7 +27,7 @@ internal fun BalanceHeader(
     Column(
         modifier = modifier
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.inset),
+            .padding(vertical = CodeTheme.dimens.grid.x9),
     ) {
         if (balance == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
