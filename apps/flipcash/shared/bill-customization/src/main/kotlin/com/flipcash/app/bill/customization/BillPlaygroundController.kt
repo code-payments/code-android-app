@@ -22,17 +22,26 @@ enum class PlaygroundMode {
     ColorPanel, Presets
 }
 
+enum class ColorChange {
+    Preset, Custom
+}
+
 data class State(
     val bill: Bill? = null,
+    val presetsOpen: Boolean = false,
     val mode: PlaygroundMode = PlaygroundMode.Presets,
     val selectedSlot: Int = 0,
     val maxSlots: Int = MaxGradientColors,
     val selectedColors: List<Color> = buildGradient(),
-    val colorOptions: List<BillBackground> = DefaultColorOptions
+    val colorOptions: List<BillBackground.Solid> = PresetColorOptions,
+    val gradientOptions: List<BillBackground.Gradient> = PresetGradients,
+    val previousState: State? = null,
 ) {
-
     val isCustomizing: Boolean
         get() = bill != null
+
+    val canUndo: Boolean
+        get() = previousState != null
 
     val brush: Brush
         get() {
@@ -48,16 +57,17 @@ sealed interface Event {
     data object AddSlot: Event
     data object RemoveSlot: Event
     data class SelectSlot(val slot: Int): Event
-    data class ChangeColor(val color: Color): Event
+    data class ChangeColor(val color: Color, val from: ColorChange): Event
     data class LoadBackground(val background: BillBackground): Event
     data object OpenHueControls: Event
     data object CloseHueControls: Event
+    data object Undo: Event
 }
 
 private const val MaxGradientColors = 3
 
 @OptIn(ExperimentalStdlibApi::class)
-private val DefaultColorOptions = listOf(
+private val PresetColorOptions: List<BillBackground.Solid> = listOf(
     BillBackground.Solid("#FFFF453A"), // Red
     BillBackground.Solid("#FFFF9F0A"), // Orange
     BillBackground.Solid("#FFFFD60A"), // Yellow
@@ -70,16 +80,19 @@ private val DefaultColorOptions = listOf(
     BillBackground.Solid("#FFFF4500"), // Coral Red
     BillBackground.Solid("#FF00FF7F"), // Spring Green
     BillBackground.Solid("#FF8B4513"), // Brown
-//    BillBackground.Gradient(listOf("#FFE2EAF3", "#FF5487C1")),
-//    BillBackground.Gradient(listOf("#FFCDB3FF", "#FFECE0E5", "#FFFB9655")),
-//    BillBackground.Gradient(listOf("#FFFFD5E7", "#FF31D9AA")),
-//    BillBackground.Gradient(listOf("#FFE4307B", "#FF6123FF", "#FF8A02CE")),
-//    BillBackground.Gradient(listOf("#FFCCCC31", "#FFC65A24")),
-//    BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
+)
+
+private val PresetGradients: List<BillBackground.Gradient> = listOf(
+    BillBackground.Gradient(listOf("#FFE2EAF3", "#FF5487C1")),
+    BillBackground.Gradient(listOf("#FFCDB3FF", "#FFECE0E5", "#FFFB9655")),
+    BillBackground.Gradient(listOf("#FFFFD5E7", "#FF31D9AA")),
+    BillBackground.Gradient(listOf("#FFE4307B", "#FF6123FF", "#FF8A02CE")),
+    BillBackground.Gradient(listOf("#FFCCCC31", "#FFC65A24")),
+    BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
 )
 
 private fun buildGradient(): List<Color> {
-    val swatches = DefaultColorOptions.filterIsInstance<BillBackground.Solid>()
+    val swatches = PresetColorOptions
 
     // return a random 3 color gradient
     return listOf(

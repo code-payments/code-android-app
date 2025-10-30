@@ -2,6 +2,7 @@ package com.flipcash.app.bill.customization.internal
 
 import androidx.compose.ui.graphics.Color
 import com.flipcash.app.bill.customization.BillPlaygroundController
+import com.flipcash.app.bill.customization.ColorChange
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.PlaygroundMode
 import com.flipcash.app.bill.customization.State
@@ -28,7 +29,7 @@ import kotlinx.coroutines.flow.update
 
 class InternalBillPlaygroundController(
     private val exchange: Exchange,
-): BillPlaygroundController {
+) : BillPlaygroundController {
 
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     override val state: StateFlow<State>
@@ -65,57 +66,45 @@ class InternalBillPlaygroundController(
     override fun dispatchEvent(event: Event) {
         when (event) {
             Event.AddSlot -> addSlot()
-            is Event.ChangeColor -> changeColorForSlot(event.color)
+            is Event.ChangeColor -> changeColorForSlot(event.color, event.from)
             Event.CloseHueControls -> closeHueControls()
             Event.OpenHueControls -> openHueControls()
             Event.RemoveSlot -> removeSlot()
             is Event.SelectSlot -> selectSlot(event.slot)
-            is Event.LoadBackground -> {
-                when (val bg = event.background) {
-                    is BillBackground.Gradient -> {
-                        val colors = bg.colors.map { hexToColor(it) }
-                        _state.update {
-                            it.copy(
-                                selectedColors = colors,
-                                selectedSlot = colors.lastIndex,
-                            )
-                        }
-                    }
-                    is BillBackground.Solid -> {
-                        _state.update {
-                            it.copy(
-                                selectedColors = listOf(hexToColor(bg.colorHex)),
-                                selectedSlot = 0
-                            )
-                        }
-                    }
-                }
-            }
+            is Event.LoadBackground -> loadBackground(event.background)
+            Event.Undo -> undoLastChange()
         }
     }
 
     private fun addSlot() {
         if (_state.value.selectedColors.count() < _state.value.maxSlots) {
-            _state.update {
-                val lastSlotColor = it.selectedColors[it.selectedSlot]
-                val insertIndex = it.selectedSlot + 1
-                val colors = it.selectedColors.toMutableList().apply {
+            _state.update { s ->
+                val previousState = s.copy()
+                val lastSlotColor = s.selectedColors[s.selectedSlot]
+                val insertIndex = s.selectedSlot + 1
+                val colors = s.selectedColors.toMutableList().apply {
                     add(insertIndex, lastSlotColor)
                 }.toList()
 
-                it.copy(selectedColors = colors, selectedSlot = insertIndex)
+                s.copy(
+                    selectedColors = colors,
+                    selectedSlot = insertIndex,
+                    previousState = previousState,
+                )
             }
         }
     }
 
     private fun removeSlot() {
         if (_state.value.selectedColors.count() > 1) {
-            _state.update {
-                val indexToRemove = it.selectedSlot
-                val newColors = it.selectedColors.toMutableList().apply { removeAt(indexToRemove) }
-                it.copy(
+            _state.update { s ->
+                val previousState = s.copy()
+                val indexToRemove = s.selectedSlot
+                val newColors = s.selectedColors.toMutableList().apply { removeAt(indexToRemove) }
+                s.copy(
                     selectedColors = newColors,
-                    selectedSlot = it.selectedSlot.coerceAtMost(newColors.size - 1)
+                    selectedSlot = s.selectedSlot.coerceAtMost(newColors.size - 1),
+                    previousState = previousState,
                 )
             }
         }
@@ -127,15 +116,21 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun changeColorForSlot(color: Color) {
+    private fun changeColorForSlot(color: Color, reason: ColorChange) {
         _state.update { s ->
+            val previousState = s.copy()
             val slotIndex = s.selectedSlot
             val updatedColors = s.selectedColors.toMutableList().apply {
                 set(slotIndex, color)
             }.toList()
-            s.copy(
-                selectedColors = updatedColors
-            )
+            if (reason == ColorChange.Preset) {
+                s.copy(
+                    selectedColors = updatedColors,
+                    previousState = previousState,
+                )
+            } else {
+                s.copy(selectedColors = updatedColors,)
+            }
         }
     }
 
@@ -148,6 +143,40 @@ class InternalBillPlaygroundController(
     private fun closeHueControls() {
         _state.update { s ->
             s.copy(mode = PlaygroundMode.Presets)
+        }
+    }
+
+    private fun loadBackground(background: BillBackground) {
+        when (val bg = background) {
+            is BillBackground.Gradient -> {
+                val colors = bg.colors.map { hexToColor(it) }
+                _state.update { s ->
+                    val previousState = s.copy()
+                    s.copy(
+                        selectedColors = colors,
+                        selectedSlot = colors.lastIndex,
+                        previousState = previousState
+                    )
+                }
+            }
+
+            is BillBackground.Solid -> {
+                _state.update { s ->
+                    val previousState = s.copy()
+                    s.copy(
+                        selectedColors = listOf(hexToColor(bg.colorHex)),
+                        selectedSlot = 0,
+                        previousState = previousState
+                    )
+                }
+            }
+        }
+    }
+
+    private fun undoLastChange() {
+        _state.update {
+            val previous =  it.previousState ?: return
+            previous
         }
     }
 

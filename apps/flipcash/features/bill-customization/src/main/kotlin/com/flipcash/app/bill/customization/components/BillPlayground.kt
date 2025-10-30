@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.bill.customization.ColorChange
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.PlaygroundMode
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
@@ -210,7 +211,7 @@ internal fun BillPlayground(
                             .height(CodeTheme.dimens.grid.x14 * 2)
                             .padding(horizontal = CodeTheme.dimens.grid.x5)
                             .padding(vertical = CodeTheme.dimens.grid.x3),
-                        onChange = { dispatchEvent(Event.ChangeColor(it)) },
+                        onChange = { dispatchEvent(Event.ChangeColor(it, ColorChange.Custom)) },
                         onClose = {
                             dispatchEvent(Event.CloseHueControls)
                         }
@@ -318,7 +319,8 @@ private fun ColorOptionItem(
 
                         is BillBackground.Solid -> dispatchEvent(
                             Event.ChangeColor(
-                                hexToColor(option.colorHex)
+                                hexToColor(option.colorHex),
+                                ColorChange.Preset
                             )
                         )
                     }

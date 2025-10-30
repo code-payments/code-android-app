@@ -2,11 +2,13 @@ package com.flipcash.app.bill.customization
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
@@ -31,17 +34,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.features.bill.playground.R
 import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.TokenBillCustomizations
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.toAGColor
 
@@ -135,6 +142,8 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         ) {
             TopBar(
                 modifier = Modifier.fillMaxWidth(),
+                canUndo = state.canUndo,
+                onUndo = { controller.dispatchEvent(Event.Undo) },
                 onBack = { controller.cancel() },
                 onDone = { controller.cancel() }
             )
@@ -171,6 +180,8 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
 private fun TopBar(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
+    canUndo: Boolean,
+    onUndo: () -> Unit,
     onDone: () -> Unit,
 ) {
     Row(
@@ -183,18 +194,37 @@ private fun TopBar(
     ) {
         AppBarDefaults.UpNavigation { onBack() }
 
-        Text(
-            modifier = Modifier
-                .background(Color.Black.copy(0.19f), CircleShape)
-                .clip(CircleShape)
-                .rememberedClickable { onDone() }
-                .padding(
-                    horizontal = CodeTheme.dimens.grid.x2,
-                    vertical = CodeTheme.dimens.grid.x1
-                ),
-            text = "Done",
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val undoAlpha by animateFloatAsState(
+                targetValue = if (canUndo) 1f else ContentAlpha.disabled,
+            )
+            Image(
+                modifier = Modifier
+                    .background(Color.Black.copy(0.19f), CircleShape)
+                    .clip(CircleShape)
+                    .rememberedClickable(enabled = canUndo) { onUndo() }
+                    .padding(2.dp),
+                painter = painterResource(R.drawable.ic_undo),
+                colorFilter = ColorFilter.tint(Color.White.copy(undoAlpha)),
+                contentDescription = null
+            )
+
+            Text(
+                modifier = Modifier
+                    .background(Color.Black.copy(0.19f), CircleShape)
+                    .clip(CircleShape)
+                    .rememberedClickable { onDone() }
+                    .padding(
+                        horizontal = CodeTheme.dimens.grid.x2,
+                        vertical = CodeTheme.dimens.grid.x1
+                    ),
+                text = "Done",
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+        }
     }
 }
