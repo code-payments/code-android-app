@@ -113,9 +113,7 @@ private fun TokenInfoScreen(
                         modifier = Modifier
                             .fillParentMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(
-                                top = CodeTheme.dimens.grid.x5,
-                            ),
+                            .padding(top = CodeTheme.dimens.grid.x5),
                         buttonState = ButtonState.Filled10,
                         text = stringResource(R.string.action_viewTransactionHistory),
                     ) {
@@ -127,8 +125,21 @@ private fun TokenInfoScreen(
                     }
 
                     Divider(
-                        modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x5),
+                        modifier = Modifier.padding(
+                            horizontal = CodeTheme.dimens.inset,
+                            vertical = CodeTheme.dimens.grid.x5
+                        ),
                         color = CodeTheme.colors.dividerVariant,
+                    )
+                }
+
+                // currency info
+                item {
+                    CurrencyInfoSection(
+                        modifier = Modifier
+                            .fillParentMaxWidth(),
+                        state = state,
+                        dispatch = dispatch
                     )
                 }
 
@@ -142,16 +153,6 @@ private fun TokenInfoScreen(
                             marketCap = mcap
                         )
                     }
-                }
-
-                // currency info
-                item {
-                    CurrencyInfoSection(
-                        modifier = Modifier
-                            .fillParentMaxWidth(),
-                        state = state,
-                        dispatch = dispatch
-                    )
                 }
             }
         }
@@ -169,10 +170,7 @@ private fun TokenBalance(
     Column(
         modifier = modifier
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(
-                top = CodeTheme.dimens.grid.x9,
-                bottom = CodeTheme.dimens.grid.x9,
-            ),
+            .padding(vertical = CodeTheme.dimens.grid.x9,),
     ) {
         if (balance == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -261,10 +259,19 @@ private fun CurrencyInfoSection(
             text = state.token?.description.orEmpty(),
             style = CodeTheme.typography.textMedium,
             isExpanded = state.descriptionExpanded,
+            isExpandable = false,
             contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
         ) {
             dispatch(TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded))
         }
+
+        Divider(
+            modifier = Modifier.padding(
+                horizontal = CodeTheme.dimens.inset,
+                vertical = CodeTheme.dimens.grid.x5
+            ),
+            color = CodeTheme.colors.dividerVariant,
+        )
     }
 }
 
@@ -305,6 +312,7 @@ private fun PreviewTokenInfo() {
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 style = CodeTheme.typography.textMedium,
                 isExpanded = false,
+                isExpandable = false,
                 onToggle = { }
             )
         }

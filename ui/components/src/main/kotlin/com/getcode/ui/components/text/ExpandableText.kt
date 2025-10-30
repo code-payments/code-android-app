@@ -39,66 +39,77 @@ fun ExpandableText(
     isExpanded: Boolean,
     modifier: Modifier = Modifier,
     textModifier: Modifier = Modifier,
+    isExpandable: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     collapsedMaxLines: Int = 4,
     onToggle: () -> Unit,
 ) {
     var hasOverflow by remember(text) { mutableStateOf(false) }
 
-    Box(modifier = modifier.animateContentSize()) {
-        Column {
-            if (isExpanded) {
-                Text(
-                    modifier = textModifier
-                        .padding(contentPadding),
-                    text = text,
-                    style = style,
-                    color = CodeTheme.colors.textSecondary,
-                )
-            } else {
-                Box {
+    Box(modifier = modifier) {
+        if (!isExpandable) {
+            Text(
+                modifier = textModifier
+                    .padding(contentPadding),
+                text = text,
+                style = style,
+                color = CodeTheme.colors.textSecondary,
+            )
+        } else {
+            Column(Modifier.animateContentSize()) {
+                if (isExpanded) {
                     Text(
                         modifier = textModifier
                             .padding(contentPadding),
                         text = text,
-                        overflow = TextOverflow.Clip,
                         style = style,
                         color = CodeTheme.colors.textSecondary,
-                        onTextLayout = { textLayoutResult ->
-                            hasOverflow = textLayoutResult.hasVisualOverflow
-                        },
-                        maxLines = collapsedMaxLines
                     )
-
-                    if (hasOverflow) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .align(Alignment.BottomCenter)
-                                .drawWithGradient(
-                                    color = CodeTheme.colors.background,
-                                    startY = { 0f },
-                                    endY = { size.height }
-
-                                )
+                } else {
+                    Box {
+                        Text(
+                            modifier = textModifier
+                                .padding(contentPadding),
+                            text = text,
+                            overflow = TextOverflow.Clip,
+                            style = style,
+                            color = CodeTheme.colors.textSecondary,
+                            onTextLayout = { textLayoutResult ->
+                                hasOverflow = textLayoutResult.hasVisualOverflow
+                            },
+                            maxLines = collapsedMaxLines
                         )
+
+                        if (hasOverflow) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .align(Alignment.BottomCenter)
+                                    .drawWithGradient(
+                                        color = CodeTheme.colors.background,
+                                        startY = { 0f },
+                                        endY = { size.height }
+
+                                    )
+                            )
+                        }
                     }
                 }
-            }
 
-            if (hasOverflow) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = CodeTheme.dimens.grid.x1),
-                    color = Color.Transparent
-                ) {
-                    ExpandVisibilityButton(
-                        isExpanded = isExpanded,
+                if (hasOverflow) {
+                    Surface(
                         modifier = Modifier
-                            .padding(contentPadding),
-                        onToggle = onToggle
-                    )
+                            .fillMaxWidth()
+                            .padding(vertical = CodeTheme.dimens.grid.x1),
+                        color = Color.Transparent
+                    ) {
+                        ExpandVisibilityButton(
+                            isExpanded = isExpanded,
+                            modifier = Modifier
+                                .padding(contentPadding),
+                            onToggle = onToggle
+                        )
+                    }
                 }
             }
         }
