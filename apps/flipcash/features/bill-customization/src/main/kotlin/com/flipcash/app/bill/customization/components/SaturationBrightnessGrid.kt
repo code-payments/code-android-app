@@ -50,7 +50,7 @@ import kotlin.math.roundToInt
 internal fun SaturationBrightnessGrid(
     modifier: Modifier = Modifier,
     selectedColor: Color,
-    onHsvChanged: (Hsv) -> Unit,
+    onHsvChanged: (Hsv, isDragging: Boolean) -> Unit,
 ) {
     var isDragging by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
@@ -89,13 +89,14 @@ internal fun SaturationBrightnessGrid(
                             width = componentSize.width.toFloat(),
                             height = componentSize.height.toFloat(),
                             onChange = { saturation, brightness ->
-                                onHsvChanged(hsv.copy(s = saturation, v = brightness))
+                                onHsvChanged(hsv.copy(s = saturation, v = brightness), true)
                             },
                         )
                     },
                     onDragEnd = {
                         isDragging = false
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                        onHsvChanged(hsv, false)
                     }
                 )
             },
@@ -218,7 +219,7 @@ fun HueControlPreview() {
                 .padding(CodeTheme.dimens.inset)
                 .aspectRatio(16 / 9f),
             selectedColor = selectedColor,
-            onHsvChanged = { selectedColor = it.color }
+            onHsvChanged = { hsv, _ -> selectedColor = hsv.color }
         )
     }
 }

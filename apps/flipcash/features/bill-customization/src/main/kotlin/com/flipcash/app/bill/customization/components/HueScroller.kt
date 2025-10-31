@@ -57,7 +57,7 @@ internal fun HueScroller(
     color: Color,
     modifier: Modifier = Modifier,
     hueWindow: Float = 120f,
-    onChange: (Hsv) -> Unit,
+    onChange: (Hsv, isDragging: Boolean) -> Unit,
 ) {
     var isDragging by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
@@ -91,6 +91,7 @@ internal fun HueScroller(
                     onDragEnd = {
                         isDragging = false
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                        onChange(hsv, false)
                     },
                 ) { change, dragAmount ->
                     val deltaHue = dragAmount * (180f / componentSize.width)
@@ -99,7 +100,7 @@ internal fun HueScroller(
                         if (wrapped < 0f) wrapped += 360f
                         wrapped
                     }
-                    onChange(hsv.copy(h = newHue))
+                    onChange(hsv.copy(h = newHue), true)
                 }
             },
         onMeasured = { componentSize = it },
@@ -212,7 +213,7 @@ private fun ColorWheelPreview() {
                 .padding(CodeTheme.dimens.inset)
                 .aspectRatio(16 / 9f),
             color = selectedColor,
-            onChange = { selectedColor = it.color }
+            onChange = { hsv, _ -> selectedColor = hsv.color }
         )
     }
 }

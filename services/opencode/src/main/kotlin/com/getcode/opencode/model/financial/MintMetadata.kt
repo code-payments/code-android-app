@@ -42,7 +42,8 @@ val MintMetadata.Companion.usdc: Token
             ).publicKey,
             lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
         ),
-        launchpadMetadata = null
+        launchpadMetadata = null,
+        billCustomizations = null,
     )
 
 /**
@@ -69,7 +70,8 @@ data class MintMetadata(
     val description: String,
     val imageUrl: String,
     val vmMetadata: VmMetadata,
-    val launchpadMetadata: LaunchpadMetadata?
+    val launchpadMetadata: LaunchpadMetadata?,
+    val billCustomizations: TokenBillCustomizations?,
 ) : Parcelable {
     fun marketCap(): Fiat? {
         val launchpad = launchpadMetadata ?: return null
@@ -123,7 +125,6 @@ data class LaunchpadMetadata(
     val currentCirculatingSupplyQuarks: Long,
     val coreMintLockedQuarks: Long,
     val sellFeeBps: Int, // currently hardcoded to 1%
-    val billCustomizations: TokenBillCustomizations?,
 ) : Parcelable
 
 @Parcelize

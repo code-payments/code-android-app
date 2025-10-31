@@ -117,6 +117,5 @@ internal fun CurrencyService.LaunchpadMetadata.toMetadata(): LaunchpadMetadata {
         currentCirculatingSupplyQuarks = supplyFromBonding,
         coreMintLockedQuarks = coreMintLocked,
         sellFeeBps = sellFeeBps,
-        billCustomizations = null,
     )
 }

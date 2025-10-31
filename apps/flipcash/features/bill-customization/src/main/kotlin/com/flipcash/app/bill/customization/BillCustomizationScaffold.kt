@@ -69,15 +69,15 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
 
     val customizationsOptions by remember(
         state.selectedColors,
-        state.bill?.token?.launchpadMetadata?.billCustomizations
+        state.bill?.token?.billCustomizations
     ) {
         derivedStateOf {
             val background = if (state.selectedColors.count() > 1) {
                 BillBackground.Gradient.from(
-                    state.selectedColors.map { it.toAGColor() }
+                    state.selectedColors.map { it.color.toAGColor() }
                 )
             } else {
-                BillBackground.Solid.from(state.selectedColors.first().toAGColor())
+                BillBackground.Solid.from(state.selectedColors.first().color.toAGColor())
             }
 
 
@@ -94,9 +94,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
             if (bill !is Bill.Cash) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
-                    launchpadMetadata = bill.token.launchpadMetadata?.copy(
-                        billCustomizations = customizationsOptions
-                    )
+                    billCustomizations = customizationsOptions
                 )
             )
         }
@@ -142,7 +140,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         ) {
             TopBar(
                 modifier = Modifier.fillMaxWidth(),
-                canUndo = state.canUndo,
+                canUndo = controller.canUndo,
                 onUndo = { controller.dispatchEvent(Event.Undo) },
                 onBack = { controller.cancel() },
                 onDone = { controller.cancel() }

@@ -21,7 +21,7 @@ internal fun ScannableCode(
     token: Token,
     data: List<Byte>,
 ) {
-    val tokenBillImageBase64 = token.launchpadMetadata?.billCustomizations?.icon
+    val tokenBillImageBase64 = token.billCustomizations?.icon
     BoxWithConstraints(
         modifier = modifier,
         contentAlignment = Alignment.Center

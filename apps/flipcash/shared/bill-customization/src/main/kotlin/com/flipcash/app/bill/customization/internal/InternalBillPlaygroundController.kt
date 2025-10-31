@@ -1,8 +1,10 @@
 package com.flipcash.app.bill.customization.internal
 
 import androidx.compose.ui.graphics.Color
+import cafe.adriel.voyager.core.stack.Stack
+import cafe.adriel.voyager.core.stack.mutableStateStackOf
 import com.flipcash.app.bill.customization.BillPlaygroundController
-import com.flipcash.app.bill.customization.ColorChange
+import com.flipcash.app.bill.customization.ColorStore
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.PlaygroundMode
 import com.flipcash.app.bill.customization.State
@@ -16,9 +18,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.hexToColor
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -26,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 
 class InternalBillPlaygroundController(
     private val exchange: Exchange,
@@ -37,6 +37,11 @@ class InternalBillPlaygroundController(
 
     private val _eventFlow: MutableSharedFlow<Event> = MutableSharedFlow()
     val eventFlow: SharedFlow<Event> = _eventFlow.asSharedFlow()
+
+    private val undoStack = ArrayDeque<State>()
+
+    override val canUndo: Boolean
+        get() = !undoStack.isEmpty()
 
     override fun customizeFor(token: Token) {
         // create amount for the bill
@@ -66,7 +71,8 @@ class InternalBillPlaygroundController(
     override fun dispatchEvent(event: Event) {
         when (event) {
             Event.AddSlot -> addSlot()
-            is Event.ChangeColor -> changeColorForSlot(event.color, event.from)
+            is Event.CommitColorChange -> commitColorChangeForSlot(event.color)
+            is Event.PreviewColorChange -> previewColorChangeForSlot(event.color)
             Event.CloseHueControls -> closeHueControls()
             Event.OpenHueControls -> openHueControls()
             Event.RemoveSlot -> removeSlot()
@@ -78,8 +84,7 @@ class InternalBillPlaygroundController(
 
     private fun addSlot() {
         if (_state.value.selectedColors.count() < _state.value.maxSlots) {
-            _state.update { s ->
-                val previousState = s.copy()
+            _state.updateWithHistory { s ->
                 val lastSlotColor = s.selectedColors[s.selectedSlot]
                 val insertIndex = s.selectedSlot + 1
                 val colors = s.selectedColors.toMutableList().apply {
@@ -89,7 +94,6 @@ class InternalBillPlaygroundController(
                 s.copy(
                     selectedColors = colors,
                     selectedSlot = insertIndex,
-                    previousState = previousState,
                 )
             }
         }
@@ -97,14 +101,12 @@ class InternalBillPlaygroundController(
 
     private fun removeSlot() {
         if (_state.value.selectedColors.count() > 1) {
-            _state.update { s ->
-                val previousState = s.copy()
+            _state.updateWithHistory { s ->
                 val indexToRemove = s.selectedSlot
                 val newColors = s.selectedColors.toMutableList().apply { removeAt(indexToRemove) }
                 s.copy(
                     selectedColors = newColors,
                     selectedSlot = s.selectedSlot.coerceAtMost(newColors.size - 1),
-                    previousState = previousState,
                 )
             }
         }
@@ -116,21 +118,27 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun changeColorForSlot(color: Color, reason: ColorChange) {
-        _state.update { s ->
-            val previousState = s.copy()
+    private fun commitColorChangeForSlot(color: Color) {
+        _state.updateWithHistory { s ->
             val slotIndex = s.selectedSlot
             val updatedColors = s.selectedColors.toMutableList().apply {
-                set(slotIndex, color)
+                set(slotIndex, ColorStore(color))
             }.toList()
-            if (reason == ColorChange.Preset) {
-                s.copy(
-                    selectedColors = updatedColors,
-                    previousState = previousState,
-                )
-            } else {
-                s.copy(selectedColors = updatedColors,)
-            }
+            s.copy(
+                selectedColors = updatedColors,
+            )
+        }
+    }
+
+    private fun previewColorChangeForSlot(color: Color) {
+        // No history push—treat as transient
+        _state.update { s ->
+            val slotIndex = s.selectedSlot
+            val slot = s.selectedColors[slotIndex]
+            val updatedColors = s.selectedColors.toMutableList().apply {
+                set(slotIndex, slot.copy(transition = color))
+            }.toList()
+            s.copy(selectedColors = updatedColors)
         }
     }
 
@@ -150,23 +158,19 @@ class InternalBillPlaygroundController(
         when (val bg = background) {
             is BillBackground.Gradient -> {
                 val colors = bg.colors.map { hexToColor(it) }
-                _state.update { s ->
-                    val previousState = s.copy()
+                _state.updateWithHistory { s ->
                     s.copy(
-                        selectedColors = colors,
-                        selectedSlot = colors.lastIndex,
-                        previousState = previousState
+                        selectedColors = colors.map { ColorStore(it) },
+                        selectedSlot = colors.lastIndex
                     )
                 }
             }
 
             is BillBackground.Solid -> {
-                _state.update { s ->
-                    val previousState = s.copy()
+                _state.updateWithHistory { s ->
                     s.copy(
-                        selectedColors = listOf(hexToColor(bg.colorHex)),
-                        selectedSlot = 0,
-                        previousState = previousState
+                        selectedColors = listOf(ColorStore(bg.colorHex)),
+                        selectedSlot = 0
                     )
                 }
             }
@@ -174,13 +178,24 @@ class InternalBillPlaygroundController(
     }
 
     private fun undoLastChange() {
-        _state.update {
-            val previous =  it.previousState ?: return
-            previous
+        if (!undoStack.isEmpty()) {
+            val previous = undoStack.removeLast()
+            _state.update { previous }
         }
     }
 
     override fun cancel() {
+        undoStack.clear()
         _state.update { State() }
+    }
+
+    private fun MutableStateFlow<State>.updateWithHistory(function: (State) -> State) {
+        val currentClean = _state.value.copy(
+            selectedColors = _state.value.selectedColors.map {
+                it.copy(transition = null)
+            },
+        )
+        undoStack.add(currentClean)  // Push clean current
+        update { function(currentClean) }  // Apply to clean base
     }
 }

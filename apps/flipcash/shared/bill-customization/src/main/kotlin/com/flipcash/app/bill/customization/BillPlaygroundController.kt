@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface BillPlaygroundController {
     val state: StateFlow<State>
+    val canUndo: Boolean
     fun customizeFor(token: Token)
 
     fun dispatchEvent(event: Event)
@@ -22,8 +23,15 @@ enum class PlaygroundMode {
     ColorPanel, Presets
 }
 
-enum class ColorChange {
-    Preset, Custom
+data class ColorStore(
+    val committed: Color,
+    val transition: Color? = null,
+) {
+    constructor(color: Color): this (color, null)
+    constructor(color: String): this (hexToColor(color))
+
+    val color: Color
+        get() = transition ?: committed
 }
 
 data class State(
@@ -32,21 +40,17 @@ data class State(
     val mode: PlaygroundMode = PlaygroundMode.Presets,
     val selectedSlot: Int = 0,
     val maxSlots: Int = MaxGradientColors,
-    val selectedColors: List<Color> = buildGradient(),
+    val selectedColors: List<ColorStore> = buildGradient(),
     val colorOptions: List<BillBackground.Solid> = PresetColorOptions,
     val gradientOptions: List<BillBackground.Gradient> = PresetGradients,
-    val previousState: State? = null,
 ) {
     val isCustomizing: Boolean
         get() = bill != null
 
-    val canUndo: Boolean
-        get() = previousState != null
-
     val brush: Brush
         get() {
-            if (selectedColors.size == 1) return Brush.verticalGradient(listOf(selectedColors.first(), selectedColors.first()))
-            val colorStops = selectedColors.mapIndexed { index, color -> index.toFloat() / (selectedColors.size - 1) to color }
+            if (selectedColors.size == 1) return Brush.verticalGradient(listOf(selectedColors.first().color, selectedColors.first().color))
+            val colorStops = selectedColors.mapIndexed { index, store -> index.toFloat() / (selectedColors.size - 1) to store.color }
             return Brush.verticalGradient(
                 colorStops = colorStops.toTypedArray()
             )
@@ -57,7 +61,8 @@ sealed interface Event {
     data object AddSlot: Event
     data object RemoveSlot: Event
     data class SelectSlot(val slot: Int): Event
-    data class ChangeColor(val color: Color, val from: ColorChange): Event
+    data class PreviewColorChange(val color: Color): Event
+    data class CommitColorChange(val color: Color): Event
     data class LoadBackground(val background: BillBackground): Event
     data object OpenHueControls: Event
     data object CloseHueControls: Event
@@ -74,11 +79,11 @@ private val PresetColorOptions: List<BillBackground.Solid> = listOf(
     BillBackground.Solid("#FF30D158"), // Green
     BillBackground.Solid("#FF00FFE9"), // Cyan
     BillBackground.Solid("#FF0054FF"), // Blue
-    BillBackground.Solid("#FF32CD32"), // Electric Lime
+    BillBackground.Solid("#FFCDB3FF"), // Mauve
     BillBackground.Solid("#FFFF1493"), // Hot Pink
     BillBackground.Solid("#FF00D4FF"), // Cyan Blue
-    BillBackground.Solid("#FFFF4500"), // Coral Red
-    BillBackground.Solid("#FF00FF7F"), // Spring Green
+    BillBackground.Solid("#FFFB9655"), // Light Salmon
+    BillBackground.Solid("#FF009688"), // Teal
     BillBackground.Solid("#FF8B4513"), // Brown
 )
 
@@ -91,20 +96,20 @@ private val PresetGradients: List<BillBackground.Gradient> = listOf(
     BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
 )
 
-private fun buildGradient(): List<Color> {
+private fun buildGradient(): List<ColorStore> {
     val swatches = PresetColorOptions
 
     // return a random 3 color gradient
     return listOf(
-        hexToColor(swatches.random().colorHex),
-        hexToColor(swatches.random().colorHex),
-        hexToColor(swatches.random().colorHex),
+        ColorStore(swatches.random().colorHex),
+        ColorStore(swatches.random().colorHex),
+        ColorStore(swatches.random().colorHex),
     )
 }
 
 internal object StubPlaygroundController : BillPlaygroundController {
     override val state: StateFlow<State> = MutableStateFlow(State())
-
+    override val canUndo: Boolean = false
     override fun customizeFor(token: Token) = Unit
     override fun dispatchEvent(event: Event) = Unit
     override fun cancel() = Unit

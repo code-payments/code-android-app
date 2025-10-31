@@ -35,7 +35,7 @@ import com.getcode.ui.utils.color
 internal fun ColorPanel(
     selectedColor: Color,
     modifier: Modifier = Modifier,
-    onChange: (Color) -> Unit,
+    onChange: (Color, isDragging: Boolean) -> Unit,
     onClose: () -> Unit,
 ) {
     Row(
@@ -48,8 +48,8 @@ internal fun ColorPanel(
                 .weight(1f)
                 .fillMaxHeight(),
             selectedColor = selectedColor
-        ) {
-            onChange(it.color)
+        ) { hsv, isDragging ->
+            onChange(hsv.color, isDragging)
         }
 
         HueScroller(
@@ -57,8 +57,8 @@ internal fun ColorPanel(
                 .weight(1f)
                 .fillMaxHeight(),
             color = selectedColor,
-        ) {
-            onChange(it.color)
+        ) { hsv, isDragging ->
+            onChange(hsv.color, isDragging)
         }
 
         Box(
@@ -108,8 +108,8 @@ private fun ColorPanelPreview() {
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .height(114.dp),
                 selectedColor = selectedColor,
-                onChange = {
-                    selectedColor = it
+                onChange = { color, isDragging ->
+                    selectedColor = color
                 },
                 onClose = {}
             )

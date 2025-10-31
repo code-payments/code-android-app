@@ -85,7 +85,7 @@ private object CashBillDefaults {
         startY: Float = 0f,
         endY: Float = Float.POSITIVE_INFINITY,
     ): Brush {
-        val billCustomizations = token.launchpadMetadata?.billCustomizations
+        val billCustomizations = token.billCustomizations
         if (billCustomizations == null) {
             return Brush.verticalGradient(
                 listOf(Color(0xFF06450F), Color(0xFF06450F))
@@ -98,9 +98,9 @@ private object CashBillDefaults {
                 val lastIndex = (colors.size - 1).coerceAtLeast(1)
                 val colorStops = colors.mapIndexed { index, color ->
                     (index.toFloat() / lastIndex) to color.copy(alpha)
-                }
+                }.toTypedArray()
                 return Brush.verticalGradient(
-                    colorStops = colorStops.toTypedArray(),
+                    colorStops = colorStops,
                     startY = startY,
                     endY = endY
                 )
@@ -118,7 +118,7 @@ private object CashBillDefaults {
 
     @Composable
     fun punchBrushIn(punch: Punch, token: Token): Brush {
-        val billCustomizations = token.launchpadMetadata?.billCustomizations
+        val billCustomizations = token.billCustomizations
         if (billCustomizations?.background == null) {
             val color = Color.Black.copy(0.15f)
                 .compositeOver(CodeTheme.colors.cashBillColor.copy(alpha = CodeBackgroundOpacity))

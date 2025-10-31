@@ -27,7 +27,8 @@ internal class MintMapper @Inject constructor(
             description = from.description,
             imageUrl = from.imageUrl,
             vmMetadata = vmMetadata,
-            launchpadMetadata = launchpadMetadata
+            launchpadMetadata = launchpadMetadata,
+            billCustomizations = null,
         )
     }
 }
