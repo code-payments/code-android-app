@@ -89,7 +89,7 @@ internal class ReceiveGiftCardTransactor(
                 .getOrNull()
 
             if (token == null) {
-                onStep("intent")
+                onStep("pre-claim checks")
                 return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.Other(message = "Token not found"))
             }
 
@@ -99,12 +99,24 @@ internal class ReceiveGiftCardTransactor(
 
             val requestingTokenOwner = requestingOwner.withTimelockForToken(token)
 
-            return@timedTraceSuspend transactionController.receiveRemotely(
-                giftCard = giftCard,
-                amount = amount,
-                owner = requestingTokenOwner,
-                mint = token.address
-            ).fold(
+            // 3. create an account if we don't currently have one for this token
+            val userAccountResult = if (!accountController.hasAccountFor(token.address)) {
+                accountController.createUserAccount(
+                    ownerForMint = requestingTokenOwner,
+                    mint = token.address
+                )
+            } else {
+                Result.success(Unit)
+            }
+
+            return@timedTraceSuspend userAccountResult.map {
+                transactionController.receiveRemotely(
+                    giftCard = giftCard,
+                    amount = amount,
+                    owner = requestingTokenOwner,
+                    mint = token.address
+                )
+            }.fold(
                 onSuccess = {
                     onStep("intent")
                     Result.success(token to amount)
