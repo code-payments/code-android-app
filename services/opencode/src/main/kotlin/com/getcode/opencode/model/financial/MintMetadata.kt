@@ -37,6 +37,7 @@ val MintMetadata.Companion.usdc: Token
             authority = vmAuthority,
             vm = PublicKey.deriveVirtualMachineAccount(
                 mint = Mint.usdc,
+                authority = vmAuthority,
                 lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
             ).publicKey,
             lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()

@@ -13,12 +13,12 @@ import com.getcode.solana.keys.PublicKey
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
-internal fun PublicKey.Companion.deriveVirtualMachineAccount(mint: PublicKey, lockout: UByte): ProgramDerivedAccount {
+internal fun PublicKey.Companion.deriveVirtualMachineAccount(mint: PublicKey, authority: PublicKey, lockout: UByte): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
             "code_vm".toByteArray(Charsets.UTF_8),
             mint.bytes.toByteArray(),
-            vmAuthority.bytes.toByteArray(),
+            authority.bytes.toByteArray(),
             byteArrayOf(lockout.toByte())
         ),
         programId = VirtualMachineProgram.address,

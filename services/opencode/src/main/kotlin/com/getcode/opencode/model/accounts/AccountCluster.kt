@@ -26,9 +26,9 @@ class AccountCluster(
         get() = timelock.vault.publicKey
 
     val usdcDepositAddress: PublicKey
-        get() = depositAddressFor(Token.usdc.address)
+        get() = depositAddressFor(Token.usdc)
 
-    fun depositAddressFor(mint: Mint): PublicKey = deriveDepositAddressFor(authorityPublicKey, mint)
+    fun depositAddressFor(token: Token): PublicKey = deriveDepositAddressFor(authorityPublicKey, token)
 
     fun withTimelockForToken(token: Token): AccountCluster = newInstance(authority, token)
 
@@ -46,10 +46,11 @@ class AccountCluster(
         }
     }
 
-    private fun deriveDepositAddressFor(depositor: PublicKey, mint: Mint): PublicKey {
+    private fun deriveDepositAddressFor(depositor: PublicKey, token: Token): PublicKey {
         val vmAddress = PublicKey.deriveVirtualMachineAccount(
-            mint = mint,
-            lockout = TimelockDerivedAccounts.lockoutInDays.toUByte(),
+            mint = token.address,
+            authority = token.vmMetadata.authority,
+            lockout = token.vmMetadata.lockDurationInDays.toUByte(),
         )
 
         return PublicKey.deriveDepositAccount(vmAddress.publicKey, depositor).publicKey
