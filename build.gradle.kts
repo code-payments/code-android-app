@@ -38,6 +38,7 @@ allprojects {
         maven(url = "https://plugins.gradle.org/m2/")
         maven(url = "https://maven.fpregistry.io/releases")
         maven(url = "https://jitpack.io")
+        maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
     }
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
