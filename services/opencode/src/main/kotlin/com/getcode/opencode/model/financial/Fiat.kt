@@ -3,6 +3,7 @@ package com.getcode.opencode.model.financial
 import android.icu.util.ULocale
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
+import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -166,11 +167,11 @@ data class Fiat(
             return Fiat(
                 estimation = {
                     Estimator.sell(
-                        amountInQuarks = (quarks / MULTIPLIER).toLong(),
+                        amountInQuarks = quarks,
                         currentValueInQuarks = token.launchpadMetadata?.coreMintLockedQuarks ?: 0,
                         mintDecimals = 6, // The desired value here is USDC which is 6
                         feeBps = 0,
-                    ).getOrThrow().netAmountToReceive
+                    ).getOrThrow().netAmountToReceive.divideWithHighPrecision(BigDecimal(MULTIPLIER))
                 },
                 tokenMintDecimals = token.decimals
             )
