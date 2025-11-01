@@ -143,11 +143,7 @@ class TokenController @Inject constructor(
                         .getOrDefault(emptyList())
                         .firstOrNull() ?: return@mapNotNull null
 
-                    val tokenBalance = if (token.address == Mint.usdc) {
-                        Fiat(account.balance)
-                    } else {
-                        Fiat.tokenBalance(account.balance, token)
-                    }
+                    val tokenBalance = Fiat.tokenBalance(account.balance, token = token)
 
                     TokenWithBalance(token, tokenBalance)
                 }
@@ -223,8 +219,7 @@ class TokenController @Inject constructor(
             )?.map { (account, token) ->
                     when {
                         account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
-                        account.mint == Mint.usdc -> token to Fiat(account.balance)
-                        else -> token to Fiat.tokenBalance(account.balance, token)
+                        else -> token to Fiat.tokenBalance(account.balance, token = token)
                     }
                 }?.onSuccess { (token, tokenBalance) ->
                     mintBalances.update { it + (mint to tokenBalance) }

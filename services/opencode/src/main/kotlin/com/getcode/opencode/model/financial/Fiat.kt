@@ -156,12 +156,11 @@ data class Fiat(
 
         fun tokenBalance(
             quarks: Long,
+            currencyCode: CurrencyCode = CurrencyCode.USD,
             token: Token
         ): Fiat {
             if (token.address == Mint.usdc) {
-                throw IllegalArgumentException(
-                    "Cannot create Fiat from USDC Token directly, use the Fiat(quarks: Long, currencyCode: CurrencyCode) constructor instead"
-                )
+                return Fiat(quarks, currencyCode)
             }
 
             return Fiat(

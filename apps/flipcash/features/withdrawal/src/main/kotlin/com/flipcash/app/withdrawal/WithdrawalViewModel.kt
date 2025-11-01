@@ -71,7 +71,6 @@ internal class WithdrawalViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
     private val userManager: UserManager,
-    balanceController: BalanceController,
     transactionController: TransactionController,
     clipboardManager: ClipboardManager,
     activityFeedCoordinator: ActivityFeedCoordinator,

@@ -140,7 +140,8 @@ private fun WithdrawalConfirmationScreenContent(
                         token = this,
                         balance = Fiat.tokenBalance(
                             state.amountEntryState.selectedAmount.underlyingTokenAmount.quarks,
-                            this
+                            currencyCode = state.amountEntryState.selectedAmount.underlyingTokenAmount.currencyCode,
+                            token = this
                         )
                     ),
                     destination = state.destinationState.textFieldState.text.toString(),
