@@ -134,23 +134,17 @@ private fun WithdrawalConfirmationScreenContent(
                 CodeTheme.dimens.inset,
             )
         ) {
-            with(state.token!!.token) {
-                TransferInfo(
-                    tokenWithBalance = TokenWithBalance(
-                        token = this,
-                        balance = Fiat.tokenBalance(
-                            state.amountEntryState.selectedAmount.underlyingTokenAmount.quarks,
-                            currencyCode = state.amountEntryState.selectedAmount.underlyingTokenAmount.currencyCode,
-                            token = this
-                        )
-                    ),
-                    destination = state.destinationState.textFieldState.text.toString(),
-                    fee = state.destinationState.availability?.feeAmount,
-                    onLearnMoreClicked = {
-                        dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
-                    }
-                )
-            }
+            TransferInfo(
+                tokenWithBalance = TokenWithBalance(
+                    state.token!!.token,
+                    balance = state.amountEntryState.selectedAmount.nativeAmount,
+                ),
+                destination = state.destinationState.textFieldState.text.toString(),
+                fee = state.destinationState.availability?.feeAmount,
+                onLearnMoreClicked = {
+                    dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
+                }
+            )
         }
     }
 }

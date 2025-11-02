@@ -24,6 +24,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
@@ -85,7 +86,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
     internal data class State(
         val selectedTokenAddress: Mint? = null,
-        val token: TokenWithLocalizedBalance? = null,
+        val token: TokenWithBalance? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
         val destinationState: DestinationState = DestinationState(),
         val withdrawalState: LoadingSuccessState = LoadingSuccessState(),
@@ -95,7 +96,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 ?: 0.0) > 0.00
 
         val tokenBalance: Fiat
-            get() = token?.balance?.nativeAmount ?: Fiat.Zero
+            get() = token?.balance ?: Fiat.Zero
 
         val isError: Boolean
             get() {
@@ -115,7 +116,7 @@ internal class WithdrawalViewModel @Inject constructor(
     internal sealed interface Event {
         // common
         data class OnMintSelected(val mint: Mint) : Event
-        data class OnTokenUpdated(val token: TokenWithLocalizedBalance) : Event
+        data class OnTokenUpdated(val token: TokenWithBalance) : Event
 
         // amount
         data class OnNumberPressed(val number: Int) : Event
@@ -169,7 +170,7 @@ internal class WithdrawalViewModel @Inject constructor(
             fiat = amount,
             currencyCode = stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
         ).convertingTo(conversionRate)
-        val tokenBalance = stateFlow.value.token?.balance?.nativeAmount ?: Fiat.Zero
+        val tokenBalance = stateFlow.value.token?.balance ?: Fiat.Zero
 
         val isOverBalance = enteredInUsdc > tokenBalance
         if (isOverBalance || conversionRate == Rate.ignore) {
@@ -194,22 +195,18 @@ internal class WithdrawalViewModel @Inject constructor(
                 combine(
                     tokenController.tokens,
                     tokenController.balanceForToken(tokenAddress),
-                    exchange.observeEntryRate(),
-                ) { tokens, balance, rate ->
+                ) { tokens, balance ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
-                    TokenWithLocalizedBalance(
+                    TokenWithBalance(
                         token = token,
-                        balance = LocalFiat(
-                            usdc = balance,
-                            nativeAmount = balance.convertingTo(rate),
-                        )
+                        balance = balance
                     )
                 }
             }.filterNotNull()
             .onEach {
                 dispatchEvent(Event.OnTokenUpdated(it))
             }.mapNotNull { (token, balance) ->
-                exchange.getCurrency(balance.rate.currency.name)
+                exchange.getCurrency(balance.currencyCode.name)
             }.onEach {
                 dispatchEvent(Event.OnCurrencyChanged(it))
             }.launchIn(viewModelScope)
@@ -277,12 +274,7 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterNot { checkBalanceLimit() }
             .onEach { data ->
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
-                val rate = exchange.entryRate
-                // if we are USD we can skip the rate fetch since its 1:1
-                if (rate.currency != CurrencyCode.USD) {
-                    exchange.fetchRatesIfNeeded()
-                }
-
+                val rate = exchange.rateForUsd()
                 val token = stateFlow.value.token!!.token
                 val amountFiat = LocalFiat.valueExchangeIn(
                     amount = Fiat(data.amountData.amount, rate.currency),

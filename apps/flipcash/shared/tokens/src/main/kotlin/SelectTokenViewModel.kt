@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -53,7 +54,7 @@ class SelectTokenViewModel @Inject constructor(
                     when (purpose) {
                         TokenPurpose.Balance -> exchange.observeBalanceRate()
                         TokenPurpose.Send -> exchange.observeEntryRate()
-                        TokenPurpose.Withdraw -> exchange.observeEntryRate()
+                        TokenPurpose.Withdraw -> flowOf(exchange.rateForUsd())
                         TokenPurpose.Deposit -> exchange.observeEntryRate()
                         TokenPurpose.BillPlayground -> exchange.observeBalanceRate()
                     }
