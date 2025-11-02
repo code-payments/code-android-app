@@ -66,8 +66,8 @@ sealed interface FeatureFlag {
     @FeatureFlagMarker
     data object BillCustomizer: FeatureFlag {
         override val key: String = "bill_customizer_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
     }

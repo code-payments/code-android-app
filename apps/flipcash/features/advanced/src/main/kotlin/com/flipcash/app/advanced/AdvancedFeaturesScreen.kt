@@ -14,10 +14,13 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.advanced.internal.AdvancedFeaturesScreen
 import com.flipcash.app.advanced.internal.AdvancedFeaturesScreenViewModel
+import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -38,7 +41,7 @@ class AdvancedFeaturesScreen: ModalScreen, NamedScreen, Parcelable {
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
-
+        val billPlayground = LocalBillPlaygroundController.current
         val viewModel = getViewModel<AdvancedFeaturesScreenViewModel>()
 
         Column(
@@ -61,6 +64,16 @@ class AdvancedFeaturesScreen: ModalScreen, NamedScreen, Parcelable {
                 .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OpenScreen>()
                 .map { ScreenRegistry.get(it.screen) }
                 .onEach { navigator.push(it) }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OpenBillPlayground>()
+                .onEach {
+                    navigator.hide()
+                    billPlayground.customizeFor(Token.usdc)
+                }
                 .launchIn(this)
         }
     }

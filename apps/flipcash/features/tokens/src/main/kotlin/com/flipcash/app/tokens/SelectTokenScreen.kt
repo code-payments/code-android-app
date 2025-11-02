@@ -12,7 +12,6 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.AppRoute.Main.Give
 import com.flipcash.app.core.AppRoute.Menu.Deposit
 import com.flipcash.app.core.AppRoute.Transfers.Withdrawal.Amount
@@ -66,7 +65,6 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                 viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(purpose))
             }
 
-            val billPlayground = LocalBillPlaygroundController.current
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
                     .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
@@ -88,11 +86,6 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                                 navigator.push(
                                     ScreenRegistry.get(Deposit(token.address))
                                 )
-                            }
-
-                            TokenPurpose.BillPlayground -> {
-                                navigator.hide()
-                                billPlayground.customizeFor(token)
                             }
                         }
                     }.launchIn(this)

@@ -27,6 +27,5 @@ internal data object BillCustomizer : FullMenuItem<AdvancedFeaturesScreenViewMod
         @Composable get() = rememberVectorPainter(Icons.Outlined.Palette)
     override val name: String
         @Composable get() = stringResource(R.string.title_billCustomizer)
-    override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenScreen(
-        AppRoute.Sheets.TokenSelection(TokenPurpose.BillPlayground))
+    override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenBillPlayground
 }

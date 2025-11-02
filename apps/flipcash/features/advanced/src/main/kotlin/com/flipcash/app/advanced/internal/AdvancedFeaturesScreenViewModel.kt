@@ -37,6 +37,8 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
         data class OnBillCustomizerEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
+
+        data object OpenBillPlayground: Event
     }
 
     init {
@@ -75,6 +77,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                 }
 
                 is Event.OpenScreen -> { state -> state }
+                is Event.OpenBillPlayground -> { state -> state }
             }
         }
     }
