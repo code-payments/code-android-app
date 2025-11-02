@@ -180,11 +180,13 @@ data class Fiat(
 
 // Operator overloads
 operator fun Fiat.plus(other: Fiat): Fiat {
+    if (other.decimalValue == 0.0) return this
     require(currencyCode == other.currencyCode) { "Cannot add different currencies" }
     return Fiat(quarks = this.quarks + other.quarks, currencyCode = currencyCode)
 }
 
 operator fun Fiat.minus(other: Fiat): Fiat {
+    if (other.decimalValue == 0.0) return this
     require(currencyCode == other.currencyCode) { "Cannot subtract different currencies" }
     return Fiat(quarks = this.quarks - other.quarks, currencyCode = currencyCode)
 }
