@@ -46,13 +46,17 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.money.formatted
 import com.flipcash.shared.bills.R
 import com.getcode.opencode.compose.LocalExchange
@@ -105,6 +109,7 @@ private object CashBillDefaults {
                     endY = endY
                 )
             }
+
             is BillBackground.Solid -> {
                 val color = hexToColor(background.colorHex)
                 return Brush.verticalGradient(
@@ -141,6 +146,7 @@ private object CashBillDefaults {
                             colors = listOf(color, color)
                         )
                     }
+
                     Punch.Code -> {
                         val bgColors = if (bg.colors.size == 3) {
                             bg.colors.slice(listOf(0, 2))
@@ -172,6 +178,7 @@ private object CashBillDefaults {
                             colors = listOf(color, color)
                         )
                     }
+
                     Punch.Code -> {
                         val color = deriveTargetColor(
                             sourceColor = hexToColor(bg.colorHex),
@@ -249,6 +256,37 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
             x = (size.width.value * 0.5f),
             y = (size.height.value * 0.9f)
         )
+
+    private val isCompressed: Boolean
+        get() = size.width < 300.dp
+
+    private val isMini: Boolean
+        get() = size.width < 200.dp
+
+    val mintFontSize: TextUnit
+        @Composable get() = if (isCompressed) {
+            if (isMini) {
+                4.sp
+            } else {
+                7.sp
+            }
+        } else {
+            8.nonScaledSp
+        }
+
+    val amountTextStyle: TextStyle
+        @Composable get() = if (isCompressed) {
+            CodeTheme.typography.displayLarge.copy(
+                fontWeight = FontWeight.W600,
+                fontSize = if (isMini) 30.sp else 35.sp
+            )
+        } else {
+            CodeTheme.typography.displayLarge.copy(
+                fontWeight = FontWeight.W600,
+                fontSize = 50.nonScaledSp
+            )
+        }
+
 }
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -341,25 +379,26 @@ internal fun CashBill(
             // Security strip
             SecurityStrip(geometry = geometry, token = token)
 
-
             // Bill Value Top Left
             BillAmount(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(top = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(start = geometry.valuePadding),
                 text = amount.formatted(),
-                flag = exchange.getFlagByCurrency(amount.rate.currency.name)
+                flag = exchange.getFlagByCurrency(amount.rate.currency.name),
+                textStyle = geometry.amountTextStyle,
             )
 
             // Bill Value Bottom Right
             BillAmount(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(end = geometry.valuePadding),
                 text = amount.formatted(),
-                flag = exchange.getFlagByCurrency(amount.rate.currency.name)
+                flag = exchange.getFlagByCurrency(amount.rate.currency.name),
+                textStyle = geometry.amountTextStyle,
             )
 
             // Lines
@@ -381,7 +420,7 @@ internal fun CashBill(
                     Lines(count = 31, spacing = geometry.lineSpacing)
                 }
 
-                Spacer(modifier = Modifier.Companion.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
 
                 Row(
                     modifier = Modifier.padding(bottom = geometry.mintPadding)
@@ -389,7 +428,7 @@ internal fun CashBill(
                     // Mint
                     Text(
                         text = token.address.base58(),
-                        fontSize = 8.nonScaledSp,
+                        fontSize = geometry.mintFontSize,
                         color = CashBillDefaults.DecorColor,
                     )
                 }

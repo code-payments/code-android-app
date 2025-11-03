@@ -7,14 +7,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.min
+import androidx.compose.ui.unit.sp
 import com.flipcash.shared.bills.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.nonScaledSp
 
 @Composable
-@Preview
-internal fun BillAmount(modifier: Modifier = Modifier, text: String = "", flag: Int? = R.drawable.ic_flag_us) {
+internal fun BillAmount(
+    modifier: Modifier = Modifier,
+    text: String = "",
+    flag: Int? = R.drawable.ic_flag_us,
+    textStyle: TextStyle = CodeTheme.typography.displayLarge.copy(
+        fontWeight = FontWeight.W600,
+        fontSize = 50.nonScaledSp
+    )
+) {
     Box(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -35,9 +46,7 @@ internal fun BillAmount(modifier: Modifier = Modifier, text: String = "", flag: 
 //            }
             Text(
                 text = text,
-                style = CodeTheme.typography.displayLarge.copy(
-                    fontSize = 40.nonScaledSp
-                ),
+                style = textStyle,
                 color = CodeTheme.colors.onBackground
             )
         }
