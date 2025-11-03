@@ -261,12 +261,12 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
         get() = size.width < 300.dp
 
     private val isMini: Boolean
-        get() = size.width < 200.dp
+        get() = size.width < 222.dp
 
     val mintFontSize: TextUnit
         @Composable get() = if (isCompressed) {
             if (isMini) {
-                4.sp
+                5.5.sp
             } else {
                 7.sp
             }
@@ -315,6 +315,8 @@ internal fun CashBill(
             val geometry = remember(maxWidth, maxHeight) {
                 CashBillGeometry(maxWidth, maxHeight)
             }
+
+            println("geometry: ${geometry.size}")
 
             // Hexagons
             BillDecorImage(
