@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.money.formatted
 import com.flipcash.shared.bills.R
 import com.getcode.opencode.compose.LocalExchange
@@ -266,9 +265,9 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
     val mintFontSize: TextUnit
         @Composable get() = if (isCompressed) {
             if (isMini) {
-                5.5.sp
+                5.5.nonScaledSp
             } else {
-                7.sp
+                7.nonScaledSp
             }
         } else {
             8.nonScaledSp
@@ -278,12 +277,12 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
         @Composable get() = if (isCompressed) {
             CodeTheme.typography.displayLarge.copy(
                 fontWeight = FontWeight.W600,
-                fontSize = if (isMini) 30.sp else 35.sp
+                fontSize = if (isMini) 20.nonScaledSp else 35.nonScaledSp
             )
         } else {
             CodeTheme.typography.displayLarge.copy(
                 fontWeight = FontWeight.W600,
-                fontSize = 50.nonScaledSp
+                fontSize = 40.nonScaledSp
             )
         }
 

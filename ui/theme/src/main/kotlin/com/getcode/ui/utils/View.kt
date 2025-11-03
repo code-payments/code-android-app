@@ -15,9 +15,10 @@ import kotlin.concurrent.timerTask
 
 fun Int.dipToPixels() = (Resources.getSystem().displayMetrics.density * this).toInt()
 
-val Int.nonScaledSp
+val Number.nonScaledSp
     @Composable
-    get() = (this / LocalDensity.current.fontScale).sp
+    get() = (this.toDouble() / LocalDensity.current.fontScale).sp
+
 
 fun Context.getActivity(): FragmentActivity? = when (this) {
     is AppCompatActivity -> this
