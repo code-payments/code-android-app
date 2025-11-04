@@ -417,6 +417,23 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
     Mat whitish;
     Mat blackish;
 
+    // --- START OF EDIT ---
+    // we switch to an inverted scheme (dark is high, light is low) if the
+    // center ellipse is dark, but we don't want to compute the extra threshold everytime
+    // so we only do this when needed.
+    //
+    // Using adaptive thresholding is more robust to lighting changes than a global threshold.
+    // It calculates a threshold for smaller regions, making it less susceptible to shadows or glare.
+    // A block size of 11 or higher is a good starting point and must be an odd number.
+    // The constant 'C' (here, 5) is subtracted from the mean, which helps in finding features.
+
+    // For finding dark features on a light background.
+    adaptiveThreshold(greyscale, blackish, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 21, 5);
+
+    // For finding light features on a dark background.
+    adaptiveThreshold(greyscale, whitish, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 21, 5);
+    // --- END OF EDIT ---
+
     // we switch to an inverted scheme (dark is high, light is low) if the
     // center ellipse is dark, but we don't want to compute the extra threshold everytime
     // so we only do this when necessary

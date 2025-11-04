@@ -1,5 +1,9 @@
 package com.kik.kikx.kikcodes
 
+import android.app.ActivityManager
+import android.content.Context
+import android.os.Build
+import androidx.core.content.getSystemService
 import com.kik.kikx.models.ScannableKikCode
 import com.kik.scan.KikCode
 import com.kik.scan.Scanner.ScanResult
@@ -27,6 +31,6 @@ interface KikCodeScanner {
     class UnsupportedKikCodeFoundException(val kikCode: KikCode) : ScannerError("Code found in unsupported")
 
     suspend fun scanKikCode(
-        imageData: ByteArray, width: Int, height: Int, quality: ScanQuality = ScanQuality.Medium
+        imageData: ByteArray, width: Int, height: Int, quality: ScanQuality = ScanQuality.Best
     ): Result<ScannableKikCode>
 }

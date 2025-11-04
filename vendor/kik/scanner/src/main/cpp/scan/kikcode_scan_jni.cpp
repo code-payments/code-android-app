@@ -53,7 +53,12 @@ extern "C" {
             env->SetObjectField(scan_result, data_field, result_data);
         }
 
-        env->ReleaseByteArrayElements(image_data, buffer_ptr, 0);
+        // --- START OF EDIT ---
+        // Use JNI_ABORT to release the buffer without copying data back to the Java heap.
+        // This is safe because the underlying image data is only read from, not written to.
+        // This optimization avoids an unnecessary memory copy and can improve performance.
+        env->ReleaseByteArrayElements(image_data, buffer_ptr, JNI_ABORT);
+        // --- END OF EDIT ---
 
         return scan_result;
     }
