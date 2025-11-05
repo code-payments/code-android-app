@@ -1,5 +1,8 @@
 package com.getcode.opencode.utils
 
+import java.math.BigDecimal
+import java.math.RoundingMode
+
 
 fun Double.toByteArray(): ByteArray {
     val longBits = java.lang.Double.doubleToLongBits(this)
@@ -10,4 +13,15 @@ fun Double.toByteArray(): ByteArray {
     }
 
     return byteArray
+}
+
+/**
+ * Rounds the Double value to the specified number of decimal places using the given rounding mode.
+ *
+ * @param decimals The number of decimal places to round to.
+ * @param mode The rounding mode to apply (e.g., RoundingMode.HALF_UP).
+ * @return The rounded Double value.
+ */
+fun Double.roundTo(decimals: Int, mode: Int = RoundingMode.HALF_UP.ordinal): Double {
+    return BigDecimal.valueOf(this).setScale(decimals, mode).toDouble()
 }

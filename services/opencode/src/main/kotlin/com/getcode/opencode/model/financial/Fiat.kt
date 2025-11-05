@@ -4,6 +4,7 @@ import android.icu.util.ULocale
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
+import com.getcode.opencode.utils.roundTo
 import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -60,6 +61,13 @@ data class Fiat(
         data class Length(val decimalPlaces: Int) : Formatting
     }
 
+    fun rounded(decimalPlaces: Int = 2): Fiat {
+        return Fiat(
+            fiat = doubleValue.roundTo(decimalPlaces, ROUNDING_MODE),
+            currencyCode = currencyCode
+        )
+    }
+
     // Formatting
     fun formatted(
         formatting: Formatting = Formatting.None,
@@ -85,7 +93,7 @@ data class Fiat(
             }
             minimumFractionDigits = preferredDigits
             maximumFractionDigits = preferredDigits
-            roundingMode = RoundingMode.DOWN.ordinal
+            roundingMode = ROUNDING_MODE
             (this as android.icu.text.DecimalFormat).decimalFormatSymbols =
                 decimalFormatSymbols.apply {
                     currencySymbol = ""
@@ -140,13 +148,14 @@ data class Fiat(
                 maximumFractionDigits = fractionDigits
                 minimumFractionDigits = fractionDigits
             }
-            roundingMode = RoundingMode.DOWN.ordinal
+            roundingMode = ROUNDING_MODE
         }
 
         return formatter.format(tokens.toDouble())
     }
 
     companion object {
+        private val ROUNDING_MODE = RoundingMode.HALF_UP.ordinal
         const val MULTIPLIER: Double = 1_000_000.0
 
         val Zero = Fiat(0, CurrencyCode.USD)

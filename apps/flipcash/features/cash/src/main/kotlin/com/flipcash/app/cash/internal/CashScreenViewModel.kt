@@ -7,6 +7,7 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
+import com.flipcash.features.cash.BuildConfig
 import com.flipcash.features.cash.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -26,6 +27,7 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.utils.roundTo
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -82,11 +84,9 @@ internal class CashScreenViewModel @Inject constructor(
         val isError: Boolean
             get() {
                 if (amountAnimatedModel.amountData.amount.isEmpty()) return false
-
+                val enteredAmount = Fiat(amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0)
                 if (maxForGive != null) {
-                    if ((amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                            ?: 0.0) <= maxForGive.first
-                    ) {
+                    if (enteredAmount.doubleValue <= maxForGive.first.roundTo(2)) {
                         return false
                     }
                 }
@@ -130,7 +130,7 @@ internal class CashScreenViewModel @Inject constructor(
         ).convertingTo(conversionRate)
         val tokenBalance = stateFlow.value.token?.balance?.underlyingTokenAmount ?: Fiat.Zero
 
-        val isOverBalance = enteredInUsdc > tokenBalance
+        val isOverBalance = enteredInUsdc > tokenBalance.rounded()
         if (isOverBalance || conversionRate == Rate.ignore) {
             BottomBarManager.showMessage(
                 resources.getString(R.string.error_title_youNeedMoreCash),

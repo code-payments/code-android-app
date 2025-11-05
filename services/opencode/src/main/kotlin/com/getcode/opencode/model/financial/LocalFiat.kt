@@ -4,6 +4,7 @@ import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
@@ -65,7 +66,7 @@ data class LocalFiat(
             token: Token,
             balance: Fiat = Fiat.Zero,
             rate: Rate,
-            debug: Boolean = false,
+            debug: Boolean = BuildConfig.DEBUG,
         ): LocalFiat {
             val usdValue = amount.convertingToUsdIfNeeded(rate)
 
@@ -102,6 +103,7 @@ data class LocalFiat(
             val fx = rate.fx * usdFx.toDouble()
 
             if (debug) {
+                println("############## EXCHANGE REPORT ###################")
                 println("requested quarks:   ${usdValue.quarks * 1_000_000}")
                 println("balance quarks:     ${balance.quarks * 1_000_000}")
                 println("capped quarks:      ${cappedValue.quarks * 1_000_000}")
@@ -111,6 +113,7 @@ data class LocalFiat(
                 println("fx:                 $fx")
                 val sellAmount = Fiat.tokenBalance(quarks.toLong(), token = token)
                 println("sellAmount:         ${sellAmount.formatted(formatting = Fiat.Formatting.Length(10))}")
+                println("##################################################")
             }
 
             return LocalFiat(

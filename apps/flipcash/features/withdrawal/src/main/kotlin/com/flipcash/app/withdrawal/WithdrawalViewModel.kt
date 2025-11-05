@@ -28,6 +28,7 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.opencode.utils.roundTo
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -101,11 +102,8 @@ internal class WithdrawalViewModel @Inject constructor(
         val isError: Boolean
             get() {
                 if (amountEntryState.amountAnimatedModel.amountData.amount.isEmpty()) return false
-
-                if (
-                    (amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                        ?: 0.0) <= tokenBalance.doubleValue
-                ) {
+                val enteredAmount = Fiat(amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0)
+                if (enteredAmount.doubleValue <= tokenBalance.rounded().doubleValue) {
                     return false
                 }
 
@@ -172,7 +170,7 @@ internal class WithdrawalViewModel @Inject constructor(
         ).convertingTo(conversionRate)
         val tokenBalance = stateFlow.value.token?.balance ?: Fiat.Zero
 
-        val isOverBalance = enteredInUsdc > tokenBalance
+        val isOverBalance = enteredInUsdc > tokenBalance.rounded()
         if (isOverBalance || conversionRate == Rate.ignore) {
             BottomBarManager.showError(
                 title = resources.getString(R.string.error_title_insufficientFunds),
