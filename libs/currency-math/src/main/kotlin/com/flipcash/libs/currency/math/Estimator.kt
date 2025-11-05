@@ -2,7 +2,6 @@ package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
 import java.math.BigDecimal
-import kotlin.math.min
 
 object Estimator {
     /**
@@ -97,11 +96,11 @@ object Estimator {
         return runCatching {
             val curve = ExponentialCurve.getOrThrow()
             val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
-            val unscaledValue = BigDecimal("$valueInQuarks")
+            val unscaledValue = BigDecimal(valueInQuarks)
             val scaledValue = unscaledValue.divide(valueScale, mc)
 
             val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val unscaledCurrentSupply = BigDecimal("$currentSupplyInQuarks")
+            val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks)
             val scaledCurrentSupply = unscaledCurrentSupply.divide(tokenScale, mc)
 
             curve.tokensForValueExchange(scaledCurrentSupply, scaledValue).getOrThrow()
@@ -134,15 +133,15 @@ object Estimator {
             val amountScale = BigDecimal.TEN.pow(mintDecimals, mc)
 
             val unscaledBuyAmount = BigDecimal(amountInQuarks, mc)
-            val scaledBuyAmount = unscaledBuyAmount.divide(amountScale, mc)
+            val scaledBuyAmount = unscaledBuyAmount.divideWithHighPrecision(amountScale)
 
             val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks, mc)
-            val scaledCurrentSupply = unscaledCurrentSupply.divide(tokenScale, mc)
+            val scaledCurrentSupply = unscaledCurrentSupply.divideWithHighPrecision(tokenScale)
 
             val scaledTokens = curve.tokensBoughtForValue(scaledCurrentSupply, scaledBuyAmount).getOrThrow()
             val unscaledTokens = scaledTokens.multiply(tokenScale, mc)
 
-            val feePctValue = BigDecimal(feeBps).divide(BigDecimal("10000"), mc)
+            val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
             val scaledFees = scaledTokens.multiply(feePctValue, mc)
             val unscaledFees = scaledFees.multiply(tokenScale, mc)
 
@@ -196,7 +195,6 @@ object Estimator {
             val tokenScale = BigDecimal.TEN.pow(mintDecimals, mc)
             val unscaledCurrentValue = BigDecimal(currentValueInQuarks, mc)
             val scaledCurrentValue = unscaledCurrentValue.divide(tokenScale, mc)
-
 
             val scaledTokens = curve.valueFromSellingTokens(scaledCurrentValue, scaledSellAmount).getOrThrow()
             val unscaledTokens = scaledTokens.multiply(tokenScale, mc)
