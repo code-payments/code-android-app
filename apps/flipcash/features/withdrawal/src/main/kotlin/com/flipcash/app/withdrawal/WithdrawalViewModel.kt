@@ -279,6 +279,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val amountFiat = LocalFiat.valueExchangeIn(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
+                    balance = stateFlow.value.token!!.balance,
                     rate = rate,
                 )
 
@@ -419,7 +420,8 @@ internal class WithdrawalViewModel @Inject constructor(
                     LocalFiat.valueExchangeIn(
                         fee,
                         token = token,
-                        rate = exchange.rateToUsd(CurrencyCode.USD)!!
+                        balance = stateFlow.value.token!!.balance,
+                        rate = exchange.rateToUsd(CurrencyCode.USD)!!,
                     ).underlyingTokenAmount
                 }
 

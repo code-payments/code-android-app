@@ -149,10 +149,11 @@ internal class CashScreenViewModel @Inject constructor(
                             if (rate.currency != CurrencyCode.USD) {
                                 exchange.fetchRatesIfNeeded()
                             }
-                            val token = stateFlow.value.token!!.token
+                            val (token, balance) = stateFlow.value.token!!
                             val amountFiat = LocalFiat.valueExchangeIn(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
+                                balance = balance.underlyingTokenAmount,
                                 rate = rate,
                             )
 
@@ -294,7 +295,7 @@ internal class CashScreenViewModel @Inject constructor(
             .filter { !(checkBalanceLimit() || checkSendLimit()) }
             .onEach { data ->
                 dispatchEvent(Event.UpdateLoadingState(loading = true))
-                val token = stateFlow.value.token!!.token
+                val (token, balance) = stateFlow.value.token!!
                 val rate = exchange.entryRate
                 // if we are USD we can skip the rate fetch since its 1:1
                 if (token.address == Mint.usdc) {
@@ -306,6 +307,7 @@ internal class CashScreenViewModel @Inject constructor(
                 val amountFiat = LocalFiat.valueExchangeIn(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
+                    balance = balance.underlyingTokenAmount,
                     rate = rate,
                 )
 

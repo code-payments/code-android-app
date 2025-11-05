@@ -113,6 +113,14 @@ data class Fiat(
         currencyCode = rate.currency
     )
 
+    fun convertingToUsdIfNeeded(rate: Rate): Fiat {
+        return if (rate.currency != CurrencyCode.USD) {
+            convertingTo(Rate(1 / rate.fx, rate.currency))
+        } else {
+            this
+        }
+    }
+
     // Comparable implementation
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
 
@@ -209,3 +217,5 @@ fun Number.toFiat(currencyCode: CurrencyCode = CurrencyCode.USD): Fiat = when (t
     is Double -> Fiat(this, currencyCode)
     else -> throw IllegalArgumentException("Unsupported number type")
 }
+
+fun min(a: Fiat, b: Fiat): Fiat = if (a < b) a else b

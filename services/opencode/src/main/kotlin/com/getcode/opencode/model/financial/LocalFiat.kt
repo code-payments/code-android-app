@@ -63,16 +63,14 @@ data class LocalFiat(
         fun valueExchangeIn(
             amount: Fiat,
             token: Token,
+            balance: Fiat = Fiat.Zero,
             rate: Rate,
+            debug: Boolean = false,
         ): LocalFiat {
-            val usdValue = if (rate.currency != CurrencyCode.USD) {
-                amount.convertingTo(Rate(1 / rate.fx, rate.currency))
-            } else {
-                amount
-            }
+            val usdValue = amount.convertingToUsdIfNeeded(rate)
 
             if (token.address == Mint.usdc) {
-                // this doesn't need a calcuated value exchange since we are USDC
+                // this doesn't need a calculated value exchange since we are USDC
                return if (rate.currency != CurrencyCode.USD) {
                    LocalFiat(
                        usdc = usdValue,
@@ -83,24 +81,37 @@ data class LocalFiat(
                }
             }
 
+            val circulatingSupply = token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
 
+            val cappedValue = min(balance, usdValue)
 
             // determine quarks to exchange for the desired amount
             val quarks = Estimator.valueExchangeAsQuarks(
-                valueInQuarks = usdValue.quarks,
-                currentSupplyInQuarks = token.launchpadMetadata?.currentCirculatingSupplyQuarks
-                    ?: 0,
+                valueInQuarks = cappedValue.quarks,
+                currentSupplyInQuarks = circulatingSupply,
                 mintDecimals = 6, // usdc is 6 decimals
             ).getOrThrow()
 
             // determine the "full units" of the token being exchanged
             val units = quarks.units()
             // determine the exchange rate (native amount / units of token) (USD based)
-            val usdFx = BigDecimal(usdValue.decimalValue).divideWithHighPrecision(units)
+            val usdFx = BigDecimal(cappedValue.decimalValue).divideWithHighPrecision(units)
 
             // determine the relative exchange rate of the token in the currency selected
             // USD is a 1:1 fx so we can be blind here
             val fx = rate.fx * usdFx.toDouble()
+
+            if (debug) {
+                println("requested quarks:   ${usdValue.quarks * 1_000_000}")
+                println("balance quarks:     ${balance.quarks * 1_000_000}")
+                println("capped quarks:      ${cappedValue.quarks * 1_000_000}")
+                println("circulating supply: $circulatingSupply")
+                println("calculated quarks:  $quarks")
+                println("units:              $units")
+                println("fx:                 $fx")
+                val sellAmount = Fiat.tokenBalance(quarks.toLong(), token = token)
+                println("sellAmount:         ${sellAmount.formatted(formatting = Fiat.Formatting.Length(10))}")
+            }
 
             return LocalFiat(
                 underlyingTokenAmount = Fiat(quarks.toLong(), CurrencyCode.USD),
@@ -126,9 +137,26 @@ fun Iterable<LocalFiat>.sum(): LocalFiat {
             acc
         }
 
-        base.copy(
-            underlyingTokenAmount = base.underlyingTokenAmount + localFiat.underlyingTokenAmount,
-            nativeAmount = base.nativeAmount + localFiat.nativeAmount,
-        )
+        base + localFiat
     }
+}
+
+operator fun LocalFiat.minus(other: LocalFiat): LocalFiat {
+    if (mint != other.mint) throw IllegalArgumentException("Mint is mismatched")
+    if (rate.currency != other.rate.currency) throw IllegalArgumentException("Currency is mismatched")
+
+    return copy(
+        underlyingTokenAmount = underlyingTokenAmount - other.underlyingTokenAmount,
+        nativeAmount = nativeAmount - other.nativeAmount
+    )
+}
+
+operator fun LocalFiat.plus(other: LocalFiat): LocalFiat {
+    if (mint != other.mint) throw IllegalArgumentException("Mint is mismatched")
+    if (rate.currency != other.rate.currency) throw IllegalArgumentException("Currency is mismatched")
+
+    return copy(
+        underlyingTokenAmount = underlyingTokenAmount + other.underlyingTokenAmount,
+        nativeAmount = nativeAmount + other.nativeAmount
+    )
 }
