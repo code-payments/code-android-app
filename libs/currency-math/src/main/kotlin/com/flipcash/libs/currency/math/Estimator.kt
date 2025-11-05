@@ -2,6 +2,8 @@ package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
 import java.math.BigDecimal
+import java.math.RoundingMode
+import kotlin.math.roundToLong
 
 object Estimator {
     /**
@@ -146,6 +148,10 @@ object Estimator {
             val unscaledFees = scaledFees.multiply(tokenScale, mc)
 
             val netTokens = unscaledTokens.subtract(unscaledFees, mc)
+                .setScale(0, RoundingMode.HALF_EVEN)
+                .toDouble().roundToLong()
+                .toBigDecimal()
+
             val tokensQuarks = netTokens
             val feesQuarks = unscaledFees
 

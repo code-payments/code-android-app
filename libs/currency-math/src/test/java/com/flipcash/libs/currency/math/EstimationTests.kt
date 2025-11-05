@@ -49,7 +49,8 @@ class EstimationTests {
         ).getOrThrow()
 
         val expectedTotal = BigInteger("53147450513564")
-        assertEquals( expectedTotal, (received + fees).toBigInteger())
+
+        assertTrue { abs(expectedTotal.toDouble() - (received + fees).toDouble()) <= 1.0 }
 
         val (received2, fees2) = Estimator.buy(
             amountInQuarks = 100_000_000,             // $100
@@ -58,7 +59,7 @@ class EstimationTests {
             feeBps = 100, // 1%
         ).getOrThrow()
 
-        assertEquals( expectedTotal, (received2 + fees2).toBigInteger())
+        assertTrue { abs(expectedTotal.toDouble() - (received2 + fees2).toDouble()) <= 1.0 }
     }
 
     @Test
@@ -118,7 +119,7 @@ class EstimationTests {
             while (paymentValue <= valueLocked) {
                 val paymentQuarks = Estimator.valueExchangeAsQuarks(
                     valueInQuarks = paymentValue,
-                    currentSupplyInQuarks = circulatingSupply.setScale(0, RoundingMode.HALF_UP).toDouble().roundToLong(),
+                    currentSupplyInQuarks = circulatingSupply.toLong(),
                     mintDecimals = 6,
                 ).getOrThrow()
 
@@ -131,7 +132,7 @@ class EstimationTests {
 
 
                 assertTrue { abs(paymentValue.toDouble() - sellValue.toDouble()) <= 1.0 }
-                println("$valueLocked,$paymentValue,${paymentQuarks.toBigInteger()},${sellValue.toBigInteger()}")
+                println("$valueLocked,$paymentValue,${paymentQuarks},${sellValue}")
                 paymentValue *= 10L
             }
             valueLocked *= 10L

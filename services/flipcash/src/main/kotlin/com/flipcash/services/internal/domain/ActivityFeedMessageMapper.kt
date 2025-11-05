@@ -2,6 +2,7 @@ package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.activity.v1.paymentAmountOrNull
+import com.codeinc.flipcash.gen.common.v1.mintOrNull
 import com.codeinc.flipcash.gen.pool.v1.Model.*
 import com.flipcash.libs.currency.math.units
 import com.flipcash.services.internal.domain.mapper.Mapper
@@ -16,6 +17,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -27,14 +29,28 @@ internal class ActivityFeedMessageMapper @Inject constructor(
             id = from.id.toId(),
             text = from.localizedText,
             amount = from.paymentAmountOrNull?.let {
-                val units = BigDecimal(it.quarks).units()
-                val rate = Rate(1f / units.toDouble(), CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD)
-                LocalFiat(
-                    underlyingTokenAmount = Fiat(quarks = it.quarks),
-                    mint = it.mint.toPublicKey(),
-                    rate = rate,
-                    nativeAmount = Fiat(fiat = it.nativeAmount, currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD),
-                )
+                val currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD
+                val tokenAmount = Fiat(quarks = it.quarks)
+                val nativeAmount = Fiat(fiat = it.nativeAmount, currencyCode)
+                // if no mint, or it's usdc, then we can operate as a normal localized Fiat
+                if (it.mintOrNull == Mint.usdc || it.mintOrNull == null) {
+                    LocalFiat(
+                        usdc = tokenAmount,
+                        nativeAmount = nativeAmount,
+                    )
+                } else {
+                    val units = BigDecimal(it.quarks).units()
+                    val rate = Rate(
+                        1f / units.toDouble(),
+                       currencyCode,
+                    )
+                    LocalFiat(
+                        underlyingTokenAmount = tokenAmount,
+                        mint = it.mint.toPublicKey(),
+                        rate = rate,
+                        nativeAmount = nativeAmount,
+                    )
+                }
             },
             timestamp = Instant.fromEpochSeconds(from.ts.seconds),
             state = when (from.state) {

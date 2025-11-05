@@ -7,6 +7,7 @@ import androidx.paging.PagingData
 import androidx.paging.filter
 import androidx.paging.map
 import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.persistence.sources.MessageDataSource
 import com.flipcash.app.persistence.sources.mapper.notifications.MessageEntityToFeedMessageMapper
 import com.flipcash.app.persistence.sources.mediator.FeedRemoteMediator
@@ -15,6 +16,7 @@ import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -34,6 +36,7 @@ class ActivityFeedCoordinator @Inject constructor(
     private val dataSource: MessageDataSource,
     private val mapper: MessageEntityToFeedMessageMapper,
     private val userManager: UserManager,
+    private val tokenController: TokenController,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -56,9 +59,12 @@ class ActivityFeedCoordinator @Inject constructor(
         .flatMapLatest { _messages }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun transactions(mint: Mint): Flow<PagingData<ActivityFeedMessage>> = messages.map { page ->
+    fun transactions(mint: Mint): Flow<PagingData<ActivityFeedMessageWithToken>> = messages.map { page ->
             page.filter { message ->
                 message.amount?.mint == mint
+            }.map { msg ->
+                val token = msg.amount?.mint?.let { tokenController.getTokenMetadata(it) }?.getOrNull()
+                ActivityFeedMessageWithToken(msg, token)
             }
         }
 

@@ -132,7 +132,6 @@ class TransactionHistoryViewModel @Inject constructor(
 
     val transactions = stateFlow.mapNotNull { it.mint }
         .flatMapLatest { mint -> feedCoordinator.transactions(mint) }
-        .cachedIn(viewModelScope)
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->

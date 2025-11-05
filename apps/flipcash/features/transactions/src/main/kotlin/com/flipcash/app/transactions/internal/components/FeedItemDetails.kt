@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -16,7 +17,9 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.util.format
@@ -24,10 +27,12 @@ import com.getcode.utils.base58
 
 @Composable
 internal fun FeedItemDetails(
-    message: ActivityFeedMessage,
+    item: ActivityFeedMessageWithToken,
     modifier: Modifier = Modifier,
     onCancel: () -> Unit,
 ) {
+    val (message, token) = item
+
     Column(
         modifier = modifier
             .wrapContentHeight()
@@ -62,6 +67,12 @@ internal fun FeedItemDetails(
             )
         }
         message.amount?.let { amount ->
+            val usdcAmount = if (token?.address == Mint.usdc || token == null) {
+                amount.underlyingTokenAmount
+            } else {
+                Fiat.tokenBalance(amount.underlyingTokenAmount.quarks, token = token)
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -75,9 +86,25 @@ internal fun FeedItemDetails(
                     value = amount.nativeAmount.currencyCode.name,
                     modifier = Modifier.weight(1f)
                 )
+
                 DetailItem(
+                    modifier = Modifier.weight(1f),
                     label = "USDC",
-                    value = amount.underlyingTokenAmount.formatted(formatting = Fiat.Formatting.Length(6)),
+                    value = usdcAmount.formatted(
+                        formatting = Fiat.Formatting.Length(
+                            token?.decimals ?: 6
+                        )
+                    ),
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
+                DetailItem(
+                    modifier = Modifier.weight(1f),
+                    label = "Tokens",
+                    value = usdcAmount.estimatedTokenAmountIn(token),
                 )
             }
         }

@@ -1,7 +1,5 @@
 package com.getcode.opencode.model.financial
 
-import android.graphics.Color
-import android.icu.util.ULocale
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
@@ -10,8 +8,6 @@ import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.parcelize.Parcelize
-import java.math.BigDecimal
-import java.math.RoundingMode
 
 data class TokenWithBalance(
     val token: Token,

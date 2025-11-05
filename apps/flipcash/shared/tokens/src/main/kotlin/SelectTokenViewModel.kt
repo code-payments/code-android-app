@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -33,7 +34,7 @@ class SelectTokenViewModel @Inject constructor(
         val purpose: TokenPurpose,
         val tokens: List<TokenWithLocalizedBalance>? = null,
     ) {
-        val totalBalance: LocalFiat?
+        val totalBalance: LocalFiat
             get() = tokens.orEmpty().map { it.balance }.sum()
     }
 
@@ -68,10 +69,13 @@ class SelectTokenViewModel @Inject constructor(
                         )
                     }.sortedByDescending { it.balance.nativeAmount }
                         .filter {
-                            if (purpose == TokenPurpose.Deposit) {
-                                true
-                            } else {
-                                it.balance.nativeAmount > Fiat.Zero
+                            when (purpose) {
+                                // show all tokens we have accounts for as deposit targets
+                                TokenPurpose.Deposit -> true
+                                // show all tokens with non-zero balance
+                                else -> {
+                                    it.balance.nativeAmount.quarks > 0.01.toFiat(rate.currency).quarks
+                                }
                             }
                         }
                 }

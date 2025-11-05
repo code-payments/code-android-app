@@ -24,6 +24,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.transactions.internal.components.FeedItem
 import com.flipcash.features.transactions.R
 import com.getcode.theme.CodeTheme
@@ -40,7 +41,7 @@ internal fun TransactionHistoryScreen(viewModel: TransactionHistoryViewModel) {
 @Composable
 private fun TransactionHistoryScreenContent(
     state: TransactionHistoryViewModel.State,
-    transactions: LazyPagingItems<ActivityFeedMessage>,
+    transactions: LazyPagingItems<ActivityFeedMessageWithToken>,
     dispatch: (TransactionHistoryViewModel.Event) -> Unit,
 ) {
     FeedList(
@@ -55,7 +56,7 @@ private fun TransactionHistoryScreenContent(
 private fun FeedList(
     modifier: Modifier = Modifier,
     state: TransactionHistoryViewModel.State,
-    feed: LazyPagingItems<ActivityFeedMessage>,
+    feed: LazyPagingItems<ActivityFeedMessageWithToken>,
     dispatchEvent: (TransactionHistoryViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -93,17 +94,16 @@ private fun FeedList(
                 }
             }
         } else {
-            items(feed.itemCount, key = feed.itemKey { item -> item.id }) { index ->
-                val message = feed[index] ?: return@items
+            items(feed.itemCount, key = feed.itemKey { item -> item.message.id }) { index ->
+                val item = feed[index] ?: return@items
                 FeedItem(
                     modifier = Modifier
-                        .fillParentMaxWidth()
-                        .animateItem(),
-                    message = message,
+                        .fillParentMaxWidth(),
+                    item = item,
                     canViewDetails = state.canViewDetails,
-                    isExpanded = state.expandedItem == message.id,
-                    onCancel = { dispatchEvent(TransactionHistoryViewModel.Event.OnCancelRequested(message)) },
-                    onViewDetails = { dispatchEvent(TransactionHistoryViewModel.Event.ViewDetails(message.id)) },
+                    isExpanded = state.expandedItem == item.message.id,
+                    onCancel = { dispatchEvent(TransactionHistoryViewModel.Event.OnCancelRequested(item.message)) },
+                    onViewDetails = { dispatchEvent(TransactionHistoryViewModel.Event.ViewDetails(item.message.id)) },
                 )
 
                 if (index < feed.itemCount - 1) {

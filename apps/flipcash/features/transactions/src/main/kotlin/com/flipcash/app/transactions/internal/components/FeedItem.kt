@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.feed.ActivityFeedMessage
+import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.theme.FlipcashDesignSystem
@@ -27,14 +28,16 @@ import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.decodeBase58
 import kotlinx.datetime.Instant
 
 @Composable
 internal fun FeedItem(
-    message: ActivityFeedMessage,
+    item: ActivityFeedMessageWithToken,
     canViewDetails: Boolean,
     isExpanded: Boolean,
     modifier: Modifier = Modifier,
@@ -51,7 +54,7 @@ internal fun FeedItem(
             elevation = elevation,
         ) {
             FeedItemSummary(
-                message = message,
+                message = item.message,
                 canViewDetails = canViewDetails,
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -69,7 +72,7 @@ internal fun FeedItem(
         ) { expanded ->
             if (expanded) {
                 FeedItemDetails(
-                    message = message,
+                    item = item,
                     modifier = Modifier.fillMaxWidth(),
                     onCancel = onCancel
                 )
@@ -102,6 +105,11 @@ private val sampleItem = ActivityFeedMessage(
     metadata = MessageMetadata.GaveCrypto
 )
 
+private val sampleItemWithToken = ActivityFeedMessageWithToken(
+    message = sampleItem,
+    token = Token.usdc,
+)
+
 @Preview
 @Composable
 private fun Preview_CollapsedItem() {
@@ -114,7 +122,7 @@ private fun Preview_CollapsedItem() {
         ) {
             Box(modifier = Modifier.background(CodeTheme.colors.background)) {
                 FeedItem(
-                    message = sampleItem,
+                    item = sampleItemWithToken,
                     isExpanded = false,
                     canViewDetails = true,
                     onCancel = {},
@@ -137,7 +145,7 @@ private fun Preview_ExpandedItem() {
         ) {
             Box(modifier = Modifier.background(CodeTheme.colors.background)) {
                 FeedItem(
-                    message = sampleItem,
+                    item = sampleItemWithToken,
                     isExpanded = true,
                     canViewDetails = true,
                     onViewDetails = {},

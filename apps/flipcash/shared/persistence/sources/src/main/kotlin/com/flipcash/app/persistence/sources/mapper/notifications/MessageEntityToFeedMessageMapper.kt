@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 
@@ -22,8 +23,15 @@ class MessageEntityToFeedMessageMapper @Inject constructor() : Mapper<MessageEnt
         val amount = if (usdcAmount != null && nativeAmount != null && currencyCode != null && fx != null && mint != null) {
             val usdc = Fiat(usdcAmount, CurrencyCode.USD)
             val native = Fiat(nativeAmount, currencyCode)
-            val rate = Rate(fx, currencyCode)
-            LocalFiat(usdc, native, rate, mint)
+            if (mint == Mint.usdc) {
+                LocalFiat(
+                    usdc = usdc,
+                    nativeAmount = native
+                )
+            } else {
+                val rate = Rate(fx, currencyCode)
+                LocalFiat(usdc, native, rate, mint)
+            }
         } else {
             null
         }
