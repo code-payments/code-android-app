@@ -134,9 +134,6 @@ internal class GiveBillTransactor(
                 )
             },
             onFailure = {
-                if (it !is GiveTransactorError)  {
-                    ErrorUtils.handleError(it)
-                }
                 logAndFail(it)
             }
         )

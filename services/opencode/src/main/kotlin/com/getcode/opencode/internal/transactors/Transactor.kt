@@ -16,7 +16,8 @@ abstract class Transactor<E: CodeServerError>(
             tag = tag,
             message = error.message.orEmpty(),
             metadata = metadata,
-            type = TraceType.Process
+            type = TraceType.Error,
+            error = error
         )
         return Result.failure(error)
     }
