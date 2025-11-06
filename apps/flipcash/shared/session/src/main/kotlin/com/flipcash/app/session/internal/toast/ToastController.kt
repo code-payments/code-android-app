@@ -40,14 +40,14 @@ class ToastController @Inject constructor(
         isDeposit: Boolean,
         initialDelay: Duration = INITIAL_DELAY
     ) {
-        if (amount.nativeAmount.doubleValue == 0.0) {
+        if (amount.nativeAmount.decimalValue == 0.0) {
             return
         }
 
         synchronized(toastQueue) {
             // Check for matching toast (same amount, opposite isDeposit)
             val matchingToast = toastQueue.find { toast ->
-                toast.amount.nativeAmount.doubleValue == amount.nativeAmount.doubleValue &&
+                toast.amount.nativeAmount.decimalValue == amount.nativeAmount.decimalValue &&
                         toast.isDeposit != isDeposit
             }
 

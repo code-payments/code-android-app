@@ -224,6 +224,6 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .setQuarks(underlyingTokenAmount.quarks)
         .setCurrency(rate.currency.name.lowercase())
         .setExchangeRate(rate.fx)
-        .setNativeAmount(nativeAmount.doubleValue)
+        .setNativeAmount(nativeAmount.decimalValue)
         .build()
 }

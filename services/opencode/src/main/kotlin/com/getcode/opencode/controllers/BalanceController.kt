@@ -81,7 +81,7 @@ class BalanceController @Inject constructor(
     }
 
     suspend fun add(fiat: LocalFiat) {
-        if (_rawBalance.value.doubleValue == 0.0) {
+        if (_rawBalance.value.decimalValue == 0.0) {
             // attempt to fetch prior to append
             fetchBalance()
         } else {
@@ -90,7 +90,7 @@ class BalanceController @Inject constructor(
     }
 
     suspend fun subtract(fiat: LocalFiat) {
-        if (_rawBalance.value.doubleValue == 0.0) {
+        if (_rawBalance.value.decimalValue == 0.0) {
             // attempt to fetch prior to append
             fetchBalance()
         } else {

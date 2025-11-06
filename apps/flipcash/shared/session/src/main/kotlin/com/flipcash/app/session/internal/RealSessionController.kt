@@ -49,7 +49,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.utils.nonce
-import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -363,7 +362,7 @@ class RealSessionController @Inject constructor(
     }
 
     override fun showBill(bill: Bill) {
-        if (bill.amount.nativeAmount.doubleValue == 0.0) return
+        if (bill.amount.nativeAmount.decimalValue == 0.0) return
         val owner = userManager.accountCluster ?: return
 
         if (!networkObserver.isConnected) {

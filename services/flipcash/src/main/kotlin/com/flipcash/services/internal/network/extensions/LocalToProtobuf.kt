@@ -78,7 +78,7 @@ internal fun PoolMetadata.toProto(): PoolModels.SignedPoolMetadata {
         .setBuyIn(
             Common.FiatPaymentAmount.newBuilder()
                 .setCurrency(buyIn.currencyCode.name.lowercase())
-                .setNativeAmount(buyIn.doubleValue)
+                .setNativeAmount(buyIn.decimalValue)
         )
         .setFundingDestination(fundingDestination.asPublicKey())
         .setIsOpen(isOpen)

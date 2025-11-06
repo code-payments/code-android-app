@@ -23,9 +23,6 @@ data class Fiat(
     val decimalValue: Double
         get() = quarks.toDouble() / MULTIPLIER
 
-    val doubleValue: Double
-        get() = decimalValue
-
     val isNegative: Boolean
         get() = quarks < 0
 
@@ -63,7 +60,7 @@ data class Fiat(
 
     fun rounded(decimalPlaces: Int = 2): Fiat {
         return Fiat(
-            fiat = doubleValue.roundTo(decimalPlaces, ROUNDING_MODE),
+            fiat = decimalValue.roundTo(decimalPlaces, ROUNDING_MODE),
             currencyCode = currencyCode
         )
     }
@@ -73,6 +70,7 @@ data class Fiat(
         formatting: Formatting = Formatting.None,
         showPrefix: Boolean = true,
         suffix: String? = null,
+        includeCommas: Boolean = true,
     ): String {
         val shouldTruncate = if (formatting is Formatting.Truncated) {
             val fractionalPart = decimalValue - decimalValue.toLong()
@@ -107,6 +105,7 @@ data class Fiat(
             negativePrefix = prefix
             positiveSuffix = suffix?.prependIndent(" ").orEmpty()
             negativeSuffix = suffix?.prependIndent(" ").orEmpty()
+            isGroupingUsed = includeCommas
         }
 
         return formatter.format(decimalValue)
@@ -132,17 +131,15 @@ data class Fiat(
     // Comparable implementation
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
 
-    fun valueLessThan(other: Fiat): Boolean =
-        this.formatted(showPrefix = false).toDouble() < other.formatted(showPrefix = false).toDouble()
+    fun toDouble() = formatted(
+        showPrefix = false,
+        includeCommas = false
+    ).toDouble()
 
-    fun valueGreaterThan(other: Fiat): Boolean =
-        this.formatted(showPrefix = false).toDouble() > other.formatted(showPrefix = false).toDouble()
-
-    fun valueGreaterThanOrEqualTo(other: Fiat): Boolean =
-        this.formatted(showPrefix = false).toDouble() >= other.formatted(showPrefix = false).toDouble()
-
-    fun valueLessThanOrEqualTo(other: Fiat): Boolean =
-        this.formatted(showPrefix = false).toDouble() <= other.formatted(showPrefix = false).toDouble()
+    fun valueLessThan(other: Fiat): Boolean = toDouble() < other.toDouble()
+    fun valueGreaterThan(other: Fiat): Boolean = toDouble() > other.toDouble()
+    fun valueGreaterThanOrEqualTo(other: Fiat): Boolean = toDouble() >= other.toDouble()
+    fun valueLessThanOrEqualTo(other: Fiat): Boolean = toDouble() <= other.toDouble()
 
     fun estimatedTokenAmountIn(token: Token?, fractionDigits: Int? = token?.decimals): String {
         if (token?.address == Mint.usdc) {

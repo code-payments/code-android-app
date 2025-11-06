@@ -23,7 +23,7 @@ class OpenCodePayloadTests {
         // --------------------------------------------------------
 
         assertEquals(PayloadKind.Cash.value, decoded.kind.value)
-        assertEquals(5.00, decoded.fiat?.doubleValue)
+        assertEquals(5.00, decoded.fiat?.decimalValue)
         assertEquals(nonce, decoded.nonce)
     }
 }

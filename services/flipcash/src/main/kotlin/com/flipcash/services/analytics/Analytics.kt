@@ -457,7 +457,7 @@ private fun AnalyticsEvent.properties(
             }
             is AnalyticsEvent.WalletRequestAmount -> {
                 put("Provider", providerName)
-                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
             is AnalyticsEvent.WalletSubmitTransaction -> {
@@ -473,20 +473,20 @@ private fun AnalyticsEvent.properties(
             is AnalyticsEvent.OnRampOpenEvent -> Unit
             is AnalyticsEvent.OnRampVerificationEvent -> Unit
             AnalyticsEvent.OnRampPurchaseEvent.Completed -> {
-                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
             AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount -> Unit
             AnalyticsEvent.OnRampPurchaseEvent.InvokePayment -> {
-                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
             AnalyticsEvent.OnRampPurchaseEvent.InvokePaymentCustom -> {
-                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
             AnalyticsEvent.OnRampPurchaseEvent.PresetSelected -> {
-                put("Fiat", nativeAmount?.doubleValue.toString())
+                put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
         }
@@ -506,7 +506,7 @@ private fun AnalyticsEvent.properties(
 private fun LocalFiat.asProperties(): Map<String, String> {
     return buildMap {
         putAll(underlyingTokenAmount.asProperties())
-        "Fiat" to nativeAmount.doubleValue.toString()
+        "Fiat" to nativeAmount.decimalValue.toString()
         "Exchange Rate" to rate.fx.toString()
         "Currency" to rate.currency.name
         "Mint" to mint.base58()
@@ -515,7 +515,7 @@ private fun LocalFiat.asProperties(): Map<String, String> {
 
 private fun Fiat.asProperties(): Map<String, String> {
     return buildMap {
-        "USDC" to doubleValue.toString()
+        "USDC" to decimalValue.toString()
         "Quarks" to quarks.toDouble().toString()
     }
 }

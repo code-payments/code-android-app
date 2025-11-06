@@ -15,6 +15,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.authentication.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.BalanceController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -34,7 +35,7 @@ class AuthManager @Inject constructor(
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
     private val pushController: PushController,
-    private val balanceController: BalanceController,
+    private val tokenController: TokenController,
     private val persistence: PersistenceProvider,
     private val featureFlagController: FeatureFlagController,
     private val appSettings: AppSettingsCoordinator,
@@ -195,7 +196,7 @@ class AuthManager @Inject constructor(
         pushController.deleteTokens()
         notificationManager.cancelAll()
         userManager.clear()
-        balanceController.reset()
+        tokenController.reset()
         persistence.close()
         featureFlagController.reset()
         appSettings.reset()

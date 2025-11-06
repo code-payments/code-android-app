@@ -22,7 +22,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
@@ -287,7 +286,7 @@ internal class CashScreenViewModel @Inject constructor(
             .onEach { (limits, balance) ->
                 val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero
                 val nextTransactionLimit = sendLimit.nextTransaction
-                val max = min(nextTransactionLimit, balance.nativeAmount.doubleValue)
+                val max = min(nextTransactionLimit, balance.nativeAmount.decimalValue)
                 dispatchEvent(Event.OnMaxDetermined(max, balance.rate.currency))
             }.launchIn(viewModelScope)
 

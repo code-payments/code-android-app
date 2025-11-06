@@ -67,7 +67,7 @@ sealed interface TransactionMetadata {
             exchangeData = ExchangeData.WithRate(
                 currencyCode = amount.rate.currency.name,
                 exchangeRate = amount.rate.fx,
-                nativeAmount = amount.nativeAmount.doubleValue,
+                nativeAmount = amount.nativeAmount.decimalValue,
                 quarks = amount.underlyingTokenAmount.quarks,
                 mint = mint,
             ),
@@ -117,7 +117,7 @@ sealed interface TransactionMetadata {
             exchangeData = ExchangeData.WithRate(
                 currencyCode = amount.rate.currency.name,
                 exchangeRate = amount.rate.fx,
-                nativeAmount = amount.nativeAmount.doubleValue,
+                nativeAmount = amount.nativeAmount.decimalValue,
                 quarks = amount.underlyingTokenAmount.quarks,
                 mint = mint
             ),

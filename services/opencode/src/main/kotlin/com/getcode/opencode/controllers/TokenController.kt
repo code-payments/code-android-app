@@ -31,8 +31,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 
 @Singleton
 @OptIn(ExperimentalAtomicApi::class)
@@ -93,7 +91,7 @@ class TokenController @Inject constructor(
 
     private suspend fun modifyBalance(token: Token, operation: (Fiat) -> Fiat) {
         val balance = mintBalances.value[token.address] ?: Fiat.Zero
-        if (balance.doubleValue == 0.0) {
+        if (balance.decimalValue == 0.0) {
             // attempt to fetch prior to modifying balance
             fetchBalanceForToken(token.address)
         } else {
