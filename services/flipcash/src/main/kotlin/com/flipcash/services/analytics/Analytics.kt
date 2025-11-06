@@ -26,12 +26,15 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun transfer(
         event: AnalyticsEvent.Transfer,
         amount: LocalFiat? = null,
+        grabTime: Long? = null,
         successful: Boolean = true,
         error: Throwable? = null
     )
+
     fun transfer(
         event: AnalyticsEvent.Transfer,
         fiat: Fiat? = null,
+        grabTime: Long? = null,
         successful: Boolean = true,
         error: Throwable? = null
     )
@@ -65,10 +68,12 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun connectWallet(
         provider: OnRampProvider.UsesDeeplinks
     )
+
     fun amountSelectedForWalletTransfer(
         provider: OnRampProvider.UsesDeeplinks,
         amount: Fiat
     )
+
     fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
     fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks)
     fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks)
@@ -108,13 +113,27 @@ class FlipcashAnalyticsManager @Inject constructor(
         track(name = action.value)
     }
 
-    override fun transfer(event: AnalyticsEvent.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) {
-        val properties = event.properties(localizedAmount = amount, successful = successful, error = error)
+    override fun transfer(
+        event: AnalyticsEvent.Transfer,
+        amount: LocalFiat?,
+        grabTime: Long?,
+        successful: Boolean,
+        error: Throwable?
+    ) {
+        val properties =
+            event.properties(localizedAmount = amount, successful = successful, error = error)
         track(event.name, *properties.toList().toTypedArray())
     }
 
-    override fun transfer(event: AnalyticsEvent.Transfer, fiat: Fiat?, successful: Boolean, error: Throwable?) {
-        val properties = event.properties(nativeAmount = fiat, successful = successful, error = error)
+    override fun transfer(
+        event: AnalyticsEvent.Transfer,
+        fiat: Fiat?,
+        grabTime: Long?,
+        successful: Boolean,
+        error: Throwable?
+    ) {
+        val properties =
+            event.properties(nativeAmount = fiat, successful = successful, error = error)
         track(event.name, *properties.toList().toTypedArray())
     }
 
@@ -164,7 +183,8 @@ class FlipcashAnalyticsManager @Inject constructor(
         successful: Boolean,
         error: Throwable?
     ) {
-        val properties = purchaseEvent.properties(nativeAmount = fiat, successful = successful, error = error)
+        val properties =
+            purchaseEvent.properties(nativeAmount = fiat, successful = successful, error = error)
         track(purchaseEvent.name, *properties.toList().toTypedArray())
     }
 
@@ -174,7 +194,10 @@ class FlipcashAnalyticsManager @Inject constructor(
         track(event.name, *properties.toList().toTypedArray())
     }
 
-    override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) {
+    override fun amountSelectedForWalletTransfer(
+        provider: OnRampProvider.UsesDeeplinks,
+        amount: Fiat
+    ) {
         val event = AnalyticsEvent.WalletRequestAmount(provider)
         val properties = event.properties(
             nativeAmount = amount
@@ -217,23 +240,49 @@ class FlipcashAnalyticsManager @Inject constructor(
     }
 }
 
-class StubFlipcashAnalytics: FlipcashAnalyticsService {
+class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun onAppStart() = Unit
     override fun onAppStarted() = Unit
     override fun unintentionalLogout() = Unit
     override fun action(action: AppAction, source: AppActionSource?) = Unit
-    override fun transfer(event: AnalyticsEvent.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) = Unit
-    override fun transfer(event: AnalyticsEvent.Transfer, fiat: Fiat?, successful: Boolean, error: Throwable?) = Unit
+    override fun transfer(
+        event: AnalyticsEvent.Transfer,
+        amount: LocalFiat?,
+        grabTime: Long?,
+        successful: Boolean,
+        error: Throwable?
+    ) = Unit
+
+    override fun transfer(
+        event: AnalyticsEvent.Transfer,
+        fiat: Fiat?,
+        grabTime: Long?,
+        successful: Boolean,
+        error: Throwable?
+    ) = Unit
+
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
     override fun poolOpenedFromDeeplink(id: ID) = Unit
     override fun poolCreated(id: ID) = Unit
     override fun placedBidInPool(id: ID) = Unit
     override fun declaredOutcomeInPool(id: ID) = Unit
     override fun openOnramp(openEvent: AnalyticsEvent.OnRampOpenEvent) = Unit
-    override fun onrampVerification(verificationEvent: AnalyticsEvent.OnRampVerificationEvent) = Unit
-    override fun onrampPurchase(purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent, fiat: Fiat?, successful: Boolean, error: Throwable?) = Unit
+    override fun onrampVerification(verificationEvent: AnalyticsEvent.OnRampVerificationEvent) =
+        Unit
+
+    override fun onrampPurchase(
+        purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent,
+        fiat: Fiat?,
+        successful: Boolean,
+        error: Throwable?
+    ) = Unit
+
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
-    override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) = Unit
+    override fun amountSelectedForWalletTransfer(
+        provider: OnRampProvider.UsesDeeplinks,
+        amount: Fiat
+    ) = Unit
+
     override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) = Unit
@@ -272,6 +321,7 @@ sealed class Action : AppAction {
 sealed interface AnalyticsEvent {
 
     val name: String
+
     data class PaidForAccount(
         val price: Double,
         val currency: CurrencyCode,
@@ -284,18 +334,22 @@ sealed interface AnalyticsEvent {
     data object GrabBill : Transfer {
         override val name: String = "Grab Bill"
     }
+
     data object GiveBill : Transfer {
         override val name: String = "Give Bill"
     }
+
     data object Withdrawal : Transfer {
         override val name: String = "Withdrawal"
     }
+
     data class SentCashLink(
         val clipboard: Boolean? = null,
         val app: String? = null
     ) : Transfer {
         override val name: String = "Send Cash Link"
     }
+
     data object ClaimedCashLink : Transfer {
         override val name: String = "Receive Cash Link"
     }
@@ -320,60 +374,60 @@ sealed interface AnalyticsEvent {
         override val name: String = "Pool: Declared Outcome"
     }
 
-    sealed interface OnRampOpenEvent: AnalyticsEvent {
+    sealed interface OnRampOpenEvent : AnalyticsEvent {
         data object Settings : OnRampOpenEvent {
             override val name: String = "Onramp: Opened From Settings"
         }
 
-        data object Balance: OnRampOpenEvent {
+        data object Balance : OnRampOpenEvent {
             override val name: String = "Onramp: Opened From Balance"
         }
 
-        data object Give: OnRampOpenEvent {
+        data object Give : OnRampOpenEvent {
             override val name: String = "Onramp: Opened From Give"
         }
     }
 
-    sealed interface OnRampVerificationEvent: AnalyticsEvent {
+    sealed interface OnRampVerificationEvent : AnalyticsEvent {
         data object ShowInfo : OnRampVerificationEvent {
             override val name: String = "Onramp: Show Verification Info"
         }
 
-        data object EnterPhone: OnRampVerificationEvent {
+        data object EnterPhone : OnRampVerificationEvent {
             override val name: String = "Onramp: Show Enter Phone"
         }
 
-        data object ConfirmPhone: OnRampVerificationEvent {
+        data object ConfirmPhone : OnRampVerificationEvent {
             override val name: String = "Onramp: Show Confirm Phone"
         }
 
-        data object EnterEmail: OnRampVerificationEvent {
+        data object EnterEmail : OnRampVerificationEvent {
             override val name: String = "Onramp: Show Enter Email"
         }
 
-        data object ConfirmEmail: OnRampVerificationEvent {
+        data object ConfirmEmail : OnRampVerificationEvent {
             override val name: String = "Onramp: Show Confirm Email"
         }
     }
 
-    sealed interface OnRampPurchaseEvent: AnalyticsEvent {
-        data object PresetSelected: OnRampPurchaseEvent {
+    sealed interface OnRampPurchaseEvent : AnalyticsEvent {
+        data object PresetSelected : OnRampPurchaseEvent {
             override val name: String = "Onramp: Amount Selected"
         }
 
-        data object EnterCustomAmount: OnRampPurchaseEvent {
+        data object EnterCustomAmount : OnRampPurchaseEvent {
             override val name: String = "Onramp: Enter Custom Amount"
         }
 
-        data object InvokePayment: OnRampPurchaseEvent {
+        data object InvokePayment : OnRampPurchaseEvent {
             override val name: String = "Onramp: Invoke Payment"
         }
 
-        data object InvokePaymentCustom: OnRampPurchaseEvent {
+        data object InvokePaymentCustom : OnRampPurchaseEvent {
             override val name: String = "Onramp: Invoke Payment Custom"
         }
 
-        data object Completed: OnRampPurchaseEvent {
+        data object Completed : OnRampPurchaseEvent {
             override val name: String = "Onramp: Completed"
         }
     }
@@ -386,19 +440,23 @@ sealed interface AnalyticsEvent {
         override val name: String = "Wallet: Connect"
     }
 
-    data class WalletRequestAmount(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+    data class WalletRequestAmount(override val provider: OnRampProvider.UsesDeeplinks) :
+        WalletEvent {
         override val name: String = "Wallet: Request Amount"
     }
 
-    data class WalletSubmitTransaction(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+    data class WalletSubmitTransaction(override val provider: OnRampProvider.UsesDeeplinks) :
+        WalletEvent {
         override val name: String = "Wallet: Transactions Submitted"
     }
 
-    data class WalletTransactionFailed(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+    data class WalletTransactionFailed(override val provider: OnRampProvider.UsesDeeplinks) :
+        WalletEvent {
         override val name: String = "Wallet: Transactions Failed"
     }
 
-    data class WalletTransactionCancelled(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
+    data class WalletTransactionCancelled(override val provider: OnRampProvider.UsesDeeplinks) :
+        WalletEvent {
         override val name: String = "Wallet: Cancel"
     }
 }
@@ -406,6 +464,7 @@ sealed interface AnalyticsEvent {
 private fun AnalyticsEvent.properties(
     localizedAmount: LocalFiat? = null,
     nativeAmount: Fiat? = null,
+    grabTime: Long? = null,
     successful: Boolean? = null,
     error: Throwable? = null,
 ): Map<String, String> {
@@ -437,6 +496,7 @@ private fun AnalyticsEvent.properties(
                     put("App", event.app)
                 }
             }
+
             AnalyticsEvent.Withdrawal,
             AnalyticsEvent.ClaimedCashLink,
             AnalyticsEvent.GiveBill,
@@ -455,17 +515,21 @@ private fun AnalyticsEvent.properties(
             is AnalyticsEvent.WalletConnect -> {
                 put("Provider", providerName)
             }
+
             is AnalyticsEvent.WalletRequestAmount -> {
                 put("Provider", providerName)
                 put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
+
             is AnalyticsEvent.WalletSubmitTransaction -> {
                 put("Provider", providerName)
             }
+
             is AnalyticsEvent.WalletTransactionCancelled -> {
                 put("Provider", providerName)
             }
+
             is AnalyticsEvent.WalletTransactionFailed -> {
                 put("Provider", providerName)
             }
@@ -476,15 +540,18 @@ private fun AnalyticsEvent.properties(
                 put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
+
             AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount -> Unit
             AnalyticsEvent.OnRampPurchaseEvent.InvokePayment -> {
                 put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
+
             AnalyticsEvent.OnRampPurchaseEvent.InvokePaymentCustom -> {
                 put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
             }
+
             AnalyticsEvent.OnRampPurchaseEvent.PresetSelected -> {
                 put("Fiat", nativeAmount?.decimalValue.toString())
                 put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
@@ -495,6 +562,10 @@ private fun AnalyticsEvent.properties(
             putAll(localizedAmount.asProperties())
         } else if (nativeAmount != null) {
             putAll(nativeAmount.asProperties())
+        }
+
+        if (grabTime != null) {
+            put("Grab Time", grabTime.toString())
         }
 
         if (error != null) {

@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import kotlin.coroutines.resume
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -118,7 +119,7 @@ class RealSessionController @Inject constructor(
     override val billState: StateFlow<BillState>
         get() = billController.state
 
-    private val scannedRendezvous = mutableListOf<String>()
+    private val scannedRendezvous = mutableMapOf<String, Long>()
 
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
@@ -666,8 +667,6 @@ class RealSessionController @Inject constructor(
             vibrator.tick()
         }
 
-        scannedRendezvous.add(codePayload.rendezvous.publicKey)
-
         trace(
             tag = "Session",
             message = """
@@ -799,6 +798,8 @@ class RealSessionController @Inject constructor(
     }
 
     private fun onCashScanned(payload: OpenCodePayload) {
+        scannedRendezvous[payload.rendezvous.publicKey] = Clock.System.now().toEpochMilliseconds()
+
         trace(
             tag = "Session",
             message = "Scanned: ${payload.fiat!!.formatted()} ${payload.fiat!!.currencyCode}"
@@ -809,7 +810,11 @@ class RealSessionController @Inject constructor(
             owner = owner,
             payload = payload,
             onGrabbed = { token, amount ->
-                analytics.transfer(AnalyticsEvent.GrabBill, amount)
+                val grabStart = scannedRendezvous[payload.rendezvous.publicKey]
+                val grabTime = grabStart?.let {
+                    Clock.System.now().toEpochMilliseconds() - it
+                }
+                analytics.transfer(AnalyticsEvent.GrabBill, amount, grabTime = grabTime)
                 BottomBarManager.clear()
                 toastController.enqueue(amount, isDeposit = true)
                 showBill(
