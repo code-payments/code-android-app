@@ -451,6 +451,10 @@ class RealSessionController @Inject constructor(
                     error = it
                 )
                 dismissBill(action = PutInWallet)
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_CashReturnedToWallet),
+                    message = resources.getString(R.string.error_description_CashReturnedToWallet)
+                )
             },
             present = { data ->
                 if (!bill.didReceive) {
