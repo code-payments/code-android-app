@@ -132,6 +132,18 @@ data class Fiat(
     // Comparable implementation
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
 
+    fun valueLessThan(other: Fiat): Boolean =
+        this.formatted(showPrefix = false).toDouble() < other.formatted(showPrefix = false).toDouble()
+
+    fun valueGreaterThan(other: Fiat): Boolean =
+        this.formatted(showPrefix = false).toDouble() > other.formatted(showPrefix = false).toDouble()
+
+    fun valueGreaterThanOrEqualTo(other: Fiat): Boolean =
+        this.formatted(showPrefix = false).toDouble() >= other.formatted(showPrefix = false).toDouble()
+
+    fun valueLessThanOrEqualTo(other: Fiat): Boolean =
+        this.formatted(showPrefix = false).toDouble() <= other.formatted(showPrefix = false).toDouble()
+
     fun estimatedTokenAmountIn(token: Token?, fractionDigits: Int? = token?.decimals): String {
         if (token?.address == Mint.usdc) {
             return formatted(showPrefix = false)

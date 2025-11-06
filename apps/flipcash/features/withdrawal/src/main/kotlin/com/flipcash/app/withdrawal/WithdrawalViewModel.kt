@@ -102,12 +102,12 @@ internal class WithdrawalViewModel @Inject constructor(
         val isError: Boolean
             get() {
                 if (amountEntryState.amountAnimatedModel.amountData.amount.isEmpty()) return false
-                val enteredAmount = Fiat(amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0)
-                if (enteredAmount.doubleValue <= tokenBalance.rounded().doubleValue) {
-                    return false
-                }
+                val enteredAmount = Fiat(
+                    fiat = amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0,
+                    currencyCode = tokenBalance.currencyCode
+                )
 
-                return true
+                return !enteredAmount.valueLessThanOrEqualTo(tokenBalance)
             }
     }
 

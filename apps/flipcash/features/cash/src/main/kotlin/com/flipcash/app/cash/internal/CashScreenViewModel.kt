@@ -7,7 +7,6 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
-import com.flipcash.features.cash.BuildConfig
 import com.flipcash.features.cash.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -27,7 +26,6 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
-import com.getcode.opencode.utils.roundTo
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -81,12 +79,17 @@ internal class CashScreenViewModel @Inject constructor(
         val maxAvailableForGive: String
             get() = maxForGive?.let { Fiat(it.first, it.second).formatted() }.orEmpty()
 
+
         val isError: Boolean
             get() {
                 if (amountAnimatedModel.amountData.amount.isEmpty()) return false
-                val enteredAmount = Fiat(amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0)
                 if (maxForGive != null) {
-                    if (enteredAmount.doubleValue <= maxForGive.first.roundTo(2)) {
+                    val enteredAmount = Fiat(
+                        fiat = amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0,
+                        currencyCode = maxForGive.second
+                    )
+                    val limit = Fiat(maxForGive.first, maxForGive.second)
+                    if (enteredAmount.valueLessThanOrEqualTo(limit)) {
                         return false
                     }
                 }
@@ -120,18 +123,17 @@ internal class CashScreenViewModel @Inject constructor(
     }
 
     val checkBalanceLimit: () -> Boolean = {
+        // this balance check differs from withdrawal due to the fact this is a localized check
+        // whereas withdrawal is USD locked
         val amount = stateFlow.value.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
-        val conversionRate =
-            exchange.rateToUsd(stateFlow.value.currencyModel.code ?: CurrencyCode.USD)
-                ?: Rate.ignore
-        val enteredInUsdc = Fiat(
+        val enteredAmount = Fiat(
             fiat = amount,
             currencyCode = stateFlow.value.currencyModel.code ?: CurrencyCode.USD
-        ).convertingTo(conversionRate)
-        val tokenBalance = stateFlow.value.token?.balance?.underlyingTokenAmount ?: Fiat.Zero
+        )
+        val tokenBalance = stateFlow.value.token?.balance?.nativeAmount ?: Fiat.Zero
 
-        val isOverBalance = enteredInUsdc > tokenBalance.rounded()
-        if (isOverBalance || conversionRate == Rate.ignore) {
+        val isOverBalance = enteredAmount.valueGreaterThan(tokenBalance)
+        if (isOverBalance) {
             BottomBarManager.showMessage(
                 resources.getString(R.string.error_title_youNeedMoreCash),
                 resources.getString(R.string.error_description_youNeedMoreCash),
