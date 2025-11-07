@@ -30,7 +30,7 @@ object Versions {
     const val androidx_work = "2.10.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2025.10.00"
+    const val compose = "2025.11.00"
 
     const val compose_activities: String = "1.11.0"
     const val compose_view_models: String = "2.6.2"
