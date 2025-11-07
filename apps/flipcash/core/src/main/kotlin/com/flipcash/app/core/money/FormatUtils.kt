@@ -40,6 +40,6 @@ fun Int.withCommas(): String {
     return this.toString().reversed().chunked(3).joinToString(",").reversed()
 }
 
-fun LocalFiat.formatted(formatting: Fiat.Formatting = Fiat.Formatting.None, suffix: String? = null): String {
-    return nativeAmount.formatted(formatting = formatting, suffix = suffix)
+fun LocalFiat.formatted(formatting: Fiat.Formatting = Fiat.Formatting.None): String {
+    return nativeAmount.formatted(formatting = formatting)
 }
