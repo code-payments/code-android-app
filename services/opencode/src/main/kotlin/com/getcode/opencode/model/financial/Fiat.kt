@@ -78,7 +78,7 @@ data class Fiat(
             false
         }
 
-        val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
+        val formatter = DecimalFormat.getInstance(Locale.US).apply {
             val decimalDigits =
                 java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
             val preferredDigits = when (formatting) {
@@ -91,7 +91,7 @@ data class Fiat(
             minimumFractionDigits = preferredDigits
             maximumFractionDigits = preferredDigits
             roundingMode = ROUNDING_MODE
-            (this as android.icu.text.DecimalFormat).decimalFormatSymbols =
+            (this as DecimalFormat).decimalFormatSymbols =
                 decimalFormatSymbols.apply {
                     currencySymbol = ""
                 }
@@ -149,7 +149,7 @@ data class Fiat(
             mintDecimals = 6,
         ).getOrNull() ?: BigDecimal.ZERO)
 
-        val formatter = android.icu.text.DecimalFormat.getInstance(ULocale.US).apply {
+        val formatter = DecimalFormat.getInstance(Locale.US).apply {
             if (fractionDigits != null) {
                 maximumFractionDigits = fractionDigits
                 minimumFractionDigits = fractionDigits
@@ -161,7 +161,7 @@ data class Fiat(
     }
 
     companion object {
-        private val ROUNDING_MODE = RoundingMode.HALF_UP.ordinal
+        private val ROUNDING_MODE = RoundingMode.HALF_UP
         const val MULTIPLIER: Double = 1_000_000.0
 
         val Zero = Fiat(0, CurrencyCode.USD)

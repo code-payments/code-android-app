@@ -113,4 +113,6 @@ dependencies {
     implementation(Libs.bugsnag)
 
     implementation(Libs.eventBus)
+
+    testImplementation(kotlin("test"))
 }

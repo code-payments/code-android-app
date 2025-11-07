@@ -1,8 +1,8 @@
 package com.getcode.opencode.internal.extensions
 
-import android.icu.util.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.trace
+import java.util.Currency
 import java.util.Locale
 
 internal fun CurrencyCode.getClosestLocale(): Locale {
@@ -19,7 +19,7 @@ internal fun CurrencyCode.getClosestLocale(): Locale {
         if (locale.country.equals(getRegion()?.name, ignoreCase = true)) {
             try {
                 val localeCurrency = Currency.getInstance(locale)
-                if (localeCurrency.currencyCode.lowercase() == currency.currencyCode.lowercase()) {
+                if (localeCurrency.currencyCode.equals(currency.currencyCode, ignoreCase = true)) {
                     matchedLocale = locale
                     break
                 }

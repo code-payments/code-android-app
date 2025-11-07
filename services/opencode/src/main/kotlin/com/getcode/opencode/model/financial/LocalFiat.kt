@@ -64,7 +64,7 @@ data class LocalFiat(
         fun valueExchangeIn(
             amount: Fiat,
             token: Token,
-            balance: Fiat = Fiat.Zero,
+            balance: Fiat? = null,
             rate: Rate,
             debug: Boolean = BuildConfig.DEBUG,
         ): LocalFiat {
@@ -84,7 +84,7 @@ data class LocalFiat(
 
             val circulatingSupply = token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
 
-            val cappedValue = min(balance, usdValue)
+            val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
             // determine quarks to exchange for the desired amount
             val quarks = Estimator.valueExchangeAsQuarks(
@@ -105,7 +105,7 @@ data class LocalFiat(
             if (debug) {
                 println("############## EXCHANGE REPORT ###################")
                 println("requested quarks:   ${usdValue.quarks * 1_000_000}")
-                println("balance quarks:     ${balance.quarks * 1_000_000}")
+                println("balance quarks:     ${balance?.quarks?.times(1_000_000)}")
                 println("capped quarks:      ${cappedValue.quarks * 1_000_000}")
                 println("circulating supply: $circulatingSupply")
                 println("calculated quarks:  $quarks")
