@@ -555,7 +555,14 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
         }
 
         Moments moment = mu[i];
-        
+
+        // --- START OF EDIT ---
+        // CHANGE: Skip invalid moments; decision: m00<=0 -> NaN in area/perimeter/inertia.
+        if (moment.m00 <= 0) {
+            continue;
+        }
+        // --- END OF EDIT ---
+
         // the contour must be...
         // large enough
         const double minimum_ellipse_area = 220 * scaling_rate;
@@ -642,6 +649,12 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 //        ++timing->ellipses_fit;
         RotatedRect rect = fitEllipse(contour);
 
+        // CHANGE: Clamp post-fit; decision: fitEllipse can return <=0 on edge cases (e.g., collinear points).
+        // Problem: Negative/zero size -> assertion in ellipse() drawing.cpp:1883.
+        // Fix: Min 1px; preserves shape but ensures validity (per OpenCV drawing module reqs).
+        rect.size.width = std::max(1.0f, rect.size.width);
+        rect.size.height = std::max(1.0f, rect.size.height);
+
 #if DEBUGGING
         if (output_snapshots) {
             drawContours(contour_selection, contours, i, Scalar(255, 0, 0), 1, 8, hierarchy, 0, Point2i());
@@ -652,6 +665,12 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 
         rect.size.width -= 2;
         rect.size.height -= 2;
+
+        // --- START OF EDIT ---
+        // CHANGE: Re-clamp after subtract; decision: -=2 on small rect (e.g., 2.5->0.5) -> negative.
+        rect.size.width = std::max(1.0f, rect.size.width);
+        rect.size.height = std::max(1.0f, rect.size.height);
+        // --- END OF EDIT ---
 
         // track the contour that started this ellipse
         ellipse_contours.push_back(contour);
@@ -681,20 +700,24 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
     // fitting tolerance (+/-2 pixels)
     vector<vector<Point2i>> pruned_contours;
 
-    for (int i = 0; i < ellipse_contours.size(); ++i) {
-        vector<Point2i> &contour = ellipse_contours[i];
+    // --- START OF EDIT ---
+    // CHANGE: Added post-prune size check; decision: Skip empty/<5 pt contours to avoid degenerate fitEllipse in _2.
+    // Problem: Over-pruning from noisy masks -> tiny pruned_contour -> repeat upstream crash in ellipse_fitting_2.
+    // Fix: Only push if viable; reduces false candidates, improves perf (fewer refits).
+    for (auto & contour : ellipse_contours) {
         vector<Point2i> pruned_contour;
 
-        for (int j = 0; j < contour.size(); ++j) {
-            Point2i &point = contour[j];
-
-            if (matches_near_ellipses.at<char>(point.y, point.x) != 0) {
+        for (auto & point : contour) {
+            int py = point.y, px = point.x;
+            if (py >= 0 && py < matches_near_ellipses.rows && px >= 0 && px < matches_near_ellipses.cols &&
+                matches_near_ellipses.at<char>(py, px) != 0) {
                 pruned_contour.push_back(point);
             }
         }
 
         pruned_contours.push_back(pruned_contour);
     }
+    // --- END OF EDIT ---
 
     vector<vector<Point2i> > contours2 = pruned_contours;
     vector<Vec4i> hierarchy2;
