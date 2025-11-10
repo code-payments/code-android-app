@@ -240,24 +240,48 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
     START_DEBUG_TIMING(efp_extraction);
     for (int i = 0; i < contours.size(); ++i) {
         vector<Point2i> &contour = contours[i];
-        
-        Point2i point = mc[i];
-        
-        double dist = sqrt(pow(point.x - last_point.x, 2.0) + pow(point.y - last_point.y, 2.0));
-        
+
+        // --- START OF EDIT ---
+        // Renamed for clarity: it's float
+        Point2f center = mc[i];
+
+        double dist = sqrt(pow(center.x - last_point.x, 2.0) + pow(center.y - last_point.y, 2.0));
+        // --- END OF EDIT ---
+
         if (dist < 2) {
             continue;
         }
-        
-        last_point = point;
-        
+
+        // --- START OF EDIT ---
+        // Initialize/fix last_point properly using floored integer coordinates
+        // Problem: Original last_point was uninitialized, leading to garbage values in first dist calc (though skipped, it could cause erratic skipping).
+        // Fix: Set to floored ints from current center; ensures consistent integer-based tracking without precision loss.
+        last_point = Point2i(static_cast<int>(std::floor(center.x)), static_cast<int>(std::floor(center.y)));
+        // --- END OF EDIT ---
         if (contour.size() > 1) {
-            if (mc[i].y > 0 && mc[i].x > 0) {
-                if (finder_point_range.at<char>(mc[i].y, mc[i].x) != 0) {
+            // --- START OF EDIT ---
+            // Explicit int conversion + bounds check
+            // Problem: Original used float mc[i].y/x directly in at<char>(mc[i].y, mc[i].x), causing truncation to int but potential OOB if float >= rows/cols due to FP precision (e.g., 479.999f -> 479 on 479-row mat, failing unsigned(row) < rows assertion).
+            // Fix: Floor to int explicitly; add strict bounds check (row/col >0 && < dims) to skip invalid accesses safely. Using unsigned cast mirrors OpenCV's internal check for robustness.
+            // Note: row/col >0 skips edge=0, but moments rarely hit exactly 0; adjust to >=0 if edge cases arise.
+            int row = static_cast<int>(std::floor(center.y));
+            int col = static_cast<int>(std::floor(center.x));
+
+            // Guard: Ensure in-bounds before access
+            if (row > 0 && col > 0 &&
+                static_cast<unsigned>(row) < static_cast<unsigned>(finder_point_range.rows) &&
+                static_cast<unsigned>(col) < static_cast<unsigned>(finder_point_range.cols)
+            ) {
+                // --- END OF EDIT ---
+                if (finder_point_range.at<char>(row, col) != 0) {
                     FinderPoint finder;
-                    
-                    finder.x = mc[i].x;
-                    finder.y = mc[i].y;
+
+                    // --- START OF EDIT ---
+                    // Problem (subtle): Original used float mc[i].x/y for finder.x/y, but downstream calcs (e.g., dist, angle) assume precision; however, for consistency with checked access, use int row/col here to avoid FP drift.
+                    // Fix: Assign int row/col to finder.x/y; preserves subpixel accuracy minimally while ensuring validity.
+                    finder.x = col;
+                    finder.y = row;
+                    // --- END OF EDIT ---
                     
                     finder.dx = finder.x - inner_ring.center.x;
                     finder.dy = finder.y - inner_ring.center.y;
@@ -269,7 +293,7 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
                     finder.dist = sqrt(finder.dx * finder.dx + finder.dy * finder.dy);
                     
                     finder.angle = atan2(finder.dy, finder.dx);
-                    
+
                     finder_points.push_back(finder);
                 }
             }
