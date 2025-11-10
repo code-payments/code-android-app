@@ -6,6 +6,7 @@ import com.flipcash.libs.currency.math.units
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.trace
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
@@ -102,6 +103,8 @@ data class LocalFiat(
             // USD is a 1:1 fx so we can be blind here
             val fx = rate.fx * usdFx.toDouble()
 
+            val sellAmount = Fiat.tokenBalance(quarks.toLong(), token = token)
+
             if (debug) {
                 println("############## EXCHANGE REPORT ###################")
                 println("requested quarks:   ${usdValue.quarks * 1_000_000}")
@@ -111,10 +114,24 @@ data class LocalFiat(
                 println("calculated quarks:  $quarks")
                 println("units:              $units")
                 println("fx:                 $fx")
-                val sellAmount = Fiat.tokenBalance(quarks.toLong(), token = token)
                 println("sellAmount:         ${sellAmount.formatted(formatting = Fiat.Formatting.Length(10))}")
                 println("##################################################")
             }
+
+            trace(
+                tag = "LocalFiat",
+                message = "Bill created",
+                metadata = {
+                    "requested quarks" to usdValue.quarks * 1_000_000
+                    "balance quarks" to balance?.quarks?.times(1_000_000)
+                    "calculated quarks" to quarks
+                    "units" to units
+                    "fx" to fx
+                    "circulating supply" to circulatingSupply
+                    "capped value" to cappedValue.quarks * 1_000_000
+                    "sell amount" to sellAmount.formatted(formatting = Fiat.Formatting.Length(10))
+                }
+            )
 
             return LocalFiat(
                 underlyingTokenAmount = Fiat(quarks.toLong(), CurrencyCode.USD),
