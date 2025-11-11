@@ -103,18 +103,20 @@ data class LocalFiat(
             // USD is a 1:1 fx so we can be blind here
             val fx = rate.fx * usdFx.toDouble()
 
-            val sellAmount = Fiat.tokenBalance(quarks.toLong(), token = token)
+            val sellAmountUsd = Fiat.tokenBalance(quarks.toLong(), token = token)
 
             if (debug) {
                 println("############## EXCHANGE REPORT ###################")
-                println("requested quarks:   ${usdValue.quarks * 1_000_000}")
-                println("balance quarks:     ${balance?.quarks?.times(1_000_000)}")
-                println("capped quarks:      ${cappedValue.quarks * 1_000_000}")
-                println("circulating supply: $circulatingSupply")
-                println("calculated quarks:  $quarks")
-                println("units:              $units")
-                println("fx:                 $fx")
-                println("sellAmount:         ${sellAmount.formatted(formatting = Fiat.Formatting.Length(10))}")
+                println("requested currency:  ${rate.currency.name}")
+                println("requested amount: ${amount.formatted()}")
+                println("requested quarks (in USD): ${usdValue.quarks * 1_000_000}")
+                println("balance quarks (in USD): ${balance?.quarks?.times(1_000_000)}")
+                println("capped quarks (in USD): ${cappedValue.quarks * 1_000_000}")
+                println("circulating supply (of ${token.symbol}): $circulatingSupply")
+                println("calculated quarks: $quarks")
+                println("units: $units")
+                println("fx: $fx")
+                println("sellAmount: ${sellAmountUsd.formatted(formatting = Fiat.Formatting.Length(token.decimals))}")
                 println("##################################################")
             }
 
@@ -122,14 +124,16 @@ data class LocalFiat(
                 tag = "LocalFiat",
                 message = "Bill created",
                 metadata = {
-                    "requested quarks" to usdValue.quarks * 1_000_000
-                    "balance quarks" to balance?.quarks?.times(1_000_000)
+                    "requested currency" to rate.currency.name
+                    "requested amount" to amount.formatted()
+                    "requested quarks (in USD)" to usdValue.quarks * 1_000_000
+                    "balance quarks (in USD)" to balance?.quarks?.times(1_000_000)
+                    "capped quarks (in USD)" to cappedValue.quarks * 1_000_000
+                    "circulating supply of ${token.symbol}" to circulatingSupply
                     "calculated quarks" to quarks
                     "units" to units
                     "fx" to fx
-                    "circulating supply" to circulatingSupply
-                    "capped value" to cappedValue.quarks * 1_000_000
-                    "sell amount" to sellAmount.formatted(formatting = Fiat.Formatting.Length(10))
+                    "sell amount (in USD)" to sellAmountUsd.formatted(formatting = Fiat.Formatting.Length(token.decimals))
                 }
             )
 

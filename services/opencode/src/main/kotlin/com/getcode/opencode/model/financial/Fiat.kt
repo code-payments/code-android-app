@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.DecimalFormat
+import java.util.Currency
 import java.util.Locale
 
 @Serializable
@@ -79,8 +80,7 @@ data class Fiat(
         }
 
         val formatter = DecimalFormat.getInstance(Locale.US).apply {
-            val decimalDigits =
-                java.util.Currency.getInstance(currencyCode.name).defaultFractionDigits
+            val decimalDigits = Currency.getInstance(currencyCode.name).defaultFractionDigits
             val preferredDigits = when (formatting) {
                 is Formatting.Length -> formatting.decimalPlaces
                 Formatting.None -> decimalDigits
@@ -90,7 +90,7 @@ data class Fiat(
             }
             minimumFractionDigits = preferredDigits
             maximumFractionDigits = preferredDigits
-            roundingMode = ROUNDING_MODE
+            roundingMode = if (decimalDigits == 0) RoundingMode.DOWN else ROUNDING_MODE
             (this as DecimalFormat).decimalFormatSymbols =
                 decimalFormatSymbols.apply {
                     currencySymbol = ""
@@ -132,6 +132,8 @@ data class Fiat(
         showPrefix = false,
         includeCommas = false
     ).toDouble()
+
+    fun valueNonZero(): Boolean = toDouble() != 0.0
 
     fun valueLessThan(other: Fiat): Boolean = toDouble() < other.toDouble()
     fun valueGreaterThan(other: Fiat): Boolean = toDouble() > other.toDouble()
