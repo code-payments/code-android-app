@@ -53,6 +53,10 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
         return result
     }
 
+    override fun toString(): String {
+        return base58()
+    }
+
     override fun describeContents(): Int {
         return 0
     }
