@@ -98,11 +98,14 @@ internal class GrabBillTransactor(
         }.fold(
             onSuccess = {
                 // 5. Wait for confirmation
-                transactionController.pollIntentMetadata(
+                transactionController.pollIntentMetadata<TransactionMetadata.PublicPayment>(
                     owner = tokenizedCluster.authority.keyPair,
                     intentId = data.rendezvous.toPublicKey(),
                     debugLogs = true
-                )
+                ).onSuccess {
+                    // 6. Ack the receipt of the give request to clear it from the stream
+                    messagingController.ackMessages(data.rendezvous, listOf(messageId))
+                }
             }, onFailure = {
                 if (it !is GrabTransactorError) {
                     ErrorUtils.handleError(it)

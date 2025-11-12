@@ -802,7 +802,7 @@ class RealSessionController @Inject constructor(
 
         trace(
             tag = "Session",
-            message = "Scanned: ${payload.fiat!!.formatted()} ${payload.fiat!!.currencyCode}"
+            message = "Scanned: ${payload.fiat!!.quarks} ${payload.fiat!!.currencyCode}"
         )
         val owner = userManager.accountCluster ?: return
 
