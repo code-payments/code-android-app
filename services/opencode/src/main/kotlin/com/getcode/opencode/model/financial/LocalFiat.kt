@@ -69,6 +69,7 @@ data class LocalFiat(
             balance: Fiat? = null,
             rate: Rate,
             debug: Boolean = BuildConfig.DEBUG,
+            trace: Boolean = true,
         ): LocalFiat {
             val usdValue = amount.convertingToUsdIfNeeded(rate)
 
@@ -100,15 +101,15 @@ data class LocalFiat(
             // determine the exchange rate (native amount / units of token) (USD based)
             val usdFx = BigDecimal(cappedValue.decimalValue).divideWithHighPrecision(units)
 
-            // determine the relative exchange rate of the token in the currency selected
-            // USD is a 1:1 fx so we can be blind here
-            val fx = rate.fx * usdFx.toDouble()
-
             val underlyingTokenAmount = Fiat(quarks.toLong(), CurrencyCode.USD)
             val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token).convertingTo(rate)
 
+            // determine the relative exchange rate of the token in the currency selected
+            val fx = sellEstimate.decimalValue.toBigDecimal().divideWithHighPrecision(units).toDouble()
+
             logExchange(
                 debug = debug,
+                trace = trace,
                 rate = rate,
                 amount = amount,
                 usdValue = usdValue,
@@ -118,6 +119,7 @@ data class LocalFiat(
                 valueLocked = valueLocked,
                 quarks = quarks,
                 units = units,
+                usdFx = usdFx,
                 fx = fx,
                 sellEstimate = sellEstimate
             )
@@ -125,7 +127,7 @@ data class LocalFiat(
             return LocalFiat(
                 underlyingTokenAmount = underlyingTokenAmount,
                 // our native amount for the transfer is the valuation of the quarks from a sell
-                nativeAmount = amount,
+                nativeAmount = sellEstimate,
                 mint = token.address,
                 rate = Rate(fx = fx, currency = rate.currency),
             )
@@ -133,6 +135,7 @@ data class LocalFiat(
 
         private fun logExchange(
             debug: Boolean,
+            trace: Boolean,
             rate: Rate,
             amount: Fiat,
             usdValue: Fiat,
@@ -142,6 +145,7 @@ data class LocalFiat(
             valueLocked: Long,
             quarks: BigDecimal,
             units: BigDecimal,
+            usdFx: BigDecimal,
             fx: Double,
             sellEstimate: Fiat,
         ) {
@@ -156,28 +160,32 @@ data class LocalFiat(
                 println("locked value (of ${token.symbol}): $valueLocked")
                 println("calculated quarks: $quarks")
                 println("units: $units")
+                println("usdFx: ${usdFx.toDouble()}")
                 println("fx: $fx")
                 println("sell estimate: ${sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))}")
                 println("##################################################")
             }
 
-            trace(
-                tag = "LocalFiat",
-                message = "Bill created",
-                metadata = {
-                    "requested currency" to rate.currency.name
-                    "original currency fx" to rate.fx
-                    "requested amount" to amount.formatted()
-                    "requested quarks (in USD)" to usdValue.quarks * 1_000_000
-                    "balance quarks (in USD)" to balance?.quarks?.times(1_000_000)
-                    "capped quarks (in USD)" to cappedValue.quarks * 1_000_000
-                    "locked value of ${token.symbol}" to valueLocked
-                    "calculated quarks" to quarks
-                    "units" to units
-                    "fx" to fx
-                    "sell estimate" to sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))
-                }
-            )
+            if (trace) {
+                trace(
+                    tag = "LocalFiat",
+                    message = "Bill created",
+                    metadata = {
+                        "requested currency" to rate.currency.name
+                        "original currency fx" to rate.fx
+                        "requested amount" to amount.formatted()
+                        "requested quarks (in USD)" to usdValue.quarks * 1_000_000
+                        "balance quarks (in USD)" to balance?.quarks?.times(1_000_000)
+                        "capped quarks (in USD)" to cappedValue.quarks * 1_000_000
+                        "locked value of ${token.symbol}" to valueLocked
+                        "calculated quarks" to quarks
+                        "units" to units
+                        "usdFx" to usdFx.toDouble()
+                        "fx" to fx
+                        "sell estimate" to sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))
+                    }
+                )
+            }
         }
     }
 }
