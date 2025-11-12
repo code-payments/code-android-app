@@ -3,6 +3,7 @@ package com.getcode.opencode.model.financial
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
+import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.utils.roundTo
 import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
@@ -79,7 +80,7 @@ data class Fiat(
         }
 
         val formatter = DecimalFormat.getInstance(Locale.US).apply {
-            val decimalDigits = Currency.getInstance(currencyCode.name).defaultFractionDigits
+            val decimalDigits = currencyCode.fractionDigits
             val preferredDigits = when (rule) {
                 is FormattingRule.Length -> rule.decimalPlaces
                 FormattingRule.None -> decimalDigits
@@ -234,3 +235,4 @@ fun Number.toFiat(currencyCode: CurrencyCode = CurrencyCode.USD): Fiat = when (t
 }
 
 fun min(a: Fiat, b: Fiat): Fiat = if (a < b) a else b
+fun max(a: Fiat, b: Fiat): Fiat = if (a > b) a else b

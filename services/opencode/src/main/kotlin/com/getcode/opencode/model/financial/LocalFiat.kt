@@ -11,6 +11,7 @@ import com.getcode.utils.trace
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
+import kotlin.math.max
 
 typealias Usd = Fiat
 
@@ -98,8 +99,6 @@ data class LocalFiat(
 
             // determine the "full units" of the token being exchanged
             val units = quarks.units()
-            // determine the exchange rate (native amount / units of token) (USD based)
-            val usdFx = BigDecimal(cappedValue.decimalValue).divideWithHighPrecision(units)
 
             val underlyingTokenAmount = Fiat(quarks.toLong(), CurrencyCode.USD)
             val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token).convertingTo(rate)
@@ -119,7 +118,6 @@ data class LocalFiat(
                 valueLocked = valueLocked,
                 quarks = quarks,
                 units = units,
-                usdFx = usdFx,
                 fx = fx,
                 sellEstimate = sellEstimate
             )
@@ -145,7 +143,6 @@ data class LocalFiat(
             valueLocked: Long,
             quarks: BigDecimal,
             units: BigDecimal,
-            usdFx: BigDecimal,
             fx: Double,
             sellEstimate: Fiat,
         ) {
@@ -160,7 +157,6 @@ data class LocalFiat(
                 println("locked value (of ${token.symbol}): $valueLocked")
                 println("calculated quarks: $quarks")
                 println("units: $units")
-                println("usdFx: ${usdFx.toDouble()}")
                 println("fx: $fx")
                 println("sell estimate: ${sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))}")
                 println("##################################################")
@@ -180,7 +176,6 @@ data class LocalFiat(
                         "locked value of ${token.symbol}" to valueLocked
                         "calculated quarks" to quarks
                         "units" to units
-                        "usdFx" to usdFx.toDouble()
                         "fx" to fx
                         "sell estimate" to sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))
                     }
