@@ -61,7 +61,7 @@ internal fun CompletedPoolStatusRow(
                                 stringResource(
                                     R.string.subtitle_wonPool,
                                     summary.amountWon.formatted(
-                                        formatting = Fiat.Formatting.Truncated
+                                        rule = Fiat.FormattingRule.Truncated
                                     )
                                 ),
                                 style = CodeTheme.typography.textSmall,
@@ -80,7 +80,7 @@ internal fun CompletedPoolStatusRow(
                             stringResource(
                                 R.string.subtitle_lostPool,
                                 summary.amount.formatted(
-                                    formatting = Fiat.Formatting.Truncated
+                                    rule = Fiat.FormattingRule.Truncated
                                 )
                             ),
                             style = CodeTheme.typography.textSmall,

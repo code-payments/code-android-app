@@ -17,7 +17,7 @@ class FiatTests {
     fun `Formatting None with non zero value`() {
         // Test Formatting.None with a positive value. It should use the currency's default fraction digits.
         val fiat = 1234.56.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.None)
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.None)
         assertEquals("$1,234.56", formatted)
     }
 
@@ -25,7 +25,7 @@ class FiatTests {
     fun `Formatting None with zero value`() {
         // Test Formatting.None with a value of zero.
         val fiat = 0.0.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.None)
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.None)
         assertEquals("$0.00", formatted)
     }
 
@@ -33,7 +33,7 @@ class FiatTests {
     fun `Formatting Truncated with whole number`() {
         // Test Formatting.Truncated with a whole number (e.g., 123.0). The output should have no decimal part (0 fraction digits).
         val fiat = 123.0.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Truncated)
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Truncated)
         assertEquals("$123", formatted)
     }
 
@@ -41,7 +41,7 @@ class FiatTests {
     fun `Formatting Truncated with fractional number`() {
         // Test Formatting.Truncated with a number that has a fractional part. The output should retain the default number of decimal digits for the currency.
         val fiat = 123.45.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Truncated)
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Truncated)
         // The fractional part is not truncated if it's non-zero.
         assertEquals("$123.45", formatted)
     }
@@ -50,7 +50,7 @@ class FiatTests {
     fun `Formatting Length with specific decimal places`() {
         // Test Formatting.Length with a specific number of decimal places (e.g., 4) to ensure the output is formatted and rounded correctly.
         val fiat = 1234.56789.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Length(4))
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Length(4))
         assertEquals("$1,234.5679", formatted) // Rounded up
     }
 
@@ -58,7 +58,7 @@ class FiatTests {
     fun `Formatting Length with zero decimal places`() {
         // Test Formatting.Length with decimalPlaces set to 0. The output should be rounded to the nearest whole number.
         val fiat = 1234.56.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Length(0))
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Length(0))
         assertEquals("$1,235", formatted) // Rounded up
     }
 
@@ -67,7 +67,7 @@ class FiatTests {
         // Test Formatting.Length where decimalPlaces is greater than the number of available decimal digits in the value. 
         // The output should be padded with zeros.
         val fiat = 123.45.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Length(5))
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Length(5))
         assertEquals("$123.45000", formatted)
     }
 
@@ -100,7 +100,7 @@ class FiatTests {
         // Test with showPrefix=false and includeCommas=false simultaneously, using a specific Formatting.Length, to verify all parameters work together.
         val fiat = 1234567.89123.toFiat()
         val formatted = fiat.formatted(
-            formatting = Fiat.Formatting.Length(4),
+            rule = Fiat.FormattingRule.Length(4),
             showPrefix = false,
             includeCommas = false
         )
@@ -119,7 +119,7 @@ class FiatTests {
     fun `Small number  less than 1  formatting`() {
         // Test with a value between 0 and 1 (e.g., 0.12345) to ensure correct formatting of fractional numbers.
         val fiat = 0.12345.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Length(5))
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Length(5))
         assertEquals("$0.12345", formatted)
     }
 
@@ -127,7 +127,7 @@ class FiatTests {
     fun `Rounding up behavior`() {
         // Test rounding behavior with Formatting.Length. A value like 1.235 with 2 decimal places should round up to 1.24 due to RoundingMode.HALF_UP.
         val fiat = 1.235.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Length(2))
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Length(2))
         assertEquals("$1.24", formatted)
     }
 
@@ -135,7 +135,7 @@ class FiatTests {
     fun `Rounding down behavior`() {
         // Test rounding behavior with Formatting.Length. A value like 1.234 with 2 decimal places should round down to 1.23.
         val fiat = 1.234.toFiat()
-        val formatted = fiat.formatted(formatting = Fiat.Formatting.Length(2))
+        val formatted = fiat.formatted(rule = Fiat.FormattingRule.Length(2))
         assertEquals("$1.23", formatted)
     }
 
@@ -157,7 +157,7 @@ class FiatTests {
         assertEquals("¥12,345", defaultFormatted)
 
         // Override with Formatting.Length to show fraction digits.
-        val lengthFormatted = jpyFiat.formatted(formatting = Fiat.Formatting.Length(2))
+        val lengthFormatted = jpyFiat.formatted(rule = Fiat.FormattingRule.Length(2))
         assertEquals("¥12,345.00", lengthFormatted)
 
         // JPY with fractional value should round to nearest whole number.

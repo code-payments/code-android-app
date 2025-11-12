@@ -16,6 +16,7 @@ import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.hexToColor
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -45,10 +46,8 @@ class InternalBillPlaygroundController(
 
     override fun customizeFor(token: Token) {
         // create amount for the bill
-        val demoAmount = LocalFiat.valueExchangeIn(
-            amount = 5.toFiat(),
-            token = token,
-            rate = exchange.rateForUsd()
+        val demoAmount = LocalFiat(
+            usdc = 5.toFiat(),
         )
 
         // provide bill "data" to render the scan code

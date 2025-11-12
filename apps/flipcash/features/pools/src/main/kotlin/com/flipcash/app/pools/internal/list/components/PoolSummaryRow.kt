@@ -87,7 +87,7 @@ internal fun PoolSummaryRow(
                     text = stringResource(
                         R.string.subtitle_totalInPool,
                         pool.totalPoolAmount.formatted(
-                            formatting = Fiat.Formatting.Truncated
+                            rule = Fiat.FormattingRule.Truncated
                         )
                     ),
                     style = CodeTheme.typography.textSmall,

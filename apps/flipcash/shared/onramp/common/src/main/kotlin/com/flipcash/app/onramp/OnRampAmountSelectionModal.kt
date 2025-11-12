@@ -122,7 +122,7 @@ private fun PresetAmount(
     onClick: () -> Unit
 ) {
     ClickableCell(
-        text = amount.formatted(formatting = Fiat.Formatting.Truncated),
+        text = amount.formatted(rule = Fiat.FormattingRule.Truncated),
         isSelected = isSelected,
         modifier = modifier,
         onClick = onClick

@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -91,7 +90,7 @@ internal fun FeedItemDetails(
                     modifier = Modifier.weight(1f),
                     label = "USDC",
                     value = usdcAmount.formatted(
-                        formatting = Fiat.Formatting.Length(
+                        rule = Fiat.FormattingRule.Length(
                             token?.decimals ?: 6
                         )
                     ),

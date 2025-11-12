@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.ui.utils.hexToColor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.UUID
 
 interface BillPlaygroundController {
     val state: StateFlow<State>
@@ -26,6 +27,7 @@ enum class PlaygroundMode {
 data class ColorStore(
     val committed: Color,
     val transition: Color? = null,
+    val id: String = UUID.randomUUID().toString(),
 ) {
     constructor(color: Color): this (color, null)
     constructor(color: String): this (hexToColor(color))
@@ -69,10 +71,10 @@ sealed interface Event {
     data object Undo: Event
 }
 
-private const val MaxGradientColors = 3
+internal const val MaxGradientColors = 3
 
 @OptIn(ExperimentalStdlibApi::class)
-private val PresetColorOptions: List<BillBackground.Solid> = listOf(
+internal val PresetColorOptions: List<BillBackground.Solid> = listOf(
     BillBackground.Solid("#FFFF453A"), // Red
     BillBackground.Solid("#FFFF9F0A"), // Orange
     BillBackground.Solid("#FFFFD60A"), // Yellow
@@ -87,7 +89,7 @@ private val PresetColorOptions: List<BillBackground.Solid> = listOf(
     BillBackground.Solid("#FF8B4513"), // Brown
 )
 
-private val PresetGradients: List<BillBackground.Gradient> = listOf(
+internal val PresetGradients: List<BillBackground.Gradient> = listOf(
     BillBackground.Gradient(listOf("#FFE2EAF3", "#FF5487C1")),
     BillBackground.Gradient(listOf("#FFCDB3FF", "#FFECE0E5", "#FFFB9655")),
     BillBackground.Gradient(listOf("#FFFFD5E7", "#FF31D9AA")),
@@ -96,7 +98,7 @@ private val PresetGradients: List<BillBackground.Gradient> = listOf(
     BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
 )
 
-private fun buildGradient(): List<ColorStore> {
+internal fun buildGradient(): List<ColorStore> {
     val swatches = PresetColorOptions
 
     // return a random 3 color gradient

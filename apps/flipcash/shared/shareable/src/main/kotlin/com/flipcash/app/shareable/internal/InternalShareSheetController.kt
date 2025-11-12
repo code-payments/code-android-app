@@ -6,7 +6,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.pools.Pool
@@ -25,14 +24,12 @@ import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.utils.base64
 import com.getcode.opencode.utils.base64UrlSafe
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase64
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.security.SecureRandom
 import java.util.Timer
@@ -166,14 +163,14 @@ internal class InternalShareSheetController(
                 Intent.EXTRA_TITLE,
                 resources.getString(
                     R.string.title_shareCashLink,
-                    amount.formatted(Fiat.Formatting.Truncated)
+                    amount.formatted(Fiat.FormattingRule.Truncated)
                 )
             )
             putExtra(
                 Intent.EXTRA_SUBJECT,
                 resources.getString(
                     R.string.title_shareCashLink,
-                    amount.formatted(Fiat.Formatting.Truncated)
+                    amount.formatted(Fiat.FormattingRule.Truncated)
                 )
             )
             putExtra(Intent.EXTRA_TEXT, text)

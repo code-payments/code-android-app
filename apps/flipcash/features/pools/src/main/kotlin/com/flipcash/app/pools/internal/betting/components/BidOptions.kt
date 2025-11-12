@@ -46,14 +46,12 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.core.pools.PoolBetOutcome
 import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.core.pools.label
 import com.flipcash.app.core.pools.winningOutcome
-import com.flipcash.app.core.ui.FlagWithFiat
 import com.flipcash.features.pools.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
@@ -215,7 +213,7 @@ internal fun BidOptions(
 
         if (canBid && selectedOutcome == null) {
             val buyInAmount = buyIn.formatted(
-                formatting = Fiat.Formatting.Truncated
+                rule = Fiat.FormattingRule.Truncated
             )
 
             val label = stringResource(R.string.subtitle_poolNotYetBet, buyInAmount)

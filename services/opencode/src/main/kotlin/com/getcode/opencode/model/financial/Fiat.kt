@@ -1,6 +1,5 @@
 package com.getcode.opencode.model.financial
 
-import android.icu.util.ULocale
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
@@ -53,10 +52,10 @@ data class Fiat(
         currencyCode = CurrencyCode.USD
     )
 
-    sealed interface Formatting {
-        data object Truncated : Formatting
-        data object None : Formatting
-        data class Length(val decimalPlaces: Int) : Formatting
+    sealed interface FormattingRule {
+        data object Truncated : FormattingRule
+        data object None : FormattingRule
+        data class Length(val decimalPlaces: Int) : FormattingRule
     }
 
     fun rounded(decimalPlaces: Int = 2): Fiat {
@@ -68,11 +67,11 @@ data class Fiat(
 
     // Formatting
     fun formatted(
-        formatting: Formatting = Formatting.None,
+        rule: FormattingRule = FormattingRule.None,
         showPrefix: Boolean = true,
         includeCommas: Boolean = true,
     ): String {
-        val shouldTruncate = if (formatting is Formatting.Truncated) {
+        val shouldTruncate = if (rule is FormattingRule.Truncated) {
             val fractionalPart = decimalValue - decimalValue.toLong()
             fractionalPart == 0.0
         } else {
@@ -81,10 +80,10 @@ data class Fiat(
 
         val formatter = DecimalFormat.getInstance(Locale.US).apply {
             val decimalDigits = Currency.getInstance(currencyCode.name).defaultFractionDigits
-            val preferredDigits = when (formatting) {
-                is Formatting.Length -> formatting.decimalPlaces
-                Formatting.None -> decimalDigits
-                Formatting.Truncated -> {
+            val preferredDigits = when (rule) {
+                is FormattingRule.Length -> rule.decimalPlaces
+                FormattingRule.None -> decimalDigits
+                FormattingRule.Truncated -> {
                     if (shouldTruncate) 0 else decimalDigits
                 }
             }

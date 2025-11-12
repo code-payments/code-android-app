@@ -3,7 +3,7 @@ package com.getcode.opencode.model.financial
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
-import com.getcode.opencode.model.financial.Fiat.Formatting
+import com.getcode.opencode.model.financial.Fiat.FormattingRule
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
@@ -157,7 +157,7 @@ data class LocalFiat(
                 println("calculated quarks: $quarks")
                 println("units: $units")
                 println("fx: $fx")
-                println("sell estimate: ${sellEstimate.formatted(formatting = Formatting.Length(token.decimals))}")
+                println("sell estimate: ${sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))}")
                 println("##################################################")
             }
 
@@ -175,7 +175,7 @@ data class LocalFiat(
                     "calculated quarks" to quarks
                     "units" to units
                     "fx" to fx
-                    "sell estimate" to sellEstimate.formatted(formatting = Formatting.Length(token.decimals))
+                    "sell estimate" to sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))
                 }
             )
         }
