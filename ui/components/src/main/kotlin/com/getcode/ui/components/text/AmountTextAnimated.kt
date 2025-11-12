@@ -98,9 +98,9 @@ internal fun AmountTextAnimated(
     val digitVisibility = remember {
         mutableStateListOf(*Array(maxDigits) { if (!isInitiallyZero) it < initialAmount.split(DECIMAL_SEPARATOR)[0].length else false })
     }
-    val digitDecimalVisibility = remember { mutableStateListOf(*Array(totalDecimals) { false }) }
-    val digitDecimalZeroVisibility = remember { mutableStateListOf(*Array(totalDecimals) { false }) }
-    var firstDigit by remember { mutableStateOf(if (!isInitiallyZero && initialAmount.isNotEmpty()) initialAmount.first().toString() else "") }
+    val digitDecimalVisibility = remember(totalDecimals) { mutableStateListOf(*Array(totalDecimals) { false }) }
+    val digitDecimalZeroVisibility = remember(totalDecimals) { mutableStateListOf(*Array(totalDecimals) { false }) }
+    var firstDigit by remember(isInitiallyZero, initialAmount) { mutableStateOf(if (!isInitiallyZero && initialAmount.isNotEmpty()) initialAmount.first().toString() else "") }
 
     //Font states
     var textSize by remember { mutableStateOf(textStyle.fontSize) }
