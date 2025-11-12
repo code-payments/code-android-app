@@ -132,22 +132,26 @@ class ExponentialCurve(
 
     /**
      * Calculate the number of tokens that can be exchanged for a given value, starting from the current supply.
-     * This is the inverse of `valueFromSellingTokens`. It answers the question: "How many tokens should be exchanged for a value given the currentSupply?"
-     * @param currentSupply The current supply of tokens.
+     * This is the inverse of `valueFromSellingTokens`. It answers the question: "How many tokens should be exchanged for a value given the currentValue?"
+     * @param currentValue The current supply of tokens.
      * @param value The target value to receive from the exchange.
      * @return A [Result] containing the calculated number of tokens for the exchange, or an exception if an arithmetic error occurs (e.g., input to log is not positive).
      */
     fun tokensForValueExchange(
-        currentSupply: BigDecimal,
+        currentValue: BigDecimal,
         value: BigDecimal,
     ): Result<BigDecimal> {
         return runCatching {
             val abOverC = a.multiply(b, mc).divide(c, mc)
-            val expCs = currentSupply.multiply(c, mc).exp(mc)
-            val abOverCTimesExpCs = abOverC.multiply(expCs, mc)
-            val oneMinusFrac = BigDecimal.ONE.subtract(value.divide(abOverCTimesExpCs, mc), mc)
-            val ln = oneMinusFrac.ln(mc)
-            ln.negate(mc).divide(c, mc)
+            val newValue = currentValue - value
+            val currentValueOverAbOverC = currentValue.divide(abOverC, mc)
+            val newValueOverAbOverC = newValue.divide(abOverC, mc)
+
+            val lnTerm1 = (BigDecimal.ONE.add(currentValueOverAbOverC)).ln(mc)
+            val lnTerm2 = (BigDecimal.ONE.add(newValueOverAbOverC)).ln(mc)
+            val diffLnTerms = lnTerm1.subtract(lnTerm2, mc)
+
+            diffLnTerms.divide(c, mc)
         }
     }
 

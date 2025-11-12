@@ -29,12 +29,12 @@ class EstimationTests {
     @Test
     fun `estimate value exchange`() {
         val quarks = Estimator.valueExchangeAsQuarks(
-            valueInQuarks = 5_000_000,                 // $5,
-            currentSupplyInQuarks =  7232649000000000, // 723,264.9 tokens
+            valueInQuarks = 10_000_000,                 // $10,
+            currentValueInQuarks =  1_000_000_000,      // $1000
             mintDecimals = 6,
         ).getOrThrow()
 
-        val expectedAmount = BigInteger("2651496281136")
+        val expectedAmount = BigInteger("9197272362330")
 
         assertEquals(expectedAmount, quarks.toBigInteger())
     }
@@ -105,10 +105,10 @@ class EstimationTests {
         val startValue = 10_000L
         val endValue = 1_000_000_000_000_000L
 
-        println("value locked,payment value,payment quarks,sell value")
+        println("value locked,total circulating supply,new circulating supply,payment value,payment quarks,sell value")
         var valueLocked = startValue
         while (valueLocked <= endValue) {
-            val (circulatingSupply, _) = Estimator.buy(
+            val (totalCirculatingSupply, _) = Estimator.buy(
                 amountInQuarks = valueLocked,
                 currentSupplyInQuarks = 0L,
                 mintDecimals = 6,
@@ -119,7 +119,7 @@ class EstimationTests {
             while (paymentValue <= valueLocked) {
                 val paymentQuarks = Estimator.valueExchangeAsQuarks(
                     valueInQuarks = paymentValue,
-                    currentSupplyInQuarks = circulatingSupply.toLong(),
+                    currentValueInQuarks = valueLocked,
                     mintDecimals = 6,
                 ).getOrThrow()
 
@@ -130,9 +130,23 @@ class EstimationTests {
                     feeBps = 0
                 ).getOrThrow()
 
+                val diff1 = paymentValue - sellValue.toLong()
+                assertTrue("$paymentValue, $sellValue") { diff1 >= -1 && diff1 <= 1 }
 
-                assertTrue { abs(paymentValue.toDouble() - sellValue.toDouble()) <= 1.0 }
-                println("$valueLocked,$paymentValue,${paymentQuarks},${sellValue}")
+                val (newCirculatingSupply, _) = Estimator.buy(
+                    amountInQuarks = valueLocked - paymentValue,
+                    currentSupplyInQuarks = 0,
+                    mintDecimals = 6,
+                    feeBps = 0,
+                ).getOrThrow()
+
+                val totalLong = totalCirculatingSupply.toLong()
+                val newLong = newCirculatingSupply.toLong()
+                val paymentQLong = paymentQuarks.toLong()
+                val diff2 = totalLong - newLong - paymentQLong
+                assertTrue("$totalCirculatingSupply, $newCirculatingSupply, $paymentQuarks") { diff2 >= -1 && diff2 <= 1 }
+
+                println("$valueLocked,${totalCirculatingSupply.toLong()},${newCirculatingSupply.toLong()},$paymentValue,${paymentQuarks.toLong()},${sellValue.toLong()}")
                 paymentValue *= 10L
             }
             valueLocked *= 10L

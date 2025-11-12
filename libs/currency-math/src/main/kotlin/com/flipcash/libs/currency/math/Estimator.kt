@@ -3,7 +3,6 @@ package com.flipcash.libs.currency.math
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
 import java.math.BigDecimal
 import java.math.RoundingMode
-import kotlin.math.roundToLong
 
 object Estimator {
     /**
@@ -52,19 +51,20 @@ object Estimator {
      * 4. Scaling the result back to its "quark" representation (smallest indivisible unit).
      *
      * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDC).
-     * @param currentSupplyInQuarks The current total supply of the token, expressed in its smallest unit ("quarks").
+     * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
+     *                             expressed in the value token's smallest unit ("quarks").
      * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDC typically has 6).
      * @return A [Result] containing the estimated number of quarks to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
     fun valueExchangeAsQuarks(
         valueInQuarks: Long,
-        currentSupplyInQuarks: Long,
+        currentValueInQuarks: Long,
         mintDecimals: Int,
     ): Result<BigDecimal> {
         return runCatching {
             val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val tokens = valueExchangeAsTokens(valueInQuarks, currentSupplyInQuarks, mintDecimals).getOrThrow()
+            val tokens = valueExchangeAsTokens(valueInQuarks, currentValueInQuarks, mintDecimals).getOrThrow()
             val unscaledTokens = tokens.multiply(tokenScale, mc)
             unscaledTokens
         }
@@ -85,14 +85,15 @@ object Estimator {
      *    the quantity of tokens that correspond to the input value.
      *
      * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDC).
-     * @param currentSupplyInQuarks The current total supply of the token, expressed in its smallest unit ("quarks").
+     * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
+     *                             expressed in the value token's smallest unit ("quarks").
      * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDC typically has 6).
      * @return A [Result] containing the estimated number of tokens to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
     fun valueExchangeAsTokens(
         valueInQuarks: Long,
-        currentSupplyInQuarks: Long,
+        currentValueInQuarks: Long,
         mintDecimals: Int,
     ): Result<BigDecimal> {
         return runCatching {
@@ -101,11 +102,11 @@ object Estimator {
             val unscaledValue = BigDecimal(valueInQuarks)
             val scaledValue = unscaledValue.divide(valueScale, mc)
 
-            val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks)
-            val scaledCurrentSupply = unscaledCurrentSupply.divide(tokenScale, mc)
+            val tokenScale = BigDecimal.TEN.pow(mintDecimals, mc)
+            val unscaledCurrentValue = BigDecimal(currentValueInQuarks)
+            val scaledCurrentValue = unscaledCurrentValue.divide(tokenScale, mc)
 
-            curve.tokensForValueExchange(scaledCurrentSupply, scaledValue).getOrThrow()
+            curve.tokensForValueExchange(scaledCurrentValue, scaledValue).getOrThrow()
         }
     }
 
@@ -141,23 +142,19 @@ object Estimator {
             val scaledCurrentSupply = unscaledCurrentSupply.divideWithHighPrecision(tokenScale)
 
             val scaledTokens = curve.tokensBoughtForValue(scaledCurrentSupply, scaledBuyAmount).getOrThrow()
-            val unscaledTokens = scaledTokens.multiply(tokenScale, mc)
+            val unscaledTokens = scaledTokens.multiplyWithHighPrecision(tokenScale)
 
             val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
-            val scaledFees = scaledTokens.multiply(feePctValue, mc)
-            val unscaledFees = scaledFees.multiply(tokenScale, mc)
+            val scaledFees = scaledTokens.multiplyWithHighPrecision(feePctValue)
+            val unscaledFeesBD = scaledFees.multiplyWithHighPrecision(tokenScale).setScale(0, RoundingMode.DOWN)
+            val unscaledFeesQuarks = unscaledFeesBD.longValueExact()
 
-            val netTokens = unscaledTokens.subtract(unscaledFees, mc)
-                .setScale(0, RoundingMode.HALF_EVEN)
-                .toDouble().roundToLong()
-                .toBigDecimal()
-
-            val tokensQuarks = netTokens
-            val feesQuarks = unscaledFees
+            val netTokensBD = unscaledTokens.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
+            val netTokensQuarks = netTokensBD.longValueExact()
 
             BuyEstimation(
-                netTokensToReceive = tokensQuarks,
-                fees = feesQuarks,
+                netTokensToReceive = netTokensQuarks.toBigDecimal(),
+                fees = unscaledFeesQuarks.toBigDecimal(),
             )
         }
     }
@@ -194,28 +191,28 @@ object Estimator {
         return runCatching {
             val curve = ExponentialCurve.getOrThrow()
 
-            val scale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
+            val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
             val unscaledSellAmount = BigDecimal(amountInQuarks, mc)
-            val scaledSellAmount = unscaledSellAmount.divide(scale, mc)
+            val scaledSellAmount = unscaledSellAmount.divideWithHighPrecision(tokenScale)
 
-            val tokenScale = BigDecimal.TEN.pow(mintDecimals, mc)
+            val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
             val unscaledCurrentValue = BigDecimal(currentValueInQuarks, mc)
-            val scaledCurrentValue = unscaledCurrentValue.divide(tokenScale, mc)
+            val scaledCurrentValue = unscaledCurrentValue.divideWithHighPrecision(valueScale)
 
-            val scaledTokens = curve.valueFromSellingTokens(scaledCurrentValue, scaledSellAmount).getOrThrow()
-            val unscaledTokens = scaledTokens.multiply(tokenScale, mc)
+            val scaledValue = curve.valueFromSellingTokens(scaledCurrentValue, scaledSellAmount).getOrThrow()
+            val unscaledValueBD = scaledValue.multiplyWithHighPrecision(valueScale)
 
-            val feePctValue = BigDecimal(feeBps).divide(BigDecimal("10000"), mc)
-            val scaledFees = scaledTokens.multiply(feePctValue, mc)
-            val unscaledFees = scaledFees.multiply(tokenScale, mc)
+            val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
+            val scaledFees = scaledValue.multiplyWithHighPrecision(feePctValue)
+            val unscaledFeesBD = scaledFees.multiplyWithHighPrecision(valueScale).setScale(0, RoundingMode.DOWN)
+            val unscaledFeesQuarks = unscaledFeesBD.longValueExact()
 
-            val netAmount = unscaledTokens.subtract(unscaledFees, mc)
-            val amountQuarks = netAmount
-            val feesQuarks = unscaledFees
+            val netAmountBD = unscaledValueBD.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
+            val netAmountQuarks = netAmountBD.longValueExact()
 
             SellEstimation(
-                netAmountToReceive = amountQuarks,
-                fees = feesQuarks,
+                netAmountToReceive = netAmountQuarks.toBigDecimal(),
+                fees = unscaledFeesQuarks.toBigDecimal(),
             )
         }
     }

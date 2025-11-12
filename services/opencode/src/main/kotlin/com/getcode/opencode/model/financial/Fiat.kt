@@ -90,7 +90,7 @@ data class Fiat(
             }
             minimumFractionDigits = preferredDigits
             maximumFractionDigits = preferredDigits
-            roundingMode = if (decimalDigits == 0) RoundingMode.DOWN else ROUNDING_MODE
+            roundingMode = ROUNDING_MODE
             (this as DecimalFormat).decimalFormatSymbols =
                 decimalFormatSymbols.apply {
                     currencySymbol = ""
@@ -147,7 +147,7 @@ data class Fiat(
 
         val tokens = (Estimator.valueExchangeAsTokens(
             valueInQuarks = this.quarks,
-            currentSupplyInQuarks = token?.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
+            currentValueInQuarks = token?.launchpadMetadata?.coreMintLockedQuarks ?: 0,
             mintDecimals = 6,
         ).getOrNull() ?: BigDecimal.ZERO)
 
@@ -181,11 +181,10 @@ data class Fiat(
 
         fun tokenBalance(
             quarks: Long,
-            currencyCode: CurrencyCode = CurrencyCode.USD,
             token: Token
         ): Fiat {
             if (token.address == Mint.usdc) {
-                return Fiat(quarks, currencyCode)
+                return Fiat(quarks, CurrencyCode.USD)
             }
 
             return Fiat(
