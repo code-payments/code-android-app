@@ -78,8 +78,10 @@ data class LocalFiat(
                 // this doesn't need a calculated value exchange since we are USDC
                return if (rate.currency != CurrencyCode.USD) {
                    LocalFiat(
-                       usdc = usdValue,
-                       nativeAmount = amount
+                       underlyingTokenAmount = usdValue,
+                       nativeAmount = amount,
+                       rate = rate,
+                       mint = token.address,
                    )
                } else {
                    LocalFiat(usdc = usdValue)
