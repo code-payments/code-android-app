@@ -65,6 +65,8 @@ message Mint {
     // can be used for calculating price, market cap, etc. based on the exponential
     // bonding curve
     LaunchpadMetadata launchpad_metadata = 8;
+    // Timestamp the currency was created
+    google.protobuf.Timestamp created_at = 9;
 }
 message VmMetadata {
     // VM address

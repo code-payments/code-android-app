@@ -47,6 +47,7 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.util.format
 
 @Composable
 internal fun TokenInfoScreen(viewModel: TokenInfoViewModel) {
@@ -170,7 +171,7 @@ private fun TokenBalance(
     Column(
         modifier = modifier
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x9,),
+            .padding(vertical = CodeTheme.dimens.grid.x9),
     ) {
         if (balance == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -254,10 +255,32 @@ private fun CurrencyInfoSection(
             )
         }
 
+        state.token?.createdAt?.let { mintDate ->
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(top = CodeTheme.dimens.grid.x1),
+                text = stringResource(
+                    R.string.label_mintDate,
+                    mintDate.format("MMMM dd, yyyy")
+                ),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+
         ExpandableText(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+            modifier = Modifier
+                .padding(
+                    top = if (state.token?.createdAt == null) {
+                        CodeTheme.dimens.grid.x1
+                    } else {
+                        CodeTheme.dimens.grid.x2
+                    }
+                ),
             text = state.token?.description.orEmpty(),
             style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textSecondary,
             isExpanded = state.descriptionExpanded,
             isExpandable = false,
             contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
@@ -311,6 +334,7 @@ private fun PreviewTokenInfo() {
                 text = LoremIpsum(words = 400).values.joinToString(" "),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary,
                 isExpanded = false,
                 isExpandable = false,
                 onToggle = { }

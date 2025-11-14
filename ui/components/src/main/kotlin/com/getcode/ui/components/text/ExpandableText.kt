@@ -36,6 +36,7 @@ import com.getcode.ui.core.drawWithGradient
 fun ExpandableText(
     text: String,
     style: TextStyle,
+    color: Color,
     isExpanded: Boolean,
     modifier: Modifier = Modifier,
     textModifier: Modifier = Modifier,
@@ -53,7 +54,7 @@ fun ExpandableText(
                     .padding(contentPadding),
                 text = text,
                 style = style,
-                color = CodeTheme.colors.textSecondary,
+                color = color,
             )
         } else {
             Column(Modifier.animateContentSize()) {
@@ -63,7 +64,7 @@ fun ExpandableText(
                             .padding(contentPadding),
                         text = text,
                         style = style,
-                        color = CodeTheme.colors.textSecondary,
+                        color = color,
                     )
                 } else {
                     Box {

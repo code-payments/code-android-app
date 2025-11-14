@@ -8,6 +8,7 @@ import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.parcelize.Parcelize
+import kotlin.time.Instant
 
 data class TokenWithBalance(
     val token: Token,
@@ -28,6 +29,7 @@ val MintMetadata.Companion.usdc: Token
         name = "USDC",
         symbol = "USDC",
         description = "",
+        createdAt = Instant.parse("2018-05-15T05:00:00Z"),
         imageUrl = "",
         vmMetadata = VmMetadata(
             authority = vmAuthority,
@@ -54,8 +56,8 @@ val MintMetadata.Companion.usdc: Token
  * @property vmMetadata Available when a VM exists for the given mint, and can be used for deriving
  * VM deposit PDAs
  * @property launchpadMetadata Available when created by the launchpad via the currency creator program, and
- * can be used for calculating price, market cap, etc. based on the exponential
- * bonding curve
+ * can be used for calculating price, market cap, etc. based on the exponential bonding curve
+ * @property billCustomizations Optional visual customizations for the bill for this token when give/grabbed
  */
 @Parcelize
 data class MintMetadata(
@@ -63,6 +65,7 @@ data class MintMetadata(
     val decimals: Int,
     val name: String,
     val symbol: String,
+    val createdAt: Instant?,
     val description: String,
     val imageUrl: String,
     val vmMetadata: VmMetadata,

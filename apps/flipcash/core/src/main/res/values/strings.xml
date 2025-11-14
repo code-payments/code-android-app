@@ -431,4 +431,6 @@
 
     <string name="error_title_CashReturnedToWallet">Something Went Wrong</string>
     <string name="error_description_CashReturnedToWallet">The cash was returned to your wallet</string>
+
+    <string name="label_mintDate">Minted: %1$s</string>
 </resources>
