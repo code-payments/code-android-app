@@ -58,11 +58,11 @@ internal class ReceiveGiftCardTransactor(
                 requestingOwner = requestingOwner
             ).getOrElse {
                 onStep("account query")
-                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
+                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery(cause = it))
             }.takeIf { it.accounts.isNotEmpty() }?.accounts
                 ?: run {
                     onStep("account query")
-                    return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery())
+                    return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery(message = "No accounts found"))
                 }
 
             onStep("account query")
@@ -142,7 +142,10 @@ sealed class ReceiveGiftTransactorError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class FailedToQuery : GrabTransactorError(message = "Failed to query account")
+    class FailedToQuery(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : GrabTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account")
     class AlreadyClaimed : GrabTransactorError(message = "Already claimed")
     class UsersGiftCard : GrabTransactorError(message = "User is gift card issuer")
     class Expired : GrabTransactorError(message = "Expired")
