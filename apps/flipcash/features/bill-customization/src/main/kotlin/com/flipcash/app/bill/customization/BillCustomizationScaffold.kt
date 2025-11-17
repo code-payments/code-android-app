@@ -24,6 +24,8 @@ import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -141,9 +143,11 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
             TopBar(
                 modifier = Modifier.fillMaxWidth(),
                 canUndo = controller.canUndo,
+                canCopy = controller.canCopy,
                 onUndo = { controller.dispatchEvent(Event.Undo) },
+                onCopy = { controller.dispatchEvent(Event.Copy) },
                 onBack = { controller.cancel() },
-                onDone = { controller.cancel() }
+                onDone = { controller.cancel() },
             )
         }
 
@@ -179,7 +183,9 @@ private fun TopBar(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
     canUndo: Boolean,
+    canCopy: Boolean,
     onUndo: () -> Unit,
+    onCopy: () -> Unit,
     onDone: () -> Unit,
 ) {
     Row(
@@ -210,6 +216,19 @@ private fun TopBar(
                 contentDescription = null
             )
 
+            Text(
+                modifier = Modifier
+                    .background(Color.Black.copy(0.19f), CircleShape)
+                    .clip(CircleShape)
+                    .rememberedClickable { onCopy() }
+                    .padding(
+                        horizontal = CodeTheme.dimens.grid.x2,
+                        vertical = CodeTheme.dimens.grid.x1
+                    ),
+                text = "Copy",
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
             Text(
                 modifier = Modifier
                     .background(Color.Black.copy(0.19f), CircleShape)

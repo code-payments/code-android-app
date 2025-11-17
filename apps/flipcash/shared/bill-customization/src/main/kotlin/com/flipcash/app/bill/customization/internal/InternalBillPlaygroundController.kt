@@ -1,26 +1,23 @@
 package com.flipcash.app.bill.customization.internal
 
-import androidx.compose.ui.graphics.Color
-import cafe.adriel.voyager.core.stack.Stack
-import cafe.adriel.voyager.core.stack.mutableStateStackOf
+import android.content.ClipboardManager
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.ColorStore
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.PlaygroundMode
 import com.flipcash.app.bill.customization.State
 import com.flipcash.app.core.bill.Bill
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.hexToColor
-import com.getcode.ui.utils.hsv
+import com.getcode.ui.utils.toAGColor
+import com.getcode.ui.utils.toHex
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -28,10 +25,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.updateAndGet
 
+@OptIn(ExperimentalStdlibApi::class)
 class InternalBillPlaygroundController(
-    private val exchange: Exchange,
+    private val clipboard: ClipboardManager,
 ) : BillPlaygroundController {
 
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
@@ -45,6 +42,9 @@ class InternalBillPlaygroundController(
 
     override val canUndo: Boolean
         get() = !undoStack.isEmpty()
+
+    override val canCopy: Boolean
+        get() = true
 
     override fun customizeFor(token: Token) {
         // create amount for the bill
@@ -80,6 +80,7 @@ class InternalBillPlaygroundController(
             is Event.SelectSlot -> selectSlot(event.slot)
             is Event.LoadBackground -> loadBackground(event.background)
             Event.Undo -> undoLastChange()
+            Event.Copy -> copyConfiguration()
         }
     }
 
@@ -183,6 +184,18 @@ class InternalBillPlaygroundController(
             val previous = undoStack.removeLast()
             _state.update { previous }
         }
+    }
+
+    private fun copyConfiguration() {
+        val colors = _state.value.selectedColors.map { it.color }
+            .map { it.toHex() }
+
+        clipboard.setPrimaryClip(
+            android.content.ClipData.newPlainText(
+                "",
+                colors.joinToString()
+            )
+        )
     }
 
     override fun cancel() {

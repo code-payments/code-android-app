@@ -1,6 +1,7 @@
 package com.getcode.ui.utils
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.toColorInt
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -56,6 +57,10 @@ val Color.saturation: Float
 
 fun Color.value(): Float {
     return maxOf(red, green, blue)
+}
+
+fun Color.toHex(): String {
+    return String.format("#%08X", this.toArgb())
 }
 
 

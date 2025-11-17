@@ -1,5 +1,6 @@
 package com.flipcash.app.bill.customization.components
 
+import android.content.ClipboardManager
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.Spring
@@ -182,25 +183,13 @@ internal fun Modifier.presenceBorder(
     shape = shape
 )
 
-private val usdToCadRate = Rate(fx = 1.37161, currency = CurrencyCode.CAD)
-private val cadToUsdRate = Rate(fx = 0.72894, currency = CurrencyCode.USD)
-private val rates = mapOf(
-    CurrencyCode.CAD to usdToCadRate,
-    CurrencyCode.USD to cadToUsdRate,
-)
-
 @Composable
 @Preview
 private fun PreviewCustomizationControls() {
     FlipcashDesignSystem {
-        val context = LocalContext.current
+        val clipboardManager = LocalContext.current.getSystemService(ClipboardManager::class.java)
         val controller = remember {
-            InternalBillPlaygroundController(
-                ExchangeStub(
-                    providedRates = rates,
-                    context = context,
-                )
-            )
+            InternalBillPlaygroundController(clipboardManager)
         }
         val state by controller.state.collectAsStateWithLifecycle()
 

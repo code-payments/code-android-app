@@ -17,6 +17,7 @@ import java.util.UUID
 interface BillPlaygroundController {
     val state: StateFlow<State>
     val canUndo: Boolean
+    val canCopy: Boolean
     fun customizeFor(token: Token)
 
     fun dispatchEvent(event: Event)
@@ -75,6 +76,7 @@ sealed interface Event {
     data object OpenHueControls: Event
     data object CloseHueControls: Event
     data object Undo: Event
+    data object Copy: Event
 }
 
 internal const val MaxGradientColors = 3
@@ -118,6 +120,7 @@ internal fun buildGradient(): List<ColorStore> {
 internal object StubPlaygroundController : BillPlaygroundController {
     override val state: StateFlow<State> = MutableStateFlow(State())
     override val canUndo: Boolean = false
+    override val canCopy: Boolean = false
     override fun customizeFor(token: Token) = Unit
     override fun dispatchEvent(event: Event) = Unit
     override fun cancel() = Unit

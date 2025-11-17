@@ -1,8 +1,8 @@
 package com.flipcash.app.bill.customization.inject
 
+import android.content.ClipboardManager
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
-import com.getcode.opencode.exchange.Exchange
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,6 +14,7 @@ import javax.inject.Singleton
 object PlaygroundModule {
     @Provides
     @Singleton
-    fun providesPlaygroundController(exchange: Exchange
-    ): BillPlaygroundController = InternalBillPlaygroundController(exchange)
+    fun providesPlaygroundController(
+        clipboardManager: ClipboardManager,
+    ): BillPlaygroundController = InternalBillPlaygroundController(clipboardManager)
 }
