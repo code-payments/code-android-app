@@ -11,6 +11,8 @@ import cafe.adriel.voyager.navigator.tab.TabNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.AppScreen
 import com.getcode.navigation.screens.ChildNavTab
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -46,15 +48,18 @@ class CombinedNavigator(
 
 
     override fun show(screen: Screen) {
+        trace(message = "opening ${screen::class.java.simpleName} in a sheet")
         sheetNavigator.show(screen)
     }
 
     override fun show(items: List<Screen>) {
+        trace(message = "opening ${items.joinToString { it::class.java.simpleName }} in a sheet")
         if (items.isEmpty()) return
         sheetNavigator.show(items)
     }
 
     override fun hide() {
+        trace(message = "closing sheet")
         sheetNavigator.hide()
     }
 
@@ -82,6 +87,7 @@ class CombinedNavigator(
     }
 
     override fun push(item: Screen, delay: Long) {
+        trace(message = "navigating to ${item::class.java.simpleName}")
         launch {
             delay(delay)
             if (isVisible) {
@@ -93,6 +99,7 @@ class CombinedNavigator(
     }
 
     override fun push(items: List<Screen>) {
+        trace(message = "navigating to ${items.joinToString { it::class.java.simpleName }}")
         if (isVisible) {
             sheetNavigator.push(items)
         } else {
@@ -109,6 +116,7 @@ class CombinedNavigator(
     }
 
     override fun replaceAll(items: List<Screen>) {
+        trace(message = "replacing all in back stack with ${items.joinToString { it::class.java.simpleName }}")
         val modalScreens = items.filterIsInstance<ModalScreen>()
         val otherScreens = items.filterNot { it is ModalScreen }
         screensNavigator?.replaceAll(otherScreens)
@@ -126,6 +134,7 @@ class CombinedNavigator(
     }
 
     override fun pop(): Boolean {
+        trace(message = "popping from back stack")
         return if (isVisible) {
             sheetNavigator.pop()
         } else {
@@ -160,6 +169,7 @@ class CombinedNavigator(
     }
 
     override fun popAll() {
+        trace(message = "popping all from back stack")
         if (isVisible) {
             sheetNavigator.popAll()
         } else {
@@ -191,5 +201,9 @@ class CombinedNavigator(
             }
             screensNavigator?.saveableState(key = key, screen = lastScreen, content = content)
         }
+    }
+
+    private fun trace(message: String) {
+        trace(tag = "Navigator", message = message, type = TraceType.Navigation)
     }
 }

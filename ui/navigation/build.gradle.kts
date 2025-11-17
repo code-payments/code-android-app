@@ -37,6 +37,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":libs:logging"))
     implementation(project(":ui:core"))
     implementation(project(":ui:theme"))
 
