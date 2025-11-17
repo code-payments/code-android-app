@@ -6,7 +6,10 @@ import androidx.compose.ui.graphics.Color
 import com.flipcash.app.core.bill.Bill
 import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.Token
+import com.getcode.ui.utils.Hsv
+import com.getcode.ui.utils.color
 import com.getcode.ui.utils.hexToColor
+import com.getcode.ui.utils.hsv
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
@@ -25,15 +28,18 @@ enum class PlaygroundMode {
 }
 
 data class ColorStore(
-    val committed: Color,
-    val transition: Color? = null,
+    val committed: Hsv,
+    val transition: Hsv? = null,
     val id: String = UUID.randomUUID().toString(),
 ) {
-    constructor(color: Color): this (color, null)
+    constructor(color: Color): this (color.hsv, null)
     constructor(color: String): this (hexToColor(color))
 
-    val color: Color
+    val hsv: Hsv
         get() = transition ?: committed
+
+    val color: Color
+        get() = hsv.color
 }
 
 data class State(
@@ -63,8 +69,8 @@ sealed interface Event {
     data object AddSlot: Event
     data object RemoveSlot: Event
     data class SelectSlot(val slot: Int): Event
-    data class PreviewColorChange(val color: Color): Event
-    data class CommitColorChange(val color: Color): Event
+    data class PreviewColorChange(val hsv: Hsv): Event
+    data class CommitColorChange(val hsv: Hsv): Event
     data class LoadBackground(val background: BillBackground): Event
     data object OpenHueControls: Event
     data object CloseHueControls: Event

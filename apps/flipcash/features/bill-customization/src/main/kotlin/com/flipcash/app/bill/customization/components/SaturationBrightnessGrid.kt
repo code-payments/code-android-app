@@ -1,10 +1,16 @@
 package com.flipcash.app.bill.customization.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -13,6 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,28 +28,37 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.dropShadow
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.color
 import com.getcode.ui.utils.hls
 import com.getcode.ui.utils.hsv
+import com.getcode.ui.utils.toAGColor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -49,99 +66,156 @@ import kotlin.math.roundToInt
 @Composable
 internal fun SaturationBrightnessGrid(
     modifier: Modifier = Modifier,
-    selectedColor: Color,
+    hsv: Hsv,
     onHsvChanged: (Hsv, isDragging: Boolean) -> Unit,
 ) {
     var isDragging by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
 
-    val scale by animateFloatAsState(
-        targetValue = if (isDragging) 1.2f else 1.0f,
-        label = "thumbScale"
-    )
-
-    val hsv by rememberUpdatedState(selectedColor.hsv)
-
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
     val large = CodeTheme.shapes.large
-    ControlPanelItem(
-        modifier = modifier
-            .drawBehind {
-                drawGradientsAndDots(
-                    color = selectedColor,
-                    dotColor = Color.White.copy(alpha = 0.09f),
-                    shape = large
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = {
-                        if (!isDragging) {
-                            isDragging = true
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                        }
-                    },
-                    onDrag = { change, _ ->
-                        val offset = change.position
-                        updatePosition(
-                            offsetX = offset.x,
-                            offsetY = offset.y,
-                            width = componentSize.width.toFloat(),
-                            height = componentSize.height.toFloat(),
-                            onChange = { saturation, brightness ->
-                                onHsvChanged(hsv.copy(s = saturation, v = brightness), true)
-                            },
-                        )
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                        onHsvChanged(hsv, false)
-                    }
-                )
-            },
-        onMeasured = { componentSize = it }
-    ) {
-        val thumbSize = CodeTheme.dimens.grid.x5
-        val halfThumb = thumbSize / 2
-        val x = componentSize.width * hsv.s
-        val y = componentSize.height * (1 - hsv.v)
-        Box(
+
+    val currentHsv by rememberUpdatedState(hsv)
+
+    Box(modifier = modifier) {
+        ControlPanelItem(
             modifier = Modifier
-                .offset {
-                    IntOffset(
-                        (x - halfThumb.toPx()).roundToInt(),
-                        (y - halfThumb.toPx()).roundToInt()
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = {
+                            if (!isDragging) {
+                                isDragging = true
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                            }
+                        },
+                        onDrag = { change, _ ->
+                            val offset = change.position
+                            updatePosition(
+                                offsetX = offset.x,
+                                offsetY = offset.y,
+                                width = componentSize.width.toFloat(),
+                                height = componentSize.height.toFloat(),
+                                onChange = { saturation, brightness ->
+                                    val updatedHsv = currentHsv.copy(s = saturation, v = brightness)
+                                    onHsvChanged(updatedHsv, true)
+                                },
+                            )
+                        },
+                        onDragEnd = {
+                            println("drag end")
+                            isDragging = false
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                            onHsvChanged(currentHsv, false)
+                        }
                     )
+                },
+            onMeasured = {
+                if (componentSize == IntSize.Zero) {
+                    componentSize = it
                 }
-                .size(thumbSize)
-                .scale(scale)
-                .align(Alignment.TopStart)
+            }
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        color = hsv.color,
-                        shape = CircleShape
-                    )
-                    .border(CodeTheme.dimens.thickBorder, Color.White, CircleShape)
+                    .clip(large)
+                    .drawBehind {
+                        drawGradientsAndDots(
+                            hue = currentHsv.h,
+                            dotColor = Color.White.copy(alpha = 0.09f),
+                            shape = large
+                        )
+                    }
             )
         }
+
+        // not drawn inside panel item content so this can overlay properly
+        Thumb(
+            componentSize = componentSize,
+            hsv = currentHsv,
+            isDragging = isDragging,
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.Thumb(
+    componentSize: IntSize,
+    hsv: Hsv,
+    isDragging: Boolean,
+) {
+    val thumbSize = CodeTheme.dimens.grid.x5
+    val x = componentSize.width * hsv.s
+    val y = componentSize.height * (1 - hsv.v)
+
+    // Responsive animation: instant during drag for real-time following, spring otherwise
+    val animationSpec = if (isDragging) {
+        tween(durationMillis = 0, easing = LinearEasing)
+    } else {
+        spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+            visibilityThreshold = 0.1f  // Lower threshold for snappier updates
+        )
+    }
+
+    val animatedX by animateFloatAsState(
+        targetValue = x,
+        animationSpec = animationSpec
+    )
+
+    val animatedY by animateFloatAsState(
+        targetValue = y,
+        animationSpec = animationSpec
+    )
+
+    val oneThirdThumb = thumbSize * 0.33f
+    val twoThirdThumb = thumbSize * 0.67f
+
+    val scale by animateFloatAsState(
+        targetValue = if (isDragging) 1.2f else 1.0f,
+        label = "thumbScale"
+    )
+    Box(
+        modifier = Modifier
+            .offset {
+                IntOffset(
+                    (animatedX - (twoThirdThumb.toPx())).roundToInt()
+                        .coerceAtLeast(-(oneThirdThumb).toPx().roundToInt()),
+                    (animatedY - twoThirdThumb.toPx()).roundToInt()
+                        .coerceAtLeast(-(oneThirdThumb).toPx().roundToInt()),
+                )
+            }
+            .size(thumbSize)
+            .scale(scale)
+            .align(Alignment.TopStart)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    color= Color.hsv(hue = hsv.h, saturation = hsv.s, value = hsv.v),
+                    shape = CircleShape,
+                )
+                .border(
+                    width = CodeTheme.dimens.thickBorder,
+                    color = Color.White,
+                    shape = CircleShape
+                )
+        )
     }
 }
 
 private fun DrawScope.drawGradientsAndDots(
-    color: Color,
-    dotSize: Dp = 8.dp,
-    inset: Dp = 24.dp,
+    hue: Float,
+    dotSize: Dp = 4.dp,
+    inset: Dp = 16.dp,
     dotColor: Color,
     shape: CornerBasedShape,
 ) {
     val corner = shape.bottomEnd
     val cornerRadius = corner.toPx(size, this)
 
-    val hue = color.hls.h
     // Base horizontal gradient (hue to saturated)
     drawRoundRect(
         brush = Brush.horizontalGradient(
@@ -172,14 +246,14 @@ private fun DrawScope.drawGradientsAndDots(
 
     val insetPx = inset.toPx()
     val dotRadiusPx = dotSize.toPx() / 2
-    val spacing = 16.dp.toPx()
+    val spacing = 8.dp.toPx()
     val availableWidth = size.width - (2 * insetPx)
     val availableHeight = size.height - (2 * insetPx)
 
     val calculatedRows = (((availableHeight / (spacing)).roundToInt()) / 2)
     val calculatedCols = (((availableWidth / (spacing)).roundToInt()) / 2)
-    for (row in 0..calculatedRows + 1) {
-        for (col in 0..calculatedCols + 1) {
+    for (row in 0..calculatedRows) {
+        for (col in 0..calculatedCols) {
             val x = insetPx + col * (availableWidth / calculatedCols)
             val y = insetPx + row * (availableHeight / calculatedRows)
             if (x in 0f..size.width && y in 0f..size.height) {
@@ -205,21 +279,21 @@ private fun updatePosition(
     onChange(newSaturation, newBrightness)
 }
 
-// Usage example in your Activity/Composable
+@OptIn(ExperimentalStdlibApi::class)
 @Composable
 @Preview
 fun HueControlPreview() {
     FlipcashDesignSystem {
-        val color = Color(0xFF3B66AD)
-        var selectedColor by remember {
-            mutableStateOf(color)
+        val hsv = Color(0xFF3B66AD).hsv
+        var selectedHsv by remember {
+            mutableStateOf(hsv)
         }
         SaturationBrightnessGrid(
             modifier = Modifier
                 .padding(CodeTheme.dimens.inset)
                 .aspectRatio(16 / 9f),
-            selectedColor = selectedColor,
-            onHsvChanged = { hsv, _ -> selectedColor = hsv.color }
+            hsv = selectedHsv,
+            onHsvChanged = { hsv, _ -> selectedHsv = hsv }
         )
     }
 }

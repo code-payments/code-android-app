@@ -54,7 +54,7 @@ import kotlin.math.max
 @OptIn(ExperimentalStdlibApi::class)
 @Composable
 internal fun HueScroller(
-    color: Color,
+    hsv: Hsv,
     modifier: Modifier = Modifier,
     hueWindow: Float = 120f,
     onChange: (Hsv, isDragging: Boolean) -> Unit,
@@ -73,13 +73,13 @@ internal fun HueScroller(
 
     val thumbWidth = with(density) { componentSize.width.toDp() * 0.08f }
 
-    val hsv by rememberUpdatedState(color.hsv)
+    val currentHsv by rememberUpdatedState(hsv)
 
     ControlPanelItem(
         modifier = modifier
             .clip(large)
             .drawWithContent {
-                drawColorStrip({ hsv }, window = hueWindow)
+                drawColorStrip({ currentHsv }, window = hueWindow)
                 drawContent()
             }
             .pointerInput(Unit) {
@@ -91,16 +91,16 @@ internal fun HueScroller(
                     onDragEnd = {
                         isDragging = false
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                        onChange(hsv, false)
+                        onChange(currentHsv, false)
                     },
                 ) { change, dragAmount ->
                     val deltaHue = dragAmount * (180f / componentSize.width)
-                    val newHue = (hsv.h + deltaHue).let { h ->
+                    val newHue = (currentHsv.h + deltaHue).let { h ->
                         var wrapped = h % 360f
                         if (wrapped < 0f) wrapped += 360f
                         wrapped
                     }
-                    onChange(hsv.copy(h = newHue), true)
+                    onChange(currentHsv.copy(h = newHue), true)
                 }
             },
         onMeasured = { componentSize = it },
@@ -111,14 +111,14 @@ internal fun HueScroller(
                 .align(Alignment.Center)
                 .width(thumbWidth)
                 .scale(scale),
-            color = color,
+            hsv = currentHsv,
         )
     }
 }
 
 @Composable
-private fun Thumb(color: Color, modifier: Modifier = Modifier) {
-    val thumbColor by animateColorAsState(color)
+private fun Thumb(hsv: Hsv, modifier: Modifier = Modifier) {
+    val thumbColor by animateColorAsState(hsv.color)
 
     Box(
         modifier = modifier
@@ -203,17 +203,17 @@ private fun DrawScope.drawColorStrip(hsv: () -> Hsv, window: Float) {
 @Preview
 private fun ColorWheelPreview() {
     FlipcashDesignSystem {
-        val color = Color(0xFF2D36FA)
-        var selectedColor by remember {
-            mutableStateOf(color)
+        val hsv = Color(0xFF2D36FA).hsv
+        var selectedHsv by remember {
+            mutableStateOf(hsv)
         }
 
         HueScroller(
             modifier = Modifier
                 .padding(CodeTheme.dimens.inset)
                 .aspectRatio(16 / 9f),
-            color = selectedColor,
-            onChange = { hsv, _ -> selectedColor = hsv.color }
+            hsv = selectedHsv,
+            onChange = { hsv, _ -> selectedHsv = hsv }
         )
     }
 }

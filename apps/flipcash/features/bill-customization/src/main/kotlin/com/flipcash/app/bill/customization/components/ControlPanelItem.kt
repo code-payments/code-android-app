@@ -34,7 +34,6 @@ internal fun ControlPanelItem(
 
     Box(
         modifier = modifier
-            .measuredIntSize { componentSize = it }
             .border(
                 border = BorderStroke(
                     width = CodeTheme.dimens.border,
@@ -42,7 +41,7 @@ internal fun ControlPanelItem(
                 ),
                 shape = shape
             )
-            .clip(shape)
+            .measuredIntSize { componentSize = it }
     ) {
         content()
     }

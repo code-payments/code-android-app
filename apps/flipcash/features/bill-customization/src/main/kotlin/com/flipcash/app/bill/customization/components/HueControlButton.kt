@@ -3,8 +3,10 @@ package com.flipcash.app.bill.customization.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,8 +21,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.ui.core.rememberedClickable
 
 @Composable
@@ -33,13 +39,13 @@ internal fun HueControlButton(
             .width(CodeTheme.dimens.grid.x10)
             .fillMaxHeight()
             .rainbowBackground()
+            .clip(CodeTheme.shapes.small)
+            .rememberedClickable { onClick() }
             .padding(CodeTheme.dimens.thickBorder)
             .background(
                 color = Color.Black.copy(0.50f),
-                shape = CodeTheme.shapes.small
+                shape = CodeTheme.shapes.extraSmall
             )
-            .clip(CodeTheme.shapes.small)
-            .rememberedClickable { onClick() }
             .padding(CodeTheme.dimens.grid.x3),
         contentAlignment = Alignment.Center
     ) {
@@ -91,5 +97,15 @@ private fun Modifier.rainbowBackground(): Modifier = composed {
             )
         )
         drawContent()
+    }
+}
+
+@Composable
+@Preview
+private fun HueControl_Preview() {
+    FlipcashDesignSystem {
+        Box(modifier = Modifier.height(114.dp)) {
+            HueControlButton { }
+        }
     }
 }

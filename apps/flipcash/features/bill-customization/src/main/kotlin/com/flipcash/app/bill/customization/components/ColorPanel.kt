@@ -29,13 +29,15 @@ import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.color
+import com.getcode.ui.utils.hsv
 
 @Composable
 internal fun ColorPanel(
-    selectedColor: Color,
+    hsv: Hsv,
     modifier: Modifier = Modifier,
-    onChange: (Color, isDragging: Boolean) -> Unit,
+    onChange: (Hsv, isDragging: Boolean) -> Unit,
     onClose: () -> Unit,
 ) {
     Row(
@@ -47,18 +49,18 @@ internal fun ColorPanel(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
-            selectedColor = selectedColor
+            hsv = hsv,
         ) { hsv, isDragging ->
-            onChange(hsv.color, isDragging)
+            onChange(hsv, isDragging)
         }
 
         HueScroller(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
-            color = selectedColor,
+            hsv = hsv,
         ) { hsv, isDragging ->
-            onChange(hsv.color, isDragging)
+            onChange(hsv, isDragging)
         }
 
         Box(
@@ -88,8 +90,8 @@ internal fun ColorPanel(
 @Preview
 private fun ColorPanelPreview() {
     FlipcashDesignSystem {
-        val color = CodeTheme.colors.cashBillColor
-        var selectedColor by remember { mutableStateOf(color) }
+        val hsv = CodeTheme.colors.cashBillColor.hsv
+        var selectedHsv by remember { mutableStateOf(hsv) }
 
         Column {
             Box(
@@ -97,7 +99,7 @@ private fun ColorPanelPreview() {
                     .fillMaxWidth()
                     .fillMaxHeight(0.5f)
                     .padding(20.dp)
-                    .background(selectedColor)
+                    .background(Color.hsv(selectedHsv.h, selectedHsv.s, selectedHsv.v))
             )
             Spacer(Modifier.weight(1f))
 
@@ -107,9 +109,9 @@ private fun ColorPanelPreview() {
                     .padding(vertical = CodeTheme.dimens.grid.x2)
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .height(114.dp),
-                selectedColor = selectedColor,
-                onChange = { color, isDragging ->
-                    selectedColor = color
+                hsv = selectedHsv,
+                onChange = { hsv, isDragging ->
+                    selectedHsv = hsv
                 },
                 onClose = {}
             )

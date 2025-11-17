@@ -12,6 +12,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.utils.hexToColor
+import com.getcode.ui.utils.hsv
 
 @Composable
 internal fun ColorOptionItem(
@@ -64,7 +65,7 @@ internal fun ColorOptionItem(
 
                         is BillBackground.Solid -> dispatchEvent(
                             Event.CommitColorChange(
-                                hexToColor(option.colorHex),
+                                hexToColor(option.colorHex).hsv,
                             )
                         )
                     }

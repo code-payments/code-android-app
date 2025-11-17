@@ -18,7 +18,9 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.utils.nonce
+import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.hexToColor
+import com.getcode.ui.utils.hsv
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -58,7 +60,7 @@ class InternalBillPlaygroundController(
         )
         // create bill for token
         val bill = Bill.Cash(
-            token = token,
+            token = token.copy(billCustomizations = null),
             amount = demoAmount,
             disableGestures = true,
             data = payloadInfo.codeData.toList()
@@ -70,8 +72,8 @@ class InternalBillPlaygroundController(
     override fun dispatchEvent(event: Event) {
         when (event) {
             Event.AddSlot -> addSlot()
-            is Event.CommitColorChange -> commitColorChangeForSlot(event.color)
-            is Event.PreviewColorChange -> previewColorChangeForSlot(event.color)
+            is Event.CommitColorChange -> commitColorChangeForSlot(event.hsv)
+            is Event.PreviewColorChange -> previewColorChangeForSlot(event.hsv)
             Event.CloseHueControls -> closeHueControls()
             Event.OpenHueControls -> openHueControls()
             Event.RemoveSlot -> removeSlot()
@@ -87,7 +89,7 @@ class InternalBillPlaygroundController(
                 val lastSlotColor = s.selectedColors[s.selectedSlot]
                 val insertIndex = s.selectedSlot + 1
                 val colors = s.selectedColors.toMutableList().apply {
-                    add(insertIndex, lastSlotColor)
+                    add(insertIndex, ColorStore(lastSlotColor.color))
                 }.toList()
 
                 s.copy(
@@ -117,11 +119,11 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun commitColorChangeForSlot(color: Color) {
+    private fun commitColorChangeForSlot(hsv: Hsv) {
         _state.updateWithHistory { s ->
             val slotIndex = s.selectedSlot
             val updatedColors = s.selectedColors.toMutableList().apply {
-                set(slotIndex, ColorStore(color))
+                set(slotIndex, ColorStore(hsv))
             }.toList()
             s.copy(
                 selectedColors = updatedColors,
@@ -129,13 +131,13 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun previewColorChangeForSlot(color: Color) {
+    private fun previewColorChangeForSlot(hsv: Hsv) {
         // No history push—treat as transient
         _state.update { s ->
             val slotIndex = s.selectedSlot
             val slot = s.selectedColors[slotIndex]
             val updatedColors = s.selectedColors.toMutableList().apply {
-                set(slotIndex, slot.copy(transition = color))
+                set(slotIndex, slot.copy(transition = hsv))
             }.toList()
             s.copy(selectedColors = updatedColors)
         }

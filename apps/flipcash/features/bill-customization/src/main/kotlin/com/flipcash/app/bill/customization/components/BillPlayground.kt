@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -102,7 +103,7 @@ internal fun BillPlayground(
                             visibilityThreshold = IntOffset.VisibilityThreshold,
                         )
                     ) { width -> -width } togetherWith
-                        slideOutHorizontally { width -> width } + fadeOut()
+                            slideOutHorizontally { width -> width } + fadeOut()
                 } else { // targetState == PlaygroundMode.Presets
                     // ColorPanel is exiting, slide out to the left
                     slideInHorizontally(
@@ -112,14 +113,14 @@ internal fun BillPlayground(
                             visibilityThreshold = IntOffset.VisibilityThreshold,
                         ),
                     ) { width -> width } togetherWith
-                        slideOutHorizontally { width -> -width } + fadeOut()
+                            slideOutHorizontally { width -> -width } + fadeOut()
                 }
             }
         ) { mode ->
             when (mode) {
                 PlaygroundMode.ColorPanel -> {
                     ColorPanel(
-                        selectedColor = selectedSlotStore.color,
+                        hsv = selectedSlotStore.hsv,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(CodeTheme.dimens.grid.x14 * 2)
@@ -138,6 +139,7 @@ internal fun BillPlayground(
                         }
                     )
                 }
+
                 PlaygroundMode.Presets -> {
                     LazyHorizontalGrid(
                         modifier = Modifier
@@ -169,16 +171,16 @@ internal fun BillPlayground(
     }
 }
 
+@Composable
 internal fun Modifier.presenceBorder(
     width: Dp = 2.dp,
-    color: Color = Color.White.copy(0.30f)
-): Modifier = this.composed {
-    Modifier.border(
-        width = width,
-        color = color,
-        shape = CodeTheme.shapes.small
-    )
-}
+    color: Color = Color.White.copy(0.30f),
+    shape: Shape = CodeTheme.shapes.small
+): Modifier = this.border(
+    width = width,
+    color = color,
+    shape = shape
+)
 
 private val usdToCadRate = Rate(fx = 1.37161, currency = CurrencyCode.CAD)
 private val cadToUsdRate = Rate(fx = 0.72894, currency = CurrencyCode.USD)
