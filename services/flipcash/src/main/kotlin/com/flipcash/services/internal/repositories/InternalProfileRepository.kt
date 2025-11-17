@@ -3,6 +3,7 @@ package com.flipcash.services.internal.repositories
 import com.flipcash.services.internal.domain.SocialAccountMapper
 import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.services.ProfileService
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
@@ -20,7 +21,11 @@ internal class InternalProfileRepository(
     override suspend fun getProfile(userId: ID, owner: Ed25519.KeyPair): Result<UserProfile> {
         return service.getProfile(userId, owner)
             .map { userProfileMapper.map(it) }
-            .onFailure { ErrorUtils.handleError(it) }
+            .onFailure {
+                if (it !is GetUserProfileError.NotFound) {
+                    ErrorUtils.handleError(it)
+                }
+            }
     }
 
     override suspend fun setDisplayName(
