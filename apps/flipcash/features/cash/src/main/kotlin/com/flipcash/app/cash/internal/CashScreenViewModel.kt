@@ -73,7 +73,7 @@ internal class CashScreenViewModel @Inject constructor(
         val preferredOnRampProvider: OnRampProvider? = null,
     ) {
         val canGive: Boolean
-            get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0) > 0.00
+            get() = (amountAnimatedModel.amountData.amount) > 0.00
 
         val maxAvailableForGive: String
             get() = maxForGive?.let { Fiat(it.first, it.second).formatted() }.orEmpty()
@@ -81,10 +81,10 @@ internal class CashScreenViewModel @Inject constructor(
 
         val isError: Boolean
             get() {
-                if (amountAnimatedModel.amountData.amount.isEmpty()) return false
+                if (amountAnimatedModel.amountData.isEmpty()) return false
                 if (maxForGive != null) {
                     val enteredAmount = Fiat(
-                        fiat = amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0,
+                        fiat = amountAnimatedModel.amountData.amount,
                         currencyCode = maxForGive.second
                     )
                     val limit = Fiat(maxForGive.first, maxForGive.second)
@@ -124,7 +124,7 @@ internal class CashScreenViewModel @Inject constructor(
     val checkBalanceLimit: () -> Boolean = {
         // this balance check differs from withdrawal due to the fact this is a localized check
         // whereas withdrawal is USD locked
-        val amount = stateFlow.value.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
+        val amount = stateFlow.value.amountAnimatedModel.amountData.amount
         val enteredAmount = Fiat(
             fiat = amount,
             currencyCode = stateFlow.value.currencyModel.code ?: CurrencyCode.USD
@@ -173,7 +173,7 @@ internal class CashScreenViewModel @Inject constructor(
         isOverBalance
     }
     val checkSendLimit: () -> Boolean = {
-        val amount = stateFlow.value.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0
+        val amount = stateFlow.value.amountAnimatedModel.amountData.amount
         val currency = stateFlow.value.currencyModel
         val sendLimit =
             currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero

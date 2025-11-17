@@ -5,12 +5,14 @@ import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.utils.roundTo
+import com.getcode.opencode.utils.toLocaleAwareDoubleOrNull
 import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.DecimalFormat
+import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
@@ -79,7 +81,7 @@ data class Fiat(
             false
         }
 
-        val formatter = DecimalFormat.getInstance(Locale.US).apply {
+        val formatter = DecimalFormat.getInstance().apply {
             val decimalDigits = currencyCode.fractionDigits
             val preferredDigits = when (rule) {
                 is FormattingRule.Length -> rule.decimalPlaces
@@ -131,7 +133,7 @@ data class Fiat(
     fun toDouble() = formatted(
         showPrefix = false,
         includeCommas = false
-    ).toDouble()
+    ).toLocaleAwareDoubleOrNull() ?: 0.0
 
     fun valueNonZero(): Boolean = toDouble() != 0.0
 
@@ -169,7 +171,7 @@ data class Fiat(
         val Zero = Fiat(0, CurrencyCode.USD)
 
         private fun parseStringToDouble(stringAmount: String, decimalPlaces: Int = 6): Double {
-            val formatter = DecimalFormat.getNumberInstance(Locale.getDefault()).apply {
+            val formatter = DecimalFormat.getNumberInstance(Locale.US).apply {
                 isParseIntegerOnly = false
                 minimumFractionDigits = decimalPlaces
                 maximumFractionDigits = decimalPlaces

@@ -2,6 +2,8 @@ package com.getcode.opencode.utils
 
 import com.getcode.utils.encodeBase64
 import com.getcode.vendor.Base58
+import java.text.DecimalFormatSymbols
+import java.text.NumberFormat
 
 fun String.addLeadingZero(upTo: Int): String {
     if (upTo < length) return this
@@ -37,6 +39,22 @@ fun String.padded(minCount: Int): String {
     } else {
         this
     }
+}
+
+fun String.toLocaleAwareDoubleOrNull(decimalPlaces: Int = 6): Double? {
+    val separator = DecimalFormatSymbols.getInstance().decimalSeparator
+    // Use locale-aware NumberFormat for parsing to correctly handle decimal separators.
+    // We also need to handle the case where the input is just the separator (e.g., "," or ".")
+    // or ends with it, which parse() would fail on.
+    val sanitizedText = if (endsWith(separator)) this + "0" else this
+    return runCatching {
+        NumberFormat.getInstance().apply {
+            isGroupingUsed = false
+            isParseIntegerOnly = false
+            maximumFractionDigits = decimalPlaces
+            minimumFractionDigits = decimalPlaces
+        }.parse(sanitizedText)?.toDouble()
+    }.getOrNull()
 }
 
 typealias Base64String = String

@@ -89,17 +89,16 @@ internal class WithdrawalViewModel @Inject constructor(
         val withdrawalState: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val canWithdraw: Boolean
-            get() = (amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                ?: 0.0) > 0.00
+            get() = (amountEntryState.amountAnimatedModel.amountData.amount) > 0.00
 
         val tokenBalance: Fiat
             get() = token?.balance ?: Fiat.Zero
 
         val isError: Boolean
             get() {
-                if (amountEntryState.amountAnimatedModel.amountData.amount.isEmpty()) return false
+                if (amountEntryState.amountAnimatedModel.amountData.isEmpty()) return false
                 val enteredAmount = Fiat(
-                    fiat = amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull() ?: 0.0,
+                    fiat = amountEntryState.amountAnimatedModel.amountData.amount,
                     currencyCode = tokenBalance.currencyCode
                 )
 
@@ -154,8 +153,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
     val checkBalanceLimit: () -> Boolean = {
         val amount =
-            stateFlow.value.amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                ?: 0.0
+            stateFlow.value.amountEntryState.amountAnimatedModel.amountData.amount
         val conversionRate =
             exchange.rateToUsd(
                 stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD

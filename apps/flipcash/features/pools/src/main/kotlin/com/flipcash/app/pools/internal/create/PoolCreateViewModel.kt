@@ -58,19 +58,17 @@ internal data class BidEntryState(
     val selectedAmount: Fiat = Fiat.Zero,
 ) {
     val canSet: Boolean
-        get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull()
-            ?: 0.0) > 0.00
+        get() = (amountAnimatedModel.amountData.amount) > 0.00
 
     val maxAvailableForBid: String
         get() = maxForBid?.let { Fiat(it.first, it.second).formatted() }.orEmpty()
 
     val isError: Boolean
         get() {
-            if (amountAnimatedModel.amountData.amount.isEmpty()) return false
+            if (amountAnimatedModel.amountData.isEmpty()) return false
 
             if (maxForBid != null) {
-                if ((amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                        ?: 0.0) <= maxForBid.first
+                if ((amountAnimatedModel.amountData.amount) <= maxForBid.first
                 ) {
                     return false
                 }
@@ -140,9 +138,7 @@ internal class PoolCreateViewModel @Inject constructor(
     }
 
     val checkBidLimit: () -> Boolean = {
-        val amount =
-            stateFlow.value.bidEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                ?: 0.0
+        val amount = stateFlow.value.bidEntryState.amountAnimatedModel.amountData.amount
         val currency = stateFlow.value.bidEntryState.currencyModel
         val sendLimit =
             currency.code?.let { stateFlow.value.bidEntryState.limits?.sendLimitFor(it) }

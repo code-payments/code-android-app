@@ -91,7 +91,7 @@ internal fun AmountTextAnimated(
     val staticX5 = CodeTheme.dimens.staticGrid.x5
 
     // Initialize visibility states based on uiModel
-    val initialAmount = uiModel.amountData.amount
+    val initialAmount = uiModel.amountData.amountText
     val isInitiallyZero = initialAmount == "0" || initialAmount.isEmpty()
     var decimalPointVisibility by remember { mutableStateOf(initialAmount.contains(DECIMAL_SEPARATOR)) }
     var zeroVisibility by remember { mutableStateOf(isInitiallyZero) }
@@ -108,8 +108,8 @@ internal fun AmountTextAnimated(
     val maxFontSize = textStyle.fontSize
 
     val commaVisibility = uiModel.amountData.commaVisibility
-    val amountSplit = uiModel.amountData.amount.split(DECIMAL_SEPARATOR)
-    val amountLastSplit = uiModel.amountDataLast.amount.split(DECIMAL_SEPARATOR)
+    val amountSplit = uiModel.amountData.amountText.split(DECIMAL_SEPARATOR)
+    val amountLastSplit = uiModel.amountDataLast.amountText.split(DECIMAL_SEPARATOR)
 
     val length1 = amountSplit[0].length
     val length2 = if (amountSplit.size > 1) amountSplit[1].length else 0
@@ -117,7 +117,7 @@ internal fun AmountTextAnimated(
     val isZero = amountSplit[0] == "0" || amountSplit[0].isEmpty()
 
     if (amountSplit.firstOrNull() != null && !isZero) {
-        firstDigit = uiModel.amountData.amount.first().toString()
+        firstDigit = uiModel.amountData.amountText.first().toString()
     }
 
     fun getValue(i1: Int, i2: Int): String? =

@@ -1,6 +1,8 @@
 package com.getcode.ui.components.text
 
+import java.text.NumberFormat
 import java.text.DecimalFormatSymbols
+import java.util.Locale
 import kotlin.math.min
 
 
@@ -73,7 +75,7 @@ class NumberInputHelper {
     }
 
     private fun applyValue() {
-        amount = amountText.toDoubleOrNull() ?: 0.0
+        amount = amountText.toLocaleAwareDoubleOrNull() ?: 0.0
     }
 
     private fun formatAmount(amount: Double): String {
@@ -115,5 +117,20 @@ class NumberInputHelper {
         val GROUPING_SEPARATOR: Char get() = DecimalFormatSymbols.getInstance().groupingSeparator
     }
 
-    data class AmountAnimatedData(val amount: String = "0", val commaVisibility: List<Boolean> = listOf())
+    data class AmountAnimatedData(
+        internal val amountText: String = "0",
+        val commaVisibility: List<Boolean> = listOf()
+    ) {
+        fun isEmpty(): Boolean = amountText.isEmpty()
+        val amount: Double get() = amountText.toLocaleAwareDoubleOrNull() ?: 0.0
+    }
+}
+
+private fun String.toLocaleAwareDoubleOrNull(): Double? {
+    val separator = DecimalFormatSymbols.getInstance().decimalSeparator
+    // Use locale-aware NumberFormat for parsing to correctly handle decimal separators.
+    // We also need to handle the case where the input is just the separator (e.g., "," or ".")
+    // or ends with it, which parse() would fail on.
+    val sanitizedText = if (endsWith(separator)) this + "0" else this
+    return runCatching { NumberFormat.getInstance().parse(sanitizedText)?.toDouble() }.getOrNull()
 }

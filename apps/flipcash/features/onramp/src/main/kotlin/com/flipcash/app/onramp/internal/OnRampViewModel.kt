@@ -48,19 +48,17 @@ internal data class AmountEntryState(
     val selectedAmount: Fiat = Fiat.Zero,
 ) {
     val canAdd: Boolean
-        get() = (amountAnimatedModel.amountData.amount.toDoubleOrNull()
-            ?: 0.0) > 0.00
+        get() = (amountAnimatedModel.amountData.amount) > 0.00
 
     val maxAvailableToAdd: String
         get() = maxToAdd?.let { Fiat(it.first, it.second).formatted() }.orEmpty()
 
     val isError: Boolean
         get() {
-            if (amountAnimatedModel.amountData.amount.isEmpty()) return false
+            if (amountAnimatedModel.amountData.isEmpty()) return false
 
             if (maxToAdd != null) {
-                if ((amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                        ?: 0.0) <= maxToAdd.first
+                if ((amountAnimatedModel.amountData.amount) <= maxToAdd.first
                 ) {
                     return false
                 }
@@ -140,9 +138,7 @@ internal class OnRampViewModel @Inject constructor(
     }
 
     val checkFundingAmount: () -> Boolean = {
-        val amount =
-            stateFlow.value.amountEntryState.amountAnimatedModel.amountData.amount.toDoubleOrNull()
-                ?: 0.0
+        val amount = stateFlow.value.amountEntryState.amountAnimatedModel.amountData.amount
         val currency = stateFlow.value.amountEntryState.currencyModel
         val sendLimit =
             currency.code?.let { stateFlow.value.amountEntryState.limits?.sendLimitFor(it) }
