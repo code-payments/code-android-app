@@ -8,4 +8,5 @@ data class UserFlags(
     val requiresIapForRegistration: Boolean,
     val preferredOnRampProvider: OnRampProvider?,
     val supportedOnRampProviders: List<OnRampProvider>,
+    val minimumVersion: Int?,
 )

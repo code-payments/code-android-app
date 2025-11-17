@@ -16,6 +16,7 @@ internal class UserFlagsMapper @Inject constructor():
             requiresIapForRegistration = from.requiresIapForRegistration,
             preferredOnRampProvider = from.preferredOnRampProvider.toDomain().takeIf { it != OnRampProvider.Unknown },
             supportedOnRampProviders = from.supportedOnRampProvidersList.map { it.toDomain() },
+            minimumVersion = from.minBuildNumber
         )
     }
 }
@@ -29,7 +30,8 @@ private fun FlipcashAccountService.UserFlags.OnRampProvider.toDomain(): OnRampPr
         FlipcashAccountService.UserFlags.OnRampProvider.PHANTOM -> OnRampProvider.Phantom
         FlipcashAccountService.UserFlags.OnRampProvider.SOLFLARE -> OnRampProvider.Solflare
         FlipcashAccountService.UserFlags.OnRampProvider.BACKPACK -> OnRampProvider.Backpack
-
+        // Unhandled for now
+        FlipcashAccountService.UserFlags.OnRampProvider.BASE,
         FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN,
         FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown
     }
