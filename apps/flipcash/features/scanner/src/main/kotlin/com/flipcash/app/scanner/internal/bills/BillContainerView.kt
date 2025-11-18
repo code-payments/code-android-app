@@ -47,6 +47,7 @@ import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.PutInWallet
+import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -122,6 +123,10 @@ internal fun BillContainer(
         when {
             LocalBiometricsState.current.isAwaitingAuthentication -> {
                 // waiting for result
+            }
+
+            LocalAppUpdater.current.availableUpdate.value != null -> {
+                // waiting for update
             }
 
             state.isCameraPermissionGranted == true || state.isCameraPermissionGranted == null -> {

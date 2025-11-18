@@ -27,6 +27,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -38,21 +39,28 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.menu.MenuList
+import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.onramp.AddCashRow
+import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.plus
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
+    val appUpdater = LocalAppUpdater.current
+    val composeScope = rememberCoroutineScope()
+
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
@@ -84,6 +92,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.Center)
+                        .noRippleClickable {
+                            composeScope.launch { appUpdater.checkForUpdate() }
+                        }
                         .navigationBarsPadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(

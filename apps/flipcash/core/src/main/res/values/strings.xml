@@ -437,4 +437,5 @@
 
     <string name="title_updateRequired">Update Required</string>
     <string name="subtitle_updateRequired">The latest features of Flipcash require you to update to the latest version</string>
+    <string name="action_updateNow">Update Now</string>
 </resources>

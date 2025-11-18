@@ -70,7 +70,7 @@ fun UpdateRequiredBlockingView(
                                 appUpdater.startUpdate()
                             }
                         },
-                        text = stringResource(id = R.string.action_unlockCode),
+                        text = stringResource(id = R.string.action_updateNow),
                         buttonState = ButtonState.Filled
                     )
                 }

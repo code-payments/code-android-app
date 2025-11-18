@@ -55,6 +55,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:appsettings"))
+    implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:bills"))
     implementation(project(":apps:flipcash:shared:bill-customization"))
     implementation(project(":apps:flipcash:shared:session"))

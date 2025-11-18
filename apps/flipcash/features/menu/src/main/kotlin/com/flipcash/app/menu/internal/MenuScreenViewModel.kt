@@ -13,6 +13,7 @@ import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
+import com.flipcash.app.updates.AppUpdateController
 import com.flipcash.features.menu.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService

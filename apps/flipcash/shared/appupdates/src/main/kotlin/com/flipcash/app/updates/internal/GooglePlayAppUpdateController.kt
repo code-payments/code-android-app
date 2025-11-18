@@ -47,6 +47,21 @@ class GooglePlayAppUpdateController @Inject constructor(
             tag = "App Updates",
             message = "Checking for available updates"
         )
+
+        val minimumVersionFromServer = userManager.userFlags?.minimumVersion ?: Int.MIN_VALUE
+
+        if (versionInfo.versionCode >= minimumVersionFromServer) {
+            trace(
+                tag = "App Updates",
+                message = "Forced update is not required: ${versionInfo.versionCode} >= $minimumVersionFromServer",
+                metadata = {
+                    "current version" to versionInfo.versionCode
+                    "minimum version" to minimumVersionFromServer
+                }
+            )
+            return
+        }
+
         val task = appUpdateManager.appUpdateInfo
 
         task.addOnSuccessListener { update ->
@@ -66,21 +81,26 @@ class GooglePlayAppUpdateController @Inject constructor(
                 rawAppUpdateInfo = update
             )
 
-            val minimumVersionFromServer = userManager.userFlags?.minimumVersion ?: Int.MIN_VALUE
+            _availableUpdate.update { availableUpdate }
 
-            if (versionInfo.versionCode >= minimumVersionFromServer) {
+            if (availableUpdate.availableVersionCode > versionInfo.versionCode) {
                 trace(
                     tag = "App Updates",
-                    message = "Forced update is not required",
+                    message = "New update available",
                     metadata = {
                         "current version" to versionInfo.versionCode
-                        "minimum version" to minimumVersionFromServer
+                        "available version" to availableUpdate.availableVersionCode
+                        "update priority" to update.updatePriority()
+                        "bytes downloaded" to update.bytesDownloaded()
+                        "total bytes to download" to update.totalBytesToDownload()
                     }
                 )
-                return@addOnSuccessListener
+            } else {
+                trace(
+                    tag = "App Updates",
+                    message = "No new update available: ${versionInfo.versionCode} - ${availableUpdate.availableVersionCode}"
+                )
             }
-
-            _availableUpdate.update { availableUpdate }
 
             if (update.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
                 // in-app update is already in progress, resume it
