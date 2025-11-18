@@ -1,13 +1,31 @@
 package com.flipcash.app.tokens.internal
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.app.tokens.SelectTokenViewModel
 import com.flipcash.app.tokens.TokenList
+import com.flipcash.features.tokens.R
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun SelectTokenScreen(
@@ -29,6 +47,59 @@ private fun SelectTokenScreenContent(
         modifier = Modifier.fillMaxSize(),
         tokens = tokens,
         showFlags = true,
+        emptyState = {
+            Box(
+                modifier = Modifier
+                    .fillParentMaxSize()
+                    .padding(bottom = CodeTheme.dimens.inset),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset),
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.title_tapBelowToAddCashWallet),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+
+                    CodeButton(
+                        text = stringResource(R.string.action_addCash),
+                        buttonState = ButtonState.Filled,
+                        contentPadding = PaddingValues(
+                            horizontal = CodeTheme.dimens.grid.x11,
+                            vertical = CodeTheme.dimens.grid.x2
+                        )
+                    ) { dispatch(SelectTokenViewModel.Event.OnAddCashClicked) }
+                }
+            }
+        },
         onTokenSelected = { dispatch(SelectTokenViewModel.Event.OnTokenSelected(it)) }
     )
+}
+
+@Composable
+@Preview
+private fun PreviewEmptyState() {
+    FlipcashDesignSystem {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(CodeTheme.colors.background)
+        ) {
+            SelectTokenScreenContent(
+                state = SelectTokenViewModel.State(
+                    purpose = TokenPurpose.Send,
+                    tokens = emptyList(),
+                ),
+            ) {
+
+            }
+        }
+    }
 }

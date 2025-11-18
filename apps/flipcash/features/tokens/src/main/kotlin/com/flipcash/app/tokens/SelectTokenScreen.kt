@@ -67,6 +67,14 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
 
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
+                    .filterIsInstance<SelectTokenViewModel.Event.OpenScreen>()
+                    .map { ScreenRegistry.get(it.route) }
+                    .onEach { navigator.push(it) }
+                    .launchIn(this)
+            }
+
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
                     .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
                     .map { it.token }
                     .onEach { token ->

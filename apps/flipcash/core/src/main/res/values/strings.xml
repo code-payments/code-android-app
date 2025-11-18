@@ -285,6 +285,7 @@
     <string name="title_addCashToWallet">Add cash to your Flipcash wallet</string>
     <string name="action_addMoreCash">Add More Cash</string>
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
+    <string name="title_tapBelowToAddCashWallet">You don’t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 
