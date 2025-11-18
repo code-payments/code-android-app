@@ -14,7 +14,6 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.authentication.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType

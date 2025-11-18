@@ -3,6 +3,7 @@ package com.getcode.utils
 import android.annotation.SuppressLint
 import com.bugsnag.android.BreadcrumbType
 import com.bugsnag.android.Bugsnag
+import com.getcode.libs.logging.BuildConfig
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
@@ -63,6 +64,34 @@ private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
         TraceType.Process -> BreadcrumbType.PROCESS
         TraceType.StateChange -> BreadcrumbType.STATE
         TraceType.User -> BreadcrumbType.USER
+    }
+}
+
+object TraceManager {
+    private val productionTraceTree = object: Timber.Tree() {
+        override fun log(
+            priority: Int,
+            tag: String?,
+            message: String,
+            t: Throwable?
+        ) {
+            println("[TRACE] $tag $message")
+            t?.printStackTrace()
+        }
+
+    }
+    fun enableProductionTraces(enable: Boolean) {
+        if (!BuildConfig.DEBUG) {
+            if (enable) {
+                if (!Timber.forest().contains(productionTraceTree)) {
+                    Timber.plant(productionTraceTree)
+                }
+            } else {
+                if (Timber.forest().contains(productionTraceTree)) {
+                    Timber.uproot(productionTraceTree)
+                }
+            }
+        }
     }
 }
 

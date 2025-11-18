@@ -45,6 +45,9 @@ dependencies {
     implementation(project(":apps:flipcash:shared:ksp"))
     ksp(project(":apps:flipcash:shared:ksp"))
 
+    implementation(project(":libs:logging"))
+
+
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_messaging)
     implementation(Libs.bugsnag)
