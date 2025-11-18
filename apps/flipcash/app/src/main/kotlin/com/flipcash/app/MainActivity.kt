@@ -32,6 +32,8 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.updates.AppUpdateController
+import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
@@ -123,6 +125,10 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var billPlaygroundController: BillPlaygroundController
 
+    @Inject
+    lateinit var appUpdater: AppUpdateController
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -149,6 +155,7 @@ class MainActivity : FragmentActivity() {
                 LocalOnRampAmountController provides onRampAmountController,
                 LocalPhoneUtils provides phoneUtils,
                 LocalBillPlaygroundController provides billPlaygroundController,
+                LocalAppUpdater provides appUpdater,
             ) {
                 Rinku {
                     App(

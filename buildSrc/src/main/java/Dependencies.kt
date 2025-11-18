@@ -55,6 +55,7 @@ object Versions {
     const val play_service_auth = "21.4.0"
     const val play_service_auth_phone = "18.3.0"
     const val google_play_billing = "8.0.0"
+    const val google_play_updates = "2.1.0"
 
     const val grpc: String = "1.62.2"
     const val grpc_okhttp: String = "1.33.1"
@@ -279,6 +280,11 @@ object Libs {
         "com.android.billingclient:billing:${Versions.google_play_billing}"
     const val google_play_billing_ktx =
         "com.android.billingclient:billing-ktx:${Versions.google_play_billing}"
+
+    const val google_play_app_updates_runtime =
+        "com.google.android.play:app-update:${Versions.google_play_updates}"
+    const val google_play_app_updates_ktx =
+        "com.google.android.play:app-update-ktx:${Versions.google_play_updates}"
 
     const val grpc_okhttp = "io.grpc:grpc-okhttp:${Versions.grpc_okhttp}"
     const val grpc_kotlin = "io.grpc:grpc-kotlin-stub:${Versions.grpc_kotlin}"

@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.biometrics.BiometricsState
 import com.getcode.ui.biometrics.R
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -20,7 +21,7 @@ import com.getcode.ui.theme.CodeButton
 @Composable
 fun BiometricsBlockingView(
     modifier: Modifier = Modifier,
-    state: com.getcode.ui.biometrics.BiometricsState,
+    state: BiometricsState,
 ) {
     AnimatedVisibility(
         visible = !state.passed && !state.checking,

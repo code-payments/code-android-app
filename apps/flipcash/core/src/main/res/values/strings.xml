@@ -433,4 +433,7 @@
     <string name="error_description_CashReturnedToWallet">The cash was returned to your wallet</string>
 
     <string name="label_mintDate">Minted: %1$s</string>
+
+    <string name="title_updateRequired">Update Required</string>
+    <string name="subtitle_updateRequired">The latest features of Flipcash require you to update to the latest version</string>
 </resources>

@@ -39,6 +39,7 @@ import com.flipcash.app.payments.PaymentScaffold
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.updates.UpdateRequiredBlockingView
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
 import com.flipcash.services.user.AuthState
@@ -263,6 +264,7 @@ internal fun App(
             }
 
             BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
+            UpdateRequiredBlockingView(modifier = Modifier.fillMaxSize(), biometricsState = biometricsState)
             TopBarContainer(barManager.barMessages)
             BottomBarContainer(barManager.barMessages)
         }
