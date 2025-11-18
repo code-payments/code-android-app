@@ -49,11 +49,11 @@ data class LocalFiat(
         )
     )
 
-    constructor(usdc: Usd) : this(
+    constructor(usdc: Usd, rate: Rate = Rate.oneToOne, mint: Mint = Mint.usdc) : this(
         underlyingTokenAmount = usdc,
-        nativeAmount = usdc,
-        mint = Mint.usdc,
-        rate = Rate.oneToOne
+        nativeAmount = usdc.convertingTo(rate),
+        mint = mint,
+        rate = rate
     )
 
     companion object {
@@ -73,24 +73,24 @@ data class LocalFiat(
             trace: Boolean = true,
         ): LocalFiat {
             val usdValue = amount.convertingToUsdIfNeeded(rate)
+            // cap the entered amount as well, since our display rounds HALF_UP
+            // e,g entered 0.02 USD, but balance is 0.016 USD
+            val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
             if (token.address == Mint.usdc) {
                 // this doesn't need a calculated value exchange since we are USDC
                return if (rate.currency != CurrencyCode.USD) {
                    LocalFiat(
-                       underlyingTokenAmount = usdValue,
-                       nativeAmount = amount,
+                       usdc = cappedValue,
                        rate = rate,
                        mint = token.address,
                    )
                } else {
-                   LocalFiat(usdc = usdValue)
+                   LocalFiat(usdc = cappedValue)
                }
             }
 
             val valueLocked = token.launchpadMetadata?.coreMintLockedQuarks ?: 0
-
-            val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
             // determine quarks to exchange for the desired amount
             val quarks = Estimator.valueExchangeAsQuarks(
