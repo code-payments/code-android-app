@@ -1,11 +1,12 @@
 package com.flipcash.app.bill.customization.internal
 
 import android.content.ClipboardManager
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.flipcash.app.bill.customization.BillPlaygroundController
-import com.flipcash.app.bill.customization.ColorStore
+import com.flipcash.app.bill.customization.PlaygroundFeature
 import com.flipcash.app.bill.customization.Event
-import com.flipcash.app.bill.customization.PlaygroundMode
-import com.flipcash.app.bill.customization.State
+import com.flipcash.app.bill.customization.PlaygroundState
 import com.flipcash.app.core.bill.Bill
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -15,8 +16,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.Hsv
-import com.getcode.ui.utils.hexToColor
-import com.getcode.ui.utils.toAGColor
 import com.getcode.ui.utils.toHex
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,21 +23,46 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 @OptIn(ExperimentalStdlibApi::class)
 class InternalBillPlaygroundController(
     private val clipboard: ClipboardManager,
-) : BillPlaygroundController {
+) : BillPlaygroundController, ViewModel() {
 
-    private val _state: MutableStateFlow<State> = MutableStateFlow(State())
-    override val state: StateFlow<State>
-        get() = _state.asStateFlow()
+    private val backgroundController = BackgroundController { pushUndoSnapshot() }
+
+    private val _state: MutableStateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
+    override val state: StateFlow<PlaygroundState> = _state.asStateFlow()
+
+    init {
+        combine(
+            _state,
+            backgroundController.state
+        ) { currentPlayground, currentBackground ->
+            currentPlayground.copy(
+                backgroundState = currentBackground
+            )
+        }.onEach { combinedState ->
+            _state.value = combinedState
+        }.launchIn(viewModelScope)
+    }
 
     private val _eventFlow: MutableSharedFlow<Event> = MutableSharedFlow()
     val eventFlow: SharedFlow<Event> = _eventFlow.asSharedFlow()
 
-    private val undoStack = ArrayDeque<State>()
+    private val undoStack = ArrayDeque<PlaygroundState>()
+
+    private fun pushUndoSnapshot() {
+        val cleanSnapshot = _state.value.copy(
+            backgroundState = backgroundController.getCurrentCleanState(),
+        )
+
+        undoStack.addLast(cleanSnapshot)
+    }
 
     override val canUndo: Boolean
         get() = !undoStack.isEmpty()
@@ -71,6 +95,7 @@ class InternalBillPlaygroundController(
 
     override fun dispatchEvent(event: Event) {
         when (event) {
+            is Event.SelectFeature -> selectFeature(event.feature)
             Event.AddSlot -> addSlot()
             is Event.CommitColorChange -> commitColorChangeForSlot(event.hsv)
             is Event.PreviewColorChange -> previewColorChangeForSlot(event.hsv)
@@ -84,132 +109,106 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun addSlot() {
-        if (_state.value.selectedColors.count() < _state.value.maxSlots) {
-            _state.updateWithHistory { s ->
-                val lastSlotColor = s.selectedColors[s.selectedSlot]
-                val insertIndex = s.selectedSlot + 1
-                val colors = s.selectedColors.toMutableList().apply {
-                    add(insertIndex, ColorStore(lastSlotColor.color))
-                }.toList()
+    private fun selectFeature(feature: PlaygroundFeature) {
+        _state.update {
+            it.copy(selectedFeature = feature)
+        }
+    }
 
-                s.copy(
-                    selectedColors = colors,
-                    selectedSlot = insertIndex,
-                )
+    private fun addSlot() {
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.addSlot()
             }
         }
     }
 
     private fun removeSlot() {
-        if (_state.value.selectedColors.count() > 1) {
-            _state.updateWithHistory { s ->
-                val indexToRemove = s.selectedSlot
-                val newColors = s.selectedColors.toMutableList().apply { removeAt(indexToRemove) }
-                s.copy(
-                    selectedColors = newColors,
-                    selectedSlot = s.selectedSlot.coerceAtMost(newColors.size - 1),
-                )
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.removeSlot()
             }
         }
     }
 
     private fun selectSlot(slot: Int) {
-        _state.update { s ->
-            s.copy(selectedSlot = slot)
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.selectSlot(slot)
+            }
         }
     }
 
     private fun commitColorChangeForSlot(hsv: Hsv) {
-        _state.updateWithHistory { s ->
-            val slotIndex = s.selectedSlot
-            val updatedColors = s.selectedColors.toMutableList().apply {
-                set(slotIndex, ColorStore(hsv))
-            }.toList()
-            s.copy(
-                selectedColors = updatedColors,
-            )
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.commitColorChangeForSlot(hsv)
+            }
         }
     }
 
     private fun previewColorChangeForSlot(hsv: Hsv) {
-        // No history push—treat as transient
-        _state.update { s ->
-            val slotIndex = s.selectedSlot
-            val slot = s.selectedColors[slotIndex]
-            val updatedColors = s.selectedColors.toMutableList().apply {
-                set(slotIndex, slot.copy(transition = hsv))
-            }.toList()
-            s.copy(selectedColors = updatedColors)
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.previewColorChangeForSlot(hsv)
+            }
         }
     }
 
     private fun openHueControls() {
-        _state.update { s ->
-            s.copy(mode = PlaygroundMode.ColorPanel)
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.openHueControls()
+            }
         }
     }
 
     private fun closeHueControls() {
-        _state.update { s ->
-            s.copy(mode = PlaygroundMode.Presets)
+        when (_state.value.selectedFeature) {
+            PlaygroundFeature.Background -> {
+                backgroundController.closeHueControls()
+            }
         }
     }
 
     private fun loadBackground(background: BillBackground) {
-        when (val bg = background) {
-            is BillBackground.Gradient -> {
-                val colors = bg.colors.map { hexToColor(it) }
-                _state.updateWithHistory { s ->
-                    s.copy(
-                        selectedColors = colors.map { ColorStore(it) },
-                        selectedSlot = colors.lastIndex
-                    )
-                }
-            }
-
-            is BillBackground.Solid -> {
-                _state.updateWithHistory { s ->
-                    s.copy(
-                        selectedColors = listOf(ColorStore(bg.colorHex)),
-                        selectedSlot = 0
-                    )
-                }
-            }
-        }
+        backgroundController.load(background)
     }
 
     private fun undoLastChange() {
-        if (!undoStack.isEmpty()) {
+        if (undoStack.isNotEmpty()) {
             val previous = undoStack.removeLast()
-            _state.update { previous }
+            applyStateSnapshot(previous)
+        }
+    }
+
+    private fun applyStateSnapshot(snapshot: PlaygroundState) {
+        // Restore each sub-controller to the exact state from the snapshot
+        backgroundController.restore(snapshot.backgroundState)
+        // ...
+
+        // Finally emit the merged state
+        _state.update {
+            it.copy(
+                backgroundState = backgroundController.getCurrentCleanState(),
+            )
         }
     }
 
     private fun copyConfiguration() {
-        val colors = _state.value.selectedColors.map { it.color }
+        val backgroundColors = _state.value.backgroundState.selectedColors.map { it.color }
             .map { it.toHex() }
 
         clipboard.setPrimaryClip(
             android.content.ClipData.newPlainText(
                 "",
-                colors.joinToString()
+                backgroundColors.joinToString()
             )
         )
     }
 
     override fun cancel() {
         undoStack.clear()
-        _state.update { State() }
-    }
-
-    private fun MutableStateFlow<State>.updateWithHistory(function: (State) -> State) {
-        val currentClean = _state.value.copy(
-            selectedColors = _state.value.selectedColors.map {
-                it.copy(transition = null)
-            },
-        )
-        undoStack.add(currentClean)  // Push clean current
-        update { function(currentClean) }  // Apply to clean base
+        _state.update { PlaygroundState() }
     }
 }

@@ -24,8 +24,6 @@ import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -44,25 +42,22 @@ import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.features.bill.playground.R
-import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.TokenBillCustomizations
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.rememberedClickable
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.ui.utils.toAGColor
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
     val controller = LocalBillPlaygroundController.current
 
-    val state by controller.state.collectAsStateWithLifecycle()
+    val playgroundState by controller.state.collectAsStateWithLifecycle()
 
     // bill dismiss state, restarted for every bill
-    val billDismissState = remember(state.bill) {
+    val billDismissState = remember(playgroundState.bill) {
         DismissState(
             initialValue = DismissValue.Default,
             confirmStateChange = { false }
@@ -70,29 +65,20 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
     }
 
     val customizationsOptions by remember(
-        state.selectedColors,
-        state.bill?.token?.billCustomizations
+        playgroundState.backgroundState.selectedColors,
+        playgroundState.bill?.token?.billCustomizations
     ) {
         derivedStateOf {
-            val background = if (state.selectedColors.count() > 1) {
-                BillBackground.Gradient.from(
-                    state.selectedColors.map { it.color.toAGColor() }
-                )
-            } else {
-                BillBackground.Solid.from(state.selectedColors.first().color.toAGColor())
-            }
-
-
             return@derivedStateOf TokenBillCustomizations(
-                background = background,
+                background = playgroundState.background,
                 icon = null,
             )
         }
     }
 
-    val augmentedBill by remember(state.bill, customizationsOptions) {
+    val augmentedBill by remember(playgroundState.bill, customizationsOptions) {
         derivedStateOf {
-            val bill = state.bill ?: return@derivedStateOf null
+            val bill = playgroundState.bill ?: return@derivedStateOf null
             if (bill !is Bill.Cash) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
@@ -110,7 +96,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         mutableStateOf(0.dp)
     }
 
-    BackHandler(state.isCustomizing) {
+    BackHandler(playgroundState.isCustomizing) {
         controller.cancel()
     }
 
@@ -119,7 +105,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         AnimatedBill(
             modifier = Modifier.fillMaxSize(),
             dismissState = billDismissState,
-            dismissed = !state.isCustomizing,
+            dismissed = !playgroundState.isCustomizing,
             contentPadding = PaddingValues(
                 top = topBarHeight,
                 bottom = playgroundHeight,
@@ -136,7 +122,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .measured { topBarHeight = it.height },
-            visible = state.isCustomizing,
+            visible = playgroundState.isCustomizing,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -156,7 +142,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .measured { playgroundHeight = it.height },
-            visible = state.isCustomizing,
+            visible = playgroundState.isCustomizing,
             enter = slideInVertically { it },
             exit = slideOutVertically { it },
             label = "bill customization",
@@ -165,11 +151,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 BillPlayground(
-                    mode = state.mode,
-                    selectedColors = state.selectedColors,
-                    selectedSlot = state.selectedSlot,
-                    maxSlots = state.maxSlots,
-                    colorOptions = state.colorOptions,
+                    state = playgroundState,
                 ) { event ->
                     controller.dispatchEvent(event)
                 }

@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
@@ -40,26 +39,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.bill.customization.ColorStore
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.PlaygroundMode
+import com.flipcash.app.bill.customization.PlaygroundState
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
 import com.flipcash.app.theme.FlipcashDesignSystem
-import com.getcode.opencode.compose.ExchangeStub
-import com.getcode.opencode.model.financial.BillBackground
-import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.model.financial.Rate
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun BillPlayground(
-    mode: PlaygroundMode,
-    selectedSlot: Int,
-    maxSlots: Int,
-    colorOptions: List<BillBackground>,
-    selectedColors: List<ColorStore>,
+    state: PlaygroundState,
     dispatchEvent: (Event) -> Unit,
 ) {
     Column(
@@ -83,17 +74,17 @@ internal fun BillPlayground(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.grid.x3),
-            selectedSlot = selectedSlot,
-            maxSlots = maxSlots,
-            selectedColors = selectedColors,
+            selectedSlot = state.backgroundState.selectedSlot,
+            maxSlots = state.backgroundState.maxSlots,
+            selectedColors = state.backgroundState.selectedColors,
             dispatchEvent = dispatchEvent
         )
 
-        val selectedSlotStore by rememberUpdatedState(selectedColors[selectedSlot])
+        val selectedSlotStore by rememberUpdatedState(state.backgroundState.selectedColors[state.backgroundState.selectedSlot])
 
         // color options
         AnimatedContent(
-            targetState = mode,
+            targetState = state.backgroundState.mode,
             transitionSpec = {
                 if (targetState == PlaygroundMode.ColorPanel) {
                     // ColorPanel is entering, slide in from the left
@@ -160,8 +151,8 @@ internal fun BillPlayground(
                             }
                         }
 
-                        items(colorOptions.size) { index ->
-                            ColorOptionItem(colorOptions, index) { event ->
+                        items(state.backgroundState.colorOptions.size) { index ->
+                            ColorOptionItem(state.backgroundState.colorOptions, index) { event ->
                                 dispatchEvent(event)
                             }
                         }
@@ -205,17 +196,13 @@ private fun PreviewCustomizationControls() {
                     .aspectRatio(0.555f)
                     .weight(1f)
                     .background(
-                        brush = state.brush,
+                        brush = state.backgroundBrush,
                         shape = CodeTheme.shapes.large,
                     )
                     .presenceBorder(),
             )
             BillPlayground(
-                mode = state.mode,
-                selectedSlot = state.selectedSlot,
-                maxSlots = state.maxSlots,
-                selectedColors = state.selectedColors,
-                colorOptions = state.colorOptions,
+                state = state,
             ) { controller.dispatchEvent(it) }
         }
     }

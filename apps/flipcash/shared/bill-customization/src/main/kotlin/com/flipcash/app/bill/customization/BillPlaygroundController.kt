@@ -3,6 +3,7 @@ package com.flipcash.app.bill.customization
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.flipcash.app.bill.customization.internal.ColorState
 import com.flipcash.app.core.bill.Bill
 import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.Token
@@ -10,12 +11,23 @@ import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.color
 import com.getcode.ui.utils.hexToColor
 import com.getcode.ui.utils.hsv
+import com.getcode.ui.utils.toAGColor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
 
+interface RestorableController<T> {
+    fun getCurrentCleanState(): T           // no transient preview values
+    fun restore(state: T)                   // idempotent, full replace
+}
+
+enum class PlaygroundFeature {
+    Background,
+    ;
+}
+
 interface BillPlaygroundController {
-    val state: StateFlow<State>
+    val state: StateFlow<PlaygroundState>
     val canUndo: Boolean
     val canCopy: Boolean
     fun customizeFor(token: Token)
@@ -43,30 +55,41 @@ data class ColorStore(
         get() = hsv.color
 }
 
-data class State(
+data class PlaygroundState(
     val bill: Bill? = null,
-    val presetsOpen: Boolean = false,
-    val mode: PlaygroundMode = PlaygroundMode.Presets,
-    val selectedSlot: Int = 0,
-    val maxSlots: Int = MaxGradientColors,
-    val selectedColors: List<ColorStore> = buildGradient(),
-    val colorOptions: List<BillBackground.Solid> = PresetColorOptions,
-    val gradientOptions: List<BillBackground.Gradient> = PresetGradients,
+    val selectedFeature: PlaygroundFeature = PlaygroundFeature.Background,
+    val backgroundState: ColorState = ColorState(),
 ) {
     val isCustomizing: Boolean
         get() = bill != null
 
-    val brush: Brush
+    val background: BillBackground
         get() {
-            if (selectedColors.size == 1) return Brush.verticalGradient(listOf(selectedColors.first().color, selectedColors.first().color))
-            val colorStops = selectedColors.mapIndexed { index, store -> index.toFloat() / (selectedColors.size - 1) to store.color }
-            return Brush.verticalGradient(
-                colorStops = colorStops.toTypedArray()
-            )
+            return with(backgroundState) {
+                if (selectedColors.count() > 1) {
+                    BillBackground.Gradient.from(
+                        selectedColors.map { it.color.toAGColor() }
+                    )
+                } else {
+                    BillBackground.Solid.from(selectedColors.first().color.toAGColor())
+                }
+            }
+        }
+
+    val backgroundBrush: Brush
+        get() {
+            with (backgroundState) {
+                if (selectedColors.size == 1) return Brush.verticalGradient(listOf(selectedColors.first().color, selectedColors.first().color))
+                val colorStops = selectedColors.mapIndexed { index, store -> index.toFloat() / (selectedColors.size - 1) to store.color }
+                return Brush.verticalGradient(
+                    colorStops = colorStops.toTypedArray()
+                )
+            }
         }
 }
 
 sealed interface Event {
+    data class SelectFeature(val feature: PlaygroundFeature): Event
     data object AddSlot: Event
     data object RemoveSlot: Event
     data class SelectSlot(val slot: Int): Event
@@ -118,7 +141,7 @@ internal fun buildGradient(): List<ColorStore> {
 }
 
 internal object StubPlaygroundController : BillPlaygroundController {
-    override val state: StateFlow<State> = MutableStateFlow(State())
+    override val state: StateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val canUndo: Boolean = false
     override val canCopy: Boolean = false
     override fun customizeFor(token: Token) = Unit
