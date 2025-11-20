@@ -232,7 +232,9 @@ object Libs {
     const val compose_ui_tools_preview =
         "androidx.compose.ui:ui-tooling-preview"
     const val compose_foundation = "androidx.compose.foundation:foundation"
+    const val compose_foundation_layout = "androidx.compose.foundation:foundation-layout"
     const val compose_material = "androidx.compose.material:material"
+    const val compose_material3 = "androidx.compose.material3:material3"
     const val compose_materialIconsCore = "androidx.compose.material:material-icons-core"
     const val compose_materialIconsExtended =
         "androidx.compose.material:material-icons-extended-android"

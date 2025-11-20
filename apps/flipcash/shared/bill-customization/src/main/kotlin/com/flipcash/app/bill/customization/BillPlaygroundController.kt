@@ -2,29 +2,18 @@ package com.flipcash.app.bill.customization
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import com.flipcash.app.bill.customization.internal.ColorState
+import com.flipcash.app.bill.customization.internal.features.BlendMode
+import com.flipcash.app.bill.customization.internal.features.ColorState
+import com.flipcash.app.bill.customization.internal.features.GraphicState
+import com.flipcash.app.bill.customization.models.PlaygroundFeature
 import com.flipcash.app.core.bill.Bill
-import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.BillTexture
 import com.getcode.ui.utils.Hsv
-import com.getcode.ui.utils.color
-import com.getcode.ui.utils.hexToColor
-import com.getcode.ui.utils.hsv
 import com.getcode.ui.utils.toAGColor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.UUID
-
-interface RestorableController<T> {
-    fun getCurrentCleanState(): T           // no transient preview values
-    fun restore(state: T)                   // idempotent, full replace
-}
-
-enum class PlaygroundFeature {
-    Background,
-    ;
-}
 
 interface BillPlaygroundController {
     val state: StateFlow<PlaygroundState>
@@ -36,29 +25,12 @@ interface BillPlaygroundController {
     fun cancel()
 }
 
-enum class PlaygroundMode {
-    ColorPanel, Presets
-}
-
-data class ColorStore(
-    val committed: Hsv,
-    val transition: Hsv? = null,
-    val id: String = UUID.randomUUID().toString(),
-) {
-    constructor(color: Color): this (color.hsv, null)
-    constructor(color: String): this (hexToColor(color))
-
-    val hsv: Hsv
-        get() = transition ?: committed
-
-    val color: Color
-        get() = hsv.color
-}
-
 data class PlaygroundState(
     val bill: Bill? = null,
+    val features: List<PlaygroundFeature> = PlaygroundFeature.entries.toList(),
     val selectedFeature: PlaygroundFeature = PlaygroundFeature.Background,
     val backgroundState: ColorState = ColorState(),
+    val textureState: GraphicState = GraphicState(),
 ) {
     val isCustomizing: Boolean
         get() = bill != null
@@ -76,6 +48,25 @@ data class PlaygroundState(
             }
         }
 
+    val texture: BillTexture?
+        get() {
+            if (!features.contains(PlaygroundFeature.Textures)) return null
+            return with (textureState) {
+                val selectedTexture = selectedOption ?: return null
+                BillTexture(
+                    index = selectedTexture + 1,
+                    blendMode = when (selectedBlendMode.blendMode) {
+                        BlendMode.Normal -> com.getcode.opencode.model.ui.BlendMode.Normal
+                        BlendMode.Lighten -> com.getcode.opencode.model.ui.BlendMode.Lighten
+                        BlendMode.Screen -> com.getcode.opencode.model.ui.BlendMode.Screen
+                        BlendMode.ColorDodge -> com.getcode.opencode.model.ui.BlendMode.ColorDodge
+                        BlendMode.PlusLighter -> com.getcode.opencode.model.ui.BlendMode.PlusLighter
+                    },
+                    strength = selectedBlendMode.strength
+                )
+            }
+        }
+
     val backgroundBrush: Brush
         get() {
             with (backgroundState) {
@@ -90,54 +81,24 @@ data class PlaygroundState(
 
 sealed interface Event {
     data class SelectFeature(val feature: PlaygroundFeature): Event
-    data object AddSlot: Event
-    data object RemoveSlot: Event
-    data class SelectSlot(val slot: Int): Event
-    data class PreviewColorChange(val hsv: Hsv): Event
-    data class CommitColorChange(val hsv: Hsv): Event
-    data class LoadBackground(val background: BillBackground): Event
-    data object OpenHueControls: Event
-    data object CloseHueControls: Event
+    sealed interface Colors: Event {
+        data object AddSlot : Colors
+        data object RemoveSlot : Colors
+        data class SelectSlot(val slot: Int) : Colors
+        data class PreviewColorChange(val hsv: Hsv) : Colors
+        data class CommitColorChange(val hsv: Hsv) : Colors
+        data class LoadBackground(val background: BillBackground) : Colors
+        data object OpenHueControls : Colors
+        data object CloseHueControls : Colors
+    }
+
+    sealed interface Graphics: Event {
+        data class ApplyGraphic(val resource: Int) : Graphics
+        data class CommitBlendMode(val blendMode: BlendMode, val strength: Float? = null): Graphics
+        data class PreviewBlendMode(val strength: Float = 1f): Graphics
+    }
     data object Undo: Event
     data object Copy: Event
-}
-
-internal const val MaxGradientColors = 3
-
-@OptIn(ExperimentalStdlibApi::class)
-internal val PresetColorOptions: List<BillBackground.Solid> = listOf(
-    BillBackground.Solid("#FFFF453A"), // Red
-    BillBackground.Solid("#FFFF9F0A"), // Orange
-    BillBackground.Solid("#FFFFD60A"), // Yellow
-    BillBackground.Solid("#FF30D158"), // Green
-    BillBackground.Solid("#FF00FFE9"), // Cyan
-    BillBackground.Solid("#FF0054FF"), // Blue
-    BillBackground.Solid("#FFCDB3FF"), // Mauve
-    BillBackground.Solid("#FFFF1493"), // Hot Pink
-    BillBackground.Solid("#FF00D4FF"), // Cyan Blue
-    BillBackground.Solid("#FFFB9655"), // Light Salmon
-    BillBackground.Solid("#FF009688"), // Teal
-    BillBackground.Solid("#FF8B4513"), // Brown
-)
-
-internal val PresetGradients: List<BillBackground.Gradient> = listOf(
-    BillBackground.Gradient(listOf("#FFE2EAF3", "#FF5487C1")),
-    BillBackground.Gradient(listOf("#FFCDB3FF", "#FFECE0E5", "#FFFB9655")),
-    BillBackground.Gradient(listOf("#FFFFD5E7", "#FF31D9AA")),
-    BillBackground.Gradient(listOf("#FFE4307B", "#FF6123FF", "#FF8A02CE")),
-    BillBackground.Gradient(listOf("#FFCCCC31", "#FFC65A24")),
-    BillBackground.Gradient(listOf("#FF4F63FC", "#FF31D9AA"))
-)
-
-internal fun buildGradient(): List<ColorStore> {
-    val swatches = PresetColorOptions
-
-    // return a random 3 color gradient
-    return listOf(
-        ColorStore(swatches.random().colorHex),
-        ColorStore(swatches.random().colorHex),
-        ColorStore(swatches.random().colorHex),
-    )
 }
 
 internal object StubPlaygroundController : BillPlaygroundController {

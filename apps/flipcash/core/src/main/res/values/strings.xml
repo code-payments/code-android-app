@@ -438,4 +438,17 @@
     <string name="title_updateRequired">Update Required</string>
     <string name="subtitle_updateRequired">The latest features of Flipcash require you to update to the latest version</string>
     <string name="action_updateNow">Update Now</string>
+
+    <string name="label_billCreatorBackground">Background</string>
+    <string name="label_billCreatorTextures">Texture</string>
+
+    <string name="label_blendModeNormal">Normal</string>
+    <string name="label_blendModeLighten">Lighten</string>
+    <string name="label_blendModeScreen">Screen</string>
+    <string name="label_blendModeColorDodge">Color Dodge</string>
+    <string name="label_blendModePlusLighter">Plus Lighter</string>
+
+
+
+
 </resources>

@@ -49,7 +49,9 @@ dependencies {
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_foundation)
+    implementation(Libs.compose_foundation_layout)
     implementation(Libs.compose_material)
+    implementation(Libs.compose_material3)
     implementation(Libs.compose_materialIconsExtended)
     implementation(Libs.compose_activities)
 

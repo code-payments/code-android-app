@@ -44,7 +44,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -56,15 +58,19 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.zIndex
 import com.flipcash.app.core.money.formatted
 import com.flipcash.shared.bills.R
 import com.getcode.opencode.compose.LocalExchange
-import com.getcode.opencode.model.financial.BillBackground
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.BlendMode as PlaygroundBlendMode
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.blendMode
 import com.getcode.ui.core.drawWithGradient
+import com.getcode.ui.core.patternBlend
 import com.getcode.ui.core.punchCircle
 import com.getcode.ui.core.punchRectangle
 import com.getcode.ui.utils.Geometry
@@ -88,12 +94,9 @@ private object CashBillDefaults {
         startY: Float = 0f,
         endY: Float = Float.POSITIVE_INFINITY,
     ): Brush {
-        val billCustomizations = token.billCustomizations
-        if (billCustomizations == null) {
-            return Brush.verticalGradient(
-                listOf(Color(0xFF06450F), Color(0xFF06450F))
-            )
-        }
+        val billCustomizations = token.billCustomizations ?: return Brush.verticalGradient(
+            listOf(Color(0xFF06450F), Color(0xFF06450F))
+        )
 
         when (val background = billCustomizations.background) {
             is BillBackground.Gradient -> {
@@ -298,6 +301,9 @@ internal fun CashBill(
     amount: LocalFiat,
 ) {
     val exchange = LocalExchange.current
+    val customTexture = token.billCustomizations?.texture
+    val hasCustomTexture = customTexture != null
+
     Box(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
@@ -315,29 +321,77 @@ internal fun CashBill(
                 CashBillGeometry(maxWidth, maxHeight)
             }
 
-            println("geometry: ${geometry.size}")
+            if (hasCustomTexture) {
+                val context = LocalContext.current
+                val resources = LocalResources.current
+                val pattern = runCatching {
+                    resources.getIdentifier("bill_texture_${customTexture.index}", "drawable", context.packageName)
+                }.getOrNull()
 
-            // Hexagons
-            BillDecorImage(
-                modifier = Modifier
-                    .fillMaxSize(),
-                image = loadBillAsset(R.drawable.ic_bill_hexagons),
-                blendMode = BlendMode.Multiply,
-                alpha = 0.6f,
-            )
+                if (pattern != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .patternBlend(
+                                pattern = ImageBitmap.imageResource(resources, pattern),
+                                blendMode = when (customTexture.blendMode) {
+                                    PlaygroundBlendMode.Normal -> null
+                                    PlaygroundBlendMode.Lighten -> BlendMode.Lighten
+                                    PlaygroundBlendMode.Screen -> BlendMode.Screen
+                                    PlaygroundBlendMode.ColorDodge -> BlendMode.ColorDodge
+                                    PlaygroundBlendMode.PlusLighter -> BlendMode.Softlight
+                                },
+                                strength = customTexture.strength,
+                            ),
+                    )
+                }
+            } else {
+                // Hexagons
+                BillDecorImage(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    image = loadBillAsset(R.drawable.ic_bill_hexagons),
+                    blendMode = BlendMode.Multiply,
+                    alpha = 0.6f,
+                )
 
-            // Grid pattern
-            BillDecorImage(
-                modifier = Modifier
-                    .fillMaxSize(),
-                image = loadBillAsset(R.drawable.ic_bill_grid),
-                size = DpSize(width = geometry.gridWidth, height = geometry.gridHeight),
-                topLeft = Offset(
-                    x = geometry.gridPosition.x,
-                    y = geometry.gridPosition.y,
-                ),
-                alpha = 0.5f,
-            )
+                // Grid pattern
+                BillDecorImage(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    image = loadBillAsset(R.drawable.ic_bill_grid),
+                    size = DpSize(width = geometry.gridWidth, height = geometry.gridHeight),
+                    topLeft = Offset(
+                        x = geometry.gridPosition.x,
+                        y = geometry.gridPosition.y,
+                    ),
+                    alpha = 0.5f,
+                )
+
+
+                // Waves
+                Image(
+                    modifier = Modifier
+                        .requiredWidth(geometry.globeWidth)
+                        .fillMaxHeight()
+                        .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) }
+                        .drawWithGradient(
+                            brush = { startY, endY ->
+                                CashBillDefaults.billColor(
+                                    token,
+                                    alpha = CashBillDefaults.CodeBackgroundOpacity,
+                                    startY = startY,
+                                    endY = endY
+                                )
+                            },
+                            startY = { it / 2f },
+                            blendMode = BlendMode.DstIn
+                        ),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    painter = painterResource(R.drawable.ic_bill_waves),
+                )
+            }
 
             // Globe
             Image(
@@ -349,32 +403,9 @@ internal fun CashBill(
                             x = geometry.globePosition.x.toInt(),
                             y = geometry.globePosition.y.toInt()
                         )
-                    },
+                    }.zIndex(99f),
                 painter = painterResource(R.drawable.ic_bill_globe),
                 contentDescription = null
-            )
-
-            // Waves
-            Image(
-                modifier = Modifier
-                    .requiredWidth(geometry.globeWidth)
-                    .fillMaxHeight()
-                    .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) }
-                    .drawWithGradient(
-                        brush = { startY, endY ->
-                            CashBillDefaults.billColor(
-                                token,
-                                alpha = CashBillDefaults.CodeBackgroundOpacity,
-                                startY = startY,
-                                endY = endY
-                            )
-                        },
-                        startY = { it / 2f },
-                        blendMode = BlendMode.DstIn
-                    ),
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                painter = painterResource(R.drawable.ic_bill_waves),
             )
 
             // Security strip

@@ -31,8 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.bill.customization.ColorStore
-import com.flipcash.app.bill.customization.Event
+import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
+import com.flipcash.app.bill.customization.models.ColorStore
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
@@ -44,7 +44,7 @@ internal fun ColorSlots(
     maxSlots: Int,
     selectedColors: List<ColorStore>,
     modifier: Modifier = Modifier,
-    dispatchEvent: (Event) -> Unit,
+    dispatchEvent: (ColorEvent) -> Unit,
 ) {
     Row(
         modifier = modifier,
@@ -55,7 +55,7 @@ internal fun ColorSlots(
         IconButton(
             enabled = selectedColors.count() > 1,
             onClick = {
-                dispatchEvent(Event.RemoveSlot)
+                dispatchEvent(ColorEvent.RemoveSlot)
             }
         ) {
             val alpha by animateFloatAsState(
@@ -80,12 +80,11 @@ internal fun ColorSlots(
                     .fillMaxWidth()
                     .height(CodeTheme.dimens.grid.x10),
                 horizontalArrangement = Arrangement.spacedBy(
-                    CodeTheme.dimens.grid.x1,
-                    Alignment.End
-                ),
+                    CodeTheme.dimens.grid.x1),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val slotSize = this@BoxWithConstraints.maxWidth / selectedColors.count()
+                val slotSize = (this@BoxWithConstraints.maxWidth - (CodeTheme.dimens.grid.x1 * (selectedColors.count() - 1))) / selectedColors.count()
+
                 repeat(maxSlots) { slot ->
                     val store = selectedColors.getOrNull(slot)
 
@@ -105,7 +104,7 @@ internal fun ColorSlots(
                             store = s,
                             selected = selectedSlot == slot,
                         ) {
-                            dispatchEvent(Event.SelectSlot(slot))
+                            dispatchEvent(ColorEvent.SelectSlot(slot))
                         }
                     }
                 }
@@ -116,7 +115,7 @@ internal fun ColorSlots(
         IconButton(
             enabled = selectedColors.count() < maxSlots,
             onClick = {
-                dispatchEvent(Event.AddSlot)
+                dispatchEvent(ColorEvent.AddSlot)
             }
         ) {
             val alpha by animateFloatAsState(

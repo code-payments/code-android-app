@@ -4,6 +4,7 @@ import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.vmAuthority
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -80,6 +81,7 @@ data class MintMetadata(
                 Fiat(it.toDouble(), CurrencyCode.USD)
             }.getOrNull()
     }
+
     companion object
 }
 
@@ -125,48 +127,4 @@ data class LaunchpadMetadata(
     val coreMintLockedQuarks: Long,
     val sellFeeBps: Int, // currently hardcoded to 1%
 ) : Parcelable
-
-@Parcelize
-data class TokenBillCustomizations(
-    val background: BillBackground,
-    val icon: ByteArray?,
-) : Parcelable {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as TokenBillCustomizations
-
-        if (background != other.background) return false
-        if (!icon.contentEquals(other.icon)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = background.hashCode()
-        result = 31 * result + icon.contentHashCode()
-        return result
-    }
-}
-
-@Parcelize
-sealed interface BillBackground: Parcelable {
-    data class Solid(val colorHex: String): BillBackground
-    {
-        companion object {
-            fun from(colorInt: Int): Solid {
-                return Solid(String.format("#%06X", 0xFFFFFF and colorInt))
-            }
-        }
-    }
-    data class Gradient(val colors: List<String>): BillBackground
-    {
-        companion object {
-            fun from(colorInts: List<Int>): Gradient {
-                return Gradient(colorInts.map { String.format("#%06X", 0xFFFFFF and it) })
-            }
-        }
-    }
-}
 

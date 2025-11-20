@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import com.flipcash.app.bill.customization.Event
-import com.getcode.opencode.model.financial.BillBackground
+import com.getcode.opencode.model.ui.BillBackground
+import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberedClickable
@@ -18,7 +18,7 @@ import com.getcode.ui.utils.hsv
 internal fun ColorOptionItem(
     colorOptions: List<BillBackground>,
     index: Int,
-    dispatchEvent: (Event) -> Unit
+    dispatchEvent: (ColorEvent) -> Unit
 ) {
     val numRows = 2
     val itemsPerRow = (colorOptions.size + numRows - 1) / numRows
@@ -58,13 +58,13 @@ internal fun ColorOptionItem(
                 .rememberedClickable {
                     when (option) {
                         is BillBackground.Gradient -> dispatchEvent(
-                            Event.LoadBackground(
+                            ColorEvent.LoadBackground(
                                 option
                             )
                         )
 
                         is BillBackground.Solid -> dispatchEvent(
-                            Event.CommitColorChange(
+                            ColorEvent.CommitColorChange(
                                 hexToColor(option.colorHex).hsv,
                             )
                         )

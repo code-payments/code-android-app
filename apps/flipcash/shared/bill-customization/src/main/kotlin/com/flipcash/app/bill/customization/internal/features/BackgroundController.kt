@@ -1,16 +1,15 @@
-package com.flipcash.app.bill.customization.internal
+package com.flipcash.app.bill.customization.internal.features
 
-import com.flipcash.app.bill.customization.ColorStore
-import com.flipcash.app.bill.customization.MaxGradientColors
-import com.flipcash.app.bill.customization.PlaygroundMode
-import com.flipcash.app.bill.customization.PresetColorOptions
-import com.flipcash.app.bill.customization.PresetGradients
-import com.flipcash.app.bill.customization.RestorableController
-import com.flipcash.app.bill.customization.buildGradient
-import com.getcode.opencode.model.financial.BillBackground
+import com.flipcash.app.bill.customization.internal.RestorableColorController
+import com.flipcash.app.bill.customization.internal.defaults.MaxGradientColors
+import com.flipcash.app.bill.customization.internal.defaults.PresetColorOptions
+import com.flipcash.app.bill.customization.internal.defaults.PresetGradients
+import com.flipcash.app.bill.customization.internal.defaults.buildGradient
+import com.flipcash.app.bill.customization.models.ColorPlaygroundMode
+import com.flipcash.app.bill.customization.models.ColorStore
+import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.hexToColor
-import com.getcode.ui.utils.toAGColor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,10 +18,11 @@ import javax.inject.Inject
 
 internal class BackgroundController @Inject constructor(
     private val onBeforeMutation: () -> Unit,
-): RestorableController<ColorState> {
+): RestorableColorController {
 
     private val _state = MutableStateFlow(ColorState())
-    val state: StateFlow<ColorState>
+
+    override val state: StateFlow<ColorState>
         get() = _state.asStateFlow()
 
     override fun getCurrentCleanState(): ColorState = ColorState(
@@ -38,7 +38,7 @@ internal class BackgroundController @Inject constructor(
         _state.value = state
     }
 
-    fun addSlot() {
+    override fun addSlot() {
         if (_state.value.selectedColors.count() < _state.value.maxSlots) {
             onBeforeMutation()
             _state.updateWithHistory { state ->
@@ -56,7 +56,7 @@ internal class BackgroundController @Inject constructor(
         }
     }
 
-    fun removeSlot() {
+    override fun removeSlot() {
         if (_state.value.selectedColors.count() > 1) {
             onBeforeMutation()
             _state.updateWithHistory { state ->
@@ -70,13 +70,13 @@ internal class BackgroundController @Inject constructor(
         }
     }
 
-    fun selectSlot(slot: Int) {
+    override fun selectSlot(slot: Int) {
         _state.update { s ->
             s.copy(selectedSlot = slot)
         }
     }
 
-    fun commitColorChangeForSlot(hsv: Hsv) {
+    override fun commitColorChangeForSlot(hsv: Hsv) {
         onBeforeMutation()
         _state.updateWithHistory { state ->
             val slotIndex = state.selectedSlot
@@ -88,7 +88,7 @@ internal class BackgroundController @Inject constructor(
         }
     }
 
-    fun previewColorChangeForSlot(hsv: Hsv) {
+    override fun previewColorChangeForSlot(hsv: Hsv) {
         // No history push—treat as transient
         _state.update { s ->
             val slotIndex = s.selectedSlot
@@ -100,15 +100,15 @@ internal class BackgroundController @Inject constructor(
         }
     }
 
-    fun openHueControls() {
+    override fun openHueControls() {
         _state.update { s ->
-            s.copy(mode = PlaygroundMode.ColorPanel)
+            s.copy(mode = ColorPlaygroundMode.ColorPanel)
         }
     }
 
-    fun closeHueControls() {
+    override fun closeHueControls() {
         _state.update { s ->
-            s.copy(mode = PlaygroundMode.Presets)
+            s.copy(mode = ColorPlaygroundMode.Presets)
         }
     }
 
@@ -143,7 +143,7 @@ internal class BackgroundController @Inject constructor(
 }
 
 data class ColorState(
-    val mode: PlaygroundMode = PlaygroundMode.Presets,
+    val mode: ColorPlaygroundMode = ColorPlaygroundMode.Presets,
     val selectedSlot: Int = 0,
     val maxSlots: Int = MaxGradientColors,
     val selectedColors: List<ColorStore> = buildGradient(),

@@ -11,8 +11,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,18 +25,20 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInteropFilter
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -48,8 +48,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.visibility.VisibilityInfo
-import com.getcode.ui.core.visibility.VisibilityTrackerElement
 
 inline fun Modifier.addIf(
     predicate: Boolean,
@@ -463,7 +461,61 @@ fun Modifier.dashedBorder(
     )
 }
 
-fun Modifier.trackVisibility(
-    thresholdPercentage: Float = 0.5f,
-    onVisibilityChanged: (VisibilityInfo) -> Unit,
-): Modifier = this then VisibilityTrackerElement(thresholdPercentage, onVisibilityChanged)
+/**
+ * Applies a blend mode with a percentage (strength) on top of the content.
+ *
+ * @param blendMode     The Porter-Duff or extended blend mode to use
+ * @param strength      0f = no effect, 1f = full blend mode (0%–100%)
+ * @param blendColor    Color that will be blended with the content.
+ *                      Common choices:
+ *                        • Color.Black → Multiply, Overlay, Burn, etc.
+ *                        • Color.White → Screen, Dodge, SoftLight, etc.
+ */
+fun Modifier.blendMode(
+    blendMode: BlendMode?,
+    strength: Float = 1f,
+    blendColor: Color = Color.White
+) = this
+    .graphicsLayer {
+        // Required for custom BlendMode + alpha to work correctly
+        compositingStrategy = CompositingStrategy.Offscreen
+    }
+    .drawWithContent {
+        // 1. Draw the original content (image, children, etc.)
+        drawContent()
+
+        if (blendMode != null) {
+            // 2. Draw the blend overlay with controlled alpha & blend mode
+            drawRect(
+                color = blendColor,
+                alpha = strength.coerceIn(0f, 1f),
+                blendMode = blendMode
+            )
+        }
+    }
+
+/**
+ * Applies a repeating pattern with blend mode + strength
+ */
+fun Modifier.patternBlend(
+    pattern: ImageBitmap,
+    blendMode: BlendMode?,
+    strength: Float = 0.5f
+) = this
+    .drawWithContent {
+        drawContent()
+
+        val shaderBrush = ShaderBrush(
+            ImageShader(
+                image = pattern,
+                tileModeX = TileMode.Repeated,
+                tileModeY = TileMode.Repeated,
+            )
+        )
+
+        drawRect(
+            brush = shaderBrush,
+            alpha = strength.coerceIn(0f, 1f),
+            blendMode = blendMode ?: BlendMode.SrcOver
+        )
+    }
