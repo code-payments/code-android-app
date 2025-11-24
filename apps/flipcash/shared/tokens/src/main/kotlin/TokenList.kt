@@ -7,14 +7,19 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.ui.TokenBalanceRow
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -25,9 +30,24 @@ fun TokenList(
     modifier: Modifier = Modifier,
     showFlags: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
+    footer: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
+    reservesEnabled: Boolean = false,
     onTokenSelected: (Token) -> Unit = { },
 ) {
     val listState = rememberLazyListState()
+
+    val cashReserves by remember(tokens) {
+        derivedStateOf {
+            tokens?.find { it.token.address == Mint.usdc }?.balance ?: LocalFiat.Zero
+        }
+    }
+    val filteredTokens by remember(tokens, reservesEnabled) {
+        derivedStateOf {
+            if (!reservesEnabled) return@derivedStateOf tokens
+            tokens?.filter { it.token.address != Mint.usdc }
+        }
+    }
+
     LazyColumn(
         modifier = modifier
             .verticalScrollStateGradient(
@@ -45,9 +65,9 @@ fun TokenList(
                 emptyState()
             }
         } else {
-            itemsIndexed(
-                tokens.orEmpty(),
-                key = { index, item -> item.token.address.base58() }) { index, item ->
+            items(
+                items = filteredTokens.orEmpty(),
+                key = { item -> item.token.address.base58() }) { item ->
                 TokenBalanceRow(
                     modifier = Modifier
                         .fillParentMaxWidth()
@@ -57,6 +77,12 @@ fun TokenList(
                 ) { onTokenSelected(item.token) }
 
                 Divider(color = CodeTheme.colors.dividerVariant)
+            }
+
+            footer?.let {
+                if (reservesEnabled) {
+                    item { it(Mint.usdc, cashReserves) }
+                }
             }
         }
     }

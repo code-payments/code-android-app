@@ -17,6 +17,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ButtonDefaults.elevation
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalMinimumInteractiveComponentEnforcement
@@ -59,7 +60,8 @@ enum class ButtonState {
     Filled50,
     Filled20,
     Filled10,
-    Subtle
+    FilledGreen,
+    Subtle,
 }
 
 @Composable
@@ -276,6 +278,7 @@ fun getRipple(
         ButtonState.Filled20 -> White20
         ButtonState.Filled10 -> White10
         ButtonState.Subtle -> White
+        ButtonState.FilledGreen -> White
     }
 )
 
@@ -328,6 +331,14 @@ fun getButtonColors(
                 contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.textSecondary } else Color.White.copy(
                     0.30f
                 )
+            )
+
+        ButtonState.FilledGreen ->
+            ButtonDefaults.buttonColors(
+                backgroundColor = CodeTheme.colors.success,
+                contentColor = textColor.takeOrElse { Color.White },
+                disabledBackgroundColor = CodeTheme.colors.success.copy(ContentAlpha.disabled),
+                disabledContentColor = textColor.takeOrElse { Color.White }.copy(alpha = ContentAlpha.disabled),
             )
     }
 }

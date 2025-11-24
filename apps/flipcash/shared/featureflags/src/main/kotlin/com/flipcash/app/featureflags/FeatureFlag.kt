@@ -82,6 +82,15 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = true
     }
 
+    @FeatureFlagMarker
+    data object CashReservesEnabled: FeatureFlag {
+        override val key: String = "cash_reserves_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = true
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
@@ -103,6 +112,7 @@ val FeatureFlag.title: String
         FeatureFlag.OnRamp -> "Onramp"
         FeatureFlag.BillCustomizer -> "Bill Customizer"
         FeatureFlag.ProductionLogging -> "Production Logging"
+        FeatureFlag.CashReservesEnabled -> "Cash Reserves"
     }
 
 val FeatureFlag.message: String
@@ -115,6 +125,7 @@ val FeatureFlag.message: String
         FeatureFlag.OnRamp -> "When enabled, you'll gain the ability to fund your wallet from external sources via providers using a debit card or via another wallet (like Phantom)"
         FeatureFlag.BillCustomizer -> "When enabled, you'll gain access to the bill customization playground"
         FeatureFlag.ProductionLogging -> "When enabled, traces will print to log output"
+        FeatureFlag.CashReservesEnabled -> "When enabled, USDC will be brandished as Cash Reserves throughout the app"
     }
 
 

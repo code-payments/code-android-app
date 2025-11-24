@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -15,6 +16,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.tokens.internal.TokenInfoScreen
+import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.solana.keys.Mint
@@ -47,11 +49,15 @@ class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
                 isInModal = true,
                 title = {
                     state.token?.let { token ->
-                        TokenIconWithName(
-                            token = token,
-                            imageSize = CodeTheme.dimens.staticGrid.x5,
-                            spacing = CodeTheme.dimens.grid.x1,
-                        )
+                        if (state.isCashReserve && state.cashReservesEnabled) {
+                            AppBarDefaults.Title(text = stringResource(R.string.title_cashReserves))
+                        } else {
+                            TokenIconWithName(
+                                token = token,
+                                imageSize = CodeTheme.dimens.staticGrid.x5,
+                                spacing = CodeTheme.dimens.grid.x1,
+                            )
+                        }
                     }
                 },
                 titleAlignment = Alignment.CenterHorizontally,
@@ -59,8 +65,10 @@ class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
                     AppBarDefaults.UpNavigation { navigator.pop() }
                 },
                 rightContents = {
-                    AppBarDefaults.Share {
-                        viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
+                    if (state.isCashReserve && state.cashReservesEnabled) {
+                        AppBarDefaults.Share {
+                            viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
+                        }
                     }
                 },
             )

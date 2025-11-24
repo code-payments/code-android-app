@@ -6,6 +6,7 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.scaled
 import kotlinx.coroutines.delay
 
@@ -42,6 +43,7 @@ class NavigationStateRestorer(
                     is OnRampDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair))
                     is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress))
                     OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet)
+                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdc))
                 } + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
 
                 navigator.show(screens)
@@ -101,7 +103,9 @@ class NavigationStateRestorer(
     }
 }
 
-private fun buildOnRampScreenFlow(origin: AppRoute) = listOf(
-    ScreenRegistry.get(origin),
-    ScreenRegistry.get(AppRoute.OnRamp.ProviderList(origin)),
+private fun buildOnRampScreenFlow(origin: List<AppRoute>) =
+    origin.dropLast(1).map { ScreenRegistry.get(it) } +
+    ScreenRegistry.get(AppRoute.OnRamp.ProviderList(origin.last())
 )
+
+private fun buildOnRampScreenFlow(origin: AppRoute) = buildOnRampScreenFlow(listOf(origin))

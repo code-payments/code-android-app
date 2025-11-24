@@ -3,6 +3,8 @@ package com.flipcash.app.tokens
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.shared.tokens.R
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
@@ -33,6 +35,7 @@ class TokenInfoViewModel @Inject constructor(
     private val exchange: Exchange,
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
+    private val features: FeatureFlagController,
 ): BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -41,12 +44,17 @@ class TokenInfoViewModel @Inject constructor(
         val mint: Mint? = null,
         val token: Token? = null,
         val marketCap: Fiat? = null,
+        val cashReservesEnabled: Boolean = false,
         val balance: LocalFiat = LocalFiat.Zero,
         val appreciation: Fiat = Fiat.Zero,
         val descriptionExpanded: Boolean = false,
-    )
+    ) {
+        val isCashReserve: Boolean
+            get() = token?.address == Mint.usdc
+    }
 
     sealed interface Event {
+        data class CashReservesEnabled(val enabled: Boolean): Event
         data class OnMintProvided(val mint: Mint): Event
         data class OnTokenChanged(val token: Token): Event
         data class OnMarketCapChanged(val mcap: Fiat?): Event
@@ -59,6 +67,11 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     init {
+        features.observe(FeatureFlag.CashReservesEnabled)
+            .onEach {
+                dispatchEvent(Event.CashReservesEnabled(it))
+            }.launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
             .map { it.mint }
@@ -76,6 +89,7 @@ class TokenInfoViewModel @Inject constructor(
                     }
                 }
             ).launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
             .map { it.token }
@@ -122,6 +136,7 @@ class TokenInfoViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                is Event.CashReservesEnabled -> { state -> state.copy(cashReservesEnabled = event.enabled) }
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }

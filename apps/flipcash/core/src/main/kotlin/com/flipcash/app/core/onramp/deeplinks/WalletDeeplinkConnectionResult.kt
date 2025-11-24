@@ -5,6 +5,7 @@ import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.base64
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
@@ -41,6 +42,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Wallet: OnRampDeeplinkOrigin()
 
     @Parcelize
+    data object Reserves: OnRampDeeplinkOrigin()
+
+    @Parcelize
     data class PoolWithId(val id: ID) : OnRampDeeplinkOrigin()
 
     @Parcelize
@@ -51,8 +55,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             is PoolWithId -> "pool-id_${id.base58}"
             is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
-            is Give -> "give-${tokenAddress?.base58()}"
+            is Give -> "give-${tokenAddress.base58()}"
             Wallet -> "wallet"
+            Reserves -> "reserves"
         }.lowercase()
     }
 
@@ -66,6 +71,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                     route.poolId?.let { id -> PoolWithId(id) }
                 }
                 is AppRoute.Sheets.Wallet -> Wallet
+                is AppRoute.Token.Info -> {
+                    if (route.mint == Mint.usdc) Reserves else null
+                }
 
                 else -> null
             }
@@ -82,6 +90,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                     Give(mint)
                 }
                 value == "wallet" -> Wallet
+                value == "reserves" -> Reserves
                 value?.startsWith("pool-") == true -> {
                     val idStringWithPrefix = value.removePrefix("pool-")
                     val splits = idStringWithPrefix.split("_")

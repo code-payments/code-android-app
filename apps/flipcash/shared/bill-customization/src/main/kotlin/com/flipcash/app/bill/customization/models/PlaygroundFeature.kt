@@ -1,5 +1,6 @@
 package com.flipcash.app.bill.customization.models
 
+import com.flipcash.shared.bill.customizations.BuildConfig
 import com.flipcash.shared.bill.customizations.R
 
 sealed class PlaygroundFeature(val labelRes: Int) {
@@ -10,6 +11,11 @@ sealed class PlaygroundFeature(val labelRes: Int) {
     data object Textures: PlaygroundFeature(R.string.label_billCreatorTextures), Graphic
 
     companion object {
-        val entries = listOf(Background, /*Textures*/)
+        val entries = listOf(Background, Textures).filter { feature ->
+            when (feature) {
+                Background -> true
+                Textures -> BuildConfig.DEBUG
+            }
+        }
     }
 }

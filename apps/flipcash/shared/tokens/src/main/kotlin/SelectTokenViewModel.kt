@@ -3,6 +3,8 @@ package com.flipcash.app.tokens
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -17,6 +19,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.toFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -36,6 +39,7 @@ class SelectTokenViewModel @Inject constructor(
     tokenController: TokenController,
     exchange: Exchange,
     analytics: FlipcashAnalyticsService,
+    featureFlags: FeatureFlagController,
 ): BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
     initialState = State(purpose = TokenPurpose.Balance),
     updateStateForEvent = updateStateForEvent
@@ -43,6 +47,7 @@ class SelectTokenViewModel @Inject constructor(
 
     data class State(
         val purpose: TokenPurpose,
+        val reservesEnabled: Boolean = false,
         val preferredOnRampProvider: OnRampProvider? = null,
         val tokens: List<TokenWithLocalizedBalance>? = null,
     ) {
@@ -52,6 +57,7 @@ class SelectTokenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
+        data class OnReservesEnabled(val enabled: Boolean): Event
 
         data class OnPurposeChanged(val purpose: TokenPurpose) : Event
         data class OnTokensUpdated(val tokens: List<TokenWithLocalizedBalance>) : Event
@@ -73,11 +79,16 @@ class SelectTokenViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        featureFlags.observe(FeatureFlag.CashReservesEnabled)
+            .onEach { dispatchEvent(Event.OnReservesEnabled(it)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnPurposeChanged>()
             .map { it.purpose }
             .flatMapLatest { purpose ->
                 combine(
+                    stateFlow,
                     tokenController.tokenBalances,
                     when (purpose) {
                         TokenPurpose.Balance -> exchange.observeBalanceRate()
@@ -85,7 +96,7 @@ class SelectTokenViewModel @Inject constructor(
                         TokenPurpose.Withdraw -> flowOf(exchange.rateForUsd())
                         TokenPurpose.Deposit -> exchange.observeEntryRate()
                     }
-                ) { balances, rate ->
+                ) { state, balances, rate ->
                     balances.map {
                         TokenWithLocalizedBalance(
                             token = it.token,
@@ -100,6 +111,8 @@ class SelectTokenViewModel @Inject constructor(
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
+                                // when reserves are enabled, we must prevent sending USDC directly (it's used for reserves)
+                                TokenPurpose.Send -> !state.reservesEnabled || it.token.address != Mint.usdc
                                 // show all tokens with non-zero balance
                                 else -> {
                                     it.balance.nativeAmount.valueNonZero() &&
@@ -131,6 +144,9 @@ class SelectTokenViewModel @Inject constructor(
             when (event) {
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
+                }
+                is Event.OnReservesEnabled -> { state ->
+                    state.copy(reservesEnabled = event.enabled)
                 }
                 is Event.OnPurposeChanged -> { state -> state.copy(purpose = event.purpose) }
                 is Event.OnTokensUpdated -> { state -> state.copy(tokens = event.tokens) }

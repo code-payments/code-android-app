@@ -1,7 +1,6 @@
 package com.flipcash.app.tokens.internal
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +18,7 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,6 +36,7 @@ import com.flipcash.app.tokens.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
@@ -63,20 +64,56 @@ private fun TokenInfoScreen(
     val listState = rememberLazyListState()
     CodeScaffold(
         bottomBar = {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x3)
-                    .navigationBarsPadding(),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_give),
-            ) {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Main.Give(mint = state.token?.address!!)
+            if (state.isCashReserve && state.cashReservesEnabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(bottom = CodeTheme.dimens.grid.x3)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                ) {
+                    CodeButton(
+                        modifier = Modifier.weight(1f),
+                        buttonState = ButtonState.FilledGreen,
+                        text = stringResource(R.string.action_buyMore),
+                    ) {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.OnRamp.ProviderList(from = AppRoute.Token.Info(state.mint!!))
+                            )
+                        )
+                    }
+
+                    CodeButton(
+                        modifier = Modifier
+                            .weight(1f),
+                        buttonState = ButtonState.Filled20,
+                        text = stringResource(R.string.action_withdraw),
+                    ) {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Transfers.Withdrawal.Amount(mint = state.token?.address!!)
+                            )
+                        )
+                    }
+                }
+            } else {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(bottom = CodeTheme.dimens.grid.x3)
+                        .navigationBarsPadding(),
+                    buttonState = ButtonState.Filled,
+                    text = stringResource(R.string.action_give),
+                ) {
+                    dispatch(
+                        TokenInfoViewModel.Event.OpenScreen(
+                            AppRoute.Main.Give(mint = state.token?.address!!)
+                        )
                     )
-                )
+                }
             }
         }
     ) { innerPadding ->
@@ -109,50 +146,65 @@ private fun TokenInfoScreen(
                     )
                 }
 
-                item {
-                    CodeButton(
-                        modifier = Modifier
-                            .fillParentMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.grid.x5),
-                        buttonState = ButtonState.Filled10,
-                        text = stringResource(R.string.action_viewTransactionHistory),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Token.Transactions(state.token?.address!!)
+                if (!state.isCashReserve && state.cashReservesEnabled) {
+                    item {
+                        CodeButton(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(horizontal = CodeTheme.dimens.inset)
+                                .padding(top = CodeTheme.dimens.grid.x5),
+                            buttonState = ButtonState.Filled10,
+                            text = stringResource(R.string.action_viewTransactionHistory),
+                        ) {
+                            dispatch(
+                                TokenInfoViewModel.Event.OpenScreen(
+                                    AppRoute.Token.Transactions(state.token?.address!!)
+                                )
                             )
+                        }
+
+                        Divider(
+                            modifier = Modifier.padding(
+                                horizontal = CodeTheme.dimens.inset,
+                                vertical = CodeTheme.dimens.grid.x5
+                            ),
+                            color = CodeTheme.colors.dividerVariant,
                         )
                     }
-
-                    Divider(
-                        modifier = Modifier.padding(
-                            horizontal = CodeTheme.dimens.inset,
-                            vertical = CodeTheme.dimens.grid.x5
-                        ),
-                        color = CodeTheme.colors.dividerVariant,
-                    )
                 }
 
                 // currency info
                 item {
-                    CurrencyInfoSection(
-                        modifier = Modifier
-                            .fillParentMaxWidth(),
-                        state = state,
-                        dispatch = dispatch
-                    )
-                }
-
-                // market cap
-                state.marketCap?.let { mcap ->
-                    item {
-                        MarketCapSection(
+                    if (state.isCashReserve && state.cashReservesEnabled) {
+                        Text(
                             modifier = Modifier
                                 .fillParentMaxWidth()
                                 .padding(horizontal = CodeTheme.dimens.inset),
-                            marketCap = mcap
+                            text = stringResource(R.string.description_cashReserves),
+                            style = CodeTheme.typography.textMedium,
+                            color = CodeTheme.colors.textSecondary,
                         )
+                    } else {
+                        CurrencyInfoSection(
+                            modifier = Modifier
+                                .fillParentMaxWidth(),
+                            state = state,
+                            dispatch = dispatch
+                        )
+                    }
+                }
+
+                if (!state.isCashReserve && state.cashReservesEnabled) {
+                    // market cap
+                    state.marketCap?.let { mcap ->
+                        item {
+                            MarketCapSection(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(horizontal = CodeTheme.dimens.inset),
+                                marketCap = mcap
+                            )
+                        }
                     }
                 }
             }
