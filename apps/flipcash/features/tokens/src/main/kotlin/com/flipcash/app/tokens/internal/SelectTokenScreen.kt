@@ -46,7 +46,9 @@ private fun SelectTokenScreenContent(
     TokenList(
         modifier = Modifier.fillMaxSize(),
         tokens = tokens,
-        showFlags = true,
+        selectedToken = state.selectedToken,
+        showSelections = state.purpose is TokenPurpose.Select,
+        showFlags = state.purpose !is TokenPurpose.Select,
         emptyState = {
             Box(
                 modifier = Modifier
@@ -79,7 +81,7 @@ private fun SelectTokenScreenContent(
                 }
             }
         },
-        onTokenSelected = { dispatch(SelectTokenViewModel.Event.OnTokenSelected(it)) }
+        onTokenSelected = { dispatch(SelectTokenViewModel.Event.OnTokenSelected(it.address)) }
     )
 }
 
@@ -94,7 +96,7 @@ private fun PreviewEmptyState() {
         ) {
             SelectTokenScreenContent(
                 state = SelectTokenViewModel.State(
-                    purpose = TokenPurpose.Send,
+                    purpose = TokenPurpose.Select,
                     tokens = emptyList(),
                 ),
             ) {

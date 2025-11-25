@@ -34,6 +34,7 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -193,6 +194,11 @@ internal class CashScreenViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             exchange.fetchRatesIfNeeded()
         }
+
+        tokenController.observeSelectedTokenMint()
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnTokenSelected(it)) }
+            .launchIn(viewModelScope)
 
         stateFlow
             .mapNotNull { it.selectedTokenAddress }

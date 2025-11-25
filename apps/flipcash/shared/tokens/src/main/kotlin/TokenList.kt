@@ -29,6 +29,8 @@ fun TokenList(
     tokens: List<TokenWithLocalizedBalance>?,
     modifier: Modifier = Modifier,
     showFlags: Boolean = false,
+    selectedToken: Mint? = null,
+    showSelections: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     footer: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
     reservesEnabled: Boolean = false,
@@ -74,6 +76,7 @@ fun TokenList(
                         .padding(horizontal = CodeTheme.dimens.inset),
                     tokenWithBalance = item,
                     showFlag = showFlags,
+                    isSelected = (selectedToken == item.token.address).takeIf { showSelections },
                 ) { onTokenSelected(item.token) }
 
                 Divider(color = CodeTheme.colors.dividerVariant)

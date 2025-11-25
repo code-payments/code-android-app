@@ -36,7 +36,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Menu : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data class Give(val tokenAddress: PublicKey) : OnRampDeeplinkOrigin()
+    data class Give(val tokenAddress: PublicKey?) : OnRampDeeplinkOrigin()
 
     @Parcelize
     data object Wallet: OnRampDeeplinkOrigin()
@@ -55,7 +55,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             is PoolWithId -> "pool-id_${id.base58}"
             is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
-            is Give -> "give-${tokenAddress.base58()}"
+            is Give -> "give-${tokenAddress?.base58()}"
             Wallet -> "wallet"
             Reserves -> "reserves"
         }.lowercase()

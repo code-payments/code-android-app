@@ -10,15 +10,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.flipcash.core.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
@@ -33,6 +36,7 @@ fun TokenBalanceRow(
     modifier: Modifier = Modifier,
     showName: Boolean = true,
     showFlag: Boolean = false,
+    isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
@@ -47,6 +51,7 @@ fun TokenBalanceRow(
         formattedBalance = formattedBalance,
         nameTextStyle = nameTextStyle,
         balanceTextStyle = balanceTextStyle,
+        isSelected = isSelected,
         modifier = modifier,
         showName = showName,
         showFlag = showFlag,
@@ -62,6 +67,7 @@ fun TokenBalanceRow(
     modifier: Modifier = Modifier,
     showName: Boolean = true,
     showFlag: Boolean = false,
+    isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
@@ -75,6 +81,7 @@ fun TokenBalanceRow(
         balance = balance,
         showName = showName,
         showFlag = showFlag,
+        isSelected = isSelected,
         modifier = modifier,
         nameTextStyle = nameTextStyle,
         balanceTextStyle = balanceTextStyle,
@@ -93,6 +100,7 @@ fun TokenBalanceRow(
     modifier: Modifier = Modifier,
     showName: Boolean = true,
     showFlag: Boolean = false,
+    isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
@@ -151,6 +159,19 @@ fun TokenBalanceRow(
                 style = balanceTextStyle,
                 color = CodeTheme.colors.textMain,
             )
+
+            if (isSelected != null) {
+                Image(
+                    modifier = Modifier
+                        .wrapContentWidth()
+                        .padding(start = CodeTheme.dimens.grid.x3),
+                    painter = painterResource(
+                        if (isSelected)
+                            R.drawable.ic_checked else R.drawable.ic_unchecked
+                    ),
+                    contentDescription = ""
+                )
+            }
         }
     }
 }

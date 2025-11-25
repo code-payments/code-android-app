@@ -23,6 +23,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -50,6 +51,7 @@ class SelectTokenViewModel @Inject constructor(
         val reservesEnabled: Boolean = false,
         val preferredOnRampProvider: OnRampProvider? = null,
         val tokens: List<TokenWithLocalizedBalance>? = null,
+        val selectedToken: Mint? = null,
     ) {
         val totalBalance: LocalFiat
             get() = tokens.orEmpty().map { it.balance }.sum()
@@ -62,7 +64,7 @@ class SelectTokenViewModel @Inject constructor(
         data class OnPurposeChanged(val purpose: TokenPurpose) : Event
         data class OnTokensUpdated(val tokens: List<TokenWithLocalizedBalance>) : Event
 
-        data class OnTokenSelected(val token: Token): Event
+        data class OnTokenSelected(val mint: Mint, val fromUser: Boolean = true): Event
 
         data object OnAddCashClicked: Event
         data object OpenOnRampAmountModal: Event
@@ -92,7 +94,7 @@ class SelectTokenViewModel @Inject constructor(
                     tokenController.tokenBalances,
                     when (purpose) {
                         TokenPurpose.Balance -> exchange.observeBalanceRate()
-                        TokenPurpose.Send -> exchange.observeEntryRate()
+                        TokenPurpose.Select -> exchange.observeEntryRate()
                         TokenPurpose.Withdraw -> flowOf(exchange.rateForUsd())
                         TokenPurpose.Deposit -> exchange.observeEntryRate()
                     }
@@ -112,7 +114,7 @@ class SelectTokenViewModel @Inject constructor(
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
                                 // when reserves are enabled, we must prevent sending USDC directly (it's used for reserves)
-                                TokenPurpose.Send -> !state.reservesEnabled || it.token.address != Mint.usdc
+                                TokenPurpose.Select -> !state.reservesEnabled || it.token.address != Mint.usdc
                                 // show all tokens with non-zero balance
                                 else -> {
                                     it.balance.nativeAmount.valueNonZero() &&
@@ -137,6 +139,19 @@ class SelectTokenViewModel @Inject constructor(
                     dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Wallet)))
                 }
             }.launchIn(viewModelScope)
+
+        tokenController.observeSelectedTokenMint()
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnTokenSelected(it, fromUser = false)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnTokenSelected>()
+            .filter { stateFlow.value.purpose is TokenPurpose.Select }
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach { tokenController.selectToken(it) }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -150,7 +165,7 @@ class SelectTokenViewModel @Inject constructor(
                 }
                 is Event.OnPurposeChanged -> { state -> state.copy(purpose = event.purpose) }
                 is Event.OnTokensUpdated -> { state -> state.copy(tokens = event.tokens) }
-                is Event.OnTokenSelected -> { state -> state }
+                is Event.OnTokenSelected -> { state -> state.copy(selectedToken = event.mint) }
                 is Event.OnAddCashClicked -> { state -> state }
                 is Event.OpenOnRampAmountModal -> { state -> state }
                 is Event.OpenScreen -> { state -> state }

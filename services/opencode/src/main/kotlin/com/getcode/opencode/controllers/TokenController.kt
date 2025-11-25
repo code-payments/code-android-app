@@ -1,5 +1,12 @@
 package com.getcode.opencode.controllers
 
+import android.content.Context
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStoreFile
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
@@ -16,15 +23,19 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -35,12 +46,26 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @Singleton
 @OptIn(ExperimentalAtomicApi::class)
 class TokenController @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val accountController: AccountController,
     private val currencyController: CurrencyController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
 ) {
+    companion object {
+        val mintPreferenceKey = stringPreferencesKey("tokenMint")
+    }
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val selectedToken = PreferenceDataStoreFactory.create(
+        corruptionHandler = ReplaceFileCorruptionHandler(
+            produceNewData = { emptyPreferences() }
+        ),
+        migrations = listOf(),
+        scope = scope,
+        produceFile = { context.preferencesDataStoreFile("selected-token") }
+    )
 
     private val cluster = MutableStateFlow<AccountCluster?>(null)
 
@@ -114,6 +139,48 @@ class TokenController @Inject constructor(
         updateTokens()
     }
 
+    suspend fun getTokenMetadata(mint: Mint): Result<Token> {
+        val cachedToken = tokens.value.find { it.address == mint }
+
+        return cachedToken?.let { Result.success(it) } ?: currencyController.getMintMetadata(listOf(mint))
+            .onSuccess { token -> tokens.update { (it + token).distinctBy { t -> t.address } } }
+            .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint }
+                ?: throw IllegalStateException("No metadata found for token $mint") }
+    }
+
+    suspend fun selectToken(mint: Mint) {
+        selectedToken.edit {
+            it[mintPreferenceKey] = mint.base58()
+        }
+    }
+
+    fun observeSelectedTokenMint(): Flow<Mint> {
+        return selectedToken.data.mapNotNull { prefs ->
+            val mint = prefs[mintPreferenceKey] ?: return@mapNotNull null
+            Mint.fromBase58(mint)
+        }
+    }
+
+    private suspend fun ensureValidTokenSelection() {
+        val balances = mintBalances.value
+        if (balances.isEmpty()) return
+
+        val selectedToken = selectedToken.data.map { prefs ->
+            val mint = prefs[mintPreferenceKey] ?: return@map null
+            Mint.fromBase58(mint)
+        }.firstOrNull()?.takeIf { balances[it] != null }
+
+        if (selectedToken != null) {
+            return // current selection is valid
+        }
+
+        // No valid selection, default to highest balance of the non-reserve tokens
+        val highestBalanceToken = balances.filter { it.key != Mint.usdc }.maxByOrNull { it.value }?.key
+        if (highestBalanceToken != null) {
+            selectToken(highestBalanceToken)
+        }
+    }
+
     private suspend fun updateTokens() {
         val owner = cluster.value
         if (owner == null) {
@@ -156,6 +223,8 @@ class TokenController @Inject constructor(
                 mintBalances.update { it + (token.address to balance) }
                 tokens.update { (it + token).distinctBy { t -> t.address } }
             }
+
+            ensureValidTokenSelection()
         }
     }
 
@@ -233,18 +302,10 @@ class TokenController @Inject constructor(
         }
     }
 
-    suspend fun getTokenMetadata(mint: Mint): Result<Token> {
-        val cachedToken = tokens.value.find { it.address == mint }
-
-        return cachedToken?.let { Result.success(it) } ?: currencyController.getMintMetadata(listOf(mint))
-            .onSuccess { token -> tokens.update { (it + token).distinctBy { t -> t.address } } }
-            .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint }
-                ?: throw IllegalStateException("No metadata found for token $mint") }
-    }
-
-    fun reset() {
+    suspend fun reset() {
         mintBalances.value = emptyMap()
         tokens.value = emptyList()
         cluster.value = null
+        selectedToken.edit { it.clear() }
     }
 }
