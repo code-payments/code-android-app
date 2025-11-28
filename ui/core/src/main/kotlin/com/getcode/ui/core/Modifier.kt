@@ -199,36 +199,44 @@ fun Modifier.circleBackground(color: Color, padding: Dp): Modifier {
     return this then backgroundModifier then layoutModifier
 }
 
-fun Modifier.punchRectangle(color: Color, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
-    drawRect(
-        color,
-        blendMode = blendMode
-    )
+fun Modifier.punchRectangle(color: Color, blendMode: BlendMode = BlendMode.Src) =
+    this.drawWithContent {
+        drawRect(
+            color,
+            blendMode = blendMode
+        )
 
-    drawContent()
-}
+        drawContent()
+    }
 
-fun Modifier.punchRectangle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
-    drawRect(
-        brush,
-        blendMode = blendMode
-    )
+fun Modifier.punchRectangle(brush: Brush, blendMode: BlendMode = BlendMode.Src) =
+    this.drawWithContent {
+        drawRect(
+            brush,
+            blendMode = blendMode
+        )
 
-    drawContent()
-}
+        drawContent()
+    }
 
-fun Modifier.punchCircle(color: Color, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
-    drawCircle(
-        color,
-        blendMode = blendMode
-    )
+fun Modifier.punchCircle(color: Color, blendMode: BlendMode = BlendMode.Src) =
+    this.drawWithContent {
+        drawCircle(
+            color,
+            blendMode = blendMode
+        )
 
-    drawContent()
-}
+        drawContent()
+    }
 
 fun Modifier.punchCircle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
     drawCircle(
-        brush,
+        brush = brush,
+        blendMode = BlendMode.Clear,
+    )
+
+    drawCircle(
+        brush = brush,
         blendMode = blendMode
     )
 
@@ -271,7 +279,8 @@ fun Modifier.drawWithGradient(
             drawRect(
                 brush = Brush.verticalGradient(
                     startY = startY(height.toPx()),
-                    endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY } ?: height.toPx(),
+                    endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY }
+                        ?: height.toPx(),
                     colors = colors,
                 ),
                 blendMode = blendMode
@@ -290,7 +299,6 @@ fun Modifier.drawWithGradient(
     }
 
     val density = LocalDensity.current
-
 
     Modifier
         .onPlaced {

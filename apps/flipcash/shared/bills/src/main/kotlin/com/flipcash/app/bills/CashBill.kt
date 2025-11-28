@@ -288,7 +288,6 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
                 fontSize = 40.nonScaledSp
             )
         }
-
 }
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -364,32 +363,7 @@ internal fun CashBill(
                     topLeft = Offset(
                         x = geometry.gridPosition.x,
                         y = geometry.gridPosition.y,
-                    ),
-                    alpha = 0.5f,
-                )
-
-
-                // Waves
-                Image(
-                    modifier = Modifier
-                        .requiredWidth(geometry.globeWidth)
-                        .fillMaxHeight()
-                        .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) }
-                        .drawWithGradient(
-                            brush = { startY, endY ->
-                                CashBillDefaults.billColor(
-                                    token,
-                                    alpha = CashBillDefaults.CodeBackgroundOpacity,
-                                    startY = startY,
-                                    endY = endY
-                                )
-                            },
-                            startY = { it / 2f },
-                            blendMode = BlendMode.DstIn
-                        ),
-                    contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
-                    painter = painterResource(R.drawable.ic_bill_waves),
+                    )
                 )
             }
 
@@ -403,10 +377,23 @@ internal fun CashBill(
                             x = geometry.globePosition.x.toInt(),
                             y = geometry.globePosition.y.toInt()
                         )
-                    }.zIndex(99f),
+                    },
                 painter = painterResource(R.drawable.ic_bill_globe),
                 contentDescription = null
             )
+
+            if (!hasCustomTexture) {
+                // Waves
+                Image(
+                    modifier = Modifier
+                        .requiredWidth(geometry.globeWidth)
+                        .fillMaxHeight()
+                        .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) },
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    painter = painterResource(R.drawable.ic_bill_waves),
+                )
+            }
 
             // Security strip
             SecurityStrip(geometry = geometry, token = token)
@@ -523,7 +510,7 @@ private fun SecurityStrip(
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
             .punchRectangle(CashBillDefaults.punchBrushIn(punch = Punch.SecurityStrip, token)),
     ) {
-        for (i in 0 until CashBillDefaults.SecurityStripCount) {
+        repeat(CashBillDefaults.SecurityStripCount) {
             Image(
                 modifier = Modifier
                     .weight(1f)
@@ -543,7 +530,7 @@ private fun Lines(
     spacing: Dp,
 ) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(spacing)) {
-        for (i in 0 until count) {
+        repeat(count) {
             Box(
                 modifier = Modifier
                     .rotate(-18f)
@@ -567,7 +554,6 @@ private fun BillDecorImage(
     Canvas(
         modifier = modifier,
     ) {
-        // Hexagons
         image?.let {
             drawImage(
                 image = it,
@@ -594,7 +580,7 @@ private fun BillCode(
         modifier = modifier
             .punchCircle(
                 brush = CashBillDefaults.punchBrushIn(punch = Punch.Code, token),
-                blendMode = BlendMode.SrcOver,
+//                blendMode = BlendMode.SrcOver,
             ),
         contentAlignment = Alignment.Center
     ) {
