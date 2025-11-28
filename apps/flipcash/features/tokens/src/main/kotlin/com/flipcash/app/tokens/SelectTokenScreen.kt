@@ -67,6 +67,7 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                     .launchIn(this)
             }
 
+            // handle the cases where we are inserted in a flow to select a token
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
                     .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
@@ -75,7 +76,7 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                     .onEach { token ->
                         when (purpose) {
                             TokenPurpose.Balance -> Unit
-                            TokenPurpose.Select -> navigator.pop()
+                            TokenPurpose.Select -> Unit
                             TokenPurpose.Withdraw -> {
                                 navigator.push(
                                     ScreenRegistry.get(Amount(token))
@@ -88,6 +89,14 @@ class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
                             }
                         }
                     }.launchIn(this)
+            }
+
+            // handle the case where we are changing the selected token
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
+                    .filterIsInstance<SelectTokenViewModel.Event.OnTokenChanged>()
+                    .onEach { navigator.pop() }
+                    .launchIn(this)
             }
         }
     }

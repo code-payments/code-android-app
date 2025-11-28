@@ -66,6 +66,8 @@ class SelectTokenViewModel @Inject constructor(
 
         data class OnTokenSelected(val mint: Mint, val fromUser: Boolean = true): Event
 
+        data object OnTokenChanged: Event
+
         data object OnAddCashClicked: Event
         data object OpenOnRampAmountModal: Event
         data class OpenScreen(val route: AppRoute): Event
@@ -151,6 +153,7 @@ class SelectTokenViewModel @Inject constructor(
             .filter { it.fromUser }
             .map { it.mint }
             .onEach { tokenController.selectToken(it) }
+            .onEach { dispatchEvent(Event.OnTokenChanged) }
             .launchIn(viewModelScope)
     }
 
@@ -166,6 +169,7 @@ class SelectTokenViewModel @Inject constructor(
                 is Event.OnPurposeChanged -> { state -> state.copy(purpose = event.purpose) }
                 is Event.OnTokensUpdated -> { state -> state.copy(tokens = event.tokens) }
                 is Event.OnTokenSelected -> { state -> state.copy(selectedToken = event.mint) }
+                is Event.OnTokenChanged -> { state -> state }
                 is Event.OnAddCashClicked -> { state -> state }
                 is Event.OpenOnRampAmountModal -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
