@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(Pools)
     add(BillCustomizer)
 }
 
