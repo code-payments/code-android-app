@@ -463,7 +463,11 @@ class RealSessionController @Inject constructor(
                         tag = "Session",
                         message = "Pull out cash",
                         metadata = {
-                            "amount" to bill.amount
+                            "underlying quarks" to bill.amount.underlyingTokenAmount.quarks
+                            "native amount" to bill.amount.nativeAmount.formatted()
+                            "fx" to bill.amount.rate.fx
+                            "currency" to bill.amount.rate.currency.name
+                            "token mint" to bill.amount.mint
                         },
                         type = TraceType.User,
                     )
@@ -582,9 +586,13 @@ class RealSessionController @Inject constructor(
                         analytics.transfer(AnalyticsEvent.SentCashLink(clipboard = true), amount)
                         trace(
                             tag = "Session",
-                            message = "Cash link copied to clipboard",
+                            message = "Cash link copied",
                             metadata = {
-                                "amount" to amount
+                                "underlying quarks" to amount.underlyingTokenAmount.quarks
+                                "native amount" to amount.nativeAmount.formatted()
+                                "fx" to amount.rate.fx
+                                "currency" to amount.rate.currency.name
+                                "token mint" to amount.mint
                             },
                             type = TraceType.User,
                         )
@@ -598,9 +606,14 @@ class RealSessionController @Inject constructor(
                         analytics.transfer(AnalyticsEvent.SentCashLink(app = result.to), amount)
                         trace(
                             tag = "Session",
-                            message = "Cash link shared with ${result.to}",
+                            message = "Cash link shared",
                             metadata = {
-                                "amount" to amount
+                                "target" to result.to
+                                "underlying quarks" to amount.underlyingTokenAmount.quarks
+                                "native amount" to amount.nativeAmount.formatted()
+                                "fx" to amount.rate.fx
+                                "currency" to amount.rate.currency.name
+                                "token mint" to amount.mint
                             },
                             type = TraceType.User,
                         )
