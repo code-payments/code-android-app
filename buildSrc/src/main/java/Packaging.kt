@@ -24,7 +24,7 @@ sealed class Packaging(
     object Flipcash : Packaging(
         majorVersion = 2025, // release year
         minorVersion = 12, // release month
-        patchVersion = 1, // cycle in minor version
+        patchVersion = 2, // cycle in minor version
     )
 
     object Flipchat : Packaging(
