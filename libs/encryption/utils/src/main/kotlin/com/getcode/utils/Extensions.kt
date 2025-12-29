@@ -61,6 +61,19 @@ fun List<Int>.toByteList(): List<Byte> {
     return this.map { it.toByte() }
 }
 
+
+fun Int.intToByteArray(): ByteArray =
+    byteArrayOf(
+        this.toByte(),
+        (this ushr 8).toByte(),
+        (this ushr 16).toByte(),
+        (this ushr 24).toByte()
+    )
+
+val Int.bytes: List<Byte>
+    get() = intToByteArray().toList()
+
+
 fun Long.toByteArray(): ByteArray =
     byteArrayOf(
         this.toByte(),
@@ -72,6 +85,9 @@ fun Long.toByteArray(): ByteArray =
         (this ushr 48).toByte(),
         (this ushr 56).toByte()
     )
+
+val Long.bytes: List<Byte>
+    get() = toByteArray().toList()
 
 fun String.urlEncode(): String {
     return URLEncoder.encode(this, "UTF-8")

@@ -14,6 +14,8 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
 
     constructor(parcel: Parcel): this(parcel.readString().orEmpty())
 
+    val description: String = base58()
+
     companion object {
 
         const val MAX_SEEDS = 16

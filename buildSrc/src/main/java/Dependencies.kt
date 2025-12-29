@@ -119,6 +119,7 @@ object Classpath {
         "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
     const val versioning_gradle_plugin = "de.nanogiants:android-versioning:2.4.0"
     const val androidx_room_gradle_plugin =  "androidx.room:room-gradle-plugin:${Versions.androidx_room}"
+    const val opencv_gradle_plugin = "com.ahasbini.tools:android-opencv-gradle-plugin:0.1.3-dev"
 }
 
 object Plugins {

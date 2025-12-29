@@ -1,80 +1,57 @@
 package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
 import com.codeinc.opencode.gen.transaction.v2.feeAmountOrNull
+import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
-import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.network.api.TransactionApi
+import com.getcode.opencode.internal.network.api.intents.IntentFundSwap
+import com.getcode.opencode.internal.network.executors.IntentExecutor
+import com.getcode.opencode.internal.network.executors.SwapExecutor
+import com.getcode.opencode.internal.network.executors.SwapStarter
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.toModel
+import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
-import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
 import com.getcode.opencode.model.financial.Limits
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.InitiateSwap
+import com.getcode.opencode.model.transactions.SwapDirection
+import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
-import com.getcode.opencode.solana.SolanaTransaction
-import com.getcode.opencode.solana.diff
 import com.getcode.opencode.solana.intents.IntentType
-import com.getcode.opencode.solana.intents.ServerParameter
-import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
-import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Instant
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import com.codeinc.opencode.gen.transaction.v2.TransactionService as RpcTransactionService
 
-typealias OcpIntentStreamReference = BidirectionalStreamReference<SubmitIntentRequest, SubmitIntentResponse>
 
 internal class TransactionService @Inject constructor(
     private val api: TransactionApi,
-    private val metadataMapper: TransactionMetadataMapper,
+    private val transactionMetadataMapper: TransactionMetadataMapper,
+    private val intentExecutor: IntentExecutor,
+    private val swapStarter: SwapStarter,
+    private val swapExecutor: SwapExecutor,
 ) {
     suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
-    ): Result<IntentType> = suspendCancellableCoroutine { cont ->
-        trace(
-            tag = "SubmitIntent",
-            message = "Opening stream."
-        )
-        val streamReference = OcpIntentStreamReference(scope, "submitIntent")
-
-        streamReference.retain()
-
-        scope.launch {
-            try {
-                val result = openIntentStream(streamReference, intent, owner)
-                cont.resume(result)
-            } catch (e: Exception) {
-                trace(
-                    tag = "SubmitIntent",
-                    message = "Failed to open intent stream.",
-                    error = e
-                )
-                if (!cont.isCompleted) {
-                    cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
-                }
-            }
-        }
-    }
+    ): Result<IntentType> = intentExecutor.execute(scope, intent, owner)
 
     suspend fun getIntentMetadata(
         intentId: PublicKey,
@@ -86,7 +63,7 @@ internal class TransactionService @Inject constructor(
             onSuccess = { response ->
                 when (response.result) {
                     TransactionService.GetIntentMetadataResponse.Result.OK -> {
-                        Result.success(metadataMapper.map(response.metadata))
+                        Result.success(transactionMetadataMapper.map(response.metadata))
                     }
 
                     TransactionService.GetIntentMetadataResponse.Result.NOT_FOUND -> Result.failure(
@@ -209,116 +186,76 @@ internal class TransactionService @Inject constructor(
         )
     }
 
-    private suspend fun openIntentStream(
-        streamRef: OcpIntentStreamReference,
-        intent: IntentType,
-        owner: KeyPair,
-    ): Result<IntentType> = openBidirectionalStream(
-        streamRef = streamRef,
-        apiCall = api::submitIntent,
-        initialRequest = { intent.requestToSubmitActions(owner) },
-        responseHandler = { response, onResult, requestChannel ->
-            when (val result = response.responseCase) {
-                SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS -> {
-                    handleServerParameters(
-                        intent = intent,
-                        onResult = onResult,
-                        requestChannel = requestChannel,
-                        serverParameters = response.serverParameters.serverParametersList
-                    )
-                }
-
-                SubmitIntentResponse.ResponseCase.SUCCESS -> {
-                    streamRef.complete()
-                    onResult(Result.success(intent))
-                }
-
-                SubmitIntentResponse.ResponseCase.ERROR -> {
-                    val errors = handleErrors(intent, response.error.errorDetailsList)
-                    trace(
-                        tag = "SubmitIntent",
-                        message = "Error: ($intent) ${errors.joinToString("\n")}",
-                        type = TraceType.Error
-                    )
-                    streamRef.complete()
-                    onResult(Result.failure(SubmitIntentError.typed(response.error)))
-                }
-
-                SubmitIntentResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
-            }
-        }
-    )
-}
-
-private fun handleServerParameters(
-    intent: IntentType,
-    serverParameters: List<TransactionService.ServerParameter>,
-    requestChannel: (SubmitIntentRequest) -> Unit,
-    onResult: (Result<IntentType>) -> Unit,
-) {
-    try {
-        intent.apply(serverParameters.map { p -> ServerParameter.newInstance(p) })
-
-        trace(
-            tag = "SubmitIntent",
-            message = "Received ${serverParameters.size} parameters. Submitting signatures...",
-            type = TraceType.Silent
+    suspend fun buy(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        of: Token,
+        owner: AccountCluster,
+    ): Result<Unit> {
+        val swapId = SwapId.generate()
+        val request = SwapRequest(
+            params = InitiateSwap.Stateful(
+                swapId = swapId,
+                owner = owner,
+                swapAuthority = Ed25519.createKeyPair()
+            ),
+            direction = SwapDirection.Buy(of),
+            amount = amount
         )
 
-        val submitSignatures = intent.requestToSubmitSignatures()
-        requestChannel(submitSignatures)
-    } catch (e: Exception) {
-        if (BuildConfig.DEBUG) {
-            e.printStackTrace()
-        }
-        trace(
-            tag = "SubmitIntent",
-            message = "Received ${serverParameters.size} parameters but failed to apply them: ${e.javaClass.simpleName} ${e.message})",
-            type = TraceType.Silent
+        return swap(scope, request, owner).map { Unit }
+    }
+
+    suspend fun sell(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        of: Token,
+        owner: AccountCluster,
+    ): Result<Unit> {
+        val tokenCluster = owner.withTimelockForToken(of)
+        val swapId = SwapId.generate()
+        val request = SwapRequest(
+            params = InitiateSwap.Stateful(
+                swapId = swapId,
+                owner = tokenCluster,
+                swapAuthority = Ed25519.createKeyPair()
+            ),
+            direction = SwapDirection.Sell(of),
+            amount = amount
         )
-        onResult(Result.failure(SubmitIntentError.Other(cause = e)))
+
+        return swap(scope, request, tokenCluster).map { Unit }
     }
-}
 
-private fun handleErrors(
-    intent: IntentType,
-    errorDetails: List<RpcTransactionService.ErrorDetails>
-): List<String> {
-    val errors = mutableListOf<String>()
+    private suspend fun swap(
+        scope: CoroutineScope,
+        request: SwapRequest,
+        owner: AccountCluster,
+    ): SwapResult {
+        return swapStarter.start(scope, request)
+            .fold(
+                onSuccess = {
+                    trace("Swap state created, Swap ID: ${request.swapId.publicKey.base58()}")
 
-    errorDetails.forEach { error ->
-        when (error.typeCase) {
-            TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
-                errors.add("Reason: ${error.reasonString.reason}")
-            }
-
-            TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
-                val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
-                val produced = intent.transaction()
-                errors.addAll(
-                    listOf(
-                        "Action index: ${error.invalidSignature.actionId}",
-                        "Invalid signature: ${
-                            com.getcode.solana.keys.Signature(
-                                error.invalidSignature.providedSignature.value.toByteArray()
-                                    .toList()
-                            ).base58()}",
-                        "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
-                        "Transaction expected: $expected",
-                        "Android produced: $produced"
+                    val fundingIntent = IntentFundSwap.create(
+                        intentId = request.fundingIntentId,
+                        sourceCluster = owner,
+                        amount = request.amount,
+                        fromMint = request.direction.sourceMint
                     )
-                )
 
-                expected?.diff(produced)
-            }
-
-            TransactionService.ErrorDetails.TypeCase.DENIED -> {
-                errors.add("Denied: ${error.denied.reason}")
-            }
-
-            else -> Unit
-        }
+                    submitIntent(scope, fundingIntent, owner.authority.keyPair)
+                },
+                onFailure = {
+                    Result.failure(it)
+                }
+            ).fold(
+                onSuccess = {
+                    swapExecutor.execute(scope, request)
+                },
+                onFailure = {
+                    Result.failure(it)
+                }
+            )
     }
-
-    return errors
 }

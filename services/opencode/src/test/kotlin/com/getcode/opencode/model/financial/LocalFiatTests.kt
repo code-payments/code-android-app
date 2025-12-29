@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
+import com.getcode.opencode.tests.generateRandomPublicKeyForTest
 import com.getcode.opencode.utils.padded
 import com.getcode.solana.keys.PublicKey
 import java.security.KeyPairGenerator
@@ -10,6 +11,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+
 class LocalFiatTests {
 
     private val launchpadMetadata = LaunchpadMetadata(
@@ -39,6 +42,7 @@ class LocalFiatTests {
         ),
         launchpadMetadata = launchpadMetadata,
         billCustomizations = null,
+        createdAt = Clock.System.now(),
     )
 
     @Test
@@ -201,19 +205,4 @@ class LocalFiatTests {
 
         assertEquals(expectedOutput, generatedOutput)
     }
-}
-
-/**
- * Generates a random Public Key for testing purposes.
- */
-private fun generateRandomPublicKeyForTest(): PublicKey {
-    // 1. Generate a KeyPair
-    val keyGen = KeyPairGenerator.getInstance("RSA")
-    keyGen.initialize(2048, SecureRandom()) // Use SecureRandom for strong keys
-    val keyPair = keyGen.generateKeyPair()
-
-    // 2. Extract the public key bytes
-    val publicKeyBytes = keyPair.public.encoded.toList()
-
-    return PublicKey(publicKeyBytes)
 }

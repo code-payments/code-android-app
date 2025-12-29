@@ -20,10 +20,10 @@ service Messaging {
     //   2. The payment sender calls OpenMessageStream on the rendezvous public key.
     //   3. The payment sender uses SendMessage to send the mint in a RequestToGiveBill message.
     //   4. The payment sender shows the bill with the scan code containing the rendezvous public key.
-    //   5. The payment recipient scans the code.
-    //   6. The payment recipient uses PollMessages to get the RequestToGiveBill message from part 3.
-    //   7. The payment recipient sends the destination address in a RequestToGrabBill message.
-    //   8. The payment sender receives the RequestToGrabBill message in real time, submits the intent
+    //   4. The payment recipient scans the code.
+    //   5. The payment recipient uses PollMessages to get the RequestToGiveBill message from part 3.
+    //   6. The payment recipient sends the destination address in a RequestToGrabBill message.
+    //   7. The payment sender receives the RequestToGrabBill message in real time, submits the intent
     //      for the payment to the provided destination, and then closes the stream.
     rpc OpenMessageStream(OpenMessageStreamRequest) returns (stream OpenMessageStreamResponse);
     // OpenMessageStreamWithKeepAlive is like OpenMessageStream, but enables a ping/pong

@@ -22,7 +22,7 @@ buildscript {
         classpath(Classpath.protobuf_plugin)
         classpath(Classpath.versioning_gradle_plugin)
         classpath(Classpath.androidx_room_gradle_plugin)
-        classpath("com.ahasbini.tools:android-opencv-gradle-plugin:0.1.3-dev")
+        classpath(Classpath.opencv_gradle_plugin)
     }
 }
 

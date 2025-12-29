@@ -3,12 +3,12 @@ package com.getcode.opencode.solana.intents
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.actions.ActionType
-import com.getcode.opencode.solana.intents.actions.numberActions
 import com.getcode.opencode.internal.network.extensions.asIntentId
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.solana.LegacyMessage
 import com.getcode.opencode.solana.Message
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.solana.keys.Hash
@@ -41,7 +41,9 @@ abstract class IntentType {
 
     fun transaction(): SolanaTransaction {
         val message = actions.flatMap { it.transactions() }.map { it.message }
-            .let { Message.newInstance(it.map { it.encode().toList() }.flatten()) }!!
+            .let {
+                Message.newInstance(it.map { it.encode().toList() }.flatten())
+            }!!
         val sigs = actions.flatMap { it.signatures() }
 
         return SolanaTransaction(message, sigs)

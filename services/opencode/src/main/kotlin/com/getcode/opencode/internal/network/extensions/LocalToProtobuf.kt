@@ -7,17 +7,24 @@ import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.OpenAccountsMetadata.AccountSet
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.FundingSource
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
+import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.TransferRequest
+import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
+import com.getcode.solana.keys.base58
 import com.getcode.utils.toByteString
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
@@ -32,6 +39,11 @@ internal fun KeyPair.asSignature(): Model.Signature {
         .build()
 }
 
+internal fun Signature.asSignature(): Model.Signature {
+    return Model.Signature.newBuilder().setValue(this.bytes.toByteString())
+        .build()
+}
+
 internal fun KeyPair.asSolanaAccountId(): Model.SolanaAccountId {
     return Model.SolanaAccountId.newBuilder().setValue(this.publicKeyBytes.toByteString()).build()
 }
@@ -40,12 +52,20 @@ internal fun PublicKey.asSolanaAccountId(): Model.SolanaAccountId {
     return Model.SolanaAccountId.newBuilder().setValue(this.byteArray.toByteString()).build()
 }
 
+internal fun Hash.asSolanaBlockHash(): Model.Blockhash {
+    return Model.Blockhash.newBuilder().setValue(this.bytes.toByteString()).build()
+}
+
 internal fun PublicKey.asMessageId(): MessagingService.MessageId {
     return MessagingService.MessageId.newBuilder().setValue(this.byteArray.toByteString()).build()
 }
 
 internal fun PublicKey.asIntentId(): Model.IntentId {
     return Model.IntentId.newBuilder().setValue(this.byteArray.toByteString()).build()
+}
+
+internal fun SwapId.asSwapId(): Model.SwapId {
+    return Model.SwapId.newBuilder().setValue(this.publicKey.bytes.toByteString()).build()
 }
 
 internal fun PublicKey.asRendezvousKey(): MessagingService.RendezvousKey {
@@ -82,6 +102,10 @@ internal fun ID.asMessageId(): MessagingService.MessageId {
 
 internal fun ID.asIntentId(): Model.IntentId {
     return Model.IntentId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun ID.asSwapId(): Model.SwapId {
+    return Model.SwapId.newBuilder().setValue(toByteString()).build()
 }
 
 internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metadata {
@@ -227,3 +251,51 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .setNativeAmount(nativeAmount.decimalValue)
         .build()
 }
+
+internal fun VerifiedSwapMetadata.ClientParameters.asProtobufParameters(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
+    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()
+        .setId(id.asSwapId())
+        .setFromMint(fromMint.asSolanaAccountId())
+        .setToMint(toMint.asSolanaAccountId())
+        .setAmount(amount.quarks)
+        .setFundingSource(when (fundingSource) {
+            FundingSource.UNKNOWN -> TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN
+            FundingSource.SUBMIT_INTENT -> TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT
+        })
+        .setFundingId(fundingId.base58())
+        .build()
+}
+
+internal fun VerifiedSwapMetadata.ServerParameters.asProtobufParameters(): TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator {
+    return TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator.newBuilder()
+        .setNonce(nonce.asSolanaAccountId())
+        .setBlockhash(blockhash.asSolanaBlockHash())
+        .build()
+}
+
+internal fun VerifiedSwapMetadata.asProtobufMetadata(): TransactionService.VerifiedSwapMetadata {
+    return TransactionService.VerifiedSwapMetadata.newBuilder()
+        .setCurrencyCreator(
+            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
+                .setClientParameters(clientParameters.asProtobufParameters())
+                .setServerParameters(serverParameters.asProtobufParameters())
+                .build()
+        )
+        .build()
+}
+
+//internal fun SwapRequest.SwapStartKind.CurrencyCreator.asProtobufMessage(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
+//    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()
+//        .setId(swapId.asSwapId())
+//        .setFromMint(fromMint.asSolanaAccountId())
+//        .setToMint(toMint.asSolanaAccountId())
+//        .setAmount(amount)
+//        .setFundingSource(
+//            when (fundingSource) {
+//                FundingSource.UNKNOWN -> TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN
+//                FundingSource.SUBMIT_INTENT -> TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT
+//            }
+//        )
+//        .setFundingId(fundingId)
+//        .build()
+//}

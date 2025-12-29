@@ -1,12 +1,15 @@
 package com.getcode.opencode.repositories
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
@@ -43,5 +46,19 @@ interface TransactionRepository {
     suspend fun voidGiftCard(
         owner: KeyPair,
         giftCardVault: PublicKey
+    ): Result<Unit>
+
+    suspend fun buy(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: LocalFiat,
+        of: Token
+    ): Result<Unit>
+
+    suspend fun sell(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: LocalFiat,
+        of: Token
     ): Result<Unit>
 }

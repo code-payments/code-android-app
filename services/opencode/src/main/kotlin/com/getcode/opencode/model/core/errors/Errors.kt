@@ -2,6 +2,12 @@ package com.getcode.opencode.model.core.errors
 
 import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
+import com.getcode.opencode.model.core.errors.SubmitIntentError.Denied
+import com.getcode.opencode.model.core.errors.SubmitIntentError.InvalidIntent
+import com.getcode.opencode.model.core.errors.SubmitIntentError.Other
+import com.getcode.opencode.model.core.errors.SubmitIntentError.Signature
+import com.getcode.opencode.model.core.errors.SubmitIntentError.StaleState
+import com.getcode.opencode.model.core.errors.SubmitIntentError.Unrecognized
 import com.getcode.utils.CodeServerError
 
 sealed class CodeAccountCheckError(
@@ -182,5 +188,96 @@ sealed class VoidGiftCardError(
     class AlreadyClaimed: VoidGiftCardError("Already claimed")
     class Unrecognized: VoidGiftCardError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : VoidGiftCardError(message = cause?.message, cause = cause)
+}
+
+sealed class GetSwapError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied: GetSwapError("Denied")
+    class NotFound: GetSwapError("Not found")
+    class Unrecognized: GetSwapError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : GetSwapError(message = cause?.message, cause = cause)
+}
+
+sealed class GetPendingSwapsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound: GetPendingSwapsError("Not found")
+    class Unrecognized: GetPendingSwapsError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : GetPendingSwapsError(message = cause?.message, cause = cause)
+}
+
+sealed class SwapError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    data class Denied(private val reasons: List<String>) : SwapError(message = reasons.joinToString())
+    class Signature : SwapError()
+    class Unrecognized : SwapError("Unrecognized")
+    class InvalidSwap(
+        private val reasons: List<String>
+    ): SwapError(message = reasons.joinToString())
+    class SwapFailed(
+        reasons: List<String>
+    ): SwapError(message = reasons.joinToString())
+
+    data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause)
+
+    companion object {
+        fun typed(proto: TransactionService.SwapResponse.Error): SwapError {
+            val reasonStrings = proto.errorDetailsList.mapNotNull {
+                when (it.typeCase) {
+                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+
+                    else -> null
+                }
+            }
+
+            return when (proto.code) {
+                TransactionService.SwapResponse.Error.Code.DENIED -> {
+                    val reasons = proto.errorDetailsList.mapNotNull {
+                        if (!it.hasDenied()) return@mapNotNull null
+                        it.denied.reason
+                    }
+
+                    Denied(reasons)
+                }
+
+                TransactionService.SwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                TransactionService.SwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+                TransactionService.SwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+                TransactionService.SwapResponse.Error.Code.SWAP_FAILED -> SwapFailed(reasonStrings)
+            }
+        }
+
+        fun typedFromStart(proto: TransactionService.StartSwapResponse.Error): SwapError {
+            val reasonStrings = proto.errorDetailsList.mapNotNull {
+                when (it.typeCase) {
+                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+
+                    else -> null
+                }
+            }
+
+            return when (proto.code) {
+                TransactionService.StartSwapResponse.Error.Code.DENIED -> {
+                    val reasons = proto.errorDetailsList.mapNotNull {
+                        if (!it.hasDenied()) return@mapNotNull null
+                        it.denied.reason
+                    }
+
+                    Denied(reasons)
+                }
+
+                TransactionService.StartSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                TransactionService.StartSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+                TransactionService.StartSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+            }
+        }
+    }
 }
 

@@ -76,6 +76,12 @@ data class CompiledInstruction(
                 data.size
     }
 
+    val description: String
+        get() {
+            val accountIndexesStr = accountIndexes.joinToString(", ") { it.toString() }
+            return "$programIndex $accountIndexesStr ${data.hexEncodedString()}"
+        }
+
 
     fun encode(): List<Byte> {
         val container = mutableListOf<Byte>()

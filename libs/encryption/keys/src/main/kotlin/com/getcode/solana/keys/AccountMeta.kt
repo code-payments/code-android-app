@@ -72,9 +72,9 @@ data class AccountMeta(
             return boolToInt(this.isPayer)
         }
 
-//        if (this.isProgram != other.isProgram) {
-//            return boolToInt(!this.isProgram)
-//        }
+        if (this.isProgram != other.isProgram) {
+            return boolToInt(!this.isProgram)
+        }
 
         if (this.isSigner != other.isSigner) {
             return boolToInt(this.isSigner)
@@ -82,10 +82,6 @@ data class AccountMeta(
 
         if (this.isWritable != other.isWritable) {
             return boolToInt(this.isWritable)
-        }
-
-        if (this.isProgram != other.isProgram) {
-            return boolToInt(!this.isProgram)
         }
 
         return compareLexicographically(this.publicKey.byteArray, other.publicKey.byteArray)
@@ -98,30 +94,30 @@ fun List<AccountMeta>.filterUniqueAccounts(): List<AccountMeta> {
     val container = mutableListOf<AccountMeta>()
     this.forEach { account ->
         var found = false
-        var index = 0
 
-        for (existingAccount in container) {
+        container.withIndex().forEach { (index, existingAccount) ->
             if (account.publicKey == existingAccount.publicKey) {
                 val updatedAccount = existingAccount
-
                 // Promote the existing account to writable if applicable
                 if (account.isSigner) {
-                    updatedAccount.isSigner = true
+                    existingAccount.isSigner = true
                 }
 
                 if (account.isWritable) {
-                    updatedAccount.isWritable = true
+                    existingAccount.isWritable = true
                 }
 
                 if (account.isPayer) {
-                    updatedAccount.isPayer = true
+                    existingAccount.isPayer = true
+                }
+
+                if (account.isProgram) {
+                    existingAccount.isProgram = true
                 }
 
                 container[index] = updatedAccount
                 found = true
-                break
             }
-            index++
         }
 
         if (!found) {

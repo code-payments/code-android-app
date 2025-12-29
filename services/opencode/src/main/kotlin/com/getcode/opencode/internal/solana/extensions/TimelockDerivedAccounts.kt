@@ -5,6 +5,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.solana.keys.ProgramDerivedAccount
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
+import com.getcode.opencode.solana.keys.TimelockVmSwapAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
@@ -46,4 +47,20 @@ internal fun TimelockDerivedAccounts.Companion.newInstance(owner: PublicKey, tok
         state = state,
         vault = vault,
     )
+}
+
+internal fun TimelockVmSwapAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockVmSwapAccounts {
+    val pda = PublicKey.deriveSwapAddress(
+        owner = owner,
+        mint = token.address,
+        authority = token.vmMetadata.authority,
+        lockout = token.vmMetadata.lockDurationInDays.toUByte()
+    )
+
+    val ata = PublicKey.deriveAssociatedAccount(
+        owner = pda.publicKey,
+        mint = token.address
+    )
+
+    return TimelockVmSwapAccounts(pda, ata)
 }

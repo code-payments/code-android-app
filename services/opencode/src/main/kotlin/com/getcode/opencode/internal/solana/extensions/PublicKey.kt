@@ -70,6 +70,31 @@ internal fun PublicKey.Companion.deriveTimelockVaultAccount(
     )
 }
 
+internal fun PublicKey.Companion.deriveSwapAddress(owner: PublicKey, mint: PublicKey, authority: PublicKey, lockout: UByte): ProgramDerivedAccount {
+    val vmAccount = deriveVirtualMachineAccount(mint, authority, lockout)
+
+    return findProgramAddress(
+        seeds = listOf(
+            "code_vm".toByteArray(Charsets.UTF_8),
+            "vm_swap_pda".toByteArray(Charsets.UTF_8),
+            owner.bytes.toByteArray(),
+            vmAccount.publicKey.bytes.toByteArray()
+        ),
+        programId = VirtualMachineProgram.address
+    )
+}
+
+internal fun PublicKey.Companion.deriveVmOmnibusAddress(vm: PublicKey): ProgramDerivedAccount {
+    return findProgramAddress(
+        programId = VirtualMachineProgram.address,
+        seeds = listOf(
+            "code_vm".toByteArray(Charsets.UTF_8),
+            "vm_omnibus".toByteArray(Charsets.UTF_8),
+            vm.bytes.toByteArray()
+        )
+    )
+}
+
 /// FindProgramAddress mirrors the implementation of the Solana SDK's FindProgramAddress. Its primary
 /// use case (for Kin and Agora) is for deriving associated accounts.
 ///

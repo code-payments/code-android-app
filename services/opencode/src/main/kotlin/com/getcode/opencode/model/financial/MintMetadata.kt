@@ -3,11 +3,13 @@ package com.getcode.opencode.model.financial
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
+import com.getcode.opencode.internal.solana.extensions.deriveVmOmnibusAddress
 import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlin.time.Instant
 
@@ -98,7 +100,10 @@ data class VmMetadata(
     val vm: PublicKey,
     val authority: PublicKey,
     val lockDurationInDays: Int // currently hardcoded to 21 days
-) : Parcelable
+) : Parcelable {
+    internal val omnibus: PublicKey
+        get() = PublicKey.deriveVmOmnibusAddress(vm = vm).publicKey
+}
 
 /**
  * Represents metadata associated with a launchpad.

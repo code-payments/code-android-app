@@ -1,5 +1,7 @@
 package com.getcode.opencode.solana
 
+import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
+
 
 open class MessageHeader(
     val requiredSignatures: Int,
@@ -38,7 +40,7 @@ open class MessageHeader(
         const val length: Int = 3
 
         fun fromList(list: List<Byte>): MessageHeader {
-            val data = list.map { it.toInt() }
+            val data = list.map { it.byteToUnsignedInt() }
             return MessageHeader(
                 requiredSignatures = data[0],
                 readOnlySigners = data[1],

@@ -4,15 +4,20 @@ import android.content.Context
 import com.getcode.opencode.inject.OpenCodeModule
 import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.domain.mapping.SwapMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.api.TransactionApi
+import com.getcode.opencode.internal.network.executors.IntentExecutor
+import com.getcode.opencode.internal.network.executors.SwapExecutor
+import com.getcode.opencode.internal.network.executors.SwapStarter
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
+import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.opencode.repositories.CurrencyRepository
@@ -88,8 +93,13 @@ object RepositoryFactory {
         )
 
         val api = TransactionApi(module.provideManagedChannel(context, config))
-        val mapper = TransactionMetadataMapper()
-        val service = TransactionService(api, mapper)
+        val transactionMetadataMapper = TransactionMetadataMapper()
+        val swapMetadataMapper = SwapMetadataMapper()
+        val intentExecutor = IntentExecutor(api)
+        val swapService = SwapService(api, swapMetadataMapper)
+        val swapExecutor = SwapExecutor(api, swapService)
+        val swapStarter = SwapStarter(api)
+        val service = TransactionService(api, transactionMetadataMapper, intentExecutor, swapStarter, swapExecutor)
         return module.providesTransactionRepository(service)
     }
 

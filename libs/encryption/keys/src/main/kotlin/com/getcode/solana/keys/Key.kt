@@ -34,7 +34,7 @@ fun KeyType.base64(): String = bytes.toByteArray().encodeBase64()
 class Key16(bytes: List<Byte>) : KeyType(bytes) {
     override val size: Int get() = LENGTH_16
 }
-open class Key32(bytes: List<Byte>) : KeyType(bytes) {
+open class Key32(bytes: List<Byte>) : KeyType(bytes), Comparable<Key32> {
 
     constructor(base58: String) : this(Base58.decode(base58).toList())
 
@@ -57,15 +57,21 @@ open class Key32(bytes: List<Byte>) : KeyType(bytes) {
         if (this === other) return true
 
         other as Key32
-        if (size == other.size && bytes == other.bytes) return true
-
-        return false
+        return size == other.size && bytes == other.bytes
     }
 
     override fun hashCode(): Int {
         var result = super.hashCode()
         result = 31 * result + size
         return result
+    }
+
+    override fun compareTo(other: Key32): Int {
+        for (i in bytes.indices) {
+            val cmp = bytes[i].toUByte().compareTo(other.bytes[i].toUByte())
+            if (cmp != 0) return cmp
+        }
+        return 0
     }
 }
 

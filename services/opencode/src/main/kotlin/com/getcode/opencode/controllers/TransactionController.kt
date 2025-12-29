@@ -17,6 +17,7 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
@@ -225,6 +226,21 @@ class TransactionController @Inject constructor(
 
         return submitIntent(scope, intent, owner.authority.keyPair)
     }
+
+    suspend fun buy(
+        owner: AccountCluster,
+        amount: LocalFiat,
+        of: Token,
+    ): Result<Unit> {
+        trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
+        return repository.buy(scope = scope, owner = owner, amount = amount, of = of)
+    }
+
+    suspend fun sell(
+        owner: AccountCluster,
+        amount: LocalFiat,
+        of: Token,
+    ): Result<Unit> = repository.sell(scope = scope, owner = owner, amount = amount, of = of)
 
     internal suspend fun submitIntent(
         scope: CoroutineScope,

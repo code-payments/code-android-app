@@ -13,16 +13,19 @@ import com.getcode.opencode.internal.domain.repositories.InternalAccountReposito
 import com.getcode.opencode.internal.domain.repositories.InternalCurrencyRepository
 import com.getcode.opencode.internal.domain.repositories.InternalEventRepository
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
+import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
+import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
+import com.getcode.opencode.repositories.SwapRepository
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import com.getcode.util.locale.LocaleHelper
@@ -111,6 +114,12 @@ object OpenCodeModule {
     internal fun providesTransactionRepository(
         service: TransactionService
     ): TransactionRepository = InternalTransactionRepository(service)
+
+    @Provides
+    @Singleton
+    internal fun providesSwapRepository(
+        service: SwapService
+    ): SwapRepository = InternalSwapRepository(service)
 
     @Provides
     @Singleton

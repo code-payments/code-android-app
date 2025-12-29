@@ -17,12 +17,12 @@ internal object DataSlice {
     }
 
     fun List<Byte>.prefix(toIndex: Int): List<Byte> {
-        if (toIndex < 0 || toIndex > size) return listOf()
+        if (toIndex !in 0..size) return listOf()
         return this.subList(0, toIndex)
     }
 
     fun List<Byte>.suffix(fromIndex: Int): List<Byte> {
-        if (fromIndex < 0 || fromIndex > size) return listOf()
+        if (fromIndex !in 0..size) return listOf()
         return this.subList(fromIndex, this.size)
     }
 

@@ -31,12 +31,10 @@ enum AccountType {
 message SolanaAccountId {
     bytes value = 1 ;
 }
-// InstructionAccount is an account public key used within the context of
-// an instruction.
-message InstructionAccount {
-    SolanaAccountId account = 1;
-    bool is_signer = 2;
-    bool is_writable = 3;
+// A Solana address lookup table used in versioned transactions
+message SolanaAddressLookupTable {
+    common.v1.SolanaAccountId address = 1;
+    repeated common.v1.SolanaAccountId entries = 2 ;
 }
 // Transaction is a raw binary Solana transaction
 message Transaction {
@@ -54,6 +52,10 @@ message Signature {
 // IntentId is a client-side generated ID that maps to an intent to perform actions
 // on the blockchain fulfilled by the Code sequencer.
 message IntentId {
+    bytes value = 1 ;
+}
+// SwapId is a client-side generated ID that maps to a swap.
+message SwapId {
     bytes value = 1 ;
 }
 // Hash is a raw binary 32 byte hash value
