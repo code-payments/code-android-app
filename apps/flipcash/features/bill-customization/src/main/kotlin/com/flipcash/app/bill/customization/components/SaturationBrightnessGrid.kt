@@ -102,7 +102,6 @@ internal fun SaturationBrightnessGrid(
                             )
                         },
                         onDragEnd = {
-                            println("drag end")
                             isDragging = false
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
                             onHsvChanged(currentHsv, false)

@@ -247,7 +247,7 @@ class RealSessionController @Inject constructor(
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
-            tokenUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
+            tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             // TODO: once we have streams setup for pool this can be removed
             poolsUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 45.seconds)

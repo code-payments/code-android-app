@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
@@ -210,6 +211,7 @@ fun BottomBarView(
                         bottomEnd = CornerSize(0)
                     )
                 )
+                .fillMaxWidth()
                 .padding(top = CodeTheme.dimens.inset)
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .windowInsetsPadding(WindowInsets.navigationBars),
@@ -278,11 +280,11 @@ fun BottomBarView(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
-                val okText = stringResource(R.string.action_ok)
+                val okText = AnnotatedString(stringResource(R.string.action_ok))
                 val actions by remember(bottomBarMessage.actions) {
                     derivedStateOf {
                         bottomBarMessage.actions.map {
-                            if (it.text == OK_DESCRIPTOR && !it.isUser) {
+                            if (it.text.toString() == OK_DESCRIPTOR && !it.isUser) {
                                 it.copy(text = okText) // ensure localized
                             } else {
                                 it
@@ -340,7 +342,8 @@ fun BottomBarView(
                             BottomBarManager.BottomBarButtonStyle.Outlined -> ButtonState.Bordered
                             BottomBarManager.BottomBarButtonStyle.Text -> ButtonState.Subtle
                         },
-                        text = action.text
+                        text = action.text,
+                        inlineContent = action.inlineContentMap,
                     )
                 }
                 if (bottomBarMessage.showCancel) {

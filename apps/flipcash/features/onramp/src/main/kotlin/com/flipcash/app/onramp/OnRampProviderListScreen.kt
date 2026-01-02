@@ -13,7 +13,6 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.screens.OnRampProviderListScreen
@@ -25,7 +24,6 @@ import com.getcode.navigation.screens.AppScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.navigation.screens.OnScreenResult
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn

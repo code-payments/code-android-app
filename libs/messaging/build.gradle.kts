@@ -5,6 +5,7 @@ plugins {
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_kapt)
     id(Plugins.kotlin_serialization)
+    id(Plugins.jetbrains_compose_compiler)
 }
 
 android {
@@ -13,6 +14,10 @@ android {
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
+    }
+
+    buildFeatures {
+        compose = true
     }
 
     compileOptions {
@@ -41,4 +46,8 @@ dependencies {
     api(Libs.kotlinx_coroutines_core)
     api(Libs.timber)
     implementation(Libs.bugsnag)
+
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_foundation)
+    implementation(Libs.compose_ui)
 }

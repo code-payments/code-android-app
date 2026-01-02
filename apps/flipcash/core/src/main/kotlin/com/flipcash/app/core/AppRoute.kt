@@ -5,6 +5,7 @@ import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
@@ -66,6 +67,8 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     sealed interface Token: AppRoute {
         data class Info(val mint: Mint): Token
         data class Transactions(val mint: Mint): Token
+        data class SwapTransact(val purpose: TokenSwapPurpose): Token
+        data object SellReceipt: Token
     }
 
     @Parcelize

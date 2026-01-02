@@ -15,6 +15,7 @@ import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
+import kotlin.math.roundToLong
 
 @Serializable
 @Parcelize
@@ -219,6 +220,10 @@ operator fun Fiat.minus(other: Fiat): Fiat {
 
 operator fun Fiat.times(rhs: Int): Fiat {
     return Fiat(quarks = this.quarks * rhs, currencyCode = currencyCode)
+}
+
+operator fun Fiat.times(rhs: Double): Fiat {
+    return Fiat(quarks = (this.quarks * rhs).roundToLong(), currencyCode = currencyCode)
 }
 
 operator fun Fiat.div(rhs: Int): Fiat {

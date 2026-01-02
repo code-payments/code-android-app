@@ -30,7 +30,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class SelectTokenScreen(private val purpose: TokenPurpose) : ModalScreen, NamedScreen, Parcelable {
+class TokenSelectScreen(private val purpose: TokenPurpose) : ModalScreen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey

@@ -36,7 +36,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
+import com.flipcash.app.core.ui.rememberTokenBalanceRowSizing
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.withdrawal.R
 import com.getcode.opencode.compose.ExchangeStub
@@ -107,7 +109,9 @@ internal fun TransactionReceipt(
                 formattedBalance = { amount ->
                     amount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
                 },
-                balanceTextStyle = CodeTheme.typography.displayMedium.bolded(),
+                sizing = rememberTokenBalanceRowSizing(
+                    balanceTextStyle = CodeTheme.typography.displayMedium.bolded(),
+                ),
                 contentPadding = PaddingValues(0.dp),
             )
         }
@@ -126,7 +130,7 @@ private fun LineItems(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        LineItem(
+        ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
             label = AnnotatedString("Withdrawal amount"),
             amount = tokenWithBalance.balance.formatted()
@@ -149,7 +153,7 @@ private fun LineItems(
                     )
                 }
             )
-            LineItem(
+            ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onLearnMoreClicked),
                 label = buildAnnotatedString {
                     withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
@@ -169,44 +173,18 @@ private fun LineItems(
                     transferAmount.formatted()
                 }
             }
-            
-            LineItem(
+
+            ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = AnnotatedString("Net amount"),
                 amount = netAmount
             )
         }
 
-        LineItem(
+        ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
             label = AnnotatedString("Amount in ${tokenWithBalance.token.name}"),
             amount = transferAmount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
-        )
-    }
-}
-
-@Composable
-private fun LineItem(
-    label: AnnotatedString,
-    amount: String,
-    modifier: Modifier = Modifier,
-    inlineContentMap: Map<String, InlineTextContent> = mapOf(),
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            inlineContent = inlineContentMap,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
-        )
-        Text(
-            text = amount,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
         )
     }
 }

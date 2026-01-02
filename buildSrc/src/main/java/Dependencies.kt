@@ -229,6 +229,8 @@ object Libs {
     const val compose_animation = "androidx.compose.animation:animation"
     const val compose_ui = "androidx.compose.ui:ui"
     const val compose_ui_graphics = "androidx.compose.ui:ui-graphics"
+    const val compose_ui_text = "androidx.compose.ui:ui-text"
+
     const val compose_ui_tools = "androidx.compose.ui:ui-tooling"
     const val compose_ui_tools_preview =
         "androidx.compose.ui:ui-tooling-preview"

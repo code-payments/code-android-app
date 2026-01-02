@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.opencode.compose.LocalExchange
@@ -30,6 +31,21 @@ import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
+data class TokenBalanceRowSizing(
+    val nameTextStyle: TextStyle,
+    val balanceTextStyle: TextStyle,
+    val iconSize: Dp,
+    val flagSize: Dp,
+)
+
+@Composable
+fun rememberTokenBalanceRowSizing(
+    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    iconSize: Dp = CodeTheme.dimens.staticGrid.x6,
+    flagSize: Dp = CodeTheme.dimens.staticGrid.x3,
+): TokenBalanceRowSizing = TokenBalanceRowSizing(nameTextStyle, balanceTextStyle, iconSize, flagSize)
+
 @Composable
 fun TokenBalanceRow(
     tokenWithBalance: TokenWithLocalizedBalance,
@@ -39,8 +55,7 @@ fun TokenBalanceRow(
     isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
-    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
-    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
@@ -49,12 +64,11 @@ fun TokenBalanceRow(
         token = token,
         balance = balance.nativeAmount,
         formattedBalance = formattedBalance,
-        nameTextStyle = nameTextStyle,
-        balanceTextStyle = balanceTextStyle,
         isSelected = isSelected,
         modifier = modifier,
         showName = showName,
         showFlag = showFlag,
+        sizing = sizing,
         horizontalArrangement = horizontalArrangement,
         contentPadding = contentPadding,
         onClick = onClick
@@ -66,12 +80,12 @@ fun TokenBalanceRow(
     tokenWithBalance: TokenWithBalance,
     modifier: Modifier = Modifier,
     showName: Boolean = true,
+    showLogo: Boolean = true,
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
-    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
-    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
@@ -80,11 +94,11 @@ fun TokenBalanceRow(
         token = token,
         balance = balance,
         showName = showName,
+        showLogo = showLogo,
         showFlag = showFlag,
         isSelected = isSelected,
         modifier = modifier,
-        nameTextStyle = nameTextStyle,
-        balanceTextStyle = balanceTextStyle,
+        sizing = sizing,
         formattedBalance = formattedBalance,
         horizontalArrangement = horizontalArrangement,
         contentPadding = contentPadding,
@@ -99,12 +113,12 @@ fun TokenBalanceRow(
     balance: Fiat,
     modifier: Modifier = Modifier,
     showName: Boolean = true,
+    showLogo: Boolean = true,
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
-    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
-    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
@@ -121,19 +135,27 @@ fun TokenBalanceRow(
         horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (showName) {
-            TokenIconWithName(
-                token = token,
-                imageSize = CodeTheme.dimens.staticGrid.x6,
-                textStyle = nameTextStyle,
-                textColor = CodeTheme.colors.textMain,
-                spacing = CodeTheme.dimens.grid.x2,
-            )
-        } else {
-            TokenIcon(
-                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6,),
-                token = token,
-            )
+        when {
+            showLogo && showName -> {
+                TokenIconWithName(
+                    token = token,
+                    imageSize = sizing.iconSize,
+                    textStyle = sizing.nameTextStyle,
+                    textColor = CodeTheme.colors.textMain,
+                    spacing = CodeTheme.dimens.grid.x2,
+                )
+            }
+
+            showName -> {
+                TokenIconWithName(
+                    token = token,
+                    imageSize = sizing.iconSize,
+                    textStyle = sizing.nameTextStyle,
+                    textColor = CodeTheme.colors.textMain,
+                    spacing = CodeTheme.dimens.grid.x2,
+                )
+            }
+
         }
 
         val flag = exchange.getFlagByCurrency(balance.currencyCode.name)
@@ -145,8 +167,8 @@ fun TokenBalanceRow(
                 flag?.let {
                     Image(
                         modifier = Modifier
-                            .height(CodeTheme.dimens.staticGrid.x3)
-                            .width(CodeTheme.dimens.staticGrid.x3)
+                            .height(sizing.flagSize)
+                            .width(sizing.flagSize)
                             .clip(CircleShape),
                         painter = painterResource(it),
                         contentDescription = ""
@@ -156,7 +178,7 @@ fun TokenBalanceRow(
 
             Text(
                 text = formattedBalance(balance),
-                style = balanceTextStyle,
+                style = sizing.balanceTextStyle,
                 color = CodeTheme.colors.textMain,
             )
 

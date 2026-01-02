@@ -13,12 +13,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
 import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.router.Router
-import com.flipcash.services.analytics.FlipcashAnalyticsManager
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
@@ -181,7 +181,20 @@ fun ExternalWalletOnRampHandler(
                         message = "wallet connected",
                         type = TraceType.Process
                     )
-                    navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
+                    when (val origin = state.origin) {
+                        is AppRoute.Token.Info -> {
+                            navigator.push(
+                                ScreenRegistry.get(
+                                    AppRoute.Token.SwapTransact(
+                                        TokenSwapPurpose.FundWithWallet(origin.mint)
+                                    )
+                                )
+                            )
+                        }
+                        else -> {
+                            navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
+                        }
+                    }
                 }
             }
 
@@ -230,6 +243,7 @@ fun ExternalWalletOnRampHandler(
                 BottomBarManager.showMessage(
                     title = context.getString(R.string.prompt_title_cashOnTheWay),
                     subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
+                    showScrim = true,
                     actions = buildList {
                         if (hasPushPerms) {
                             add(

@@ -5,6 +5,7 @@ import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.base64
+import com.getcode.opencode.utils.base64UrlSafe
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
@@ -42,6 +43,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Wallet: OnRampDeeplinkOrigin()
 
     @Parcelize
+    data class TokenInfo(val mint: Mint): OnRampDeeplinkOrigin()
+
+    @Parcelize
     data object Reserves: OnRampDeeplinkOrigin()
 
     @Parcelize
@@ -55,8 +59,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             is PoolWithId -> "pool-id_${id.base58}"
             is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
-            is Give -> "give-${tokenAddress?.base58()}"
+            is Give -> "give-${tokenAddress?.base58()?.base64UrlSafe}"
             Wallet -> "wallet"
+            is TokenInfo -> "token-${mint.base58().base64UrlSafe}"
             Reserves -> "reserves"
         }.lowercase()
     }
@@ -72,7 +77,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 }
                 is AppRoute.Sheets.Wallet -> Wallet
                 is AppRoute.Token.Info -> {
-                    if (route.mint == Mint.usdc) Reserves else null
+                    if (route.mint == Mint.usdc) Reserves else TokenInfo(route.mint)
                 }
 
                 else -> null
@@ -83,7 +88,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             return when {
                 value == "menu" -> Menu
                 value?.startsWith("give-") == true -> {
-                    val tokenAddress = value.removePrefix("give-")
+                    val tokenAddress = value.removePrefix("give-").decodeBase64().base58
                     val mint = runCatching {
                         PublicKey.fromBase58(tokenAddress)
                     }.getOrNull() ?: return null
@@ -91,6 +96,14 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 }
                 value == "wallet" -> Wallet
                 value == "reserves" -> Reserves
+                value?.startsWith("token-") == true -> {
+                    val mintString = value.removePrefix("token-").decodeBase64().base58
+                    val mint = runCatching {
+                        PublicKey.fromBase58(mintString)
+                    }.onFailure { it.printStackTrace() }.getOrNull() ?: return null
+
+                    TokenInfo(mint)
+                }
                 value?.startsWith("pool-") == true -> {
                     val idStringWithPrefix = value.removePrefix("pool-")
                     val splits = idStringWithPrefix.split("_")

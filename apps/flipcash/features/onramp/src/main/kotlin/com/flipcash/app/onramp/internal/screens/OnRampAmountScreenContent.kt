@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.app.core.onramp.ui.buildExternalWalletButtonLabel
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.onramp.internal.AmountEntryState
 import com.flipcash.app.onramp.internal.OnRampViewModel
@@ -123,43 +124,14 @@ private fun ConfirmationButton(
         }
 
         is OnRampProvider.UsesDeeplinks -> {
-            val (title, icon) = when (provider) {
-                OnRampProvider.Backpack -> stringResource(R.string.label_backpack) to painterResource(R.drawable.ic_backpack_wallet)
-                OnRampProvider.Phantom -> stringResource(R.string.label_phantom) to painterResource(R.drawable.ic_phantom_wallet)
-                OnRampProvider.Solflare -> stringResource(R.string.label_solflare) to painterResource(R.drawable.ic_solflare_wallet)
-            }
-            buildAnnotatedString {
-                append(stringResource(R.string.label_confirmIn))
-                appendInlineContent("[icon]", alternateText = " ")
-                append(title)
-            } to mapOf(
-                "[icon]" to InlineTextContent(
-                    placeholder = Placeholder(
-                        width = 25.sp,
-                        height = 14.sp,
-                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                    ),
-                    children = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                modifier = Modifier.padding(
-                                    start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
-                                    end = CodeTheme.dimens.staticGrid.x1
-                                ),
-                                painter = icon,
-                                colorFilter = ColorFilter.tint(buttonColors.contentColor(state.canAdd).value),
-                                contentDescription = null
-                            )
-                        }
-                    }
-                )
+            buildExternalWalletButtonLabel(
+                prefix = stringResource(R.string.label_confirmIn),
+                provider = provider,
+                iconColor = buttonColors.contentColor(state.canAdd).value
             )
         }
 
-        null -> AnnotatedString(stringResource(R.string.action_addCash)) to emptyMap<String, InlineTextContent>()
+        null -> AnnotatedString(stringResource(R.string.action_addCash)) to emptyMap()
     }
     CodeButton(
         enabled = state.canAdd,

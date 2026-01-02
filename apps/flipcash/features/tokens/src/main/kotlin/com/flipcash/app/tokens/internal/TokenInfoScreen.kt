@@ -18,7 +18,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -31,12 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.app.tokens.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
@@ -62,65 +61,15 @@ private fun TokenInfoScreen(
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
-    CodeScaffold(
-        bottomBar = {
-            if (state.isCashReserve && state.cashReservesEnabled) {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x3)
-                        .navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                ) {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.FilledGreen,
-                        text = stringResource(R.string.action_buyMore),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.OnRamp.ProviderList(from = AppRoute.Token.Info(state.mint!!))
-                            )
-                        )
-                    }
 
-                    CodeButton(
-                        modifier = Modifier
-                            .weight(1f),
-                        buttonState = ButtonState.Filled20,
-                        text = stringResource(R.string.action_withdraw),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Transfers.Withdrawal.Amount(mint = state.token?.address!!)
-                            )
-                        )
-                    }
-                }
-            } else {
-                CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x3)
-                        .navigationBarsPadding(),
-                    buttonState = ButtonState.Filled,
-                    text = stringResource(R.string.action_give),
-                ) {
-                    dispatch(
-                        TokenInfoViewModel.Event.OpenScreen(
-                            AppRoute.Main.Give(mint = state.token?.address!!)
-                        )
-                    )
-                }
-            }
-        }
+    CodeScaffold(
+        bottomBar = { BottomBar(state, dispatch) }
     ) { innerPadding ->
         Box(
             modifier = Modifier.verticalScrollStateGradient(
                 listState,
-                color = CodeTheme.colors.background
+                color = CodeTheme.colors.background,
+                isLongGradient = true,
             )
         ) {
             LazyColumn(
@@ -207,6 +156,73 @@ private fun TokenInfoScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomBar(state: TokenInfoViewModel.State, dispatch: (TokenInfoViewModel.Event) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(bottom = CodeTheme.dimens.grid.x3)
+            .navigationBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        if (state.isCashReserve && state.cashReservesEnabled) {
+            CodeButton(
+                modifier = Modifier.weight(1f),
+                buttonState = ButtonState.FilledGreen,
+                text = stringResource(R.string.action_buyMore),
+            ) {
+                dispatch(
+                    TokenInfoViewModel.Event.OpenScreen(
+                        AppRoute.OnRamp.ProviderList(from = AppRoute.Token.Info(state.mint!!))
+                    )
+                )
+            }
+        } else if (state.cashReservesEnabled) {
+            CodeButton(
+                modifier = Modifier.weight(1f),
+                buttonState = ButtonState.FilledGreen,
+                text = stringResource(R.string.action_buy),
+            ) {
+                dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods)
+            }
+
+            if (state.canSell) {
+                CodeButton(
+                    modifier = Modifier
+                        .weight(1f),
+                    buttonState = ButtonState.Filled20,
+                    text = stringResource(R.string.action_sell),
+                ) {
+                    dispatch(
+                        TokenInfoViewModel.Event.OpenScreen(
+                            AppRoute.Token.SwapTransact(
+                                purpose = TokenSwapPurpose.Sell(state.token!!.address)
+                            )
+                        )
+                    )
+                }
+            }
+        } else {
+            CodeButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(bottom = CodeTheme.dimens.grid.x3)
+                    .navigationBarsPadding(),
+                buttonState = ButtonState.Filled,
+                text = stringResource(R.string.action_give),
+            ) {
+                dispatch(
+                    TokenInfoViewModel.Event.OpenScreen(
+                        AppRoute.Main.Give(mint = state.token?.address!!)
+                    )
+                )
             }
         }
     }

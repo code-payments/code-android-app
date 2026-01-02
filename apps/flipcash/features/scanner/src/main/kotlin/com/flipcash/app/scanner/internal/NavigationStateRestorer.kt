@@ -4,6 +4,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
+import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.solana.keys.Mint
@@ -38,13 +39,18 @@ class NavigationStateRestorer(
 
             is DeeplinkType.ExternalWalletStep -> {
                 val screens = when (val origin = deeplink.origin) {
-                    OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu)
-                    is OnRampDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id))
-                    is OnRampDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair))
-                    is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress))
-                    OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet)
-                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdc))
-                } + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    is OnRampDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    is OnRampDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdc)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    is OnRampDeeplinkOrigin.TokenInfo -> listOf(
+                        ScreenRegistry.get(AppRoute.Sheets.Wallet),
+                        ScreenRegistry.get(AppRoute.Token.Info(origin.mint)),
+                        ScreenRegistry.get(AppRoute.Token.SwapTransact(TokenSwapPurpose.FundWithWallet(origin.mint)))
+                    )
+                }
 
                 navigator.show(screens)
             }

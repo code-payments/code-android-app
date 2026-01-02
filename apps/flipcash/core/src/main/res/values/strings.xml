@@ -373,8 +373,10 @@
     <string name="subtitle_linkSentToEmail">Tap the link we sent to</string>
     <string name="subtitle_didntGetEmail">Didn\'t get an email?</string>
 
-    <string name="prompt_title_cashOnTheWay">Your Cash Will Be Available Soon</string>
+    <string name="prompt_title_cashOnTheWay">Your Cash Reserves Will Be Available Soon</string>
+    <string name="prompt_title_tokenPurchaseOnTheWay">Your %1$s Will Be Available Soon</string>
     <string name="prompt_description_cashOnTheWay">It should be available in a few minutes. If you have any issues please contact support@flipcash.com</string>
+    <string name="prompt_description_tokenPurchaseOnTheWay">It should be available in a few minutes. If you have any issues please contact support@flipcash.com</string>
     <string name="action_notifyMe">Notify Me</string>
 
     <string name="title_onrampProviderCoinbaseVirtual">Debit Card with Google Pay</string>
@@ -451,10 +453,18 @@
     <string name="title_cashReserves">Cash Reserves</string>
     <string name="action_buyMore">Buy More</string>
     <string name="description_cashReserves">
-        Your cash reserves are held in USDF, a fully backed digital dollar supported 1:1 by U.S. dollars. This ensures your funds retain the same value and stability as traditional USD, while benefiting from faster, more transparent transactions on modern financial infrastructure. You can deposit additional funds at any time, or withdraw your USDF for U.S. dollars whenever you like.
+        Your cash reserves are held in USDC, a fully backed digital dollar supported 1:1 by U.S. dollars. This ensures your funds retain the same value and stability as traditional USD, while benefiting from faster, more transparent transactions on modern financial infrastructure. You can deposit additional funds at any time, or withdraw your USDC for U.S. dollars whenever you like.
     </string>
 
-
-
-
+    <string name="title_amountToBuy">Amount to Buy</string>
+    <string name="title_amountToSell">Amount to Sell</string>
+    <string name="subtitle_buySellCashHint">Enter up to %1$s</string>
+    <string name="subtitle_buyHintLimitExceeded">You can only buy up to %1$s</string>
+    <string name="subtitle_sellHintLimitExceeded">You can only sell up to %1$s</string>
+    <string name="action_buy">Buy</string>
+    <string name="action_sell">Sell</string>
+    <string name="title_amountToWithdraw">Amount to Withdraw</string>
+    <string name="label_solanaUsdc">Solana USDC with</string>
+    <string name="title_sellToken">Sell %1$s</string>
+    <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 </resources>

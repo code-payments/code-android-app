@@ -52,11 +52,13 @@ dependencies {
     implementation(Libs.compose_material)
     implementation(Libs.compose_materialIconsExtended)
 
+    implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:core"))
 
     implementation(project(":libs:datetime"))
+    implementation(project(":libs:messaging"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:quickresponse"))
     implementation(project(":ui:analytics"))

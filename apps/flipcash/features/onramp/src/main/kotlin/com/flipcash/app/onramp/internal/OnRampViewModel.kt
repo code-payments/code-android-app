@@ -82,7 +82,6 @@ internal class OnRampViewModel @Inject constructor(
     transactionController: TransactionController,
     resources: ResourceHelper,
     onRampController: OnRampController,
-    tokenController: TokenController,
 ) : BaseViewModel2<OnRampViewModel.State, OnRampViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,

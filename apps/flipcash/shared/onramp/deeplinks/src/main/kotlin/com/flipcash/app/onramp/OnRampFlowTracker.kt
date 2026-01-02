@@ -5,15 +5,15 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 object OnRampFlowTracker {
-    internal var key: String = ""
+    var key: String = ""
         private set
 
-    internal var source: AppRoute? = null
+    var source: AppRoute? = null
         private set
 
     @OptIn(ExperimentalUuidApi::class)
     fun start(from: AppRoute?) {
         source = from
-        key = Uuid.Companion.random().toString()
+        key = Uuid.random().toString()
     }
 }

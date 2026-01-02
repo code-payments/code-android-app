@@ -76,7 +76,6 @@ abstract class BaseAccessKeyViewModel(
     }
 
     private fun initWithEntropy(entropyB64: String) {
-        println("initWithEntropy: $entropyB64")
         if (uiFlow.value.entropyB64 == entropyB64) return
         val words = mnemonicManager.fromEntropyBase64(entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")

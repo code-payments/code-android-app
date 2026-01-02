@@ -34,8 +34,11 @@ import com.flipcash.app.pools.create.PoolQuestionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
-import com.flipcash.app.tokens.SelectTokenScreen
+import com.flipcash.app.tokens.BuySellFlow
+import com.flipcash.app.tokens.TokenBuySellEntryScreen
+import com.flipcash.app.tokens.TokenSelectScreen
 import com.flipcash.app.tokens.TokenInfoScreen
+import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.transfers.TransferInformationalScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
@@ -87,8 +90,17 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             TransactionHistoryScreen(it.mint)
         }
 
+        register<AppRoute.Token.SwapTransact> {
+            BuySellFlow.start()
+            TokenBuySellEntryScreen(it.purpose)
+        }
+
+        register<AppRoute.Token.SellReceipt> {
+            TokenSellReceiptScreen()
+        }
+
         register<AppRoute.Sheets.TokenSelection> {
-            SelectTokenScreen(it.purpose)
+            TokenSelectScreen(it.purpose)
         }
 
         register<AppRoute.Sheets.Wallet> {

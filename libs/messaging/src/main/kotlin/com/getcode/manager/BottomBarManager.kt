@@ -1,15 +1,31 @@
 package com.getcode.manager
 
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.flow.*
 import java.util.*
 
 
 data class BottomBarAction(
-    val text: String,
+    val text: AnnotatedString,
+    val inlineContentMap: Map<String, InlineTextContent>,
     val style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
     val isUser: Boolean = true,
     val onClick: () -> Unit = { }
 ) {
+    constructor(
+        text: String,
+        style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
+        isUser: Boolean = true,
+        onClick: () -> Unit = { }
+    ): this(
+        text = AnnotatedString(text),
+        inlineContentMap = emptyMap(),
+        style = style,
+        isUser = isUser,
+        onClick = onClick
+    )
+
     companion object {
         const val OK_DESCRIPTOR = ":::OK:::"
         val Ok = BottomBarAction(

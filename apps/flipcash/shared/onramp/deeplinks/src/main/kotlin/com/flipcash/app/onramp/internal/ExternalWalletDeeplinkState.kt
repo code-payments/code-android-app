@@ -25,7 +25,6 @@ import com.getcode.solana.rpc.SolanaConnection
 import com.getcode.solana.rpc.doesAccountExist
 import com.getcode.solana.rpc.sendTransaction
 import com.getcode.solana.rpc.simulateTransaction
-import com.getcode.solana.transactions.buildPatched
 import com.getcode.solana.transactions.inspect
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
@@ -277,7 +276,6 @@ class ExternalWalletDeeplinkState(
             }
             .onSuccess {
                 unsignedTransaction = it
-                println("unsignedTransaction: ${it.serialize().base64}")
                 deeplinkState = ExternalWalletState.SIGNING
             }
     }
@@ -303,20 +301,15 @@ class ExternalWalletDeeplinkState(
                 // Check if ATAs exist with proper error handling
                 val senderAtaExists = driver.doesAccountExist(senderTokenAccount.publicKey)
                     .onFailure { e ->
-                        println("Failed to check sender ATA: ${e.message}")
+                        trace("Failed to check sender ATA", type = TraceType.Error, error = e)
                         return@withContext Result.failure(e)
                     }.map { true }.getOrElse { false }
 
                 val recipientAtaExists = driver.doesAccountExist(destinationTokenAccount.publicKey)
                     .onFailure { e ->
-                        println("Failed to check recipient ATA: ${e.message}")
+                        trace("Failed to check recipient ATA", type = TraceType.Error, error = e)
                         return@withContext Result.failure(e)
                     }.map { true }.getOrElse { false }
-
-                println("sender: ${sender.base58()}")
-                println("owner: ${owner.usdcDepositAddress.base58()}")
-                println("senderTokenAccount(exists: $senderAtaExists): ${senderTokenAccount.publicKey.base58()}")
-                println("destinationTokenAccount(exists: $recipientAtaExists): ${destinationTokenAccount.publicKey.base58()}")
 
                 val instructions = buildList {
                     // Create sender ATA if it doesn't exist
@@ -363,11 +356,10 @@ class ExternalWalletDeeplinkState(
                 message.inspect()
 
                 val transaction = message.toUnsignedTransaction()
-                println("Serialized transaction size: ${transaction.serialize().size} bytes")
 
                 Result.success(transaction)
             } catch (e: Exception) {
-                println("Transaction creation failed: ${e.message}")
+                trace("Transaction creation failed", type = TraceType.Error, error = e)
                 Result.failure(e)
             }
         }

@@ -17,6 +17,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
@@ -112,6 +113,14 @@ class TokenController @Inject constructor(
 
     fun balanceForToken(tokenAddress: Mint): Flow<Fiat> {
         return mintBalances.map { it[tokenAddress] ?: Fiat.Zero }
+    }
+
+    fun reservesBalance(): Fiat {
+        return balanceForToken(Token.usdc)
+    }
+
+    fun observeReservesBalance(): Flow<Fiat> {
+        return balanceForToken(Mint.usdc)
     }
 
     private suspend fun modifyBalance(token: Token, operation: (Fiat) -> Fiat) {

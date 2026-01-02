@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.financial
 
+import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
@@ -8,6 +9,7 @@ import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.trace
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
@@ -15,14 +17,38 @@ import kotlin.math.max
 
 typealias Usd = Fiat
 
+/**
+ * Represents a monetary value bridge between an on-chain token amount and its localized
+ * fiat representation.
+ *
+ * This class maps the relationship between the blockchain reality (USD value for the core mint)
+ * and the user's perception (Local Fiat value or non-USDC token value).
+ *
+ * @property underlyingTokenAmount The raw amount of the core mint token (always denominated in USD for USDC).
+ *                                 This represents the actual on-chain value involved.
+ * @property nativeAmount The converted value of the specific token in the user's selected currency
+ *                        (e.g., EUR, GBP, CAD).
+ * @property rate The exchange rate used to convert between the [underlyingTokenAmount] and the [nativeAmount].
+ * @property mint The Mint address of the token being represented.
+ *
+ * If the user wants to send, for example, $5 CAD of Jeffy, this will look like:
+ *
+ * ```
+ * underlyingTokenAmount: (USD value amount for $5 CAD worth of Jeffy in USDC)
+ * nativeAmount: (5 CAD in Jeffy)
+ * rate: (fx determined by bonding curve for $5 CAD of Jeffy)
+ * mint: (Mint address for Jeffy)
+ * ```
+ */
 @Serializable
+@Parcelize
 @Immutable
 data class LocalFiat(
     val underlyingTokenAmount: Fiat,
     val nativeAmount: Fiat,
     val rate: Rate,
     val mint: Mint,
-) {
+): Parcelable {
     @Throws(Exception::class)
     constructor(exchangeData: ExchangeData.WithRate) : this(
         underlyingTokenAmount = Fiat(exchangeData.quarks, CurrencyCode.USD),

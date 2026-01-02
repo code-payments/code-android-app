@@ -68,6 +68,7 @@ dependencies {
     implementation(Libs.compose_animation)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_ui)
+    implementation(Libs.compose_ui_text)
     implementation(Libs.compose_activities)
     implementation(project(":ui:navigation"))
     debugApi(Libs.compose_ui_tools)

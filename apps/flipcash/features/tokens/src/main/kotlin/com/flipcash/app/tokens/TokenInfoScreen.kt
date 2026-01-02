@@ -14,11 +14,17 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.onramp.LocalExternalWalletState
+import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.features.tokens.R
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.AppScreen
+import com.getcode.navigation.screens.OnScreenResult
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -31,7 +37,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
+class TokenInfoScreen(private val mint: Mint) : AppScreen(), ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -39,6 +45,8 @@ class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
+        val externalWalletOnRamp = LocalExternalWalletState.current
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -65,7 +73,7 @@ class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
                     AppBarDefaults.UpNavigation { navigator.pop() }
                 },
                 rightContents = {
-                    if (state.isCashReserve && state.cashReservesEnabled) {
+                    if (!state.isCashReserve) {
                         AppBarDefaults.Share {
                             viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
                         }
@@ -92,6 +100,14 @@ class TokenInfoScreen(private val mint: Mint) : ModalScreen, Parcelable {
                     .map { it.screen }
                     .onEach {
                         navigator.push(ScreenRegistry.get(it))
+                    }.launchIn(this)
+            }
+
+            LaunchedEffect(viewModel) {
+                viewModel.eventFlow
+                    .filterIsInstance<TokenInfoViewModel.Event.ConnectPhantomWallet>()
+                    .onEach {
+                        externalWalletOnRamp.start(OnRampFlowTracker.source, OnRampProvider.Phantom)
                     }.launchIn(this)
             }
         }
