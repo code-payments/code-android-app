@@ -17,6 +17,7 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(BillCustomizer)
+    add(Deposit)
 }
 
 @HiltViewModel

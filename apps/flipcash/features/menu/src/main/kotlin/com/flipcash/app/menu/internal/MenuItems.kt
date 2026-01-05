@@ -10,6 +10,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
@@ -27,13 +28,13 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
     )
 }
 
-internal data object Deposit : FullMenuItem<MenuScreenViewModel.Event>() {
+internal data object Withdraw : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_deposit)
+        @Composable get() = painterResource(R.drawable.ic_menu_withdraw)
     override val name: String
-        @Composable get() = stringResource(R.string.title_depositUsdc)
+        @Composable get() = stringResource(R.string.title_withdrawFunds)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Menu)
+        AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw)
     )
 }
 

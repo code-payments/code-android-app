@@ -64,6 +64,7 @@
     <string name="title_withdrawUsdc">Withdraw Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
+    <string name="title_withdrawFunds">Withdraw Funds</string>
 
     <string name="subtitle_validAddress">Valid address</string>
 

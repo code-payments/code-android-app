@@ -41,9 +41,9 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(MyAccount)
-    add(Deposit)
     add(AppSettings)
     add(AdvancedFeatures)
+    add(Withdraw)
     add(SwitchAccount)
     add(Labs)
     add(LogOut)
@@ -69,6 +69,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
         val preferredOnRampProvider: OnRampProvider? = null,
+        val showQuickActions: Boolean = false,
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
