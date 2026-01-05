@@ -54,7 +54,7 @@ dependencies {
     implementation(Libs.okhttp_logging_interceptor)
 
     implementation("org.sol4k:sol4k:0.5.17")
-    api("com.solanamobile:web3-solana:0.2.5")
+    api("com.solanamobile:web3-solana:0.3.1")
     api("com.solanamobile:rpc-core:0.2.9")
     implementation("com.solanamobile:rpc-okiodriver:0.2.9")
 
