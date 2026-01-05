@@ -37,8 +37,8 @@ jobs:
         id: google_services_json_file
         with:
           fileName: google-services.json
-          fileDir: ./app/src
-          encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          fileDir: ./apps/flipcash/app/src
+          encodedString: ${{ secrets.FLIPCASH_GOOGLE_SERVICES_JSON }}
 
       - name: Setup BugSnag API Key
         run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\" > ./local.properties
