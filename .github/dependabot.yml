@@ -5,7 +5,7 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
-  target-branch: develop
+  target-branch: code/cash
   reviewers:
   - bmc08gt
   assignees:
