@@ -156,7 +156,9 @@ private fun SellReceipt(
                 ReceiptLineItem(
                     modifier = Modifier.fillMaxWidth(),
                     label = "${fee.roundToInt()}% Fee",
-                    amount = feeAmount.formatted(),
+                    amount = feeAmount.formatted(
+                        extraPrefix = if (feeAmount.decimalValue != 1.0) "~" else null,
+                    ),
                 )
             }
         }

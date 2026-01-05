@@ -73,6 +73,7 @@ data class Fiat(
     fun formatted(
         rule: FormattingRule = FormattingRule.None,
         showPrefix: Boolean = true,
+        extraPrefix: String? = null,
         includeCommas: Boolean = true,
     ): String {
         val shouldTruncate = if (rule is FormattingRule.Truncated) {
@@ -103,8 +104,14 @@ data class Fiat(
                 .takeIf { showPrefix }
                 .orEmpty()
 
-            positivePrefix = prefix
-            negativePrefix = prefix
+            val fullPrefix = if (extraPrefix != null) {
+                "$extraPrefix $prefix"
+            } else {
+                prefix
+            }
+
+            positivePrefix = fullPrefix
+            negativePrefix = fullPrefix
             isGroupingUsed = includeCommas
         }
 
