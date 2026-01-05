@@ -25,9 +25,10 @@ import com.getcode.ui.components.R
 fun TokenIconWithName(
     token: Token,
     imageSize: Dp,
+    modifier: Modifier = Modifier,
+    displayName: (Token) -> String = { it.name },
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
-    modifier: Modifier = Modifier,
     spacing: Dp = 0.dp,
 ) {
     Row(
@@ -40,7 +41,7 @@ fun TokenIconWithName(
             modifier = Modifier.size(imageSize)
         )
         Text(
-            text = token.name,
+            text = displayName(token),
             style = textStyle,
             color = textColor,
         )

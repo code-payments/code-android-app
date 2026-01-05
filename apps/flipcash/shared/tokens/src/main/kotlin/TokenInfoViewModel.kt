@@ -10,16 +10,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.money.formatted
@@ -27,9 +24,9 @@ import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.OnRampFlowTracker
-import com.flipcash.shared.tokens.R
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TokenController

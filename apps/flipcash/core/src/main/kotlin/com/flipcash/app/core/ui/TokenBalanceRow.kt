@@ -52,6 +52,7 @@ fun TokenBalanceRow(
     modifier: Modifier = Modifier,
     showName: Boolean = true,
     showFlag: Boolean = false,
+    showLogo: Boolean = true,
     isSelected: Boolean? = null,
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -59,15 +60,17 @@ fun TokenBalanceRow(
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
-    val (token, balance) = tokenWithBalance
+    val (token, balance, displayName) = tokenWithBalance
     TokenBalanceRow(
         token = token,
+        displayName = displayName,
         balance = balance.nativeAmount,
         formattedBalance = formattedBalance,
         isSelected = isSelected,
         modifier = modifier,
         showName = showName,
         showFlag = showFlag,
+        showLogo = showLogo,
         sizing = sizing,
         horizontalArrangement = horizontalArrangement,
         contentPadding = contentPadding,
@@ -89,9 +92,10 @@ fun TokenBalanceRow(
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
-    val (token, balance) = tokenWithBalance
+    val (token, balance, displayName) = tokenWithBalance
     TokenBalanceRow(
         token = token,
+        displayName = displayName,
         balance = balance,
         showName = showName,
         showLogo = showLogo,
@@ -112,6 +116,7 @@ fun TokenBalanceRow(
     token: Token,
     balance: Fiat,
     modifier: Modifier = Modifier,
+    displayName: String = token.name,
     showName: Boolean = true,
     showLogo: Boolean = true,
     showFlag: Boolean = false,
@@ -139,6 +144,7 @@ fun TokenBalanceRow(
             showLogo && showName -> {
                 TokenIconWithName(
                     token = token,
+                    displayName = { displayName },
                     imageSize = sizing.iconSize,
                     textStyle = sizing.nameTextStyle,
                     textColor = CodeTheme.colors.textMain,
@@ -147,12 +153,10 @@ fun TokenBalanceRow(
             }
 
             showName -> {
-                TokenIconWithName(
-                    token = token,
-                    imageSize = sizing.iconSize,
-                    textStyle = sizing.nameTextStyle,
-                    textColor = CodeTheme.colors.textMain,
-                    spacing = CodeTheme.dimens.grid.x2,
+                Text(
+                    text = displayName,
+                    style = sizing.nameTextStyle,
+                    color = CodeTheme.colors.textMain,
                 )
             }
 

@@ -76,6 +76,7 @@ fun TokenList(
                         .padding(horizontal = CodeTheme.dimens.inset),
                     tokenWithBalance = item,
                     showFlag = showFlags,
+                    showLogo = !item.isReserves,
                     isSelected = (selectedToken == item.token.address).takeIf { showSelections },
                 ) { onTokenSelected(item.token) }
 

@@ -171,6 +171,9 @@ data class Fiat(
 
         val Zero = Fiat(0, CurrencyCode.USD)
 
+        val MIN_VALUE = Fiat(Int.MIN_VALUE, CurrencyCode.USD)
+        val MAX_VALUE = Fiat(Int.MAX_VALUE, CurrencyCode.USD)
+
         private fun parseStringToDouble(stringAmount: String, decimalPlaces: Int = 6): Double {
             val formatter = DecimalFormat.getNumberInstance(Locale.US).apply {
                 isParseIntegerOnly = false

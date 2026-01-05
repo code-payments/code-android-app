@@ -15,13 +15,21 @@ import kotlin.time.Instant
 
 data class TokenWithBalance(
     val token: Token,
-    val balance: Fiat
-)
+    val balance: Fiat,
+    val displayName: String = token.name,
+) {
+    val isReserves: Boolean
+        get() = token.address == Mint.usdc
+}
 
 data class TokenWithLocalizedBalance(
     val token: Token,
-    val balance: LocalFiat
-)
+    val balance: LocalFiat,
+    val displayName: String = token.name,
+) {
+    val isReserves: Boolean
+        get() = token.address == Mint.usdc
+}
 
 typealias Token = MintMetadata
 

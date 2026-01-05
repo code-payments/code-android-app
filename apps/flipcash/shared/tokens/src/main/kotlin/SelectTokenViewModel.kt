@@ -11,15 +11,16 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.tokens.R
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -41,7 +42,8 @@ class SelectTokenViewModel @Inject constructor(
     exchange: Exchange,
     analytics: FlipcashAnalyticsService,
     featureFlags: FeatureFlagController,
-): BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
+    resources: ResourceHelper,
+) : BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
     initialState = State(purpose = TokenPurpose.Balance),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -59,18 +61,18 @@ class SelectTokenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
-        data class OnReservesEnabled(val enabled: Boolean): Event
+        data class OnReservesEnabled(val enabled: Boolean) : Event
 
         data class OnPurposeChanged(val purpose: TokenPurpose) : Event
         data class OnTokensUpdated(val tokens: List<TokenWithLocalizedBalance>) : Event
 
-        data class OnTokenSelected(val mint: Mint, val fromUser: Boolean = true): Event
+        data class OnTokenSelected(val mint: Mint, val fromUser: Boolean = true) : Event
 
-        data object OnTokenChanged: Event
+        data object OnTokenChanged : Event
 
-        data object OnAddCashClicked: Event
-        data object OpenOnRampAmountModal: Event
-        data class OpenScreen(val route: AppRoute): Event
+        data object OnAddCashClicked : Event
+        data object OpenOnRampAmountModal : Event
+        data class OpenScreen(val route: AppRoute) : Event
     }
 
     init {
@@ -101,15 +103,25 @@ class SelectTokenViewModel @Inject constructor(
                         TokenPurpose.Deposit -> exchange.observeEntryRate()
                     }
                 ) { state, balances, rate ->
-                    balances.map {
-                        TokenWithLocalizedBalance(
-                            token = it.token,
-                            balance = LocalFiat(
-                                usdc = it.balance,
-                                nativeAmount = it.balance.convertingTo(rate),
+                    balances
+                        .map {
+                            TokenWithLocalizedBalance(
+                                token = it.token,
+                                displayName = if (it.token.address == Mint.usdc) {
+                                    resources.getString(R.string.title_cashReserves)
+                                } else {
+                                    it.token.name
+                                },
+                                balance = LocalFiat(
+                                    usdc = it.balance,
+                                    nativeAmount = it.balance.convertingTo(rate),
+                                )
                             )
-                        )
-                    }.sortedByDescending { it.balance.nativeAmount }
+                        }
+                        .sortedWith(compareByDescending<TokenWithLocalizedBalance> { item ->
+                            if (state.reservesEnabled && item.isReserves) Fiat.MIN_VALUE
+                            else item.balance.nativeAmount
+                        })
                         .filter {
                             val baselineAmount = 0.01.toFiat(rate.currency)
                             when (purpose) {
@@ -163,9 +175,11 @@ class SelectTokenViewModel @Inject constructor(
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
                 }
+
                 is Event.OnReservesEnabled -> { state ->
                     state.copy(reservesEnabled = event.enabled)
                 }
+
                 is Event.OnPurposeChanged -> { state -> state.copy(purpose = event.purpose) }
                 is Event.OnTokensUpdated -> { state -> state.copy(tokens = event.tokens) }
                 is Event.OnTokenSelected -> { state -> state.copy(selectedToken = event.mint) }

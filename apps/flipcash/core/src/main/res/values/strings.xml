@@ -451,7 +451,7 @@
     <string name="label_blendModeColorDodge">Color Dodge</string>
     <string name="label_blendModePlusLighter">Plus Lighter</string>
 
-    <string name="title_cashReserves">Cash Reserves</string>
+    <string name="title_cashReserves">USD Reserves</string>
     <string name="action_buyMore">Buy More</string>
     <string name="description_cashReserves">
         Your cash reserves are held in USDC, a fully backed digital dollar supported 1:1 by U.S. dollars. This ensures your funds retain the same value and stability as traditional USD, while benefiting from faster, more transparent transactions on modern financial infrastructure. You can deposit additional funds at any time, or withdraw your USDC for U.S. dollars whenever you like.

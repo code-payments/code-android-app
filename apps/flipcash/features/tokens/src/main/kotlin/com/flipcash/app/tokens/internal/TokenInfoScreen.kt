@@ -175,11 +175,11 @@ private fun BottomBar(state: TokenInfoViewModel.State, dispatch: (TokenInfoViewM
             CodeButton(
                 modifier = Modifier.weight(1f),
                 buttonState = ButtonState.FilledGreen,
-                text = stringResource(R.string.action_buyMore),
+                text = stringResource(R.string.action_withdraw),
             ) {
                 dispatch(
                     TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.OnRamp.ProviderList(from = AppRoute.Token.Info(state.mint!!))
+                        AppRoute.Transfers.Withdrawal.Amount(state.mint!!)
                     )
                 )
             }
