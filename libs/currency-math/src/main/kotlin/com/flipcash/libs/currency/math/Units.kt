@@ -6,3 +6,5 @@ import java.math.BigDecimal
 fun BigDecimal.units(): BigDecimal = this.divide(BigDecimal(DefaultMintQuarksPerUnit), mc)
 fun BigDecimal.divideWithHighPrecision(other: BigDecimal): BigDecimal = this.divide(other, mc)
 fun BigDecimal.multiplyWithHighPrecision(other: BigDecimal): BigDecimal = this.multiply(other, mc)
+fun BigDecimal.addWithHighPrecision(other: BigDecimal): BigDecimal = this.add(other, mc)
+fun BigDecimal.subtractWithHighPrecision(other: BigDecimal): BigDecimal = this.subtract(other, mc)

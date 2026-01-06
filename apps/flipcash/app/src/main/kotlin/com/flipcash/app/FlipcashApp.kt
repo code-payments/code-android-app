@@ -15,6 +15,7 @@ import com.bugsnag.android.Bugsnag
 import com.flipcash.android.app.BuildConfig
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.currency.PreferredCurrencyController
+import com.flipcash.libs.currency.math.Curves
 import com.getcode.crypt.MnemonicCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
@@ -90,6 +91,7 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
         Firebase.initialize(this)
         Firebase.crashlytics.isCrashlyticsCollectionEnabled = BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG
         MnemonicCache.init(this)
+        Curves.initialize(this)
         authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)

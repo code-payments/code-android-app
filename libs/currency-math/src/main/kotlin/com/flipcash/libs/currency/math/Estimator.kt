@@ -1,10 +1,22 @@
 package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
+import com.flipcash.libs.currency.math.internal.curves.ContinuousBondingCurve
+import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
 import java.math.BigDecimal
 import java.math.RoundingMode
 
 object Estimator {
+
+    private val DefaultCurveType = CurveType.Discrete
+
+    private fun getCurve(curveType: CurveType): BondingCurve {
+        return when (curveType) {
+            CurveType.Continuous -> ContinuousBondingCurve.getOrThrow()
+            CurveType.Discrete -> DiscreteBondingCurve.getOrThrow()
+        }
+    }
+
     /**
      * Calculates the current spot price of a token based on its total supply.
      *
@@ -18,7 +30,10 @@ object Estimator {
      * @return A [Result] containing the spot price as a [BigDecimal] on success, or an
      * exception on failure.
      */
-    fun currentPriceFor(currentSupplyInQuarks: Long): Result<BigDecimal> {
+    fun currentPriceFor(
+        currentSupplyInQuarks: Long,
+        curveType: CurveType = DefaultCurveType,
+    ): Result<BigDecimal> {
         return runCatching {
             val scale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
             val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks, mc)
@@ -26,7 +41,7 @@ object Estimator {
             scaledCurrentSupply
         }.fold(
             onSuccess = { scaledCurrentSupply ->
-                val curve = ExponentialCurve.getOrThrow()
+                val curve = getCurve(curveType)
                 curve.spotPriceAtSupply(scaledCurrentSupply)
             },
             onFailure = {
@@ -61,12 +76,22 @@ object Estimator {
         valueInQuarks: Long,
         currentValueInQuarks: Long,
         mintDecimals: Int,
-    ): Result<BigDecimal> {
+        curveType: CurveType = DefaultCurveType,
+    ): Result<Valuation.Quarks> {
         return runCatching {
             val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val tokens = valueExchangeAsTokens(valueInQuarks, currentValueInQuarks, mintDecimals).getOrThrow()
-            val unscaledTokens = tokens.multiply(tokenScale, mc)
-            unscaledTokens
+            val valuation = valueExchangeAsTokens(
+                valueInQuarks = valueInQuarks,
+                currentValueInQuarks = currentValueInQuarks,
+                mintDecimals = mintDecimals,
+                curveType = curveType
+            ).getOrThrow()
+            val unscaledTokens = valuation.tokens.multiply(tokenScale, mc)
+            val fx = valueInQuarks.toBigDecimal().divideWithHighPrecision(unscaledTokens)
+            Valuation.Quarks(
+                quarks = unscaledTokens,
+                fx = fx
+            )
         }
     }
 
@@ -95,18 +120,33 @@ object Estimator {
         valueInQuarks: Long,
         currentValueInQuarks: Long,
         mintDecimals: Int,
-    ): Result<BigDecimal> {
+        curveType: CurveType = DefaultCurveType,
+    ): Result<Valuation.Tokens> {
         return runCatching {
-            val curve = ExponentialCurve.getOrThrow()
-            val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
-            val unscaledValue = BigDecimal(valueInQuarks)
-            val scaledValue = unscaledValue.divide(valueScale, mc)
+            val curve = getCurve(curveType)
+            when (curveType) {
+                CurveType.Continuous -> {
+                    val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
+                    val unscaledValue = BigDecimal(valueInQuarks)
+                    val scaledValue = unscaledValue.divide(valueScale, mc)
 
-            val tokenScale = BigDecimal.TEN.pow(mintDecimals, mc)
-            val unscaledCurrentValue = BigDecimal(currentValueInQuarks)
-            val scaledCurrentValue = unscaledCurrentValue.divide(tokenScale, mc)
+                    val tokenScale = BigDecimal.TEN.pow(mintDecimals, mc)
+                    val unscaledCurrentValue = BigDecimal(currentValueInQuarks)
+                    val scaledCurrentValue = unscaledCurrentValue.divide(tokenScale, mc)
 
-            curve.tokensForValueExchange(scaledCurrentValue, scaledValue).getOrThrow()
+                    curve.tokensForValueExchange(scaledCurrentValue, scaledValue).getOrThrow()
+                }
+                CurveType.Discrete -> {
+                    val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
+                    val scaledValue = BigDecimal(valueInQuarks).divideWithHighPrecision(valueScale)
+                    val scaledCurrentValue = BigDecimal(currentValueInQuarks).divideWithHighPrecision(valueScale)
+
+                    curve.tokensForValueExchange(
+                        value = scaledValue,
+                        currentValue = scaledCurrentValue,
+                    ).getOrThrow()
+                }
+            }
         }
     }
 
@@ -129,33 +169,67 @@ object Estimator {
         currentSupplyInQuarks: Long,
         mintDecimals: Int,
         feeBps: Int,
+        curveType: CurveType = DefaultCurveType,
     ): Result<BuyEstimation> {
         return runCatching {
-            val curve = ExponentialCurve.getOrThrow()
-            val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val amountScale = BigDecimal.TEN.pow(mintDecimals, mc)
+            val curve = getCurve(curveType)
+            require(amountInQuarks > 0) { "Amount must be positive" }
+            require(currentSupplyInQuarks >= 0) { "Current supply must be non-negative" }
+            require(feeBps >= 0) { "Fee basis points must be non-negative" }
 
-            val unscaledBuyAmount = BigDecimal(amountInQuarks, mc)
-            val scaledBuyAmount = unscaledBuyAmount.divideWithHighPrecision(amountScale)
+            when (curveType) {
+                CurveType.Continuous -> {
+                    val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
+                    val amountScale = BigDecimal.TEN.pow(mintDecimals, mc)
 
-            val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks, mc)
-            val scaledCurrentSupply = unscaledCurrentSupply.divideWithHighPrecision(tokenScale)
+                    val unscaledBuyAmount = BigDecimal(amountInQuarks, mc)
+                    val scaledBuyAmount = unscaledBuyAmount.divideWithHighPrecision(amountScale)
 
-            val scaledTokens = curve.tokensBoughtForValue(scaledCurrentSupply, scaledBuyAmount).getOrThrow()
-            val unscaledTokens = scaledTokens.multiplyWithHighPrecision(tokenScale)
+                    val unscaledCurrentSupply = BigDecimal(currentSupplyInQuarks, mc)
+                    val scaledCurrentSupply = unscaledCurrentSupply.divideWithHighPrecision(tokenScale)
 
-            val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
-            val scaledFees = scaledTokens.multiplyWithHighPrecision(feePctValue)
-            val unscaledFeesBD = scaledFees.multiplyWithHighPrecision(tokenScale).setScale(0, RoundingMode.DOWN)
-            val unscaledFeesQuarks = unscaledFeesBD.longValueExact()
+                    val scaledTokens =
+                        curve.valueToTokens(scaledCurrentSupply, scaledBuyAmount).getOrThrow()
+                    val unscaledTokens = scaledTokens.multiplyWithHighPrecision(tokenScale)
 
-            val netTokensBD = unscaledTokens.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
-            val netTokensQuarks = netTokensBD.longValueExact()
+                    val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
+                    val scaledFees = scaledTokens.multiplyWithHighPrecision(feePctValue)
+                    val unscaledFeesBD =
+                        scaledFees.multiplyWithHighPrecision(tokenScale).setScale(0, RoundingMode.DOWN)
+                    val unscaledFeesQuarks = unscaledFeesBD.longValueExact()
 
-            BuyEstimation(
-                netTokensToReceive = netTokensQuarks.toBigDecimal(),
-                fees = unscaledFeesQuarks.toBigDecimal(),
-            )
+                    val netTokensBD =
+                        unscaledTokens.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
+                    val netTokensQuarks = netTokensBD.longValueExact()
+
+                    BuyEstimation(
+                        netTokensToReceive = netTokensQuarks.toBigDecimal(),
+                        fees = unscaledFeesQuarks.toBigDecimal(),
+                    )
+                }
+                CurveType.Discrete -> {
+                    // Convert USDC quarks to USDC units
+                    val usdcValue = BigDecimal(amountInQuarks).divideWithHighPrecision(1_000_000.toBigDecimal())
+
+                    // Convert supply quarks to whole tokens
+                    val quarksPerToken = BigDecimal.TEN.pow(mintDecimals, mc)
+                    val currentSupply = BigDecimal(currentSupplyInQuarks).divideWithHighPrecision(quarksPerToken)
+
+                    // Calculate tokens bought
+                    val grossTokens = curve.valueToTokens(currentSupply, usdcValue).getOrThrow()
+
+                    // Apply fee
+                    val feeMultiplier = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
+                    val fees = grossTokens.multiplyWithHighPrecision(feeMultiplier)
+                    val netTokens = grossTokens.subtractWithHighPrecision(fees)
+
+                    BuyEstimation(
+                        netTokensToReceive = netTokens,
+                        fees = fees,
+                    )
+                }
+            }
+
         }
     }
 
@@ -187,42 +261,102 @@ object Estimator {
         currentValueInQuarks: Long,
         mintDecimals: Int,
         feeBps: Int,
+        curveType: CurveType = DefaultCurveType,
     ): Result<SellEstimation> {
         return runCatching {
-            val curve = ExponentialCurve.getOrThrow()
+            val curve = getCurve(curveType)
+            require(amountInQuarks > 0) { "Amount must be positive" }
+            require(currentValueInQuarks >= 0) { "Current value must be non-negative" }
+            require(feeBps >= 0) { "Fee basis points must be non-negative" }
 
-            val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            val unscaledSellAmount = BigDecimal(amountInQuarks, mc)
-            val scaledSellAmount = unscaledSellAmount.divideWithHighPrecision(tokenScale)
+            println("amountInQuarks: $amountInQuarks, currentValueInQuarks: $currentValueInQuarks,")
+            when (curveType) {
+                CurveType.Continuous -> {
+                    val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
+                    val unscaledSellAmount = BigDecimal(amountInQuarks, mc)
+                    val scaledSellAmount = unscaledSellAmount.divideWithHighPrecision(tokenScale)
 
-            val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
-            val unscaledCurrentValue = BigDecimal(currentValueInQuarks, mc)
-            val scaledCurrentValue = unscaledCurrentValue.divideWithHighPrecision(valueScale)
+                    val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
+                    val unscaledCurrentValue = BigDecimal(currentValueInQuarks, mc)
+                    val scaledCurrentValue = unscaledCurrentValue.divideWithHighPrecision(valueScale)
 
-            val scaledValue = curve.valueFromSellingTokens(scaledCurrentValue, scaledSellAmount).getOrThrow()
-            val unscaledValueBD = scaledValue.multiplyWithHighPrecision(valueScale)
+                    val scaledValue =
+                        curve.tokensToValue(scaledCurrentValue, scaledSellAmount).getOrThrow()
+                    val unscaledValueBD = scaledValue.multiplyWithHighPrecision(valueScale)
 
-            val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
-            val scaledFees = scaledValue.multiplyWithHighPrecision(feePctValue)
-            val unscaledFeesBD = scaledFees.multiplyWithHighPrecision(valueScale).setScale(0, RoundingMode.DOWN)
-            val unscaledFeesQuarks = unscaledFeesBD.longValueExact()
+                    val feePctValue = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
+                    val scaledFees = scaledValue.multiplyWithHighPrecision(feePctValue)
+                    val unscaledFeesBD =
+                        scaledFees.multiplyWithHighPrecision(valueScale).setScale(0, RoundingMode.DOWN)
+                    val unscaledFeesUsd = unscaledFeesBD.longValueExact()
+                        .toBigDecimal().divideWithHighPrecision(BigDecimal(1_000_000))
 
-            val netAmountBD = unscaledValueBD.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
-            val netAmountQuarks = netAmountBD.longValueExact()
+                    // Get current supply from TVL
+                    val currentSupply = curve.supplyFromValue(scaledCurrentValue).getOrThrow()
 
-            SellEstimation(
-                netAmountToReceive = netAmountQuarks.toBigDecimal(),
-                fees = unscaledFeesQuarks.toBigDecimal(),
-            )
+                    // For selling: calculate value at (supply - tokens) going up to supply
+                    val supplyAfterSell = currentSupply.subtract(scaledSellAmount)
+
+                    val netAmountBD =
+                        unscaledValueBD.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
+                    val netAmountUsdc = netAmountBD.longValueExact()
+                        .toBigDecimal().divideWithHighPrecision(BigDecimal(1_000_000))
+
+                    println("tokensToSell: $scaledSellAmount, currentValue: $scaledCurrentValue, currentSupply: $currentSupply, supplyAfterSell: $supplyAfterSell")
+
+                    println("gross: $unscaledValueBD, fees: $unscaledFeesUsd, net: $netAmountBD")
+
+                    SellEstimation(
+                        netAmountToReceive = netAmountUsdc,
+                        fees = unscaledFeesUsd,
+                    )
+                }
+                CurveType.Discrete -> {
+                    // Convert token quarks to whole tokens
+                    val quarksPerToken = BigDecimal.TEN.pow(DefaultMintDecimals)
+                    val tokensToSell = BigDecimal(amountInQuarks).divideWithHighPrecision(quarksPerToken)
+
+                    // Convert value quarks to dollars
+                    val valueScale = BigDecimal.TEN.pow(mintDecimals)
+                    val currentValue = BigDecimal(currentValueInQuarks).divideWithHighPrecision(valueScale)
+
+                    // Get current supply from TVL
+                    val currentSupply = curve.supplyFromValue(currentValue).getOrThrow()
+
+                    // For selling: calculate value at (supply - tokens) going up to supply
+                    val supplyAfterSell = currentSupply.subtract(tokensToSell)
+
+                    println("tokensToSell: $tokensToSell, currentValue: $currentValue, currentSupply: $currentSupply, supplyAfterSell: $supplyAfterSell")
+
+                    val grossUSDC = curve.tokensToValue(
+                        currentSupply = supplyAfterSell,
+                        tokens = tokensToSell
+                    ).getOrThrow()
+
+                    // Apply fee
+                    val feeMultiplier = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
+                    val fees = grossUSDC.multiplyWithHighPrecision(feeMultiplier)
+                    val netUSDC = grossUSDC.subtractWithHighPrecision(fees)
+
+                    println("gross: $grossUSDC, fees: $fees, net: $netUSDC")
+                    SellEstimation(
+                        netAmountToReceive = netUSDC,
+                        fees = fees,
+                    )
+                }
+            }
         }
     }
 
     fun currentMarketCap(
         currentSupplyInQuarks: Long,
+        curveType: CurveType = DefaultCurveType,
     ): Result<BigDecimal> {
         return runCatching {
-            val spotPrice = currentPriceFor(currentSupplyInQuarks).getOrThrow()
-            (currentSupplyInQuarks.toBigDecimal() * spotPrice).divide(BigDecimal.TEN.pow(DefaultMintDecimals, mc), mc)
+            val spotPrice = currentPriceFor(currentSupplyInQuarks, curveType).getOrThrow()
+            (currentSupplyInQuarks.toBigDecimal() * spotPrice)
+                .divideWithHighPrecision(BigDecimal.TEN.pow(DefaultMintDecimals, mc)
+            )
         }
     }
 }
@@ -236,3 +370,21 @@ data class SellEstimation(
     val netAmountToReceive: BigDecimal,
     val fees: BigDecimal,
 )
+
+sealed interface Valuation {
+    val fx: BigDecimal
+
+    data class Tokens(
+        val tokens: BigDecimal,
+        override val fx: BigDecimal,
+    ) : Valuation {
+        companion object {
+            val Zero = Tokens(BigDecimal.ZERO, BigDecimal.ZERO)
+        }
+    }
+
+    data class Quarks(
+        val quarks: BigDecimal,
+        override val fx: BigDecimal,
+    ) : Valuation
+}

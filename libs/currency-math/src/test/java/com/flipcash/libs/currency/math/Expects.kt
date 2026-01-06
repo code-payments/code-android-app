@@ -1,5 +1,7 @@
 package com.flipcash.libs.currency.math
 
+import java.math.BigDecimal
+
 internal val EXPECTED_TABLE_OUTPUT = """
 |------|----------------|----------------------------------|----------------------------|
 | %    | S              | R(S)                             | R'(S)                      |
@@ -107,3 +109,12 @@ internal val EXPECTED_TABLE_OUTPUT = """
 | 100% |       21000000 | 1140023003583.552443559392295060 |  999999.999988634577856058 |
 |------|----------------|----------------------------------|----------------------------|
         """.trimIndent()
+
+internal fun isApproximatelyEqual(
+    a: BigDecimal,
+    b: BigDecimal,
+    tolerance: BigDecimal = BigDecimal("0.0000000001")
+): Boolean {
+    val diff = a.subtractWithHighPrecision(b)
+    return diff.abs() < tolerance
+}
