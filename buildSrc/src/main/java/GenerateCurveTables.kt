@@ -28,17 +28,16 @@ abstract class GenerateCurveTables : DefaultTask() {
         // Default to false
         forceRegenerate.convention(false)
 
-        outputs.upToDateWhen {
-            // Check for -PforceCurveTables on command line OR task property
+        onlyIf {
             val force = project.hasProperty("forceCurveTables") || forceRegenerate.get()
 
             if (force) {
-                false
+                true
             } else if (rustTableUrl.isPresent && !rustTableFile.isPresent) {
                 val outDir = outputDir.get().asFile
                 val pricingExists = outDir.resolve("discrete_pricing_table.bin").exists()
                 val cumulativeExists = outDir.resolve("discrete_cumulative_table.bin").exists()
-                pricingExists && cumulativeExists
+                !(pricingExists && cumulativeExists) // run only if files are MISSING
             } else {
                 true
             }
