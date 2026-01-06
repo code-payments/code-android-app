@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
+import com.flipcash.libs.currency.math.Valuation
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.utils.roundTo
@@ -155,11 +156,11 @@ data class Fiat(
             return formatted(showPrefix = false)
         }
 
-        val tokens = (Estimator.valueExchangeAsTokens(
+        val valuation = (Estimator.valueExchangeAsTokens(
             valueInQuarks = this.quarks,
             currentValueInQuarks = token?.launchpadMetadata?.coreMintLockedQuarks ?: 0,
             mintDecimals = 6,
-        ).getOrNull() ?: BigDecimal.ZERO)
+        ).getOrNull() ?: Valuation.Tokens.Zero)
 
         val formatter = DecimalFormat.getInstance(Locale.US).apply {
             if (fractionDigits != null) {
@@ -169,7 +170,7 @@ data class Fiat(
             roundingMode = ROUNDING_MODE
         }
 
-        return formatter.format(tokens.toDouble())
+        return formatter.format(valuation.tokens.toDouble())
     }
 
     companion object {
@@ -207,7 +208,7 @@ data class Fiat(
                         currentValueInQuarks = token.launchpadMetadata?.coreMintLockedQuarks ?: 0,
                         mintDecimals = 6, // The desired value here is USDC which is 6
                         feeBps = 0,
-                    ).getOrThrow().netAmountToReceive.divideWithHighPrecision(BigDecimal(MULTIPLIER))
+                    ).getOrThrow().netAmountToReceive
                 },
                 tokenMintDecimals = token.decimals
             )

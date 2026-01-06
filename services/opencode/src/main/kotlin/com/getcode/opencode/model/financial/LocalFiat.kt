@@ -3,6 +3,7 @@ package com.getcode.opencode.model.financial
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
+import com.flipcash.libs.currency.math.multiplyWithHighPrecision
 import com.flipcash.libs.currency.math.units
 import com.getcode.opencode.model.financial.Fiat.FormattingRule
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -90,6 +91,20 @@ data class LocalFiat(
             rate = Rate.oneToOne
         )
 
+        fun fromNativeAmount(
+            nativeAmount: Fiat,
+            rate: Rate,
+            mint: Mint,
+        ): LocalFiat {
+            val usd = nativeAmount.decimalValue / rate.fx
+            return LocalFiat(
+                underlyingTokenAmount = Fiat(usd, CurrencyCode.USD),
+                nativeAmount = nativeAmount,
+                mint = mint,
+                rate = rate
+            )
+        }
+
         fun valueExchangeIn(
             amount: Fiat,
             token: Token,
@@ -119,19 +134,17 @@ data class LocalFiat(
             val valueLocked = token.launchpadMetadata?.coreMintLockedQuarks ?: 0
 
             // determine quarks to exchange for the desired amount
-            val quarks = Estimator.valueExchangeAsQuarks(
+            val valuation = Estimator.valueExchangeAsQuarks(
                 valueInQuarks = cappedValue.quarks,
                 currentValueInQuarks = valueLocked,
                 mintDecimals = 6, // usdc is 6 decimals
             ).getOrThrow()
 
-            // determine the "full units" of the token being exchanged
+            val (quarks, _) = valuation
             val units = quarks.units()
+            val underlyingTokenAmount = Fiat(quarks = quarks.toLong(), currencyCode = CurrencyCode.USD)
 
-            val underlyingTokenAmount = Fiat(quarks.toLong(), CurrencyCode.USD)
             val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token).convertingTo(rate)
-
-            // determine the relative exchange rate of the token in the currency selected
             val fx = sellEstimate.decimalValue.toBigDecimal().divideWithHighPrecision(units).toDouble()
 
             logExchange(
