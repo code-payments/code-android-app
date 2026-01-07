@@ -88,8 +88,18 @@ sealed interface FeatureFlag {
         override val default: Boolean = true
         override val launched: Boolean = true
         override val visible: Boolean = true
-        override val persistLogOut: Boolean = true
+        override val persistLogOut: Boolean = false
     }
+
+    @FeatureFlagMarker
+    data object MarketCapChart: FeatureFlag {
+        override val key: String = "market_cap_chart_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
 
     companion object {
         val entries: List<FeatureFlag>
@@ -113,6 +123,7 @@ val FeatureFlag.title: String
         FeatureFlag.BillCustomizer -> "Bill Customizer"
         FeatureFlag.ProductionLogging -> "Production Logging"
         FeatureFlag.CashReservesEnabled -> "Cash Reserves"
+        FeatureFlag.MarketCapChart -> "Market Cap Chart"
     }
 
 val FeatureFlag.message: String
@@ -126,6 +137,7 @@ val FeatureFlag.message: String
         FeatureFlag.BillCustomizer -> "When enabled, you'll gain access to the bill customization playground"
         FeatureFlag.ProductionLogging -> "When enabled, traces will print to log output"
         FeatureFlag.CashReservesEnabled -> "When enabled, USDC will be brandished as Cash Reserves throughout the app"
+        FeatureFlag.MarketCapChart -> "When enabled, you'll gain access to the market cap chart in token info"
     }
 
 

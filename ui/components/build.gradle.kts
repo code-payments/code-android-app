@@ -78,4 +78,6 @@ dependencies {
     implementation(Libs.compose_accompanist)
     implementation(Libs.compose_paging)
     implementation(Libs.timber)
+    
+    api(Libs.vico_compose)
 }

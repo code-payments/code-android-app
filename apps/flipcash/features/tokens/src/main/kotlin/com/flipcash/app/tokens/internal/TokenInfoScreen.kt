@@ -1,53 +1,51 @@
 package com.flipcash.app.tokens.internal
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
-import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenSwapPurpose
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.tokens.Period
 import com.flipcash.app.tokens.TokenInfoViewModel
+import com.flipcash.app.tokens.internal.components.info.MarketCapSection
+import com.flipcash.app.tokens.internal.components.info.MarketTrend
+import com.flipcash.app.tokens.internal.components.info.TokenBalance
+import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
+import com.flipcash.app.tokens.internal.components.info.generateMarketCapData
 import com.flipcash.features.tokens.R
-import com.getcode.opencode.compose.LocalExchange
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.bolded
-import com.getcode.theme.extraSmall
-import com.getcode.ui.components.CodeChip
-import com.getcode.ui.components.text.AmountArea
-import com.getcode.ui.components.text.ExpandableText
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.format
+import com.getcode.ui.utils.calculateEndPadding
+import com.getcode.ui.utils.calculateStartPadding
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.HazeMaterials
+import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
 internal fun TokenInfoScreen(viewModel: TokenInfoViewModel) {
@@ -61,9 +59,9 @@ private fun TokenInfoScreen(
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
-
+    val hazeState = rememberHazeState()
     CodeScaffold(
-        bottomBar = { BottomBar(state, dispatch) }
+        bottomBar = { BottomBar(state, hazeState, dispatch) }
     ) { innerPadding ->
         Box(
             modifier = Modifier.verticalScrollStateGradient(
@@ -75,7 +73,11 @@ private fun TokenInfoScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(
+                        start = innerPadding.calculateStartPadding(),
+                        end = innerPadding.calculateEndPadding(),
+                    )
+                    .hazeSource(hazeState),
                 state = listState,
             ) {
                 item {
@@ -134,7 +136,7 @@ private fun TokenInfoScreen(
                             color = CodeTheme.colors.textSecondary,
                         )
                     } else {
-                        CurrencyInfoSection(
+                        TokenDetailsSection(
                             modifier = Modifier
                                 .fillParentMaxWidth(),
                             state = state,
@@ -143,31 +145,84 @@ private fun TokenInfoScreen(
                     }
                 }
 
-                if (!state.isCashReserve && state.cashReservesEnabled) {
+                if (!state.isCashReserve) {
                     // market cap
                     state.marketCap?.let { mcap ->
                         item {
+                            fun regenerateData(period: Period) {
+                                dispatch(
+                                    TokenInfoViewModel.Event.OnHistoricalMarketCapDataUpdated(
+                                        generateMarketCapData(
+                                            period = period,
+                                            trend = when (period) {
+                                                Period.All -> MarketTrend.Bullish
+                                                Period.Day -> MarketTrend.Bearish
+                                                Period.Week -> MarketTrend.Sideways
+                                                Period.Month -> MarketTrend.Volatile
+                                                Period.Year -> MarketTrend.Bullish
+                                            },
+                                            currentMarketCap = mcap
+                                        )
+                                    )
+                                )
+                            }
+                            LaunchedEffect(state.historicalMarketCapData) {
+                                if (state.historicalMarketCapData.isNotEmpty()) {
+                                    return@LaunchedEffect
+                                }
+
+                                // generate sample data
+                                regenerateData(state.selectedPeriod)
+                            }
+
                             MarketCapSection(
                                 modifier = Modifier
-                                    .fillParentMaxWidth()
-                                    .padding(horizontal = CodeTheme.dimens.inset),
-                                marketCap = mcap
+                                    .fillParentMaxWidth(),
+                                contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
+                                marketCap = mcap,
+                                chartEnabled = state.marketCapChartEnabled,
+                                selectedPeriod = state.selectedPeriod,
+                                historicalData = state.historicalMarketCapData,
+                                onPeriodSelected = {
+                                    dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
+                                    // also regenerate mcap data for sampling
+                                    regenerateData(it)
+                                },
                             )
                         }
                     }
                 }
+
+                item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) }
             }
         }
     }
 }
 
 @Composable
-private fun BottomBar(state: TokenInfoViewModel.State, dispatch: (TokenInfoViewModel.Event) -> Unit) {
+private fun BottomBar(
+    state: TokenInfoViewModel.State,
+    hazeState: HazeState,
+    dispatch: (TokenInfoViewModel.Event) -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(bottom = CodeTheme.dimens.grid.x3)
-            .navigationBarsPadding(),
+            .navigationBarsPadding()
+            .hazeEffect(
+                state = hazeState,
+                style = HazeMaterials.ultraThin(
+                    containerColor = CodeTheme.colors.background.copy(0.15f)
+                )
+            ) {
+                this.blurRadius = 20.dp
+                this.progressive = HazeProgressive.LinearGradient(
+                    startIntensity = 0.5f,
+                    endIntensity = 1f
+                )
+            }
+            .padding(vertical = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
@@ -224,189 +279,6 @@ private fun BottomBar(state: TokenInfoViewModel.State, dispatch: (TokenInfoViewM
                     )
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun TokenBalance(
-    modifier: Modifier = Modifier,
-    balance: Fiat?,
-    appreciation: Fiat,
-    onClick: () -> Unit
-) {
-    val exchange = LocalExchange.current
-    Column(
-        modifier = modifier
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x9),
-    ) {
-        if (balance == null) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CodeCircularProgressIndicator()
-            }
-        } else {
-            Crossfade(balance) { amount ->
-                AmountArea(
-                    amountText = amount.formatted(),
-                    isAltCaption = false,
-                    isAltCaptionKinIcon = false,
-                    captionText = null,
-                    currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
-                    isClickable = true,
-                    textStyle = CodeTheme.typography.displayLarge,
-                    onClick = onClick
-                )
-            }
-
-            if (appreciation > Fiat.Zero) {
-                Crossfade(appreciation) { amount ->
-                    val relativeAmount = remember(amount) {
-                        val prefix = if (amount.isNegative) "-" else "+"
-                        val value = amount.formatted()
-                        "$prefix$value"
-                    }
-
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                    ) {
-                        CodeChip(
-                            shape = CodeTheme.shapes.extraSmall,
-                            label = relativeAmount,
-                            contentPadding = PaddingValues(
-                                horizontal = 4.dp,
-                                vertical = 2.dp,
-                            ),
-                            backgroundColor = CodeTheme.colors.surfaceSuccess,
-                            contentColor = CodeTheme.colors.successText,
-                        )
-                        Text(
-                            text = "from currency appreciation",
-                            style = CodeTheme.typography.textSmall.bolded(),
-                            color = CodeTheme.colors.successText,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CurrencyInfoSection(
-    modifier: Modifier = Modifier,
-    state: TokenInfoViewModel.State,
-    dispatch: (TokenInfoViewModel.Event) -> Unit
-) {
-    Column(
-        modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.inset),
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-        ) {
-            Icon(
-                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
-                painter = painterResource(R.drawable.ic_info_bars),
-                contentDescription = null,
-            )
-
-            Text(
-                modifier = Modifier.weight(1f),
-                text = stringResource(R.string.subtitle_currencyInfo),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain,
-            )
-        }
-
-        state.token?.createdAt?.let { mintDate ->
-            Text(
-                modifier = Modifier
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(top = CodeTheme.dimens.grid.x1),
-                text = stringResource(
-                    R.string.label_mintDate,
-                    mintDate.format("MMMM dd, yyyy")
-                ),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
-            )
-        }
-
-        ExpandableText(
-            modifier = Modifier
-                .padding(
-                    top = if (state.token?.createdAt == null) {
-                        CodeTheme.dimens.grid.x1
-                    } else {
-                        CodeTheme.dimens.grid.x2
-                    }
-                ),
-            text = state.token?.description.orEmpty(),
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textSecondary,
-            isExpanded = state.descriptionExpanded,
-            isExpandable = false,
-            contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
-        ) {
-            dispatch(TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded))
-        }
-
-        Divider(
-            modifier = Modifier.padding(
-                horizontal = CodeTheme.dimens.inset,
-                vertical = CodeTheme.dimens.grid.x5
-            ),
-            color = CodeTheme.colors.dividerVariant,
-        )
-    }
-}
-
-@Composable
-private fun MarketCapSection(
-    modifier: Modifier = Modifier,
-    marketCap: Fiat,
-) {
-    Column(
-        modifier = modifier,
-    ) {
-        Text(
-            text = stringResource(R.string.subtitle_marketCap),
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textSecondary,
-        )
-        Text(
-            text = marketCap.formatted(),
-            style = CodeTheme.typography.displaySmall,
-            color = CodeTheme.colors.textMain,
-        )
-
-        Divider(
-            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x5),
-            color = CodeTheme.colors.dividerVariant,
-        )
-    }
-}
-
-@Composable
-@Preview
-private fun PreviewTokenInfo() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            ExpandableText(
-                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                text = LoremIpsum(words = 400).values.joinToString(" "),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
-                isExpanded = false,
-                isExpandable = false,
-                onToggle = { }
-            )
         }
     }
 }

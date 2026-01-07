@@ -36,6 +36,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.charts.ChartPoint
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.getButtonColors
 import com.getcode.util.resources.ResourceHelper
@@ -51,6 +52,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
+
+enum class Period {
+    All,
+    Day,
+    Week,
+    Month,
+    Year,
+    ;
+}
 
 @HiltViewModel
 class TokenInfoViewModel @Inject constructor(
@@ -68,10 +78,13 @@ class TokenInfoViewModel @Inject constructor(
         val token: Token? = null,
         val marketCap: Fiat? = null,
         val cashReservesEnabled: Boolean = false,
+        val marketCapChartEnabled: Boolean = false,
         val balance: LocalFiat = LocalFiat.Zero,
         val appreciation: Fiat = Fiat.Zero,
         val descriptionExpanded: Boolean = false,
         val reservesBalance: LocalFiat = LocalFiat.Zero,
+        val historicalMarketCapData: List<ChartPoint<Long, Long>> = emptyList(),
+        val selectedPeriod: Period = Period.All,
     ) {
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
@@ -85,9 +98,13 @@ class TokenInfoViewModel @Inject constructor(
 
     sealed interface Event {
         data class CashReservesEnabled(val enabled: Boolean): Event
+        data class MarketCapChartEnabled(val enabled: Boolean): Event
         data class OnMintProvided(val mint: Mint): Event
         data class OnTokenChanged(val token: Token): Event
         data class OnMarketCapChanged(val mcap: Fiat?): Event
+
+        data class OnHistoricalMarketCapDataUpdated(val data: List<ChartPoint<Long, Long>>): Event
+        data class OnMarketCapPeriodSelected(val period: Period): Event
         data class OnBalanceUpdated(val balance: LocalFiat): Event
         data class OnReservesUpdated(val balance: LocalFiat): Event
         data class OnAppreciationUpdated(val amount: Fiat): Event
@@ -103,6 +120,11 @@ class TokenInfoViewModel @Inject constructor(
         features.observe(FeatureFlag.CashReservesEnabled)
             .onEach {
                 dispatchEvent(Event.CashReservesEnabled(it))
+            }.launchIn(viewModelScope)
+
+        features.observe(FeatureFlag.MarketCapChart)
+            .onEach {
+                dispatchEvent(Event.MarketCapChartEnabled(it))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -263,6 +285,7 @@ class TokenInfoViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.CashReservesEnabled -> { state -> state.copy(cashReservesEnabled = event.enabled) }
+                is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
@@ -270,6 +293,8 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnReservesUpdated -> { state -> state.copy(reservesBalance = event.balance) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
+                is Event.OnHistoricalMarketCapDataUpdated -> { state -> state.copy(historicalMarketCapData = event.data) }
+                is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
                 is Event.OpenScreen -> { state -> state }
                 is Event.ConnectPhantomWallet -> { state -> state }
                 is Event.OpenPurchaseMethods -> { state -> state }

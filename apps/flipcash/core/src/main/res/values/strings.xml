@@ -468,4 +468,15 @@
     <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
+
+    <string name="label_marketCapAllTimeShort">ALL</string>
+    <string name="label_marketCapAllTime">all time</string>
+    <string name="label_marketCapDayShort">1D</string>
+    <string name="label_marketCapDay">today</string>
+    <string name="label_marketCapWeekShort">1W</string>
+    <string name="label_marketCapWeek">this week</string>
+    <string name="label_marketCapMonthShort">1M</string>
+    <string name="label_marketCapMonth">this month</string>
+    <string name="label_marketCapYearShort">1Y</string>
+    <string name="label_marketCapYear">this year</string>
 </resources>

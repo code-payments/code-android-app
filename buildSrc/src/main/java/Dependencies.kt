@@ -2,12 +2,12 @@
 
 object Versions {
     const val java = "21"
-    const val kotlin = "2.1.20"
+    const val kotlin = "2.2.21"
     const val kotlinx_coroutines = "1.10.2"
     const val kotlinx_serialization = "1.9.0"
     const val kotlinx_datetime = "0.7.1"
 
-    private const val ksp = "2.0.1"
+    private const val ksp = "2.0.4"
     const val kotlin_ksp = "$kotlin-$ksp"
 
     const val android_gradle_build_tools = "8.9.1"
@@ -30,11 +30,11 @@ object Versions {
     const val androidx_work = "2.10.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2025.11.00"
+    const val compose = "2025.12.01"
 
-    const val compose_activities: String = "1.11.0"
+    const val compose_activities: String = "1.12.2"
     const val compose_view_models: String = "2.6.2"
-    const val compose_navigation: String = "2.8.0"
+    const val compose_navigation: String = "2.9.1"
     const val compose_paging = "3.3.6"
     const val compose_webview = "0.33.6"
 
@@ -92,9 +92,11 @@ object Versions {
 
     const val rinku = "1.5.0"
 
-    const val haze = "1.6.10"
+    const val haze = "1.7.1"
 
     const val cloudy = "0.2.7"
+
+    const val vico = "2.4.0"
 }
 
 object Classpath {
@@ -346,4 +348,6 @@ object Libs {
     const val eventBus = "io.github.hoc081098:channel-event-bus:${Versions.eventBus}"
 
     const val solana_mwa = "com.solanamobile:mobile-wallet-adapter-clientlib-ktx:${Versions.solana_mwa}"
+
+    const val vico_compose = "com.patrykandpatrick.vico:compose:${Versions.vico}"
 }
