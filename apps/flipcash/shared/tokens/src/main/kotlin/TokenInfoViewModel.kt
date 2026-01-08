@@ -26,6 +26,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.app.tokens.data.Period
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -52,15 +53,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
-
-enum class Period {
-    All,
-    Day,
-    Week,
-    Month,
-    Year,
-    ;
-}
 
 @HiltViewModel
 class TokenInfoViewModel @Inject constructor(

@@ -1,4 +1,4 @@
-package com.flipcash.app.tokens.internal.components.info
+package com.flipcash.app.tokens.internal.components.marketcap
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -13,7 +13,10 @@ import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -27,15 +30,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.theme.FlipcashDesignSystem
-import com.flipcash.app.tokens.Period
+import com.flipcash.app.tokens.data.MarketCapPoint
+import com.flipcash.app.tokens.data.MarketTrend
+import com.flipcash.app.tokens.data.Period
+import com.flipcash.app.tokens.data.collapse
 import com.flipcash.features.tokens.R
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.charts.ChartPoint
 import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.charts.yValues
+import com.getcode.util.vibration.LocalVibrator
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.layer.continuous
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
@@ -60,50 +66,53 @@ import com.patrykandpatrick.vico.core.common.component.Shadow
 import com.patrykandpatrick.vico.core.common.shader.ShaderProvider
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import kotlinx.coroutines.runBlocking
-import java.util.Random
-import kotlin.math.pow
-import kotlin.math.roundToLong
-import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.hours
-
-enum class MarketTrend {
-    Bullish,
-    Bearish,
-    Sideways,
-    Volatile,
-    ;
-}
 
 @Composable
 internal fun MarketCapChart(
-    data: List<ChartPoint<Long, Long>>,
+    data: List<MarketCapPoint>,
     trendType: TrendType,
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
     chartPadding: PaddingValues = PaddingValues(),
     periodPadding: PaddingValues = PaddingValues(),
-    onPointHighlighted: (ChartPoint<Long, Long>?) -> Unit,
+    onPointHighlighted: (MarketCapPoint?) -> Unit,
     onPeriodSelected: (Period) -> Unit,
 ) {
-    var seriesData by remember {
-        mutableStateOf<List<ChartPoint<Long, Long>>>(emptyList())
+    var historicalData by remember {
+        mutableStateOf<List<MarketCapPoint>>(emptyList())
+    }
+
+    LaunchedEffect(data) {
+        if (data.isNotEmpty()) {
+            historicalData = data
+        }
     }
 
     val modelProducer = remember { CartesianChartModelProducer() }
 
-    LaunchedEffect(data, selectedPeriod) {
-        if (data.isNotEmpty()) {
-            seriesData = data
+    val windowedData by remember(historicalData, selectedPeriod) {
+        derivedStateOf {
+            historicalData.collapse(selectedPeriod)
+        }
+    }
+
+    // Update the model when the window changes
+    LaunchedEffect(windowedData) {
+        if (windowedData.isNotEmpty()) {
             modelProducer.runTransaction {
-                lineSeries { series(data.yValues) }
+                lineSeries {
+                    series(
+                        x = windowedData.indices.map { it.toDouble() },
+                        y = windowedData.map { it.y },
+                    )
+                }
             }
         }
     }
 
-    val trend = remember(seriesData) {
-        trendType.determineTrend(seriesData.yValues)
+    val trend = remember(windowedData) {
+        trendType.determineTrend(windowedData.yValues)
     }
 
     MarketCapChart(
@@ -113,10 +122,9 @@ internal fun MarketCapChart(
         modifier = modifier,
         chartPadding = chartPadding,
         periodPadding = periodPadding,
-        lastPoint = seriesData.lastOrNull(),
         onPeriodSelected = onPeriodSelected,
         onPointHighlighted = { target ->
-            val datum = seriesData.getOrNull(target?.x?.toInt() ?: -1)
+            val datum = windowedData.getOrNull(target?.x?.toInt() ?: -1)
             onPointHighlighted(datum)
         }
     )
@@ -130,7 +138,6 @@ private fun MarketCapChart(
     modifier: Modifier = Modifier,
     chartPadding: PaddingValues = PaddingValues(),
     periodPadding: PaddingValues = PaddingValues(),
-    lastPoint: ChartPoint<Long, Long>?,
     onPointHighlighted: (CartesianMarker.Target?) -> Unit,
     onPeriodSelected: (Period) -> Unit,
 ) {
@@ -138,98 +145,14 @@ private fun MarketCapChart(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6)
     ) {
-        val trendColor = trend.color
-        val trendAlpha = if (trend is LineTrend.Up) 0.10f else 0.25f
-
-        var isDragging by remember { mutableStateOf(false) }
-        val markerVisibilityListener = remember {
-            object : CartesianMarkerVisibilityListener {
-                override fun onShown(
-                    marker: CartesianMarker,
-                    targets: List<CartesianMarker.Target>
-                ) {
-                    isDragging = true
-                    onPointHighlighted(targets.firstOrNull())
-                }
-
-                override fun onHidden(marker: CartesianMarker) {
-                    isDragging = false
-                    onPointHighlighted(null)
-                }
-
-                override fun onUpdated(
-                    marker: CartesianMarker,
-                    targets: List<CartesianMarker.Target>
-                ) {
-                    onPointHighlighted(targets.firstOrNull())
-                }
-            }
-        }
-
-        val markerFill = CodeTheme.colors.background
-
-        val marker = rememberDefaultCartesianMarker(
-            label = rememberTextComponent(
-                color = Color.Transparent,
-            ),
-            valueFormatter = remember {
-                DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
-            },
-            indicator = { color ->
-                shapeComponent(
-                    fill = fill(markerFill),
-                    strokeFill = fill(color),
-                    strokeThickness = 2.dp,
-                    margins = Insets(4f),
-                    shape = markerCorneredShape(CorneredShape.Corner.Rounded),
-                    shadow = Shadow(
-                        radiusDp = 20f,
-                        color = color.copy(0.20f).toArgb()
-                    )
-                )
-            },
-            indicatorSize = CodeTheme.dimens.grid.x4,
-            guideline = null,
-        )
-
-        val chart = rememberCartesianChart(
-            rememberLineCartesianLayer(
-                lineProvider = LineCartesianLayer.LineProvider.series(
-                    LineCartesianLayer.rememberLine(
-                        fill = remember(trend) { LineCartesianLayer.LineFill.single(fill(trendColor)) },
-                        stroke = LineCartesianLayer.LineStroke.continuous(thickness = CodeTheme.dimens.thickBorder * 1.5f),
-                        areaFill = remember(trend) {
-                            LineCartesianLayer.AreaFill.single(
-                                fill(
-                                    ShaderProvider.verticalGradient(
-                                        trendColor.copy(alpha = trendAlpha).toArgb(),
-                                        trendColor.copy(alpha = 0f).toArgb(),
-                                    )
-                                )
-                            )
-                        },
-                        pointConnector = LineCartesianLayer.PointConnector.cubic(1f)
-                    )
-                ),
-            ),
-            persistentMarkers = {
-                emptyMap<Long, CartesianMarker>()
-            },
-            markerVisibilityListener = markerVisibilityListener,
-            markerController = CartesianMarkerController.rememberShowOnPress(consumeMoveEvents = true),
-            marker = marker,
-            startAxis = null,
-            bottomAxis = null,
-        )
-
-        CartesianChartHost(
+        MarketCapChartContent(
+            producer = modelProducer,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(chartPadding)
                 .weight(1f),
-            chart = chart,
-            modelProducer = modelProducer,
-            scrollState = rememberVicoScrollState(scrollEnabled = false)
+            trend = trend,
+            onPointHighlighted = onPointHighlighted,
         )
 
         TabRow(
@@ -279,105 +202,144 @@ private fun MarketCapChart(
     }
 }
 
-internal fun generateMarketCapData(
-    period: Period,
-    currentMarketCap: Fiat,
-    trend: MarketTrend = MarketTrend.Bullish
-): List<ChartPoint<Long, Long>> {
-    return generateMarketCapData(
-        points = pointsPerPeriod(period),
-        trend = trend,
-        endValue = currentMarketCap.quarks,
-        duration = when (period) {
-            Period.All -> Duration.INFINITE
-            Period.Day -> 1.days
-            Period.Week -> 7.days
-            Period.Month -> 30.days
-            Period.Year -> 365.days
+@Composable
+private fun MarketCapChartContent(
+    producer: CartesianChartModelProducer,
+    trend: LineTrend,
+    modifier: Modifier = Modifier,
+    onPointHighlighted: (CartesianMarker.Target?) -> Unit
+) {
+    val trendColor = trend.color
+    val trendAlpha = if (trend is LineTrend.Up) 0.10f else 0.25f
+
+    var markerFraction by remember { mutableFloatStateOf(1f) }
+    val vibrator = LocalVibrator.current
+
+    var isDragging by remember { mutableStateOf(false) }
+    val markerVisibilityListener = remember {
+        object : CartesianMarkerVisibilityListener {
+            override fun onShown(
+                marker: CartesianMarker,
+                targets: List<CartesianMarker.Target>
+            ) {
+                val x = targets.firstOrNull()?.x ?: return
+                // tick on scrubbing start
+                vibrator.tick()
+                isDragging = true
+
+                markerFraction = (x.toFloat() / 100f).coerceIn(0f, 1f)
+                onPointHighlighted(targets.firstOrNull())
+            }
+
+            override fun onHidden(marker: CartesianMarker) {
+                markerFraction = 1f
+                isDragging = false
+                onPointHighlighted(null)
+            }
+
+            override fun onUpdated(
+                marker: CartesianMarker,
+                targets: List<CartesianMarker.Target>
+            ) {
+                val x = targets.firstOrNull()?.x ?: return
+                markerFraction = (x.toFloat() / 100f).coerceIn(0f, 1f)
+                onPointHighlighted(targets.firstOrNull())
+            }
         }
+    }
+
+    val lineFill = rememberSplitLineFill(
+        leftColor = trendColor,
+        rightColor = trend.pressedColor,
+        splitFraction = markerFraction + 0.005f,
+    )
+
+    val markerFill = CodeTheme.colors.background
+
+    val marker = rememberDefaultCartesianMarker(
+        label = rememberTextComponent(
+            color = Color.Transparent,
+        ),
+        valueFormatter = remember {
+            DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
+        },
+        indicator = {
+            shapeComponent(
+                fill = fill(markerFill),
+                strokeFill = fill(trendColor),
+                strokeThickness = 2.dp,
+                margins = Insets(4f),
+                shape = markerCorneredShape(CorneredShape.Corner.Rounded),
+                shadow = Shadow(
+                    radiusDp = 20f,
+                    color = trendColor.copy(0.20f).toArgb()
+                )
+            )
+        },
+        indicatorSize = CodeTheme.dimens.grid.x4,
+        guideline = null,
+    )
+
+    val chart = rememberCartesianChart(
+        rememberLineCartesianLayer(
+            lineProvider = LineCartesianLayer.LineProvider.series(
+                LineCartesianLayer.rememberLine(
+                    fill = lineFill,
+                    areaFill = remember(trend) {
+                        LineCartesianLayer.AreaFill.single(
+                            fill(
+                                ShaderProvider.verticalGradient(
+                                    trendColor.copy(alpha = trendAlpha).toArgb(),
+                                    trendColor.copy(alpha = 0f).toArgb(),
+                                )
+                            )
+                        )
+                    },
+                ),
+            ),
+        ),
+        persistentMarkers = remember(isDragging, marker) {
+            if (isDragging) {
+                { } // empty when dragging
+            } else {
+                { marker at 99.0 } // last point in normalized range
+            }
+        },
+        markerVisibilityListener = markerVisibilityListener,
+        markerController = CartesianMarkerController.rememberShowOnPress(consumeMoveEvents = true),
+        marker = marker,
+        startAxis = null,
+        bottomAxis = null,
+    )
+
+    CartesianChartHost(
+        modifier = modifier,
+        chart = chart,
+        modelProducer = producer,
+        scrollState = rememberVicoScrollState(scrollEnabled = false),
     )
 }
 
-internal fun generateMarketCapData(
-    points: Int = 100,
-    endValue: Long = 1_000_000L,
-    trend: MarketTrend = MarketTrend.Bullish,
-    duration: Duration = 30.days,
-): List<ChartPoint<Long, Long>> {
-    val random = Random(System.currentTimeMillis())
-
-    val isAllTime = duration == Duration.INFINITE
-
-    val changePercent = when {
-        isAllTime -> 0.95..0.99
-        duration <= 1.days -> 0.02..0.08
-        duration <= 7.days -> 0.05..0.20
-        duration <= 30.days -> 0.15..0.50
-        else -> 0.30..1.0
-    }.let { range ->
-        range.start + random.nextDouble() * (range.endInclusive - range.start)
-    }
-
-    val (startValue, baseVolatility) = when {
-        isAllTime -> endValue * 0.00 to 0.05
-        else -> when (trend) {
-            MarketTrend.Bullish -> endValue / (1 + changePercent) to 0.33
-            MarketTrend.Bearish -> endValue * (1 + changePercent) to 0.16
-            MarketTrend.Sideways -> endValue * (1 - changePercent * 0.1) to 0.04
-            MarketTrend.Volatile -> endValue / (1 + changePercent * 0.5) to 0.7
-        }
-    }
-
-    var momentum = 0.0
-
-    val endTime = Clock.System.now().toEpochMilliseconds()
-    val effectiveDuration = if (isAllTime) 365.days else duration
-    val startTime = endTime - effectiveDuration.inWholeMilliseconds
-    val timeStep = effectiveDuration.inWholeMilliseconds / (points - 1).coerceAtLeast(1)
-
-    return List(points) { i ->
-        val progress = i.toDouble() / (points - 1).coerceAtLeast(1)
-
-        // Last point is always exactly endValue
-        if (i == points - 1) {
-            return@List ChartPoint(
-                x = startTime + (timeStep * i),
-                y = endValue
+@Composable
+private fun rememberSplitLineFill(
+    leftColor: Color,
+    rightColor: Color,
+    splitFraction: Float, // 0-1, where the split occurs
+): LineCartesianLayer.LineFill {
+    return remember(leftColor, rightColor, splitFraction) {
+        LineCartesianLayer.LineFill.single(
+            fill(
+                ShaderProvider.horizontalGradient(
+                    intArrayOf(
+                        leftColor.toArgb(),
+                        leftColor.toArgb(),
+                        rightColor.toArgb(),
+                        rightColor.toArgb(),
+                    ),
+                    positions = floatArrayOf(0f, splitFraction, splitFraction, 1f)
+                )
             )
-        }
-
-        val easedProgress = when {
-            isAllTime -> 1 - (1 - progress).pow(3.0)
-            else -> when (trend) {
-                MarketTrend.Bullish -> 1 - (1 - progress).pow(2.5)
-                MarketTrend.Bearish -> progress.pow(2.5)
-                MarketTrend.Sideways -> progress
-                MarketTrend.Volatile -> progress
-            }
-        }
-
-        val target = startValue + (endValue - startValue) * easedProgress
-        val noiseScale = target.coerceAtLeast(1.0)
-        val noise = random.nextGaussian() * noiseScale * baseVolatility
-        momentum = 0.7 * momentum + 0.3 * noise
-
-        val value = (target + momentum).coerceAtLeast(0.0).roundToLong()
-
-        ChartPoint(
-            x = startTime + (timeStep * i),
-            y = value
         )
-    }
-}
-
-private fun pointsPerPeriod(period: Period): Int {
-    val pointsPerHour = 4
-    return when (period) {
-        Period.All -> 100
-        Period.Day -> 1.hours.inWholeHours.toInt() * pointsPerHour
-        Period.Week -> 7
-        Period.Month -> 30
-        Period.Year -> 365
     }
 }
 
@@ -394,15 +356,8 @@ private fun PreviewMarketCapChart() {
 
         val data = remember(selectedPeriod) {
             generateMarketCapData(
-                points = pointsPerPeriod(selectedPeriod),
                 trend = trend,
-                duration = when (selectedPeriod) {
-                    Period.All -> 100.days
-                    Period.Day -> 1.days
-                    Period.Week -> 7.days
-                    Period.Month -> 30.days
-                    Period.Year -> 365.days
-                }
+                duration = Duration.INFINITE
             )
         }
         val trendType = TrendType.LinearRegression
@@ -426,11 +381,10 @@ private fun PreviewMarketCapChart() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
-                .padding(bottom = 16.dp),
+                .padding(bottom = CodeTheme.dimens.grid.x4),
             trend = trend,
             modelProducer = modelProducer,
             selectedPeriod = selectedPeriod,
-            lastPoint = data.last(),
             onPointHighlighted = { target ->
                 val datum = data.find { it.x.toDouble() == target?.x }
                 highlightedPoint = datum

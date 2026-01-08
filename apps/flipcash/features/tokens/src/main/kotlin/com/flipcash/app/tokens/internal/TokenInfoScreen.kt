@@ -25,13 +25,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenSwapPurpose
-import com.flipcash.app.tokens.Period
 import com.flipcash.app.tokens.TokenInfoViewModel
+import com.flipcash.app.tokens.data.MarketTrend
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
-import com.flipcash.app.tokens.internal.components.info.MarketTrend
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
-import com.flipcash.app.tokens.internal.components.info.generateMarketCapData
+import com.flipcash.app.tokens.internal.components.marketcap.generateMarketCapData
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -149,30 +148,21 @@ private fun TokenInfoScreen(
                     // market cap
                     state.marketCap?.let { mcap ->
                         item {
-                            fun regenerateData(period: Period) {
-                                dispatch(
-                                    TokenInfoViewModel.Event.OnHistoricalMarketCapDataUpdated(
-                                        generateMarketCapData(
-                                            period = period,
-                                            trend = when (period) {
-                                                Period.All -> MarketTrend.Bullish
-                                                Period.Day -> MarketTrend.Bearish
-                                                Period.Week -> MarketTrend.Sideways
-                                                Period.Month -> MarketTrend.Volatile
-                                                Period.Year -> MarketTrend.Bullish
-                                            },
-                                            currentMarketCap = mcap
-                                        )
-                                    )
-                                )
-                            }
                             LaunchedEffect(state.historicalMarketCapData) {
                                 if (state.historicalMarketCapData.isNotEmpty()) {
                                     return@LaunchedEffect
                                 }
 
                                 // generate sample data
-                                regenerateData(state.selectedPeriod)
+                                dispatch(
+                                    TokenInfoViewModel.Event.OnHistoricalMarketCapDataUpdated(
+                                        generateMarketCapData(
+                                            mintDate = state.token!!.createdAt!!,
+                                            currentMarketCap = mcap,
+                                            period = state.selectedPeriod
+                                        )
+                                    )
+                                )
                             }
 
                             MarketCapSection(
@@ -182,11 +172,19 @@ private fun TokenInfoScreen(
                                 marketCap = mcap,
                                 chartEnabled = state.marketCapChartEnabled,
                                 selectedPeriod = state.selectedPeriod,
-                                historicalData = state.historicalMarketCapData,
+                                rawHistoricalData = state.historicalMarketCapData,
                                 onPeriodSelected = {
                                     dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
-                                    // also regenerate mcap data for sampling
-                                    regenerateData(it)
+                                    // generate sample data
+                                    dispatch(
+                                        TokenInfoViewModel.Event.OnHistoricalMarketCapDataUpdated(
+                                            generateMarketCapData(
+                                                mintDate = state.token!!.createdAt!!,
+                                                currentMarketCap = mcap,
+                                                period = it,
+                                            )
+                                        )
+                                    )
                                 },
                             )
                         }

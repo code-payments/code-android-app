@@ -7,15 +7,21 @@ import com.getcode.theme.CodeTheme
 sealed interface LineTrend {
     @get:Composable
     val color: Color
+    @get:Composable
+    val pressedColor: Color
 
     data object Up : LineTrend {
         override val color: Color
             @Composable get() = CodeTheme.colors.success
+        override val pressedColor: Color
+            @Composable get() = Color(0xFF113522)
     }
 
     data object Down : LineTrend {
         override val color: Color
             @Composable get() = CodeTheme.colors.error
+        override val pressedColor: Color
+            @Composable get() = Color(0xFF3C2525)
     }
 }
 
