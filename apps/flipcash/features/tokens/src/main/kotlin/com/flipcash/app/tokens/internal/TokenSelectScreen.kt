@@ -60,24 +60,23 @@ private fun SelectTokenScreenContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset),
-                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = stringResource(R.string.title_tapBelowToAddCashWallet),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textSecondary,
+                        text = stringResource(R.string.title_noBalanceYet),
+                        style = CodeTheme.typography.textLarge,
+                        color = CodeTheme.colors.textMain,
                         textAlign = TextAlign.Center,
                     )
 
-                    CodeButton(
-                        text = stringResource(R.string.action_addCash),
-                        buttonState = ButtonState.Filled,
-                        contentPadding = PaddingValues(
-                            horizontal = CodeTheme.dimens.grid.x11,
-                            vertical = CodeTheme.dimens.grid.x2
-                        )
-                    ) { dispatch(SelectTokenViewModel.Event.OnAddCashClicked) }
+                    Text(
+                        modifier = Modifier.fillMaxWidth(0.6f),
+                        text = stringResource(R.string.description_noBalanceYet),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
         },

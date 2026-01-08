@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.formatted
@@ -43,8 +44,10 @@ internal fun BalanceScreen(
     viewModel: BalanceViewModel,
     tokenViewModel: SelectTokenViewModel,
 ) {
-    val tokenState by tokenViewModel.stateFlow.collectAsState()
+    val walletState by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
     BalanceScreenContent(
+        walletState = walletState,
         tokenState = tokenState,
         dispatchEvent = viewModel::dispatchEvent
     )
@@ -52,6 +55,7 @@ internal fun BalanceScreen(
 
 @Composable
 private fun BalanceScreenContent(
+    walletState: BalanceViewModel.State,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
@@ -64,16 +68,20 @@ private fun BalanceScreenContent(
             dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
         }
 
-        AddCashRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = CodeTheme.dimens.inset,
-                    vertical = CodeTheme.dimens.grid.x4,
-                ),
-            onAddCash = { dispatchEvent(BalanceViewModel.Event.OnAddCashClicked) },
-            onWithdraw = { dispatchEvent(BalanceViewModel.Event.OnWithdrawClicked) },
-        )
+        if (walletState.quickActionsEnabled) {
+            AddCashRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = CodeTheme.dimens.inset,
+                        vertical = CodeTheme.dimens.grid.x4,
+                    ),
+                onAddCash = { dispatchEvent(BalanceViewModel.Event.OnAddCashClicked) },
+                onWithdraw = { dispatchEvent(BalanceViewModel.Event.OnWithdrawClicked) },
+            )
+        } else {
+            Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
+        }
 
         val tokens = remember(tokenState.tokens) { tokenState.tokens }
 
@@ -84,19 +92,27 @@ private fun BalanceScreenContent(
                 Box(
                     modifier = Modifier
                         .fillParentMaxSize()
-                        .padding(bottom = CodeTheme.dimens.inset),
+                        .padding(bottom = CodeTheme.dimens.grid.x20),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x12),
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = stringResource(R.string.title_tapAboveToAddCashToWallet),
-                            style = CodeTheme.typography.textMedium,
+                            text = stringResource(R.string.title_noBalanceYet),
+                            style = CodeTheme.typography.textLarge,
+                            color = CodeTheme.colors.textMain,
+                            textAlign = TextAlign.Center,
+                        )
+
+                        Text(
+                            modifier = Modifier.fillMaxWidth(0.6f),
+                            text = stringResource(R.string.description_noBalanceYet),
+                            style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
                         )
@@ -173,6 +189,7 @@ private fun Preview_BalanceScreen_Empty() {
         ) {
             Box(modifier = Modifier.background(CodeTheme.colors.background)) {
                 BalanceScreenContent(
+                    walletState = BalanceViewModel.State(),
                     tokenState = SelectTokenViewModel.State(
                         purpose = TokenPurpose.Balance,
                         tokens = emptyList()

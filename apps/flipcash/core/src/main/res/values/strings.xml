@@ -60,7 +60,7 @@
     <string name="subtitle_balanceEmptyState">Ask a friend to give you some cash with Flipcash, or deposit USDC from your crypto exchange or another crypto wallet</string>
     <string name="action_depositFunds">Deposit Funds</string>
 
-    <string name="title_depositUsdc">Deposit Solana USDC</string>
+    <string name="title_depositUsdc">Deposit Funds</string>
     <string name="title_withdrawUsdc">Withdraw Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
@@ -287,6 +287,8 @@
     <string name="action_addMoreCash">Add More Cash</string>
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
     <string name="title_tapBelowToAddCashWallet">You don’t have any cash yet.\nTap below to add cash to your wallet</string>
+    <string name="title_noBalanceYet">No Balance Yet</string>
+    <string name="description_noBalanceYet">Get another Flipcash user to give you some cash to get a balance</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 

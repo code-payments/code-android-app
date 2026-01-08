@@ -28,6 +28,8 @@ data class Fiat(
     val decimalValue: Double
         get() = quarks.toDouble() / MULTIPLIER
 
+    val isPositive: Boolean
+        get() = quarks > 0
     val isNegative: Boolean
         get() = quarks < 0
 
@@ -244,6 +246,7 @@ operator fun Fiat.div(rhs: Int): Fiat {
     return Fiat(quarks = this.quarks / rhs, currencyCode = currencyCode)
 }
 
+fun Fiat?.orZero() = this ?: Fiat.Zero
 fun Iterable<Fiat>.sum(): Fiat {
     return this.fold(Fiat.Zero) { acc, fiat -> acc + fiat }
 }

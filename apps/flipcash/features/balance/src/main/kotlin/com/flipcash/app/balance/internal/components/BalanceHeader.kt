@@ -35,12 +35,10 @@ internal fun BalanceHeader(
             }
         } else {
             Crossfade(balance.nativeAmount) { amount ->
-                val captionText = stringResource(R.string.subtitle_currentValueOfAllCurrencies)
                 AmountArea(
                     amountText = amount.formatted(),
                     isAltCaption = false,
                     isAltCaptionKinIcon = false,
-                    captionText = captionText,
                     currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
                     isClickable = true,
                     textStyle = CodeTheme.typography.displayLarge,

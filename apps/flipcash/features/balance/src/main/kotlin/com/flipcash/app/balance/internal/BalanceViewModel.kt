@@ -37,6 +37,7 @@ internal class BalanceViewModel @Inject constructor(
 ) {
     data class State(
         val preferredOnRampProvider: OnRampProvider? = null,
+        val quickActionsEnabled: Boolean = false,
     )
 
     sealed interface Event {

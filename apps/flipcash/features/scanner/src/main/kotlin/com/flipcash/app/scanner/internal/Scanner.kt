@@ -1,5 +1,6 @@
 package com.flipcash.app.scanner.internal
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
@@ -17,7 +18,10 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.features.scanner.R
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.opencode.model.financial.orZero
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.ui.scanner.NoCamerasAvailableException
@@ -52,6 +56,8 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         mutableStateOf(true)
     }
 
+    val context = LocalContext.current
+
     ScannerDeepLinkHandler(
         deepLink = deepLink,
         previewing = previewing,
@@ -59,12 +65,27 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         navigator = navigator
     )
 
+    @SuppressLint("LocalContextGetResourceValueCall")
     BillContainer(
         isPaused = isPaused,
         isCameraReady = previewing == true,
         isCameraStarted = cameraStarted,
         onStartCamera = { cameraStarted = true },
         onAction = {
+            when (it) {
+                ScannerDecorItem.Give -> {
+                    // only allow navigation to give when there is something to give
+                    val hasBalance = state.balance.orZero().isPositive
+                    if (!hasBalance) {
+                        BottomBarManager.showError(
+                            title = context.getString(R.string.title_noBalanceYet),
+                            message = context.getString(R.string.description_noBalanceYet),
+                        )
+                        return@BillContainer
+                    }
+                }
+                else -> Unit
+            }
             navigator.show(ScreenRegistry.get(it.screen))
         },
         scannerView = {
@@ -125,7 +146,6 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         previewing = !navigator.isVisible
     }
 
-    val context = LocalContext.current
     LaunchedEffect(billState.bill) {
         if (billState.bill != null) {
             navigator.hide()

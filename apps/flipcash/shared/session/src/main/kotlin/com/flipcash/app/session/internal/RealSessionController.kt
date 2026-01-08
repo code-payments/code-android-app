@@ -46,6 +46,7 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.utils.nonce
@@ -158,6 +159,12 @@ class RealSessionController @Inject constructor(
 
         featureFlagController.observe(FeatureFlag.VibrateOnScan)
             .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
+            .launchIn(scope)
+
+        tokenController.tokenBalances
+            .map { tokens -> tokens.map { it.balance } }
+            .map { balances -> balances.sum() }
+            .onEach { balance -> _state.update { it.copy(balance = balance) } }
             .launchIn(scope)
 
         poolsCoordinator.openPool
