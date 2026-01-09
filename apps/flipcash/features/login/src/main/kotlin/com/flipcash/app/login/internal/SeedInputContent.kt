@@ -13,18 +13,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -35,6 +41,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.login.seed.SeedInputUiModel
@@ -61,7 +69,8 @@ internal fun SeedInputContent(viewModel: SeedInputViewModel) {
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
         onLogin = { viewModel.onSubmit(navigator) },
-        onRestore = { viewModel.restoreAccount(navigator) }
+        onRestore = { viewModel.restoreAccount(navigator) },
+        onCantFind = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.AccessKeySavedLocation)) }
     )
 }
 
@@ -71,9 +80,10 @@ private fun SeedInputContent(
     onTextChange: (String) -> Unit,
     onLogin: () -> Unit,
     onRestore: suspend () -> Unit,
+    onCantFind: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    val focusRequester = FocusRequester()
+    val focusRequester = remember { FocusRequester() }
     val featureFlags = LocalFeatureFlags.current
     val restoreEnabled by featureFlags.observe(FeatureFlag.CredentialManager).collectAsState()
 
@@ -85,12 +95,49 @@ private fun SeedInputContent(
     CodeScaffold(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(bottom = CodeTheme.dimens.grid.x4),
+            .windowInsetsPadding(WindowInsets.navigationBars),
+        floatingActionButton = {
+            if (restoreEnabled) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
+                ) {
+                    Text(
+                        modifier = Modifier,
+                        text = stringResource(R.string.action_recoverExistingAccount),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary
+                    )
+
+                    FloatingActionButton(
+                        backgroundColor = CodeTheme.colors.surfaceSuccess,
+                        contentColor = CodeTheme.colors.textMain,
+                        shape = CircleShape,
+                        onClick = {
+                            composeScope.launch {
+                                if (keyboardVisible) {
+                                    ime?.hide()
+                                    delay(500.scaled(animationScale))
+                                }
+                                onRestore()
+                            }
+                        }
+                    ) {
+                        Image(
+                            imageVector = Icons.Default.SettingsBackupRestore,
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(CodeTheme.colors.textMain),
+                        )
+                    }
+                }
+            }
+        }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding),
+            modifier = Modifier
+                .padding(padding)
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(bottom = CodeTheme.dimens.grid.x4),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {
             Text(
@@ -160,24 +207,22 @@ private fun SeedInputContent(
                 buttonState = ButtonState.Filled,
             )
 
-            if (restoreEnabled) {
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .clickable {
-                            composeScope.launch {
-                                if (keyboardVisible) {
-                                    ime?.hide()
-                                    delay(500.scaled(animationScale))
-                                }
-                                onRestore()
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clickable {
+                        composeScope.launch {
+                            if (keyboardVisible) {
+                                ime?.hide()
+                                delay(500.scaled(animationScale))
                             }
-                        },
-                    text = "Recover Existing Account",
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary
-                )
-            }
+                            onCantFind()
+                        }
+                    },
+                text = stringResource(R.string.title_cantFindYourAccessKey),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary
+            )
         }
     }
 

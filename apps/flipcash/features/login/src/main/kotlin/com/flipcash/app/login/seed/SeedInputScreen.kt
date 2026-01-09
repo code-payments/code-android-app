@@ -2,7 +2,10 @@ package com.flipcash.app.login.seed
 
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -31,7 +34,9 @@ class SeedInputScreen: Screen, NamedScreen, Parcelable {
         val navigator = LocalCodeNavigator.current
         Column {
             AppBarWithTitle(
+                modifier = Modifier.fillMaxWidth(),
                 backButton = true,
+                titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = { navigator.pop() },
                 title = name,
             )

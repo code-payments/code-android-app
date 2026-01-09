@@ -1,8 +1,10 @@
 package com.flipcash.app.core.android
 
+import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.MediaStore
 import android.provider.Settings
 import androidx.core.net.toUri
 import com.flipcash.app.core.util.Linkify
@@ -18,6 +20,17 @@ object IntentUtils {
     fun tweet(message: String) = Intent(Intent.ACTION_VIEW).apply {
         val url = Linkify.tweet(message)
         setData(url.toUri())
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    fun imageSearch(query: String) = Intent(Intent.ACTION_SEARCH).apply {
+        type = "image/*"
+        putExtra(SearchManager.QUERY, query)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    fun photosApp() = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
 

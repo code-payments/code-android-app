@@ -17,6 +17,7 @@ import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.PreloadLabs
 import com.flipcash.app.lab.StandaloneLabsScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
+import com.flipcash.app.login.accesskey.PhotoAccessKeyScreen
 import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
@@ -60,6 +61,10 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Onboarding.AccessKey> {
             AccessKeyScreen()
+        }
+
+        register<AppRoute.Onboarding.AccessKeySavedLocation> {
+            PhotoAccessKeyScreen()
         }
 
         register<AppRoute.Onboarding.Purchase> {

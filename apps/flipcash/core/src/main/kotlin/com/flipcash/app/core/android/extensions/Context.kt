@@ -16,6 +16,18 @@ fun Context.launchAppSettings() {
     ContextCompat.startActivity(this, intent, null)
 }
 
+fun Context.launchPhotos(searchQuery: String = "Flipcash") {
+    val searchIntent = IntentUtils.imageSearch(searchQuery)
+    if (searchIntent.resolveActivity(packageManager) != null) {
+        startActivity(searchIntent)
+    } else {
+        println("No apps handling image search")
+        // Fall back to just opening the gallery
+        val photosIntent = IntentUtils.photosApp()
+        startActivity(photosIntent)
+    }
+}
+
 fun Context.uriToBitmap(uri: Uri): Bitmap? {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         val source = ImageDecoder.createSource(contentResolver, uri)

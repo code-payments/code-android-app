@@ -46,7 +46,6 @@ class SeedInputViewModel @Inject constructor(
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
-    private val permissionChecker: PermissionChecker,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
