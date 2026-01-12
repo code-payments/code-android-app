@@ -17,8 +17,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,18 +36,25 @@ import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
 import com.flipcash.app.tokens.internal.components.marketcap.generateMarketCapData
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.isScrolledToStart
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.DisableSheetGestures
+import com.getcode.ui.utils.DisableSheetGesturesWhileScrolling
+import com.getcode.ui.utils.LocalSheetGesturesState
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
+import com.getcode.ui.utils.sheetResignmentBehavior
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun TokenInfoScreen(viewModel: TokenInfoViewModel) {
@@ -76,7 +86,8 @@ private fun TokenInfoScreen(
                         start = innerPadding.calculateStartPadding(),
                         end = innerPadding.calculateEndPadding(),
                     )
-                    .hazeSource(hazeState),
+                    .hazeSource(hazeState)
+                    .sheetResignmentBehavior(listState),
                 state = listState,
             ) {
                 item {

@@ -27,6 +27,7 @@ import com.getcode.opencode.model.financial.Currency
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
 internal fun RegionList(
@@ -73,7 +74,7 @@ internal fun RegionList(
             .verticalScrollStateGradient(
                 scrollState = listState,
                 color = CodeTheme.colors.background,
-            ),
+            ).sheetResignmentBehavior(listState),
         state = listState,
     ) {
         if (isLoading) {

@@ -27,6 +27,7 @@ import com.flipcash.shared.menu.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
 fun <T> MenuList(
@@ -43,7 +44,7 @@ fun <T> MenuList(
             .verticalScrollStateGradient(
                 scrollState = state,
                 isLongGradient = true,
-            ),
+            ).sheetResignmentBehavior(state),
         state = state,
         contentPadding = contentPadding,
     ) {

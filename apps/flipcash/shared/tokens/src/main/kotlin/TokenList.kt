@@ -23,6 +23,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
 fun TokenList(
@@ -56,7 +57,7 @@ fun TokenList(
                 scrollState = listState,
                 color = CodeTheme.colors.background,
                 showAtEnd = true
-            ),
+            ).sheetResignmentBehavior(listState),
         contentPadding = PaddingValues(
             bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         ),
