@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens.internal.components.marketcap
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -295,6 +295,7 @@ private fun MarketCapChartContent(
                             )
                         )
                     },
+                    pointConnector = LineCartesianLayer.PointConnector.cubic(1f),
                 ),
             ),
         ),
@@ -316,6 +317,7 @@ private fun MarketCapChartContent(
         modifier = modifier,
         chart = chart,
         modelProducer = producer,
+        animationSpec = tween(durationMillis = 300),
         scrollState = rememberVicoScrollState(scrollEnabled = false),
     )
 }
