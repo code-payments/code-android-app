@@ -1,5 +1,6 @@
 package com.flipcash.app.tokens.internal.components.info
 
+import android.text.format.DateFormat
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.tokens.data.MarketCapPoint
@@ -38,6 +40,7 @@ import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.util.format
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -185,6 +188,8 @@ private fun HighlightedPointLabel(
         if (isVisible) 1f else 0f
     )
 
+    val context = LocalContext.current
+
     val timeLabel = remember(point, period) {
         val epoch = point?.x ?: return@remember null
         val instant = Instant.fromEpochMilliseconds(epoch)
@@ -192,28 +197,38 @@ private fun HighlightedPointLabel(
         val isCurrentYear = instant.toLocalDateTime(TimeZone.currentSystemDefault()).year ==
                 now.toLocalDateTime(TimeZone.currentSystemDefault()).year
 
+        val is24Hour = DateFormat.is24HourFormat(context)
+
+        fun Instant.formatLocalized(if12Hour: String, if24Hour: String = if12Hour): String {
+            return if (is24Hour) {
+                format(if24Hour, Locale.US)
+            } else {
+                format(if12Hour, Locale.US)
+            }
+        }
+
         when (period) {
-            Period.All -> instant.format("MMMM d, yyyy")
-            Period.Day -> instant.format("hh:mm a")
+            Period.All -> instant.formatLocalized("MMMM d, yyyy")
+            Period.Day -> instant.formatLocalized("hh:mm a", "H:mm")
             Period.Week -> {
                 if (isCurrentYear) {
-                    instant.format("MMMM d")
+                    instant.formatLocalized("MMMM d, hh:mm a", "MMMM d, H:mm")
                 } else {
-                    instant.format("MMMM d, yyyy")
+                    instant.formatLocalized("MMMM d, yyyy, hh:mm a", "MMMM d, yyyy, H:mm")
                 }
             }
             Period.Month -> {
                 if (isCurrentYear) {
-                    instant.format("MMMM d")
+                    instant.formatLocalized("MMMM d")
                 } else {
-                    instant.format("MMMM d, yyyy")
+                    instant.formatLocalized("MMMM d, yyyy")
                 }
             }
             Period.Year -> {
                 if (isCurrentYear) {
-                    instant.format("MMMM d")
+                    instant.formatLocalized("MMMM d")
                 } else {
-                    instant.format("MMMM d, yyyy")
+                    instant.formatLocalized("MMMM d, yyyy")
                 }
             }
         }

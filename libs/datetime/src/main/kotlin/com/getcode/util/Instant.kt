@@ -23,10 +23,10 @@ fun LocalDate.atEndOfDay(tz: TimeZone = TimeZone.currentSystemDefault()): Instan
     return tomorrowAtMidnight.minus(value = 1, unit = DateTimeUnit.NANOSECOND)
 }
 
-fun Instant.format(format: String = "yyyy-MM-dd"): String {
+fun Instant.format(format: String = "yyyy-MM-dd", locale: Locale = Locale.getDefault()): String {
     val epoch = this.toEpochMilliseconds()
 
-    val formatter = SimpleDateFormat(format, Locale.getDefault())
+    val formatter = SimpleDateFormat(format, locale)
     val date = Date(epoch)
 
     return formatter.format(date)
