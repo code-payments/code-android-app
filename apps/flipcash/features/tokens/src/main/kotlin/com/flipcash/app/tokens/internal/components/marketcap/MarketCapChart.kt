@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -253,55 +255,8 @@ private fun MarketCapChartContent(
         splitFraction = markerFraction + 0.005f,
     )
 
-    val markerFill = CodeTheme.colors.background
-
-    val activeMarker = rememberDefaultCartesianMarker(
-        label = rememberTextComponent(
-            color = Color.Transparent,
-        ),
-        valueFormatter = remember {
-            DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
-        },
-        indicator = {
-            shapeComponent(
-                fill = fill(markerFill),
-                strokeFill = fill(trendColor),
-                strokeThickness = 2.dp,
-                margins = Insets(4f),
-                shape = markerCorneredShape(CorneredShape.Corner.Rounded),
-                shadow = Shadow(
-                    radiusDp = 20f,
-                    color = trendColor.copy(0.20f).toArgb()
-                )
-            )
-        },
-        indicatorSize = CodeTheme.dimens.grid.x4,
-        guideline = null,
-    )
-
-    val persistentMarker = rememberDefaultCartesianMarker(
-        label = rememberTextComponent(
-            color = Color.Transparent,
-        ),
-        valueFormatter = remember {
-            DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
-        },
-        indicator = { color ->
-            shapeComponent(
-                fill = fill(markerFill),
-                strokeFill = fill(color),
-                strokeThickness = 2.dp,
-                margins = Insets(4f),
-                shape = markerCorneredShape(CorneredShape.Corner.Rounded),
-                shadow = Shadow(
-                    radiusDp = 20f,
-                    color = trendColor.copy(0.20f).toArgb()
-                )
-            )
-        },
-        indicatorSize = CodeTheme.dimens.grid.x4,
-        guideline = null,
-    )
+    val activeMarker = rememberChartMarker(strokeFill = trendColor)
+    val persistentMarker = rememberChartMarker()
 
     val chart = rememberCartesianChart(
         rememberLineCartesianLayer(
@@ -323,7 +278,11 @@ private fun MarketCapChartContent(
             ),
         ),
         persistentMarkers = remember(isDragging, persistentMarker) {
-            { persistentMarker at 99.0 } // last point in normalized range
+            if (isDragging) {
+                { persistentMarker at 99.0 }
+            } else {
+                { activeMarker at 99.0 }
+            }
         },
         markerVisibilityListener = markerVisibilityListener,
         markerController = CartesianMarkerController.rememberShowOnPress(consumeMoveEvents = true),
@@ -338,6 +297,34 @@ private fun MarketCapChartContent(
         modelProducer = producer,
         animationSpec = tween(durationMillis = 300),
         scrollState = rememberVicoScrollState(scrollEnabled = false),
+    )
+}
+
+@Composable
+private fun rememberChartMarker(
+    strokeFill: Color = Color.Unspecified,
+    outerFill: Color = strokeFill.takeIf { it.isSpecified }?.copy(0.20f) ?: Color.Transparent,
+): CartesianMarker {
+    val markerFill = CodeTheme.colors.background
+
+    return rememberDefaultCartesianMarker(
+        label = rememberTextComponent(
+            color = Color.Transparent,
+        ),
+        valueFormatter = remember {
+            DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
+        },
+        indicator = { color ->
+            outerFillShapeComponent(
+                outerFill = fill(outerFill),
+                margins = Insets(6f),
+                innerFill = fill(markerFill),
+                strokeFill = fill(strokeFill.takeIf { it.isSpecified } ?: color),
+                strokeThickness = 2.dp,
+            )
+        },
+        indicatorSize = CodeTheme.dimens.grid.x3,
+        guideline = null,
     )
 }
 
