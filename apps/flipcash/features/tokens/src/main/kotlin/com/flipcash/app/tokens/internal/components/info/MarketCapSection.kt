@@ -209,12 +209,12 @@ private fun HighlightedPointLabel(
 
         when (period) {
             Period.All -> instant.formatLocalized("MMMM d, yyyy")
-            Period.Day -> instant.formatLocalized("hh:mm a", "H:mm")
+            Period.Day -> instant.formatLocalized("hh:mm a", "hh:mm")
             Period.Week -> {
                 if (isCurrentYear) {
-                    instant.formatLocalized("MMMM d, hh:mm a", "MMMM d, H:mm")
+                    instant.formatLocalized("MMMM d, hh:mm a", "MMMM d, hh:mm")
                 } else {
-                    instant.formatLocalized("MMMM d, yyyy, hh:mm a", "MMMM d, yyyy, H:mm")
+                    instant.formatLocalized("MMMM d, yyyy, hh:mm a", "MMMM d, yyyy, hh:mm")
                 }
             }
             Period.Month -> {
