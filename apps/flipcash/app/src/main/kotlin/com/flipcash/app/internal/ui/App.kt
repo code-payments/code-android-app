@@ -158,8 +158,7 @@ internal fun App(
                                                         StackEvent.Push,
                                                         StackEvent.Pop -> {
                                                             when (navigator.lastItemOrNull) {
-                                                                ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
-                                                                is MainRoot -> {
+                                                                ScreenRegistry.get(AppRoute.Onboarding.SeedInput) -> {
                                                                     CrossfadeTransition(navigator = navigator)
                                                                 }
 

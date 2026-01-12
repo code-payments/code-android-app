@@ -65,7 +65,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     var isStoragePermissionGranted by remember { mutableStateOf(false) }
     val isAccessKeyVisible = remember { MutableTransitionState(false) }
 
-    var saved by remember(dataState.isSuccess) { mutableStateOf(dataState.isSuccess) }
+    var saved by remember(dataState.exportState.success) { mutableStateOf(dataState.exportState.success) }
 
     val onPermissionResult = { result: PermissionResult ->
         isStoragePermissionGranted = result == PermissionResult.Granted
@@ -167,8 +167,8 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
                         onClick = onExportClick,
                         text = stringResource(R.string.action_saveToPhotos),
                         buttonState = ButtonState.Filled,
-                        isLoading = dataState.isLoading,
-                        enabled = dataState.isEnabled,
+                        isLoading = dataState.exportState.loading,
+                        enabled = dataState.exportState.isIdle,
                         isSuccess = saved,
                     )
                 }

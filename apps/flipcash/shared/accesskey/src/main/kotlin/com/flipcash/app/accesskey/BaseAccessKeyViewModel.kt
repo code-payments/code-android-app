@@ -43,13 +43,14 @@ import kotlin.math.roundToInt
 import com.getcode.theme.R as themeR
 import androidx.core.graphics.createBitmap
 import com.flipcash.app.theme.FlipcashColorSpec
+import com.getcode.view.LoadingSuccessState
+import kotlinx.coroutines.delay
 
 
 data class AccessKeyUiModel(
     val entropyB64: String? = null,
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false,
-    val isEnabled: Boolean = true,
+    val exportState: LoadingSuccessState = LoadingSuccessState(),
+    val skipState: LoadingSuccessState = LoadingSuccessState(),
     val words: List<String> = listOf(),
     val wordsFormatted: String = "",
     val accessKeyBitmap: Bitmap? = null,
@@ -122,7 +123,7 @@ abstract class BaseAccessKeyViewModel(
     private val bottomTextTopOffset = 2000
 
     protected suspend fun saveBitmapToFile(): Result<Boolean> {
-        uiFlow.update { it.copy(isLoading = true) }
+        uiFlow.update { it.copy(exportState = LoadingSuccessState(loading = true)) }
         val bitmap = uiFlow.value.accessKeyBitmap
             ?: return Result.failure(IllegalStateException("No access key?"))
         val destination =
@@ -144,9 +145,7 @@ abstract class BaseAccessKeyViewModel(
             }
         }.onFailure {
             getAccessKeySaveError()
-            uiFlow.update { it.copy(isLoading = false, isSuccess = false) }
-        }.onSuccess {
-            uiFlow.update { it.copy(isLoading = false, isSuccess = true) }
+            uiFlow.update { it.copy(exportState = LoadingSuccessState()) }
         }
     }
 

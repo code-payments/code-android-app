@@ -12,6 +12,7 @@ import com.getcode.utils.encodeBase64
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -34,7 +35,6 @@ class LoginViewModel @Inject constructor(
 ) {
     data class State(
         val followerModeEnabled: Boolean = false,
-        val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
         val loggingIn: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
@@ -149,30 +149,9 @@ class LoginViewModel @Inject constructor(
         private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.CreateAccount -> { state ->
-                    state.copy(
-                        creatingAccount = LoadingSuccessState(
-                            loading = true
-                        )
-                    )
-                }
-
-                Event.OnAccountCreated -> { state ->
-                    state.copy(
-                        creatingAccount = LoadingSuccessState(
-                            loading = false,
-                            success = true
-                        )
-                    )
-                }
-
-                Event.CreateFailed -> { state ->
-                    state.copy(
-                        creatingAccount = LoadingSuccessState(
-                            loading = false
-                        )
-                    )
-                }
+                Event.CreateAccount -> { state -> state }
+                Event.OnAccountCreated -> { state -> state }
+                Event.CreateFailed -> { state -> state }
 
                 is Event.BetaOptionsUnlocked -> { state -> state.copy(betaOptionsVisible = true) }
                 is Event.OnLogoTapped -> { state ->

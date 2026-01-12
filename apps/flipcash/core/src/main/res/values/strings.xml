@@ -122,6 +122,7 @@
     <string name="title_clipboardLabelPushToken">Push Token</string>
 
     <string name="prompt_description_viewAccessKey">Your Access Key will grant access to your Flipcash account. Keep it private and safe</string>
+    <string name="prompt_description_wroteThemDown">These 12 words are the only way to recover your Flipcash account. Make sure you wrote them down, and keep them private and safe.</string>
 
     <string name="subtitle_scanThisQRCode">Scan this QR code with your phone\'s camera to download the Flipcash app</string>
     <string name="subtitle_scanToDownload">Scan to download the\nFlipcash app</string>

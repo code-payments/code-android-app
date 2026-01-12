@@ -40,7 +40,6 @@ import com.getcode.view.LoadingSuccessState
 
 @Composable
 internal fun LoginRouterScreenContent(
-    isCreatingAccount: LoadingSuccessState = LoadingSuccessState(),
     isLoggingIn: LoadingSuccessState = LoadingSuccessState(),
     isLabsOpen: Boolean,
     createAccount: () -> Unit,
@@ -79,8 +78,6 @@ internal fun LoginRouterScreenContent(
                     .padding(horizontal = CodeTheme.dimens.inset),
                 enabled = !isLoggingIn.loading && !isLoggingIn.success,
                 onClick = createAccount,
-                isLoading = isCreatingAccount.loading,
-                isSuccess = isCreatingAccount.success,
                 text = stringResource(R.string.action_createNewAccount),
                 buttonState = ButtonState.Filled,
             )

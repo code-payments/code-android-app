@@ -10,8 +10,10 @@ import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -34,14 +36,30 @@ class LoginAccessKeyViewModel @Inject constructor(
         .onSuccess { authManager.onUserAccessKeySeen() }
         .map { authManager.presentCredentialStorage() }
         .map { userManager.userFlags?.requiresIapForRegistration == true }
+        .map {
+            delay(150)
+            uiFlow.update { s -> s.copy(exportState = LoadingSuccessState(success = true)) }
+            it
+        }
 
     suspend fun onWroteDownInstead(): Result<Boolean> = trackButton(Action.SaveAccessKey)
+        .map {
+            uiFlow.update { it.copy(skipState = LoadingSuccessState(loading = true)) }
+        }
         .fold(
             onSuccess = { authManager.onUserAccessKeySeen() },
-            onFailure = { Result.failure(it) }
+            onFailure = {
+                uiFlow.update { s -> s.copy(skipState = LoadingSuccessState()) }
+                Result.failure(it)
+            }
         )
         .map { authManager.presentCredentialStorage() }
         .map { userManager.userFlags?.requiresIapForRegistration == true }
+        .map {
+            delay(150)
+            uiFlow.update { s -> s.copy(skipState = LoadingSuccessState(success = true)) }
+            it
+        }
 
     private fun trackButton(action: Action): Result<Unit> {
         analytics.action(action)

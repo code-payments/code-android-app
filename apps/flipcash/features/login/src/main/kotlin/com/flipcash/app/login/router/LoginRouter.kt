@@ -39,7 +39,6 @@ class LoginRouter(
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
-                .onEach { delay(2.seconds) }
                 .onEach { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.AccessKey)) }
                 .launchIn(this)
         }
@@ -47,7 +46,7 @@ class LoginRouter(
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
-                .onEach { delay(1.333.seconds) }
+                .onEach { delay(500) }
                 .onEach { navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner())) }
                 .launchIn(this)
         }
@@ -55,7 +54,7 @@ class LoginRouter(
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<LoginViewModel.Event.LoggedInRequiresPayment>()
-                .onEach { delay(1.333.seconds) }
+                .onEach { delay(500) }
                 .onEach {
                     navigator.push(
                         items = listOf(
@@ -75,8 +74,7 @@ class LoginRouter(
             }
         }
 
-        LoginRouterScreenContent(
-            isCreatingAccount = state.creatingAccount,
+         LoginRouterScreenContent(
             isLoggingIn = state.loggingIn,
             createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
             login = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.SeedInput)) },

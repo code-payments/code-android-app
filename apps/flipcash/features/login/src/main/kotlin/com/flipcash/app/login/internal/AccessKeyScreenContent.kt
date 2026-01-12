@@ -47,6 +47,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.accesskey.AccessKeyUiModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
+import com.flipcash.app.core.internal.extensions.onSuccessWithDelay
 import com.flipcash.app.login.accesskey.LoginAccessKeyViewModel
 import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.login.R
@@ -106,7 +107,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         if (isExportSeedRequested && isStoragePermissionGranted) {
             viewModel.saveImage()
                 .onSuccess { requiresIap ->
-                    delay(400)
+                    delay(750)
                     onCompleted(requiresIap)
                 }
                 .onFailure {
@@ -132,7 +133,10 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
     val onSkipClick = {
         composeScope.launch {
             viewModel.onWroteDownInstead()
-                .onSuccess { onCompleted(it) }
+                .onSuccess { requiresIap ->
+                    delay(750)
+                    onCompleted(requiresIap)
+                }
         }
         Unit
     }
@@ -194,9 +198,9 @@ private fun AccessKeyScreenContent(
                         onClick = onExport,
                         text = stringResource(R.string.action_saveAccessKey),
                         buttonState = ButtonState.Filled,
-                        isLoading = dataState.isLoading,
-                        enabled = dataState.isEnabled,
-                        isSuccess = dataState.isSuccess,
+                        isLoading = dataState.exportState.loading,
+                        enabled = dataState.exportState.isIdle,
+                        isSuccess = dataState.exportState.success,
                     )
 
                     CodeButton(
@@ -221,7 +225,9 @@ private fun AccessKeyScreenContent(
                         },
                         text = stringResource(R.string.action_wroteThemDownInstead),
                         buttonState = ButtonState.Subtle,
-                        enabled = dataState.isEnabled,
+                        isLoading = dataState.skipState.loading,
+                        enabled = dataState.skipState.isIdle,
+                        isSuccess = dataState.skipState.success,
                     )
                 }
             }
