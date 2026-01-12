@@ -206,8 +206,6 @@ private fun BottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .navigationBarsPadding()
             .hazeEffect(
                 state = hazeState,
                 style = HazeMaterials.ultraThin(
@@ -220,6 +218,8 @@ private fun BottomBar(
                     endIntensity = 1f
                 )
             }
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .navigationBarsPadding()
             .padding(vertical = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
