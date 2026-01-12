@@ -9,7 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 
-internal fun defaultDigitEnter(initialOffsetY: Int): EnterTransition {
+fun defaultDigitEnter(initialOffsetY: Int): EnterTransition {
     return (slideInVertically(
         initialOffsetY = { initialOffsetY },
         animationSpec = tween(
@@ -20,7 +20,7 @@ internal fun defaultDigitEnter(initialOffsetY: Int): EnterTransition {
     ) + fadeIn())
 }
 
-internal fun defaultDigitExit(targetOffsetY: Int): ExitTransition {
+fun defaultDigitExit(targetOffsetY: Int): ExitTransition {
     return fadeOut() + slideOutVertically(
         targetOffsetY = { targetOffsetY },
         animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)

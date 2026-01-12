@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import com.getcode.ui.components.text.animated.defaultDigitEnter
+import com.getcode.ui.components.text.animated.defaultDigitExit
 
 @Composable
 fun AnimatedNumberText(
@@ -72,13 +74,11 @@ private fun AnimatedDigit(
         Box(
             modifier = Modifier
                 .height(with(LocalDensity.current) { height.toDp() })
-                .clipToBounds()
         ) {
             AnimatedContent(
                 targetState = char,
                 transitionSpec = {
-                    slideInVertically { direction * it } + fadeIn() togetherWith
-                            slideOutVertically { -direction * it } + fadeOut()
+                    defaultDigitEnter(-height) togetherWith defaultDigitExit(-height)
                 },
                 label = "digitRoll",
             ) { digit ->
