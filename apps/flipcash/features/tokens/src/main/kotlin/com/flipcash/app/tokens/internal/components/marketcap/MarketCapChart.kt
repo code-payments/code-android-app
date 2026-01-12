@@ -50,6 +50,7 @@ import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesi
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import com.patrykandpatrick.vico.compose.common.component.shapeComponent
 import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
@@ -271,7 +272,7 @@ private fun MarketCapChartContent(
                 ),
             ),
         ),
-        persistentMarkers = remember(isDragging, persistentMarker) {
+        persistentMarkers = remember(isDragging, persistentMarker, activeMarker) {
             if (isDragging) {
                 { persistentMarker at 99.0 }
             } else {
@@ -296,10 +297,10 @@ private fun MarketCapChartContent(
 
 @Composable
 private fun rememberChartMarker(
-    strokeFill: Color = Color.Unspecified,
-    outerFill: Color = strokeFill.takeIf { it.isSpecified }?.copy(0.20f) ?: Color.Transparent,
+    strokeFill: Color? = null,
 ): CartesianMarker {
     val markerFill = CodeTheme.colors.background
+    val outerFill: Color = strokeFill?.copy(0.20f) ?: Color.Transparent
 
     return rememberDefaultCartesianMarker(
         label = rememberTextComponent(
@@ -308,14 +309,16 @@ private fun rememberChartMarker(
         valueFormatter = remember {
             DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
         },
-        indicator = { color ->
-            outerFillShapeComponent(
-                outerFill = fill(outerFill),
-                margins = Insets(6f),
-                innerFill = fill(markerFill),
-                strokeFill = fill(strokeFill.takeIf { it.isSpecified } ?: color),
-                strokeThickness = 2.dp,
-            )
+        indicator = remember(strokeFill) {
+            { color ->
+                outerFillShapeComponent(
+                    outerFill = fill(outerFill),
+                    margins = Insets(6f),
+                    innerFill = fill(markerFill),
+                    strokeFill = fill(strokeFill ?: color),
+                    strokeThickness = 2.dp,
+                )
+            }
         },
         indicatorSize = CodeTheme.dimens.grid.x3,
         guideline = null,
