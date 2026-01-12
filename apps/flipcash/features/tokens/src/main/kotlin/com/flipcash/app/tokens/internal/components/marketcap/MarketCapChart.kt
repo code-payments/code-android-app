@@ -43,7 +43,6 @@ import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.charts.yValues
 import com.getcode.util.vibration.LocalVibrator
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.layer.continuous
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
@@ -256,7 +255,7 @@ private fun MarketCapChartContent(
 
     val markerFill = CodeTheme.colors.background
 
-    val marker = rememberDefaultCartesianMarker(
+    val activeMarker = rememberDefaultCartesianMarker(
         label = rememberTextComponent(
             color = Color.Transparent,
         ),
@@ -267,6 +266,30 @@ private fun MarketCapChartContent(
             shapeComponent(
                 fill = fill(markerFill),
                 strokeFill = fill(trendColor),
+                strokeThickness = 2.dp,
+                margins = Insets(4f),
+                shape = markerCorneredShape(CorneredShape.Corner.Rounded),
+                shadow = Shadow(
+                    radiusDp = 20f,
+                    color = trendColor.copy(0.20f).toArgb()
+                )
+            )
+        },
+        indicatorSize = CodeTheme.dimens.grid.x4,
+        guideline = null,
+    )
+
+    val persistentMarker = rememberDefaultCartesianMarker(
+        label = rememberTextComponent(
+            color = Color.Transparent,
+        ),
+        valueFormatter = remember {
+            DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
+        },
+        indicator = { color ->
+            shapeComponent(
+                fill = fill(markerFill),
+                strokeFill = fill(color),
                 strokeThickness = 2.dp,
                 margins = Insets(4f),
                 shape = markerCorneredShape(CorneredShape.Corner.Rounded),
@@ -299,16 +322,12 @@ private fun MarketCapChartContent(
                 ),
             ),
         ),
-        persistentMarkers = remember(isDragging, marker) {
-            if (isDragging) {
-                { } // empty when dragging
-            } else {
-                { marker at 99.0 } // last point in normalized range
-            }
+        persistentMarkers = remember(isDragging, persistentMarker) {
+            { persistentMarker at 99.0 } // last point in normalized range
         },
         markerVisibilityListener = markerVisibilityListener,
         markerController = CartesianMarkerController.rememberShowOnPress(consumeMoveEvents = true),
-        marker = marker,
+        marker = activeMarker,
         startAxis = null,
         bottomAxis = null,
     )
