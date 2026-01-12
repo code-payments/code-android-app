@@ -15,7 +15,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import coil3.request.crossfade
 import coil3.request.error
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
@@ -57,8 +59,12 @@ fun TokenIcon(
         modifier = modifier.clip(CircleShape),
         model = ImageRequest.Builder(LocalPlatformContext.current)
             .data(token.imageUrl)
+            .crossfade(false)
             .error(R.drawable.ic_placeholder_user)
-            .placeholderMemoryCacheKey(token.symbol)
+            .memoryCacheKey(token.symbol)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCacheKey(token.symbol)
+            .diskCachePolicy(CachePolicy.ENABLED)
             .build(),
         contentDescription = null,
     )
