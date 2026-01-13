@@ -2,6 +2,7 @@ package com.getcode.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -64,20 +65,17 @@ fun SettingsSwitchRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(vertical = CodeTheme.dimens.grid.x3)
+                .padding(vertical = CodeTheme.dimens.grid.x3),
         ) {
             Text(
-                modifier = Modifier
-                    .padding(vertical = CodeTheme.dimens.grid.x2),
                 text = title,
                 color = contentColor,
+                style = CodeTheme.typography.textLarge,
             )
             if (!subtitle.isNullOrEmpty()) {
                 Text(
-                    modifier = Modifier
-                        .padding(vertical = CodeTheme.dimens.grid.x1),
                     text = subtitle,
-                    style = CodeTheme.typography.caption,
+                    style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary
                         .copy(alpha = if (enabled) 1f else ContentAlpha.disabled)
                 )
@@ -126,9 +124,7 @@ fun SettingsRow(
             Text(
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = title,
-                style = CodeTheme.typography.textLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                style = CodeTheme.typography.textLarge,
             )
         }
 

@@ -5,10 +5,12 @@ sealed interface AppSettingValue {
     val default: Boolean get() = false
 
     companion object {
-        val entries: List<AppSettingValue> = listOf(
-            CameraStartByDefault,
-            BiometricsRequired
-        )
+        val entries: List<AppSettingValue> by lazy {
+            listOf(
+                CameraStartByDefault,
+                BiometricsRequired
+            )
+        }
     }
 
     data object CameraStartByDefault: AppSettingValue {
