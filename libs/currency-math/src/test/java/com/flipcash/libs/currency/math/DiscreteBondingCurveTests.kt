@@ -2,6 +2,7 @@ package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
 import com.flipcash.libs.currency.math.loader.FileTableLoader
+import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -17,7 +18,7 @@ class DiscreteSpotPriceTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -104,7 +105,7 @@ class DiscreteTokensToValueTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -295,7 +296,7 @@ class DiscreteValueToTokensTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -413,7 +414,7 @@ class DiscreteRoundtripTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -494,18 +495,18 @@ class DiscreteTableValidationTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
     @Test
     fun `5-1 Pricing table has correct length`() {
-        assertEquals(210_001, curve.rawPricingTable.size)
+        assertEquals(210_001, curve.pricingTable.size)
     }
 
     @Test
     fun `5-2 Cumulative table has correct length`() {
-        assertEquals(210_001, curve.rawCumulativeTable.size)
+        assertEquals(210_001, curve.cumulativeTable.size)
     }
 
     @Test
@@ -517,15 +518,15 @@ class DiscreteTableValidationTests {
 
     @Test
     fun `5-4 Cumulative table first entry is zero`() {
-        val first = curve.rawCumulativeTable[0]
+        val first = curve.cumulativeTable.getRaw(0)
         assertEquals(BigDecimal.ZERO, first)
     }
 
     @Test
     fun `5-5 Pricing table is monotonically increasing`() {
         for (i in 1 until 100) {
-            val prev = curve.rawPricingTable[i - 1]
-            val curr = curve.rawPricingTable[i]
+            val prev = curve.pricingTable.getRaw(i - 1)
+            val curr = curve.pricingTable.getRaw(i)
             assertTrue(curr >= prev, "Price at step $i should be >= step ${i - 1}")
         }
     }
@@ -533,8 +534,8 @@ class DiscreteTableValidationTests {
     @Test
     fun `5-6 Cumulative table is monotonically increasing`() {
         for (i in 1 until 100) {
-            val prev = curve.rawCumulativeTable[i - 1]
-            val curr = curve.rawCumulativeTable[i]
+            val prev = curve.cumulativeTable.getRaw(i - 1)
+            val curr = curve.cumulativeTable.getRaw(i)
             assertTrue(curr >= prev, "Cumulative at step $i should be >= step ${i - 1}")
         }
     }
@@ -550,7 +551,7 @@ class DiscreteTableValidationTests {
         )
 
         for ((i, expected) in expectedRaw.withIndex()) {
-            val actual = curve.rawPricingTable[i]
+            val actual = curve.pricingTable.getRaw(i)
             assertEquals(expected.toLong().toBigDecimal(), actual, "Mismatch at index $i")
         }
     }
@@ -566,7 +567,7 @@ class DiscreteTableValidationTests {
         )
 
         for ((i, expected) in expectedRaw.withIndex()) {
-            val actual = curve.rawCumulativeTable[i]
+            val actual = curve.cumulativeTable.getRaw(i)
             assertEquals(expected.toLong().toBigDecimal(), actual, "Mismatch at index $i")
         }
     }
@@ -585,7 +586,7 @@ class DiscreteEdgeCaseTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -649,7 +650,7 @@ class DiscreteTokensForValueExchangeTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -813,7 +814,7 @@ class DiscreteRealWorldTests {
 
     @BeforeTest
     fun initializeCurve() {
-        DiscreteBondingCurve.initialize(FileTableLoader())
+        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -860,15 +861,15 @@ class DiscreteRealWorldTests {
     @Test
     fun `9-5 Cumulative table values are monotonically increasing around step 200`() {
         for (i in 195 until 210) {
-            val curr = curve.rawCumulativeTable[i]
-            val next = curve.rawCumulativeTable[i + 1]
+            val curr = curve.cumulativeTable.getRaw(i)
+            val next = curve.cumulativeTable.getRaw(i + 1)
             assertTrue(next > curr, "cumulative[${i + 1}] should be > cumulative[$i]")
         }
     }
 
     @Test
     fun `9-6 Cumulative at step 230 should be around 232`() {
-        val step230 = curve.rawCumulativeTable[230]
+        val step230 = curve.cumulativeTable.getRaw(230)
 
         val step230BigInt = step230.toBigInteger()
         val scale18 = BigDecimal("1000000000000000000")
@@ -888,8 +889,8 @@ class DiscreteRealWorldTests {
         val tvlBigD = tvlScaled.setScale(0, RoundingMode.DOWN)
 
         var foundStep = -1
-        for (i in 0 until curve.rawCumulativeTable.size) {
-            if (curve.rawCumulativeTable[i] <= tvlBigD) {
+        for (i in 0 until curve.cumulativeTable.size) {
+            if (curve.cumulativeTable.getRaw(i) <= tvlBigD) {
                 foundStep = i
             } else {
                 break

@@ -11,23 +11,13 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
-import com.bugsnag.android.Bugsnag
-import com.flipcash.android.app.BuildConfig
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.currency.PreferredCurrencyController
-import com.flipcash.libs.currency.math.Curves
-import com.getcode.crypt.MnemonicCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
-import com.google.firebase.initialize
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
-import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -53,45 +43,11 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
 
     override fun onCreate() {
         super.onCreate()
-        if (BuildConfig.DEBUG) {
-            Timber.plant(object : Timber.DebugTree() {
-                override fun createStackElementTag(element: StackTraceElement): String {
-                    val elementTag = super.createStackElementTag(element)
-                        .orEmpty()
-                        .split("$")
-                        .filter { it.isNotEmpty() }
-                        .take(2)
-                        .joinToString(" ")
-                        .replace("_", " ")
-
-                    val methodName = element.methodName
-                        .split("$")
-                        .firstOrNull()
-                        .orEmpty()
-
-                    return String.format(
-                        "%s | %s ",
-                        elementTag,
-                        methodName
-                    )
-                }
-            })
-        } else {
-            Bugsnag.start(this)
-        }
-
-        LibsodiumInitializer.initializeWithCallback {
-            trace("libsodium initialized", type = TraceType.Process)
-        }
 
         RxJavaPlugins.setErrorHandler {
             ErrorUtils.handleError(it)
         }
 
-        Firebase.initialize(this)
-        Firebase.crashlytics.isCrashlyticsCollectionEnabled = BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG
-        MnemonicCache.init(this)
-        Curves.initialize(this)
         authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)

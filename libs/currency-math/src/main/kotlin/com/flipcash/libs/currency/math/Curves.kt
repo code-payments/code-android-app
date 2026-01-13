@@ -42,7 +42,7 @@ interface BondingCurve {
 }
 
 object Curves {
-    fun initialize(context: Context) {
+    suspend fun initialize(context: Context) {
         // only discrete needs to be initialized
         val tableLoader = AndroidTableLoader(context)
         DiscreteBondingCurve.initialize(tableLoader)

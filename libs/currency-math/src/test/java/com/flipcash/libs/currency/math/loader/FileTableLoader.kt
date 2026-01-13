@@ -1,5 +1,6 @@
 package com.flipcash.libs.currency.math.loader
 
+import com.flipcash.libs.currency.math.divideWithHighPrecision
 import java.io.File
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -35,7 +36,7 @@ class FileTableLoader(private val assetsDir: File) : TableLoader {
         }
     }
 
-    override fun loadTable(name: String): List<BigDecimal> {
+    override suspend fun loadTable(name: String): Table {
         val file = File(assetsDir, "$name.bin")
         require(file.exists()) { "Could not find ${file.absolutePath}" }
 
@@ -44,11 +45,15 @@ class FileTableLoader(private val assetsDir: File) : TableLoader {
             val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
             val count = bytes.size / 16
 
-            (0 until count).map {
-                val low = buffer.long
-                val high = buffer.long
-                bigDecimalFromParts(low, high)
+            val lowBits = LongArray(count)
+            val highBits = LongArray(count)
+
+            repeat(count) { i ->
+                lowBits[i] = buffer.long
+                highBits[i] = buffer.long
             }
+
+            Table(lowBits, highBits)
         }
     }
 }

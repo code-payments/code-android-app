@@ -198,6 +198,27 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 android:value="androidx.startup"
                 tools:node="remove" />
+
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.TraceInitializer"
+                android:value="androidx.startup" />
+
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.FirebaseInitializer"
+                android:value="androidx.startup" />
+
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.LibSodiumInitializer"
+                android:value="androidx.startup" />
+
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.MnemonicCacheInitializer"
+                android:value="androidx.startup" />
+
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.DiscreteBondingCurveInitializer"
+                android:value="androidx.startup" />
+
         </provider>
     </application>
 

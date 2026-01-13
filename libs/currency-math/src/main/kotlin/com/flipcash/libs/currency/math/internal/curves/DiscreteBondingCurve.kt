@@ -8,25 +8,41 @@ import com.flipcash.libs.currency.math.addWithHighPrecision
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.internal.DefaultMintDecimals
 import com.flipcash.libs.currency.math.internal.DefaultMintQuarksPerUnit
+import com.flipcash.libs.currency.math.loader.Table
 import com.flipcash.libs.currency.math.loader.TableLoader
 import com.flipcash.libs.currency.math.mc
 import com.flipcash.libs.currency.math.multiplyWithHighPrecision
 import com.flipcash.libs.currency.math.subtractWithHighPrecision
 import com.flipcash.libs.currency.math.units
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.jetbrains.annotations.VisibleForTesting
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-internal class DiscreteBondingCurve private constructor(tableLoader: TableLoader) : BondingCurve {
+internal class DiscreteBondingCurve private constructor(
+    @VisibleForTesting
+    internal val pricingTable: Table,
+    @VisibleForTesting
+    internal val cumulativeTable: Table,
+) : BondingCurve {
 
     companion object {
         @Volatile
         private var instance: DiscreteBondingCurve? = null
 
-        fun initialize(tableLoader: TableLoader) {
+        suspend fun initialize(tableLoader: TableLoader) {
             if (instance == null) {
+                val (pricingTable, cumulativeTable) = coroutineScope {
+                    val pricing = async { tableLoader.loadTable("discrete_pricing_table") }
+                    val cumulative = async { tableLoader.loadTable("discrete_cumulative_table") }
+                    pricing.await() to cumulative.await()
+                }
+
                 synchronized(this) {
-                    instance = DiscreteBondingCurve(tableLoader)
+                    if (instance == null) {
+                        instance = DiscreteBondingCurve(pricingTable, cumulativeTable)
+                    }
                 }
             }
         }
@@ -53,19 +69,9 @@ internal class DiscreteBondingCurve private constructor(tableLoader: TableLoader
 
         // Quarks per whole token (10^10 for 10 decimal places)
         internal const val quarksPerToken = DefaultMintQuarksPerUnit
+
+        internal val scaleFactor = BigDecimal.TEN.pow(tablePrecision)
     }
-
-    @VisibleForTesting
-    internal val rawPricingTable: List<BigDecimal> =
-        tableLoader.loadTable("discrete_pricing_table")
-
-    @VisibleForTesting
-    internal val rawCumulativeTable: List<BigDecimal> =
-        tableLoader.loadTable("discrete_cumulative_table")
-
-    private val scaleFactor = BigDecimal.TEN.pow(tablePrecision)
-    private val pricingTable: List<BigDecimal> = rawPricingTable.map { it.divideWithHighPrecision(scaleFactor) }
-    private val cumulativeTable: List<BigDecimal> = rawCumulativeTable.map { it.divideWithHighPrecision(scaleFactor) }
 
 
     override fun spotPriceAtSupply(supply: BigDecimal): Result<BigDecimal> = runCatching {
@@ -93,7 +99,7 @@ internal class DiscreteBondingCurve private constructor(tableLoader: TableLoader
 
         println("currentSupply: $currentSupply, tokens: $tokens, startStep: $startStep, endStep: $endStep")
 
-        require(endStep.toInt() < pricingTable.count()) { "Cannot sell more tokens than current supply" }
+        require(endStep.toInt() < pricingTable.size) { "Cannot sell more tokens than current supply" }
 
         // Calculate partial tokens in start step (from currentSupply to next step boundary)
         val startStepBoundary = (startStep.add(BigDecimal.ONE)).multiply(stepSize.toBigDecimal())

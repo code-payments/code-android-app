@@ -37,8 +37,8 @@ import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.BuySellFlow
 import com.flipcash.app.tokens.TokenBuySellEntryScreen
-import com.flipcash.app.tokens.TokenSelectScreen
 import com.flipcash.app.tokens.TokenInfoScreen
+import com.flipcash.app.tokens.TokenSelectScreen
 import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.transfers.TransferInformationalScreen
