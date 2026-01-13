@@ -36,7 +36,7 @@ private class ShowOnLongPress : CartesianMarkerController {
         }
 
     override fun shouldShowMarker(interaction: Interaction, targets: List<CartesianMarker.Target>) =
-        isPressed && interaction !is Interaction.Release
+        interaction !is Interaction.Release
 }
 
 @Composable

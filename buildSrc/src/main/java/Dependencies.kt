@@ -96,7 +96,7 @@ object Versions {
 
     const val cloudy = "0.2.7"
 
-    const val vico = "2.4.0"
+    const val vico = "2.4.1"
 }
 
 object Classpath {

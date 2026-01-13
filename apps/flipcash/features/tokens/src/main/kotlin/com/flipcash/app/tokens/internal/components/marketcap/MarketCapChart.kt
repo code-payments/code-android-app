@@ -16,18 +16,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.theme.FlipcashDesignSystem
@@ -50,7 +50,6 @@ import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesi
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
-import com.patrykandpatrick.vico.compose.common.component.shapeComponent
 import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
@@ -206,10 +205,12 @@ private fun MarketCapChartContent(
     onPointHighlighted: (CartesianMarker.Target?) -> Unit
 ) {
     val trendColor = trend.color
+    val trendPressedColor = trend.pressedColor
     val trendAlpha = if (trend is LineTrend.Up) 0.10f else 0.25f
-
-    var markerFraction by remember { mutableFloatStateOf(1f) }
+    val indicatorSize = INDICATOR_SIZE
+    val splitState = rememberLineSplitState()
     val vibrator = LocalVibrator.current
+    val density = LocalDensity.current
 
     var isDragging by remember { mutableStateOf(false) }
     val markerVisibilityListener = remember {
@@ -218,17 +219,16 @@ private fun MarketCapChartContent(
                 marker: CartesianMarker,
                 targets: List<CartesianMarker.Target>
             ) {
-                val x = targets.firstOrNull()?.x ?: return
-                // tick on scrubbing start
+                val target = targets.minByOrNull { it.canvasX } ?: return
                 vibrator.tick()
                 isDragging = true
 
-                markerFraction = (x.toFloat() / 100f).coerceIn(0f, 1f)
+                splitState.canvasX = target.canvasX
                 onPointHighlighted(targets.firstOrNull())
             }
 
             override fun onHidden(marker: CartesianMarker) {
-                markerFraction = 1f
+                splitState.canvasX = Float.MAX_VALUE
                 isDragging = false
                 onPointHighlighted(null)
             }
@@ -237,18 +237,14 @@ private fun MarketCapChartContent(
                 marker: CartesianMarker,
                 targets: List<CartesianMarker.Target>
             ) {
-                val x = targets.firstOrNull()?.x ?: return
-                markerFraction = (x.toFloat() / 100f).coerceIn(0f, 1f)
-                onPointHighlighted(targets.firstOrNull())
+                val target = targets.minByOrNull { it.canvasX } ?: return
+                splitState.canvasX = target.canvasX
+                onPointHighlighted(target)
             }
         }
     }
 
-    val lineFill = rememberSplitLineFill(
-        leftColor = trendColor,
-        rightColor = trend.pressedColor,
-        splitFraction = markerFraction + 0.005f,
-    )
+
 
     val activeMarker = rememberChartMarker(strokeFill = trendColor)
     val persistentMarker = rememberChartMarker()
@@ -257,7 +253,15 @@ private fun MarketCapChartContent(
         rememberLineCartesianLayer(
             lineProvider = LineCartesianLayer.LineProvider.series(
                 LineCartesianLayer.rememberLine(
-                    fill = lineFill,
+                    fill = remember(trend) {
+                        LineCartesianLayer.LineFill.double(
+                            leftFill = fill(trendColor),
+                            rightFill = fill(trendPressedColor),
+                            splitX = {
+                                splitState.canvasX - with(density) { indicatorSize.toPx() / 2 }
+                            }
+                        )
+                    },
                     areaFill = remember(trend) {
                         LineCartesianLayer.AreaFill.single(
                             fill(
@@ -280,7 +284,7 @@ private fun MarketCapChartContent(
             }
         },
         markerVisibilityListener = markerVisibilityListener,
-        markerController = CartesianMarkerController.rememberShowOnLongPress(),
+        markerController = CartesianMarkerController.rememberShowOnShortLongPress(),
         marker = activeMarker,
         startAxis = null,
         bottomAxis = null,
@@ -320,33 +324,13 @@ private fun rememberChartMarker(
                 )
             }
         },
-        indicatorSize = CodeTheme.dimens.grid.x3,
+        indicatorSize = INDICATOR_SIZE,
         guideline = null,
     )
 }
 
-@Composable
-private fun rememberSplitLineFill(
-    leftColor: Color,
-    rightColor: Color,
-    splitFraction: Float, // 0-1, where the split occurs
-): LineCartesianLayer.LineFill {
-    return remember(leftColor, rightColor, splitFraction) {
-        LineCartesianLayer.LineFill.single(
-            fill(
-                ShaderProvider.horizontalGradient(
-                    intArrayOf(
-                        leftColor.toArgb(),
-                        leftColor.toArgb(),
-                        rightColor.toArgb(),
-                        rightColor.toArgb(),
-                    ),
-                    positions = floatArrayOf(0f, splitFraction, splitFraction, 1f)
-                )
-            )
-        )
-    }
-}
+private val INDICATOR_SIZE: Dp
+    @Composable get() = CodeTheme.dimens.grid.x2
 
 @Composable
 @Preview
