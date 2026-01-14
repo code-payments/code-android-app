@@ -18,6 +18,13 @@ private val OnRampProvider.UsesDeeplinks.authority: String
         OnRampProvider.Solflare -> "solflare.com"
     }
 
+internal val OnRampProvider.UsesDeeplinks.packageName: String
+    get() = when (this) {
+        OnRampProvider.Backpack -> "app.backpack.mobile"
+        OnRampProvider.Phantom -> "app.phantom"
+        OnRampProvider.Solflare -> "com.solflare.mobile"
+    }
+
 private val OnRampProvider.UsesDeeplinks.redirectUrlPrefix: String
     // pathSegment[1] is fed into encryption pub key look up in the URI
     // backpack returns 'wallet_'

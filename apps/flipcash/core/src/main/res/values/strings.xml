@@ -486,4 +486,7 @@
     <string name="label_marketCapMonth">this month</string>
     <string name="label_marketCapYearShort">1Y</string>
     <string name="label_marketCapYear">this year</string>
+
+    <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
+    <string name="action_useCashReservesWithBalance">USD Reserves (%1$s)</string>
 </resources>

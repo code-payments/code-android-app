@@ -29,6 +29,9 @@ import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -103,9 +106,11 @@ class TokenInfoScreen(private val mint: Mint) : AppScreen(), ModalScreen, Parcel
                     }.launchIn(this)
             }
 
+            val animationScale by rememberAnimationScale()
             LaunchedEffect(viewModel) {
                 viewModel.eventFlow
                     .filterIsInstance<TokenInfoViewModel.Event.ConnectPhantomWallet>()
+                    .onEach { delay(300.scaled(animationScale)) }
                     .onEach {
                         externalWalletOnRamp.start(OnRampFlowTracker.source, OnRampProvider.Phantom)
                     }.launchIn(this)

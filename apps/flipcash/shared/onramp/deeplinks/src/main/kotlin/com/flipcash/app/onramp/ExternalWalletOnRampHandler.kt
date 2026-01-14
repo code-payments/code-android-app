@@ -12,12 +12,15 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.android.IntentUtils
+import com.flipcash.app.core.android.extensions.canNativelyHandle
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
 import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
+import com.flipcash.app.onramp.internal.packageName
 import com.flipcash.app.router.Router
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -160,9 +163,15 @@ fun ExternalWalletOnRampHandler(
                     message = "wallet connect uri: $uri",
                     type = TraceType.Process
                 )
-                analytics.connectWallet(state.provider!!)
-                uriHandler.openUri(uri.toString())
-                state.deeplinkState = ExternalWalletState.CONNECTING
+                if (uri?.canNativelyHandle(context) == true) {
+                    analytics.connectWallet(state.provider!!)
+                    uriHandler.openUri(uri.toString())
+                    state.deeplinkState = ExternalWalletState.CONNECTING
+                } else {
+                    val provider = state.provider ?: return@LaunchedEffect
+                    context.startActivity(IntentUtils.appStoreListing(provider.packageName))
+                    state.reset()
+                }
             }
 
             ExternalWalletState.CONNECTING -> {

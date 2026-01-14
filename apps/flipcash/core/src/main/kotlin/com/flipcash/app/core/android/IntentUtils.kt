@@ -3,6 +3,7 @@ package com.flipcash.app.core.android
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
@@ -48,6 +49,11 @@ object IntentUtils {
 
     fun emailApp() = Intent(Intent.ACTION_MAIN).apply {
         addCategory(Intent.CATEGORY_APP_EMAIL)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    fun appStoreListing(packageName: String) = Intent(Intent.ACTION_VIEW).apply {
+        setData(Uri.parse("https://play.google.com/store/apps/details?id=$packageName"))
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
 }

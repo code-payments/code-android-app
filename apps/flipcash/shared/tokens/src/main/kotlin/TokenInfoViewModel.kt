@@ -188,13 +188,16 @@ class TokenInfoViewModel @Inject constructor(
             .onEach {
                 BottomBarManager.showMessage(
                    bottomBarMessage = BottomBarManager.BottomBarMessage(
-                       title = "Select Purchase Method",
+                       title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
                        type = BottomBarManager.BottomBarMessageType.THEMED,
                        actions = buildList {
                            if (stateFlow.value.hasReserves) {
                                add(
                                    BottomBarAction(
-                                       text = "USD Reserves (${stateFlow.value.reservesBalance.formatted()})",
+                                       text = resources.getString(
+                                           R.string.action_useCashReservesWithBalance,
+                                           stateFlow.value.reservesBalance.formatted()
+                                       ),
                                        onClick = {
                                            dispatchEvent(
                                                Event.OpenScreen(

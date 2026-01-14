@@ -23,6 +23,21 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
         </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:host="phantom.app" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:host="backpack.app" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:host="solflare.com" />
+        </intent>
     </queries>
 
     <application
