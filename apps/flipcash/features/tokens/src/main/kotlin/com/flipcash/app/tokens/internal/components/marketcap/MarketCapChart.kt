@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -44,6 +45,7 @@ import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.charts.yValues
 import com.getcode.util.vibration.LocalVibrator
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.layer.continuous
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
@@ -208,6 +210,7 @@ private fun MarketCapChartContent(
     val trendPressedColor = trend.pressedColor
     val trendAlpha = if (trend is LineTrend.Up) 0.10f else 0.25f
     val indicatorSize = INDICATOR_SIZE
+    val strokeSize = 4.dp
     val splitState = rememberLineSplitState()
     val vibrator = LocalVibrator.current
     val density = LocalDensity.current
@@ -258,8 +261,14 @@ private fun MarketCapChartContent(
                             leftFill = fill(trendColor),
                             rightFill = fill(trendPressedColor),
                             splitX = {
-                                splitState.canvasX - with(density) { indicatorSize.toPx() / 2 }
+                                splitState.canvasX - with(density) { indicatorSize.toPx() / 4 }
                             }
+                        )
+                    },
+                    stroke = remember(trend) {
+                        LineCartesianLayer.LineStroke.continuous(
+                            thickness = strokeSize,
+                            cap = StrokeCap.Round
                         )
                     },
                     areaFill = remember(trend) {
