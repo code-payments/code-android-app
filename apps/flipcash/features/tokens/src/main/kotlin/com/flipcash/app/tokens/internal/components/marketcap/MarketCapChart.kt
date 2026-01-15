@@ -326,7 +326,7 @@ private fun rememberChartMarker(
             { color ->
                 outerFillShapeComponent(
                     outerFill = fill(outerFill),
-                    margins = Insets(6f),
+                    margins = Insets(8f),
                     innerFill = fill(markerFill),
                     strokeFill = fill(strokeFill ?: color),
                     strokeThickness = 2.dp,
@@ -339,7 +339,7 @@ private fun rememberChartMarker(
 }
 
 private val INDICATOR_SIZE: Dp
-    @Composable get() = CodeTheme.dimens.grid.x2
+    @Composable get() = CodeTheme.dimens.grid.x3
 
 @Composable
 @Preview
