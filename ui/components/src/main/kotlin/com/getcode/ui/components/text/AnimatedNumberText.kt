@@ -1,9 +1,16 @@
 package com.getcode.ui.components.text
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -18,12 +25,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import com.getcode.ui.components.text.animated.defaultDigitEnter
 import com.getcode.ui.components.text.animated.defaultDigitExit
 
@@ -78,12 +88,37 @@ private fun AnimatedDigit(
             AnimatedContent(
                 targetState = char,
                 transitionSpec = {
-                    defaultDigitEnter(-height) togetherWith defaultDigitExit(-height)
+                    if (targetState != initialState) {
+                        // Enter: slide in from bottom (increasing) or top (decreasing) + fade
+                        val enter = slideInVertically { height ->
+                            if (direction > 0) height else -height
+                        } + fadeIn()
+
+                        // Exit: just fade/blur in place - no slide
+                        val exit = fadeOut()
+
+                        enter togetherWith exit using SizeTransform()
+                    } else {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    }
                 },
-                label = "digitRoll",
-            ) { digit ->
+                label = "digit"
+            ) { char ->
+                // Apply blur during exit transition
+                val blurRadius by transition.animateFloat(
+                    transitionSpec = { tween(150) },
+                    label = "blur"
+                ) { state ->
+                    when (state) {
+                        EnterExitState.PreEnter -> 12f
+                        EnterExitState.Visible -> 0f
+                        EnterExitState.PostExit -> 12f
+                    }
+                }
+
                 Text(
-                    text = digit.toString(),
+                    modifier = Modifier.blur(blurRadius.dp),
+                    text = char.toString(),
                     style = style,
                     color = color,
                 )

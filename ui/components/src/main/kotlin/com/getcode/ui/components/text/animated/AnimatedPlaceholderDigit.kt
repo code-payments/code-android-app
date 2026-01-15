@@ -41,7 +41,7 @@ internal fun AnimatedPlaceholderDigit(
         transitionSpec = {
             when {
                 // Placeholder -> Digit: Placeholder exits, Digit enters
-                initialState == PlaceholderState.Placeholder&& targetState == PlaceholderState.Digit -> {
+                initialState == PlaceholderState.Placeholder && targetState == PlaceholderState.Digit -> {
                     digitEnter togetherWith placeholderExit
                 }
                 // Digit -> Placeholder: Digit exits, Placeholder enters
