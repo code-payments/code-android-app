@@ -93,7 +93,7 @@ internal fun MarketCapSection(
         AnimatedNumberText(
             modifier = Modifier.padding(start = contentPadding.calculateStartPadding()),
             value = marketCapAtPoint.formatted(),
-            style = CodeTheme.typography.displaySmall,
+            style = CodeTheme.typography.displayMedium,
             color = CodeTheme.colors.textMain,
         )
 
