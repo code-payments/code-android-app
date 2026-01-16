@@ -209,8 +209,10 @@ private fun MarketCapChartContent(
     val trendColor = trend.color
     val trendPressedColor = trend.pressedColor
     val trendAlpha = if (trend is LineTrend.Up) 0.10f else 0.25f
+
     val indicatorSize = INDICATOR_SIZE
-    val strokeSize = 4.dp
+    val strokeSize = STROKE_SIZE
+
     val splitState = rememberLineSplitState()
     val vibrator = LocalVibrator.current
     val density = LocalDensity.current
@@ -281,15 +283,15 @@ private fun MarketCapChartContent(
                             )
                         )
                     },
-                    pointConnector = LineCartesianLayer.PointConnector.cubic(1f),
+                    pointConnector = LineCartesianLayer.PointConnector.cubic(curvature = 0.25f),
                 ),
             ),
         ),
         persistentMarkers = remember(isDragging, persistentMarker, activeMarker) {
             if (isDragging) {
-                { persistentMarker at 99.0 }
+                { persistentMarker at (TARGET_POINTS - 1) }
             } else {
-                { activeMarker at 99.0 }
+                { activeMarker at (TARGET_POINTS - 1) }
             }
         },
         markerVisibilityListener = markerVisibilityListener,
@@ -326,7 +328,7 @@ private fun rememberChartMarker(
             { color ->
                 outerFillShapeComponent(
                     outerFill = fill(outerFill),
-                    margins = Insets(8f),
+                    margins = Insets(6f),
                     innerFill = fill(markerFill),
                     strokeFill = fill(strokeFill ?: color),
                     strokeThickness = 2.dp,
@@ -338,8 +340,11 @@ private fun rememberChartMarker(
     )
 }
 
+internal const val TARGET_POINTS = 100.0
 private val INDICATOR_SIZE: Dp
-    @Composable get() = CodeTheme.dimens.grid.x3
+    @Composable get() = CodeTheme.dimens.grid.x2
+private val STROKE_SIZE: Dp
+    @Composable get() = 3.dp
 
 @Composable
 @Preview

@@ -27,6 +27,7 @@ import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.app.tokens.data.collapse
 import com.flipcash.app.tokens.internal.components.marketcap.MarketCapChart
+import com.flipcash.app.tokens.internal.components.marketcap.TARGET_POINTS
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.minus
@@ -60,7 +61,11 @@ internal fun MarketCapSection(
 
     val startCap by remember(selectedPeriod, rawHistoricalData) {
         derivedStateOf {
-            val startQuarks = rawHistoricalData.collapse(selectedPeriod).firstOrNull()?.y ?: return@derivedStateOf null
+            val startQuarks =
+                rawHistoricalData.collapse(
+                    period = selectedPeriod,
+                    targetPoints = TARGET_POINTS.toInt()
+                ).firstOrNull()?.y ?: return@derivedStateOf null
             Fiat(startQuarks, marketCap.currencyCode)
         }
     }
@@ -99,11 +104,12 @@ internal fun MarketCapSection(
 
         if (chartEnabled) {
             marketCapDiff?.let { change ->
-                Box(modifier = Modifier
-                    .padding(
-                        start = contentPadding.calculateStartPadding(),
-                        top = CodeTheme.dimens.grid.x2,
-                    )
+                Box(
+                    modifier = Modifier
+                        .padding(
+                            start = contentPadding.calculateStartPadding(),
+                            top = CodeTheme.dimens.grid.x1,
+                        )
                 ) {
                     MarketCapChangeLabel(
                         change = change,
@@ -159,7 +165,8 @@ private fun MarketCapChangeLabel(
             .background(
                 color = changeColor.copy(0.20f),
                 shape = MaterialTheme.shapes.extraSmall,
-            ).padding(
+            )
+            .padding(
                 vertical = 2.dp,
                 horizontal = CodeTheme.dimens.grid.x1
             ),
@@ -217,6 +224,7 @@ private fun HighlightedPointLabel(
                     instant.formatLocalized("MMMM d, yyyy, hh:mm a", "MMMM d, yyyy, hh:mm")
                 }
             }
+
             Period.Month -> {
                 if (isCurrentYear) {
                     instant.formatLocalized("MMMM d")
@@ -224,6 +232,7 @@ private fun HighlightedPointLabel(
                     instant.formatLocalized("MMMM d, yyyy")
                 }
             }
+
             Period.Year -> {
                 if (isCurrentYear) {
                     instant.formatLocalized("MMMM d")
