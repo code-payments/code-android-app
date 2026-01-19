@@ -66,15 +66,14 @@ object Estimator {
      * 4. Scaling the result back to its "quark" representation (smallest indivisible unit).
      *
      * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDF).
-     * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
-     *                             expressed in the value token's smallest unit ("quarks").
+     * @param currentSupplyInQuarks The current total supply of the token, in quarks.
      * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDF typically has 6).
      * @return A [Result] containing the estimated number of quarks to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
     fun valueExchangeAsQuarks(
         valueInQuarks: Long,
-        currentValueInQuarks: Long,
+        currentSupplyInQuarks: Long,
         mintDecimals: Int,
         curveType: CurveType = DefaultCurveType,
     ): Result<Valuation.Quarks> {
@@ -82,7 +81,7 @@ object Estimator {
             val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
             val valuation = valueExchangeAsTokens(
                 valueInQuarks = valueInQuarks,
-                currentValueInQuarks = currentValueInQuarks,
+                currentSupplyInQuarks = currentSupplyInQuarks,
                 mintDecimals = mintDecimals,
                 curveType = curveType
             ).getOrThrow()
@@ -110,15 +109,14 @@ object Estimator {
      *    the quantity of tokens that correspond to the input value.
      *
      * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDF).
-     * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
-     *                             expressed in the value token's smallest unit ("quarks").
+     * @param currentSupplyInQuarks The current total supply of the token, in quarks.
      * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDF typically has 6).
      * @return A [Result] containing the estimated number of tokens to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
     fun valueExchangeAsTokens(
         valueInQuarks: Long,
-        currentValueInQuarks: Long,
+        currentSupplyInQuarks: Long,
         mintDecimals: Int,
         curveType: CurveType = DefaultCurveType,
     ): Result<Valuation.Tokens> {
@@ -131,7 +129,7 @@ object Estimator {
                     val scaledValue = unscaledValue.divide(valueScale, mc)
 
                     val tokenScale = BigDecimal.TEN.pow(mintDecimals, mc)
-                    val unscaledCurrentValue = BigDecimal(currentValueInQuarks)
+                    val unscaledCurrentValue = BigDecimal(currentSupplyInQuarks)
                     val scaledCurrentValue = unscaledCurrentValue.divide(tokenScale, mc)
 
                     curve.tokensForValueExchange(scaledCurrentValue, scaledValue).getOrThrow()
@@ -139,7 +137,7 @@ object Estimator {
                 CurveType.Discrete -> {
                     val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
                     val scaledValue = BigDecimal(valueInQuarks).divideWithHighPrecision(valueScale)
-                    val scaledCurrentValue = BigDecimal(currentValueInQuarks).divideWithHighPrecision(valueScale)
+                    val scaledCurrentValue = BigDecimal(currentSupplyInQuarks).divideWithHighPrecision(valueScale)
 
                     curve.tokensForValueExchange(
                         value = scaledValue,

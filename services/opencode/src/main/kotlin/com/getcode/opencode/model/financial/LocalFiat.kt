@@ -134,7 +134,7 @@ data class LocalFiat(
             // determine quarks to exchange for the desired amount
             val valuation = Estimator.valueExchangeAsQuarks(
                 valueInQuarks = cappedValue.quarks,
-                currentValueInQuarks = supply,
+                currentSupplyInQuarks = supply,
                 mintDecimals = 6, // usdc is 6 decimals
             ).getOrThrow()
 

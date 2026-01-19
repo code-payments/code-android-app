@@ -163,7 +163,7 @@ data class Fiat(
 
         val valuation = (Estimator.valueExchangeAsTokens(
             valueInQuarks = this.quarks,
-            currentValueInQuarks = token?.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
+            currentSupplyInQuarks = token?.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
             mintDecimals = 6,
         ).getOrNull() ?: Valuation.Tokens.Zero)
 
