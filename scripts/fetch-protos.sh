@@ -1,7 +1,7 @@
 #!/bin/bash
 
 root=$(pwd)
-REPO_URL="git@github.com:code-payments/code-protobuf-api.git"  # Default repo URL
+REPO_URL="git@github.com:code-payments/ocp-protobuf-api.git"  # Default repo URL
 COMMIT_SHA=""
 RUN_STRIP_PROTO_VALIDATION=false  # Default to not running the script
 TEMP_DIR=$(mktemp -d)
@@ -21,7 +21,7 @@ while getopts ":r:t:x" opt; do
       if [ "$TARGET" == "flipchat" ]; then
         REPO_URL="git@github.com:code-payments/flipchat-protobuf-api.git"
       elif [ "$TARGET" == "flipcash" ]; then
-        REPO_URL="git@github.com:code-payments/flipcash-protobuf-api.git"
+        REPO_URL="git@github.com:code-payments/flipcash2-protobuf-api.git"
       fi
       ;;
     \? )
