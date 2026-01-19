@@ -1,10 +1,9 @@
 syntax = "proto3";
 package flipcash.activity.v1;
-option go_package = "github.com/code-payments/flipcash-protobuf-api/generated/go/activity/v1;activitypb";
+option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/go/activity/v1;activitypb";
 option java_package = "com.codeinc.flipcash.gen.activity.v1";
 option objc_class_prefix = "FCPBActivityV1";
 import "common/v1/common.proto";
-import "pool/v1/model.proto";
 import "google/protobuf/timestamp.proto";
 
 // The ID of the notification
@@ -22,17 +21,15 @@ message Notification {
     // The timestamp of this notification
     google.protobuf.Timestamp ts = 4;
     // The state of this notification
-    NotificationState state = 10;
+    NotificationState state = 5;
     // Additional metadata for this notification specific to the notification
     oneof additional_metadata {
-        WelcomeBonusNotificationMetadata      welcome_bonus      = 5;
-        GaveCryptoNotificationMetadata        gave_crypto        = 6;
-        ReceivedCryptoNotificationMetadata    received_crypto    = 7;
-        WithdrewCryptoNotificationMetadata    withdrew_crypto    = 8;
-        SentCryptoNotificationMetadata        sent_crypto        = 9;
+        WelcomeBonusNotificationMetadata      welcome_bonus      = 6;
+        GaveCryptoNotificationMetadata        gave_crypto        = 7;
+        ReceivedCryptoNotificationMetadata    received_crypto    = 8;
+        WithdrewCryptoNotificationMetadata    withdrew_crypto    = 9;
+        SentCryptoNotificationMetadata        sent_crypto        = 10;
         DepositedCryptoNotificationMetadata   deposited_crypto   = 11;
-        PaidCryptoNotificationMetadata        paid_crypto        = 12;
-        DistributedCryptoNotificationMetadata distributed_crypto = 13;
     }
 }
 message WelcomeBonusNotificationMetadata {
@@ -50,29 +47,6 @@ message SentCryptoNotificationMetadata {
     bool can_initiate_cancel_action = 2;
 }
 message DepositedCryptoNotificationMetadata {
-}
-message PaidCryptoNotificationMetadata {
-    oneof payment_metadata {
-        PoolPaymentMetadata pool = 1;
-    }
-    // Payment metadata for betting pools
-    message PoolPaymentMetadata {
-        // The pool that was entered for this payment
-        pool.v1.PoolId pool_id = 1;
-    }
-}
-message DistributedCryptoNotificationMetadata {
-    oneof distribution_metadata {
-        PoolDistributionMetadata pool = 1;
-    }
-    // Distribution metadata for betting pools
-    message PoolDistributionMetadata {
-        // The pool where funds were distributed from
-        pool.v1.PoolId pool_id = 1;
-        // The outcome for this pool for the user that indicates the reason for
-        // receiving the distribution.
-        pool.v1.UserOutcome outcome = 2 ;
-    }
 }
 // ActivityFeedType enables multiple activity feeds, where notifications may be
 // split across different parts of the app

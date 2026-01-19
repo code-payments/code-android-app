@@ -68,8 +68,6 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                     canCancel = from.sentCrypto.canInitiateCancelAction
                 )
                 Model.Notification.AdditionalMetadataCase.DEPOSITED_CRYPTO -> NotificationMetadata.DepositedCrypto
-                Model.Notification.AdditionalMetadataCase.PAID_CRYPTO -> NotificationMetadata.Unknown
-                Model.Notification.AdditionalMetadataCase.DISTRIBUTED_CRYPTO -> NotificationMetadata.Unknown
                 Model.Notification.AdditionalMetadataCase.ADDITIONALMETADATA_NOT_SET,
                 null -> NotificationMetadata.Unknown
             }

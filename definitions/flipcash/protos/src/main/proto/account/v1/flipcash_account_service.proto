@@ -1,6 +1,6 @@
 syntax = "proto3";
 package flipcash.account.v1;
-option go_package = "github.com/code-payments/flipcash-protobuf-api/generated/go/account/v1;acountpb";
+option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/go/account/v1;acountpb";
 option java_package = "com.codeinc.flipcash.gen.account.v1";
 option objc_class_prefix = "FPBAccountV1";
 import "common/v1/common.proto";
@@ -15,6 +15,8 @@ service Account {
 	rpc Login(LoginRequest) returns (LoginResponse);
 	// GetUserFlags gets user-specific flags.
 	rpc GetUserFlags(GetUserFlagsRequest) returns (GetUserFlagsResponse);
+	// GetUserFlags gets user flags for unauthenticated users
+	rpc GetUnauthenticatedUserFlags(GetUnauthenticatedUserFlagsRequest) returns (GetUnauthenticatedUserFlagsResponse);
 }
 message RegisterRequest {
 	// PublicKey the public key that is authorized to perform actions on the
@@ -61,6 +63,17 @@ message GetUserFlagsResponse {
 	enum Result {
 		OK     = 0;
 		DENIED = 1;
+	}
+	UserFlags user_flags = 2;
+}
+message GetUnauthenticatedUserFlagsRequest {
+	common.v1.Platform platform = 1;
+	common.v1.CountryCode country_code = 2;
+}
+message GetUnauthenticatedUserFlagsResponse {
+	Result result = 1;
+	enum Result {
+		OK = 0;
 	}
 	UserFlags user_flags = 2;
 }
