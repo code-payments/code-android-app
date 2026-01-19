@@ -1,0 +1,80 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 11,
+    "identityHash": "38b6b614a4beb53e05ac014edc377256",
+    "entities": [
+      {
+        "tableName": "messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `text` TEXT NOT NULL, `amountUsdc` INTEGER, `amountNative` INTEGER, `nativeCurrency` TEXT, `rate` REAL, `state` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `metadata` TEXT, `mintBase58` TEXT DEFAULT 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', PRIMARY KEY(`idBase58`))",
+        "fields": [
+          {
+            "fieldPath": "idBase58",
+            "columnName": "idBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountUsdc",
+            "columnName": "amountUsdc",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "amountNative",
+            "columnName": "amountNative",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nativeCurrency",
+            "columnName": "nativeCurrency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rate",
+            "columnName": "rate",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metadata",
+            "columnName": "metadata",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mintBase58",
+            "columnName": "mintBase58",
+            "affinity": "TEXT",
+            "defaultValue": "'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "idBase58"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '38b6b614a4beb53e05ac014edc377256')"
+    ]
+  }
+}

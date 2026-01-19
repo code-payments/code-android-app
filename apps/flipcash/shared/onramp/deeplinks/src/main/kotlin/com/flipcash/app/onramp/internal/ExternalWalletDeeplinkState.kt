@@ -53,7 +53,7 @@ class ExternalWalletDeeplinkState(
     private val driver = Rpc20Driver(rpcUrl, networkDriver)
 
     /**
-     * The origin of the flow for onramping via supported wallets using deeplinks (menu screen, pool)
+     * The origin of the flow for onramping via supported wallets using deeplinks (menu screen)
      */
     internal var origin by mutableStateOf<AppRoute?>(null)
 

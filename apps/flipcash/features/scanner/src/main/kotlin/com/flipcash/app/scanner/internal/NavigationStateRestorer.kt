@@ -16,16 +16,6 @@ class NavigationStateRestorer(
 ) {
     suspend fun restoreState(deeplink: DeeplinkType.Navigatable, animationScale: Float) {
         when (deeplink) {
-            is DeeplinkType.Pool -> {
-                delay(200.scaled(animationScale))
-                navigator.show(
-                    listOf(
-                        ScreenRegistry.get(AppRoute.Sheets.PoolList),
-                        ScreenRegistry.get(AppRoute.Pool.Details(rendezvous = deeplink.rendezvous))
-                    )
-                )
-            }
-
             is DeeplinkType.TokenInfo -> {
                 delay(200.scaled(animationScale))
                 navigator.show(
@@ -40,8 +30,6 @@ class NavigationStateRestorer(
             is DeeplinkType.ExternalWalletStep -> {
                 val screens = when (val origin = deeplink.origin) {
                     OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
-                    is OnRampDeeplinkOrigin.PoolWithId -> buildOnRampScreenFlow(AppRoute.Pool.Details(poolId = origin.id)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
-                    is OnRampDeeplinkOrigin.PoolWithRendezvous -> buildOnRampScreenFlow(AppRoute.Pool.Details(rendezvous = origin.keyPair)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
                     is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
                     OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
                     OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdc)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
@@ -59,17 +47,6 @@ class NavigationStateRestorer(
                 val origin = EmailDeeplinkOrigin.deserialize(deeplink.origin.orEmpty())
                 val screens = when (origin) {
                     is EmailDeeplinkOrigin.OnRamp -> when (val source = origin.source) {
-                        is AppRoute.Pool.Details -> {
-                            buildOnRampScreenFlow(source)  + ScreenRegistry.get(
-                                AppRoute.Verification(
-                                    origin = source,
-                                    target = AppRoute.OnRamp.AmountEntry,
-                                    includePhone = false,
-                                    email = deeplink.email,
-                                    emailVerificationCode = deeplink.code
-                                )
-                            )
-                        }
                         is AppRoute.Sheets.Menu -> {
                             buildOnRampScreenFlow(source) + ScreenRegistry.get(
                                 AppRoute.Verification(

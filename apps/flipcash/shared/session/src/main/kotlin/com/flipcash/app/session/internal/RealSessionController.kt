@@ -15,9 +15,6 @@ import com.flipcash.app.core.internal.updater.ProfileUpdater
 import com.flipcash.app.core.internal.updater.TokenUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.pools.PoolUpdater
-import com.flipcash.app.pools.PoolsCoordinator
-import com.flipcash.app.pools.PoolsUpdater
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.PutInWallet
@@ -90,7 +87,6 @@ class RealSessionController @Inject constructor(
     private val userManager: UserManager,
     private val accountController: AccountController,
     private val feedCoordinator: ActivityFeedCoordinator,
-    private val poolsCoordinator: PoolsCoordinator,
     private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
@@ -98,8 +94,6 @@ class RealSessionController @Inject constructor(
     private val tokenUpdater: TokenUpdater,
     private val exchangeUpdater: ExchangeUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
-    private val poolsUpdater: PoolsUpdater,
-    private val poolUpdater: PoolUpdater,
     private val profileUpdater: ProfileUpdater,
     private val shareSheetController: ShareSheetController,
     private val shareConfirmationController: ShareableConfirmationController,
@@ -167,20 +161,6 @@ class RealSessionController @Inject constructor(
             .onEach { balance -> _state.update { it.copy(balance = balance) } }
             .launchIn(scope)
 
-        poolsCoordinator.openPool
-            .onEach { id ->
-                if (id == null) {
-                    poolUpdater.stop()
-                } else {
-                    poolUpdater.poll(
-                        key = id,
-                        scope = scope,
-                        frequency = 10.seconds,
-                        startIn = 10.seconds
-                    )
-                }
-            }.launchIn(scope)
-
         tokenController.tokens
             .onEach { tokens ->
                 _state.update { it.copy(tokens = tokens.map { it.address }) }
@@ -220,7 +200,6 @@ class RealSessionController @Inject constructor(
         updateUserFlags()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
-        bringPoolsCurrent()
         shareSheetController.checkForShare()
         if (userManager.authState.isAtLeastRegistered) {
             billingClient.connect()
@@ -256,13 +235,6 @@ class RealSessionController @Inject constructor(
             exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
             tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
-            // TODO: once we have streams setup for pool this can be removed
-            poolsUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 45.seconds)
-
-            poolsCoordinator.openPool.value?.let { id ->
-                poolUpdater.poll(id, scope = scope, frequency = 10.seconds, startIn = 10.seconds)
-            }
-
             profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
         }
     }
@@ -271,9 +243,6 @@ class RealSessionController @Inject constructor(
         exchangeUpdater.stop()
         tokenUpdater.stop()
         activityFeedUpdater.stop()
-        // TODO: once we have streams setup for pool this can be removed
-        poolsUpdater.stop()
-        poolUpdater.stop()
     }
 
     private fun updateUserFlags() {
@@ -346,17 +315,6 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 feedCoordinator.fetchSinceLatest(count)
-            }
-        }
-    }
-
-    private fun bringPoolsCurrent(count: Int = 10) {
-        if (userManager.authState.canAccessAuthenticatedApis) {
-            scope.launch {
-                poolsCoordinator.updatePools()
-            }
-            scope.launch {
-                poolsCoordinator.fetchSinceLatest(count)
             }
         }
     }

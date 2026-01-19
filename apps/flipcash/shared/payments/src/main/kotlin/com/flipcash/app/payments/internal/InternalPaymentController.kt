@@ -1,19 +1,13 @@
 package com.flipcash.app.payments.internal
 
 import com.flipcash.app.payments.ConfirmationEvent
-import com.flipcash.app.payments.ConfirmationState
 import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.payments.PaymentEvent
 import com.flipcash.app.payments.PaymentRequest
 import com.flipcash.app.payments.PaymentState
-import com.flipcash.app.payments.PoolResolutionConfirmation
-import com.flipcash.app.payments.PublicPaymentConfirmation
-import com.flipcash.app.payments.delegates.PoolBidDelegate
-import com.flipcash.app.payments.delegates.PoolResolveDelegate
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.BalanceController
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
@@ -31,11 +25,7 @@ import kotlinx.coroutines.launch
 internal class InternalPaymentController(
     private val resources: ResourceHelper,
     private val userManager: UserManager,
-    private val balanceController: BalanceController,
-    private val poolBidDelegate: PoolBidDelegate,
-    private val poolResolveDelegate: PoolResolveDelegate,
-) : PaymentController, PoolBidDelegate by poolBidDelegate,
-    PoolResolveDelegate by poolResolveDelegate {
+) : PaymentController {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -55,148 +45,11 @@ internal class InternalPaymentController(
         val vault = userManager.accountCluster?.vaultPublicKey ?: return
         // update the request immediately for usage in early error handling
         _state.update { it.copy(request = request) }
-        _state.update {
-            when (request) {
-                is PaymentRequest.PoolBid -> {
-                    val balance = balanceController.rawBalance.value
-
-                    if (balance < request.pool.buyIn) {
-                        scope.launch {
-                            handlePaymentError(PaymentError.InsufficientBalance())
-                        }
-                        return
-                    }
-
-                    it.copy(
-                        poolBidConfirmation = PublicPaymentConfirmation(
-                            state = ConfirmationState.AwaitingConfirmation,
-                            amount = request.pool.buyIn,
-                            destination = vault,
-                            metadata = PoolBidPaymentMetadata(
-                                pool = request.pool,
-                                selectedOutcome = request.outcome,
-                                rendezvous = request.rendezvous
-                            )
-                        )
-                    )
-                }
-
-                is PaymentRequest.ResolvePool -> {
-                    it.copy(
-                        poolResolutionConfirmation = PoolResolutionConfirmation(
-                            state = ConfirmationState.AwaitingConfirmation,
-                            poolId = request.pool.id,
-                            metadata = PoolResolutionPaymentMetadata(
-                                pool = request.pool,
-                                bets = request.bets,
-                                rendezvous = request.rendezvous,
-                                resolution = request.resolution
-                            )
-                        )
-                    )
-
-                }
-            }
-        }
     }
 
     override fun completeRequest() {
         scope.launch {
             val request = _state.value.request ?: return@launch
-            when (request) {
-                is PaymentRequest.PoolBid -> {
-                    completeBidPayment()
-                }
-
-                is PaymentRequest.ResolvePool -> {
-                    completePoolDisbursement()
-                }
-            }
-        }
-    }
-
-    private suspend fun completeBidPayment() {
-        val request = _state.value.request ?: return
-        val confirmation = _state.value.poolBidConfirmation ?: return
-        val amount = confirmation.amount
-        val metadata = confirmation.metadata as PoolBidPaymentMetadata
-
-        val (pool, _, _) = metadata
-        _state.update {
-            it.copy(
-                poolBidConfirmation = it.poolBidConfirmation?.copy(state = ConfirmationState.Sending),
-            )
-        }
-
-        request.rpcCall!!.invoke()
-            .map { it as ID }
-            .onSuccess { bidId ->
-                poolBidDelegate.payForBid(
-                    pool = pool,
-                    bidId = bidId,
-                    amount = amount,
-                    rendezvous = metadata.rendezvous,
-                    onSuccess = { intentId ->
-                        handlePaymentSuccess(
-                            intentId = intentId,
-                            metadata = metadata,
-                            stateUpdate = {
-                                it.copy(
-                                    poolBidConfirmation = it.poolBidConfirmation?.copy(
-                                        state = ConfirmationState.Sent
-                                    ),
-                                )
-                            }
-                        )
-                    },
-                    onError = ::handlePaymentError,
-                )
-            }.onFailure {
-                cancelRequest(false)
-                _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
-            }
-    }
-
-    private suspend fun completePoolDisbursement() {
-        val request = _state.value.request ?: return
-        val confirmation = _state.value.poolResolutionConfirmation ?: return
-        val metadata = confirmation.metadata
-        val (pool, bets, rendezvous, resolution) = metadata
-
-        val rpc = request.rpcCall
-
-        val resolve = suspend {
-            poolResolveDelegate.resolvePool(
-                pool = pool,
-                bets = bets,
-                rendezvous = rendezvous,
-                resolution = resolution,
-                onSuccess = { id ->
-                    handlePaymentSuccess(
-                        intentId = id,
-                        metadata = metadata,
-                        stateUpdate = {
-                            it.copy(
-                                poolResolutionConfirmation = it.poolResolutionConfirmation?.copy(
-                                    state = ConfirmationState.Sent
-                                ),
-                            )
-                        }
-                    )
-                },
-                onError = ::handlePaymentError,
-            )
-        }
-
-        if (rpc == null) {
-            resolve()
-        } else {
-            rpc.invoke()
-                .onSuccess { resolve() }
-                .onFailure {
-                    cancelRequest(false)
-                    _paymentEvents.emit(PaymentEvent.OnRpcFailure(it))
-                }
         }
     }
 
@@ -225,12 +78,7 @@ internal class InternalPaymentController(
         when {
             error is PaymentError -> {
                 when (error) {
-                    is PaymentError.InsufficientBalance -> {
-                        if (state.value.request !is PaymentRequest.PoolBid) {
-                            // NSF on pool bids is handled at client level
-                            presentInsufficientFundsError()
-                        }
-                    }
+                    is PaymentError.InsufficientBalance -> Unit
                     is PaymentError.NoOwnerForDistribution -> presentPaymentFailedError()
                     is PaymentError.NoPoolBalance -> presentPaymentFailedError()
                     is PaymentError.PoolDistributionFailed -> Unit

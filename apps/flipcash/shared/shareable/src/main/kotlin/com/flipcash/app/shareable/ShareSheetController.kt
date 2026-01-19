@@ -31,13 +31,6 @@ sealed interface Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 
-    data class Pool(
-        val pool: com.flipcash.app.core.pools.Pool,
-        val rendezvous: Ed25519.KeyPair
-    ) : Shareable {
-        override val pendingData: ShareablePendingData? = null
-    }
-
     data class TokenInfo(
         val token: Token
     ): Shareable {

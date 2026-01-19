@@ -48,16 +48,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     @Parcelize
     data object Reserves: OnRampDeeplinkOrigin()
 
-    @Parcelize
-    data class PoolWithId(val id: ID) : OnRampDeeplinkOrigin()
-
-    @Parcelize
-    data class PoolWithRendezvous(val keyPair: Ed25519.KeyPair) : OnRampDeeplinkOrigin()
 
     fun forUri(): String {
         return when(this) {
-            is PoolWithId -> "pool-id_${id.base58}"
-            is PoolWithRendezvous -> "pool-seed_${keyPair.seed.base64}"
             Menu -> "menu"
             is Give -> "give-${tokenAddress?.base58()?.base64UrlSafe}"
             Wallet -> "wallet"
@@ -71,10 +64,6 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             return when (route) {
                 is AppRoute.Sheets.Menu -> Menu
                 is AppRoute.Main.Give -> Give(route.mint)
-                is AppRoute.Pool.Details -> {
-                    route.rendezvous?.let { keyPair -> PoolWithRendezvous(keyPair) }
-                    route.poolId?.let { id -> PoolWithId(id) }
-                }
                 is AppRoute.Sheets.Wallet -> Wallet
                 is AppRoute.Token.Info -> {
                     if (route.mint == Mint.usdc) Reserves else TokenInfo(route.mint)
@@ -103,16 +92,6 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                     }.onFailure { it.printStackTrace() }.getOrNull() ?: return null
 
                     TokenInfo(mint)
-                }
-                value?.startsWith("pool-") == true -> {
-                    val idStringWithPrefix = value.removePrefix("pool-")
-                    val splits = idStringWithPrefix.split("_")
-                    val prefix = splits.getOrNull(0) ?: return null
-                    when (prefix) {
-                        "seed" -> PoolWithRendezvous(Ed25519.createKeyPair(splits[1].decodeBase64()))
-                        "id" -> PoolWithId(splits[1].decodeBase58().toList())
-                        else -> return null
-                    }
                 }
 
                 else -> return null

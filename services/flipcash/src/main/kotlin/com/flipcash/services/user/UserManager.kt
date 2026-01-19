@@ -86,9 +86,6 @@ class UserManager @Inject constructor(
     val authState: AuthState
         get() = _state.value.authState
 
-    val nextPoolIndex: Long
-        get() = _state.value.nextPoolIndex
-
     val profile: UserProfile?
         get() = _state.value.userProfile
 
@@ -100,18 +97,12 @@ class UserManager @Inject constructor(
         val flags: UserFlags? = null,
         val isTimelockUnlocked: Boolean = false,
         val pushToken: String? = null,
-        val nextPoolIndex: Long = 0L,
         val userProfile: UserProfile? = null,
     )
 
     init {
         accountController.onTimelockUnlocked = {
             didDetectUnlockedAccount()
-        }
-
-        accountController.onNextIndexDetermined = { nextIndex ->
-            trace("next pool index determined => $nextIndex")
-            _state.update { it.copy(nextPoolIndex = nextIndex) }
         }
 
         Firebase.messaging.token.addOnSuccessListener { token ->

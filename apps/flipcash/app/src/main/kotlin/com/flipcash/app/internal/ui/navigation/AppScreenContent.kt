@@ -25,13 +25,6 @@ import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.OnRampProviderListScreen
-import com.flipcash.app.pools.PoolBettingScreen
-import com.flipcash.app.pools.PoolCreateFlow
-import com.flipcash.app.pools.PoolListScreen
-import com.flipcash.app.pools.PoolListSheet
-import com.flipcash.app.pools.create.PoolConfirmationScreen
-import com.flipcash.app.pools.create.PoolCustomBidEntryScreen
-import com.flipcash.app.pools.create.PoolQuestionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
@@ -112,30 +105,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
             BalanceScreen()
         }
 
-        register<AppRoute.Sheets.PoolList> {
-            PoolListSheet()
-        }
-
-        register<AppRoute.Pool.Create.Name> {
-            PoolCreateFlow.start()
-            PoolQuestionScreen()
-        }
-
-        register<AppRoute.Pool.Create.Amount> {
-            PoolCustomBidEntryScreen()
-        }
-
-        register<AppRoute.Pool.Create.Confirmation> {
-            PoolConfirmationScreen()
-        }
-
-        register<AppRoute.Pool.Details> {
-             PoolBettingScreen(
-                 poolId = it.poolId,
-                 rendezvous = it.rendezvous
-             )
-        }
-
         register<AppRoute.Main.RegionSelection> {
             RegionSelectionScreen(it.kind)
         }
@@ -210,10 +179,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Menu.AdvancedFeatures> {
             AdvancedFeaturesScreen()
-        }
-
-        register<AppRoute.Advanced.PoolList> {
-            PoolListScreen()
         }
     }
 

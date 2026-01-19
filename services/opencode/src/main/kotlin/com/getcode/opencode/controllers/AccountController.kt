@@ -1,13 +1,11 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountResponse
 import com.getcode.opencode.model.accounts.AccountType
-import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.accounts.unusable
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.GetAccountsError
@@ -51,7 +49,6 @@ class AccountController @Inject constructor(
     private val fetching = AtomicBoolean(false)
 
     var onTimelockUnlocked: (() -> Unit) = { }
-    var onNextIndexDetermined: ((Long) -> Unit) = { }
 
     fun onUserLoggedIn(cluster: AccountCluster) {
         trace(
@@ -89,18 +86,6 @@ class AccountController @Inject constructor(
 
         return transactionController.submitIntent(scope, intent, ownerForMint.authority.keyPair)
             .map { it.id.bytes }
-    }
-
-    suspend fun createPoolAccount(
-        owner: AccountCluster,
-        index: Long,
-        mnemonic: MnemonicPhrase,
-    ): Result<PoolAccount> {
-        val poolAccount = PoolAccount.create(index, mnemonic)
-        val intent = IntentCreateAccount.createPoolAccount(owner, poolAccount.cluster, index)
-
-        return transactionController.submitIntent(scope, intent, owner.authority.keyPair)
-            .map { poolAccount }
     }
 
     suspend fun getAccounts(
@@ -172,8 +157,6 @@ class AccountController @Inject constructor(
                 if (primary?.unusable == true) {
                     onTimelockUnlocked()
                 }
-
-                onNextIndexDetermined(response.nextPoolIndex)
             }?.onSuccess {
                 fetching.store(false)
             }?.onFailure {

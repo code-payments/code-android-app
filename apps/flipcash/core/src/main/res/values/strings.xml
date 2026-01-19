@@ -177,106 +177,17 @@
     <string name="action_dontCollect">Don\'t Collect</string>
     <string name="action_collect">Collect</string>
 
-    <string name="action_pool">Pool</string>
-    <string name="action_pools">Pools</string>
-    <string name="title_pools">Pools</string>
-    <string name="action_createNewPool">Create a New Pool</string>
-    <string name="title_poseQuestion">Pose a Question</string>
-    <string name="title_costToJoin">Cost to Join</string>
-    <string name="title_createPool">Create Pool</string>
-    <string name="subtitle_createPoolDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
-    <string name="subtitle_createPools">Create a pool, collect money from your friends, and then decide who was right!</string>
-    <string name="action_set">Set</string>
-    <string name="subtitle_poolBidHint">Enter up to %1$s</string>
-    <string name="subtitle_poolBidLimitExceeded">You can only bid up to %1$s</string>
-    <string name="subtitle_toJoin">to join</string>
-    <string name="subtitle_poolNamePlaceholder">Question</string>
-    <string name="subtitle_poolNameHint">Pose a Yes or No Question</string>
-    <string name="action_createYourPool">Create Your Pool</string>
-    <string name="error_title_bidLimitReached">Cost Limit Too High</string>
-    <string name="error_description_bidLimitReached">Your pool’s cost to join is too high. Enter a smaller amount and try again</string>
-    <string name="error_title_createPoolFailed">Create Pool Failed</string>
-    <string name="error_description_createPoolFailed">Something went wrong</string>
-    <string name="subtitle_totalInPool">%1$s in pool so far</string>
-    <string name="subtitle_poolHostOutcomeDisclaimer">As the pool host, you will decide the outcome of the pool in your sole discretion</string>
-    <string name="subtitle_poolParticipantOutcomeDisclaimer">The person who created the pool gets to decide the outcome of the pool in their sole discretion</string>
-    <string name="action_sharePoolWithFriends">Share Pool With Friends</string>
-    <string name="action_declareOutcome">Declare the Outcome</string>
-    <string name="action_distributeFunds">Distribute Funds</string>
-    <string name="subtitle_inPoolSoFar">in pool so far</string>
-
-    <string name="error_title_poolNotFound">Something went wrong</string>
-    <string name="error_description_poolNotFound">Failed to load the desired pool. Please try again</string>
-
-    <string name="error_title_missingPoolKeys">Something went wrong</string>
-    <string name="error_description_missingPoolKeys">Failed to find keys for the desired pool. Please try again</string>
-
-
-    <string name="action_pool_bet_not_set">None</string>
-    <string name="action_pool_bet_yes">Yes</string>
-    <string name="action_pool_bet_no">No</string>
-    <string name="subtitle_poolAlreadyBet">You\'re bought in</string>
-    <string name="subtitle_poolNotYetBet">Tap yes or no to buy in for %1$s</string>
-
     <string name="error_title_paymentFailed">Payment Failed</string>
     <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>
 
     <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
     <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough funds to complete this payment</string>
 
-    <string name="error_title_placeBetFailed">Something Went Wrong</string>
-    <string name="error_description_placeBetFailed">We were unable to place your bid. Please try again</string>
-
-    <string name="error_title_closePoolFailed">Something Went Wrong</string>
-    <string name="error_description_closePoolFailed">We were unable to close your pool. Please try again</string>
-
-    <string name="error_title_resolvePoolFailed">Something Went Wrong</string>
-    <string name="error_description_resolvePoolFailed">We were unable to resolve your pool. Please try again</string>
-
-    <string name="error_title_resolvePoolDistributionsFailed">Pool Payouts Failed</string>
-    <string name="error_description_resolvePoolDistributionsFailed">The payouts for this pool could not be completed. Please try again</string>
-
-
-    <string name="action_swipeToBuyIn">Swipe to Buy In</string>
-
-    <string name="title_open">Open</string>
-    <string name="title_completed">Completed</string>
-    <string name="subtitle_host">Host</string>
-    <string name="subtitle_booleanResult">Result: %1$s</string>
-    <string name="subtitle_refunded">Refunded</string>
-    <string name="label_yes">Yes</string>
-    <string name="label_no">No</string>
-    <string name="label_tie">Tie</string>
-    <string name="action_no">No</string>
-    <string name="action_tie">Tie (Refund Everyone)</string>
-    <string name="subtitle_wonPool">Won %1$s</string>
-    <string name="subtitle_lostPool">Lost %1$s</string>
-    <string name="subtitle_tiePool">Tie</string>
-
-    <string name="subtitle_youSaid">You said</string>
-
-    <string name="prompt_title_poolResolution">What was the winning outcome?</string>
-
-    <string name="action_swipeToConfirm">Swipe to Confirm</string>
-    <string name="subtitle_wasInPool">was in pool</string>
-    <string name="subtitle_winnerReceives">Winner receives %1$s</string>
-    <string name="subtitle_winnersReceive">Winners receive %1$s</string>
-    <string name="subtitle_everyoneReceives">Everyone receives %1$s</string>
-    <string name="subtitle_everyoneGotMoneyBack">Everyone got their money back</string>
-
     <plurals name="subtitle_personCount">
         <item quantity="zero">0 people</item>
         <item quantity="one">1 person</item>
         <item quantity="other">%1$s people</item>
     </plurals>
-
-    <string-array name="pool_preview_titles">
-        <item>Will Joe and Sally have a baby girl?</item>
-        <item>Will anyone put a ball in the water during today’s golf round?</item>
-        <item>Will Jack bring a date to the wedding?</item>
-        <item>Will Caleb dunk this basketball?</item>
-        <item>Will Jill text her ex before dawn?</item>
-    </string-array>
 
     <string name="action_addCash">Add Cash</string>
     <string name="title_selectMethod">Select Method</string>
@@ -407,9 +318,6 @@
     <string name="title_wallet">Wallet</string>
     <string name="action_wallet">Wallet</string>
 
-    <string name="error_title_poolCreateDisabled">Pools Winding Down</string>
-    <string name="error_description_poolCreateDisabled">New pools cannot be created. Existing pools should be closed out</string>
-
     <string name="action_sendAsLink">Send as a Link</string>
 
     <string name="subtitle_addUsdcToWallet">Add Solana USDC to your Flipcash wallet</string>
@@ -475,6 +383,9 @@
     <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
+
+    <string name="label_yes">Yes</string>
+    <string name="label_no">No</string>
 
     <string name="label_marketCapAllTimeShort">ALL</string>
     <string name="label_marketCapAllTime">all time</string>

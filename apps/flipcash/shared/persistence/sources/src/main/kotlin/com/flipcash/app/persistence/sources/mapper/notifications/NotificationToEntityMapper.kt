@@ -1,16 +1,13 @@
 package com.flipcash.app.persistence.sources.mapper.notifications
 
 import com.flipcash.app.core.feed.MessageMetadata
-import com.flipcash.app.core.pools.PoolResolution
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.services.models.ActivityFeedNotification
-import com.flipcash.services.models.NetworkPoolResolution
 import com.flipcash.services.models.NotificationMetadata
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -65,15 +62,6 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
             NotificationMetadata.WelcomeBonus -> MessageMetadata.WelcomeBonus
             NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto
             NotificationMetadata.DepositedCrypto -> MessageMetadata.DepositedCrypto
-            is NotificationMetadata.DistributedUsdc -> MessageMetadata.DistributedCrypto(
-                from.poolId,
-                when (val outcome = from.outcome) {
-                    is NetworkPoolResolution.BooleanResolution -> PoolResolution.BooleanResolution(outcome.value)
-                    NetworkPoolResolution.NotSet -> PoolResolution.NotSet
-                    NetworkPoolResolution.Refund -> PoolResolution.Refund
-                }
-            )
-            is NotificationMetadata.PaidCrypto -> MessageMetadata.PaidCrypto(poolId = from.poolId)
         }
     }
 }

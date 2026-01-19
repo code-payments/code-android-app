@@ -3,13 +3,8 @@ package com.flipcash.services.internal.network.extensions
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.profile.v1.ProfileService
-import com.flipcash.services.models.NetworkPoolBetOutcome
-import com.flipcash.services.models.NetworkPoolResolution
-import com.codeinc.flipcash.gen.pool.v1.Model as PoolModels
 import com.codeinc.flipcash.gen.thirdparty.v1.Model as ThirdPartyModels
 import com.flipcash.services.models.PagingToken
-import com.flipcash.services.models.PoolMetadata
-import com.flipcash.services.models.PoolBetMetadata
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -31,14 +26,6 @@ internal fun KeyPair.asPublicKey(): Common.PublicKey {
 
 internal fun PublicKey.asPublicKey(): Common.PublicKey {
     return Common.PublicKey.newBuilder().setValue(bytes.toByteString()).build()
-}
-
-internal fun ID.asPoolId(): PoolModels.PoolId {
-    return PoolModels.PoolId.newBuilder().setValue(toByteString()).build()
-}
-
-internal fun ID.asPoolBetId(): PoolModels.BetId {
-    return PoolModels.BetId.newBuilder().setValue(toByteString()).build()
 }
 
 internal fun ID.asUserId(): Common.UserId {
@@ -68,67 +55,6 @@ internal fun PagingToken.toPagingToken(): Common.PagingToken {
 
 internal fun List<ID>.toNotificationIds(): List<Model.NotificationId> {
     return this.map { Model.NotificationId.newBuilder().setValue(it.toByteString()).build() }
-}
-
-internal fun PoolMetadata.toProto(): PoolModels.SignedPoolMetadata {
-    return PoolModels.SignedPoolMetadata.newBuilder()
-        .setId(id.asPoolId())
-        .setCreator(creator.asUserId())
-        .setName(name)
-        .setBuyIn(
-            Common.FiatPaymentAmount.newBuilder()
-                .setCurrency(buyIn.currencyCode.name.lowercase())
-                .setNativeAmount(buyIn.decimalValue)
-        )
-        .setFundingDestination(fundingDestination.asPublicKey())
-        .setIsOpen(isOpen)
-        .apply {
-            when (this@toProto.resolution) {
-                is NetworkPoolResolution.BooleanResolution -> {
-                    setResolution(
-                        PoolModels.Resolution.newBuilder()
-                            .setBooleanResolution(this@toProto.resolution.value)
-                    )
-                }
-
-                NetworkPoolResolution.NotSet -> Unit
-
-                NetworkPoolResolution.Refund -> {
-                    setResolution(
-                        PoolModels.Resolution.newBuilder()
-                            .setRefundResolution(PoolModels.Resolution.Refund.getDefaultInstance())
-                    )
-                }
-            }
-        }
-        .setCreatedAt(createdAt.asTimestamp())
-        .apply {
-            if (this@toProto.closedAt != null) {
-                setClosedAt(this@toProto.closedAt.asTimestamp())
-            }
-        }
-        .build()
-}
-
-internal fun PoolBetMetadata.toProto(): PoolModels.SignedBetMetadata {
-    return PoolModels.SignedBetMetadata.newBuilder()
-        .setBetId(id.asPoolBetId())
-        .setUserId(userId.asUserId())
-        .apply {
-            when (this@toProto.selectedOutcome) {
-                is NetworkPoolBetOutcome.BooleanOutcome -> {
-                    setSelectedOutcome(
-                        PoolModels.BetOutcome.newBuilder()
-                            .setBooleanOutcome(this@toProto.selectedOutcome.value)
-                    )
-                }
-
-                NetworkPoolBetOutcome.NotSet -> Unit
-            }
-        }
-        .setPayoutDestination(payoutDestination.asPublicKey())
-        .setTs(timestamp.asTimestamp())
-        .build()
 }
 
 internal fun Pair<ApiProvider, String>.asApiKey(): ThirdPartyModels.ApiKey {

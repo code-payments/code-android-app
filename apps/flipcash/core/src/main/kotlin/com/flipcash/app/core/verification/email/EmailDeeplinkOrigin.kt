@@ -22,14 +22,6 @@ sealed class EmailDeeplinkOrigin {
             is OnRamp -> {
                 val amountString = amount?.let { Json.Default.encodeToString(Fiat.Companion.serializer(), it) }
                 when (source) {
-                    is AppRoute.Pool.Details -> {
-                        when {
-                            source.rendezvous != null -> "onramp|pool|seed_${source.rendezvous.seed.base64}|$amountString"
-                            source.poolId != null -> "onramp|pool|id_${source.poolId.base58}|$amountString"
-                            else -> "onramp|null|$amountString"
-                        }
-                    }
-
                     is AppRoute.Sheets.Menu -> "onramp|menu|$amountString"
 
                     else -> "onramp|null|$amountString"
@@ -58,21 +50,6 @@ sealed class EmailDeeplinkOrigin {
             return when (splits[0]) {
                 "onramp" -> {
                     val source = when (splits[1]) {
-                        "pool" -> {
-                            if (splits[2].startsWith("seed")) {
-                                AppRoute.Pool.Details(
-                                    rendezvous = Ed25519.createKeyPair(
-                                        splits[2].removePrefix("seed_").decodeBase64()
-                                    )
-                                )
-                            } else if (splits[2].startsWith("id")) {
-                                AppRoute.Pool.Details(
-                                    poolId = splits[2].removePrefix("id_").decodeBase58().toList()
-                                )
-                            } else {
-                                null
-                            }
-                        }
                         "menu" -> AppRoute.Sheets.Menu
 
                         else -> null

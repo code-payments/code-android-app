@@ -77,14 +77,4 @@ sealed interface NotificationMetadata {
     @Serializable
     data object WithdrewCrypto : NotificationMetadata
 
-    @Serializable
-    data class PaidCrypto(
-        val poolId: ID,
-    ) : NotificationMetadata
-
-    @Serializable
-    data class DistributedUsdc(
-        val poolId: ID,
-        val outcome: NetworkPoolResolution,
-    ) : NotificationMetadata
 }

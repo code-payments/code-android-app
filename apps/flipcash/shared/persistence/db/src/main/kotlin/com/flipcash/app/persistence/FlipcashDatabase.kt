@@ -4,20 +4,15 @@ import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.DeleteColumn
+import androidx.room.DeleteTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.flipcash.app.persistence.converters.BetOutcomeConverter
-import com.flipcash.app.persistence.converters.PoolResolutionConverter
 import com.flipcash.app.persistence.dao.MessageDao
-import com.flipcash.app.persistence.dao.PoolDao
 import com.flipcash.app.persistence.entities.MessageEntity
-import com.flipcash.app.persistence.entities.PoolBetEntity
-import com.flipcash.app.persistence.entities.PoolEntity
-import com.flipcash.app.persistence.entities.PoolRendezvousKeyEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -26,9 +21,6 @@ import org.kin.sdk.base.tools.subByteArray
 @Database(
     entities = [
         MessageEntity::class,
-        PoolEntity::class,
-        PoolBetEntity::class,
-        PoolRendezvousKeyEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -40,14 +32,13 @@ import org.kin.sdk.base.tools.subByteArray
         AutoMigration(from = 7, to = 8, spec = FlipcashDatabase.Migration7To8::class),
         AutoMigration(from = 8, to = 9),
         AutoMigration(from = 9, to = 10, spec = FlipcashDatabase.Migration9To10::class),
+        AutoMigration(from = 10, to = 11, spec = FlipcashDatabase.Migration10To11::class),
     ],
-    version = 10,
+    version = 11,
 )
-@TypeConverters(PoolResolutionConverter::class, BetOutcomeConverter::class)
 abstract class FlipcashDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
-    abstract fun poolDao(): PoolDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -107,6 +98,13 @@ abstract class FlipcashDatabase : RoomDatabase() {
             db.execSQL("DELETE FROM messages")
         }
     }
+
+    @DeleteTable.Entries(
+        DeleteTable(tableName = "pool_metadata"),
+        DeleteTable(tableName = "pool_bet_metadata"),
+        DeleteTable(tableName = "pool_rendezvous_keys")
+    )
+    class Migration10To11 : Migration(10, 11), AutoMigrationSpec
 
     companion object {
         private var instance: FlipcashDatabase? = null

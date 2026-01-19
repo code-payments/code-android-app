@@ -15,7 +15,6 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.login
 import com.flipcash.app.router.internal.AppRouter.Companion.external
-import com.flipcash.app.router.internal.AppRouter.Companion.pool
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
@@ -35,7 +34,6 @@ internal class AppRouter(
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
-        val pool = listOf("p", "pool")
         val external = listOf("external")
         val verification = listOf("verify")
         val token = listOf("token")
@@ -53,14 +51,6 @@ internal class AppRouter(
                     }
                 }
                 is DeeplinkType.CashLink -> {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                    }
-                }
-
-                is DeeplinkType.Pool -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
                         listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
                     } else {
@@ -108,7 +98,6 @@ internal class AppRouter(
             when {
                 deeplink.isLogin() -> deeplink.handleLoginLink()
                 deeplink.isCashLink() -> deeplink.handleCashLink()
-                deeplink.isPool() -> deeplink.handlePoolLink()
                 deeplink.isToken() -> deeplink.handleTokenLink()
                 deeplink.isExternalWalletConnection() -> deeplink.handleWalletConnect()
                 deeplink.isExternalWalletSignedTransaction() -> deeplink.handleWalletSignedTransaction()
@@ -121,7 +110,6 @@ internal class AppRouter(
 
 private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments[0])
 private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])
-private fun DeepLink.isPool(): Boolean = pool.contains(pathSegments[0])
 private fun DeepLink.isToken(): Boolean = token.contains(pathSegments[0])
 
 private fun DeepLink.isExternalWalletConnection(): Boolean = external.contains(pathSegments.getOrNull(0))
@@ -149,11 +137,6 @@ private fun DeepLink.handleCashLink(): DeeplinkType.CashLink? {
     val entropy = data.toUri().fragments[Key.entropy] ?: return null
 
     return DeeplinkType.CashLink(entropy)
-}
-
-private fun DeepLink.handlePoolLink(): DeeplinkType.Pool? {
-    val seed = data.toUri().fragments[Key.entropy] ?: return null
-    return DeeplinkType.Pool(seed)
 }
 
 private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {

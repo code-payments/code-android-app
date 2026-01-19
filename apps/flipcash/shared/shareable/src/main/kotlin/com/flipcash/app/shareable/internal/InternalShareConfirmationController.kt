@@ -27,7 +27,6 @@ internal class InternalShareConfirmationController(
         return when (shareable) {
             is Shareable.CashLink -> confirmCashLink(shareResult, shareable.autoConfirmationAfter)
             is Shareable.DownloadLink -> Confirmed(shareResult)
-            is Shareable.Pool -> Confirmed(shareResult)
             is Shareable.TokenInfo -> Confirmed(shareResult)
         }
     }

@@ -1,11 +1,8 @@
 package com.flipcash.app.payments.inject
 
 import com.flipcash.app.payments.PaymentController
-import com.flipcash.app.payments.internal.InternalPoolBidDelegate
 import com.flipcash.app.payments.internal.InternalPaymentController
-import com.flipcash.app.payments.internal.InternalPoolResolveDelegate
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.controllers.BalanceController
 import com.getcode.util.resources.ResourceHelper
 import dagger.Module
 import dagger.Provides
@@ -20,17 +17,11 @@ object PaymentsModule {
     @Singleton
     internal fun providePaymentController(
         resources: ResourceHelper,
-        bidDelegate: InternalPoolBidDelegate,
-        resolveDelegate: InternalPoolResolveDelegate,
         userManager: UserManager,
-        balanceController: BalanceController
     ): PaymentController {
         return InternalPaymentController(
             resources = resources,
-            poolBidDelegate = bidDelegate,
-            poolResolveDelegate = resolveDelegate,
             userManager = userManager,
-            balanceController = balanceController,
         )
     }
 }

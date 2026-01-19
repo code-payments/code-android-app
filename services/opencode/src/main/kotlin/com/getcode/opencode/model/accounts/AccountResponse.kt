@@ -4,5 +4,4 @@ import com.getcode.solana.keys.PublicKey
 
 data class AccountResponse(
     val accounts: Map<PublicKey, AccountInfo>,
-    val nextPoolIndex: Long = -1,
 )

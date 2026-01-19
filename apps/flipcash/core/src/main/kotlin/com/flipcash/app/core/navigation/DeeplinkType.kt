@@ -16,10 +16,6 @@ sealed interface DeeplinkType: Parcelable {
     sealed interface Navigatable
     data class Login(val entropy: String) : DeeplinkType
     data class CashLink(val entropy: String) : DeeplinkType
-    data class Pool(val seed: String) : DeeplinkType, Navigatable {
-        val rendezvous: Ed25519.KeyPair
-            get() = Ed25519.createKeyPair(Base58.decode(seed))
-    }
 
     data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
 

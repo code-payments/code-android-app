@@ -17,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import com.flipcash.app.payments.internal.PoolResolutionConfirmationModal
 import com.flipcash.app.payments.internal.PublicPaymentConfirmationModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
@@ -75,30 +74,6 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                 Spacer(Modifier.fillMaxWidth())
             }
         }
-
-        // pool resolution confirmation
-        AnimatedContent(
-            modifier = Modifier.align(BottomCenter),
-            targetState = state.poolResolutionConfirmation,
-            contentKey = { it?.poolId },
-            transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast()),
-            label = "pool resolugion confirmation",
-        ) { confirmation ->
-            if (confirmation != null) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = BottomCenter
-                ) {
-                    PoolResolutionConfirmationModal(
-                        confirmation = confirmation,
-                        onSend = { payments.completeRequest() },
-                        onCancel = { payments.cancelRequest(fromUser = true) }
-                    )
-                }
-            } else {
-                Spacer(Modifier.fillMaxWidth())
-            }
-        }
     }
 }
 
@@ -109,11 +84,9 @@ private fun rememberConfirmationDetails(state: PaymentState): State<ScrimDetails
     return remember(state) {
         derivedStateOf {
             val publicPaymentConfirmation = state.poolBidConfirmation
-            val poolResolutionConfirmation = state.poolResolutionConfirmation
 
             listOf(
                 publicPaymentConfirmation,
-                poolResolutionConfirmation,
             ).firstNotNullOfOrNull { it }?.let { conf ->
                 ScrimDetails(conf.showScrim, conf.cancellable)
             } ?: ScrimDetails(show = false, cancellable = false)

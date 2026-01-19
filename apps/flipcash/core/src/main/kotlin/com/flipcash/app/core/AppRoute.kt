@@ -73,21 +73,6 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     }
 
     @Parcelize
-    sealed interface Pool: AppRoute {
-        // TODO: turn into a flow
-        object Create {
-            data object Amount : Pool
-            data object Name : Pool
-            data object Confirmation : Pool
-        }
-
-        data class Details(
-            val poolId: ID? = null,
-            val rendezvous: Ed25519.KeyPair? = null,
-        ): Pool
-    }
-
-    @Parcelize
     sealed interface OnRamp: AppRoute {
         data class ProviderList(
             val from: AppRoute? = null,
@@ -119,7 +104,5 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
     }
 
     @Parcelize
-    sealed interface Advanced: AppRoute {
-        data object PoolList : Advanced
-    }
+    sealed interface Advanced: AppRoute
 }

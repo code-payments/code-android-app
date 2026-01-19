@@ -232,8 +232,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
         val isOverLimit = stateFlow.value.enteredAmount.valueGreaterThan(limit)
         if (isOverLimit) {
             BottomBarManager.showError(
-                resources.getString(R.string.error_title_bidLimitReached),
-                resources.getString(R.string.error_description_bidLimitReached)
+                resources.getString(R.string.error_title_insufficientFunds),
+                resources.getString(R.string.error_description_insufficientFunds)
             )
         }
         isOverLimit

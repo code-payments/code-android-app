@@ -1,6 +1,5 @@
 package com.flipcash.app.core.feed
 
-import com.flipcash.app.core.pools.PoolResolution
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -77,12 +76,6 @@ sealed interface MessageMetadata {
     @Serializable
     data class PaidCrypto(
         val poolId: ID,
-    ): MessageMetadata
-
-    @Serializable
-    data class DistributedCrypto(
-        val poolId: ID,
-        val outcome: PoolResolution,
     ): MessageMetadata
 
     companion object {
