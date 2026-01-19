@@ -28,9 +28,9 @@ sealed interface TransferDirection : Parcelable {
 
     data object Incoming : TransferDirection {
         @IgnoredOnParcel
-        override val nextScreen: AppRoute = AppRoute.Menu.Deposit(Mint.usdc)
+        override val nextScreen: AppRoute = AppRoute.Menu.Deposit(Mint.usdf)
         override val title: String
-            @Composable get() = stringResource(R.string.title_depositUsdc)
+            @Composable get() = stringResource(R.string.title_depositFunds)
         override val description: String
             @Composable get() = stringResource(R.string.title_learnToDeposit)
         override val learnMoreAction: String
@@ -41,9 +41,9 @@ sealed interface TransferDirection : Parcelable {
 
     data object Outgoing : TransferDirection {
         @IgnoredOnParcel
-        override val nextScreen: AppRoute = AppRoute.Transfers.Withdrawal.Amount(Mint.usdc)
+        override val nextScreen: AppRoute = AppRoute.Transfers.Withdrawal.Amount(Mint.usdf)
         override val title: String
-            @Composable get() = stringResource(R.string.title_withdrawUsdc)
+            @Composable get() = stringResource(R.string.title_withdrawFunds)
         override val description: String
             @Composable get() = stringResource(R.string.title_learnToWithdraw)
         override val learnMoreAction: String

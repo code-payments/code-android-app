@@ -112,12 +112,12 @@ class EstimationTests {
 
     @Test
     fun `buy then sell roundtrip`() {
-        val initialSupply = 1_000_000L // 1 USDC
-        val usdcToSpend = 1_000_000L   // 1 USDC
+        val initialSupply = 1_000_000L // 1 USDF
+        val usdfToSpend = 1_000_000L   // 1 USDF
 
         // Buy some
         val buyEstimate = Estimator.buy(
-            amountInQuarks = usdcToSpend,
+            amountInQuarks = usdfToSpend,
             currentSupplyInQuarks = initialSupply,
             mintDecimals = 6,
             feeBps = 0,
@@ -127,7 +127,7 @@ class EstimationTests {
         val tokenQuarks = buyEstimate.netTokensToReceive.multiplyWithHighPrecision(BigDecimal(10_000_000_000))
             .round(MathContext(0, RoundingMode.DOWN))
 
-        val newSupply = initialSupply + usdcToSpend
+        val newSupply = initialSupply + usdfToSpend
 
         val sellEstimate = Estimator.sell(
             amountInQuarks = tokenQuarks.toLong(),
@@ -137,13 +137,13 @@ class EstimationTests {
         ).getOrThrow()
 
         // Should get approximately what we spent
-        val usdcRecovered = sellEstimate.netAmountToReceive.multiplyWithHighPrecision(BigDecimal(1_000_000))
+        val usdfRecovered = sellEstimate.netAmountToReceive.multiplyWithHighPrecision(BigDecimal(1_000_000))
         // For discrete curves, step-based pricing introduces quantization.
         // At low token counts (100 tokens from $1) the rounding can cause ~10% loss
         // because each step is 100 tokens and we're right at the boundary.
         // For larger amounts (10+ steps) the loss would be much smaller.
         // Allow 15% loss for this small-amount test case.
-        val minRecovery = BigDecimal(usdcToSpend).multiplyWithHighPrecision(BigDecimal(0.85))
-        assertTrue(usdcRecovered >= minRecovery, message = "Should recover at least 85% of original for small amounts")
+        val minRecovery = BigDecimal(usdfToSpend).multiplyWithHighPrecision(BigDecimal(0.85))
+        assertTrue(usdfRecovered >= minRecovery, message = "Should recover at least 85% of original for small amounts")
     }
 }

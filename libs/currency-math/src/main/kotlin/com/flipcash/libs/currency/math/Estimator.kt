@@ -65,10 +65,10 @@ object Estimator {
      *    the quantity of tokens that correspond to the input value.
      * 4. Scaling the result back to its "quark" representation (smallest indivisible unit).
      *
-     * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDC).
+     * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDF).
      * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
      *                             expressed in the value token's smallest unit ("quarks").
-     * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDC typically has 6).
+     * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDF typically has 6).
      * @return A [Result] containing the estimated number of quarks to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
@@ -109,10 +109,10 @@ object Estimator {
      * 3. Using the exponential curve model (`ExponentialCurve.tokensForValueExchange`) to determine
      *    the quantity of tokens that correspond to the input value.
      *
-     * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDC).
+     * @param valueInQuarks The amount of value being exchanged, expressed in the value token's smallest unit (e.g., lamports for SOL, or the smallest unit for USDF).
      * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
      *                             expressed in the value token's smallest unit ("quarks").
-     * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDC typically has 6).
+     * @param mintDecimals The number of decimal places for the value token (e.g., SOL has 9, USDF typically has 6).
      * @return A [Result] containing the estimated number of tokens to be received as a [BigDecimal] on success.
      *         On failure, it returns a `Result.failure` wrapping the exception.
      */
@@ -208,15 +208,15 @@ object Estimator {
                     )
                 }
                 CurveType.Discrete -> {
-                    // Convert USDC quarks to USDC units
-                    val usdcValue = BigDecimal(amountInQuarks).divideWithHighPrecision(1_000_000.toBigDecimal())
+                    // Convert USDF quarks to USDF units
+                    val usdfValue = BigDecimal(amountInQuarks).divideWithHighPrecision(1_000_000.toBigDecimal())
 
                     // Convert supply quarks to whole tokens
                     val quarksPerToken = BigDecimal.TEN.pow(mintDecimals, mc)
                     val currentSupply = BigDecimal(currentSupplyInQuarks).divideWithHighPrecision(quarksPerToken)
 
                     // Calculate tokens bought
-                    val grossTokens = curve.valueToTokens(currentSupply, usdcValue).getOrThrow()
+                    val grossTokens = curve.valueToTokens(currentSupply, usdfValue).getOrThrow()
 
                     // Apply fee
                     val feeMultiplier = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
@@ -250,7 +250,7 @@ object Estimator {
      * @param amountInQuarks The amount of the token to be sold, expressed in its smallest unit ("quarks").
      * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
      *                             expressed in the value token's smallest unit ("quarks").
-     * @param mintDecimals The number of decimal places for the value token (e.g., USDC, SOL).
+     * @param mintDecimals The number of decimal places for the value token (e.g., USDF, SOL).
      * @param feeBps The fee percentage expressed in basis points (1 BPS = 0.01%). For example, 50 BPS is a 0.5% fee.
      * @return A [Result] wrapper containing a [SellEstimation] on success, which includes the
      *         `netAmountToReceive` and `fees` in "quarks". Returns a `Result.failure` if any
@@ -299,7 +299,7 @@ object Estimator {
 
                     val netAmountBD =
                         unscaledValueBD.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
-                    val netAmountUsdc = netAmountBD.longValueExact()
+                    val netAmountUsdf = netAmountBD.longValueExact()
                         .toBigDecimal().divideWithHighPrecision(BigDecimal(1_000_000))
 
                     println("tokensToSell: $scaledSellAmount, currentValue: $scaledCurrentValue, currentSupply: $currentSupply, supplyAfterSell: $supplyAfterSell")
@@ -307,7 +307,7 @@ object Estimator {
                     println("gross: $unscaledValueBD, fees: $unscaledFeesUsd, net: $netAmountBD")
 
                     SellEstimation(
-                        netAmountToReceive = netAmountUsdc,
+                        netAmountToReceive = netAmountUsdf,
                         fees = unscaledFeesUsd,
                     )
                 }
@@ -328,19 +328,19 @@ object Estimator {
 
                     println("tokensToSell: $tokensToSell, currentValue: $currentValue, currentSupply: $currentSupply, supplyAfterSell: $supplyAfterSell")
 
-                    val grossUSDC = curve.tokensToValue(
+                    val grossUSDF = curve.tokensToValue(
                         currentSupply = supplyAfterSell,
                         tokens = tokensToSell
                     ).getOrThrow()
 
                     // Apply fee
                     val feeMultiplier = BigDecimal(feeBps).divideWithHighPrecision(BigDecimal("10000"))
-                    val fees = grossUSDC.multiplyWithHighPrecision(feeMultiplier)
-                    val netUSDC = grossUSDC.subtractWithHighPrecision(fees)
+                    val fees = grossUSDF.multiplyWithHighPrecision(feeMultiplier)
+                    val netUSDF = grossUSDF.subtractWithHighPrecision(fees)
 
-                    println("gross: $grossUSDC, fees: $fees, net: $netUSDC")
+                    println("gross: $grossUSDF, fees: $fees, net: $netUSDF")
                     SellEstimation(
-                        netAmountToReceive = netUSDC,
+                        netAmountToReceive = netUSDF,
                         fees = fees,
                     )
                 }

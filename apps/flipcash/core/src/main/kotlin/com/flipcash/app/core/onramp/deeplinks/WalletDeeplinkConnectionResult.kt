@@ -66,7 +66,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 is AppRoute.Main.Give -> Give(route.mint)
                 is AppRoute.Sheets.Wallet -> Wallet
                 is AppRoute.Token.Info -> {
-                    if (route.mint == Mint.usdc) Reserves else TokenInfo(route.mint)
+                    if (route.mint == Mint.usdf) Reserves else TokenInfo(route.mint)
                 }
 
                 else -> null

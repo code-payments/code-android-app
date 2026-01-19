@@ -7,6 +7,7 @@ import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
@@ -29,8 +30,8 @@ internal class MintMapper @Inject constructor(
         // otherwise return null
         val mintDate = from.createdAt.seconds.takeIf { it > 0 }
             .let { at ->
-                if (at == null && mint == Mint.usdc) {
-                    Token.usdc.createdAt
+                if (at == null && mint == Mint.usdf) {
+                    Token.usdf.createdAt
                 } else {
                     at?.let { Instant.fromEpochMilliseconds(it * 1_000L) }
                 }

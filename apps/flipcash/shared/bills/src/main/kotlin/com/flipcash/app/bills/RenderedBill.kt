@@ -11,7 +11,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.DesignSystem
 
 @Composable
@@ -46,10 +46,10 @@ fun Preview_CashBill() {
 
         CashBill(
             amount = LocalFiat(
-                usdc = usdcBase,
+                usdf = usdcBase,
                 nativeAmount = usdcBase.convertingTo(cadRate),
             ),
-            token = Token.usdc,
+            token = Token.usdf,
             payloadData = payload.codeData.toList(),
         )
     }

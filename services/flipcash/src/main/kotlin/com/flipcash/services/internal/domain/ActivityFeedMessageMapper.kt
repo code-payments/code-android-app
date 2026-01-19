@@ -30,10 +30,10 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 val currencyCode = CurrencyCode.tryValueOf(it.currency) ?: CurrencyCode.USD
                 val tokenAmount = Fiat(quarks = it.quarks)
                 val nativeAmount = Fiat(fiat = it.nativeAmount, currencyCode)
-                // if no mint, or it's usdc, then we can operate as a normal localized Fiat
-                if (it.mintOrNull == Mint.usdc || it.mintOrNull == null) {
+                // if no mint, or it's usdf, then we can operate as a normal localized Fiat
+                if (it.mintOrNull == Mint.usdf || it.mintOrNull == null) {
                     LocalFiat(
-                        usdc = tokenAmount,
+                        usdf = tokenAmount,
                         nativeAmount = nativeAmount,
                     )
                 } else {

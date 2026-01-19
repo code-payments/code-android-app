@@ -67,17 +67,5 @@ internal class ActionOpenAccount(
                 mint = mint,
             )
         }
-
-        fun createPool(owner: AccountCluster, pool: AccountCluster, index: Long): ActionOpenAccount {
-            return ActionOpenAccount(
-                id = 0,
-                owner = owner,
-                authority = pool,
-                token = pool,
-                accountType = AccountType.Pool,
-                index = index,
-                mint = Mint.usdc,
-            )
-        }
     }
 }

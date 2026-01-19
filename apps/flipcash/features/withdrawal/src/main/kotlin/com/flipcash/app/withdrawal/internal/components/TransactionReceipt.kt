@@ -49,7 +49,7 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.utils.network.LocalNetworkObserver
@@ -214,7 +214,7 @@ private fun Preview_CadWithdrawalWithFeeReceipt() {
         ) {
             TransactionReceipt(
                 tokenWithBalance = TokenWithBalance(
-                    token = Token.usdc,
+                    token = Token.usdf,
                     balance = fiveCad
                 ),
                 fee = fee,
@@ -238,7 +238,7 @@ private fun Preview_CadWithdrawalWithNoFeeReceipt() {
         ) {
             TransactionReceipt(
                 tokenWithBalance = TokenWithBalance(
-                    token = Token.usdc,
+                    token = Token.usdf,
                     balance = fiveCad
                 ),
                 fee = null,
@@ -262,7 +262,7 @@ private fun Preview_UsdWithdrawalWithFeeReceipt() {
         ) {
             TransactionReceipt(
                 tokenWithBalance = TokenWithBalance(
-                    token = Token.usdc,
+                    token = Token.usdf,
                     balance = fiveUsd
                 ),
                 fee = fee,
@@ -286,7 +286,7 @@ private fun Preview_UsdWithdrawalWithNoFeeReceipt() {
         ) {
             TransactionReceipt(
                 tokenWithBalance = TokenWithBalance(
-                    token = Token.usdc,
+                    token = Token.usdf,
                     balance = fiveUsd
                 ),
                 fee = null,
@@ -310,7 +310,7 @@ private fun Preview_CadWithdrawalWithFeeButTooSmallReceipt() {
         ) {
             TransactionReceipt(
                 tokenWithBalance = TokenWithBalance(
-                    token = Token.usdc,
+                    token = Token.usdf,
                     balance = halfDollarCad
                 ),
                 fee = fee,

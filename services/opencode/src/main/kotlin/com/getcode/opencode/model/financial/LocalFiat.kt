@@ -3,7 +3,6 @@ package com.getcode.opencode.model.financial
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
-import com.flipcash.libs.currency.math.multiplyWithHighPrecision
 import com.flipcash.libs.currency.math.units
 import com.getcode.opencode.model.financial.Fiat.FormattingRule
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -14,7 +13,6 @@ import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
-import kotlin.math.max
 
 typealias Usd = Fiat
 
@@ -25,7 +23,7 @@ typealias Usd = Fiat
  * This class maps the relationship between the blockchain reality (USD value for the core mint)
  * and the user's perception (Local Fiat value or non-USDC token value).
  *
- * @property underlyingTokenAmount The raw amount of the core mint token (always denominated in USD for USDC).
+ * @property underlyingTokenAmount The raw amount of the core mint token (always denominated in USD for USDF).
  *                                 This represents the actual on-chain value involved.
  * @property nativeAmount The converted value of the specific token in the user's selected currency
  *                        (e.g., EUR, GBP, CAD).
@@ -66,19 +64,19 @@ data class LocalFiat(
         ),
     )
 
-    constructor(usdc: Fiat, nativeAmount: Fiat) : this(
-        underlyingTokenAmount = usdc,
+    constructor(usdf: Fiat, nativeAmount: Fiat) : this(
+        underlyingTokenAmount = usdf,
         nativeAmount = nativeAmount,
-        mint = Mint.usdc,
+        mint = Mint.usdf,
         rate = Rate(
-            fx = nativeAmount.decimalValue / usdc.decimalValue,
+            fx = nativeAmount.decimalValue / usdf.decimalValue,
             currency = nativeAmount.currencyCode
         )
     )
 
-    constructor(usdc: Usd, rate: Rate = Rate.oneToOne, mint: Mint = Mint.usdc) : this(
-        underlyingTokenAmount = usdc,
-        nativeAmount = usdc.convertingTo(rate),
+    constructor(usdf: Usd, rate: Rate = Rate.oneToOne, mint: Mint = Mint.usdf) : this(
+        underlyingTokenAmount = usdf,
+        nativeAmount = usdf.convertingTo(rate),
         mint = mint,
         rate = rate
     )
@@ -87,7 +85,7 @@ data class LocalFiat(
         val Zero = LocalFiat(
             underlyingTokenAmount = Fiat(0),
             nativeAmount = Fiat(0),
-            mint = Mint.usdc,
+            mint = Mint.usdf,
             rate = Rate.oneToOne
         )
 
@@ -118,16 +116,16 @@ data class LocalFiat(
             // e,g entered 0.02 USD, but balance is 0.016 USD
             val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
-            if (token.address == Mint.usdc) {
+            if (token.address == Mint.usdf) {
                 // this doesn't need a calculated value exchange since we are USDC
                return if (rate.currency != CurrencyCode.USD) {
                    LocalFiat(
-                       usdc = cappedValue,
+                       usdf = cappedValue,
                        rate = rate,
                        mint = token.address,
                    )
                } else {
-                   LocalFiat(usdc = cappedValue)
+                   LocalFiat(usdf = cappedValue)
                }
             }
 

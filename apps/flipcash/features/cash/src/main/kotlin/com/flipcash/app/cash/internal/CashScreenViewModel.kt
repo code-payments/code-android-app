@@ -212,7 +212,7 @@ internal class CashScreenViewModel @Inject constructor(
                     TokenWithLocalizedBalance(
                         token = token,
                         balance = LocalFiat(
-                            usdc = balance,
+                            usdf = balance,
                             nativeAmount = balance.convertingTo(rate),
                         )
                     )
@@ -305,7 +305,7 @@ internal class CashScreenViewModel @Inject constructor(
                 val (token, balance) = stateFlow.value.token!!
                 val rate = exchange.entryRate
                 // if we are USD we can skip the rate fetch since its 1:1
-                if (token.address == Mint.usdc) {
+                if (token.address == Mint.usdf) {
                     if (rate.currency != CurrencyCode.USD) {
                         exchange.fetchRatesIfNeeded()
                     }

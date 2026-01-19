@@ -41,13 +41,13 @@ fun TokenList(
 
     val cashReserves by remember(tokens) {
         derivedStateOf {
-            tokens?.find { it.token.address == Mint.usdc }?.balance ?: LocalFiat.Zero
+            tokens?.find { it.token.address == Mint.usdf }?.balance ?: LocalFiat.Zero
         }
     }
     val filteredTokens by remember(tokens, reservesEnabled) {
         derivedStateOf {
             if (!reservesEnabled) return@derivedStateOf tokens
-            tokens?.filter { it.token.address != Mint.usdc }
+            tokens?.filter { it.token.address != Mint.usdf }
         }
     }
 
@@ -86,7 +86,7 @@ fun TokenList(
 
             footer?.let {
                 if (reservesEnabled) {
-                    item { it(Mint.usdc, cashReserves) }
+                    item { it(Mint.usdf, cashReserves) }
                 }
             }
         }

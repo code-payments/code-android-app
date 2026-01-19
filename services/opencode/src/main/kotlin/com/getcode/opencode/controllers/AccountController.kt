@@ -136,7 +136,8 @@ class AccountController @Inject constructor(
             )?.recoverCatching { error ->
                 if (error is GetAccountsError.NotFound) {
                     // No account yet, let's create it
-                    val createResult = createUserAccount(owner, mint = Mint.usdc)
+                    trace("Creating account for USDF")
+                    val createResult = createUserAccount(owner, mint = Mint.usdf)
                     if (createResult.isSuccess) {
                         getAccounts(owner, owner)
                             .getOrElse { throw it }
@@ -149,7 +150,7 @@ class AccountController @Inject constructor(
             }?.map { response ->
                 val primary =
                     response.accounts.values.find {
-                        it.accountType == AccountType.Primary && it.mint == Mint.usdc
+                        it.accountType == AccountType.Primary && it.mint == Mint.usdf
                     }
 
                 accounts.value = response.accounts.values.toList()

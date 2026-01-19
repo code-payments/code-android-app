@@ -60,7 +60,7 @@ class AccountCluster(
                         Derivation.Usdc(
                             AssociatedTokenAccount.newInstance(
                                 owner = authority.keyPair.publicKeyBytes.toPublicKey(),
-                                mint = Mint.usdc
+                                mint = Mint.usd
                             )
                         )
                     }

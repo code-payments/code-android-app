@@ -7,9 +7,8 @@ import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 class AccountCluster(
@@ -25,15 +24,15 @@ class AccountCluster(
     val vaultPublicKey: PublicKey
         get() = timelock.vault.publicKey
 
-    val usdcDepositAddress: PublicKey
-        get() = depositAddressFor(Token.usdc)
+    val usdfDepositAddress: PublicKey
+        get() = depositAddressFor(Token.usdf)
 
     fun depositAddressFor(token: Token): PublicKey = deriveDepositAddressFor(authorityPublicKey, token)
 
     fun withTimelockForToken(token: Token): AccountCluster = newInstance(authority, token)
 
     companion object {
-        fun newInstance(authority: DerivedKey, token: Token = Token.usdc): AccountCluster {
+        fun newInstance(authority: DerivedKey, token: Token = Token.usdf): AccountCluster {
             val timelock = TimelockDerivedAccounts.newInstance(
                 owner = authority.keyPair.toPublicKey(),
                 token = token

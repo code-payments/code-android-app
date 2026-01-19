@@ -2,6 +2,7 @@ package com.getcode.opencode.solana
 
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
@@ -42,7 +43,7 @@ object TransactionBuilder {
             is SwapResponseServerParameters.Stateless -> Triple(params.payer, params.recentBlockhash, params.alts)
         }
 
-        val coreMint = Token.usdc
+        val coreMint = Token.usdf
 
         val instructions = when (direction) {
             is SwapDirection.Buy -> buildBuyInstructions(

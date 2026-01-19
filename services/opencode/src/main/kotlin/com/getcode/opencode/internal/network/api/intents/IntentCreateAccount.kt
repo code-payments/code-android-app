@@ -33,15 +33,5 @@ internal class IntentCreateAccount(
                 }
             )
         }
-
-        fun createPoolAccount(owner: AccountCluster, pool: AccountCluster, index: Long): IntentCreateAccount {
-            return IntentCreateAccount(
-                id = PublicKey.generate(),
-                metadata = TransactionMetadata.OpenAccount(AccountType.Pool, Mint.usdc),
-                actionGroup = ActionGroup().apply {
-                    actions = listOf(ActionOpenAccount.createPool(owner, pool, index))
-                }
-            )
-        }
     }
 }

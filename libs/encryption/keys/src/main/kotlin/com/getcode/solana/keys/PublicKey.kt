@@ -26,6 +26,9 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
         val usdc: Mint
             get() = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
+        val usdf: Mint
+            get() = Mint("5AMAA9JV9H97YYVxx8F6FsCMmTwXSuTTQneiup4RYAUQ")
+
         fun fromBase58(base58: String): PublicKey {
             return PublicKey(base58)
         }

@@ -17,7 +17,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
@@ -30,7 +30,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -116,11 +115,11 @@ class TokenController @Inject constructor(
     }
 
     fun reservesBalance(): Fiat {
-        return balanceForToken(Token.usdc)
+        return balanceForToken(Token.usdf)
     }
 
     fun observeReservesBalance(): Flow<Fiat> {
-        return balanceForToken(Mint.usdc)
+        return balanceForToken(Mint.usdf)
     }
 
     private suspend fun modifyBalance(token: Token, operation: (Fiat) -> Fiat) {
@@ -184,7 +183,7 @@ class TokenController @Inject constructor(
         }
 
         // No valid selection, default to highest balance of the non-reserve tokens
-        val highestBalanceToken = balances.filter { it.key != Mint.usdc }.maxByOrNull { it.value }?.key
+        val highestBalanceToken = balances.filter { it.key != Mint.usdf }.maxByOrNull { it.value }?.key
         if (highestBalanceToken != null) {
             selectToken(highestBalanceToken)
         }

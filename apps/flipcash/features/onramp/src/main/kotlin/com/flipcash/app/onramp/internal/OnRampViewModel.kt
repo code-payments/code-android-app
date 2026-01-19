@@ -14,7 +14,6 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -265,7 +264,7 @@ internal class OnRampViewModel @Inject constructor(
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
 
                 val amountFiat = LocalFiat(
-                    usdc = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
+                    usdf = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
                     nativeAmount = localizedAmount,
                 )
 

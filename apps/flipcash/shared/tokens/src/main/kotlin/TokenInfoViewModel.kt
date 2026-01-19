@@ -85,7 +85,7 @@ class TokenInfoViewModel @Inject constructor(
             get() = cashReservesEnabled && reservesBalance.underlyingTokenAmount.valueNonZero()
 
         val isCashReserve: Boolean
-            get() = token?.address == Mint.usdc
+            get() = token?.address == Mint.usdf
     }
 
     sealed interface Event {
@@ -147,7 +147,7 @@ class TokenInfoViewModel @Inject constructor(
                     exchange.observeBalanceRate(),
                 ) { balance, rate ->
                     LocalFiat(
-                        usdc = balance,
+                        usdf = balance,
                         nativeAmount = balance.convertingTo(rate),
                     )
                 }
@@ -160,7 +160,7 @@ class TokenInfoViewModel @Inject constructor(
             exchange.observeBalanceRate(),
         ) { balance, rate ->
             LocalFiat(
-                usdc = balance,
+                usdf = balance,
                 nativeAmount = balance.convertingTo(rate),
             )
         }.onEach {

@@ -227,7 +227,7 @@ internal class DiscreteBondingCurve private constructor(
     override fun formattedTable(): String {
         return buildString {
             appendLine("Discrete Bonding Curve Table (first 20 entries):")
-            appendLine("Step | Supply Range | Price (USDC)")
+            appendLine("Step | Supply Range | Price (USDF)")
             appendLine("-".repeat(50))
             pricingTable.take(20).forEachIndexed { index, price ->
                 val supplyStart = index * stepSize
@@ -250,7 +250,7 @@ internal class DiscreteBondingCurve private constructor(
      * Unlike `supplyFromTVL` which returns step boundaries, this method
      * interpolates within the step to give a more accurate supply value.
      *
-     * @param tvl Total value locked in USDC
+     * @param tvl Total value locked in USDF
      * @return Precise supply with fractional tokens
      */
     private fun preciseSupplyFromValue(value: BigDecimal): BigDecimal {

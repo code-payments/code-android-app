@@ -21,6 +21,7 @@ import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -72,7 +73,7 @@ class AdvancedFeaturesScreen: ModalScreen, NamedScreen, Parcelable {
                 .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OpenBillPlayground>()
                 .onEach {
                     navigator.hide()
-                    billPlayground.customizeFor(Token.usdc)
+                    billPlayground.customizeFor(Token.usdf)
                 }
                 .launchIn(this)
         }

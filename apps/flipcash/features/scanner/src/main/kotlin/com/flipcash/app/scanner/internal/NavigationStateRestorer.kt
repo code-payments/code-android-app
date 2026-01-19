@@ -32,7 +32,7 @@ class NavigationStateRestorer(
                     OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
                     is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
                     OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
-                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdc)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdf)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
                     is OnRampDeeplinkOrigin.TokenInfo -> listOf(
                         ScreenRegistry.get(AppRoute.Sheets.Wallet),
                         ScreenRegistry.get(AppRoute.Token.Info(origin.mint)),

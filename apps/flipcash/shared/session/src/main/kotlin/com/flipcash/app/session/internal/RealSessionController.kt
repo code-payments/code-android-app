@@ -44,7 +44,7 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.sum
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
@@ -291,7 +291,7 @@ class RealSessionController @Inject constructor(
             )
 
             val bill = Bill.Cash(
-                token = Token.usdc,
+                token = Token.usdf,
                 data = payloadInfo.codeData.toList(),
                 amount = amount,
                 didReceive = true,

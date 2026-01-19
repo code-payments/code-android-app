@@ -283,7 +283,7 @@ class ExternalWalletDeeplinkState(
     private suspend fun createTransaction(): Result<Transaction> {
         return withContext(Dispatchers.IO) {
             try {
-                val usdcMint = Mint.usdc
+                val usdfMint = Mint.usdf
                 val quarks = requireNotNull(amount?.quarks) { "Amount is null" }
                 val externalWallet = requireNotNull(walletConnection?.publicKey) { "Wallet connection is null" }
                 val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
@@ -291,11 +291,11 @@ class ExternalWalletDeeplinkState(
                 val sender = PublicKey(externalWallet.bytes)
                 val senderTokenAccount = PublicKey.deriveAssociatedAccount(
                     owner = PublicKey(sender.base58()),
-                    mint = PublicKey(usdcMint.base58())
+                    mint = PublicKey(usdfMint.base58())
                 )
                 val destinationTokenAccount = PublicKey.deriveAssociatedAccount(
-                    owner = PublicKey(owner.usdcDepositAddress.base58()),
-                    mint = PublicKey(usdcMint.base58())
+                    owner = PublicKey(owner.usdfDepositAddress.base58()),
+                    mint = PublicKey(usdfMint.base58())
                 )
 
                 // Check if ATAs exist with proper error handling
@@ -319,7 +319,7 @@ class ExternalWalletDeeplinkState(
                                 payer = sender,
                                 owner = sender,
                                 ata = senderTokenAccount.publicKey,
-                                mint = usdcMint
+                                mint = usdfMint
                             )
                         )
                     }
@@ -329,9 +329,9 @@ class ExternalWalletDeeplinkState(
                         add(
                             createAssociatedTokenAccountInstruction(
                                 payer = sender,
-                                owner = owner.usdcDepositAddress,
+                                owner = owner.usdfDepositAddress,
                                 ata = destinationTokenAccount.publicKey,
-                                mint = usdcMint
+                                mint = usdfMint
                             )
                         )
                     }

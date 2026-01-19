@@ -23,7 +23,7 @@ internal data object Deposit : FullMenuItem<AdvancedFeaturesScreenViewModel.Even
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_deposit)
     override val name: String
-        @Composable get() = stringResource(R.string.title_depositUsdc)
+        @Composable get() = stringResource(R.string.title_depositFunds)
     override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenScreen(
         AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Menu)
     )

@@ -30,7 +30,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.decodeBase58
 import kotlinx.datetime.Instant
@@ -93,7 +93,7 @@ val rates = mapOf(
     CurrencyCode.USD to usdCadRate
 )
 private val oneDollarLocalized = LocalFiat(
-    usdc = oneDollarCad.convertingTo(usdCadRate),
+    usdf = oneDollarCad.convertingTo(usdCadRate),
     nativeAmount = oneDollarCad,
 )
 private val sampleItem = ActivityFeedMessage(
@@ -107,7 +107,7 @@ private val sampleItem = ActivityFeedMessage(
 
 private val sampleItemWithToken = ActivityFeedMessageWithToken(
     message = sampleItem,
-    token = Token.usdc,
+    token = Token.usdf,
 )
 
 @Preview

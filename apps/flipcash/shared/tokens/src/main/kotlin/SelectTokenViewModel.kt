@@ -107,13 +107,13 @@ class SelectTokenViewModel @Inject constructor(
                         .map {
                             TokenWithLocalizedBalance(
                                 token = it.token,
-                                displayName = if (it.token.address == Mint.usdc) {
+                                displayName = if (it.token.address == Mint.usdf) {
                                     resources.getString(R.string.title_cashReserves)
                                 } else {
                                     it.token.name
                                 },
                                 balance = LocalFiat(
-                                    usdc = it.balance,
+                                    usdf = it.balance,
                                     nativeAmount = it.balance.convertingTo(rate),
                                 )
                             )
@@ -127,8 +127,8 @@ class SelectTokenViewModel @Inject constructor(
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
-                                // when reserves are enabled, we must prevent sending USDC directly (it's used for reserves)
-                                TokenPurpose.Select -> !state.reservesEnabled || it.token.address != Mint.usdc
+                                // when reserves are enabled, we must prevent sending USDF directly (it's used for reserves)
+                                TokenPurpose.Select -> !state.reservesEnabled || it.token.address != Mint.usdf
                                 // show all tokens with non-zero balance
                                 else -> {
                                     it.balance.nativeAmount.valueNonZero() &&

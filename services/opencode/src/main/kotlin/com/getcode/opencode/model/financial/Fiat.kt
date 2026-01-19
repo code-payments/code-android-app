@@ -157,7 +157,7 @@ data class Fiat(
     fun valueLessThanOrEqualTo(other: Fiat): Boolean = toDouble() <= other.toDouble()
 
     fun estimatedTokenAmountIn(token: Token?, fractionDigits: Int? = token?.decimals): String {
-        if (token?.address == Mint.usdc) {
+        if (token?.address == Mint.usdf) {
             return formatted(showPrefix = false)
         }
 
@@ -202,7 +202,7 @@ data class Fiat(
             quarks: Long,
             token: Token
         ): Fiat {
-            if (token.address == Mint.usdc) {
+            if (token.address == Mint.usdf) {
                 return Fiat(quarks, CurrencyCode.USD)
             }
 

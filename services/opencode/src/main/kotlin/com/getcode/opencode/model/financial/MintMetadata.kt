@@ -9,7 +9,6 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
-import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlin.time.Instant
 
@@ -19,7 +18,7 @@ data class TokenWithBalance(
     val displayName: String = token.name,
 ) {
     val isReserves: Boolean
-        get() = token.address == Mint.usdc
+        get() = token.address == Mint.usdf
 }
 
 data class TokenWithLocalizedBalance(
@@ -28,7 +27,7 @@ data class TokenWithLocalizedBalance(
     val displayName: String = token.name,
 ) {
     val isReserves: Boolean
-        get() = token.address == Mint.usdc
+        get() = token.address == Mint.usdf
 }
 
 typealias Token = MintMetadata
@@ -46,6 +45,28 @@ val MintMetadata.Companion.usdc: Token
             authority = vmAuthority,
             vm = PublicKey.deriveVirtualMachineAccount(
                 mint = Mint.usdc,
+                authority = vmAuthority,
+                lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
+            ).publicKey,
+            lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
+        ),
+        launchpadMetadata = null,
+        billCustomizations = null,
+    )
+
+val MintMetadata.Companion.usdf: Token
+    get() = MintMetadata(
+        address = Mint.usdf,
+        decimals = 6,
+        name = "USDF",
+        symbol = "USDF",
+        description = "",
+        createdAt = Instant.parse("2018-05-15T05:00:00Z"),
+        imageUrl = "",
+        vmMetadata = VmMetadata(
+            authority = vmAuthority,
+            vm = PublicKey.deriveVirtualMachineAccount(
+                mint = Mint.usdf,
                 authority = vmAuthority,
                 lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
             ).publicKey,

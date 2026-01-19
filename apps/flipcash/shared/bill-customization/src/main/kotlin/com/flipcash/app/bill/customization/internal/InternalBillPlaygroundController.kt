@@ -82,7 +82,7 @@ class InternalBillPlaygroundController(
     override fun customizeFor(token: Token) {
         // create amount for the bill
         val demoAmount = LocalFiat(
-            usdc = 5.toFiat(),
+            usdf = 5.toFiat(),
         )
 
         // provide bill "data" to render the scan code

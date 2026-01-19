@@ -66,7 +66,7 @@ internal fun FeedItemDetails(
             )
         }
         message.amount?.let { amount ->
-            val usdcAmount = if (token?.address == Mint.usdc || token == null) {
+            val usdfAmount = if (token?.address == Mint.usdf || token == null) {
                 amount.underlyingTokenAmount
             } else {
                 Fiat.tokenBalance(amount.underlyingTokenAmount.quarks, token = token)
@@ -88,8 +88,8 @@ internal fun FeedItemDetails(
 
                 DetailItem(
                     modifier = Modifier.weight(1f),
-                    label = "USDC",
-                    value = usdcAmount.formatted(
+                    label = "USDF",
+                    value = usdfAmount.formatted(
                         rule = Fiat.FormattingRule.Length(
                             token?.decimals ?: 6
                         )
@@ -103,7 +103,7 @@ internal fun FeedItemDetails(
                 DetailItem(
                     modifier = Modifier.weight(1f),
                     label = "Tokens",
-                    value = usdcAmount.estimatedTokenAmountIn(token),
+                    value = usdfAmount.estimatedTokenAmountIn(token),
                 )
             }
         }

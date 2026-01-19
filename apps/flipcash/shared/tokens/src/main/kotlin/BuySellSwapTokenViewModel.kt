@@ -21,7 +21,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -193,7 +193,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             exchange.rateToUsd(
                 stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
             ) ?: Rate.ignore
-        val enteredInUsdc = Fiat(
+        val enteredInUsdf = Fiat(
             fiat = amount,
             currencyCode = stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
         ).convertingTo(conversionRate)
@@ -202,7 +202,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         when (stateFlow.value.purpose) {
             is TokenSwapPurpose.BalanceIncrease -> {
-                val isOverBalance = enteredInUsdc > reservesBalance.rounded()
+                val isOverBalance = enteredInUsdf > reservesBalance.rounded()
                 if (isOverBalance || conversionRate == Rate.ignore) {
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_insufficientFunds),
@@ -213,7 +213,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }
 
             is TokenSwapPurpose.BalanceDecrease -> {
-                val isOverBalance = enteredInUsdc > tokenBalance.rounded()
+                val isOverBalance = enteredInUsdf > tokenBalance.rounded()
                 if (isOverBalance || conversionRate == Rate.ignore) {
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_insufficientFunds),
@@ -261,7 +261,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 ) { tokens, rate ->
                     val token = tokens.find { it.token.address == mint } ?: return@combine null
                     val balance = LocalFiat(
-                        usdc = token.balance,
+                        usdf = token.balance,
                         nativeAmount = token.balance.convertingTo(rate),
                     )
 
@@ -277,11 +277,11 @@ class BuySellSwapTokenViewModel @Inject constructor(
             exchange.observeEntryRate(),
         ) { balance, rate ->
             LocalFiat(
-                usdc = balance,
+                usdf = balance,
                 nativeAmount = balance.convertingTo(rate),
             )
         }.onEach {
-            dispatchEvent(Event.OnReservesUpdated(TokenWithBalance(Token.usdc, it.nativeAmount)))
+            dispatchEvent(Event.OnReservesUpdated(TokenWithBalance(Token.usdf, it.nativeAmount)))
         }.launchIn(viewModelScope)
 
         exchange.observeEntryRate()
@@ -300,8 +300,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
             .map { it.purpose }
             .map { purpose ->
                 when (purpose) {
-                    is TokenSwapPurpose.Buy -> Mint.usdc
-                    is TokenSwapPurpose.FundWithWallet -> Mint.usdc
+                    is TokenSwapPurpose.Buy -> Mint.usdf
+                    is TokenSwapPurpose.FundWithWallet -> Mint.usdf
                     is TokenSwapPurpose.Sell -> purpose.mint
                 }
             }.flatMapLatest { tokenAddress ->
@@ -314,7 +314,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     TokenWithLocalizedBalance(
                         token = token,
                         balance = LocalFiat(
-                            usdc = balance,
+                            usdf = balance,
                             nativeAmount = balance.convertingTo(rate),
                         )
                     )
@@ -404,7 +404,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         val rate = exchange.entryRate
                         // buy with reserves
                         val amountFiat = LocalFiat(
-                            usdc = Fiat(data.amountData.amount, rate.currency),
+                            usdf = Fiat(data.amountData.amount, rate.currency),
                             rate = rate
                         )
 
@@ -417,7 +417,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         val rate = exchange.entryRate
                         // funding through external wallet
                         val amountFiat = LocalFiat(
-                            usdc = Fiat(data.amountData.amount, rate.currency),
+                            usdf = Fiat(data.amountData.amount, rate.currency),
                             rate = rate
                         )
                         dispatchEvent(Event.OnAmountAccepted(amountFiat))
