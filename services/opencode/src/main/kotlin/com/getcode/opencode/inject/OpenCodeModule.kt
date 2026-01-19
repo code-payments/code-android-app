@@ -65,7 +65,7 @@ object OpenCodeModule {
     ): ProtocolConfig {
         return object: ProtocolConfig {
             override val baseUrl: String
-                get() = "ocp.api.flipcash-infra.net"
+                get() = "ocp-v2.api.flipcash-infra.net"
             override val userAgent: String
                 get() {
                     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName

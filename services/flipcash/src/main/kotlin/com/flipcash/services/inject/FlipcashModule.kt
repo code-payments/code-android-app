@@ -54,7 +54,7 @@ internal object FlipcashModule {
     ): ProtocolConfig {
         return object: ProtocolConfig {
             override val baseUrl: String
-                get() = "fc.api.flipcash-infra.net"
+                get() = "fc-v2.api.flipcash-infra.net"
             override val userAgent: String
                 get() {
                     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
