@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.transactions
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Hash
@@ -105,15 +105,15 @@ data class VerifiedSwapMetadata(
         val blockhash: Hash
     ) {
         companion object {
-            fun fromServer(proto: TransactionService.StartSwapResponse.ServerParameters): ServerParameters? {
-                val nonce = runCatching { PublicKey(proto.currencyCreator.nonce.value.toList()) }.getOrNull() ?: return null
-                val blockHash = runCatching { Hash(proto.currencyCreator.blockhash.value.toList()) }.getOrNull() ?: return null
-
-                return ServerParameters(
-                    nonce = nonce,
-                    blockhash = blockHash
-                )
-            }
+//            fun fromServer(proto: TransactionService.StartSwapResponse.ServerParameters): ServerParameters? {
+//                val nonce = runCatching { PublicKey(proto.currencyCreator.nonce.value.toList()) }.getOrNull() ?: return null
+//                val blockHash = runCatching { Hash(proto.currencyCreator.blockhash.value.toList()) }.getOrNull() ?: return null
+//
+//                return ServerParameters(
+//                    nonce = nonce,
+//                    blockhash = blockHash
+//                )
+//            }
         }
     }
 }

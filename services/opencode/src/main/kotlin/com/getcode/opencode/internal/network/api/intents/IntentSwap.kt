@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.network.extensions.asSignature
@@ -43,31 +43,31 @@ internal class IntentSwap(
         )
     }
 
-    fun initiate(): TransactionService.SwapRequest {
-        return TransactionService.SwapRequest.newBuilder()
-            .setInitiate(
-                TransactionService.SwapRequest.Initiate.newBuilder()
-                    .setStateful(
-                        TransactionService.SwapRequest.Initiate.Stateful.newBuilder()
-                            .setSwapId(id.asSwapId())
-                            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
-                            .setSwapAuthority(swapAuthority.toPublicKey().asSolanaAccountId())
-                            .apply { setSignature(sign(this@IntentSwap.owner.authority.keyPair)) }
-                    )
-            ).build()
-
-    }
-
-    fun requestToSubmitSignatures(): TransactionService.SwapRequest {
-        val params = parameters ?: throw IllegalStateException("parameters not set")
-
-        return TransactionService.SwapRequest.newBuilder()
-            .setSubmitSignatures(
-                TransactionService.SwapRequest.SubmitSignatures.newBuilder()
-                    .addAllSignatures(
-                        sign(params).map { key -> key.asSignature() }
-                    )
-                    .build()
-            ).build()
-    }
+//    fun initiate(): TransactionService.SwapRequest {
+//        return TransactionService.SwapRequest.newBuilder()
+//            .setInitiate(
+//                TransactionService.SwapRequest.Initiate.newBuilder()
+//                    .setStateful(
+//                        TransactionService.SwapRequest.Initiate.Stateful.newBuilder()
+//                            .setSwapId(id.asSwapId())
+//                            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
+//                            .setSwapAuthority(swapAuthority.toPublicKey().asSolanaAccountId())
+//                            .apply { setSignature(sign(this@IntentSwap.owner.authority.keyPair)) }
+//                    )
+//            ).build()
+//
+//    }
+//
+//    fun requestToSubmitSignatures(): TransactionService.SwapRequest {
+//        val params = parameters ?: throw IllegalStateException("parameters not set")
+//
+//        return TransactionService.SwapRequest.newBuilder()
+//            .setSubmitSignatures(
+//                TransactionService.SwapRequest.SubmitSignatures.newBuilder()
+//                    .addAllSignatures(
+//                        sign(params).map { key -> key.asSignature() }
+//                    )
+//                    .build()
+//            ).build()
+//    }
 }

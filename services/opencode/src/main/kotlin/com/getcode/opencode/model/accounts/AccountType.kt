@@ -16,10 +16,10 @@ sealed interface AccountType {
 
     fun sortOrder() = when (this) {
         Primary -> 0
-        Swap -> 10
-        RemoteSend -> 12
-        AssociatedToken -> 15
-        Pool -> 16
+        RemoteSend -> 1
+        Swap -> 2
+        AssociatedToken -> 3
+        Pool -> 4
         Unknown -> 999
     }
 

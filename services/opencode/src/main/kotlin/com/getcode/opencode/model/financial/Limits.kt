@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.financial
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.hours
 

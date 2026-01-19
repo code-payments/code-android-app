@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts

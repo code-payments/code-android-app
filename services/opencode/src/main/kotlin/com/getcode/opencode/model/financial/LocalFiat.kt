@@ -131,12 +131,12 @@ data class LocalFiat(
                }
             }
 
-            val valueLocked = token.launchpadMetadata?.coreMintLockedQuarks ?: 0
+            val supply = token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
 
             // determine quarks to exchange for the desired amount
             val valuation = Estimator.valueExchangeAsQuarks(
                 valueInQuarks = cappedValue.quarks,
-                currentValueInQuarks = valueLocked,
+                currentValueInQuarks = supply,
                 mintDecimals = 6, // usdc is 6 decimals
             ).getOrThrow()
 
@@ -156,7 +156,7 @@ data class LocalFiat(
                 balance = balance,
                 cappedValue = cappedValue,
                 token = token,
-                valueLocked = valueLocked,
+                supply = supply,
                 quarks = quarks,
                 units = units,
                 fx = fx,
@@ -181,7 +181,7 @@ data class LocalFiat(
             balance: Fiat?,
             cappedValue: Fiat,
             token: Token,
-            valueLocked: Long,
+            supply: Long,
             quarks: BigDecimal,
             units: BigDecimal,
             fx: Double,
@@ -195,7 +195,7 @@ data class LocalFiat(
                 println("requested quarks (in USD): ${usdValue.quarks * 1_000_000}")
                 println("balance quarks (in USD): ${balance?.quarks?.times(1_000_000)}")
                 println("capped quarks (in USD): ${cappedValue.quarks * 1_000_000}")
-                println("locked value (of ${token.symbol}): $valueLocked")
+                println("supply (of ${token.symbol}): $supply")
                 println("calculated quarks: $quarks")
                 println("units: $units")
                 println("fx: $fx")
@@ -214,7 +214,7 @@ data class LocalFiat(
                         "requested quarks (in USD)" to usdValue.quarks * 1_000_000
                         "balance quarks (in USD)" to balance?.quarks?.times(1_000_000)
                         "capped quarks (in USD)" to cappedValue.quarks * 1_000_000
-                        "locked value of ${token.symbol}" to valueLocked
+                        "supply of ${token.symbol}" to supply
                         "calculated quarks" to quarks
                         "units" to units
                         "fx" to fx

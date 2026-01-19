@@ -1,6 +1,5 @@
 package com.getcode.opencode.solana.swap
 
-import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.extractServerParameters
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
@@ -95,11 +94,6 @@ internal fun buildSellInstructions(
             ).instruction()
         )
 
-        val feeTarget = PublicKey.deriveAssociatedAccount(
-            owner = sourceVm.authority,
-            mint = sourceMintMetadata.address,
-        ).publicKey
-
         // 7. CurrencyCreator::SellAndDepositIntoVm
         add(
             CurrencyCreatorProgram_SellAndDepositIntoVm(
@@ -114,8 +108,6 @@ internal fun buildSellInstructions(
                 vaultTarget = sourceLaunchpad.mintVault,
                 vaultBase = sourceLaunchpad.coreMintVault,
                 sellerTarget = createTemporarySourceMintAta.address,
-                feeTarget = feeTarget,
-                feeBase = sourceLaunchpad.coreMintFees,
                 vmAuthority = coreVm.authority,
                 vm = coreVm.vm,
                 vmMemory = serverParams.memoryAccount,

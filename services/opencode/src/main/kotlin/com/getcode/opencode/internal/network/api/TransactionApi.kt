@@ -1,27 +1,21 @@
 package com.getcode.opencode.internal.network.api
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionGrpcKt
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.AirdropRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.AirdropResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.CanWithdrawToAccountRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.CanWithdrawToAccountResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetIntentMetadataRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetIntentMetadataResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetLimitsRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetLimitsResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetPendingSwapsRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetPendingSwapsResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetSwapRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.GetSwapResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.StartSwapRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.StartSwapResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SwapRequest as ApiSwapRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SwapResponse
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.VoidGiftCardRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.VoidGiftCardResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionGrpcKt
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.AirdropRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.AirdropResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.CanWithdrawToAccountRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.CanWithdrawToAccountResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetIntentMetadataRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetIntentMetadataResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetLimitsRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetLimitsResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetSwapRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetSwapResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.VoidGiftCardRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.VoidGiftCardResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -31,7 +25,6 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asSwapId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -200,17 +193,17 @@ class TransactionApi @Inject constructor(
         }
     }
 
-    /**
-     * Begins the process for swapping tokens by coordinating verified metadata
-     * for non-custodial state management tracking.
-     *
-     * @param swapRequestFlow The flow of swap requests to process
-     */
-    fun startSwap(
-        swapRequestFlow: Flow<StartSwapRequest>,
-    ): Flow<StartSwapResponse> {
-        return api.startSwap(swapRequestFlow)
-    }
+//    /**
+//     * Begins the process for swapping tokens by coordinating verified metadata
+//     * for non-custodial state management tracking.
+//     *
+//     * @param swapRequestFlow The flow of swap requests to process
+//     */
+//    fun startSwap(
+//        swapRequestFlow: Flow<StartSwapRequest>,
+//    ): Flow<StartSwapResponse> {
+//        return api.startSwap(swapRequestFlow)
+//    }
 
     /**
      * Gets metadata for a swap
@@ -241,8 +234,8 @@ class TransactionApi @Inject constructor(
      */
     suspend fun getPendingSwaps(
         owner: KeyPair,
-    ): GetPendingSwapsResponse {
-        val request = GetPendingSwapsRequest.newBuilder()
+    ): TransactionService.GetPendingSwapsResponse {
+        val request = TransactionService.GetPendingSwapsRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -252,35 +245,7 @@ class TransactionApi @Inject constructor(
         }
     }
 
-    fun swap(
-        requestFlow: Flow<ApiSwapRequest>
-    ): Flow<SwapResponse> = api.swap(requestFlow)
-
-
-//    suspend fun startSwap(
-//        request: SwapRequest,
-//    ): Flow<StartSwapResponse> {
-//        val apiRequest = StartSwapRequest.newBuilder()
-//        when (val type = request.type) {
-//            is SwapRequestType.Initiate -> throw IllegalArgumentException("Initiate called for SwapStart")
-//            is SwapRequestType.SubmitSignature -> throw IllegalArgumentException("SubmitSignature called for SwapStart")
-//            is SwapRequestType.Start -> {
-//                val startRequest = StartSwapRequest.Start.newBuilder()
-//                    .apply {
-//                        when (val kind = type.kind) {
-//                            is SwapStartKind.CurrencyCreator -> setCurrencyCreator(kind.asProtobufMessage())
-//                        }
-//                    }
-//                    .setOwner(type.owner.asSolanaAccountId())
-//                    .apply { setSignature(sign(type.owner)) }
-//                    .build()
-//
-//                apiRequest.setStart(startRequest)
-//            }
-//        }
-//
-//        return withContext(Dispatchers.IO) {
-//            api.startSwap(apiRequest)
-//        }
-//    }
+//    fun swap(
+//        requestFlow: Flow<ApiSwapRequest>
+//    ): Flow<SwapResponse> = api.swap(requestFlow)
 }

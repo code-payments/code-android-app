@@ -1,7 +1,7 @@
 package com.getcode.opencode.model.core.errors
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Denied
 import com.getcode.opencode.model.core.errors.SubmitIntentError.InvalidIntent
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Other
@@ -226,58 +226,58 @@ sealed class SwapError(
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause)
 
     companion object {
-        fun typed(proto: TransactionService.SwapResponse.Error): SwapError {
-            val reasonStrings = proto.errorDetailsList.mapNotNull {
-                when (it.typeCase) {
-                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
-                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-
-                    else -> null
-                }
-            }
-
-            return when (proto.code) {
-                TransactionService.SwapResponse.Error.Code.DENIED -> {
-                    val reasons = proto.errorDetailsList.mapNotNull {
-                        if (!it.hasDenied()) return@mapNotNull null
-                        it.denied.reason
-                    }
-
-                    Denied(reasons)
-                }
-
-                TransactionService.SwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-                TransactionService.SwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-                TransactionService.SwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
-                TransactionService.SwapResponse.Error.Code.SWAP_FAILED -> SwapFailed(reasonStrings)
-            }
-        }
-
-        fun typedFromStart(proto: TransactionService.StartSwapResponse.Error): SwapError {
-            val reasonStrings = proto.errorDetailsList.mapNotNull {
-                when (it.typeCase) {
-                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
-                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-
-                    else -> null
-                }
-            }
-
-            return when (proto.code) {
-                TransactionService.StartSwapResponse.Error.Code.DENIED -> {
-                    val reasons = proto.errorDetailsList.mapNotNull {
-                        if (!it.hasDenied()) return@mapNotNull null
-                        it.denied.reason
-                    }
-
-                    Denied(reasons)
-                }
-
-                TransactionService.StartSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-                TransactionService.StartSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-                TransactionService.StartSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
-            }
-        }
+//        fun typed(proto: TransactionService.GetSwapResponse.Error): SwapError {
+//            val reasonStrings = proto.errorDetailsList.mapNotNull {
+//                when (it.typeCase) {
+//                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+//                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+//
+//                    else -> null
+//                }
+//            }
+//
+//            return when (proto.code) {
+//                TransactionService.SwapResponse.Error.Code.DENIED -> {
+//                    val reasons = proto.errorDetailsList.mapNotNull {
+//                        if (!it.hasDenied()) return@mapNotNull null
+//                        it.denied.reason
+//                    }
+//
+//                    Denied(reasons)
+//                }
+//
+//                TransactionService.SwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+//                TransactionService.SwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+//                TransactionService.SwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+//                TransactionService.SwapResponse.Error.Code.SWAP_FAILED -> SwapFailed(reasonStrings)
+//            }
+//        }
+//
+//        fun typedFromStart(proto: TransactionService.StartSwapResponse.Error): SwapError {
+//            val reasonStrings = proto.errorDetailsList.mapNotNull {
+//                when (it.typeCase) {
+//                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+//                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+//
+//                    else -> null
+//                }
+//            }
+//
+//            return when (proto.code) {
+//                TransactionService.StartSwapResponse.Error.Code.DENIED -> {
+//                    val reasons = proto.errorDetailsList.mapNotNull {
+//                        if (!it.hasDenied()) return@mapNotNull null
+//                        it.denied.reason
+//                    }
+//
+//                    Denied(reasons)
+//                }
+//
+//                TransactionService.StartSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+//                TransactionService.StartSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+//                TransactionService.StartSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+//            }
+//        }
     }
 }
 

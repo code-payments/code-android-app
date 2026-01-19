@@ -4,8 +4,8 @@ import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.OpenAccountsMetadata.AccountSet
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.OpenAccountsMetadata.AccountSet
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
@@ -252,37 +252,37 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .build()
 }
 
-internal fun VerifiedSwapMetadata.ClientParameters.asProtobufParameters(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
-    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()
-        .setId(id.asSwapId())
-        .setFromMint(fromMint.asSolanaAccountId())
-        .setToMint(toMint.asSolanaAccountId())
-        .setAmount(amount.quarks)
-        .setFundingSource(when (fundingSource) {
-            FundingSource.UNKNOWN -> TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN
-            FundingSource.SUBMIT_INTENT -> TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT
-        })
-        .setFundingId(fundingId.base58())
-        .build()
-}
-
-internal fun VerifiedSwapMetadata.ServerParameters.asProtobufParameters(): TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator {
-    return TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator.newBuilder()
-        .setNonce(nonce.asSolanaAccountId())
-        .setBlockhash(blockhash.asSolanaBlockHash())
-        .build()
-}
-
-internal fun VerifiedSwapMetadata.asProtobufMetadata(): TransactionService.VerifiedSwapMetadata {
-    return TransactionService.VerifiedSwapMetadata.newBuilder()
-        .setCurrencyCreator(
-            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
-                .setClientParameters(clientParameters.asProtobufParameters())
-                .setServerParameters(serverParameters.asProtobufParameters())
-                .build()
-        )
-        .build()
-}
+//internal fun VerifiedSwapMetadata.ClientParameters.asProtobufParameters(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
+//    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()
+//        .setId(id.asSwapId())
+//        .setFromMint(fromMint.asSolanaAccountId())
+//        .setToMint(toMint.asSolanaAccountId())
+//        .setAmount(amount.quarks)
+//        .setFundingSource(when (fundingSource) {
+//            FundingSource.UNKNOWN -> TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN
+//            FundingSource.SUBMIT_INTENT -> TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT
+//        })
+//        .setFundingId(fundingId.base58())
+//        .build()
+//}
+//
+//internal fun VerifiedSwapMetadata.ServerParameters.asProtobufParameters(): TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator {
+//    return TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator.newBuilder()
+//        .setNonce(nonce.asSolanaAccountId())
+//        .setBlockhash(blockhash.asSolanaBlockHash())
+//        .build()
+//}
+//
+//internal fun VerifiedSwapMetadata.asProtobufMetadata(): TransactionService.VerifiedSwapMetadata {
+//    return TransactionService.VerifiedSwapMetadata.newBuilder()
+//        .setCurrencyCreator(
+//            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
+//                .setClientParameters(clientParameters.asProtobufParameters())
+//                .setServerParameters(serverParameters.asProtobufParameters())
+//                .build()
+//        )
+//        .build()
+//}
 
 //internal fun SwapRequest.SwapStartKind.CurrencyCreator.asProtobufMessage(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
 //    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()

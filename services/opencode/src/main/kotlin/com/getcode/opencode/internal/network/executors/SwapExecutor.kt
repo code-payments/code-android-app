@@ -1,17 +1,11 @@
 package com.getcode.opencode.internal.network.executors
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
-import com.getcode.opencode.internal.bidi.openBidirectionalStream
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.api.intents.IntentSwap
-import com.getcode.opencode.internal.network.extensions.toCode
-import com.getcode.opencode.internal.network.extensions.toStatefulProps
-import com.getcode.opencode.internal.network.extensions.toStatelessProps
 import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapRequest
@@ -19,21 +13,19 @@ import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.diff
-import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-typealias OcpSwapStreamReference = BidirectionalStreamReference<SwapRequest, TransactionService.SwapResponse>
+//typealias OcpSwapStreamReference = BidirectionalStreamReference<SwapRequest, TransactionService.SwapResponse>
 
 
 internal class SwapExecutor @Inject constructor(
@@ -144,114 +136,116 @@ internal class SwapExecutor @Inject constructor(
             message = "Opening stream"
         )
 
-        val streamReference = OcpSwapStreamReference(scope, "swap")
+        cont.resume(Result.failure(NotImplementedError()))
 
-        streamReference.retain()
-
-        scope.launch {
-            try {
-                val result = openSwapStream(streamReference, intent)
-                cont.resume(result)
-            } catch (e: Exception) {
-                trace(
-                    tag = "Swap",
-                    message = "Failed to open swap stream.",
-                    error = e
-                )
-
-                if (!cont.isCompleted) {
-                    cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
-                }
-            }
-        }
+//        val streamReference = OcpSwapStreamReference(scope, "swap")
+//
+//        streamReference.retain()
+//
+//        scope.launch {
+//            try {
+//                val result = openSwapStream(streamReference, intent)
+//                cont.resume(result)
+//            } catch (e: Exception) {
+//                trace(
+//                    tag = "Swap",
+//                    message = "Failed to open swap stream.",
+//                    error = e
+//                )
+//
+//                if (!cont.isCompleted) {
+//                    cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
+//                }
+//            }
+//        }
 
     }
 
-    private suspend fun openSwapStream(
-        streamRef: OcpSwapStreamReference,
-        intent: IntentSwap,
-    ): SwapResult = openBidirectionalStream(
-        streamRef = streamRef,
-        apiCall = api::swap,
-        initialRequest = { intent.initiate() },
-        responseHandler = { response, onResult, requestChannel ->
-            when (val result = response.responseCase) {
-                TransactionService.SwapResponse.ResponseCase.SERVER_PARAMETERS -> {
-                    handleServerParameters(
-                        intent = intent,
-                        onResult = onResult,
-                        requestChannel = requestChannel,
-                        serverParameters = response.serverParameters
-                    )
-                }
-
-                TransactionService.SwapResponse.ResponseCase.SUCCESS -> {
-                    streamRef.complete()
-                    val result = response.success.toCode()
-                    if (result == null) {
-                        onResult(Result.failure(SwapError.Other(cause = IllegalArgumentException("Invalid success state"))))
-                    } else {
-                        onResult(Result.success(result))
-                    }
-                }
-
-                TransactionService.SwapResponse.ResponseCase.ERROR -> {
-                    val errors = handleErrors(intent, response.error.errorDetailsList)
-                    trace(
-                        tag = "Swap",
-                        message = "Error: ($intent) ${errors.joinToString("\n")}",
-                        type = TraceType.Error
-                    )
-                    streamRef.complete()
-                    onResult(Result.failure(SwapError.typed(response.error)))
-                }
-
-                TransactionService.SwapResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
-            }
-        }
-    )
+//    private suspend fun openSwapStream(
+//        streamRef: OcpSwapStreamReference,
+//        intent: IntentSwap,
+//    ): SwapResult = openBidirectionalStream(
+//        streamRef = streamRef,
+//        apiCall = api::swap,
+//        initialRequest = { intent.initiate() },
+//        responseHandler = { response, onResult, requestChannel ->
+//            when (val result = response.responseCase) {
+//                TransactionService.SwapResponse.ResponseCase.SERVER_PARAMETERS -> {
+//                    handleServerParameters(
+//                        intent = intent,
+//                        onResult = onResult,
+//                        requestChannel = requestChannel,
+//                        serverParameters = response.serverParameters
+//                    )
+//                }
+//
+//                TransactionService.SwapResponse.ResponseCase.SUCCESS -> {
+//                    streamRef.complete()
+//                    val result = response.success.toCode()
+//                    if (result == null) {
+//                        onResult(Result.failure(SwapError.Other(cause = IllegalArgumentException("Invalid success state"))))
+//                    } else {
+//                        onResult(Result.success(result))
+//                    }
+//                }
+//
+//                TransactionService.SwapResponse.ResponseCase.ERROR -> {
+//                    val errors = handleErrors(intent, response.error.errorDetailsList)
+//                    trace(
+//                        tag = "Swap",
+//                        message = "Error: ($intent) ${errors.joinToString("\n")}",
+//                        type = TraceType.Error
+//                    )
+//                    streamRef.complete()
+//                    onResult(Result.failure(SwapError.typed(response.error)))
+//                }
+//
+//                TransactionService.SwapResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
+//            }
+//        }
+//    )
 }
 
-private fun handleServerParameters(
-    intent: IntentSwap,
-    serverParameters: TransactionService.SwapResponse.ServerParameters?,
-    requestChannel: (TransactionService.SwapRequest) -> Unit,
-    onResult: (SwapResult) -> Unit,
-) {
-    try {
-        val params = when (serverParameters?.kindCase) {
-            null -> null
-            TransactionService.SwapResponse.ServerParameters.KindCase.CURRENCY_CREATOR_STATELESS -> {
-                serverParameters.currencyCreatorStateless.toStatelessProps()
-            }
-
-            TransactionService.SwapResponse.ServerParameters.KindCase.CURRENCY_CREATOR_STATEFUL -> {
-                serverParameters.currencyCreatorStateful.toStatefulProps()
-            }
-
-            TransactionService.SwapResponse.ServerParameters.KindCase.KIND_NOT_SET -> null
-        }
-
-        if (params != null) {
-            trace(
-                tag = "Swap",
-                message = "Received ${params.javaClass.simpleName} parameters. Submitting signatures...",
-                type = TraceType.Silent
-            )
-
-            intent.parameters = params
-
-            requestChannel(intent.requestToSubmitSignatures())
-        } else {
-            onResult(Result.failure(SwapError.Other(cause = IllegalArgumentException("Invalid server parameters"))))
-        }
-    } catch (e: Exception) {
-        if (BuildConfig.DEBUG) {
-            e.printStackTrace()
-        }
-        onResult(Result.failure(SwapError.Other(cause = e)))
-    }
-}
+//private fun handleServerParameters(
+//    intent: IntentSwap,
+//    serverParameters: TransactionService.SwapResponse.ServerParameters?,
+//    requestChannel: (TransactionService.SwapRequest) -> Unit,
+//    onResult: (SwapResult) -> Unit,
+//) {
+//    try {
+//        val params = when (serverParameters?.kindCase) {
+//            null -> null
+//            TransactionService.SwapResponse.ServerParameters.KindCase.CURRENCY_CREATOR_STATELESS -> {
+//                serverParameters.currencyCreatorStateless.toStatelessProps()
+//            }
+//
+//            TransactionService.SwapResponse.ServerParameters.KindCase.CURRENCY_CREATOR_STATEFUL -> {
+//                serverParameters.currencyCreatorStateful.toStatefulProps()
+//            }
+//
+//            TransactionService.SwapResponse.ServerParameters.KindCase.KIND_NOT_SET -> null
+//        }
+//
+//        if (params != null) {
+//            trace(
+//                tag = "Swap",
+//                message = "Received ${params.javaClass.simpleName} parameters. Submitting signatures...",
+//                type = TraceType.Silent
+//            )
+//
+//            intent.parameters = params
+//
+//            requestChannel(intent.requestToSubmitSignatures())
+//        } else {
+//            onResult(Result.failure(SwapError.Other(cause = IllegalArgumentException("Invalid server parameters"))))
+//        }
+//    } catch (e: Exception) {
+//        if (BuildConfig.DEBUG) {
+//            e.printStackTrace()
+//        }
+//        onResult(Result.failure(SwapError.Other(cause = e)))
+//    }
+//}
 
 private fun handleErrors(
     intent: IntentSwap,

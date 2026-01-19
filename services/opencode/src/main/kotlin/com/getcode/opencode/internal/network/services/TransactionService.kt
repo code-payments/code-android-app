@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.services
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.feeAmountOrNull
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.feeAmountOrNull
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper

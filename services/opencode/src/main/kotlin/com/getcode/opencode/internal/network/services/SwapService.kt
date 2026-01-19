@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.services
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.SwapMetadataMapper
 import com.getcode.opencode.internal.network.api.TransactionApi

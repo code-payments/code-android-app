@@ -15,18 +15,18 @@ import javax.inject.Inject
 internal class AccountService @Inject constructor(
     private val api: AccountApi,
 ) {
-    suspend fun isCodeAccount(owner: KeyPair): Result<Boolean> {
+    suspend fun isValidAccount(owner: KeyPair): Result<Boolean> {
         return runCatching {
             api.isCodeAccount(owner)
         }.fold(
             onSuccess = { response ->
                 when (response.result) {
-                    AccountService.IsCodeAccountResponse.Result.OK -> Result.success(true)
-                    AccountService.IsCodeAccountResponse.Result.NOT_FOUND -> Result.failure(
+                    AccountService.IsOcpAccountResponse.Result.OK -> Result.success(true)
+                    AccountService.IsOcpAccountResponse.Result.NOT_FOUND -> Result.failure(
                         CodeAccountCheckError.NotFound())
-                    AccountService.IsCodeAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> Result.failure(
+                    AccountService.IsOcpAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> Result.failure(
                         CodeAccountCheckError.UnlockedTimelockAccount())
-                    AccountService.IsCodeAccountResponse.Result.UNRECOGNIZED -> Result.failure(
+                    AccountService.IsOcpAccountResponse.Result.UNRECOGNIZED -> Result.failure(
                         CodeAccountCheckError.Unrecognized())
                     else -> Result.failure(CodeAccountCheckError.Other())
                 }
@@ -62,7 +62,6 @@ internal class AccountService @Inject constructor(
                         Result.success(
                             AccountResponse(
                                 accounts = container.toMap(),
-                                nextPoolIndex = response.nextPoolIndex,
                             )
                         )
                     }

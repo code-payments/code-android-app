@@ -135,9 +135,7 @@ data class LaunchpadMetadata(
     val authority: PublicKey,
     val mintVault: PublicKey,
     val coreMintVault: PublicKey,
-    val coreMintFees: PublicKey,
     val currentCirculatingSupplyQuarks: Long,
-    val coreMintLockedQuarks: Long,
     val sellFeeBps: Int, // currently hardcoded to 1%
 ) : Parcelable
 

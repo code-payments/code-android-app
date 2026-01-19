@@ -13,7 +13,7 @@ internal class InternalAccountRepository @Inject constructor(
 ) : AccountRepository {
     override suspend fun isCodeAccount(
         owner: Ed25519.KeyPair
-    ): Result<Boolean> = service.isCodeAccount(owner)
+    ): Result<Boolean> = service.isValidAccount(owner)
 
     override suspend fun getAccounts(
         accountOwner: Ed25519.KeyPair,

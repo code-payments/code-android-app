@@ -163,7 +163,7 @@ data class Fiat(
 
         val valuation = (Estimator.valueExchangeAsTokens(
             valueInQuarks = this.quarks,
-            currentValueInQuarks = token?.launchpadMetadata?.coreMintLockedQuarks ?: 0,
+            currentValueInQuarks = token?.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
             mintDecimals = 6,
         ).getOrNull() ?: Valuation.Tokens.Zero)
 
@@ -210,7 +210,7 @@ data class Fiat(
                 estimation = {
                     Estimator.sell(
                         amountInQuarks = quarks,
-                        currentValueInQuarks = token.launchpadMetadata?.coreMintLockedQuarks ?: 0,
+                        currentValueInQuarks = token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
                         mintDecimals = 6, // The desired value here is USDC which is 6
                         feeBps = 0,
                     ).getOrThrow().netAmountToReceive

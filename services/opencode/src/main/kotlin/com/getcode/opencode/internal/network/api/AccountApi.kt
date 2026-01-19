@@ -33,14 +33,14 @@ internal class AccountApi @Inject constructor(
      */
     suspend fun isCodeAccount(
         owner: KeyPair,
-    ): AccountService.IsCodeAccountResponse {
-        val request = AccountService.IsCodeAccountRequest.newBuilder()
+    ): AccountService.IsOcpAccountResponse {
+        val request = AccountService.IsOcpAccountRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
 
         return withContext(Dispatchers.IO) {
-            api.isCodeAccount(request)
+            api.isOcpAccount(request)
         }
     }
 

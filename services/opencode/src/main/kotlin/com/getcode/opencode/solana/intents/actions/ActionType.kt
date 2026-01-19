@@ -1,6 +1,6 @@
 package com.getcode.opencode.solana.intents.actions
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.CompactMessage

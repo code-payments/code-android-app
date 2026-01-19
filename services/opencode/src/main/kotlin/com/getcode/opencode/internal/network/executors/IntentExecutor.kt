@@ -1,8 +1,8 @@
 package com.getcode.opencode.internal.network.executors
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentRequest
-import com.codeinc.opencode.gen.transaction.v2.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentRequest
+import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream

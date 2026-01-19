@@ -1,11 +1,6 @@
 package com.getcode.opencode.model.transactions
 
-import com.codeinc.opencode.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.internal.network.extensions.asProtobufParameters
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.extensions.asSwapId
-import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
@@ -50,47 +45,47 @@ sealed interface InitiateSwap {
         override val swapAuthority: KeyPair,
     ) : InitiateSwap
 
-    fun start(
-        clientParameters: VerifiedSwapMetadata.ClientParameters
-    ): TransactionService.StartSwapRequest.Builder {
-        val request = TransactionService.StartSwapRequest.Start.newBuilder()
-            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
-            .setCurrencyCreator(clientParameters.asProtobufParameters())
-            .apply { setSignature(sign(this@InitiateSwap.owner.authority.keyPair))  }
-            .build()
-
-        return TransactionService.StartSwapRequest.newBuilder()
-            .setStart(request)
-    }
-
-    fun execute(): TransactionService.SwapRequest.Builder {
-        val request = TransactionService.SwapRequest.Initiate.newBuilder()
-            .apply {
-                when (this@InitiateSwap) {
-                    is Stateful -> setStateful(
-                        TransactionService.SwapRequest.Initiate.Stateful.newBuilder()
-                            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
-                            .setSwapAuthority(swapAuthority.asSolanaAccountId())
-                            .setSwapId(swapId.asSwapId())
-                            .apply { setSignature(sign(this@InitiateSwap.owner.authority.keyPair)) }
-                    )
-
-                    is Stateless -> setStateless(
-                        TransactionService.SwapRequest.Initiate.Stateless.newBuilder()
-                            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
-                            .setFromMint(fromMint.asSolanaAccountId())
-                            .setToMint(fromMint.asSolanaAccountId())
-                            .setAmount(amount)
-                            .setSwapAuthority(swapAuthority.asSolanaAccountId())
-                            .setWaitForBlockchainStatus(waitForBlockchainStatus)
-                            .apply { setSignature(sign(this@InitiateSwap.owner.authority.keyPair)) }
-                    )
-                }
-            }.build()
-
-        return TransactionService.SwapRequest.newBuilder()
-            .setInitiate(request)
-    }
+//    fun start(
+//        clientParameters: VerifiedSwapMetadata.ClientParameters
+//    ): TransactionService.StartSwapRequest.Builder {
+//        val request = TransactionService.StartSwapRequest.Start.newBuilder()
+//            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
+//            .setCurrencyCreator(clientParameters.asProtobufParameters())
+//            .apply { setSignature(sign(this@InitiateSwap.owner.authority.keyPair))  }
+//            .build()
+//
+//        return TransactionService.StartSwapRequest.newBuilder()
+//            .setStart(request)
+//    }
+//
+//    fun execute(): TransactionService.SwapRequest.Builder {
+//        val request = TransactionService.SwapRequest.Initiate.newBuilder()
+//            .apply {
+//                when (this@InitiateSwap) {
+//                    is Stateful -> setStateful(
+//                        TransactionService.SwapRequest.Initiate.Stateful.newBuilder()
+//                            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
+//                            .setSwapAuthority(swapAuthority.asSolanaAccountId())
+//                            .setSwapId(swapId.asSwapId())
+//                            .apply { setSignature(sign(this@InitiateSwap.owner.authority.keyPair)) }
+//                    )
+//
+//                    is Stateless -> setStateless(
+//                        TransactionService.SwapRequest.Initiate.Stateless.newBuilder()
+//                            .setOwner(owner.authorityPublicKey.asSolanaAccountId())
+//                            .setFromMint(fromMint.asSolanaAccountId())
+//                            .setToMint(fromMint.asSolanaAccountId())
+//                            .setAmount(amount)
+//                            .setSwapAuthority(swapAuthority.asSolanaAccountId())
+//                            .setWaitForBlockchainStatus(waitForBlockchainStatus)
+//                            .apply { setSignature(sign(this@InitiateSwap.owner.authority.keyPair)) }
+//                    )
+//                }
+//            }.build()
+//
+//        return TransactionService.SwapRequest.newBuilder()
+//            .setInitiate(request)
+//    }
 }
 
 data class SwapRequest(
@@ -107,13 +102,13 @@ data class SwapRequest(
     val swapAuthority = params.swapAuthority
     val owner = params.owner
 
-    fun start(clientParameters: VerifiedSwapMetadata.ClientParameters): TransactionService.StartSwapRequest.Builder {
-        return params.start(clientParameters)
-    }
-
-    fun execute(): TransactionService.SwapRequest.Builder {
-        return params.execute()
-    }
+//    fun start(clientParameters: VerifiedSwapMetadata.ClientParameters): TransactionService.StartSwapRequest.Builder {
+//        return params.start(clientParameters)
+//    }
+//
+//    fun execute(): TransactionService.SwapRequest.Builder {
+//        return params.execute()
+//    }
 }
 
 sealed interface SwapStartKind {

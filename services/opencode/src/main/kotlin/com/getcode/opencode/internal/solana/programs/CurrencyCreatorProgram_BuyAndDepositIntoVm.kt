@@ -23,8 +23,6 @@ internal class CurrencyCreatorProgram_BuyAndDepositIntoVm(
     private val vaultTarget: PublicKey,
     private val vaultBase: PublicKey,
     private val buyerBase: PublicKey,
-    private val feeTarget: PublicKey,
-    private val feeBase: PublicKey,
 
     private val vmAuthority: PublicKey,
     private val vm: PublicKey,
@@ -47,10 +45,6 @@ internal class CurrencyCreatorProgram_BuyAndDepositIntoVm(
                 AccountMeta.writable(publicKey = vaultTarget),
                 AccountMeta.writable(publicKey = vaultBase),
                 AccountMeta.writable(publicKey = buyerBase),
-                AccountMeta.writable(publicKey = feeTarget),
-
-                AccountMeta.readonly(publicKey = feeBase),
-
                 AccountMeta.writable(publicKey = vmAuthority, signer = true),
                 AccountMeta.writable(publicKey = vm),
                 AccountMeta.writable(publicKey = vmMemory),
