@@ -7,6 +7,7 @@ import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
+import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.Distribution
@@ -52,6 +53,7 @@ import kotlin.time.Clock
 @Singleton
 class TransactionController @Inject constructor(
     private val repository: TransactionRepository,
+    private val accountController: AccountController,
     private val eventBus: ChannelEventBus,
 ) {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -233,7 +235,20 @@ class TransactionController @Inject constructor(
         of: Token,
     ): Result<Unit> {
         trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
-        return repository.buy(scope = scope, owner = owner, amount = amount, of = of)
+        // create an account if we don't currently have one for this token
+        val accountResult = if (!accountController.hasAccountFor(of.address)) {
+            accountController.createUserAccount(
+                ownerForMint = owner,
+                mint = of.address
+            )
+        } else {
+            Result.success(Unit)
+        }
+
+        return accountResult.fold(
+            onSuccess = { repository.buy(scope = scope, owner = owner, amount = amount, of = of) },
+            onFailure = { Result.failure(it) }
+        )
     }
 
     suspend fun sell(

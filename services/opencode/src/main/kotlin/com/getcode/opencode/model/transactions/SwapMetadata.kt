@@ -14,22 +14,16 @@ data class SwapMetadata(
     val signature: List<Byte>,
 ) {
     val swapId: SwapId
-        get() = verifiedMetadata.clientParameters.id
+        get() = verifiedMetadata.id
 
     val fromMint: PublicKey
-        get() = verifiedMetadata.clientParameters.fromMint
+        get() = verifiedMetadata.fromMint
 
     val toMint: PublicKey
-        get() = verifiedMetadata.clientParameters.toMint
+        get() = verifiedMetadata.toMint
 
     val amount: Fiat
-        get() = verifiedMetadata.clientParameters.amount
-
-    val nonce: PublicKey
-        get() = verifiedMetadata.serverParameters.nonce
-
-    val blockhash: Hash
-        get() = verifiedMetadata.serverParameters.blockhash
+        get() = verifiedMetadata.amount
 }
 
 /**
@@ -88,32 +82,9 @@ enum class SwapState {
 
 
 data class VerifiedSwapMetadata(
-    val clientParameters: ClientParameters,
-    val serverParameters: ServerParameters
-) {
-    data class ClientParameters(
-        val id: SwapId,
-        val fromMint: PublicKey,
-        val toMint: PublicKey,
-        val amount: Fiat,
-        val fundingSource: FundingSource,
-        val fundingId: PublicKey,
-    )
-
-    data class ServerParameters(
-        val nonce: PublicKey,
-        val blockhash: Hash
-    ) {
-        companion object {
-//            fun fromServer(proto: TransactionService.StartSwapResponse.ServerParameters): ServerParameters? {
-//                val nonce = runCatching { PublicKey(proto.currencyCreator.nonce.value.toList()) }.getOrNull() ?: return null
-//                val blockHash = runCatching { Hash(proto.currencyCreator.blockhash.value.toList()) }.getOrNull() ?: return null
-//
-//                return ServerParameters(
-//                    nonce = nonce,
-//                    blockhash = blockHash
-//                )
-//            }
-        }
-    }
-}
+    val id: SwapId,
+    val fromMint: PublicKey,
+    val toMint: PublicKey,
+    val amount: Fiat,
+    val fundingSource: SwapFundingSource,
+)

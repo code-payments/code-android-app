@@ -11,9 +11,7 @@ import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.api.TransactionApi
-import com.getcode.opencode.internal.network.executors.IntentExecutor
-import com.getcode.opencode.internal.network.executors.SwapExecutor
-import com.getcode.opencode.internal.network.executors.SwapStarter
+import com.getcode.opencode.internal.network.funding.SwapFunding
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
@@ -38,8 +36,14 @@ object RepositoryFactory {
         )
 
         val api = AccountApi(module.provideManagedChannel(context, config))
+        val transactionApi = TransactionApi(module.provideManagedChannel(context, config))
         val service = AccountService(api)
-        return module.providesAccountRepository(service)
+        val transactionMetadataMapper = TransactionMetadataMapper()
+        val swapMetadataMapper = SwapMetadataMapper()
+        val swapService = SwapService(transactionApi, swapMetadataMapper)
+        val swapFunding = SwapFunding(swapService, transactionApi)
+        val transactionService = TransactionService(transactionApi, transactionMetadataMapper, swapFunding)
+        return module.providesAccountRepository(service, transactionService)
     }
 
     fun createEventRepository(context: Context, config: ProtocolConfig): EventRepository {
@@ -95,11 +99,9 @@ object RepositoryFactory {
         val api = TransactionApi(module.provideManagedChannel(context, config))
         val transactionMetadataMapper = TransactionMetadataMapper()
         val swapMetadataMapper = SwapMetadataMapper()
-        val intentExecutor = IntentExecutor(api)
         val swapService = SwapService(api, swapMetadataMapper)
-        val swapExecutor = SwapExecutor(api, swapService)
-        val swapStarter = SwapStarter(api)
-        val service = TransactionService(api, transactionMetadataMapper, intentExecutor, swapStarter, swapExecutor)
+        val swapFunding = SwapFunding(swapService, api)
+        val service = TransactionService(api, transactionMetadataMapper, swapFunding)
         return module.providesTransactionRepository(service)
     }
 

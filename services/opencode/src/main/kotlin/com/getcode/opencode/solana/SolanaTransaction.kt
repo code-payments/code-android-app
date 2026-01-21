@@ -16,9 +16,6 @@ import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.keys.filterUniqueAccounts
 import com.google.protobuf.ByteString
-import kotlin.apply
-import kotlin.collections.mutableListOf
-import kotlin.ranges.until
 
 /*
     Signature: [64]byte

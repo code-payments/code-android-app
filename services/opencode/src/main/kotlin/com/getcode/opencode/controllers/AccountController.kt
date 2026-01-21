@@ -1,6 +1,6 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.opencode.internal.network.api.intents.IntentCreateAccount
+import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo
@@ -33,7 +33,6 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @Singleton
 class AccountController @Inject constructor(
     private val accountRepository: AccountRepository,
-    private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -81,11 +80,7 @@ class AccountController @Inject constructor(
      * @return The ID of the created account.
      */
     suspend fun createUserAccount(ownerForMint: AccountCluster, mint: Mint): Result<ID> {
-        // Authority is the owner of the account
-        val intent = IntentCreateAccount.createUserAccount(ownerForMint, mint)
-
-        return transactionController.submitIntent(scope, intent, ownerForMint.authority.keyPair)
-            .map { it.id.bytes }
+        return accountRepository.createUserAccount(scope, ownerForMint, mint)
     }
 
     suspend fun getAccounts(

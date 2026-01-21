@@ -216,68 +216,36 @@ sealed class SwapError(
     data class Denied(private val reasons: List<String>) : SwapError(message = reasons.joinToString())
     class Signature : SwapError()
     class Unrecognized : SwapError("Unrecognized")
-    class InvalidSwap(
-        private val reasons: List<String>
-    ): SwapError(message = reasons.joinToString())
-    class SwapFailed(
-        reasons: List<String>
-    ): SwapError(message = reasons.joinToString())
+    class InvalidSwap(reasons: List<String>): SwapError(message = reasons.joinToString())
 
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause)
 
     companion object {
-//        fun typed(proto: TransactionService.GetSwapResponse.Error): SwapError {
-//            val reasonStrings = proto.errorDetailsList.mapNotNull {
-//                when (it.typeCase) {
-//                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
-//                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-//
-//                    else -> null
-//                }
-//            }
-//
-//            return when (proto.code) {
-//                TransactionService.SwapResponse.Error.Code.DENIED -> {
-//                    val reasons = proto.errorDetailsList.mapNotNull {
-//                        if (!it.hasDenied()) return@mapNotNull null
-//                        it.denied.reason
-//                    }
-//
-//                    Denied(reasons)
-//                }
-//
-//                TransactionService.SwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-//                TransactionService.SwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-//                TransactionService.SwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
-//                TransactionService.SwapResponse.Error.Code.SWAP_FAILED -> SwapFailed(reasonStrings)
-//            }
-//        }
-//
-//        fun typedFromStart(proto: TransactionService.StartSwapResponse.Error): SwapError {
-//            val reasonStrings = proto.errorDetailsList.mapNotNull {
-//                when (it.typeCase) {
-//                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
-//                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-//
-//                    else -> null
-//                }
-//            }
-//
-//            return when (proto.code) {
-//                TransactionService.StartSwapResponse.Error.Code.DENIED -> {
-//                    val reasons = proto.errorDetailsList.mapNotNull {
-//                        if (!it.hasDenied()) return@mapNotNull null
-//                        it.denied.reason
-//                    }
-//
-//                    Denied(reasons)
-//                }
-//
-//                TransactionService.StartSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-//                TransactionService.StartSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-//                TransactionService.StartSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
-//            }
-//        }
+        fun typed(proto: TransactionService.StatefulSwapResponse.Error): SwapError {
+            val reasonStrings = proto.errorDetailsList.mapNotNull {
+                when (it.typeCase) {
+                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+
+                    else -> null
+                }
+            }
+
+            return when (proto.code) {
+                TransactionService.StatefulSwapResponse.Error.Code.DENIED -> {
+                    val reasons = proto.errorDetailsList.mapNotNull {
+                        if (!it.hasDenied()) return@mapNotNull null
+                        it.denied.reason
+                    }
+
+                    Denied(reasons)
+                }
+
+                TransactionService.StatefulSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                TransactionService.StatefulSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+                TransactionService.StatefulSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+            }
+        }
     }
 }
 

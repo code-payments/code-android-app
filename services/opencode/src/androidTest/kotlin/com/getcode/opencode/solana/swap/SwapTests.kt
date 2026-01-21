@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.codeinc.opencode.gen.common.v1.blockhash
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
@@ -11,7 +12,7 @@ import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.VmMetadata
-import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
 import com.getcode.opencode.tests.generateRandomPublicKeyForTest
 import com.getcode.opencode.utils.generate
@@ -50,14 +51,12 @@ class SwapInstructionsTest {
         authority = vmAuthority,
         mintVault = generateRandomPublicKeyForTest(),
         coreMintVault = generateRandomPublicKeyForTest(),
-        coreMintFees = generateRandomPublicKeyForTest(),
         currentCirculatingSupplyQuarks = 0,
-        coreMintLockedQuarks = 0,
         sellFeeBps = 0
     )
 
     // Mock Mints
-    private val coreMint = MintMetadata.usdc
+    private val coreMint = MintMetadata.usdf
 
     private val targetMint = MintMetadata(
         address = PublicKey.generate(),
@@ -73,9 +72,10 @@ class SwapInstructionsTest {
     )
 
     // Mock Server Response (Stateless for simplicity)
-    private val mockServerParams = SwapResponseServerParameters.Stateless(
+    private val mockServerParams = SwapResponseServerParameters(
         payer = mockPayer,
-        recentBlockhash = mockRecentBlockhash,
+        blockhash = mockRecentBlockhash,
+        nonce = mockNonce,
         computeUnitLimit = 500_000,
         computeUnitPrice = 1_000,
         memoValue = "test_swap_memo",

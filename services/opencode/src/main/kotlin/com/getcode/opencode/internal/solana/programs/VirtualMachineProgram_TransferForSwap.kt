@@ -20,11 +20,16 @@ internal class VirtualMachineProgram_TransferForSwap(
             program = VirtualMachineProgram.address,
             accounts = listOf(
                 AccountMeta.writable(publicKey = vmAuthority, signer = true),
+
                 AccountMeta.readonly(publicKey = vm),
+
                 AccountMeta.writable(publicKey = swapper, signer = true),
+
                 AccountMeta.readonly(publicKey = swapPda),
+
                 AccountMeta.writable(publicKey = swapAta),
                 AccountMeta.writable(publicKey = destination),
+
                 AccountMeta.readonly(publicKey = TokenProgram.address),
             ),
             data = encode()

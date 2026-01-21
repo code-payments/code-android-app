@@ -75,7 +75,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
             when (it) {
                 ScannerDecorItem.Give -> {
                     // only allow navigation to give when there is something to give
-                    val hasBalance = state.balance.orZero().isPositive
+                    val hasBalance = state.giveableBalance.orZero().isPositive
                     if (!hasBalance) {
                         BottomBarManager.showError(
                             title = context.getString(R.string.title_noBalanceYet),

@@ -193,18 +193,6 @@ class TransactionApi @Inject constructor(
         }
     }
 
-//    /**
-//     * Begins the process for swapping tokens by coordinating verified metadata
-//     * for non-custodial state management tracking.
-//     *
-//     * @param swapRequestFlow The flow of swap requests to process
-//     */
-//    fun startSwap(
-//        swapRequestFlow: Flow<StartSwapRequest>,
-//    ): Flow<StartSwapResponse> {
-//        return api.startSwap(swapRequestFlow)
-//    }
-
     /**
      * Gets metadata for a swap
      *
@@ -245,7 +233,24 @@ class TransactionApi @Inject constructor(
         }
     }
 
-//    fun swap(
-//        requestFlow: Flow<ApiSwapRequest>
-//    ): Flow<SwapResponse> = api.swap(requestFlow)
+    /**
+     * Swaps tokens using a non-custodial state-management system.
+     *
+     * The high-level flow mirrors SubmitIntent closely. However, due to the
+     * unreliability of swaps, they do not fit within the broader intent system.
+     * This results in a few key differences:
+     *
+     *  * Client is (potentially) involved in additional steps to complete the
+     *    swap within the state machine
+     *  * Transactions are submitted on a best-effort basis outside of the Code
+     *    Sequencer
+     *  * Balance changes are applied after the transaction has finalized
+     *
+     * Swap transaction signatures are collected up-front. They are executed once the
+     * swap is funded.
+     *
+     */
+    fun swap(
+        requestFlow: Flow<TransactionService.StatefulSwapRequest>
+    ): Flow<TransactionService.StatefulSwapResponse> = api.statefulSwap(requestFlow)
 }

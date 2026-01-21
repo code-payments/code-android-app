@@ -2,8 +2,8 @@ package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
+import com.flipcash.libs.currency.math.MarketState
 import com.flipcash.libs.currency.math.Valuation
-import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.utils.roundTo
 import com.getcode.opencode.utils.toLocaleAwareDoubleOrNull
@@ -13,8 +13,6 @@ import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.DecimalFormat
-import java.text.NumberFormat
-import java.util.Currency
 import java.util.Locale
 import kotlin.math.roundToLong
 
@@ -210,8 +208,9 @@ data class Fiat(
                 estimation = {
                     Estimator.sell(
                         amountInQuarks = quarks,
-                        currentValueInQuarks = token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
-                        mintDecimals = 6, // The desired value here is USDC which is 6
+                        marketState = MarketState.FromSupply(token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,),
+                        mintDecimals = token.decimals,
+                        outputDecimals = 6, // The desired value here is USDF which is 6
                         feeBps = 0,
                     ).getOrThrow().netAmountToReceive
                 },

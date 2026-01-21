@@ -14,11 +14,9 @@ import com.getcode.opencode.model.accounts.PoolAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.utils.base58
-import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus

@@ -14,13 +14,13 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
-import com.getcode.opencode.model.transactions.FundingSource
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
+import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.TransferRequest
-import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
@@ -252,50 +252,39 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .build()
 }
 
-//internal fun VerifiedSwapMetadata.ClientParameters.asProtobufParameters(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
-//    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()
-//        .setId(id.asSwapId())
-//        .setFromMint(fromMint.asSolanaAccountId())
-//        .setToMint(toMint.asSolanaAccountId())
-//        .setAmount(amount.quarks)
-//        .setFundingSource(when (fundingSource) {
-//            FundingSource.UNKNOWN -> TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN
-//            FundingSource.SUBMIT_INTENT -> TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT
-//        })
-//        .setFundingId(fundingId.base58())
-//        .build()
-//}
-//
-//internal fun VerifiedSwapMetadata.ServerParameters.asProtobufParameters(): TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator {
-//    return TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator.newBuilder()
-//        .setNonce(nonce.asSolanaAccountId())
-//        .setBlockhash(blockhash.asSolanaBlockHash())
-//        .build()
-//}
-//
-//internal fun VerifiedSwapMetadata.asProtobufMetadata(): TransactionService.VerifiedSwapMetadata {
-//    return TransactionService.VerifiedSwapMetadata.newBuilder()
-//        .setCurrencyCreator(
-//            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
-//                .setClientParameters(clientParameters.asProtobufParameters())
-//                .setServerParameters(serverParameters.asProtobufParameters())
-//                .build()
-//        )
-//        .build()
-//}
+internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.Builder {
+    return TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.newBuilder()
+        .apply {
+            when (val details = kind) {
+                is SwapStartKind.CurrencyCreator -> {
+                    setId(swapId.asSwapId())
+                        .setFromMint(details.fromMint.asSolanaAccountId())
+                        .setToMint(details.toMint.asSolanaAccountId())
+                        .setAmount(details.amount)
+                        .apply {
+                            when (val source = details.fundingSource) {
+                                is SwapFundingSource.ExternalWallet -> {
+                                    setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
+                                    setFundingId(source.transactionSignature.base58())
+                                }
+                                is SwapFundingSource.SubmitIntent -> {
+                                    setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
+                                    setFundingId(source.id.base58())
+                                }
 
-//internal fun SwapRequest.SwapStartKind.CurrencyCreator.asProtobufMessage(): TransactionService.StartSwapRequest.Start.CurrencyCreator {
-//    return TransactionService.StartSwapRequest.Start.CurrencyCreator.newBuilder()
-//        .setId(swapId.asSwapId())
-//        .setFromMint(fromMint.asSolanaAccountId())
-//        .setToMint(toMint.asSolanaAccountId())
-//        .setAmount(amount)
-//        .setFundingSource(
-//            when (fundingSource) {
-//                FundingSource.UNKNOWN -> TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN
-//                FundingSource.SUBMIT_INTENT -> TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT
-//            }
-//        )
-//        .setFundingId(fundingId)
-//        .build()
-//}
+                                SwapFundingSource.Unknown -> Unit
+                            }
+                        }
+                }
+            }
+        }
+}
+
+internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
+    return TransactionService.VerifiedSwapMetadata.newBuilder()
+        .setCurrencyCreator(
+            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
+                .setClientParameters(currencyCreatorParams())
+
+        )
+}

@@ -19,6 +19,17 @@ class EstimationTests {
     }
 
     @Test
+    fun `spot price`() {
+        val price = Estimator.currentPriceFor(
+            currentSupplyInQuarks = 140433226486997
+        ).getOrThrow()
+
+        assertEquals("0.010123561682206779", price.toPlainString())
+
+        println(price)
+    }
+
+    @Test
     fun `market cat at zero supply is zero`() {
         val marketCap = Estimator.currentMarketCap(currentSupplyInQuarks = 0).getOrThrow()
         assertEquals(0, marketCap.toInt())
@@ -74,8 +85,9 @@ class EstimationTests {
     fun `estimate sell with no fee`() {
         val (received, fees) = Estimator.sell(
             amountInQuarks = 100 * 10_000_000_000,
-            currentValueInQuarks = 10_000_000,
+            marketState = MarketState.FromSupply(10_000_000),
             mintDecimals = 6,
+            outputDecimals = 6,
             feeBps = 0, // 0%
         ).getOrThrow()
 
@@ -123,16 +135,23 @@ class EstimationTests {
             feeBps = 0,
         ).getOrThrow()
 
-        // Sell the tokens we bought
-        val tokenQuarks = buyEstimate.netTokensToReceive.multiplyWithHighPrecision(BigDecimal(10_000_000_000))
-            .round(MathContext(0, RoundingMode.DOWN))
+        println("usdfToSpend: $usdfToSpend")
+        println("initialSupply: $initialSupply")
+        println("netTokensToReceive: ${buyEstimate.netTokensToReceive}")
 
-        val newSupply = initialSupply + usdfToSpend
+        // Sell the tokens we bought
+        val tokenQuarks = buyEstimate.netTokensToReceive
+            .multiplyWithHighPrecision(BigDecimal(10_000_000_000))
+            .round(MathContext(0, RoundingMode.DOWN))
+            .toLong()
+
+        val newSupply = initialSupply + tokenQuarks
 
         val sellEstimate = Estimator.sell(
-            amountInQuarks = tokenQuarks.toLong(),
-            currentValueInQuarks = newSupply,
+            amountInQuarks = tokenQuarks,
+            marketState = MarketState.FromSupply(newSupply),
             mintDecimals = 6,
+            outputDecimals = 6,
             feeBps = 0,
         ).getOrThrow()
 

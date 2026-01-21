@@ -86,7 +86,7 @@ internal class ReceiveGiftCardTransactor(
             val tokenMint = info.mint
 
             val token = tokenController.getTokenMetadata(tokenMint)
-                .getOrNull()
+                .getOrNull()?.token
 
             if (token == null) {
                 onStep("pre-claim checks")

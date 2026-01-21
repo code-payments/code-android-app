@@ -5,19 +5,15 @@ import com.getcode.opencode.solana.Instruction
 import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.bytes
-import com.getcode.utils.toByteArray
-import org.kin.sdk.base.tools.intToByteArray
-import org.kin.sdk.base.tools.longToByteArray
 
 @Suppress("ClassName")
 internal class CurrencyCreatorProgram_BuyAndDepositIntoVm(
-    private val amount: Long,
-    private val minOutput: Long,
+    private val inAmount: Long,
+    private val minOutAmount: Long,
     private val vmMemoryIndex: Int, // UInt16
 
     private val buyer: PublicKey,
     private val pool: PublicKey,
-    private val currency: PublicKey,
     private val targetMint: PublicKey,
     private val baseMint: PublicKey,
     private val vaultTarget: PublicKey,
@@ -36,10 +32,9 @@ internal class CurrencyCreatorProgram_BuyAndDepositIntoVm(
             program = CurrencyCreatorProgram.address,
             accounts = listOf(
                 AccountMeta.writable(publicKey = buyer, signer = true),
-                AccountMeta.writable(publicKey = pool),
-                AccountMeta.writable(publicKey = currency),
-                AccountMeta.writable(publicKey = targetMint),
 
+                AccountMeta.readonly(publicKey = pool),
+                AccountMeta.readonly(publicKey = targetMint),
                 AccountMeta.readonly(publicKey = baseMint),
 
                 AccountMeta.writable(publicKey = vaultTarget),
@@ -61,8 +56,8 @@ internal class CurrencyCreatorProgram_BuyAndDepositIntoVm(
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
         data.add(CurrencyCreatorProgram.Command.buyAndDepositIntoVm.value)
-        data.addAll(amount.bytes)
-        data.addAll(minOutput.bytes)
+        data.addAll(inAmount.bytes)
+        data.addAll(minOutAmount.bytes)
         data.addAll(vmMemoryIndex.toU16Bytes())
 
         return data

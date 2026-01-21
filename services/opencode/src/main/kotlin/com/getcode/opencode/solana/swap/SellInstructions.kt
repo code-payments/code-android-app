@@ -97,12 +97,11 @@ internal fun buildSellInstructions(
         // 7. CurrencyCreator::SellAndDepositIntoVm
         add(
             CurrencyCreatorProgram_SellAndDepositIntoVm(
-                amount = amount,
-                minOutput = minOutput,
+                inAmount = amount,
+                minOutAmount = minOutput,
                 vmMemoryIndex = serverParams.memoryIndex,
                 seller = swapAuthority,
                 pool = sourceLaunchpad.liquidityPool,
-                currency = sourceLaunchpad.currencyConfig,
                 targetMint = sourceMintMetadata.address,
                 baseMint = coreMintMetadata.address,
                 vaultTarget = sourceLaunchpad.mintVault,

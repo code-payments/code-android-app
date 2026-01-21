@@ -125,7 +125,7 @@ class TokenInfoViewModel @Inject constructor(
             .map { tokenController.getTokenMetadata(it) }
             .onResult(
                 onSuccess = {
-                    dispatchEvent(Event.OnTokenChanged(it))
+                    dispatchEvent(Event.OnTokenChanged(it.token))
                 },
                 onError = {
                     BottomBarManager.showError(

@@ -11,9 +11,11 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
+import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
@@ -147,13 +149,18 @@ class TokenController @Inject constructor(
         updateTokens()
     }
 
-    suspend fun getTokenMetadata(mint: Mint): Result<Token> {
+    suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
         val cachedToken = tokens.value.find { it.address == mint }
+        if (cachedToken != null) {
+            return Result.success(TokenResult(cachedToken, DataSource.Cache))
+        }
 
-        return cachedToken?.let { Result.success(it) } ?: currencyController.getMintMetadata(listOf(mint))
+        val metadata = currencyController.getMintMetadata(listOf(mint))
             .onSuccess { token -> tokens.update { (it + token).distinctBy { t -> t.address } } }
-            .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint }
-                ?: throw IllegalStateException("No metadata found for token $mint") }
+            .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint } }
+            .getOrNull()
+
+        return metadata?.let { Result.success(TokenResult(it, DataSource.Network)) } ?: Result.failure(IllegalStateException("No metadata found for token $mint"))
     }
 
     suspend fun selectToken(mint: Mint) {
@@ -291,7 +298,8 @@ class TokenController @Inject constructor(
                     )
                     Result.failure(it)
                 }
-            )?.map { (account, token) ->
+            )?.map { (account, result) ->
+                val token = result.token
                     when {
                         account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
                         else -> token to Fiat.tokenBalance(account.balance, token = token)

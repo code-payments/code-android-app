@@ -14,6 +14,6 @@ internal class CurrencyCreatorProgram {
     }
 
     companion object {
-        val address = PublicKey.fromBase58("ccZLx5N31asHhCa7hFmvdC9EGYVam13L8WXPTjPEiJY")
+        val address = PublicKey.fromBase58("ccJYP5gjZqcEHaphcxAZvkxCrnTVfYMjyhSYkpQtf8Z")
     }
 }

@@ -135,13 +135,23 @@ object Estimator {
                     curve.tokensForValueExchange(scaledCurrentValue, scaledValue).getOrThrow()
                 }
                 CurveType.Discrete -> {
+                    // Convert supply quarks to whole tokens
+                    val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
+                    val currentSupply = BigDecimal(currentSupplyInQuarks).divideWithHighPrecision(tokenScale)
+
+                    // Calculate TVL from supply (value of all tokens from 0 to currentSupply)
+                    val currentValue = curve.tokensToValue(
+                        currentSupply = BigDecimal.ZERO,
+                        tokens = currentSupply
+                    ).getOrThrow()
+
+                    // Convert input value to USDF
                     val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
                     val scaledValue = BigDecimal(valueInQuarks).divideWithHighPrecision(valueScale)
-                    val scaledCurrentValue = BigDecimal(currentSupplyInQuarks).divideWithHighPrecision(valueScale)
 
                     curve.tokensForValueExchange(
                         value = scaledValue,
-                        currentValue = scaledCurrentValue,
+                        currentValue = currentValue,
                     ).getOrThrow()
                 }
             }
@@ -246,9 +256,10 @@ object Estimator {
      * 5. Returning the net amount and the fee, both in "quarks".
      *
      * @param amountInQuarks The amount of the token to be sold, expressed in its smallest unit ("quarks").
-     * @param currentValueInQuarks The current total value locked in the bonding curve for this token,
-     *                             expressed in the value token's smallest unit ("quarks").
-     * @param mintDecimals The number of decimal places for the value token (e.g., USDF, SOL).
+     * @param marketState The current state of the market, which can be based on total value locked
+     *        (`MarketState.FromValue`) or current circulating supply (`MarketState.FromSupply`). The required
+     *        type depends on the `curveType`.
+     * @param outputDecimals The number of decimal places for the value token (e.g., USDF, SOL).
      * @param feeBps The fee percentage expressed in basis points (1 BPS = 0.01%). For example, 50 BPS is a 0.5% fee.
      * @return A [Result] wrapper containing a [SellEstimation] on success, which includes the
      *         `netAmountToReceive` and `fees` in "quarks". Returns a `Result.failure` if any
@@ -256,26 +267,27 @@ object Estimator {
      */
     fun sell(
         amountInQuarks: Long,
-        currentValueInQuarks: Long,
+        marketState: MarketState,
         mintDecimals: Int,
+        outputDecimals: Int,
         feeBps: Int,
         curveType: CurveType = DefaultCurveType,
     ): Result<SellEstimation> {
         return runCatching {
             val curve = getCurve(curveType)
             require(amountInQuarks > 0) { "Amount must be positive" }
-            require(currentValueInQuarks >= 0) { "Current value must be non-negative" }
+            require(marketState.amount >= 0) { "Current market state value must be non-negative" }
             require(feeBps >= 0) { "Fee basis points must be non-negative" }
 
-            println("amountInQuarks: $amountInQuarks, currentValueInQuarks: $currentValueInQuarks,")
             when (curveType) {
                 CurveType.Continuous -> {
+                    require(marketState is MarketState.FromValue) { "FromValue is required for Continuous curve" }
                     val tokenScale = BigDecimal.TEN.pow(DefaultMintDecimals, mc)
                     val unscaledSellAmount = BigDecimal(amountInQuarks, mc)
                     val scaledSellAmount = unscaledSellAmount.divideWithHighPrecision(tokenScale)
 
-                    val valueScale = BigDecimal.TEN.pow(mintDecimals, mc)
-                    val unscaledCurrentValue = BigDecimal(currentValueInQuarks, mc)
+                    val valueScale = BigDecimal.TEN.pow(outputDecimals, mc)
+                    val unscaledCurrentValue = BigDecimal(marketState.valueInQuarks, mc)
                     val scaledCurrentValue = unscaledCurrentValue.divideWithHighPrecision(valueScale)
 
                     val scaledValue =
@@ -300,31 +312,32 @@ object Estimator {
                     val netAmountUsdf = netAmountBD.longValueExact()
                         .toBigDecimal().divideWithHighPrecision(BigDecimal(1_000_000))
 
-                    println("tokensToSell: $scaledSellAmount, currentValue: $scaledCurrentValue, currentSupply: $currentSupply, supplyAfterSell: $supplyAfterSell")
-
-                    println("gross: $unscaledValueBD, fees: $unscaledFeesUsd, net: $netAmountBD")
-
                     SellEstimation(
                         netAmountToReceive = netAmountUsdf,
                         fees = unscaledFeesUsd,
                     )
                 }
                 CurveType.Discrete -> {
+                    require(marketState is MarketState.FromSupply) { "FromSupply is required for Discrete curve" }
                     // Convert token quarks to whole tokens
-                    val quarksPerToken = BigDecimal.TEN.pow(DefaultMintDecimals)
+                    val quarksPerToken = BigDecimal.TEN.pow(mintDecimals)
                     val tokensToSell = BigDecimal(amountInQuarks).divideWithHighPrecision(quarksPerToken)
 
-                    // Convert value quarks to dollars
-                    val valueScale = BigDecimal.TEN.pow(mintDecimals)
-                    val currentValue = BigDecimal(currentValueInQuarks).divideWithHighPrecision(valueScale)
-
-                    // Get current supply from TVL
-                    val currentSupply = curve.supplyFromValue(currentValue).getOrThrow()
+                    // Convert supply quarks to whole tokens
+                    val currentSupply = BigDecimal(marketState.supplyInQuarks).divideWithHighPrecision(quarksPerToken)
 
                     // For selling: calculate value at (supply - tokens) going up to supply
                     val supplyAfterSell = currentSupply.subtract(tokensToSell)
 
-                    println("tokensToSell: $tokensToSell, currentValue: $currentValue, currentSupply: $currentSupply, supplyAfterSell: $supplyAfterSell")
+                    println("tokenDecimals: $mintDecimals")
+                    println("outputDecimals: $outputDecimals")
+                    println("amountInQuarks: $amountInQuarks")
+                    println("tokensToSell: $tokensToSell")
+                    println("marketState: $marketState")
+                    println("currentSupply: $currentSupply")
+                    println("supplyAfterSell: $supplyAfterSell")
+
+                    require(supplyAfterSell.signum() >= 0) { "Cannot sell more tokens than current supply" }
 
                     val grossUSDF = curve.tokensToValue(
                         currentSupply = supplyAfterSell,
@@ -336,7 +349,6 @@ object Estimator {
                     val fees = grossUSDF.multiplyWithHighPrecision(feeMultiplier)
                     val netUSDF = grossUSDF.subtractWithHighPrecision(fees)
 
-                    println("gross: $grossUSDF, fees: $fees, net: $netUSDF")
                     SellEstimation(
                         netAmountToReceive = netUSDF,
                         fees = fees,
@@ -385,4 +397,14 @@ sealed interface Valuation {
         val quarks: BigDecimal,
         override val fx: BigDecimal,
     ) : Valuation
+}
+
+sealed interface MarketState {
+    val amount: Long
+    data class FromValue(val valueInQuarks: Long) : MarketState {
+        override val amount: Long = valueInQuarks
+    }
+    data class FromSupply(val supplyInQuarks: Long) : MarketState {
+        override val amount: Long = supplyInQuarks
+    }
 }

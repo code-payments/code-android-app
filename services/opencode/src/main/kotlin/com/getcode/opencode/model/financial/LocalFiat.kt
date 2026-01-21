@@ -135,7 +135,7 @@ data class LocalFiat(
             val valuation = Estimator.valueExchangeAsQuarks(
                 valueInQuarks = cappedValue.quarks,
                 currentSupplyInQuarks = supply,
-                mintDecimals = 6, // usdc is 6 decimals
+                mintDecimals = 6, // usdf is 6 decimals
             ).getOrThrow()
 
             val (quarks, _) = valuation
@@ -204,7 +204,7 @@ data class LocalFiat(
             if (trace) {
                 trace(
                     tag = "LocalFiat",
-                    message = "Bill created",
+                    message = "currency exchange",
                     metadata = {
                         "requested currency" to rate.currency.name
                         "original currency fx" to rate.fx

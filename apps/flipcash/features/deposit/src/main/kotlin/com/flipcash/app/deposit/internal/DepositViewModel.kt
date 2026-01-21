@@ -54,8 +54,8 @@ internal class DepositViewModel @Inject constructor(
             .filterIsInstance<Event.OnMintSelected>()
             .mapNotNull { tokenController.getTokenMetadata(it.mint) }
             .onResult(
-                onSuccess = { token ->
-                    val address = userManager.accountCluster?.depositAddressFor(token)?.base58()
+                onSuccess = { result ->
+                    val address = userManager.accountCluster?.depositAddressFor(result.token)?.base58()
                     if (address == null) {
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_tokenNotFound),

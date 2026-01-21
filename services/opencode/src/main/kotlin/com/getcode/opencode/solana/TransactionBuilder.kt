@@ -1,7 +1,6 @@
 package com.getcode.opencode.solana
 
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
@@ -19,8 +18,7 @@ object TransactionBuilder {
      * by generating the appropriate instruction sets based on the [direction] parameter.
      *
      * @param response The server parameters required for the swap, containing payer information,
-     *                 lookup tables (ALTs), and potentially a blockhash. Can be stateful or stateless.
-     * @param metadata Verified metadata associated with the swap request, including nonce information.
+     *                 lookup tables (ALTs), nonce, and a blockhash.
      * @param authority The public key of the user authorizing the swap (the wallet owner).
      * @param swapAuthority The public key of the temporary swap authority derived from the nonce.
      * @param direction The direction of the swap (Buy or Sell) and the target/source mint involved.
@@ -31,24 +29,18 @@ object TransactionBuilder {
      */
     fun swap(
         response: SwapResponseServerParameters,
-        metadata: VerifiedSwapMetadata,
         authority: PublicKey,
         swapAuthority: PublicKey,
         direction: SwapDirection,
         amount: Long,
         minOutput: Long = 0,
     ): SolanaTransaction {
-        val (payer, blockhash, alts) = when (val params = response) {
-            is SwapResponseServerParameters.Stateful -> Triple(params.payer, metadata.serverParameters.blockhash, params.alts)
-            is SwapResponseServerParameters.Stateless -> Triple(params.payer, params.recentBlockhash, params.alts)
-        }
-
         val coreMint = Token.usdf
 
         val instructions = when (direction) {
             is SwapDirection.Buy -> buildBuyInstructions(
                 serverParameters = response,
-                nonce = metadata.serverParameters.nonce,
+                nonce = response.nonce,
                 authority = authority,
                 swapAuthority = swapAuthority,
                 coreMintMetadata = coreMint,
@@ -58,7 +50,7 @@ object TransactionBuilder {
             )
             is SwapDirection.Sell -> buildSellInstructions(
                 serverParameters = response,
-                nonce = metadata.serverParameters.nonce,
+                nonce = response.nonce,
                 authority = authority,
                 swapAuthority = swapAuthority,
                 sourceMintMetadata = direction.mint,
@@ -69,9 +61,9 @@ object TransactionBuilder {
         }
 
         return SolanaTransaction.newV0Instance(
-            payer = payer,
-            recentBlockhash = blockhash,
-            addressLookupTables = alts,
+            payer = response.payer,
+            recentBlockhash = response.blockhash,
+            addressLookupTables = response.alts,
             instructions = instructions,
         )
     }

@@ -6,13 +6,11 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.network.api.TransactionApi
-import com.getcode.opencode.internal.network.api.intents.IntentFundSwap
 import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.internal.network.executors.SwapExecutor
-import com.getcode.opencode.internal.network.executors.SwapStarter
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.toModel
-import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.internal.network.funding.SwapFunding
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
@@ -24,10 +22,11 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
-import com.getcode.opencode.model.transactions.InitiateSwap
+import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapDirection
+import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapRequest
-import com.getcode.opencode.model.transactions.SwapResult
+import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.solana.intents.IntentType
@@ -43,15 +42,16 @@ import javax.inject.Inject
 internal class TransactionService @Inject constructor(
     private val api: TransactionApi,
     private val transactionMetadataMapper: TransactionMetadataMapper,
-    private val intentExecutor: IntentExecutor,
-    private val swapStarter: SwapStarter,
-    private val swapExecutor: SwapExecutor,
+    private val swapFunding: SwapFunding,
 ) {
     suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
-    ): Result<IntentType> = intentExecutor.execute(scope, intent, owner)
+    ): Result<IntentType> {
+        val executor = IntentExecutor(api)
+        return executor.execute(scope, intent, owner)
+    }
 
     suspend fun getIntentMetadata(
         intentId: PublicKey,
@@ -191,13 +191,16 @@ internal class TransactionService @Inject constructor(
         amount: LocalFiat,
         of: Token,
         owner: AccountCluster,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
     ): Result<Unit> {
-        val swapId = SwapId.generate()
         val request = SwapRequest(
-            params = InitiateSwap.Stateful(
-                swapId = swapId,
-                owner = owner,
-                swapAuthority = Ed25519.createKeyPair()
+            owner = owner,
+            swapAuthority = Ed25519.createKeyPair(),
+            kind = SwapStartKind.CurrencyCreator(
+                fromMint = Mint.usdf,
+                toMint = of.address,
+                amount = amount.underlyingTokenAmount.quarks,
+                fundingSource = source,
             ),
             direction = SwapDirection.Buy(of),
             amount = amount
@@ -211,14 +214,17 @@ internal class TransactionService @Inject constructor(
         amount: LocalFiat,
         of: Token,
         owner: AccountCluster,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
     ): Result<Unit> {
         val tokenCluster = owner.withTimelockForToken(of)
-        val swapId = SwapId.generate()
         val request = SwapRequest(
-            params = InitiateSwap.Stateful(
-                swapId = swapId,
-                owner = tokenCluster,
-                swapAuthority = Ed25519.createKeyPair()
+            owner = tokenCluster,
+            swapAuthority = Ed25519.createKeyPair(),
+            kind = SwapStartKind.CurrencyCreator(
+                fromMint = of.address,
+                toMint = Mint.usdf,
+                amount = amount.underlyingTokenAmount.quarks,
+                fundingSource = source,
             ),
             direction = SwapDirection.Sell(of),
             amount = amount
@@ -231,27 +237,13 @@ internal class TransactionService @Inject constructor(
         scope: CoroutineScope,
         request: SwapRequest,
         owner: AccountCluster,
-    ): SwapResult {
-        return swapStarter.start(scope, request)
+    ): Result<SwapMetadata> {
+        val executor = SwapExecutor(api)
+        return executor.execute(scope, request)
             .fold(
                 onSuccess = {
-                    trace("Swap state created, Swap ID: ${request.swapId.publicKey.base58()}")
-
-                    val fundingIntent = IntentFundSwap.create(
-                        intentId = request.fundingIntentId,
-                        sourceCluster = owner,
-                        amount = request.amount,
-                        fromMint = request.direction.sourceMint
-                    )
-
-                    submitIntent(scope, fundingIntent, owner.authority.keyPair)
-                },
-                onFailure = {
-                    Result.failure(it)
-                }
-            ).fold(
-                onSuccess = {
-                    swapExecutor.execute(scope, request)
+                    trace("Swap submitted, Swap ID: ${request.swapId.publicKey.base58()}")
+                    swapFunding.fund(scope, owner, request)
                 },
                 onFailure = {
                     Result.failure(it)

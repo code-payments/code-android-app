@@ -96,7 +96,6 @@ sealed interface Message {
         fun newInstance(data: List<Byte>): Message? {
             if (data.isEmpty()) return null
             val firstByte = data.first().byteToUnsignedInt()
-            println("first byte: $firstByte")
             val version = if (firstByte < messageVersionSerializationOffset) {
                 MessageVersion.legacy
             } else if (firstByte == (MessageVersion.v0.ordinal + messageVersionSerializationOffset)) {
@@ -104,8 +103,6 @@ sealed interface Message {
             } else {
                 return null
             }
-
-            println("message version $version")
 
             return when (version) {
                 MessageVersion.legacy -> {

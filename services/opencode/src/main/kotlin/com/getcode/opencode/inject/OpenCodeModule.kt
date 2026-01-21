@@ -16,6 +16,7 @@ import com.getcode.opencode.internal.domain.repositories.InternalMessagingReposi
 import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
+import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
@@ -100,8 +101,9 @@ object OpenCodeModule {
     @Provides
     @Singleton
     internal fun providesAccountRepository(
-        service: AccountService
-    ): AccountRepository = InternalAccountRepository(service)
+        service: AccountService,
+        transactionService: TransactionService,
+    ): AccountRepository = InternalAccountRepository(transactionService, service)
 
     @Provides
     @Singleton
@@ -112,7 +114,7 @@ object OpenCodeModule {
     @Provides
     @Singleton
     internal fun providesTransactionRepository(
-        service: TransactionService
+        service: TransactionService,
     ): TransactionRepository = InternalTransactionRepository(service)
 
     @Provides

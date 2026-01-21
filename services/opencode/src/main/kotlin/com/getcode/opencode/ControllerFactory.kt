@@ -13,7 +13,6 @@ object ControllerFactory {
     fun createAccountController(context: Context, config: ProtocolConfig): AccountController {
         return AccountController(
             accountRepository = RepositoryFactory.createAccountRepository(context, config),
-            transactionController = createTransactionController(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
         )
     }
@@ -34,6 +33,7 @@ object ControllerFactory {
 
         return TransactionController(
             repository = RepositoryFactory.createTransactionRepository(context, config),
+            accountController = createAccountController(context, config),
             eventBus = module.providesEventBus(),
         )
     }

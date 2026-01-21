@@ -19,15 +19,18 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import javax.inject.Inject
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.collections.forEach
 import kotlin.coroutines.resume
 
 typealias OcpIntentStreamReference = BidirectionalStreamReference<SubmitIntentRequest, SubmitIntentResponse>
 
-internal class IntentExecutor @Inject constructor(
+class IntentExecutor(
     private val api: TransactionApi,
 ) {
+    private val streamReferenceMutex = Mutex()
+
     suspend fun execute(
         scope: CoroutineScope,
         intent: IntentType,
@@ -53,6 +56,23 @@ internal class IntentExecutor @Inject constructor(
                 )
                 if (!cont.isCompleted) {
                     cont.resume(Result.failure(SubmitIntentError.Other(cause = e)))
+                }
+            }
+        }
+
+        cont.invokeOnCancellation {
+            scope.launch {
+                // Clean up streamReference on coroutine cancellation
+                runCatching {
+                    streamReferenceMutex.withLock {
+                        streamReference.destroy()
+                    }
+                }.onFailure { throwable ->
+                    trace(
+                        tag = "SubmitIntent",
+                        message = "Cancellation cleanup failed: ${throwable.message}",
+                        type = TraceType.Silent
+                    )
                 }
             }
         }

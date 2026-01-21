@@ -143,9 +143,7 @@ data class VmMetadata(
  * @property authority The address of the authority for the currency
  * @property mintVault The address where this mint's tokens are locked against the liquidity pool
  * @property coreMintVault The address where core mint tokens are locked against the liquidity pool
- * @property coreMintFees The address where core mint fees are paid
  * @property currentCirculatingSupplyQuarks The current circulating mint token supply in quarks
- * @property coreMintLockedQuarks The current core mint quarks locked in the liquidity pool
  * @property sellFeeBps Precent fee for sells in basis points, currently hardcoded to 1%
  */
 @Parcelize

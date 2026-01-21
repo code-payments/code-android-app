@@ -5,7 +5,6 @@ import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
@@ -36,7 +35,7 @@ interface SessionController {
 data class SessionState(
     val isCameraPermissionGranted: Boolean? = null,
     val vibrateOnScan: Boolean = false,
-    val balance: Fiat? = null,
+    val giveableBalance: Fiat? = null,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val autoStartCamera: Boolean? = true,

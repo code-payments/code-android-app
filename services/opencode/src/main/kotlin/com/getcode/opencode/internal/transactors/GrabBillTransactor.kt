@@ -73,7 +73,7 @@ internal class GrabBillTransactor(
 
         // 2. Utilize the mint from the give request to get the Token metadata
         val token = tokenController.getTokenMetadata(giveRequestMint)
-            .getOrNull()
+            .getOrNull()?.token
             ?: return logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint"))
 
         val tokenizedCluster = ownerKey.withTimelockForToken(token)

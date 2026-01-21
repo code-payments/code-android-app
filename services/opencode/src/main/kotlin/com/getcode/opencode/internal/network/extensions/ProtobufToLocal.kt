@@ -14,11 +14,18 @@ import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.VmMetadata
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.messaging.MessageKind
+import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.SwapSuccessCode
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 
 internal fun Model.IntentId.toId(): ID = value.toByteArray().toList()
 internal fun Model.SwapId.toId(): ID = value.toByteArray().toList()
@@ -103,68 +110,46 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     }
 }
 
-//internal fun TransactionService.StartSwapRequest.Start.CurrencyCreator.toClientParameters(): VerifiedSwapMetadata.ClientParameters {
-//    return VerifiedSwapMetadata.ClientParameters(
-//        id = id.toSwapId(),
-//        fromMint = fromMint.toPublicKey(),
-//        toMint = toMint.toPublicKey(),
-//        amount = amount.toFiat(),
-//        fundingSource = when (fundingSource) {
-//            TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> FundingSource.UNKNOWN
-//            TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> FundingSource.SUBMIT_INTENT
-//            TransactionService.FundingSource.UNRECOGNIZED -> FundingSource.UNKNOWN
-//        },
-//        fundingId = PublicKey.fromBase58(fundingId)
-//    )
-//}
-//
-//internal fun TransactionService.StartSwapResponse.ServerParameters.CurrencyCreator.toServerParameters(): VerifiedSwapMetadata.ServerParameters {
-//    return VerifiedSwapMetadata.ServerParameters(
-//        nonce = nonce.toPublicKey(),
-//        blockhash = blockhash.toHash()
-//    )
-//}
-//
-//internal fun TransactionService.SwapResponse.ServerParameters.CurrencyCreatorStateful.toStatefulProps(): SwapResponseServerParameters.Stateful {
-//    return SwapResponseServerParameters.Stateful(
-//        payer = payer.toPublicKey(),
-//        alts = altsList.map { table ->
-//            val address = table.address.toPublicKey()
-//            val entries = table.entriesList.map { it.toPublicKey() }
-//            AddressLookupTable(address, entries)
-//        },
-//        computeUnitLimit = computeUnitLimit,
-//        computeUnitPrice = computeUnitPrice,
-//        memoValue = memoValue,
-//        memoryAccount = memoryAccount.toPublicKey(),
-//        memoryIndex = memoryIndex,
-//    )
-//}
-//
-//internal fun TransactionService.SwapResponse.ServerParameters.CurrencyCreatorStateless.toStatelessProps(): SwapResponseServerParameters.Stateless {
-//    return SwapResponseServerParameters.Stateless(
-//        payer = payer.toPublicKey(),
-//        recentBlockhash = recentBlockhash.toPublicKey(),
-//        alts = altsList.map { table ->
-//            val address = table.address.toPublicKey()
-//            val entries = table.entriesList.map { it.toPublicKey() }
-//            AddressLookupTable(address, entries)
-//        },
-//        computeUnitLimit = computeUnitLimit,
-//        computeUnitPrice = computeUnitPrice,
-//        memoValue = memoValue,
-//        memoryAccount = memoryAccount.toPublicKey(),
-//        memoryIndex = memoryIndex,
-//    )
-//}
-//
-//internal fun TransactionService.SwapResponse.Success.toCode(): SwapSuccessCode? {
-//    return when (this.code) {
-//        TransactionService.SwapResponse.Success.Code.SWAP_SUBMITTED -> SwapSuccessCode.Submitted
-//        TransactionService.SwapResponse.Success.Code.SWAP_FINALIZED -> SwapSuccessCode.Finalized
-//        TransactionService.SwapResponse.Success.Code.UNRECOGNIZED -> null
-//    }
-//}
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.CurrencyCreator.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters(
+        payer = payer.toPublicKey(),
+        nonce = nonce.toPublicKey(),
+        blockhash = blockhash.toPublicKey(),
+        alts = altsList.map { table ->
+            val address = table.address.toPublicKey()
+            val entries = table.entriesList.map { it.toPublicKey() }
+            AddressLookupTable(address, entries)
+        },
+        computeUnitLimit = computeUnitLimit,
+        computeUnitPrice = computeUnitPrice,
+        memoValue = memoValue,
+        memoryAccount = memoryAccount.toPublicKey(),
+        memoryIndex = memoryIndex,
+    )
+}
+
+internal fun TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.toMetadata(): VerifiedSwapMetadata {
+    return VerifiedSwapMetadata(
+        id = id.toSwapId(),
+        fromMint = fromMint.toPublicKey(),
+        toMint = toMint.toPublicKey(),
+        amount = amount.toFiat(),
+        fundingSource = when (fundingSource) {
+            TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
+            TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId))
+            TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
+                PublicKey(fundingId.toByteArray().toList()))
+            TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
+        }
+    )
+}
+
+internal fun TransactionService.StatefulSwapResponse.Success.toCode(): SwapSuccessCode? {
+    return when (this.code) {
+        TransactionService.StatefulSwapResponse.Success.Code.OK -> SwapSuccessCode.Ok
+        TransactionService.StatefulSwapResponse.Success.Code.UNRECOGNIZED -> null
+    }
+}
 
 internal fun CurrencyService.VmMetadata.toMetadata(): VmMetadata {
     return VmMetadata(

@@ -124,7 +124,7 @@ class BillTransactionManager @Inject constructor(
                     val mint = metadata.exchangeData.mint
                     val amount = LocalFiat(metadata.exchangeData)
 
-                    val token = tokenController.getTokenMetadata(mint).getOrNull()
+                    val token = tokenController.getTokenMetadata(mint).getOrNull()?.token
                     if (token == null) {
                         onError(IllegalStateException("No metadata found for token $mint"))
                         return@onSuccess

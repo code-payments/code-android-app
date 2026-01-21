@@ -15,24 +15,13 @@ data class ExtractedServerParams(
 )
 
 internal fun extractServerParameters(serverParameters: SwapResponseServerParameters): ExtractedServerParams {
-    return when (serverParameters) {
-        is SwapResponseServerParameters.Stateful -> ExtractedServerParams(
-            payer = serverParameters.payer,
-            alts = serverParameters.alts,
-            computeUnitLimit = serverParameters.computeUnitLimit,
-            computeUnitPrice = serverParameters.computeUnitPrice,
-            memo = serverParameters.memoValue,
-            memoryAccount = serverParameters.memoryAccount,
-            memoryIndex = serverParameters.memoryIndex,
-        )
-        is SwapResponseServerParameters.Stateless -> ExtractedServerParams(
-            payer = serverParameters.payer,
-            alts = serverParameters.alts,
-            computeUnitLimit = serverParameters.computeUnitLimit,
-            computeUnitPrice = serverParameters.computeUnitPrice,
-            memo = serverParameters.memoValue,
-            memoryAccount = serverParameters.memoryAccount,
-            memoryIndex = serverParameters.memoryIndex
-        )
-    }
+    return ExtractedServerParams(
+        payer = serverParameters.payer,
+        alts = serverParameters.alts,
+        computeUnitLimit = serverParameters.computeUnitLimit,
+        computeUnitPrice = serverParameters.computeUnitPrice,
+        memo = serverParameters.memoValue,
+        memoryAccount = serverParameters.memoryAccount,
+        memoryIndex = serverParameters.memoryIndex,
+    )
 }

@@ -63,8 +63,8 @@ class ActivityFeedCoordinator @Inject constructor(
             page.filter { message ->
                 message.amount?.mint == mint
             }.map { msg ->
-                val token = msg.amount?.mint?.let { tokenController.getTokenMetadata(it) }?.getOrNull()
-                ActivityFeedMessageWithToken(msg, token)
+                val result = msg.amount?.mint?.let { tokenController.getTokenMetadata(it) }?.getOrNull()
+                ActivityFeedMessageWithToken(msg, result?.token)
             }
         }
 

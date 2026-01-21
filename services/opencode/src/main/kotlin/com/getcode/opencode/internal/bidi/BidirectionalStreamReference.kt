@@ -142,7 +142,7 @@ class BidirectionalStreamReference<Request, Response>(
                 trace(
                     tag = "BIDI",
                     type = TraceType.StateChange,
-                    message = "$instanceLabel Stream completed",
+                    message = "$instanceLabel stream completed",
                 )
             } catch (e: Exception) {
                 trace(
