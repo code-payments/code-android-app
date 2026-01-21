@@ -30,5 +30,5 @@ data class MessageEntity(
         get() = amountUsdc != null || amountNative != null
 
     val mint: Mint?
-        get() = mintBase58?.let { Mint.fromBase58(it) }
+        get() = mintBase58?.let { Mint(it) }
 }

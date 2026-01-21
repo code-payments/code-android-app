@@ -6,6 +6,7 @@ import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
 import com.getcode.opencode.internal.extensions.toHash
+import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
@@ -24,6 +25,7 @@ import com.getcode.opencode.model.transactions.SwapSuccessCode
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.solana.keys.Hash
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 
@@ -31,6 +33,7 @@ internal fun Model.IntentId.toId(): ID = value.toByteArray().toList()
 internal fun Model.SwapId.toId(): ID = value.toByteArray().toList()
 internal fun Model.SwapId.toSwapId(): SwapId = SwapId(value.toByteArray().toList())
 internal fun Model.SolanaAccountId.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
+internal fun Model.SolanaAccountId.toMint(): Mint = value.toByteArray().toMint()
 internal fun Model.Blockhash.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun Model.Blockhash.toHash(): Hash = value.toByteArray().toHash()
 internal fun Model.Signature.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
@@ -50,7 +53,7 @@ internal fun TransactionService.ExchangeData.toModel(): ExchangeData.WithRate {
         exchangeRate = this.exchangeRate,
         nativeAmount = this.nativeAmount,
         quarks = this.quarks,
-        mint = this.mint.toPublicKey(),
+        mint = this.mint.toMint(),
     )
 }
 
@@ -77,7 +80,7 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     return when (val case = typeCase) {
         TransactionService.Metadata.TypeCase.OPEN_ACCOUNTS -> TransactionMetadata.OpenAccount(
             type = openAccounts.accountSet.toAccountType(),
-            mint = openAccounts.mint.toPublicKey(),
+            mint = openAccounts.mint.toMint(),
         )
         TransactionService.Metadata.TypeCase.SEND_PUBLIC_PAYMENT -> TransactionMetadata.SendPublicPayment(
             source = sendPublicPayment.source.toPublicKey(),
@@ -93,7 +96,7 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
             quarks = receivePaymentsPublicly.quarks,
             isRemoteSend = receivePaymentsPublicly.isRemoteSend,
             exchangeData = receivePaymentsPublicly.exchangeData.toModel(),
-            mint = receivePaymentsPublicly.mint.toPublicKey(),
+            mint = receivePaymentsPublicly.mint.toMint(),
         )
 
         TransactionService.Metadata.TypeCase.TYPE_NOT_SET -> TransactionMetadata.Unknown
@@ -105,7 +108,7 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
                     amount = Fiat(distribution.quarks)
                 )
             },
-            mint = publicDistribution.mint.toPublicKey(),
+            mint = publicDistribution.mint.toMint(),
         )
     }
 }

@@ -37,7 +37,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     data object Menu : OnRampDeeplinkOrigin()
 
     @Parcelize
-    data class Give(val tokenAddress: PublicKey?) : OnRampDeeplinkOrigin()
+    data class Give(val tokenAddress: Mint?) : OnRampDeeplinkOrigin()
 
     @Parcelize
     data object Wallet: OnRampDeeplinkOrigin()
@@ -79,7 +79,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 value?.startsWith("give-") == true -> {
                     val tokenAddress = value.removePrefix("give-").decodeBase64().base58
                     val mint = runCatching {
-                        PublicKey.fromBase58(tokenAddress)
+                        Mint(tokenAddress)
                     }.getOrNull() ?: return null
                     Give(mint)
                 }
@@ -88,7 +88,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 value?.startsWith("token-") == true -> {
                     val mintString = value.removePrefix("token-").decodeBase64().base58
                     val mint = runCatching {
-                        PublicKey.fromBase58(mintString)
+                        Mint(mintString)
                     }.onFailure { it.printStackTrace() }.getOrNull() ?: return null
 
                     TokenInfo(mint)

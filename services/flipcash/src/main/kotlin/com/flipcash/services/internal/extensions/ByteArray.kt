@@ -1,5 +1,6 @@
 package com.flipcash.services.internal.extensions
 
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal fun ByteArray.toHash(): com.getcode.solana.keys.Hash {
@@ -8,6 +9,10 @@ internal fun ByteArray.toHash(): com.getcode.solana.keys.Hash {
 
 internal fun ByteArray.toPublicKey(): PublicKey {
     return PublicKey(this.toList())
+}
+
+internal fun ByteArray.toMint(): Mint {
+    return Mint(this.toList())
 }
 
 internal fun UByteArray.toPublicKey(): PublicKey {

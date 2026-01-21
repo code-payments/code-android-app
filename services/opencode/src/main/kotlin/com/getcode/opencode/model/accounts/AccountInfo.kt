@@ -1,6 +1,7 @@
 package com.getcode.opencode.model.accounts
 
 import com.codeinc.opencode.gen.account.v1.AccountService
+import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -123,7 +124,7 @@ data class AccountInfo(
                 blockchainState = blockchainState,
                 claimState = claimState,
                 originalExchangeData = exchangeData,
-                mint = info.mint.toPublicKey(),
+                mint = info.mint.toMint(),
                 createdAt = info.createdAt.seconds * 1000L,
                 isGiftCardIssuer = info.isGiftCardIssuer
             )

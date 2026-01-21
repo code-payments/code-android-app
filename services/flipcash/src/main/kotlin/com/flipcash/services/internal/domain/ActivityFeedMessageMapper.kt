@@ -7,6 +7,7 @@ import com.flipcash.libs.currency.math.units
 import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toId
+import com.flipcash.services.internal.network.extensions.toMint
 import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NotificationMetadata
@@ -44,7 +45,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                     )
                     LocalFiat(
                         underlyingTokenAmount = tokenAmount,
-                        mint = it.mint.toPublicKey(),
+                        mint = it.mint.toMint(),
                         rate = rate,
                         nativeAmount = nativeAmount,
                     )

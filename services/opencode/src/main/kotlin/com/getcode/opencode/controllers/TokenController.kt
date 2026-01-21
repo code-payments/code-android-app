@@ -171,8 +171,7 @@ class TokenController @Inject constructor(
 
     fun observeSelectedTokenMint(): Flow<Mint> {
         return selectedToken.data.mapNotNull { prefs ->
-            val mint = prefs[mintPreferenceKey] ?: return@mapNotNull null
-            Mint.fromBase58(mint)
+            prefs[mintPreferenceKey]?.let { Mint(it) } ?: return@mapNotNull null
         }
     }
 
@@ -181,8 +180,7 @@ class TokenController @Inject constructor(
         if (balances.isEmpty()) return
 
         val selectedToken = selectedToken.data.map { prefs ->
-            val mint = prefs[mintPreferenceKey] ?: return@map null
-            Mint.fromBase58(mint)
+            prefs[mintPreferenceKey]?.let { Mint(it) } ?: return@map null
         }.firstOrNull()?.takeIf { balances[it] != null }
 
         if (selectedToken != null) {

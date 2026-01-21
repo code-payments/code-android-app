@@ -214,7 +214,7 @@ class TokenInfoViewModel @Inject constructor(
                            add(
                                BottomBarAction(
                                    text = buildAnnotatedString {
-                                       append(resources.getString(R.string.label_solanaUsdc))
+                                       append(resources.getString(R.string.label_solanaUsdf))
                                        appendInlineContent("[icon]", alternateText = " ")
                                        append(resources.getString(R.string.label_phantom))
                                    },

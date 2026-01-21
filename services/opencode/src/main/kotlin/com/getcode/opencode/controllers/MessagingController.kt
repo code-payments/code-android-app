@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
+import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.internal.network.services.OcpMessageStreamReference
 import com.getcode.opencode.model.core.OpenCodePayload
@@ -167,7 +168,7 @@ class MessagingController @Inject constructor(
                 }
             }.mapCatching { messages ->
                 val message = messages.firstOrNull() ?: throw IllegalStateException("No message found")
-                val mint = message.requestToGiveBill.mint.toPublicKey()
+                val mint = message.requestToGiveBill.mint.toMint()
 
                 (message.id.toPublicKey() to mint)
             }

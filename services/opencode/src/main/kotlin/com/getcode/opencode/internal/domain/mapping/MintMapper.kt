@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.domain.mapping
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.currency.v1.launchpadMetadataOrNull
+import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.MintMetadata
@@ -18,7 +19,7 @@ internal class MintMapper @Inject constructor(
     private val launchpadMetadataMapper: LaunchpadMetadataMapper,
 ) : Mapper<CurrencyService.Mint, MintMetadata> {
     override fun map(from: CurrencyService.Mint): MintMetadata {
-        val mint = from.address.toPublicKey()
+        val mint = from.address.toMint()
         val vmMetadata = vmMetadataMapper.map(from.vmMetadata)
         val launchpadMetadata = from.launchpadMetadataOrNull?.let {
             launchpadMetadataMapper.map(it)

@@ -19,6 +19,7 @@ import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
@@ -142,7 +143,7 @@ private fun DeepLink.handleCashLink(): DeeplinkType.CashLink? {
 private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {
     val uri = data.toUri()
     val mint = uri.pathSegments[1]
-    return DeeplinkType.TokenInfo(PublicKey(mint))
+    return DeeplinkType.TokenInfo(Mint(mint))
 }
 
 private fun DeepLink.handleWalletConnect(): DeeplinkType.ExternalWalletConnection? {
