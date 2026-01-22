@@ -37,7 +37,6 @@ interface BondingCurve {
     fun tokensToValue(currentSupply: BigDecimal, tokens: BigDecimal): Result<BigDecimal>
     fun valueToTokens(currentSupply: BigDecimal, value: BigDecimal): Result<BigDecimal>
     fun tokensForValueExchange(currentValue: BigDecimal, value: BigDecimal): Result<Valuation.Tokens>
-    fun supplyFromValue(value: BigDecimal): Result<BigDecimal>
     fun formattedTable(): String
 }
 

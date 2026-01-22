@@ -148,17 +148,6 @@ internal class ContinuousBondingCurve(
         }
     }
 
-    override fun supplyFromValue(value: BigDecimal): Result<BigDecimal> = runCatching {
-        require(value.signum() >= 0) { "Value must be non-negative" }
-
-        if (value == BigDecimal.ZERO) return@runCatching BigDecimal.ZERO
-
-        val abOverC = a.multiply(b, mc).divide(c, mc)
-        val term = value.divide(abOverC, mc).add(BigDecimal.ONE, mc)
-        val lnTerm = term.ln(mc)
-        lnTerm.divide(c, mc)
-    }
-
     override fun formattedTable(): String {
         return buildString {
             appendLine("|------|----------------|----------------------------------|----------------------------|")

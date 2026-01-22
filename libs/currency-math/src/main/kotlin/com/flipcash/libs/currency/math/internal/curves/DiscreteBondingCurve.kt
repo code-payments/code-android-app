@@ -240,10 +240,6 @@ internal class DiscreteBondingCurve private constructor(
         }
     }
 
-    override fun supplyFromValue(value: BigDecimal): Result<BigDecimal> = runCatching {
-        preciseSupplyFromValue(value)
-    }
-
     /**
      * Calculate precise supply from TVL with interpolation within steps.
      *

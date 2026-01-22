@@ -301,12 +301,6 @@ object Estimator {
                     val unscaledFeesUsd = unscaledFeesBD.longValueExact()
                         .toBigDecimal().divideWithHighPrecision(BigDecimal(1_000_000))
 
-                    // Get current supply from TVL
-                    val currentSupply = curve.supplyFromValue(scaledCurrentValue).getOrThrow()
-
-                    // For selling: calculate value at (supply - tokens) going up to supply
-                    val supplyAfterSell = currentSupply.subtract(scaledSellAmount)
-
                     val netAmountBD =
                         unscaledValueBD.subtract(unscaledFeesBD, mc).setScale(0, RoundingMode.DOWN)
                     val netAmountUsdf = netAmountBD.longValueExact()
@@ -328,14 +322,6 @@ object Estimator {
 
                     // For selling: calculate value at (supply - tokens) going up to supply
                     val supplyAfterSell = currentSupply.subtract(tokensToSell)
-
-                    println("tokenDecimals: $mintDecimals")
-                    println("outputDecimals: $outputDecimals")
-                    println("amountInQuarks: $amountInQuarks")
-                    println("tokensToSell: $tokensToSell")
-                    println("marketState: $marketState")
-                    println("currentSupply: $currentSupply")
-                    println("supplyAfterSell: $supplyAfterSell")
 
                     require(supplyAfterSell.signum() >= 0) { "Cannot sell more tokens than current supply" }
 
