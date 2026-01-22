@@ -11,7 +11,7 @@ sealed class SwapFundingSource {
      * Swap to be funded via a buy/sell/swap within Flipcash via submitIntent.
      * @param id The intent ID.
      */
-    data class SubmitIntent(val id: PublicKey = PublicKey.generate()): SwapFundingSource()
+    data class SubmitIntent(val id: List<Byte> = PublicKey.generate().bytes): SwapFundingSource()
 
     /**
      * Represents a funding source where the user pays for the transaction
@@ -19,5 +19,5 @@ sealed class SwapFundingSource {
      * for swaps where the user provides the necessary USDC from their own
      * wallet to complete the transaction.
      */
-    data class ExternalWallet(val transactionSignature: PublicKey): SwapFundingSource()
+    data class ExternalWallet(val transactionSignature: List<Byte>): SwapFundingSource()
 }

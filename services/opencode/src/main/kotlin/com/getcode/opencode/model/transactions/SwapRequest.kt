@@ -41,7 +41,7 @@ sealed interface SwapStartKind {
          */
         val fundingSource: SwapFundingSource,
     ) : SwapStartKind {
-        val fundingIntentId: PublicKey
+        val fundingIntentId: List<Byte>
             get() = when (fundingSource) {
                 is SwapFundingSource.ExternalWallet -> fundingSource.transactionSignature
                 is SwapFundingSource.SubmitIntent -> fundingSource.id
