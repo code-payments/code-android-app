@@ -139,9 +139,9 @@ internal fun TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.toM
         amount = amount.toFiat(),
         fundingSource = when (fundingSource) {
             TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
-            TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId))
+            TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)
             TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
-                PublicKey(fundingId.toByteArray().toList()))
+                fundingId.toByteArray().toList())
             TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
         }
     )

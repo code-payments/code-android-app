@@ -18,6 +18,8 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
@@ -233,6 +235,8 @@ class TransactionController @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
     ): Result<Unit> {
         trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
         // create an account if we don't currently have one for this token
@@ -246,7 +250,7 @@ class TransactionController @Inject constructor(
         }
 
         return accountResult.fold(
-            onSuccess = { repository.buy(scope = scope, owner = owner, amount = amount, of = of) },
+            onSuccess = { repository.buy(scope = scope, owner = owner, amount = amount, of = of, source = source, fund = fund) },
             onFailure = { Result.failure(it) }
         )
     }

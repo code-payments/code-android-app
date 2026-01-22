@@ -1,7 +1,7 @@
 package com.flipcash.app.onramp
 
 sealed class DeeplinkOnRampError(
-    open val code: Int = -99,
+    open val code: Long = -99,
     override val message: String?,
     override val cause: Throwable? = null,
 ) : Throwable(message) {
@@ -16,7 +16,7 @@ sealed class DeeplinkOnRampError(
         DeeplinkOnRampError(message = message)
 
     class FailedToSendTransaction(
-        override val code: Int = -99,
+        override val code: Long = -99,
         override val message: String?,
         override val cause: Throwable? = null
     ) : DeeplinkOnRampError(code = code, message = message, cause = cause)
@@ -37,7 +37,7 @@ sealed class DeeplinkOnRampError(
     ): DeeplinkOnRampError(code = error.code, message = message)
 }
 
-enum class DeeplinkError(val code: Int) {
+enum class DeeplinkError(val code: Long) {
     Unknown(-999),
     Disconnected(4900),
     Unauthorized(4100),
@@ -49,8 +49,8 @@ enum class DeeplinkError(val code: Int) {
     InternalError(-32603);
 
     companion object Companion {
-        fun fromCode(code: Int?) = entries.firstOrNull { it.code == code } ?: Unknown
-        fun fromCode(code: String?) = fromCode(code?.toIntOrNull())
+        fun fromCode(code: Long?) = entries.firstOrNull { it.code == code } ?: Unknown
+        fun fromCode(code: String?) = fromCode(code?.toLongOrNull())
     }
 }
 

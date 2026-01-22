@@ -59,7 +59,7 @@ internal fun buildTransactionDeeplink(state: ExternalWalletDeeplinkState): Uri? 
     val transaction = state.unsignedTransaction ?: return null
     val nonce = LibsodiumRandom.buf(crypto_secretbox_NONCEBYTES).map { it.toByte() }
     val payload = mapOf(
-        "transaction" to transaction.serialize().base58,
+        "transaction" to transaction.base58,
         "session" to state.walletConnection?.session
     )
 

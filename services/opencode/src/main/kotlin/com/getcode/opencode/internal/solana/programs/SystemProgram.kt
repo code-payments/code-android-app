@@ -23,6 +23,6 @@ internal class SystemProgram {
 
     companion object { 
         val address =
-            PublicKey(ByteArray(LENGTH_32) { 0 }.toList())
+            PublicKey(ByteArray(LENGTH_32).toList())
     }
 }

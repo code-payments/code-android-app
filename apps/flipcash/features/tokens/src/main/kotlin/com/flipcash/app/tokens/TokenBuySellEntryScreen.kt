@@ -95,9 +95,10 @@ class TokenBuySellEntryScreen(
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<BuySellSwapTokenViewModel.Event.CreateAndSendTransactionToWallet>()
-                .map { it.amount }
-                .onEach { externalWalletOnRamp.amount = it }
-                .launchIn(this)
+                .onEach { (token, amount) ->
+                    externalWalletOnRamp.tokenToPurchase = token
+                    externalWalletOnRamp.amount = amount
+                }.launchIn(this)
         }
 
         LaunchedEffect(viewModel) {

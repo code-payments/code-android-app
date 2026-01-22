@@ -318,7 +318,7 @@
 
     <string name="action_sendAsLink">Send as a Link</string>
 
-    <string name="subtitle_addUsdcToWallet">Add Solana USDC to your Flipcash wallet</string>
+    <string name="subtitle_addUsdcToWallet">Add Solana USDF to your Flipcash wallet</string>
 
     <string name="title_selectCurrency">Select Currency</string>
     <string name="title_selectRegion">Select Region</string>
@@ -378,7 +378,7 @@
     <string name="action_buy">Buy</string>
     <string name="action_sell">Sell</string>
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
-    <string name="label_solanaUsdc">Solana USDC with</string>
+    <string name="label_solanaUsdf">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 

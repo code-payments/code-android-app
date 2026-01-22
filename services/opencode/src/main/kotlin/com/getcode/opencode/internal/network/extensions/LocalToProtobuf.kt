@@ -25,6 +25,7 @@ import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
+import com.getcode.utils.base58
 import com.getcode.utils.toByteString
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
@@ -265,11 +266,11 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
                             when (val source = details.fundingSource) {
                                 is SwapFundingSource.ExternalWallet -> {
                                     setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
-                                    setFundingId(source.transactionSignature.base58())
+                                    setFundingId(source.transactionSignature.base58)
                                 }
                                 is SwapFundingSource.SubmitIntent -> {
                                     setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
-                                    setFundingId(source.id.base58())
+                                    setFundingId(source.id.base58)
                                 }
 
                                 SwapFundingSource.Unknown -> Unit

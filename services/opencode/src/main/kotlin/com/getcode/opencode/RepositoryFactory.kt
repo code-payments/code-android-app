@@ -39,9 +39,7 @@ object RepositoryFactory {
         val transactionApi = TransactionApi(module.provideManagedChannel(context, config))
         val service = AccountService(api)
         val transactionMetadataMapper = TransactionMetadataMapper()
-        val swapMetadataMapper = SwapMetadataMapper()
-        val swapService = SwapService(transactionApi, swapMetadataMapper)
-        val swapFunding = SwapFunding(swapService, transactionApi)
+        val swapFunding = SwapFunding(transactionApi)
         val transactionService = TransactionService(transactionApi, transactionMetadataMapper, swapFunding)
         return module.providesAccountRepository(service, transactionService)
     }
@@ -98,9 +96,7 @@ object RepositoryFactory {
 
         val api = TransactionApi(module.provideManagedChannel(context, config))
         val transactionMetadataMapper = TransactionMetadataMapper()
-        val swapMetadataMapper = SwapMetadataMapper()
-        val swapService = SwapService(api, swapMetadataMapper)
-        val swapFunding = SwapFunding(swapService, api)
+        val swapFunding = SwapFunding(api)
         val service = TransactionService(api, transactionMetadataMapper, swapFunding)
         return module.providesTransactionRepository(service)
     }

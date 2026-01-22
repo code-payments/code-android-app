@@ -13,8 +13,14 @@ import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkSigningResult
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
-import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.internal.solana.model.LiquidityPool
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.solana.SolanaTransaction
+import com.getcode.opencode.solana.TransactionBuilder
 import com.getcode.solana.instructions.createAssociatedTokenAccountInstruction
 import com.getcode.solana.instructions.createSplTransfer
 import com.getcode.solana.keys.Mint
@@ -29,10 +35,10 @@ import com.getcode.solana.transactions.inspect
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.trace
+import com.getcode.vendor.Base58
 import com.ionspin.kotlin.crypto.box.Box
 import com.solana.networking.HttpNetworkDriver
 import com.solana.networking.Rpc20Driver
-import com.solana.publickey.SolanaPublicKey
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
 import com.solana.transaction.toUnsignedTransaction
@@ -45,6 +51,7 @@ import kotlinx.serialization.json.Json
 
 class ExternalWalletDeeplinkState(
     private val userManager: UserManager,
+    private val transactionController: TransactionController,
     private val scope: CoroutineScope,
     rpcUrl: String,
     networkDriver: HttpNetworkDriver,
@@ -73,17 +80,20 @@ class ExternalWalletDeeplinkState(
     /**
      * The amount to transfer selected by the user
      */
-    var amount: Fiat? by mutableStateOf(null)
+    var amount: LocalFiat? by mutableStateOf(null)
+
+    var tokenToPurchase: Token? = null
 
     /**
      * The unsigned transaction to be signed by Phantom
      */
-    internal var unsignedTransaction: Transaction? = null
+    internal var unsignedTransaction: List<Byte>? = null
 
     /**
      * The signed transaction from Phantom
      */
     internal var signedTransaction: String? = null
+    internal var signature: List<Byte>? = null
 
     /**
      * The public key of the encryption key used by the external wallet
@@ -174,6 +184,7 @@ class ExternalWalletDeeplinkState(
                 ).getOrThrow()
 
             signedTransaction = data.serializedTransaction
+            signature = firstSignature(data.serializedTransaction)
             deeplinkState = ExternalWalletState.SIGNED
         } catch (e: Exception) {
             scope.launch {
@@ -188,32 +199,48 @@ class ExternalWalletDeeplinkState(
         val transaction = signedTransaction ?: return
         withContext(Dispatchers.IO) {
             deeplinkState = ExternalWalletState.TRANSACTING
-            // build rpc request
-            driver.sendTransaction(transaction)
-                .onSuccess {
-                    deeplinkState = ExternalWalletState.TRANSACTED
-                }.onFailure { error ->
-                    val code = (error as? RpcException)?.code
-                    trace(
-                        message = "Unexpected error sending solana transaction",
-                        type = TraceType.Error,
-                        metadata = {
-                            if (error is RpcException) {
-                                "code" to error.code
+
+            val sendTransaction = suspend {
+                // build rpc request
+                driver.sendTransaction(transaction)
+                    .onSuccess {
+                        deeplinkState = ExternalWalletState.TRANSACTED
+                    }.onFailure { error ->
+                        val code = (error as? RpcException)?.code?.toLong()
+                        trace(
+                            message = "Unexpected error sending solana transaction",
+                            type = TraceType.Error,
+                            metadata = {
+                                if (error is RpcException) {
+                                    "code" to error.code
+                                }
+                                "message" to error.message
                             }
-                            "message" to error.message
-                        }
-                    )
-                    scope.launch {
-                        errors.emit(
-                            DeeplinkOnRampError.FailedToSendTransaction(
-                                code = code ?: -99,
-                                message = error.message,
-                                cause = error
-                            )
                         )
+                        scope.launch {
+                            errors.emit(
+                                DeeplinkOnRampError.FailedToSendTransaction(
+                                    code = code ?: -99L,
+                                    message = error.message,
+                                    cause = error
+                                )
+                            )
+                        }
                     }
-                }
+            }
+
+            if (origin is AppRoute.Token.Info) {
+                initiateBuy()
+                    .fold(
+                        onSuccess = {
+                            sendTransaction()
+                            Result.success(Unit)
+                        },
+                        onFailure = { Result.failure(it) }
+                    )
+            } else {
+                sendTransaction()
+            }
         }
     }
 
@@ -254,8 +281,33 @@ class ExternalWalletDeeplinkState(
         signingResult = null
     }
 
-    suspend fun createAndSendTransaction() {
-        createTransaction()
+    suspend fun createAndValidateSwapTransaction() {
+        createUsdcToUsdfSwapTransaction()
+            .onFailure {
+                errors.emit(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message))
+            }.fold(
+                onSuccess = { transaction ->
+                    withContext(Dispatchers.IO) {
+                        driver.simulateTransaction(transaction.encode().base64)
+                            .fold(
+                                onSuccess = { Result.success(transaction) },
+                                onFailure = { Result.failure(it) }
+                            )
+                    }
+                },
+                onFailure = { Result.failure(it) }
+            )
+            .onFailure {
+                errors.emit(DeeplinkOnRampError.FailedToSimulateTransaction(message = it.message))
+            }
+            .onSuccess {
+                unsignedTransaction = it.encode().toList()
+                deeplinkState = ExternalWalletState.SIGNING
+            }
+    }
+
+    suspend fun createAndValidateDepositTransaction() {
+        createDepositTransaction()
             .onFailure {
                 errors.emit(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message))
             }
@@ -275,16 +327,56 @@ class ExternalWalletDeeplinkState(
                 errors.emit(DeeplinkOnRampError.FailedToSimulateTransaction(message = it.message))
             }
             .onSuccess {
-                unsignedTransaction = it
+                unsignedTransaction = it.serialize().toList()
                 deeplinkState = ExternalWalletState.SIGNING
             }
     }
 
-    private suspend fun createTransaction(): Result<Transaction> {
+    private suspend fun createUsdcToUsdfSwapTransaction(): Result<SolanaTransaction> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
+                val externalWallet = requireNotNull(walletConnection?.publicKey) { "Wallet connection is null" }
+                val amountToSend = requireNotNull(amount) { "Amount is null" }
+                val sender = PublicKey(externalWallet.bytes)
+
+                val transaction = TransactionBuilder.usdcFundSwap(
+                    owner = owner.authorityPublicKey,
+                    sender = sender,
+                    amount = amountToSend.underlyingTokenAmount.quarks,
+                    pool = LiquidityPool.usdf,
+                )
+
+                unsignedTransaction = transaction.encode().toList()
+                deeplinkState = ExternalWalletState.SIGNING
+
+                Result.success(transaction)
+            } catch (e: Exception) {
+                trace("External swap failed", type = TraceType.Error, error = e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    private suspend fun initiateBuy(): Result<Unit> {
+        val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
+        val token = requireNotNull(tokenToPurchase) { "Token is null" }
+        val amountToSend = requireNotNull(amount) { "Amount is null" }
+        val transactionSignature = requireNotNull(signature) { "Transaction not signed" }
+        return transactionController.buy(
+            owner = owner,
+            amount = amountToSend,
+            of = token,
+            source = SwapFundingSource.ExternalWallet(transactionSignature),
+            fund = { Result.success(Unit) }
+        )
+    }
+
+    private suspend fun createDepositTransaction(): Result<Transaction> {
         return withContext(Dispatchers.IO) {
             try {
                 val usdfMint = Mint.usdf
-                val quarks = requireNotNull(amount?.quarks) { "Amount is null" }
+                val quarks = requireNotNull(amount?.underlyingTokenAmount?.quarks) { "Amount is null" }
                 val externalWallet = requireNotNull(walletConnection?.publicKey) { "Wallet connection is null" }
                 val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
 
@@ -381,4 +473,8 @@ enum class ExternalWalletState {
     TRANSACTED,
 }
 
-private fun PublicKey.asSolanaPublicKey() = SolanaPublicKey(byteArray)
+private fun firstSignature(base58: String): List<Byte>? {
+    val bytes = Base58.decode(base58)
+    if (bytes.size < 65 || bytes[0] != 1.toByte()) return null
+    return bytes.copyOfRange(1, 65).toList()
+}

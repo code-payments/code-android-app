@@ -7,6 +7,8 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.solana.intents.IntentType
@@ -52,7 +54,9 @@ interface TransactionRepository {
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
-        of: Token
+        of: Token,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
     ): Result<Unit>
 
     suspend fun sell(

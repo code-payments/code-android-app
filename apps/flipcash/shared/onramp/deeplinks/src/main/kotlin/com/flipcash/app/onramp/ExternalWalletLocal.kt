@@ -7,6 +7,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
+import com.getcode.opencode.compose.LocalTransactionController
 import com.getcode.solana.rpc.RpcConfig
 
 @Composable
@@ -14,10 +15,12 @@ fun rememberExternalWalletState(
     rpcConfig: RpcConfig
 ): ExternalWalletDeeplinkState {
     val userManager = LocalUserManager.currentOrThrow
+    val transctionController = LocalTransactionController.currentOrThrow
     val scope = rememberCoroutineScope()
     return remember(userManager, scope, rpcConfig) {
         ExternalWalletDeeplinkState(
             userManager,
+            transctionController,
             scope,
             rpcConfig.rpcUrl,
             rpcConfig.networkDriver

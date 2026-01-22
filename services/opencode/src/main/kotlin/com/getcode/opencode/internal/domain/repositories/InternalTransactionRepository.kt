@@ -9,6 +9,8 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
@@ -58,8 +60,10 @@ internal class InternalTransactionRepository @Inject constructor(
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
-        of: Token
-    ): Result<Unit> = service.buy(scope, amount, of, owner)
+        of: Token,
+        source: SwapFundingSource,
+        fund: (suspend (SwapRequest) -> Result<Unit>)?
+    ): Result<Unit> = service.buy(scope, amount, of, owner, source, fund)
 
     override suspend fun sell(
         scope: CoroutineScope,

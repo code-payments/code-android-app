@@ -27,9 +27,9 @@ import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.phone.LocalPhoneUtils
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.router.LocalRouter
-import com.flipcash.app.session.SessionController
 import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.app.session.SessionController
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.updates.AppUpdateController
@@ -38,6 +38,8 @@ import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
+import com.getcode.opencode.compose.LocalTransactionController
+import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.rpc.RpcConfig
 import com.getcode.util.permissions.LocalPermissionChecker
@@ -128,6 +130,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var appUpdater: AppUpdateController
 
+    @Inject
+    lateinit var transactionController: TransactionController
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -153,6 +158,7 @@ class MainActivity : FragmentActivity() {
                 LocalFeatureFlags provides featureFlagController,
                 LocalPaymentController provides paymentController,
                 LocalOnRampAmountController provides onRampAmountController,
+                LocalTransactionController provides transactionController,
                 LocalPhoneUtils provides phoneUtils,
                 LocalBillPlaygroundController provides billPlaygroundController,
                 LocalAppUpdater provides appUpdater,

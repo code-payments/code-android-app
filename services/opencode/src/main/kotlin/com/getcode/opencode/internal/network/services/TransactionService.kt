@@ -192,6 +192,7 @@ internal class TransactionService @Inject constructor(
         of: Token,
         owner: AccountCluster,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<Unit> {
         val request = SwapRequest(
             owner = owner,
@@ -206,7 +207,8 @@ internal class TransactionService @Inject constructor(
             amount = amount
         )
 
-        return swap(scope, request, owner).map { Unit }
+        val fundedWith = fund ?: { swapFunding.fund(scope, owner, it).map { Unit } }
+        return swap(scope, request, owner, fundedWith)
     }
 
     suspend fun sell(
@@ -230,20 +232,21 @@ internal class TransactionService @Inject constructor(
             amount = amount
         )
 
-        return swap(scope, request, tokenCluster).map { Unit }
+        return swap(scope, request, tokenCluster)
     }
 
     private suspend fun swap(
         scope: CoroutineScope,
         request: SwapRequest,
         owner: AccountCluster,
-    ): Result<SwapMetadata> {
+        fund: suspend (SwapRequest) -> Result<Unit> = { swapFunding.fund(scope, owner, it).map { Unit } },
+    ): Result<Unit> {
         val executor = SwapExecutor(api)
         return executor.execute(scope, request)
             .fold(
                 onSuccess = {
                     trace("Swap submitted, Swap ID: ${request.swapId.publicKey.base58()}")
-                    swapFunding.fund(scope, owner, request)
+                    fund(request)
                 },
                 onFailure = {
                     Result.failure(it)

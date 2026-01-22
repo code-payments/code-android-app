@@ -183,7 +183,10 @@ fun ExternalWalletOnRampHandler(
             ExternalWalletState.CONNECTED -> {
                 // if amount was provided, send the transaction
                 if (state.amount != null) {
-                    state.createAndSendTransaction()
+                    when (state.origin) {
+                        is AppRoute.Token.Info -> state.createAndValidateSwapTransaction()
+                        else -> state.createAndValidateDepositTransaction()
+                    }
                 } else {
                     trace(
                         tag = TAG,
@@ -219,7 +222,7 @@ fun ExternalWalletOnRampHandler(
                     message = "wallet transact uri: $uri",
                     type = TraceType.Process
                 )
-                analytics.amountSelectedForWalletTransfer(state.provider!!, state.amount!!)
+                analytics.amountSelectedForWalletTransfer(state.provider!!, state.amount!!.underlyingTokenAmount)
                 uriHandler.openUri(uri.toString())
             }
 

@@ -2,16 +2,17 @@ package com.getcode.opencode.internal.solana.programs
 
 import com.getcode.vendor.Base58
 
-internal class TokenProgram {
+internal class UsdfProgram {
 
     enum class Command(val value: Byte) {
+        // initialize 1
+        swap(2),
         transfer(3),
-        closeAccount(9),
         ;
     }
     companion object {
         val address = com.getcode.solana.keys.PublicKey(
-            Base58.decode("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").toList()
+            Base58.decode("usdfcP2V1bh1Lz7Y87pxR4zJd3wnVtssJ6GeSHFeZeu").toList()
         )
     }
 }

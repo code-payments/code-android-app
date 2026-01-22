@@ -173,7 +173,7 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             payer: PublicKey,
             recentBlockhash: Hash?,
             addressLookupTables: List<AddressLookupTable>,
-            instructions: List<Instruction>
+            instructions: List<Instruction>,
         ): SolanaTransaction {
             val hash = recentBlockhash ?: Hash.zero
 

@@ -118,11 +118,16 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     is TokenSwapPurpose.Buy -> reservesBalance
                     is TokenSwapPurpose.FundWithWallet -> {
                         val sendLimit =
-                            enteredAmount.currencyCode.let { amountEntryState.limits?.sendLimitFor(it) }
+                            enteredAmount.currencyCode.let {
+                                amountEntryState.limits?.sendLimitFor(
+                                    it
+                                )
+                            }
                                 ?: SendLimit.Zero
 
                         sendLimit.nextTransaction.toFiat(enteredAmount.currencyCode)
                     }
+
                     is TokenSwapPurpose.Sell -> tokenBalance
                     null -> Fiat.Zero
                 }
@@ -169,17 +174,17 @@ class BuySellSwapTokenViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
-        data class CreateAndSendTransactionToWallet(val amount: Fiat) : Event
+        data class CreateAndSendTransactionToWallet(val token: Token, val amount: LocalFiat) : Event
 
         data class OnAmountAccepted(val amount: LocalFiat) : Event
 
-        data class ProceedWithPurchase(val amount: LocalFiat): Event
-        data class ProceedWithSale(val amount: LocalFiat): Event
+        data class ProceedWithPurchase(val amount: LocalFiat) : Event
+        data class ProceedWithSale(val amount: LocalFiat) : Event
 
         data object ShowSellReceipt : Event
 
-        data class OnPurchaseSubmitted(val token: Token): Event
-        data class OnSellSubmitted(val token: Token): Event
+        data class OnPurchaseSubmitted(val token: Token) : Event
+        data class OnSellSubmitted(val token: Token) : Event
 
         data object OnTransactionSuccessful : Event
 
@@ -392,8 +397,15 @@ class BuySellSwapTokenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAmountConfirmed>()
             .map { stateFlow.value.amountEntryState.amountAnimatedModel }
-            .filterNot { checkBalanceLimit() }
-            .filterNot { checkFundingAmount() }
+            .filterNot {
+                val purpose = stateFlow.value.purpose
+                // Don't check balance if funds are coming from external
+                if (purpose !is TokenSwapPurpose.FundWithWallet) {
+                    checkBalanceLimit()
+                } else {
+                    false
+                }
+            }.filterNot { checkFundingAmount() }
             .mapNotNull {
                 val purpose = stateFlow.value.purpose ?: return@mapNotNull null
                 it to purpose
@@ -421,7 +433,12 @@ class BuySellSwapTokenViewModel @Inject constructor(
                             rate = rate
                         )
                         dispatchEvent(Event.OnAmountAccepted(amountFiat))
-                        dispatchEvent(Event.CreateAndSendTransactionToWallet(amountFiat.underlyingTokenAmount))
+                        dispatchEvent(
+                            Event.CreateAndSendTransactionToWallet(
+                                token = stateFlow.value.tokenWithBalance!!.token,
+                                amount = amountFiat
+                            )
+                        )
                     }
 
                     is TokenSwapPurpose.Sell -> {

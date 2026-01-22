@@ -211,49 +211,49 @@ class TokenInfoViewModel @Inject constructor(
                                )
                            }
 
-                           add(
-                               BottomBarAction(
-                                   text = buildAnnotatedString {
-                                       append(resources.getString(R.string.label_solanaUsdf))
-                                       appendInlineContent("[icon]", alternateText = " ")
-                                       append(resources.getString(R.string.label_phantom))
-                                   },
-                                   inlineContentMap = mapOf(
-                                       "[icon]" to InlineTextContent(
-                                           placeholder = Placeholder(
-                                               width = 25.sp,
-                                               height = 14.sp,
-                                               placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                                           ),
-                                           children = {
-                                               val buttonColors = getButtonColors(true, ButtonState.Filled, Color.Unspecified)
-                                               Box(
-                                                   modifier = Modifier.fillMaxSize(),
-                                                   contentAlignment = Alignment.Center
-                                               ) {
-                                                   Image(
-                                                       modifier = Modifier.padding(
-                                                           start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
-                                                           end = CodeTheme.dimens.staticGrid.x1
-                                                       ),
-                                                       painter = painterResource(R.drawable.ic_phantom_wallet),
-                                                       colorFilter = ColorFilter.tint(buttonColors.contentColor(true).value),
-                                                       contentDescription = null
-                                                   )
-                                               }
-                                           }
-                                       )
-                                   ),
-                                   onClick = {
-                                       // start the onramp flow here since we skip the provider list
-                                       OnRampFlowTracker.start(
-                                           AppRoute.Token.Info(stateFlow.value.token!!.address)
-                                       )
-
-                                       dispatchEvent(Event.ConnectPhantomWallet)
-                                   }
-                               )
-                           )
+//                           add(
+//                               BottomBarAction(
+//                                   text = buildAnnotatedString {
+//                                       append(resources.getString(R.string.label_solanaUsdf))
+//                                       appendInlineContent("[icon]", alternateText = " ")
+//                                       append(resources.getString(R.string.label_phantom))
+//                                   },
+//                                   inlineContentMap = mapOf(
+//                                       "[icon]" to InlineTextContent(
+//                                           placeholder = Placeholder(
+//                                               width = 25.sp,
+//                                               height = 14.sp,
+//                                               placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+//                                           ),
+//                                           children = {
+//                                               val buttonColors = getButtonColors(true, ButtonState.Filled, Color.Unspecified)
+//                                               Box(
+//                                                   modifier = Modifier.fillMaxSize(),
+//                                                   contentAlignment = Alignment.Center
+//                                               ) {
+//                                                   Image(
+//                                                       modifier = Modifier.padding(
+//                                                           start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
+//                                                           end = CodeTheme.dimens.staticGrid.x1
+//                                                       ),
+//                                                       painter = painterResource(R.drawable.ic_phantom_wallet),
+//                                                       colorFilter = ColorFilter.tint(buttonColors.contentColor(true).value),
+//                                                       contentDescription = null
+//                                                   )
+//                                               }
+//                                           }
+//                                       )
+//                                   ),
+//                                   onClick = {
+//                                       // start the onramp flow here since we skip the provider list
+//                                       OnRampFlowTracker.start(
+//                                           AppRoute.Token.Info(stateFlow.value.token!!.address)
+//                                       )
+//
+//                                       dispatchEvent(Event.ConnectPhantomWallet)
+//                                   }
+//                               )
+//                           )
 
                            add(
                                BottomBarAction(
