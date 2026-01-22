@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.features.advanced.R
 
@@ -25,6 +26,6 @@ internal data object Deposit : FullMenuItem<AdvancedFeaturesScreenViewModel.Even
     override val name: String
         @Composable get() = stringResource(R.string.title_depositFunds)
     override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenScreen(
-        AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Menu)
+        AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit)
     )
 }

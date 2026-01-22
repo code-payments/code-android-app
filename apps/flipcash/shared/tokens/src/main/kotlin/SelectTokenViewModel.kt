@@ -148,9 +148,6 @@ class SelectTokenViewModel @Inject constructor(
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
                     // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal)
-                } else {
-                    // route to provider list
-                    dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.ProviderList(AppRoute.Sheets.Wallet)))
                 }
             }.launchIn(viewModelScope)
 

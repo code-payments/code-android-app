@@ -340,10 +340,7 @@ internal class CashScreenViewModel @Inject constructor(
                     // route to provider list
                     dispatchEvent(
                         Event.OpenScreen(
-                            AppRoute.OnRamp.ProviderList(
-                                AppRoute.Main.Give(mint = stateFlow.value.selectedTokenAddress!!),
-                                amount
-                            )
+                            AppRoute.Menu.Deposit(mint = stateFlow.value.selectedTokenAddress!!),
                         )
                     )
                 }

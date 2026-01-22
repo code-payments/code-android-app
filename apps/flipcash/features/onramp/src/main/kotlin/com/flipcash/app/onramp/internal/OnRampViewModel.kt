@@ -44,7 +44,7 @@ internal data class AmountEntryState(
     val currencyModel: CurrencyHolder = CurrencyHolder(),
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val confirmingAmount: LoadingSuccessState = LoadingSuccessState(),
-    val selectedAmount: Fiat = Fiat.Zero,
+    val selectedAmount: LocalFiat = LocalFiat.Zero,
 ) {
     val canAdd: Boolean
         get() = (amountAnimatedModel.amountData.amount) > 0.00
@@ -129,9 +129,9 @@ internal class OnRampViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
-        data class OnAmountAccepted(val amount: Fiat) : Event
+        data class OnAmountAccepted(val amount: LocalFiat) : Event
 
-        data class CreateAndSendTransactionToWallet(val amount: Fiat) : Event
+        data class CreateAndSendTransactionToWallet(val amount: LocalFiat) : Event
         // endregion
     }
 
@@ -268,7 +268,7 @@ internal class OnRampViewModel @Inject constructor(
                     nativeAmount = localizedAmount,
                 )
 
-                dispatchEvent(Event.OnAmountAccepted(amountFiat.underlyingTokenAmount))
+                dispatchEvent(Event.OnAmountAccepted(amountFiat))
             }.launchIn(viewModelScope)
 
         userManager.state
@@ -343,22 +343,23 @@ internal class OnRampViewModel @Inject constructor(
                 when (provider) {
                     is OnRampProvider.Coinbase -> {
                         when (provider.type) {
-                            OnRampType.Virtual -> onRampController.placeOrderExclusiveOfFees(
-                                selectedAmount
-                            ).onSuccess {
-                                dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
-                                dispatchEvent(Event.OnPaymentLinkGenerated(it.url))
-                            }.onFailure { error ->
-                                dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = false))
-                                BottomBarManager.showError(
-                                    title = "Error",
-                                    message = error.message ?: "Unknown error",
-                                )
+                            OnRampType.Virtual -> {
+                                onRampController.placeOrderExclusiveOfFees(selectedAmount.underlyingTokenAmount)
+                                    .onSuccess {
+                                        dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
+                                        dispatchEvent(Event.OnPaymentLinkGenerated(it.url))
+                                    }.onFailure { error ->
+                                        dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = false))
+                                        BottomBarManager.showError(
+                                            title = "Error",
+                                            message = error.message ?: "Unknown error",
+                                        )
+                                    }
                             }
 
                             OnRampType.PhysicalDebit,
                             OnRampType.PhysicalCredit -> {
-                                onRampController.generateLegacyOnRampUrl(selectedAmount)
+                                onRampController.generateLegacyOnRampUrl(selectedAmount.underlyingTokenAmount)
                                     .onSuccess {
                                         dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
                                         dispatchEvent(Event.OnBuyUrlGenerated(it))
