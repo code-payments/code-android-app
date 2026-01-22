@@ -415,8 +415,10 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     is TokenSwapPurpose.Buy -> {
                         val rate = exchange.entryRate
                         // buy with reserves
-                        val amountFiat = LocalFiat(
-                            usdf = Fiat(data.amountData.amount, rate.currency),
+                        val amountFiat = LocalFiat.valueExchangeIn(
+                            amount = Fiat(data.amountData.amount, rate.currency),
+                            token = Token.usdf,
+                            balance = stateFlow.value.reservesBalance,
                             rate = rate
                         )
 
