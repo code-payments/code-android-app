@@ -1,14 +1,19 @@
 package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
+import com.getcode.opencode.model.core.errors.GetHistoricalMintDataError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.GetRatesError
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.datetime.Instant
 import javax.inject.Inject
@@ -16,6 +21,7 @@ import javax.inject.Inject
 internal class CurrencyService @Inject constructor(
     private val api: CurrencyApi,
     private val mintMapper: MintMapper,
+    private val historicalMintDataMapper: HistoricalMintDataMapper,
 ) {
     suspend fun getRates(
         from: Instant?
@@ -68,6 +74,37 @@ internal class CurrencyService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(GetMintsError.Other(cause = cause))
+            }
+        )
+    }
+
+    suspend fun getHistoricalMintData(
+        mint: Mint,
+        currencyCode: CurrencyCode,
+        windowedRange: WindowedRange,
+    ): Result<List<HistoricalMintData>> {
+        return runCatching {
+            api.getHistoricalMintData(
+                mint = mint,
+                currencyCode = currencyCode,
+                windowedRange = windowedRange,
+            )
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (val result = response.result) {
+                    CurrencyService.GetHistoricalMintDataResponse.Result.OK -> {
+                        val data = response.dataList.map { historicalMintDataMapper.map(it) }
+                        Result.success(data)
+                    }
+                    CurrencyService.GetHistoricalMintDataResponse.Result.NOT_FOUND -> Result.failure(GetHistoricalMintDataError.NotFound())
+                    CurrencyService.GetHistoricalMintDataResponse.Result.MISSING_DATA -> Result.failure(GetHistoricalMintDataError.MissingData())
+                    CurrencyService.GetHistoricalMintDataResponse.Result.UNRECOGNIZED -> Result.failure(GetHistoricalMintDataError.Unrecognized())
+                    else -> Result.failure(GetHistoricalMintDataError.Other())
+                }
+
+            },
+            onFailure = { cause ->
+                Result.failure(GetHistoricalMintDataError.Other(cause))
             }
         )
     }

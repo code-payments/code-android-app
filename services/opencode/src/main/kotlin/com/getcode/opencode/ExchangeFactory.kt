@@ -3,6 +3,7 @@ package com.getcode.opencode
 import android.content.Context
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
@@ -34,9 +35,10 @@ object ExchangeFactory {
             vmMetadataMapper = VmMetadataMapper(),
             launchpadMetadataMapper = LaunchpadMetadataMapper(),
         )
+        val historicalMintDataMapper = HistoricalMintDataMapper()
         val locale = localeModule.bindLocaleHelper(context)
         val resources = AndroidResources(context)
-        val service = CurrencyService(api, mintMapper)
+        val service = CurrencyService(api, mintMapper, historicalMintDataMapper)
         return module.providesExchange(service, resources, locale)
     }
 }

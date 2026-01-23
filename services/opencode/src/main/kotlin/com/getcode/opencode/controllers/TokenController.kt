@@ -8,12 +8,14 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenResult
@@ -85,8 +87,10 @@ class TokenController @Inject constructor(
     val tokenBalances: Flow<List<TokenWithBalance>>
         get() = tokens.map {
             it.map { token ->
-                val currency = CurrencyCode.tryValueOf(locale.getDefaultCurrencyName()) ?: CurrencyCode.USD
-                val balance = mintBalances.value[token.address] ?: Fiat.Zero.copy(currencyCode = currency)
+                val currency =
+                    CurrencyCode.tryValueOf(locale.getDefaultCurrencyName()) ?: CurrencyCode.USD
+                val balance =
+                    mintBalances.value[token.address] ?: Fiat.Zero.copy(currencyCode = currency)
                 TokenWithBalance(token, balance)
             }
         }
@@ -140,12 +144,14 @@ class TokenController @Inject constructor(
     }
 
     suspend fun add(token: Token, fiat: LocalFiat) {
-        val balanceAdditionAmount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        val balanceAdditionAmount =
+            fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
         modifyBalance(token) { it + balanceAdditionAmount }
     }
 
     suspend fun subtract(token: Token, fiat: LocalFiat) {
-        val balanceReductionAmount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        val balanceReductionAmount =
+            fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
         modifyBalance(token) { it - balanceReductionAmount }
     }
 
@@ -164,13 +170,25 @@ class TokenController @Inject constructor(
             .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint } }
             .getOrNull()
 
-        return metadata?.let { Result.success(TokenResult(it, DataSource.Network)) } ?: Result.failure(IllegalStateException("No metadata found for token $mint"))
+        return metadata?.let { Result.success(TokenResult(it, DataSource.Network)) }
+            ?: Result.failure(IllegalStateException("No metadata found for token $mint"))
     }
 
     suspend fun selectToken(mint: Mint) {
         selectedToken.edit {
             it[mintPreferenceKey] = mint.base58()
         }
+    }
+
+    suspend fun getHistoricalMarketCapData(
+        mint: Mint,
+        currencyCode: CurrencyCode,
+        windowedRange: WindowedRange,
+        evictAllCacheForMint: Boolean = false,
+        skipCache: Boolean = false,
+        onCacheMiss: () -> Unit = { },
+    ): Result<List<HistoricalMintData>> {
+        return currencyController.getHistoricalMintData(mint, currencyCode, windowedRange, skipCache, evictAllCacheForMint, onCacheMiss)
     }
 
     fun observeSelectedTokenMint(): Flow<Mint> {
@@ -192,7 +210,8 @@ class TokenController @Inject constructor(
         }
 
         // No valid selection, default to highest balance of the non-reserve tokens
-        val highestBalanceToken = balances.filter { it.key != Mint.usdf }.maxByOrNull { it.value }?.key
+        val highestBalanceToken =
+            balances.filter { it.key != Mint.usdf }.maxByOrNull { it.value }?.key
         if (highestBalanceToken != null) {
             selectToken(highestBalanceToken)
         }
@@ -302,21 +321,21 @@ class TokenController @Inject constructor(
                 }
             )?.map { (account, result) ->
                 val token = result.token
-                    when {
-                        account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
-                        else -> token to Fiat.tokenBalance(account.balance, token = token)
-                    }
-                }?.onSuccess { (token, tokenBalance) ->
-                    mintBalances.update { it + (mint to tokenBalance) }
-                    trace(
-                        tag = "Tokens",
-                        message = "Updated balance for ${token.symbol} is ${tokenBalance.formatted()} USD",
-                        type = TraceType.Process
-                    )
-                    tokenFetchState[mint]?.store(false)
-                }?.onFailure {
-                    tokenFetchState[mint]?.store(false)
+                when {
+                    account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
+                    else -> token to Fiat.tokenBalance(account.balance, token = token)
                 }
+            }?.onSuccess { (token, tokenBalance) ->
+                mintBalances.update { it + (mint to tokenBalance) }
+                trace(
+                    tag = "Tokens",
+                    message = "Updated balance for ${token.symbol} is ${tokenBalance.formatted()} USD",
+                    type = TraceType.Process
+                )
+                tokenFetchState[mint]?.store(false)
+            }?.onFailure {
+                tokenFetchState[mint]?.store(false)
+            }
         }
     }
 

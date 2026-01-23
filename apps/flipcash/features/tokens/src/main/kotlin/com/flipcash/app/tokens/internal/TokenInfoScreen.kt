@@ -1,20 +1,15 @@
 package com.flipcash.app.tokens.internal
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
@@ -25,51 +20,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.tokens.TokenInfoViewModel
-import com.flipcash.app.tokens.data.MarketTrend
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
 import com.flipcash.app.tokens.internal.components.marketcap.generateMarketCapData
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.addIf
-import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.drawWithGradient
-import com.getcode.ui.core.isScrolledToStart
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.DisableSheetGestures
-import com.getcode.ui.utils.DisableSheetGesturesWhileScrolling
-import com.getcode.ui.utils.LocalSheetGesturesState
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.ui.utils.sheetResignmentBehavior
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.HazeMaterials
-import dev.chrisbanes.haze.rememberHazeState
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun TokenInfoScreen(viewModel: TokenInfoViewModel) {
@@ -173,44 +148,18 @@ private fun TokenInfoScreen(
                 if (!state.isCashReserve) {
                     // market cap
                     state.marketCap?.let { mcap ->
+                        val loadable = state.historicalMarketCapData[state.selectedPeriod] ?: Loadable.Loaded(emptyList())
                         item {
-                            LaunchedEffect(state.historicalMarketCapData) {
-                                if (state.historicalMarketCapData.isNotEmpty()) {
-                                    return@LaunchedEffect
-                                }
-
-                                // generate sample data
-                                dispatch(
-                                    TokenInfoViewModel.Event.OnHistoricalMarketCapDataUpdated(
-                                        generateMarketCapData(
-                                            mintDate = state.token!!.createdAt!!,
-                                            currentMarketCap = mcap,
-                                            period = state.selectedPeriod
-                                        )
-                                    )
-                                )
-                            }
-
-                            MarketCapSection(
+                             MarketCapSection(
                                 modifier = Modifier
                                     .fillParentMaxWidth(),
                                 contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
                                 marketCap = mcap,
                                 chartEnabled = state.marketCapChartEnabled,
                                 selectedPeriod = state.selectedPeriod,
-                                rawHistoricalData = state.historicalMarketCapData,
+                                rawHistoricalData = loadable,
                                 onPeriodSelected = {
                                     dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
-                                    // generate sample data
-                                    dispatch(
-                                        TokenInfoViewModel.Event.OnHistoricalMarketCapDataUpdated(
-                                            generateMarketCapData(
-                                                mintDate = state.token!!.createdAt!!,
-                                                currentMarketCap = mcap,
-                                                period = it,
-                                            )
-                                        )
-                                    )
                                 },
                             )
                         }

@@ -6,6 +6,9 @@ import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +22,7 @@ internal class CurrencyApi @Inject constructor(
 
     private val api = CurrencyGrpcKt.CurrencyCoroutineStub(managedChannel)
         .withWaitForReady()
+
     /**
      * Returns the exchange rates for the core mint token against all available currencies
      *
@@ -64,6 +68,29 @@ internal class CurrencyApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getMints(request)
+        }
+    }
+
+    suspend fun getHistoricalMintData(
+        mint: Mint,
+        currencyCode: CurrencyCode,
+        windowedRange: WindowedRange,
+    ): CurrencyService.GetHistoricalMintDataResponse {
+        val request = CurrencyService.GetHistoricalMintDataRequest.newBuilder()
+            .setAddress(mint.asSolanaAccountId())
+            .setCurrencyCode(currencyCode.name.lowercase())
+            .setPredefinedRange(
+                when (windowedRange) {
+                    WindowedRange.AllTime -> CurrencyService.GetHistoricalMintDataRequest.PredefinedRange.ALL_TIME
+                    WindowedRange.LastDay -> CurrencyService.GetHistoricalMintDataRequest.PredefinedRange.LAST_DAY
+                    WindowedRange.LastWeek -> CurrencyService.GetHistoricalMintDataRequest.PredefinedRange.LAST_WEEK
+                    WindowedRange.LastMonth -> CurrencyService.GetHistoricalMintDataRequest.PredefinedRange.LAST_MONTH
+                    WindowedRange.LastYear -> CurrencyService.GetHistoricalMintDataRequest.PredefinedRange.LAST_YEAR
+                }
+            ).build()
+
+        return withContext(Dispatchers.IO) {
+            api.getHistoricalMintData(request)
         }
     }
 }

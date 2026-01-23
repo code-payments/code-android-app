@@ -67,6 +67,16 @@ sealed class GetMintsError(
     data class Other(override val cause: Throwable? = null) : GetMintsError(message = cause?.message, cause = cause)
 }
 
+sealed class GetHistoricalMintDataError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound : GetHistoricalMintDataError("Not found")
+    class Unrecognized : GetHistoricalMintDataError("Unrecognized")
+    class MissingData : GetHistoricalMintDataError("Missing data")
+    data class Other(override val cause: Throwable? = null) : GetHistoricalMintDataError(message = cause?.message, cause = cause)
+}
+
 sealed class OpenMessageStreamError(
     override val message: String? = null,
     override val cause: Throwable? = null

@@ -1,13 +1,19 @@
 package com.flipcash.app.tokens.internal.components.info
 
 import android.text.format.DateFormat
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material.MaterialTheme
@@ -18,11 +24,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.app.tokens.data.collapse
@@ -36,6 +44,7 @@ import com.getcode.theme.extraSmall
 import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.text.AnimatedNumberText
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.util.format
@@ -49,7 +58,7 @@ import kotlin.time.Instant
 internal fun MarketCapSection(
     marketCap: Fiat,
     chartEnabled: Boolean,
-    rawHistoricalData: List<MarketCapPoint>,
+    rawHistoricalData: Loadable<List<MarketCapPoint>>,
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -59,13 +68,14 @@ internal fun MarketCapSection(
         mutableStateOf<MarketCapPoint?>(null)
     }
 
-    val startCap by remember(selectedPeriod, rawHistoricalData) {
+    val data = remember(rawHistoricalData) {
+        rawHistoricalData.dataOrNull.orEmpty()
+    }
+
+    val startCap by remember(selectedPeriod, data, marketCap.currencyCode) {
         derivedStateOf {
             val startQuarks =
-                rawHistoricalData.collapse(
-                    period = selectedPeriod,
-                    targetPoints = TARGET_POINTS.toInt()
-                ).firstOrNull()?.y ?: return@derivedStateOf null
+                data.firstOrNull()?.y ?: return@derivedStateOf null
             Fiat(startQuarks, marketCap.currencyCode)
         }
     }
@@ -103,26 +113,28 @@ internal fun MarketCapSection(
         )
 
         if (chartEnabled) {
-            marketCapDiff?.let { change ->
-                Box(
-                    modifier = Modifier
-                        .padding(
-                            start = contentPadding.calculateStartPadding(),
-                            top = CodeTheme.dimens.grid.x1,
+            Box(
+                modifier = Modifier
+                    .padding(
+                        start = contentPadding.calculateStartPadding(),
+                        top = CodeTheme.dimens.grid.x1,
+                    ).height(IntrinsicSize.Min),
+            ) {
+                Crossfade(marketCapDiff) { diff ->
+                    if (diff != null) {
+                        MarketCapChangeLabel(
+                            change = diff,
+                            isVisible = highlightedCapPoint == null,
+                            period = selectedPeriod,
                         )
-                ) {
-                    MarketCapChangeLabel(
-                        change = change,
-                        isVisible = highlightedCapPoint == null,
-                        period = selectedPeriod,
-                    )
-
-                    HighlightedPointLabel(
-                        point = highlightedCapPoint,
-                        isVisible = highlightedCapPoint != null,
-                        period = selectedPeriod,
-                    )
+                    }
                 }
+
+                HighlightedPointLabel(
+                    point = highlightedCapPoint,
+                    isVisible = highlightedCapPoint != null,
+                    period = selectedPeriod,
+                )
             }
 
             MarketCapChart(
@@ -134,11 +146,28 @@ internal fun MarketCapSection(
                     start = contentPadding.calculateStartPadding(),
                     end = contentPadding.calculateEndPadding(),
                 ),
-                data = rawHistoricalData,
+                data = data,
                 trendType = TrendType.FirstVsLast,
                 selectedPeriod = selectedPeriod,
                 onPointHighlighted = { highlightedCapPoint = it },
                 onPeriodSelected = onPeriodSelected,
+                placeholder = {
+                    when (rawHistoricalData) {
+                        is Loadable.Error -> Unit
+                        is Loadable.Loaded -> Unit
+                        is Loadable.Loading -> {
+                            Box(modifier = Modifier
+                                .fillMaxWidth()
+                                .requiredHeight(240.dp)
+                            ) {
+                                CodeCircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = CodeTheme.colors.dividerVariant,
+                                )
+                            }
+                        }
+                    }
+                }
             )
         }
     }

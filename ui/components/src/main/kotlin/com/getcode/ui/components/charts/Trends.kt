@@ -27,7 +27,7 @@ sealed interface LineTrend {
 
 sealed interface TrendType {
     data object LinearRegression : TrendType {
-        override fun determineTrend(data: List<Long>): LineTrend {
+        override fun determineTrend(data: List<Double>): LineTrend {
             if (data.size < 2) return LineTrend.Up
 
             val n = data.size
@@ -41,7 +41,7 @@ sealed interface TrendType {
         }
     }
     data object Momentum : TrendType {
-        override fun determineTrend(data: List<Long>): LineTrend {
+        override fun determineTrend(data: List<Double>): LineTrend {
             if (data.size < 2) return LineTrend.Up
 
             val windowSize = (data.size * 0.2f).toInt().coerceAtLeast(1)
@@ -52,7 +52,7 @@ sealed interface TrendType {
         }
     }
     data object Majority : TrendType {
-        override fun determineTrend(data: List<Long>): LineTrend {
+        override fun determineTrend(data: List<Double>): LineTrend {
             if (data.size < 2) return LineTrend.Up
 
             val ups = data.zipWithNext().count { (a, b) -> b >= a }
@@ -61,11 +61,11 @@ sealed interface TrendType {
     }
 
     data object FirstVsLast: TrendType {
-        override fun determineTrend(data: List<Long>): LineTrend {
+        override fun determineTrend(data: List<Double>): LineTrend {
             if (data.size < 2) return LineTrend.Up
             return if (data.first() >= data.last()) LineTrend.Down else LineTrend.Up
         }
     }
 
-    fun determineTrend(data: List<Long>): LineTrend
+    fun determineTrend(data: List<Double>): LineTrend
 }

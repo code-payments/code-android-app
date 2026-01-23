@@ -20,18 +20,18 @@ internal fun generateMarketCapData(
     mintDate: Instant,
     period: Period,
     trend: MarketTrend = MarketTrend.Bullish
-): List<ChartPoint<Long, Long>> {
+): List<MarketCapPoint> {
     return generateMarketCapData(
         trend = trend,
         mintDate = mintDate,
         period = period,
-        endValue = currentMarketCap.quarks,
+        endValue = currentMarketCap.quarks.toDouble(),
     )
 }
 
 internal fun generateMarketCapData(
     points: Int = 100,
-    endValue: Long = 1_000_000L,
+    endValue: Double = 1_000_000.0,
     trend: MarketTrend = MarketTrend.Bullish,
     period: Period = Period.All,
     mintDate: Instant = Clock.System.now() - 365.days,
@@ -88,7 +88,7 @@ internal fun generateMarketCapData(
         if (isAllTime && i == 0) {
             return@List MarketCapPoint(
                 x = startTime,
-                y = 0L
+                y = 0.0
             )
         }
 
@@ -110,7 +110,7 @@ internal fun generateMarketCapData(
         val value = if (i == points - 1) {
             endValue
         } else {
-            (target + momentum).coerceAtLeast(0.0).roundToLong()
+            (target + momentum).coerceAtLeast(0.0)
         }
 
         MarketCapPoint(
@@ -121,7 +121,7 @@ internal fun generateMarketCapData(
 }
 
 internal fun generateMarketCapData(
-    endValue: Long = 1_000_000L,
+    endValue: Double = 1_000_000.0,
     trend: MarketTrend = MarketTrend.Bullish,
     duration: Duration = 30.days,
     mintDate: Instant = Clock.System.now() - 365.days,
@@ -185,7 +185,7 @@ internal fun generateMarketCapData(
         if (isAllTime && i == 0) {
             return@List MarketCapPoint(
                 x = startTime,
-                y = 0L
+                y = 0.0
             )
         }
 
@@ -207,7 +207,7 @@ internal fun generateMarketCapData(
         val value = if (i == points - 1) {
             endValue
         } else {
-            (target + momentum).coerceAtLeast(0.0).roundToLong()
+            (target + momentum).coerceAtLeast(0.0)
         }
 
         MarketCapPoint(

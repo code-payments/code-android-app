@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,6 +72,7 @@ internal fun MarketCapChart(
     trendType: TrendType,
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
+    placeholder: @Composable BoxScope.() -> Unit = {},
     chartPadding: PaddingValues = PaddingValues(),
     periodPadding: PaddingValues = PaddingValues(),
     onPointHighlighted: (MarketCapPoint?) -> Unit,
@@ -123,7 +125,8 @@ internal fun MarketCapChart(
         onPointHighlighted = { target ->
             val datum = windowedData.getOrNull(target?.x?.toInt() ?: -1)
             onPointHighlighted(datum)
-        }
+        },
+        placeholder = placeholder,
     )
 }
 
@@ -133,6 +136,7 @@ private fun MarketCapChart(
     trend: LineTrend,
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
+    placeholder: @Composable BoxScope.() -> Unit = {},
     chartPadding: PaddingValues = PaddingValues(),
     periodPadding: PaddingValues = PaddingValues(),
     onPointHighlighted: (CartesianMarker.Target?) -> Unit,
@@ -150,6 +154,7 @@ private fun MarketCapChart(
                 .weight(1f),
             trend = trend,
             onPointHighlighted = onPointHighlighted,
+            placeholder = placeholder,
         )
 
         TabRow(
@@ -204,6 +209,7 @@ private fun MarketCapChartContent(
     producer: CartesianChartModelProducer,
     trend: LineTrend,
     modifier: Modifier = Modifier,
+    placeholder: @Composable BoxScope.() -> Unit,
     onPointHighlighted: (CartesianMarker.Target?) -> Unit
 ) {
     val trendColor = trend.color
@@ -307,6 +313,7 @@ private fun MarketCapChartContent(
         modelProducer = producer,
         animationSpec = tween(durationMillis = 300),
         scrollState = rememberVicoScrollState(scrollEnabled = false),
+        placeholder = placeholder
     )
 }
 
@@ -369,7 +376,7 @@ private fun PreviewMarketCapChart() {
         }
 
         var highlightedPoint by remember {
-            mutableStateOf<ChartPoint<Long, Long>?>(null)
+            mutableStateOf<MarketCapPoint?>(null)
         }
 
         val modelProducer = remember { CartesianChartModelProducer() }
@@ -392,7 +399,7 @@ private fun PreviewMarketCapChart() {
                 val datum = data.find { it.x.toDouble() == target?.x }
                 highlightedPoint = datum
             },
-            onPeriodSelected = { selectedPeriod = it }
+            onPeriodSelected = { selectedPeriod = it },
         )
     }
     FlipcashDesignSystem {

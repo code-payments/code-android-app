@@ -5,7 +5,7 @@ import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
-typealias MarketCapPoint = ChartPoint<Long, Long>
+typealias MarketCapPoint = ChartPoint<Long, Double>
 
 fun List<MarketCapPoint>.collapse(
     period: Period,
@@ -37,7 +37,7 @@ fun List<MarketCapPoint>.collapse(
             val value = when (aggregation) {
                 AggregationType.Last -> points.maxByOrNull { it.x }?.y
                 AggregationType.First -> points.minByOrNull { it.x }?.y
-                AggregationType.Average -> points.map { it.y }.average().roundToLong()
+                AggregationType.Average -> points.map { it.y }.average()
                 AggregationType.Max -> points.maxOfOrNull { it.y }
                 AggregationType.Min -> points.minOfOrNull { it.y }
             } ?: return@mapNotNull null
@@ -71,9 +71,9 @@ private fun List<MarketCapPoint>.interpolateToSize(targetSize: Int): List<Market
         val upper = this[upperIndex]
 
         result.add(
-            ChartPoint(
+            MarketCapPoint(
                 x = (lower.x + (upper.x - lower.x) * fraction).toLong(),
-                y = (lower.y + (upper.y - lower.y) * fraction).toLong(),
+                y = (lower.y + (upper.y - lower.y) * fraction),
             )
         )
     }
