@@ -317,16 +317,16 @@ object Estimator {
                     val quarksPerToken = BigDecimal.TEN.pow(mintDecimals)
                     val tokensToSell = BigDecimal(amountInQuarks).divideWithHighPrecision(quarksPerToken)
 
-                    // Convert supply quarks to whole tokens
-                    val currentSupply = BigDecimal(marketState.supplyInQuarks).divideWithHighPrecision(quarksPerToken)
+                    val currentSupply = BigDecimal(marketState.supplyInQuarks)
+                        .divideWithHighPrecision(quarksPerToken)
 
-                    // For selling: calculate value at (supply - tokens) going up to supply
-                    val supplyAfterSell = currentSupply.subtract(tokensToSell)
+                    // if the balance exceeds the supply, then assume the supply is the balance
+                    val effectiveSell = tokensToSell.coerceIn(BigDecimal.ZERO, currentSupply)
 
-                    require(supplyAfterSell.signum() >= 0) { "Cannot sell more tokens than current supply" }
+                    val supplyAfter = currentSupply - effectiveSell
 
                     val grossUSDF = curve.tokensToValue(
-                        currentSupply = supplyAfterSell,
+                        currentSupply = supplyAfter,
                         tokens = tokensToSell
                     ).getOrThrow()
 
