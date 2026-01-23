@@ -21,6 +21,12 @@ sealed class DeeplinkOnRampError(
         override val cause: Throwable? = null
     ) : DeeplinkOnRampError(code = code, message = message, cause = cause)
 
+    class FailedToSubmitBuyToServer(
+        override val code: Long = -100,
+        override val message: String?,
+        override val cause: Throwable? = null
+    ): DeeplinkOnRampError(message = message, cause = cause)
+
     class DecryptionError(
         override val message: String?,
         override val cause: Throwable? = null

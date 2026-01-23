@@ -3,6 +3,7 @@ package com.getcode.opencode.solana
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.LiquidityPool
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
@@ -17,6 +18,7 @@ import com.getcode.opencode.model.transactions.SwapResponseServerParameters
 import com.getcode.opencode.solana.swap.buildBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
 import com.getcode.opencode.solana.swap.buildUsdcToUsdfSwapInstructions
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
@@ -85,17 +87,20 @@ object TransactionBuilder {
         sender: PublicKey,
         amount: Long,
         pool: LiquidityPool,
+        swapId: SwapId,
+        blockhash: Hash?,
     ): SolanaTransaction {
         val instructions = buildUsdcToUsdfSwapInstructions(
             sender = sender,
             owner = owner,
             amount = amount,
             pool = pool,
+            swapId = swapId,
         )
 
         return SolanaTransaction.newV0Instance(
             payer = sender,
-            recentBlockhash = null,
+            recentBlockhash = blockhash,
             addressLookupTables = emptyList(),
             instructions = instructions,
         )

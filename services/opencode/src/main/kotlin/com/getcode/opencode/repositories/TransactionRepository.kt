@@ -1,6 +1,7 @@
 package com.getcode.opencode.repositories
 
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
@@ -55,6 +56,7 @@ interface TransactionRepository {
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId? = null,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
     ): Result<Unit>

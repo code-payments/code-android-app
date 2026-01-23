@@ -12,8 +12,8 @@ data class SwapRequest(
     val kind: SwapStartKind,
     val direction: SwapDirection,
     val amount: LocalFiat,
+    val swapId: SwapId,
 ) {
-    val swapId = SwapId.generate()
     val fundingIntentId = when (kind) {
         is SwapStartKind.CurrencyCreator -> kind.fundingIntentId
     }

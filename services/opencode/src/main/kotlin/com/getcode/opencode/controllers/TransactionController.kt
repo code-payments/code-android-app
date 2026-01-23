@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.internal.network.executors.IntentExecutor
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.Distribution
@@ -234,6 +235,7 @@ class TransactionController @Inject constructor(
     suspend fun buy(
         owner: AccountCluster,
         amount: LocalFiat,
+        swapId: SwapId? = null,
         of: Token,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
@@ -250,7 +252,17 @@ class TransactionController @Inject constructor(
         }
 
         return accountResult.fold(
-            onSuccess = { repository.buy(scope = scope, owner = owner, amount = amount, of = of, source = source, fund = fund) },
+            onSuccess = {
+                repository.buy(
+                    scope = scope,
+                    swapId = swapId,
+                    owner = owner,
+                    amount = amount,
+                    of = of,
+                    source = source,
+                    fund = fund
+                )
+            },
             onFailure = { Result.failure(it) }
         )
     }

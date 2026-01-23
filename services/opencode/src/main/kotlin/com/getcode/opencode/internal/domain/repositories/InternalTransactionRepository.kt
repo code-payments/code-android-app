@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.domain.repositories
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.internal.network.services.TransactionService
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
@@ -61,9 +62,10 @@ internal class InternalTransactionRepository @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId?,
         source: SwapFundingSource,
         fund: (suspend (SwapRequest) -> Result<Unit>)?
-    ): Result<Unit> = service.buy(scope, amount, of, owner, source, fund)
+    ): Result<Unit> = service.buy(scope, swapId, amount, of, owner, source, fund)
 
     override suspend fun sell(
         scope: CoroutineScope,

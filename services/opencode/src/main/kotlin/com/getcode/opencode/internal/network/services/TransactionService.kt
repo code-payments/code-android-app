@@ -11,6 +11,7 @@ import com.getcode.opencode.internal.network.executors.SwapExecutor
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.funding.SwapFunding
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
@@ -35,8 +36,10 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.Instant
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 
 internal class TransactionService @Inject constructor(
@@ -188,6 +191,7 @@ internal class TransactionService @Inject constructor(
 
     suspend fun buy(
         scope: CoroutineScope,
+        swapId: SwapId?,
         amount: LocalFiat,
         of: Token,
         owner: AccountCluster,
@@ -204,7 +208,8 @@ internal class TransactionService @Inject constructor(
                 fundingSource = source,
             ),
             direction = SwapDirection.Buy(of),
-            amount = amount
+            amount = amount,
+            swapId = swapId ?: SwapId.generate(),
         )
 
         val fundedWith = fund ?: { swapFunding.fund(scope, owner, it).map { Unit } }
@@ -221,6 +226,7 @@ internal class TransactionService @Inject constructor(
         val tokenCluster = owner.withTimelockForToken(of)
         val request = SwapRequest(
             owner = tokenCluster,
+            swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
             kind = SwapStartKind.CurrencyCreator(
                 fromMint = of.address,

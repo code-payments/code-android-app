@@ -64,6 +64,7 @@ internal class SwapExecutor(
         scope.launch {
             try {
                 val result = openSwapStream(streamReference, intent)
+                println("swap returned result")
                 cont.resume(result)
             } catch (e: Exception) {
                 trace(
@@ -118,8 +119,16 @@ internal class SwapExecutor(
                     streamRef.complete()
                     val result = response.success.toCode()
                     if (result == null) {
+                        trace(
+                            tag = "Swap",
+                            message = "Success but failed to parse success code",
+                        )
                         onResult(Result.failure(SwapError.Other(cause = IllegalArgumentException("Invalid success state"))))
                     } else {
+                        trace(
+                            tag = "Swap",
+                            message = "Success: ($intent) (${response.success.code})",
+                        )
                         onResult(Result.success(result))
                     }
                 }
@@ -184,7 +193,6 @@ private fun handleErrors(
 ): List<String> {
     val errors = mutableListOf<String>()
 
-    println("errors: ${errorDetails.count()}")
     errorDetails.forEach { error ->
         println("error details: ${error.typeCase}")
         when (error.typeCase) {
