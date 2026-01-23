@@ -240,7 +240,6 @@ class ExternalWalletDeeplinkState(
                 initiateBuy()
                     .fold(
                         onSuccess = {
-                            println("stateful swap successful. Sending transaction to fund.")
                             sendIt()
                             Result.success(Unit)
                         },
@@ -378,7 +377,6 @@ class ExternalWalletDeeplinkState(
         val token = requireNotNull(tokenToPurchase) { "Token is null" }
         val amountToSend = requireNotNull(amount) { "Amount is null" }
         val transactionSignature = requireNotNull(signature) { "Transaction not signed" }
-        println("transactionSignature: ${transactionSignature.base58()}")
 
         return withContext(NonCancellable) {
             transactionController.buy(

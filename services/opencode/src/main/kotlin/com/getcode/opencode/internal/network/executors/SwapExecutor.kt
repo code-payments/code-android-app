@@ -64,7 +64,6 @@ internal class SwapExecutor(
         scope.launch {
             try {
                 val result = openSwapStream(streamReference, intent)
-                println("swap returned result")
                 cont.resume(result)
             } catch (e: Exception) {
                 trace(
@@ -194,7 +193,6 @@ private fun handleErrors(
     val errors = mutableListOf<String>()
 
     errorDetails.forEach { error ->
-        println("error details: ${error.typeCase}")
         when (error.typeCase) {
             TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
                 errors.add("Reason: ${error.reasonString.reason}")

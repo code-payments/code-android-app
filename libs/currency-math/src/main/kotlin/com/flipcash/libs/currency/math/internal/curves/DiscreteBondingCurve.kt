@@ -97,8 +97,6 @@ internal class DiscreteBondingCurve private constructor(
         val startStep = currentSupply.divideToIntegralValue(stepSize.toBigDecimal())
         val endStep = endSupply.divideToIntegralValue(stepSize.toBigDecimal())
 
-        println("currentSupply: $currentSupply, tokens: $tokens, startStep: $startStep, endStep: $endStep")
-
         require(endStep.toInt() < pricingTable.size) { "Cannot sell more tokens than current supply" }
 
         // Calculate partial tokens in start step (from currentSupply to next step boundary)

@@ -123,7 +123,6 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             val (signatureCount, payload) = ShortVec.decodeLen(list)
 
             if (payload.size < signatureCount * LENGTH_64) {
-                println("payload size: ${payload.size}, signature count: $signatureCount")
                 return null
             }
 

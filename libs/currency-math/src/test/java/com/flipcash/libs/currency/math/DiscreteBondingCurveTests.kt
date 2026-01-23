@@ -32,7 +32,6 @@ class DiscreteSpotPriceTests {
     fun `1-1 Spot price at supply 0 equals first table entry`() {
         val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
         assertNotNull(price)
-        println("price at supply 0: $price")
         assertTrue(isApproximatelyEqual(price, expectedPriceStep0))
     }
 
@@ -124,7 +123,6 @@ class DiscreteTokensToValueTests {
         val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(50)).getOrThrow()
 
         val expected = BigDecimal(50).multiplyWithHighPrecision(price)
-        println("price: $price, cost: $cost, expected: $expected")
         assertTrue(isApproximatelyEqual(cost, expected))
     }
 
@@ -283,7 +281,6 @@ class DiscreteTokensToValueTests {
         val cost100 = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(100)).getOrThrow()
         val expectedApprox = BigDecimal("1.0")
 
-        println("cost100: $cost100, expected: $expectedApprox")
         assertTrue(isApproximatelyEqual(cost100, expectedApprox, tolerance = BigDecimal("0.001")))
     }
 }
@@ -436,7 +433,6 @@ class DiscreteRoundtripTests {
 
         assertTrue(recoveredValue <= originalValue)
         val diff = originalValue.subtractWithHighPrecision(recoveredValue)
-        println("diff: $diff, original: $originalValue, recovered: $recoveredValue")
         assertTrue(diff < BigDecimal("2"), "Value difference should be small")
     }
 
@@ -916,7 +912,6 @@ class DiscreteRealWorldTests {
 
         val tokensDouble = result.tokens.toDouble()
 
-        println("result.tokens: $tokensDouble")
         assertTrue(tokensDouble > 50, "Should get > 50 tokens for ~\$0.72 USD")
         assertTrue(tokensDouble < 100, "Should get < 100 tokens for ~\$0.72 USD")
     }

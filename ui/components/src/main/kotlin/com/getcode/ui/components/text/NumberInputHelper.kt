@@ -24,11 +24,9 @@ class NumberInputHelper {
     fun onNumber(v: Int) {
         val s = amountText.split(DECIMAL_SEPARATOR)
         if (s.size == 1 && s[0].length >= maxLength) {
-            println("not appending $v - max length reached")
             return
         }
         if (s.size > 1 && s[1].length >= fractionUnits) {
-            println("not appending $v - max decimal length reached ($fractionUnits)")
             return
         }
 

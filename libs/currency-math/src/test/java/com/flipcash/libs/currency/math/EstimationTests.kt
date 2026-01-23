@@ -25,8 +25,6 @@ class EstimationTests {
         ).getOrThrow()
 
         assertEquals("0.010123561682206779", price.toPlainString())
-
-        println(price)
     }
 
     @Test
@@ -134,10 +132,6 @@ class EstimationTests {
             mintDecimals = 6,
             feeBps = 0,
         ).getOrThrow()
-
-        println("usdfToSpend: $usdfToSpend")
-        println("initialSupply: $initialSupply")
-        println("netTokensToReceive: ${buyEstimate.netTokensToReceive}")
 
         // Sell the tokens we bought
         val tokenQuarks = buyEstimate.netTokensToReceive
