@@ -430,10 +430,13 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     is TokenSwapPurpose.FundWithWallet -> {
                         val rate = exchange.entryRate
                         // funding through external wallet
+                        val nativeAmount = Fiat(data.amountData.amount, rate.currency)
+                        val underlyingAmount = nativeAmount.convertingToUsdIfNeeded(rate)
                         val amountFiat = LocalFiat(
-                            usdf = Fiat(data.amountData.amount, rate.currency),
-                            rate = rate
+                            usdf = underlyingAmount,
+                            nativeAmount = nativeAmount,
                         )
+
                         dispatchEvent(Event.OnAmountAccepted(amountFiat))
                         dispatchEvent(
                             Event.CreateAndSendTransactionToWallet(
