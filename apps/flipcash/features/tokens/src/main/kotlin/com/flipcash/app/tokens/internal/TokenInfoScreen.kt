@@ -156,7 +156,7 @@ private fun TokenInfoScreen(
                             modifier = Modifier
                                 .fillParentMaxWidth()
                                 .padding(horizontal = CodeTheme.dimens.inset),
-                            text = stringResource(R.string.description_cashReserves),
+                            text = state.token?.description.orEmpty(),
                             style = CodeTheme.typography.textMedium,
                             color = CodeTheme.colors.textSecondary,
                         )
