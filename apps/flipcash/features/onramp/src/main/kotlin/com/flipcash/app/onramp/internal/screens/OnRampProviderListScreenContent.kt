@@ -72,7 +72,7 @@ private fun OnRampProviderListScreenContent(
                 )
                 Text(
                     modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.subtitle_addUsdcToWallet),
+                    text = stringResource(R.string.subtitle_addCashToWallet),
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textSecondary,
                 )

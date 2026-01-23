@@ -40,15 +40,13 @@ internal fun DepositScreen(viewModel: DepositViewModel) {
 
 @Composable
 private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (DepositViewModel.Event) -> Unit) {
-    val uriHandler = LocalUriHandler.current
-    val context = LocalContext.current
     CodeScaffold(
         topBar = {
             Text(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .fillMaxWidth(),
-                text = stringResource(R.string.subtitle_howToDeposit),
+                text = stringResource(R.string.subtitle_howToDepositToken, state.tokenName.orEmpty()),
                 color = CodeTheme.colors.textSecondary,
                 style = CodeTheme.typography.textSmall,
             )
@@ -72,18 +70,6 @@ private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (
                     enabled = !state.isCopied,
                     isSuccess = state.isCopied,
                     buttonState = ButtonState.Filled,
-                )
-
-                CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    onClick = {
-                        uriHandler.openUri(
-                            context.getString(R.string.external_url_deposit)
-                        )
-                    },
-                    text = stringResource(R.string.action_learnHowToDepositFunds),
-                    buttonState = ButtonState.Subtle,
                 )
             }
         }

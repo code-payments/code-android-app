@@ -61,7 +61,6 @@
     <string name="subtitle_balanceIsHeldInUsdStablecoins">Your balance is held in US dollar stablecoins</string>
     <string name="subtitle_currentValueOfAllCurrencies">The current value of your currencies</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
-    <string name="subtitle_balanceEmptyState">Ask a friend to give you some cash with Flipcash, or deposit USDC from your crypto exchange or another crypto wallet</string>
     <string name="action_depositFunds">Deposit Funds</string>
     <string name="title_depositFunds">Deposit Funds</string>
 
@@ -113,6 +112,7 @@
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
     <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC on Solana to your deposit address below</string>
+    <string name="subtitle_howToDepositToken">Deposit funds into your wallet by sending %1$s on Solana to your deposit address below</string>
 
     <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
     <string name="title_clipboardLabelPublicKey">Public Key</string>
@@ -159,9 +159,9 @@
 
     <string name="subtitle_startCameraToScan">You need to start your camera to grab cash</string>
 
-    <string name="title_learnToDeposit">Purchase USDC on a crypto exchange with your bank account, and then deposit into Flipcash</string>
-    <string name="action_learnHowToDepositFunds">Learn How to Get USDC</string>
-    <string name="action_depositUsdc">Deposit USDC</string>
+    <string name="title_learnToDeposit">Purchase USDF on a crypto exchange with your bank account, and then deposit into Flipcash</string>
+    <string name="action_learnHowToDepositFunds">Learn How to Get USDF</string>
+    <string name="action_depositUsdc">Deposit USDF</string>
 
     <string name="title_learnToWithdraw">You can withdraw your funds at any time, and move them into your bank account</string>
     <string name="action_learnHowToWithdrawFunds">Learn How to Withdraw Funds</string>
@@ -318,7 +318,7 @@
 
     <string name="action_sendAsLink">Send as a Link</string>
 
-    <string name="subtitle_addUsdcToWallet">Add Solana USDF to your Flipcash wallet</string>
+    <string name="subtitle_addCashToWallet">Add Solana USDF to your Flipcash wallet</string>
 
     <string name="title_selectCurrency">Select Currency</string>
     <string name="title_selectRegion">Select Region</string>
@@ -366,9 +366,6 @@
 
     <string name="title_cashReserves">USD Reserves</string>
     <string name="action_buyMore">Buy More</string>
-    <string name="description_cashReserves">
-        Your cash reserves are held in USDC, a fully backed digital dollar supported 1:1 by U.S. dollars. This ensures your funds retain the same value and stability as traditional USD, while benefiting from faster, more transparent transactions on modern financial infrastructure. You can deposit additional funds at any time, or withdraw your USDC for U.S. dollars whenever you like.
-    </string>
 
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
@@ -378,7 +375,7 @@
     <string name="action_buy">Buy</string>
     <string name="action_sell">Sell</string>
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
-    <string name="label_solanaUsdf">Solana USDC with</string>
+    <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 
