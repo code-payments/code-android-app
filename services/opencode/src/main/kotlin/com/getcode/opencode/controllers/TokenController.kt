@@ -11,6 +11,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -22,6 +23,7 @@ import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
+import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
@@ -53,6 +55,7 @@ class TokenController @Inject constructor(
     private val currencyController: CurrencyController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
+    private val locale: LocaleHelper,
 ) {
     companion object {
         val mintPreferenceKey = stringPreferencesKey("tokenMint")
@@ -82,7 +85,8 @@ class TokenController @Inject constructor(
     val tokenBalances: Flow<List<TokenWithBalance>>
         get() = tokens.map {
             it.map { token ->
-                val balance = mintBalances.value[token.address] ?: Fiat.Zero
+                val currency = CurrencyCode.tryValueOf(locale.getDefaultCurrencyName()) ?: CurrencyCode.USD
+                val balance = mintBalances.value[token.address] ?: Fiat.Zero.copy(currencyCode = currency)
                 TokenWithBalance(token, balance)
             }
         }

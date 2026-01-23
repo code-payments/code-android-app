@@ -118,7 +118,7 @@ class SelectTokenViewModel @Inject constructor(
                                 )
                             )
                         }
-                        .sortedWith(compareByDescending<TokenWithLocalizedBalance> { item ->
+                        .sortedWith(compareByDescending { item ->
                             if (state.reservesEnabled && item.isReserves) Fiat.MIN_VALUE
                             else item.balance.nativeAmount
                         })
