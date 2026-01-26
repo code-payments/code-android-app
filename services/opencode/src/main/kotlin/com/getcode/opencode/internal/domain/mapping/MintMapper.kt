@@ -26,7 +26,7 @@ internal class MintMapper @Inject constructor(
         }
 
         // Handle the provided `createdAt` and if it's valid use it, otherwise
-        // do a mint check against USDC and return a well known mint date for it
+        // do a mint check against USDF and return a well known mint date for it
         // otherwise return null
         val mintDate = from.createdAt.seconds.takeIf { it > 0 }
             .let { at ->

@@ -180,17 +180,11 @@ class TokenController @Inject constructor(
         mint: Mint,
         currencyCode: CurrencyCode,
         windowedRange: WindowedRange,
-        evictAllCacheForMint: Boolean = false,
-        skipCache: Boolean = false,
-        onCacheMiss: () -> Unit = { },
     ): Result<List<HistoricalMintData>> {
         return currencyController.getHistoricalMintData(
             mint,
             currencyCode,
             windowedRange,
-            skipCache,
-            evictAllCacheForMint,
-            onCacheMiss
         )
     }
 

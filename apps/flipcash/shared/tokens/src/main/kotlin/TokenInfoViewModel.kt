@@ -193,19 +193,18 @@ class TokenInfoViewModel @Inject constructor(
                 }
                 val mint = stateFlow.value.mint ?: return@onEach
                 val currency = stateFlow.value.balance.rate.currency
+
+                dispatchEvent(
+                    Event.OnHistoricalMarketCapDataUpdated(
+                        period,
+                        Loadable.Loading()
+                    )
+                )
+
                 tokenController.getHistoricalMarketCapData(
                     mint = mint,
                     currencyCode = currency,
                     windowedRange = window,
-                    evictAllCacheForMint = evictCacheForMint,
-                    onCacheMiss = {
-                        dispatchEvent(
-                            Event.OnHistoricalMarketCapDataUpdated(
-                                period,
-                                Loadable.Loading()
-                            )
-                        )
-                    }
                 ).map {
                     it.map { point ->
                         MarketCapPoint(
