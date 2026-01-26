@@ -77,7 +77,7 @@ internal fun BuySellTokenEntryScreen(
                 )
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
-            isClickable = true,
+            isClickable = state.purpose !is TokenSwapPurpose.FundWithWallet,
             onAmountClicked = {
                 navigator.push(
                     ScreenRegistry.get(

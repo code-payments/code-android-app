@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -253,16 +254,19 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         eventFlow.filterIsInstance<Event.OnPurposeChanged>()
             .map { it.purpose }
-            .map { purpose ->
-                when (purpose) {
+            .flatMapLatest { purpose ->
+                val mint = when (purpose) {
                     is TokenSwapPurpose.Buy -> purpose.mint
                     is TokenSwapPurpose.FundWithWallet -> purpose.mint
                     is TokenSwapPurpose.Sell -> purpose.mint
                 }
-            }.flatMapLatest { mint ->
+
                 combine(
                     tokenController.tokenBalances,
-                    exchange.observeEntryRate(),
+                    when (purpose) {
+                        is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
+                        else -> exchange.observeEntryRate()
+                    },
                 ) { tokens, rate ->
                     val token = tokens.find { it.token.address == mint } ?: return@combine null
                     val balance = LocalFiat(
@@ -277,9 +281,45 @@ class BuySellSwapTokenViewModel @Inject constructor(
             .onEach { token -> dispatchEvent(Event.OnSelectedTokenChanged(token)) }
             .launchIn(viewModelScope)
 
+        eventFlow
+            .filterIsInstance<Event.OnPurposeChanged>()
+            .map { it.purpose }
+            .flatMapLatest { purpose ->
+                val tokenAddress = when (purpose) {
+                    is TokenSwapPurpose.Buy -> Mint.usdf
+                    is TokenSwapPurpose.FundWithWallet -> Mint.usdf
+                    is TokenSwapPurpose.Sell -> purpose.mint
+                }
+
+                combine(
+                    tokenController.tokens,
+                    tokenController.balanceForToken(tokenAddress),
+                    when (purpose) {
+                        is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
+                        else -> exchange.observeEntryRate()
+                    },
+                ) { tokens, balance, rate ->
+                    val token = tokens.find { it.address == tokenAddress } ?: return@combine null
+                    TokenWithLocalizedBalance(
+                        token = token,
+                        balance = LocalFiat(
+                            usdf = balance,
+                            nativeAmount = balance.convertingTo(rate),
+                        )
+                    )
+                }
+            }.filterNotNull().mapNotNull { (token, balance) ->
+                exchange.getCurrency(balance.rate.currency.name)
+            }.onEach {
+                dispatchEvent(Event.OnCurrencyChanged(it))
+            }.launchIn(viewModelScope)
+
         combine(
             tokenController.observeReservesBalance(),
-            exchange.observeEntryRate(),
+            when (stateFlow.value.purpose) {
+                is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
+                else -> exchange.observeEntryRate()
+            },
         ) { balance, rate ->
             LocalFiat(
                 usdf = balance,
@@ -299,36 +339,6 @@ class BuySellSwapTokenViewModel @Inject constructor(
         transactionController.limits
             .onEach { dispatchEvent(Event.OnLimitsChanged(it)) }
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnPurposeChanged>()
-            .map { it.purpose }
-            .map { purpose ->
-                when (purpose) {
-                    is TokenSwapPurpose.Buy -> Mint.usdf
-                    is TokenSwapPurpose.FundWithWallet -> Mint.usdf
-                    is TokenSwapPurpose.Sell -> purpose.mint
-                }
-            }.flatMapLatest { tokenAddress ->
-                combine(
-                    tokenController.tokens,
-                    tokenController.balanceForToken(tokenAddress),
-                    exchange.observeEntryRate(),
-                ) { tokens, balance, rate ->
-                    val token = tokens.find { it.address == tokenAddress } ?: return@combine null
-                    TokenWithLocalizedBalance(
-                        token = token,
-                        balance = LocalFiat(
-                            usdf = balance,
-                            nativeAmount = balance.convertingTo(rate),
-                        )
-                    )
-                }
-            }.filterNotNull().mapNotNull { (token, balance) ->
-                exchange.getCurrency(balance.rate.currency.name)
-            }.onEach {
-                dispatchEvent(Event.OnCurrencyChanged(it))
-            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnCurrencyChanged>()
@@ -486,6 +496,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     of = token,
                 ).onSuccess {
                     dispatchEvent(Event.OnPurchaseSubmitted(token))
+                    tokenController.subtract(Token.usdf, amount)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                 }.onFailure { error ->
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
@@ -510,6 +521,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     of = token,
                 ).onSuccess {
                     dispatchEvent(Event.OnSellSubmitted(token))
+                    // sell submitted, drop from balance
+                    tokenController.subtract(token, amount)
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                 }.onFailure { error ->
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
