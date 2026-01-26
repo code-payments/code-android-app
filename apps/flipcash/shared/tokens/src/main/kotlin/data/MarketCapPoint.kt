@@ -1,7 +1,6 @@
 package com.flipcash.app.tokens.data
 
 import com.getcode.ui.components.charts.ChartPoint
-import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
@@ -21,7 +20,7 @@ fun List<MarketCapPoint>.collapse(
         Period.Week -> now - 7.days.inWholeMilliseconds
         Period.Month -> now - 30.days.inWholeMilliseconds
         Period.Year -> now - 365.days.inWholeMilliseconds
-        Period.All -> firstOrNull()?.x ?: now
+        Period.All -> minOfOrNull { it.x } ?: now
     }
 
     val filtered = filter { it.x >= startTime }
@@ -30,29 +29,21 @@ fun List<MarketCapPoint>.collapse(
     val duration = now - startTime
     val intervalMs = (duration / targetPoints).coerceAtLeast(1)
 
-    return filtered
+    val bucketedData = filtered
         .groupBy { (it.x - startTime) / intervalMs }
         .mapNotNull { (bucket, points) ->
-            val timestamp = startTime + (bucket * intervalMs) + (intervalMs / 2)
-            val value = when (aggregation) {
-                AggregationType.Last -> points.maxByOrNull { it.x }?.y
-                AggregationType.First -> points.minByOrNull { it.x }?.y
-                AggregationType.Average -> points.map { it.y }.average()
-                AggregationType.Max -> points.maxOfOrNull { it.y }
-                AggregationType.Min -> points.minOfOrNull { it.y }
-            } ?: return@mapNotNull null
+            val value = aggregation.aggregate(points) ?: return@mapNotNull null
+            bucket to value
+        }
+        .toMap()
 
-            ChartPoint(x = timestamp, y = value)
-        }
-        .sortedBy { it.x }
-        .let { points ->
-            // Ensure consistent point count for smooth morphing
-            if (points.size == targetPoints) {
-                points
-            } else {
-                points.interpolateToSize(targetPoints)
-            }
-        }
+    var lastValue = 0.0
+    return (0 until targetPoints).map { bucket ->
+        val timestamp = startTime + (bucket * intervalMs) + (intervalMs / 2)
+        val value = bucketedData[bucket.toLong()]
+        if (value != null) lastValue = value
+        MarketCapPoint(x = timestamp, y = lastValue)
+    }
 }
 
 private fun List<MarketCapPoint>.interpolateToSize(targetSize: Int): List<MarketCapPoint> {
