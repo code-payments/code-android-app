@@ -498,9 +498,12 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     dispatchEvent(Event.OnPurchaseSubmitted(token))
                     tokenController.subtract(Token.usdf, amount)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
-                }.onFailure { error ->
+                }.onFailure {
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
-                    // TODO: error
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_buySellFailed),
+                        message = resources.getString(R.string.error_description_buySellFailed),
+                    )
                 }
             }.launchIn(viewModelScope)
 
@@ -524,9 +527,12 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     // sell submitted, drop from balance
                     tokenController.subtract(token, amount)
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
-                }.onFailure { error ->
+                }.onFailure {
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
-                    // TODO: error
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_buySellFailed),
+                        message = resources.getString(R.string.error_description_buySellFailed),
+                    )
                 }
             }.launchIn(viewModelScope)
     }
@@ -560,7 +566,6 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     state.copy(
                         amountEntryState = state.amountEntryState.copy(
                             limits = event.limits
-
                         )
                     )
                 }

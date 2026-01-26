@@ -263,7 +263,15 @@ class TransactionController @Inject constructor(
                     fund = fund
                 )
             },
-            onFailure = { Result.failure(it) }
+            onFailure = { error ->
+                trace(
+                    tag = "TransactionController",
+                    message = error.message.orEmpty(),
+                    type = TraceType.Error,
+                    error = error
+                )
+                Result.failure(error)
+            }
         )
     }
 
@@ -272,6 +280,14 @@ class TransactionController @Inject constructor(
         amount: LocalFiat,
         of: Token,
     ): Result<Unit> = repository.sell(scope = scope, owner = owner, amount = amount, of = of)
+        .onFailure { error ->
+            trace(
+                tag = "TransactionController",
+                message = error.message.orEmpty(),
+                type = TraceType.Error,
+                error = error
+            )
+        }
 
     internal suspend fun submitIntent(
         scope: CoroutineScope,

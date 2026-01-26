@@ -397,4 +397,7 @@
 
     <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
     <string name="action_useCashReservesWithBalance">USD Reserves (%1$s)</string>
+
+    <string name="error_title_buySellFailed">Something Went Wrong</string>
+    <string name="error_description_buySellFailed">Please try again</string>
 </resources>
