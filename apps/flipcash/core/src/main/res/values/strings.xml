@@ -400,4 +400,8 @@
 
     <string name="error_title_buySellFailed">Something Went Wrong</string>
     <string name="error_description_buySellFailed">Please try again</string>
+
+    <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
+    <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
+
 </resources>

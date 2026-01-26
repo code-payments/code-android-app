@@ -63,7 +63,8 @@ private fun BalanceScreenContent(
         BalanceHeader(
             modifier = Modifier
                 .fillMaxWidth(),
-            balance = tokenState.totalBalance
+            balance = tokenState.totalBalance,
+            appreciation = tokenState.aggregateAppreciation,
         ) {
             dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
         }

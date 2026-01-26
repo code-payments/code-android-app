@@ -57,6 +57,9 @@ class SelectTokenViewModel @Inject constructor(
     ) {
         val totalBalance: LocalFiat
             get() = tokens.orEmpty().map { it.balance }.sum()
+
+        val aggregateAppreciation: LocalFiat?
+            get() = tokens?.map { it.appreciation }?.sum()
     }
 
     sealed interface Event {
@@ -115,7 +118,11 @@ class SelectTokenViewModel @Inject constructor(
                                 balance = LocalFiat(
                                     usdf = it.balance,
                                     nativeAmount = it.balance.convertingTo(rate),
-                                )
+                                ),
+                                appreciation = LocalFiat(
+                                    usdf = it.appreciation,
+                                    nativeAmount = it.appreciation.convertingTo(rate),
+                                ),
                             )
                         }
                         .sortedWith(compareByDescending { item ->

@@ -60,7 +60,7 @@ fun TokenBalanceRow(
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
-    val (token, balance, displayName) = tokenWithBalance
+    val (token, balance, _, displayName) = tokenWithBalance
     TokenBalanceRow(
         token = token,
         displayName = displayName,
@@ -92,7 +92,7 @@ fun TokenBalanceRow(
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
-    val (token, balance, displayName) = tokenWithBalance
+    val (token, balance, _, displayName) = tokenWithBalance
     TokenBalanceRow(
         token = token,
         displayName = displayName,

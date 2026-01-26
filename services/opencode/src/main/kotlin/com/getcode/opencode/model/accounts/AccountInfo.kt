@@ -94,7 +94,12 @@ data class AccountInfo(
      * For REMOTE_SEND_GIFT_CARD, if requesting_owner was provided, was
      * requesting_owner the issuer of the account.
      */
-    val isGiftCardIssuer: Boolean
+    val isGiftCardIssuer: Boolean,
+
+    /**
+     * The USD cost basis for this account, which can be used to compute currency appreciation/depreciation
+     */
+    val usdCostBasis: Double,
 ) {
     companion object {
         fun newInstance(info: AccountService.TokenAccountInfo): AccountInfo? {
@@ -126,7 +131,9 @@ data class AccountInfo(
                 originalExchangeData = exchangeData,
                 mint = info.mint.toMint(),
                 createdAt = info.createdAt.seconds * 1000L,
-                isGiftCardIssuer = info.isGiftCardIssuer
+                isGiftCardIssuer = info.isGiftCardIssuer,
+                usdCostBasis = info.usdCostBasis,
+
             )
         }
     }

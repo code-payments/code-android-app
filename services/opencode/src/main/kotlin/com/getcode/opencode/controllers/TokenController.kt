@@ -44,7 +44,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import org.checkerframework.checker.units.qual.min
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -82,13 +81,16 @@ class TokenController @Inject constructor(
         return tokenFetchState[mint]?.load() ?: false
     }
 
+    private val mintUsdAppreciationMap = MutableStateFlow(mapOf<Mint, Fiat>())
+
     private val mintBalances = MutableStateFlow(mapOf<Mint, Fiat>())
     val tokens = MutableStateFlow(emptyList<Token>())
 
     val tokenBalances: Flow<List<TokenWithBalance>> = mintBalances.map {
         it.mapNotNull { (mint, balance) ->
             val token = tokens.value.find { it.address == mint } ?: return@mapNotNull null
-            TokenWithBalance(token, balance)
+            val appreciation = mintUsdAppreciationMap.value[mint] ?: Fiat.Zero
+            TokenWithBalance(token, balance, appreciation)
         }
     }
 
@@ -242,11 +244,17 @@ class TokenController @Inject constructor(
                         .firstOrNull() ?: return@mapNotNull null
 
                     val tokenBalance = Fiat.tokenBalance(account.balance, token = token)
+                    val costBasis = Fiat(fiat = account.usdCostBasis)
 
-                    TokenWithBalance(token, tokenBalance)
+                    TokenWithBalance(
+                        token = token,
+                        balance = tokenBalance,
+                        appreciation = tokenBalance - costBasis
+
+                    )
                 }
         }?.onSuccess { tokensWithBalance ->
-            tokensWithBalance.onEach { (token, balance) ->
+            tokensWithBalance.onEach { (token, balance, appreciation) ->
                 trace(
                     tag = "Tokens",
                     message = "Updated balance for ${token.symbol} is ${balance.formatted()} USD",
@@ -254,6 +262,7 @@ class TokenController @Inject constructor(
                 )
 
                 mintBalances.update { it + (token.address to balance) }
+                mintUsdAppreciationMap.update { it + (token.address to appreciation) }
                 tokens.update { (it + token).distinctBy { t -> t.address } }
             }
 
