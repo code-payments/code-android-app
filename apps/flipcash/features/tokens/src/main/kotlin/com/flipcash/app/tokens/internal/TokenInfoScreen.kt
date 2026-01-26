@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +32,6 @@ import com.flipcash.app.tokens.TokenInfoViewModel
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
-import com.flipcash.app.tokens.internal.components.marketcap.generateMarketCapData
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.drawWithGradient
@@ -195,7 +193,10 @@ private fun BottomBar(
                 .measured { buttonHeight = it.height }
                 .navigationBarsPadding()
                 .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(vertical = CodeTheme.dimens.grid.x3),
+                .padding(
+                    top = CodeTheme.dimens.grid.x9,
+                    bottom = CodeTheme.dimens.grid.x3
+                ),
             state = state,
             dispatch = dispatch
         )
