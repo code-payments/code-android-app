@@ -2,13 +2,21 @@ package com.getcode.ui.theme
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,9 +28,12 @@ import androidx.compose.material.ButtonDefaults.elevation
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
+import androidx.compose.material.LocalAbsoluteElevation
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material.ProvideTextStyle
 import androidx.compose.material.Text
+import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -33,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
@@ -43,6 +56,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.isUnspecified
+import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Transparent
 import com.getcode.theme.White
@@ -181,7 +195,6 @@ fun CodeButton(
 
     CompositionLocalProvider(
         LocalMinimumInteractiveComponentEnforcement provides false,
-        LocalIndication provides ripple
     ) {
 
         var size by remember(sizeKey) {
@@ -203,59 +216,86 @@ fun CodeButton(
             }
         }
 
-        Button(
-            onClick = onClick,
-            modifier = modifier,
-            colors = colors,
-            border = border,
-            enabled = isEnabled,
-            elevation = elevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 0.dp
-            ),
-            shape = shape,
-            contentPadding = cp
+        CompositionLocalProvider(
+            LocalContentColor provides colors.contentColor(enabled).value,
+            LocalAbsoluteElevation provides 0.dp,
         ) {
-            Box(modifier = Modifier
-                .addIf(size.isSpecified) { Modifier.size(size) }
-                .addIf(size.isUnspecified) { Modifier.measured { size = it } }
-                .width(IntrinsicSize.Max)
-                .height(IntrinsicSize.Min)
+            Box(
+                modifier =
+                    modifier
+                        .minimumInteractiveComponentSize()
+                        .shadow(0.dp, shape, clip = false)
+                        .border(border, shape)
+                        .background(color = colors.backgroundColor(enabled).value, shape = shape)
+                        .clip(shape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple,
+                            enabled = enabled,
+                            onClick = onClick,
+                        ),
+                propagateMinConstraints = true,
             ) {
-            Crossfade(contentState) { state ->
-                when (state) {
-                    ButtonContentState.Content -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            ProvideTextStyle(value = style) {
-                                this@Button.content()
+                Row(
+                    Modifier.defaultMinSize(
+                        minWidth = ButtonDefaults.MinWidth,
+                        minHeight = ButtonDefaults.MinHeight,
+                    ).padding(cp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .addIf(size.isSpecified) { Modifier.size(size) }
+                            .addIf(size.isUnspecified) { Modifier.measured { size = it } }
+                            .width(IntrinsicSize.Max)
+                            .height(IntrinsicSize.Min)
+                    ) {
+                        Crossfade(contentState) { state ->
+                            when (state) {
+                                ButtonContentState.Content -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        ProvideTextStyle(value = style) {
+                                            this@Row.content()
+                                        }
+                                    }
+                                }
+
+                                ButtonContentState.Loading -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CodeCircularProgressIndicator(
+                                            strokeWidth = CodeTheme.dimens.thickBorder,
+                                            color = White,
+                                            modifier = Modifier
+                                                .size(CodeTheme.dimens.grid.x3)
+                                        )
+                                    }
+                                }
+
+                                ButtonContentState.Successful -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
+                                            painter = painterResource(id = R.drawable.ic_check),
+                                            tint = CodeTheme.colors.success,
+                                            contentDescription = "",
+                                        )
+                                    }
+                                }
                             }
-                        }
-                    }
-
-                    ButtonContentState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CodeCircularProgressIndicator(
-                                strokeWidth = CodeTheme.dimens.thickBorder,
-                                color = White,
-                                modifier = Modifier
-                                    .size(CodeTheme.dimens.grid.x3)
-                            )
-                        }
-                    }
-
-                    ButtonContentState.Successful -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
-                                painter = painterResource(id = R.drawable.ic_check),
-                                tint = CodeTheme.colors.success,
-                                contentDescription = "",
-                            )
                         }
                     }
                 }
             }
-                }
         }
     }
 }
@@ -273,7 +313,7 @@ fun getRipple(
     bounded = true,
     color = when (buttonState) {
         ButtonState.Bordered -> White
-        ButtonState.Filled -> CodeTheme.colors.textSecondary
+        ButtonState.Filled -> Black50
         ButtonState.Filled50 -> White50
         ButtonState.Filled20 -> White20
         ButtonState.Filled10 -> White10
@@ -338,7 +378,8 @@ fun getButtonColors(
                 backgroundColor = CodeTheme.colors.success,
                 contentColor = textColor.takeOrElse { Color.White },
                 disabledBackgroundColor = CodeTheme.colors.success.copy(ContentAlpha.disabled),
-                disabledContentColor = textColor.takeOrElse { Color.White }.copy(alpha = ContentAlpha.disabled),
+                disabledContentColor = textColor.takeOrElse { Color.White }
+                    .copy(alpha = ContentAlpha.disabled),
             )
     }
 }
