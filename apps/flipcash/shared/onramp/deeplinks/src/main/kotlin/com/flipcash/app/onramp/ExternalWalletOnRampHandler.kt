@@ -252,11 +252,9 @@ fun ExternalWalletOnRampHandler(
                 analytics.transactionSubmittedToWallet(state.provider!!)
                 state.reset()
                 val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
-                val title = if (state.tokenToPurchase != null) {
-                    context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, state.tokenToPurchase.name)
-                } else {
-                    context.getString(R.string.prompt_title_cashOnTheWay)
-                }
+                val title = state.tokenToPurchase?.let { token ->
+                    context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
+                } ?: context.getString(R.string.prompt_title_cashOnTheWay)
                 BottomBarManager.showMessage(
                     title = title,
                     subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
