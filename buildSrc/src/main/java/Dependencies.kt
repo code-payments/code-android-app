@@ -78,7 +78,7 @@ object Versions {
     const val voyager = "1.1.0-beta03"
     const val protobuf_plugin = "0.9.4"
 
-    const val sodium_bindings = "0.9.5-SNAPSHOT"
+    const val sodium_bindings = "0.9.5"
 
     const val desugaring = "2.1.2"
 
