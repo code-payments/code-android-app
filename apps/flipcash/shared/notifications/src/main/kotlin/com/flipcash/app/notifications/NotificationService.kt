@@ -18,6 +18,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -43,6 +44,9 @@ class NotificationService: FirebaseMessagingService(), CoroutineScope by Corouti
 
     @Inject
     lateinit var notificationManager: NotificationManagerCompat
+
+    @Inject
+    lateinit var tokenController: TokenController
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -83,6 +87,10 @@ class NotificationService: FirebaseMessagingService(), CoroutineScope by Corouti
 
             val random = SecureRandom()
             val notificationId = random.nextInt(256)
+
+            launch {
+                tokenController.update()
+            }
 
             if (ActivityCompat.checkSelfPermission(
                     this,
