@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import org.checkerframework.checker.units.qual.min
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -84,17 +85,12 @@ class TokenController @Inject constructor(
     private val mintBalances = MutableStateFlow(mapOf<Mint, Fiat>())
     val tokens = MutableStateFlow(emptyList<Token>())
 
-    val tokenBalances: Flow<List<TokenWithBalance>>
-        get() = tokens.map {
-            it.map { token ->
-                val currency =
-                    CurrencyCode.tryValueOf(locale.getDefaultCurrencyName()) ?: CurrencyCode.USD
-                val balance =
-                    mintBalances.value[token.address] ?: Fiat.Zero.copy(currencyCode = currency)
-                TokenWithBalance(token, balance)
-            }
+    val tokenBalances: Flow<List<TokenWithBalance>> = mintBalances.map {
+        it.mapNotNull { (mint, balance) ->
+            val token = tokens.value.find { it.address == mint } ?: return@mapNotNull null
+            TokenWithBalance(token, balance)
         }
-
+    }
 
     fun onUserLoggedIn(cluster: AccountCluster) {
         trace(
@@ -188,7 +184,14 @@ class TokenController @Inject constructor(
         skipCache: Boolean = false,
         onCacheMiss: () -> Unit = { },
     ): Result<List<HistoricalMintData>> {
-        return currencyController.getHistoricalMintData(mint, currencyCode, windowedRange, skipCache, evictAllCacheForMint, onCacheMiss)
+        return currencyController.getHistoricalMintData(
+            mint,
+            currencyCode,
+            windowedRange,
+            skipCache,
+            evictAllCacheForMint,
+            onCacheMiss
+        )
     }
 
     fun observeSelectedTokenMint(): Flow<Mint> {
