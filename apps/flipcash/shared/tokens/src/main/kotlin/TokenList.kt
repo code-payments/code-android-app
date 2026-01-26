@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.ui.TokenBalanceRow
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
@@ -57,7 +58,8 @@ fun TokenList(
                 scrollState = listState,
                 color = CodeTheme.colors.background,
                 showAtEnd = true
-            ).sheetResignmentBehavior(listState),
+            )
+            .sheetResignmentBehavior(listState),
         contentPadding = PaddingValues(
             bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         ),
@@ -85,7 +87,11 @@ fun TokenList(
             }
 
             footer?.let {
-                if (reservesEnabled) {
+                if (reservesEnabled &&
+                    cashReserves.nativeAmount.valueGreaterThan(
+                        Fiat(0.0, cashReserves.rate.currency)
+                    )
+                ) {
                     item { it(Mint.usdf, cashReserves) }
                 }
             }
