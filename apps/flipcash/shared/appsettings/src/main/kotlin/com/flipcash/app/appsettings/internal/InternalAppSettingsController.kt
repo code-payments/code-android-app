@@ -74,8 +74,6 @@ class InternalAppSettingsController(
     }
 
     override fun reset() {
-        dataScope.launch {
-            appSettings.edit { it.clear() }
-        }
+        // app settings persist log out
     }
 }
