@@ -26,6 +26,11 @@ object ExchangeFactory {
         val locale = localeModule.bindLocaleHelper(context)
         val resources = AndroidResources(context)
         val controller = ControllerFactory.createCurrencyController(context, config)
-        return module.providesExchange(controller, resources, locale)
+        return module.providesExchange(
+            currencyController = controller,
+            resources = resources,
+            locale = locale,
+            verifiedStateManager = ManagerFactory.createVerifiedStateManager(),
+        )
     }
 }

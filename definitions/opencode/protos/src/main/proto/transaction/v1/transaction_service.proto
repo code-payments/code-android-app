@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/ocp-protobuf-api/generated/go/tran
 option java_package = "com.codeinc.opencode.gen.transaction.v1";
 option objc_class_prefix = "APBTransactionV1";
 import "common/v1/model.proto";
+import "currency/v1/currency_service.proto";
 import "google/protobuf/timestamp.proto";
 
 service Transaction {
@@ -503,7 +504,12 @@ message SendPublicPaymentMetadata {
     // to create an ATA. Every other variation of this intent can omit this field.
     common.v1.SolanaAccountId destination_owner = 3;
     // The exchange data of total funds being sent to the destination
-    ExchangeData exchange_data = 4;
+    oneof exchange_data {
+        // Provided by server for submitted intents
+        ExchangeData server_exchange_data = 4;
+        // Provided by clients when submitting new intents
+        VerifiedExchangeData client_exchange_data = 8;
+    }
     // Is the payment a withdrawal?
     bool is_withdrawal = 5;
     // Is the payment going to a new gift card? Note is_withdrawal must be false.
@@ -729,27 +735,48 @@ message DeniedErrorDetails {
 //
 // Other Model Definitions
 //
-// ExchangeData defines an amount of crypto with currency exchange data
+// VerifiedExchangeData defines an amount of crypto to use in a payment flow
+// with verified server-state for provable fiat exchange data
+message VerifiedExchangeData {
+    // The crypto mint that is being operated against for the payment flow.
+    common.v1.SolanaAccountId mint = 1;
+    // The exact amount of quarks being operated in a payment flow.
+    // This will be used as the source of truth for validating transfer amounts.
+    uint64 quarks = 2;
+    // The agreed upon fiat amount in a payment flow.
+    double native_amount = 3;
+    // Verified core mint fiat exchange rate used to compute the exchange data
+    //
+    // Required when operating against:
+    //  - Core mint
+    //  - Launchpad currency
+    currency.v1.VerifiedCoreMintFiatExchangeRate core_mint_fiat_exchange_rate = 4;
+    // Verified launchpad currency reserve state used to compute the exchange data
+    //
+    // Required when operating against:
+    //  - Launchpad currency
+    currency.v1.VerifiedLaunchpadCurrencyReserveState launchpad_currency_reserve_state = 5;
+}
+// ExchangeData defines an amount of crypto to use in a payment flow with
+// fiat exchange data
 message ExchangeData {
     // ISO 4217 alpha-3 currency code.
     string currency = 1;
     // The agreed upon exchange rate. This might not be the same as the
     // actual exchange rate at the time of intent or fund transfer.
     double exchange_rate = 2;
-    // The agreed upon transfer amount in the currency the payment was made
-    // in.
+    // The agreed upon fiat amount in a payment flow.
     double native_amount = 3;
-    // The exact amount of quarks to send. This will be used as the source of
-    // truth for validating transaction transfer amounts.
+    // The exact amount of quarks being operated in a payment flow.
+    // This will be used as the source of truth for validating transfer amounts.
     uint64 quarks = 4;
-    // The crypto mint that is being operated against for the exchange.
+    // The crypto mint that is being operated against for the payment flow.
     common.v1.SolanaAccountId mint = 5;
 }
 message ExchangeDataWithoutRate {
     // ISO 4217 alpha-3 currency code.
     string currency = 1;
-    // The agreed upon transfer amount in the currency the payment was made
-    // in.
+    // The agreed upon fiat amount in a payment flow.
     double native_amount = 2;
 }
 message SendLimit {

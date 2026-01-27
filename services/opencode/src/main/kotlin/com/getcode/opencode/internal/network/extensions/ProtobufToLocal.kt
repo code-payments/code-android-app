@@ -88,7 +88,7 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
             source = sendPublicPayment.source.toPublicKey(),
             destination = sendPublicPayment.destination.toPublicKey(),
             destinationOwner = sendPublicPayment.destinationOrNull?.toPublicKey(),
-            exchangeData = sendPublicPayment.exchangeData.toModel(),
+            exchangeData = sendPublicPayment.serverExchangeData.toModel(),
             isRemoteSend = sendPublicPayment.isRemoteSend,
             isWithdrawal = sendPublicPayment.isWithdrawal,
         )

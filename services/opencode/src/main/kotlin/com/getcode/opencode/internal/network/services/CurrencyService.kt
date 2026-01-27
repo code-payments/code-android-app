@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.internal.network.api.CurrencyApi
@@ -28,6 +29,7 @@ internal class CurrencyService @Inject constructor(
     private val mintMapper: MintMapper,
     private val historicalMintDataMapper: HistoricalMintDataMapper,
     private val liveMintDataMapper: LiveMintDataMapper,
+    private val verifiedStateManager: VerifiedProtoManager,
 ) {
     suspend fun getRates(
         from: Instant?
@@ -123,6 +125,14 @@ internal class CurrencyService @Inject constructor(
     ): OcpMintStreamingReference {
         val streamer = LiveMintDataStreamer(api)
         return streamer.stream(scope = scope, mints = mints, tag = tag,) { update ->
+            // save protos for later use
+            when (update.typeCase) {
+                CurrencyService.StreamLiveMintDataResponse.LiveData.TypeCase.CORE_MINT_FIAT_EXCHANGE_RATES -> verifiedStateManager.saveRates(update.coreMintFiatExchangeRates.exchangeRatesList)
+                CurrencyService.StreamLiveMintDataResponse.LiveData.TypeCase.LAUNCHPAD_CURRENCY_RESERVE_STATES -> verifiedStateManager.saveReserveStates(update.launchpadCurrencyReserveStates.reserveStatesList)
+                CurrencyService.StreamLiveMintDataResponse.LiveData.TypeCase.TYPE_NOT_SET -> Unit
+            }
+
+            // map to domain models for use throughout app (above server)
             val data = liveMintDataMapper.map(update)
             if (data != null) {
                 onUpdate(data)

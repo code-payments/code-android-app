@@ -1,5 +1,7 @@
 package com.getcode.opencode.model.transactions
 
+import com.getcode.opencode.internal.manager.VerifiedState
+import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.solana.keys.Mint
 
 /**
@@ -21,6 +23,13 @@ sealed interface ExchangeData {
         val nativeAmount: Double,
         val quarks: Long,
         val mint: Mint,
+    ): ExchangeData
+
+    data class Verified(
+        val mint: Mint,
+        val quarks: Long,
+        val nativeAmount: Double,
+        val verifiedState: VerifiedState,
     ): ExchangeData
 
     /**

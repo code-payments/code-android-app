@@ -24,7 +24,6 @@ import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
-import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.toByteString
 import com.google.protobuf.ByteString
@@ -135,7 +134,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
                     .setMint(mint.asSolanaAccountId())
                     .setQuarks(quarks)
                     .setIsRemoteSend(isRemoteSend)
-                    // exchange data cannot be set on outgoing transactions
+                    // exchange data cannot be set on incoming transactions
 //                    .setExchangeData(exchangeData.asProtobufExchangeData())
                     .build()
             )
@@ -146,7 +145,11 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
                     .setSource(source.asSolanaAccountId())
                     .setMint(exchangeData.mint.asSolanaAccountId())
-                    .setExchangeData(exchangeData.asProtobufExchangeData())
+                    .apply {
+                        if (verifiedExchangeData != null) {
+                            setClientExchangeData(verifiedExchangeData.asProtobufExchangeData())
+                        }
+                    }
                     .setDestination(destination.asSolanaAccountId())
                     .apply {
                         if (this@asProtobufMetadata.destinationOwner != null) {
@@ -192,6 +195,19 @@ internal fun ExchangeData.WithRate.asProtobufExchangeData(): TransactionService.
         .setQuarks(quarks)
         .setMint(mint.asSolanaAccountId())
         .build()
+}
+
+internal fun ExchangeData.Verified.asProtobufExchangeData(): TransactionService.VerifiedExchangeData {
+    return TransactionService.VerifiedExchangeData.newBuilder()
+        .setMint(mint.asSolanaAccountId())
+        .setQuarks(quarks)
+        .setNativeAmount(nativeAmount)
+        .setCoreMintFiatExchangeRate(verifiedState.rateProto)
+        .apply {
+            if (verifiedState.reserveProto != null) {
+                setLaunchpadCurrencyReserveState(verifiedState.reserveProto)
+            }
+        }.build()
 }
 
 internal fun ExchangeData.WithoutRate.asProtobufExchangeData(): TransactionService.ExchangeDataWithoutRate {

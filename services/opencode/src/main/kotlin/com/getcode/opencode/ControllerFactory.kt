@@ -36,6 +36,7 @@ object ControllerFactory {
             repository = RepositoryFactory.createTransactionRepository(context, config),
             accountController = createAccountController(context, config),
             eventBus = module.providesEventBus(),
+            verifiedStateManager = ManagerFactory.createVerifiedStateManager(),
         )
     }
     fun createCurrencyController(context: Context, config: ProtocolConfig): CurrencyController {
@@ -51,7 +52,6 @@ object ControllerFactory {
             currencyController = createCurrencyController(context, config),
             networkObserver = NetworkFactory.createNetworkObserver(context),
             exchange = ExchangeFactory.createOpenCodeExchange(context, config),
-            locale = AndroidLocale(context),
         )
     }
 }

@@ -2,15 +2,16 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
-import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fee
 import com.getcode.opencode.model.financial.FeeType
@@ -21,7 +22,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
-import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
@@ -58,6 +58,7 @@ class TransactionController @Inject constructor(
     private val repository: TransactionRepository,
     private val accountController: AccountController,
     private val eventBus: ChannelEventBus,
+    private val verifiedStateManager: VerifiedProtoManager,
 ) {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -116,12 +117,16 @@ class TransactionController @Inject constructor(
         rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
+        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, mint)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
         val intent = IntentTransfer.create(
             amount = amount,
             mint = mint,
             sourceCluster = source,
             destination = destination,
             rendezvous = rendezvous,
+            verifiedState = verifiedState,
         )
 
         return submitIntent(scope, intent, source.authority.keyPair)
@@ -136,6 +141,9 @@ class TransactionController @Inject constructor(
         fee: Fiat? = null,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
+        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, mint)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
         val intent = IntentWithdraw.create(
             amount = amount,
             mint = mint,
@@ -143,6 +151,7 @@ class TransactionController @Inject constructor(
             sourceCluster = owner,
             destination = destination,
             destinationOwner = destinationOwner,
+            verifiedState = verifiedState,
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)

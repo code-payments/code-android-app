@@ -5,6 +5,7 @@ import com.codeinc.opencode.gen.transaction.v1.feeAmountOrNull
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.internal.network.executors.SwapExecutor
@@ -16,6 +17,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
+import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
 import com.getcode.opencode.model.financial.Limits
@@ -25,7 +27,6 @@ import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapDirection
-import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -36,16 +37,15 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.Instant
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 
 
 internal class TransactionService @Inject constructor(
     private val api: TransactionApi,
     private val transactionMetadataMapper: TransactionMetadataMapper,
     private val swapFunding: SwapFunding,
+    private val verifiedStateManager: VerifiedProtoManager,
 ) {
     suspend fun submitIntent(
         scope: CoroutineScope,
@@ -198,6 +198,9 @@ internal class TransactionService @Inject constructor(
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<Unit> {
+        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
         val request = SwapRequest(
             owner = owner,
             swapAuthority = Ed25519.createKeyPair(),
@@ -210,6 +213,7 @@ internal class TransactionService @Inject constructor(
             direction = SwapDirection.Buy(of),
             amount = amount,
             swapId = swapId ?: SwapId.generate(),
+            verifiedState = verifiedState,
         )
 
         val fundedWith = fund ?: { swapFunding.fund(scope, owner, it).map { Unit } }
@@ -224,6 +228,9 @@ internal class TransactionService @Inject constructor(
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
     ): Result<Unit> {
         val tokenCluster = owner.withTimelockForToken(of)
+        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
         val request = SwapRequest(
             owner = tokenCluster,
             swapId = SwapId.generate(),
@@ -235,7 +242,8 @@ internal class TransactionService @Inject constructor(
                 fundingSource = source,
             ),
             direction = SwapDirection.Sell(of),
-            amount = amount
+            amount = amount,
+            verifiedState = verifiedState,
         )
 
         return swap(scope, request, tokenCluster)

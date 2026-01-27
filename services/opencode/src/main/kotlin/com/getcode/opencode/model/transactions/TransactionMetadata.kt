@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.transactions
 
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.LocalFiat
@@ -49,6 +50,7 @@ sealed interface TransactionMetadata {
         val destination: PublicKey,
         val destinationOwner: PublicKey? = null,
         override val exchangeData: ExchangeData.WithRate,
+        val verifiedExchangeData: ExchangeData.Verified? = null,
         val isRemoteSend: Boolean,
         val isWithdrawal: Boolean,
     ): PublicPayment {
@@ -70,6 +72,36 @@ sealed interface TransactionMetadata {
                 nativeAmount = amount.nativeAmount.decimalValue,
                 quarks = amount.underlyingTokenAmount.quarks,
                 mint = mint,
+            ),
+            isRemoteSend = isRemoteSend,
+            isWithdrawal = isWithdrawal,
+        )
+
+        constructor(
+            source: PublicKey,
+            destination: PublicKey,
+            destinationOwner: PublicKey? = null,
+            amount: LocalFiat,
+            verifiedState: VerifiedState,
+            mint: Mint,
+            isRemoteSend: Boolean,
+            isWithdrawal: Boolean,
+        ) : this(
+            source = source,
+            destination = destination,
+            destinationOwner = destinationOwner,
+            exchangeData = ExchangeData.WithRate(
+                currencyCode = verifiedState.rateProto.exchangeRate.currencyCode,
+                exchangeRate = verifiedState.rateProto.exchangeRate.exchangeRate,
+                nativeAmount = amount.nativeAmount.decimalValue,
+                quarks = amount.underlyingTokenAmount.quarks,
+                mint = mint,
+            ),
+            verifiedExchangeData = ExchangeData.Verified(
+                mint = mint,
+                quarks = amount.underlyingTokenAmount.quarks,
+                nativeAmount = amount.nativeAmount.decimalValue,
+                verifiedState = verifiedState,
             ),
             isRemoteSend = isRemoteSend,
             isWithdrawal = isWithdrawal,

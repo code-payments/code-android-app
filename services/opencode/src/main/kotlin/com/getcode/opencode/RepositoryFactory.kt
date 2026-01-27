@@ -17,7 +17,6 @@ import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.TransactionService
-import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
@@ -40,8 +39,9 @@ object RepositoryFactory {
         val transactionApi = TransactionApi(module.provideManagedChannel(context, config))
         val service = AccountService(api)
         val transactionMetadataMapper = TransactionMetadataMapper()
+        val verifiedStateManager = ManagerFactory.createVerifiedStateManager()
         val swapFunding = SwapFunding(transactionApi)
-        val transactionService = TransactionService(transactionApi, transactionMetadataMapper, swapFunding)
+        val transactionService = TransactionService(transactionApi, transactionMetadataMapper, swapFunding, verifiedStateManager)
         return module.providesAccountRepository(service, transactionService)
     }
 
@@ -97,8 +97,9 @@ object RepositoryFactory {
 
         val api = TransactionApi(module.provideManagedChannel(context, config))
         val transactionMetadataMapper = TransactionMetadataMapper()
+        val verifiedStateManager = ManagerFactory.createVerifiedStateManager()
         val swapFunding = SwapFunding(api)
-        val service = TransactionService(api, transactionMetadataMapper, swapFunding)
+        val service = TransactionService(api, transactionMetadataMapper, swapFunding, verifiedStateManager)
         return module.providesTransactionRepository(service)
     }
 
@@ -122,7 +123,8 @@ object RepositoryFactory {
         )
         val historicalMintDataMapper = HistoricalMintDataMapper()
         val liveMintDataMapper = LiveMintDataMapper()
-        val service = CurrencyService(api, mintMapper, historicalMintDataMapper, liveMintDataMapper)
+        val verifiedStateManager = ManagerFactory.createVerifiedStateManager()
+        val service = CurrencyService(api, mintMapper, historicalMintDataMapper, liveMintDataMapper, verifiedStateManager)
         return module.providesCurrencyRepository(service)
     }
 }

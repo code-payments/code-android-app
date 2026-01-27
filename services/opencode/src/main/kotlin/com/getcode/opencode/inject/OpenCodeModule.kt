@@ -17,6 +17,7 @@ import com.getcode.opencode.internal.domain.repositories.InternalMessagingReposi
 import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
@@ -52,10 +53,12 @@ object OpenCodeModule {
         currencyController: CurrencyController,
         resources: ResourceHelper,
         locale: LocaleHelper,
+        verifiedStateManager: VerifiedProtoManager,
     ): Exchange = OpenCodeExchange(
         currencyController = currencyController,
         resources = resources,
         locale = locale,
+        verifiedStateManager = verifiedStateManager,
     )
 
     @Singleton

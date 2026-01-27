@@ -3,10 +3,12 @@ package com.getcode.opencode.internal.model
 import com.getcode.opencode.model.financial.LaunchpadReserveStateSnapshot
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Signature
+import kotlin.time.Instant
 
 sealed interface VerifiedResponseData {
     data class ExchangeRate(
         val rate: Rate,
+        val timestamp: Instant,
         val signature: Signature,
     ): VerifiedResponseData
 

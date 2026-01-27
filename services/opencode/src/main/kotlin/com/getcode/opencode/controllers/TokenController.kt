@@ -11,6 +11,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -67,7 +68,6 @@ class TokenController @Inject constructor(
     private val currencyController: CurrencyController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
-    private val locale: LocaleHelper,
 ) : DefaultLifecycleObserver {
 
     companion object {

@@ -20,9 +20,12 @@ internal class LiveMintDataMapper @Inject constructor(): Mapper<CurrencyService.
                     val fx = verifiedData.exchangeRate.exchangeRate
                     val code = verifiedData.exchangeRate.currencyCode
                     val currencyCode = CurrencyCode.tryValueOf(code) ?: return@mapNotNull null
+                    val timestamp = (verifiedData.exchangeRate.timestamp.seconds * 1000L).toInstantFromMillis()
+
 
                     VerifiedResponseData.ExchangeRate(
                         rate = Rate(fx = fx, currency = currencyCode),
+                        timestamp = timestamp,
                         signature = verifiedData.signature.toSignature()
                     )
                 }

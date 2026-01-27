@@ -1,6 +1,8 @@
 package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.getcode.opencode.internal.manager.VerifiedState
+import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
@@ -29,6 +31,7 @@ internal class IntentTransfer(
             sourceCluster: AccountCluster,
             destination: PublicKey,
             rendezvous: PublicKey,
+            verifiedState: VerifiedState,
         ): IntentTransfer {
             val transfer = ActionPublicTransfer.newInstance(
                 owner = sourceCluster.authority.keyPair,
@@ -47,6 +50,7 @@ internal class IntentTransfer(
                     mint = mint,
                     isRemoteSend = false,
                     isWithdrawal = false,
+                    verifiedState = verifiedState,
                 ),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(transfer)
