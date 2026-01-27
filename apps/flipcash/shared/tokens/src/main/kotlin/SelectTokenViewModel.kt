@@ -59,7 +59,7 @@ class SelectTokenViewModel @Inject constructor(
             get() = tokens.orEmpty().map { it.balance }.sum()
 
         val aggregateAppreciation: LocalFiat?
-            get() = tokens?.map { it.appreciation }?.sum()
+            get() = tokens?.mapNotNull { it.appreciation }?.sum()
     }
 
     sealed interface Event {
@@ -119,10 +119,19 @@ class SelectTokenViewModel @Inject constructor(
                                     usdf = it.balance,
                                     nativeAmount = it.balance.convertingTo(rate),
                                 ),
-                                appreciation = LocalFiat(
-                                    usdf = it.appreciation,
-                                    nativeAmount = it.appreciation.convertingTo(rate),
-                                ),
+                                // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
+                                // with true zero's.
+                                appreciation = if (it.appreciation == Fiat.MIN_VALUE) {
+                                    LocalFiat(
+                                        usdf = 0.toFiat(),
+                                        nativeAmount = 0.toFiat(rate.currency),
+                                    )
+                                } else {
+                                    LocalFiat(
+                                        usdf = it.appreciation,
+                                        nativeAmount = it.appreciation.convertingTo(rate),
+                                    )
+                                }
                             )
                         }
                         .sortedWith(compareByDescending { item ->

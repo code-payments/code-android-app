@@ -15,7 +15,7 @@ import kotlin.time.Instant
 data class TokenWithBalance(
     val token: Token,
     val balance: Fiat,
-    val appreciation: Fiat = Fiat.Zero,
+    val appreciation: Fiat = Fiat.MIN_VALUE,
     val displayName: String = token.name,
 ) {
     val isReserves: Boolean
@@ -25,7 +25,7 @@ data class TokenWithBalance(
 data class TokenWithLocalizedBalance(
     val token: Token,
     val balance: LocalFiat,
-    val appreciation: LocalFiat = LocalFiat.Zero,
+    val appreciation: LocalFiat = LocalFiat.MIN_VALUE,
     val displayName: String = token.name,
 ) {
     val isReserves: Boolean

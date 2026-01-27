@@ -97,7 +97,8 @@ data class AccountInfo(
     val isGiftCardIssuer: Boolean,
 
     /**
-     * The USD cost basis for this account, which can be used to compute currency appreciation/depreciation
+     * The USD cost basis for this account, which can be used to compute
+     * currency appreciation/depreciation
      */
     val usdCostBasis: Double,
 ) {

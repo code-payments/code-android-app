@@ -89,6 +89,9 @@ data class LocalFiat(
             rate = Rate.oneToOne
         )
 
+        val MIN_VALUE = LocalFiat(usdf = Fiat(Int.MIN_VALUE, CurrencyCode.USD),)
+        val MAX_VALUE = LocalFiat(usdf = Fiat(Int.MAX_VALUE, CurrencyCode.USD),)
+
         fun fromNativeAmount(
             nativeAmount: Fiat,
             rate: Rate,

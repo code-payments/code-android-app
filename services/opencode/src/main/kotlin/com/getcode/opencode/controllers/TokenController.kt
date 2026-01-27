@@ -89,8 +89,13 @@ class TokenController @Inject constructor(
     val tokenBalances: Flow<List<TokenWithBalance>> = mintBalances.map {
         it.mapNotNull { (mint, balance) ->
             val token = tokens.value.find { it.address == mint } ?: return@mapNotNull null
-            val appreciation = mintUsdAppreciationMap.value[mint] ?: Fiat.Zero
-            TokenWithBalance(token, balance, appreciation)
+            if (token.address == Mint.usdf) {
+                // no appreciation for reserves
+                TokenWithBalance(token, balance)
+            } else {
+                val appreciation = mintUsdAppreciationMap.value[mint] ?: Fiat.Zero
+                TokenWithBalance(token, balance, appreciation)
+            }
         }
     }
 
@@ -120,6 +125,12 @@ class TokenController @Inject constructor(
 
     fun balanceForToken(tokenAddress: Mint): Flow<Fiat> {
         return mintBalances.map { it[tokenAddress] ?: Fiat.Zero }
+    }
+
+    fun appreciationForToken(tokenAddress: Mint): Flow<Fiat> {
+        return tokenBalances.mapNotNull { tokens ->
+            tokens.find { it.token.address == tokenAddress }?.appreciation
+        }
     }
 
     fun reservesBalance(): Fiat {

@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.CurrencyAppreciationLabel
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
@@ -27,7 +28,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 internal fun TokenBalance(
     modifier: Modifier = Modifier,
     balance: Fiat?,
-    appreciation: Fiat,
+    appreciation: Fiat?,
     onClick: () -> Unit
 ) {
     val exchange = LocalExchange.current
@@ -35,6 +36,7 @@ internal fun TokenBalance(
         modifier = modifier
             .padding(horizontal = CodeTheme.dimens.inset)
             .padding(vertical = CodeTheme.dimens.grid.x9),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (balance == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -54,35 +56,9 @@ internal fun TokenBalance(
                 )
             }
 
-            if (appreciation > Fiat.Zero) {
+            if (appreciation != null) {
                 Crossfade(appreciation) { amount ->
-                    val relativeAmount = remember(amount) {
-                        val prefix = if (amount.isNegative) "-" else "+"
-                        val value = amount.formatted()
-                        "$prefix$value"
-                    }
-
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                    ) {
-                        CodeChip(
-                            shape = CodeTheme.shapes.extraSmall,
-                            label = relativeAmount,
-                            contentPadding = PaddingValues(
-                                horizontal = 4.dp,
-                                vertical = 2.dp,
-                            ),
-                            backgroundColor = CodeTheme.colors.surfaceSuccess,
-                            contentColor = CodeTheme.colors.successText,
-                        )
-                        Text(
-                            text = "from currency appreciation",
-                            style = CodeTheme.typography.textSmall.bolded(),
-                            color = CodeTheme.colors.successText,
-                        )
-                    }
+                    CurrencyAppreciationLabel(amount)
                 }
             }
         }

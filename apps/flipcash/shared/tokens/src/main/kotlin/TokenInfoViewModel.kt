@@ -75,7 +75,7 @@ class TokenInfoViewModel @Inject constructor(
         val cashReservesEnabled: Boolean = false,
         val marketCapChartEnabled: Boolean = false,
         val balance: LocalFiat = LocalFiat.Zero,
-        val appreciation: Fiat = Fiat.Zero,
+        val appreciation: LocalFiat? = null,
         val descriptionExpanded: Boolean = false,
         val reservesBalance: LocalFiat = LocalFiat.Zero,
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
@@ -107,7 +107,7 @@ class TokenInfoViewModel @Inject constructor(
         data class OnMarketCapPeriodSelected(val period: Period) : Event
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
         data class OnReservesUpdated(val balance: LocalFiat) : Event
-        data class OnAppreciationUpdated(val amount: Fiat) : Event
+        data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
         data object OpenPurchaseMethods : Event
@@ -152,15 +152,30 @@ class TokenInfoViewModel @Inject constructor(
             .flatMapLatest {
                 combine(
                     tokenController.balanceForToken(it.address),
+                    tokenController.appreciationForToken(it.address),
                     exchange.observeBalanceRate(),
-                ) { balance, rate ->
-                    LocalFiat(
+                ) { balance, appreciation, rate ->
+                    val localizedBalance = LocalFiat(
                         usdf = balance,
                         nativeAmount = balance.convertingTo(rate),
                     )
+
+                    // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
+                    // with true zero's.
+                    val localizedAppreciation = if (appreciation != Fiat.MIN_VALUE) {
+                        LocalFiat(
+                            usdf = appreciation,
+                            nativeAmount = appreciation.convertingTo(rate),
+                        )
+                    } else {
+                        null
+                    }
+
+                    localizedBalance to localizedAppreciation
                 }
-            }.onEach {
-                dispatchEvent(Event.OnBalanceUpdated(it))
+            }.onEach { (balance, appreciation) ->
+                dispatchEvent(Event.OnBalanceUpdated(balance))
+                dispatchEvent(Event.OnAppreciationUpdated(appreciation))
             }.launchIn(viewModelScope)
 
         combine(

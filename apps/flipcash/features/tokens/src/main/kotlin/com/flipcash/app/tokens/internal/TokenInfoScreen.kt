@@ -84,7 +84,7 @@ private fun TokenInfoScreen(
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
                         balance = state.balance.nativeAmount,
-                        appreciation = state.appreciation,
+                        appreciation = state.appreciation?.nativeAmount,
                         onClick = {
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(

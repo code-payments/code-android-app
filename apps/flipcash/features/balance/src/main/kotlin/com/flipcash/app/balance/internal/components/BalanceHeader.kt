@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.CurrencyAppreciationLabel
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.features.balance.R
 import com.getcode.opencode.compose.LocalExchange
@@ -60,45 +61,7 @@ internal fun BalanceHeader(
 
             if (appreciation != null) {
                 Crossfade(appreciation.nativeAmount) { amount ->
-                    val hasAppreciation = amount.decimalValue >= 0
-                    val changeColor = if (hasAppreciation) {
-                        CodeTheme.colors.successText
-                    } else {
-                        CodeTheme.colors.errorText
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .background(
-                                    color = changeColor.copy(0.20f),
-                                    shape = MaterialTheme.shapes.extraSmall,
-                                )
-                                .padding(
-                                    vertical = 2.dp,
-                                    horizontal = CodeTheme.dimens.grid.x1
-                                ),
-                            text = amount.formatted(
-                                extraPrefix = if (hasAppreciation) "+" else "-",
-                            ),
-                            style = CodeTheme.typography.textSmall,
-                            color = changeColor,
-                        )
-
-                        val label = if (hasAppreciation) {
-                            stringResource(R.string.label_fromCurrencyAppreciation)
-                        } else {
-                            stringResource(R.string.label_fromCurrencyDepreciation)
-                        }
-                        Text(
-                            text = label,
-                            style = CodeTheme.typography.textSmall,
-                            color = changeColor,
-                        )
-                    }
+                    CurrencyAppreciationLabel(amount)
                 }
             }
         }
