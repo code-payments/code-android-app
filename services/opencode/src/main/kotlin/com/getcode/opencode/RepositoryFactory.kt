@@ -4,8 +4,8 @@ import android.content.Context
 import com.getcode.opencode.inject.OpenCodeModule
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
-import com.getcode.opencode.internal.domain.mapping.SwapMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
 import com.getcode.opencode.internal.network.api.AccountApi
@@ -16,8 +16,8 @@ import com.getcode.opencode.internal.network.funding.SwapFunding
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
-import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.network.services.TransactionService
+import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
@@ -121,7 +121,8 @@ object RepositoryFactory {
             launchpadMetadataMapper = LaunchpadMetadataMapper(),
         )
         val historicalMintDataMapper = HistoricalMintDataMapper()
-        val service = CurrencyService(api, mintMapper, historicalMintDataMapper)
+        val liveMintDataMapper = LiveMintDataMapper()
+        val service = CurrencyService(api, mintMapper, historicalMintDataMapper, liveMintDataMapper)
         return module.providesCurrencyRepository(service)
     }
 }

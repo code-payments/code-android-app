@@ -169,6 +169,9 @@ object Libs {
 
     const val androidx_localbroadcastmanager =
         "androidx.localbroadcastmanager:localbroadcastmanager:1.0.0"
+
+    const val androidx_lifecycle_process =
+        "androidx.lifecycle:lifecycle-process:${Versions.androidx_lifecycle}"
     const val androidx_lifecycle_runtime =
         "androidx.lifecycle:lifecycle-runtime-ktx:${Versions.androidx_lifecycle}"
     const val androidx_navigation_fragment =

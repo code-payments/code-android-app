@@ -36,6 +36,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -117,6 +120,13 @@ class TokenController @Inject constructor(
                     retryable { update() }
                 }
             }.launchIn(scope)
+
+        tokens.map { t -> t.map { it.address } }
+            .debounce(500)
+            .distinctUntilChanged()
+            .filter { it.isNotEmpty() }
+            .onEach { exchange.updateUserMints(it) }
+            .launchIn(scope)
     }
 
     fun balanceForToken(token: Token): Fiat {

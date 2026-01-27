@@ -3,9 +3,12 @@ package com.getcode.opencode.compose
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.Signature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlin.time.Duration
@@ -13,7 +16,7 @@ import kotlin.time.Duration.Companion.days
 
 val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 
-private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exchange {
+private class ExchangeNull : Exchange {
     override val balanceRate: Rate
         get() = Rate.oneToOne
 
@@ -26,7 +29,7 @@ private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exc
     }
 
     override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
-        fetchRatesIfNeeded()
+
     }
 
     override fun observeBalanceRate(): Flow<Rate> {
@@ -34,8 +37,10 @@ private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exc
     }
 
     override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
-       fetchRatesIfNeeded()
+
     }
+
+    override fun updateUserMints(mints: List<Mint>) = Unit
 
     override fun rates(): Map<CurrencyCode, Rate> {
         return emptyMap()
@@ -65,14 +70,20 @@ private class ExchangeNull(override val staleThreshold: Duration = 1.days) : Exc
         return null
     }
 
-    override suspend fun fetchRatesIfNeeded(force: Boolean) = Unit
-
     override fun rateFor(currencyCode: CurrencyCode): Rate? {
+        return null
+    }
+
+    override fun proofFor(currencyCode: CurrencyCode): Signature? {
         return null
     }
 
     override fun rateForUsd(): Rate {
         return Rate.oneToOne
+    }
+
+    override fun proofForUsd(): Signature? {
+        return null
     }
 
     override fun rateToUsd(from: CurrencyCode): Rate? = null

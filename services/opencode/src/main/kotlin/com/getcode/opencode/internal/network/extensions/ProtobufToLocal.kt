@@ -8,6 +8,7 @@ import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
+import com.getcode.opencode.internal.extensions.toSignature
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
@@ -37,6 +38,7 @@ internal fun Model.SolanaAccountId.toMint(): Mint = value.toByteArray().toMint()
 internal fun Model.Blockhash.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun Model.Blockhash.toHash(): Hash = value.toByteArray().toHash()
 internal fun Model.Signature.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
+internal fun Model.Signature.toSignature(): Signature = value.toByteArray().toSignature()
 internal fun MessagingService.MessageId.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun MessagingService.RendezvousKey.toPublicKey(): PublicKey =
     value.toByteArray().toPublicKey()

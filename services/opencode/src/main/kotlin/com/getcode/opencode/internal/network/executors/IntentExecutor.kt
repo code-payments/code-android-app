@@ -5,7 +5,7 @@ import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentRe
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
-import com.getcode.opencode.internal.bidi.openBidirectionalStream
+import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.solana.SolanaTransaction
@@ -82,7 +82,7 @@ class IntentExecutor(
         streamRef: OcpIntentStreamReference,
         intent: IntentType,
         owner: KeyPair,
-    ): Result<IntentType> = openBidirectionalStream(
+    ): Result<IntentType> = openBidirectionalStreamForResult(
         streamRef = streamRef,
         apiCall = api::submitIntent,
         initialRequest = { intent.requestToSubmitActions(owner) },

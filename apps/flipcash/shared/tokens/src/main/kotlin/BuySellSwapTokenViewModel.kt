@@ -248,10 +248,6 @@ class BuySellSwapTokenViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        viewModelScope.launch(Dispatchers.IO) {
-            exchange.fetchRatesIfNeeded()
-        }
-
         eventFlow.filterIsInstance<Event.OnPurposeChanged>()
             .map { it.purpose }
             .flatMapLatest { purpose ->

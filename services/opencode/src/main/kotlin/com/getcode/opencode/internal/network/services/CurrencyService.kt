@@ -2,10 +2,14 @@ package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
+import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
+import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
+import com.getcode.opencode.internal.network.streamers.OcpMintStreamingReference
 import com.getcode.opencode.model.core.errors.GetHistoricalMintDataError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.GetRatesError
@@ -15,6 +19,7 @@ import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Instant
 import javax.inject.Inject
 
@@ -22,6 +27,7 @@ internal class CurrencyService @Inject constructor(
     private val api: CurrencyApi,
     private val mintMapper: MintMapper,
     private val historicalMintDataMapper: HistoricalMintDataMapper,
+    private val liveMintDataMapper: LiveMintDataMapper,
 ) {
     suspend fun getRates(
         from: Instant?
@@ -107,5 +113,20 @@ internal class CurrencyService @Inject constructor(
                 Result.failure(GetHistoricalMintDataError.Other(cause))
             }
         )
+    }
+
+    fun streamLiveMintData(
+        tag: String?,
+        scope: CoroutineScope,
+        mints: List<Mint>,
+        onUpdate: (LiveMintDataResponse) -> Unit
+    ): OcpMintStreamingReference {
+        val streamer = LiveMintDataStreamer(api)
+        return streamer.stream(scope = scope, mints = mints, tag = tag,) { update ->
+            val data = liveMintDataMapper.map(update)
+            if (data != null) {
+                onUpdate(data)
+            }
+        }
     }
 }

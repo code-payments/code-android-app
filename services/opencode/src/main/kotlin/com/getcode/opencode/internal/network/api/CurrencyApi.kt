@@ -11,7 +11,9 @@ import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.grpc.ManagedChannel
+import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -32,7 +34,9 @@ internal class CurrencyApi @Inject constructor(
      *
      * @return The [CurrencyService.GetAllRatesResponse] with the price of 1 core mint token in
      * different currencies, keyed on 3- or 4-letter lowercase currency code.
+     *
      */
+    @Deprecated("Use StreamLiveMintData instead")
     suspend fun getAllRates(
         timestampInMillis: Long?
     ): CurrencyService.GetAllRatesResponse {
@@ -92,5 +96,11 @@ internal class CurrencyApi @Inject constructor(
         return withContext(Dispatchers.IO) {
             api.getHistoricalMintData(request)
         }
+    }
+
+    fun streamLiveMintData(
+        requests: Flow<CurrencyService.StreamLiveMintDataRequest>
+    ): Flow<CurrencyService.StreamLiveMintDataResponse> {
+        return api.streamLiveMintData(requests)
     }
 }

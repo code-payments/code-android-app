@@ -1,38 +1,66 @@
 package com.getcode.opencode.internal.exchange
 
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
+import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.extensions.fromCode
-import com.getcode.opencode.internal.extensions.getClosestLocale
-import com.getcode.opencode.internal.network.services.CurrencyService
+import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.Signature
 import com.getcode.util.format
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.TraceType
-import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import java.util.Date
 import javax.inject.Inject
 import kotlin.time.Clock
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 internal class OpenCodeExchange @Inject constructor(
-    private val currencyService: CurrencyService,
+    private val currencyController: CurrencyController,
     private val resources: ResourceHelper,
     private val locale: LocaleHelper,
-) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+) : Exchange, DefaultLifecycleObserver {
+
+    private var exchangeRatesStream: Job? = null
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        scope.launch {
+            val currencyCode = locale.getDefaultCurrencyName()
+            balanceCurrency = CurrencyCode.tryValueOf(currencyCode)
+        }
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        super.onResume(owner)
+        streamRates()
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        super.onStop(owner)
+        stopStreamingRates()
+    }
+
 
     private val _balanceRate = MutableStateFlow(Rate.oneToOne)
     override val balanceRate
@@ -40,12 +68,17 @@ internal class OpenCodeExchange @Inject constructor(
 
     override fun observeBalanceRate(): Flow<Rate> = _balanceRate
 
+    private val mints = MutableStateFlow<List<Mint>>(emptyList())
+
     override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
         balanceCurrency = currencyCode
-        fetchRatesIfNeeded()
         rates.rateFor(currencyCode)?.let {
             _balanceRate.value = it
         }
+    }
+
+    override fun updateUserMints(mints: List<Mint>) {
+        this.mints.value = mints
     }
 
     private val _entryRate = MutableStateFlow(Rate.oneToOne)
@@ -56,13 +89,10 @@ internal class OpenCodeExchange @Inject constructor(
 
     override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
         entryCurrency = currencyCode
-        fetchRatesIfNeeded()
         rates.rateFor(currencyCode)?.let {
             _entryRate.value = it
         }
     }
-
-    private var rateDate: Long = System.currentTimeMillis()
 
     private var balanceCurrency: CurrencyCode? = null
     private var entryCurrency: CurrencyCode? = null
@@ -76,13 +106,6 @@ internal class OpenCodeExchange @Inject constructor(
 
     override fun rates() = rates.rates
     override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
-
-    // Remember, the exchange rates date is the server-provided
-    // date-of-rate and not the time the rate was fetched. It
-    // might be reasonable for the server to return a date that
-    // is dated 11 minutes or older.
-    override val staleThreshold: Duration
-        get() = 20.minutes
 
     override suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> =
         withContext(Dispatchers.Default) {
@@ -117,57 +140,16 @@ internal class OpenCodeExchange @Inject constructor(
         ).let { if (it == 0) null else it }
     }
 
-    private val isStale: Boolean
-        get() {
-            if (rates.rates.isEmpty()) return true
-            return System.currentTimeMillis() - rates.dateMillis > staleThreshold.inWholeMilliseconds
-        }
-
-    init {
-        launch {
-            val currencyCode = locale.getDefaultCurrencyName()
-            balanceCurrency = CurrencyCode.tryValueOf(currencyCode)
-            fetchRatesIfNeeded()
-        }
-    }
-
-    override suspend fun fetchRatesIfNeeded(force: Boolean) {
-        if (isStale || force) {
-            retryable(
-                call = {
-                    val now = Clock.System.now()
-                    currencyService.getRates(now)
-                        .onSuccess { rates ->
-                            set(RatesBox(now.toEpochMilliseconds(), rates))
-                        }
-                }
-            )
-        }
-
-        updateRates()
-    }
-
-    private suspend fun set(ratesBox: RatesBox) {
-        rates = ratesBox
-        rateDate = ratesBox.dateMillis
-
-        setBalanceEntryCurrencyIfNeeded()
-        updateRates()
-    }
-
-    private suspend fun setBalanceEntryCurrencyIfNeeded() {
-        if (entryCurrency != null) {
-            return
-        }
-
-        val localRegionCurrency = locale.getDefaultCurrencyName()
-        val currency = CurrencyCode.tryValueOf(localRegionCurrency)
-        entryCurrency = currency
+    private fun stopStreamingRates() {
+        exchangeRatesStream?.cancel()
     }
 
     override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
+    override fun proofFor(currencyCode: CurrencyCode): Signature? = rates.proofFor(currencyCode)
 
     override fun rateForUsd(): Rate = rates.rateForUsd()
+    override fun proofForUsd(): Signature? = rates.proofFor(CurrencyCode.USD)
+
     override fun rateToUsd(from: CurrencyCode): Rate? {
         val fromRate = rates.rateFor(from) ?: return null
 
@@ -175,6 +157,24 @@ internal class OpenCodeExchange @Inject constructor(
             fx = 1 / fromRate.fx,
             currency = CurrencyCode.USD
         )
+    }
+
+    private fun streamRates() {
+        stopStreamingRates()
+        exchangeRatesStream = scope.launch {
+            currencyController.streamLiveMintData(this, mints, tag = "exchange")
+                .filterIsInstance<LiveMintDataResponse.ExchangeRates>()
+                .collect { exchangeData ->
+                    trace(tag = "Exchange", message = "Rates updated")
+                    val associatedRates = exchangeData.rates.associateBy { it.rate.currency }
+                    rates = RatesBox(
+                        dateMillis = Clock.System.now().toEpochMilliseconds(),
+                        rates = associatedRates.mapValues { it.value.rate },
+                        proofs = associatedRates.mapValues { it.value.signature }
+                    )
+                    updateRates()
+                }
+        }
     }
 
     private fun updateRates() {
@@ -239,25 +239,19 @@ internal class OpenCodeExchange @Inject constructor(
             )
         }
     }
-
-    private suspend fun getCurrency(code: CurrencyCode, scope: CoroutineScope): Currency {
-        val resId = scope.async { getFlagByCurrency(code.name) }
-        val currencyJava = scope.async { java.util.Currency.getInstance(code.name) }
-        val locale = scope.async { code.getClosestLocale() }
-
-        return Currency(
-            code = currencyJava.await().currencyCode,
-            name = currencyJava.await().displayName,
-            resId = resId.await(),
-            symbol = currencyJava.await().getSymbol(locale.await())
-        )
-    }
 }
 
-private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, Rate>) {
+private data class RatesBox(
+    val dateMillis: Long,
+    val rates: Map<CurrencyCode, Rate>,
+    val proofs: Map<CurrencyCode, Signature> = emptyMap()
+) {
     constructor(dateMillis: Long, rates: List<Rate>) : this(
         dateMillis,
-        rates.associateBy { it.currency })
+        rates.associateBy { it.currency },
+        emptyMap()
+    )
+
 
     val isEmpty: Boolean
         get() = rates.isEmpty()
@@ -269,7 +263,9 @@ private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, R
         return currencyCode?.let { rates[it] }
     }
 
+    fun proofFor(currencyCode: CurrencyCode): Signature? = proofs[currencyCode]
+
     fun rateForUsd(): Rate {
-        return rates[CurrencyCode.USD]?: Rate.oneToOne
+        return rates[CurrencyCode.USD] ?: Rate.oneToOne
     }
 }

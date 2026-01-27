@@ -4,6 +4,7 @@ import android.content.Context
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -16,7 +17,6 @@ import com.getcode.opencode.internal.domain.repositories.InternalMessagingReposi
 import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
-import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
@@ -49,11 +49,11 @@ object OpenCodeModule {
     @Provides
     @Singleton
     internal fun providesExchange(
-        currencyService: CurrencyService,
+        currencyController: CurrencyController,
         resources: ResourceHelper,
         locale: LocaleHelper,
     ): Exchange = OpenCodeExchange(
-        currencyService = currencyService,
+        currencyController = currencyController,
         resources = resources,
         locale = locale,
     )

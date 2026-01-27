@@ -177,10 +177,6 @@ internal class WithdrawalViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        viewModelScope.launch(Dispatchers.IO) {
-            exchange.fetchRatesIfNeeded()
-        }
-
         stateFlow
             .mapNotNull { it.selectedTokenAddress }
             .flatMapLatest { tokenAddress ->

@@ -9,11 +9,15 @@ import "google/protobuf/timestamp.proto";
 service Currency {
     // GetAllRates returns the exchange rates for the core mint token against all
     // available currencies
+    //
+    // Deprecated: Use StreamLiveMintData instead
     rpc GetAllRates(GetAllRatesRequest) returns (GetAllRatesResponse);
     // GetMints gets mint account metadata by address
     rpc GetMints(GetMintsRequest) returns (GetMintsResponse);
     // GetHistoricalMintData returns historical market data for a mint
     rpc GetHistoricalMintData(GetHistoricalMintDataRequest) returns (GetHistoricalMintDataResponse);
+    // StreamLiveMintData streams live mint data for a set of mints
+    rpc StreamLiveMintData(stream StreamLiveMintDataRequest) returns (stream StreamLiveMintDataResponse);
 }
 message GetAllRatesRequest {
     // If timestamp is included, the returned rate will be the most recent available
@@ -72,6 +76,29 @@ message GetHistoricalMintDataResponse {
     }
     repeated HistoricalMintData data = 2;
 }
+message StreamLiveMintDataRequest {
+    oneof type {
+        Request              request = 1;
+        common.v1.ClientPong pong    = 2;
+    }
+    message Request {
+        // The set of mints to receive live data against. To update the set of mints,
+        // close the current stream and open a new one with the new set.
+        repeated common.v1.SolanaAccountId mints = 1 ;
+    }
+}
+message StreamLiveMintDataResponse {
+    oneof type {
+        LiveData             data = 1;
+        common.v1.ServerPing ping = 2;
+    }
+    message LiveData {
+        oneof type {
+            VerifiedCoreMintFiatExchangeRateBatch      core_mint_fiat_exchange_rates     = 1;
+            VerifiedLaunchapdCurrencyReserveStateBatch launchpad_currency_reserve_states = 2;
+        }
+    }
+}
 message Mint {
     // Token mint address
     common.v1.SolanaAccountId address = 1;
@@ -122,6 +149,8 @@ message LaunchpadMetadata {
     // The address where core mint tokens are locked against the liquidity pool
     common.v1.SolanaAccountId core_mint_vault = 6;
     // Current circulating mint token supply in quarks
+    //
+    // Deprecated: Use supply value from StreamLiveMintData
     uint64 supply_from_bonding = 7;
     // Precent fee for sells in basis points, currently hardcoded to 1%
     uint32 sell_fee_bps = 8;
@@ -131,4 +160,36 @@ message HistoricalMintData {
     google.protobuf.Timestamp timestamp = 1;
     // Market capitalization at this point in time
     double market_cap = 2;
+}
+message CoreMintFiatExchangeRate {
+    // The currency code for the fiat exchange rate
+    string currency_code = 1 ;
+    // The exchange rate against the core mint
+    double exchange_rate = 2;
+    // Timestamp for this data point
+    google.protobuf.Timestamp timestamp = 3;
+}
+// CoreMintFiatExchangeRate with a server signature for proof for use in a payment
+message VerifiedCoreMintFiatExchangeRate {
+    CoreMintFiatExchangeRate exchange_rate = 1;
+    common.v1.Signature signature = 2;
+}
+message VerifiedCoreMintFiatExchangeRateBatch {
+    repeated VerifiedCoreMintFiatExchangeRate exchange_rates = 2  ;
+}
+message LaunchpadCurrencyReserveState {
+    // Launchpad currency mint address
+    common.v1.SolanaAccountId mint = 1;
+    // Current circulating mint token supply in quarks
+    uint64 supply_from_bonding = 2;
+    // Timestamp for this data point
+    google.protobuf.Timestamp timestamp = 3;
+}
+// LaunchpadCurrencyReserveState with a server signature for proof for use in a payment
+message VerifiedLaunchpadCurrencyReserveState {
+    LaunchpadCurrencyReserveState reserve_state = 1;
+    common.v1.Signature signature = 2;
+}
+message VerifiedLaunchapdCurrencyReserveStateBatch {
+    repeated VerifiedLaunchpadCurrencyReserveState reserve_states = 2  ;
 }

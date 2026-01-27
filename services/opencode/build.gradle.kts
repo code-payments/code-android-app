@@ -79,6 +79,7 @@ dependencies {
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
     implementation(Libs.androidx_lifecycle_runtime)
+    implementation(Libs.androidx_lifecycle_process)
     implementation(Libs.androidx_datastore)
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)

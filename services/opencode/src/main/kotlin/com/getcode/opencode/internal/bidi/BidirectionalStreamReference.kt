@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class BidirectionalStreamReference<Request, Response>(
     scope: CoroutineScope,
-    private val instanceLabel: String = ""
+    val instanceLabel: String = ""
 ) : AutoCloseable {
 
     private val supervisorJob = SupervisorJob()
@@ -82,7 +82,7 @@ class BidirectionalStreamReference<Request, Response>(
         timeoutTask = null
     }
 
-    private fun postponeTimeout() {
+    internal fun postponeTimeout() {
         cancelTimeout()
         timeoutTask = coroutineScope.launch {
             if (!isActive) return@launch

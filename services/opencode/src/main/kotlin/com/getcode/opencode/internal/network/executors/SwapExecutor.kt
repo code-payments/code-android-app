@@ -1,9 +1,8 @@
 package com.getcode.opencode.internal.network.executors
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
-import com.getcode.opencode.internal.bidi.openBidirectionalStream
+import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.api.intents.IntentSwap
 import com.getcode.opencode.internal.network.extensions.toCode
@@ -99,7 +98,7 @@ internal class SwapExecutor(
     private suspend fun openSwapStream(
         streamRef: OcpSwapStreamReference,
         intent: IntentSwap,
-    ): SwapResult = openBidirectionalStream(
+    ): SwapResult = openBidirectionalStreamForResult(
         streamRef = streamRef,
         apiCall = api::swap,
         initialRequest = { intent.initiate() },

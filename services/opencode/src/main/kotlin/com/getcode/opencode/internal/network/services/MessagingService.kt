@@ -3,7 +3,7 @@ package com.getcode.opencode.internal.network.services
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
-import com.getcode.opencode.internal.bidi.openBidirectionalStream
+import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.MessagingApi
 import com.getcode.opencode.internal.network.extensions.clientPongWith
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -63,7 +63,7 @@ internal class MessagingService @Inject constructor(
         messageFilter: (List<RpcMessagingService.Message>) -> Boolean,
         onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit
     ) {
-        openBidirectionalStream(
+        openBidirectionalStreamForResult(
             streamRef = streamRef,
             apiCall = api::openMessageStreamWithKeepAlive,
             initialRequest = {

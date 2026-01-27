@@ -1,13 +1,19 @@
 package com.getcode.opencode.controllers
 
+import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
-import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.solana.keys.Mint
-import kotlinx.datetime.Instant
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,10 +21,27 @@ import javax.inject.Singleton
 class CurrencyController @Inject constructor(
     private val repository: CurrencyRepository,
 ) {
-    suspend fun getRates(
-        from: Instant?
-    ): Result<Map<CurrencyCode, Rate>> {
-        return repository.getRates(from)
+    fun streamLiveMintData(
+        scope: CoroutineScope,
+        mints: Flow<List<Mint>>,
+        tag: String? = null,
+    ): Flow<LiveMintDataResponse> {
+        return mints.flatMapLatest { mintList ->
+            if (mintList.isEmpty()) {
+                emptyFlow()
+            } else {
+                callbackFlow {
+                    val reference = repository.streamMintData(scope = scope, mints = mintList, tag = tag) {
+                        scope.launch {
+                            send(it)
+                        }
+                    }
+                    awaitClose {
+                        reference.cancel()
+                    }
+                }
+            }
+        }
     }
 
     suspend fun getMintMetadata(

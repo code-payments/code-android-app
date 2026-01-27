@@ -10,7 +10,6 @@ import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
-import com.flipcash.app.core.internal.updater.ExchangeUpdater
 import com.flipcash.app.core.internal.updater.ProfileUpdater
 import com.flipcash.app.core.internal.updater.TokenUpdater
 import com.flipcash.app.featureflags.FeatureFlag
@@ -92,7 +91,6 @@ class RealSessionController @Inject constructor(
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
     private val tokenUpdater: TokenUpdater,
-    private val exchangeUpdater: ExchangeUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
     private val profileUpdater: ProfileUpdater,
     private val shareSheetController: ShareSheetController,
@@ -233,7 +231,6 @@ class RealSessionController @Inject constructor(
 
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
-            exchangeUpdater.poll(scope = scope, frequency = 10.seconds, startIn = 10.seconds)
             tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 0.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
@@ -241,7 +238,6 @@ class RealSessionController @Inject constructor(
     }
 
     private fun stopPolling() {
-        exchangeUpdater.stop()
         tokenUpdater.stop()
         activityFeedUpdater.stop()
     }

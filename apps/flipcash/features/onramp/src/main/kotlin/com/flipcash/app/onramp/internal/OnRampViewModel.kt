@@ -154,10 +154,6 @@ internal class OnRampViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        viewModelScope.launch(Dispatchers.IO) {
-            exchange.fetchRatesIfNeeded()
-        }
-
         userManager.state
             .map { it.userProfile }
             .onEach {
@@ -255,11 +251,6 @@ internal class OnRampViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
                 val rate = exchange.rateFor(stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD)
                     ?: exchange.entryRate
-
-                // if we are USD we can skip the rate fetch since its 1:1
-                if (rate.currency != CurrencyCode.USD) {
-                    exchange.fetchRatesIfNeeded()
-                }
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
 
