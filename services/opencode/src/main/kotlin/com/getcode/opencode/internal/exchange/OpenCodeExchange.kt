@@ -112,10 +112,11 @@ internal class OpenCodeExchange @Inject constructor(
     override suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> =
         withContext(Dispatchers.Default) {
             return@withContext CurrencyCode.entries
+                .filterNot { getFlagByCurrency(it.name) == null }
                 .mapNotNull { code ->
                     val rate = rates[code]?.fx ?: 0.0
                     getCurrencyWithRate(code.name, rate)
-                }
+                }.filterNot { it.code == it.name }
         }
 
     override fun getCurrency(code: String): Currency? =
