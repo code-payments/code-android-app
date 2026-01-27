@@ -26,17 +26,21 @@ enum class CurrencyCode {
     BOB,
     BRL,
     BSD,
+    BTC,
     BTN,
     BWP,
     BYN,
+    BYR,
     BZD,
     CAD,
     CDF,
     CHF,
+    CLF,
     CLP,
     CNY,
     COP,
     CRC,
+    CUC,
     CUP,
     CVE,
     CZK,
@@ -52,6 +56,7 @@ enum class CurrencyCode {
     FKP,
     GBP,
     GEL,
+    GGP,
     GHS,
     GIP,
     GMD,
@@ -65,10 +70,12 @@ enum class CurrencyCode {
     HUF,
     IDR,
     ILS,
+    IMP,
     INR,
     IQD,
     IRR,
     ISK,
+    JEP,
     JMD,
     JOD,
     JPY,
@@ -85,6 +92,9 @@ enum class CurrencyCode {
     LBP,
     LKR,
     LRD,
+    LSL,
+    LTL,
+    LVL,
     LYD,
     MAD,
     MDL,
@@ -93,6 +103,7 @@ enum class CurrencyCode {
     MMK,
     MNT,
     MOP,
+    MRO,
     MRU,
     MUR,
     MVR,
@@ -130,7 +141,9 @@ enum class CurrencyCode {
     SOS,
     SRD,
     SSP,
+    STD,
     STN,
+    SVC,
     SYP,
     SZL,
     THB,
@@ -152,12 +165,18 @@ enum class CurrencyCode {
     VUV,
     WST,
     XAF,
+    XAG,
+    XAU,
     XCD,
+    XDR,
     XOF,
     XPF,
     YER,
     ZAR,
-    ZMW;
+    ZMK,
+    ZMW,
+    ZWL,
+    ;
 
     fun getRegion(): RegionCode? {
         return when (this) {
@@ -314,6 +333,24 @@ enum class CurrencyCode {
             GIP -> RegionCode.GI
             VND -> RegionCode.VN
             PGK -> RegionCode.PG
+            BTC -> null
+            BYR -> RegionCode.BY
+            CLF -> RegionCode.CL
+            CUC -> RegionCode.CU
+            GGP -> RegionCode.GG
+            IMP -> RegionCode.IM
+            JEP -> RegionCode.JE
+            LSL -> RegionCode.LS
+            LTL -> RegionCode.LT
+            LVL -> RegionCode.LV
+            MRO -> RegionCode.MR
+            STD -> RegionCode.ST
+            SVC -> RegionCode.SV
+            XAG -> null
+            XAU -> null
+            XDR -> null
+            ZMK -> RegionCode.ZM
+            ZWL -> RegionCode.ZW
         }
     }
 
