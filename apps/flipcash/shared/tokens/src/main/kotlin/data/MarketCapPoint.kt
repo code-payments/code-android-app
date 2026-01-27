@@ -9,10 +9,10 @@ typealias MarketCapPoint = ChartPoint<Long, Double>
 fun List<MarketCapPoint>.collapse(
     period: Period,
     targetPoints: Int = 100,
-    aggregation: AggregationType = AggregationType.Last,
+    currentValue: Double,
+    aggregation: AggregationType = AggregationType.LargestTriangleThreeBuckets,
 ): List<MarketCapPoint> {
     if (isEmpty()) return emptyList()
-
     val now = Clock.System.now().toEpochMilliseconds()
 
     val startTime = when (period) {
@@ -29,45 +29,34 @@ fun List<MarketCapPoint>.collapse(
     val duration = now - startTime
     val intervalMs = (duration / targetPoints).coerceAtLeast(1)
 
-    val bucketedData = filtered
-        .groupBy { (it.x - startTime) / intervalMs }
-        .mapNotNull { (bucket, points) ->
-            val value = aggregation.aggregate(points) ?: return@mapNotNull null
-            bucket to value
+    return when (aggregation) {
+        is AggregationType.Bucketed -> {
+            val bucketedData = filtered
+                .groupBy { (it.x - startTime) / intervalMs }
+                .mapNotNull { (bucket, points) ->
+                    val value = aggregation.aggregate(points) ?: return@mapNotNull null
+                    bucket to value
+                }
+                .toMap()
+
+            var lastValue = 0.0
+            (0 until targetPoints).mapIndexed { index, bucket ->
+                val timestamp = startTime + (bucket * intervalMs) + (intervalMs / 2)
+                val value = bucketedData[bucket.toLong()]
+                if (value != null) lastValue = value
+                val y = if (index == targetPoints - 1) currentValue else lastValue
+                MarketCapPoint(x = timestamp, y = y)
+            }
         }
-        .toMap()
 
-    var lastValue = 0.0
-    return (0 until targetPoints).map { bucket ->
-        val timestamp = startTime + (bucket * intervalMs) + (intervalMs / 2)
-        val value = bucketedData[bucket.toLong()]
-        if (value != null) lastValue = value
-        MarketCapPoint(x = timestamp, y = lastValue)
-    }
-}
-
-private fun List<MarketCapPoint>.interpolateToSize(targetSize: Int): List<MarketCapPoint> {
-    if (size == targetSize || isEmpty()) return this
-
-    val result = mutableListOf<MarketCapPoint>()
-    val step = (size - 1).toFloat() / (targetSize - 1).coerceAtLeast(1)
-
-    repeat(targetSize) { i ->
-        val position = i * step
-        val lowerIndex = position.toInt().coerceIn(0, size - 1)
-        val upperIndex = (lowerIndex + 1).coerceAtMost(size - 1)
-        val fraction = position - lowerIndex
-
-        val lower = this[lowerIndex]
-        val upper = this[upperIndex]
-
-        result.add(
-            MarketCapPoint(
-                x = (lower.x + (upper.x - lower.x) * fraction).toLong(),
-                y = (lower.y + (upper.y - lower.y) * fraction),
+        is AggregationType.Downsample -> {
+            aggregation.downsample(
+                startTime = startTime,
+                now = now,
+                points = filtered,
+                targetPoints = targetPoints,
+                currentValue = currentValue
             )
-        )
+        }
     }
-
-    return result
 }

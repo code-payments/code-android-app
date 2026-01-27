@@ -69,6 +69,7 @@ import kotlin.time.Duration
 @Composable
 internal fun MarketCapChart(
     data: List<MarketCapPoint>,
+    currentValue: Double,
     trendType: TrendType,
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
@@ -92,7 +93,7 @@ internal fun MarketCapChart(
 
     val windowedData by remember(historicalData, selectedPeriod) {
         derivedStateOf {
-            historicalData.collapse(selectedPeriod)
+            historicalData.collapse(selectedPeriod, currentValue = currentValue)
         }
     }
 

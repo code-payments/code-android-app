@@ -147,6 +147,7 @@ internal fun MarketCapSection(
                     end = contentPadding.calculateEndPadding(),
                 ),
                 data = data,
+                currentValue = marketCap.decimalValue,
                 trendType = TrendType.FirstVsLast,
                 selectedPeriod = selectedPeriod,
                 onPointHighlighted = { highlightedCapPoint = it },
