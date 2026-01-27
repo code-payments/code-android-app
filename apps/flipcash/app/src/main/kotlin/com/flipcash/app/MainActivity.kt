@@ -39,6 +39,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.compose.LocalTransactionController
+import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.rpc.RpcConfig

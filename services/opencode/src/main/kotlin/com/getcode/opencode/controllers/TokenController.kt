@@ -7,7 +7,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
@@ -33,12 +37,14 @@ import com.getcode.utils.trace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -47,6 +53,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -61,12 +68,15 @@ class TokenController @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
     private val locale: LocaleHelper,
-) {
+) : DefaultLifecycleObserver {
+
     companion object {
         val mintPreferenceKey = stringPreferencesKey("tokenMint")
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private var streamReserveStateJob: Job? = null
 
     private val selectedToken = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler(
@@ -112,6 +122,8 @@ class TokenController @Inject constructor(
     }
 
     init {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state }
             .map { it.connected }
@@ -127,6 +139,17 @@ class TokenController @Inject constructor(
             .filter { it.isNotEmpty() }
             .onEach { exchange.updateUserMints(it) }
             .launchIn(scope)
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        super.onResume(owner)
+        stopStreamingReserveStates()
+        streamReserveStates()
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        super.onStop(owner)
+        streamReserveStateJob?.cancel()
     }
 
     fun balanceForToken(token: Token): Fiat {
@@ -149,6 +172,47 @@ class TokenController @Inject constructor(
 
     fun observeReservesBalance(): Flow<Fiat> {
         return balanceForToken(Mint.usdf)
+    }
+
+    private fun streamReserveStates() {
+        streamReserveStateJob = scope.launch {
+            currencyController.streamLiveMintData(
+                scope = this,
+                mints = tokens.map { list -> list.map { it.address } },
+                tag = "token-reserves"
+            ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
+                .collect { update ->
+                    println("reserve state snapshot update")
+                    update.reserveStates.forEach { state ->
+                        tokens.update { current ->
+                            current.map { token ->
+                                if (token.address == state.reserveState.mint) {
+                                    val launchpad = token.launchpadMetadata
+                                    if (launchpad == null) {
+                                        token
+                                    } else {
+                                        trace(
+                                            tag = "TokenController",
+                                            message = "Updated circulating supply for ${token.symbol} => ${state.reserveState.currentSupply}",
+                                        )
+                                        token.copy(
+                                            launchpadMetadata = launchpad.copy(
+                                                currentCirculatingSupplyQuarks = state.reserveState.currentSupply
+                                            )
+                                        )
+                                    }
+                                } else {
+                                    token
+                                }
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+    private fun stopStreamingReserveStates() {
+        streamReserveStateJob?.cancel()
     }
 
     private suspend fun modifyBalance(token: Token, operation: (Fiat) -> Fiat) {
