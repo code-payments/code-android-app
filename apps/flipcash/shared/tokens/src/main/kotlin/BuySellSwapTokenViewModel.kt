@@ -434,7 +434,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     }
 
                     is TokenSwapPurpose.FundWithWallet -> {
-                        val rate = exchange.entryRate
+                        val rate = exchange.rateForUsd()
                         // funding through external wallet
                         val nativeAmount = Fiat(data.amountData.amount, rate.currency)
                         val underlyingAmount = nativeAmount.convertingToUsdIfNeeded(rate)
