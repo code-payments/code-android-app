@@ -30,7 +30,6 @@ import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
@@ -182,7 +181,6 @@ class TokenController @Inject constructor(
                 tag = "token-reserves"
             ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
                 .collect { update ->
-                    println("reserve state snapshot update")
                     update.reserveStates.forEach { state ->
                         tokens.update { current ->
                             current.map { token ->
@@ -191,10 +189,6 @@ class TokenController @Inject constructor(
                                     if (launchpad == null) {
                                         token
                                     } else {
-                                        trace(
-                                            tag = "TokenController",
-                                            message = "Updated circulating supply for ${token.symbol} => ${state.reserveState.currentSupply}",
-                                        )
                                         token.copy(
                                             launchpadMetadata = launchpad.copy(
                                                 currentCirculatingSupplyQuarks = state.reserveState.currentSupply
@@ -328,14 +322,19 @@ class TokenController @Inject constructor(
                         .getOrDefault(emptyList())
                         .firstOrNull() ?: return@mapNotNull null
 
+                    // use the latest streamed supply value if available
+                    val currentSupply = tokens.value.find { it.address == account.mint }?.launchpadMetadata?.currentCirculatingSupplyQuarks
+                        ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
+
                     val tokenBalance = Fiat.tokenBalance(account.balance, token = token)
                     val costBasis = Fiat(fiat = account.usdCostBasis)
 
                     TokenWithBalance(
-                        token = token,
+                        token = token.copy(
+                            launchpadMetadata = token.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
+                        ),
                         balance = tokenBalance,
                         appreciation = tokenBalance - costBasis
-
                     )
                 }
         }?.onSuccess { tokensWithBalance ->
