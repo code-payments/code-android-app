@@ -492,6 +492,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     of = token,
                 ).onSuccess {
                     dispatchEvent(Event.OnPurchaseSubmitted(token))
+                    // buy submitted from reserves, drop reserves balance
                     tokenController.subtract(Token.usdf, amount)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                 }.onFailure {
@@ -502,7 +503,6 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     )
                 }
             }.launchIn(viewModelScope)
-
 
         eventFlow
             .filterIsInstance<Event.ProceedWithSale>()

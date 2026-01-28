@@ -10,9 +10,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.codeinc.opencode.gen.currency.v1.mint
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -42,7 +40,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -226,7 +223,7 @@ class TokenController @Inject constructor(
         val balance = mintBalances.value[token.address] ?: Fiat.Zero
         if (balance.decimalValue == 0.0) {
             // attempt to fetch prior to modifying balance
-            fetchBalanceForToken(token.address)
+            updateTokenAccount(token.address)
         } else {
             val updatedBalance = operation(balance)
             mintBalances.update { it + (token.address to updatedBalance) }
@@ -237,12 +234,16 @@ class TokenController @Inject constructor(
         val balanceAdditionAmount =
             fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
         modifyBalance(token) { it + balanceAdditionAmount }
+        // fetch token account to get latest additional metadata (cost basis)
+        updateTokenAccount(token.address)
     }
 
     suspend fun subtract(token: Token, fiat: LocalFiat) {
         val balanceReductionAmount =
             fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
         modifyBalance(token) { it - balanceReductionAmount }
+        // fetch token account to get latest additional metadata (cost basis)
+        updateTokenAccount(token.address)
     }
 
     suspend fun update() {
@@ -368,7 +369,7 @@ class TokenController @Inject constructor(
         }
     }
 
-    private suspend fun fetchBalanceForToken(mint: Mint) {
+    private suspend fun updateTokenAccount(mint: Mint) {
         val owner = cluster.value
         if (owner == null) {
             trace(
@@ -427,13 +428,31 @@ class TokenController @Inject constructor(
                 val token = result.token
                 when {
                     account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
-                    else -> token to Fiat.tokenBalance(account.balance, token = token)
+                    else -> {
+                        // use the latest streamed supply value if available
+                        val currentSupply = tokens.value.find { it.address == account.mint }?.launchpadMetadata?.currentCirculatingSupplyQuarks
+                            ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
+
+                        val updatedToken = token.copy(
+                            launchpadMetadata = token.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
+                        )
+                        val tokenBalance = Fiat.tokenBalance(account.balance, token = updatedToken)
+                        val costBasis = Fiat(fiat = account.usdCostBasis)
+
+                        TokenWithBalance(
+                            token = updatedToken,
+                            balance = tokenBalance,
+                            appreciation = tokenBalance - costBasis
+                        )
+                    }
                 }
-            }?.onSuccess { (token, tokenBalance) ->
-                mintBalances.update { it + (mint to tokenBalance) }
+            }?.onSuccess { (token, balance, appreciation) ->
+                mintBalances.update { it + (token.address to balance) }
+                mintUsdAppreciationMap.update { it + (token.address to appreciation) }
+                tokens.update { (it + token).distinctBy { t -> t.address } }
                 trace(
                     tag = "Tokens",
-                    message = "Updated balance for ${token.symbol} is ${tokenBalance.formatted()} USD",
+                    message = "Updated balance for ${token.symbol} is ${balance.formatted()} USD",
                     type = TraceType.Process
                 )
                 tokenFetchState[mint]?.store(false)
