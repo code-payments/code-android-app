@@ -146,7 +146,7 @@ data class VmMetadata(
  * @property mintVault The address where this mint's tokens are locked against the liquidity pool
  * @property coreMintVault The address where core mint tokens are locked against the liquidity pool
  * @property currentCirculatingSupplyQuarks The current circulating mint token supply in quarks
- * @property sellFeeBps Precent fee for sells in basis points, currently hardcoded to 1%
+ * @property sellFeeBps Percent fee for sells in basis points, currently hardcoded to 1%
  */
 @Parcelize
 data class LaunchpadMetadata(

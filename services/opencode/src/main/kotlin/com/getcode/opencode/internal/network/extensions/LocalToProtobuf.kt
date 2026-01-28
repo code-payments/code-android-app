@@ -6,6 +6,7 @@ import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.OpenAccountsMetadata.AccountSet
+import com.codeinc.opencode.gen.transaction.v1.exchangeData
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
@@ -150,6 +151,7 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
                             setClientExchangeData(verifiedExchangeData.asProtobufExchangeData())
                         }
                     }
+                    .setServerExchangeData(exchangeData.asProtobufExchangeData())
                     .setDestination(destination.asSolanaAccountId())
                     .apply {
                         if (this@asProtobufMetadata.destinationOwner != null) {
