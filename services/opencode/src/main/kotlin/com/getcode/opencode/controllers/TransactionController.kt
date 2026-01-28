@@ -169,13 +169,18 @@ class TransactionController @Inject constructor(
         rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
+        val verifiedState =
+            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, token.address)
+                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
         val intent = IntentRemoteSend.create(
             amount = amount,
             token = token,
             owner = owner,
             source = source,
             giftCard = giftCard,
-            rendezvous = rendezvous
+            rendezvous = rendezvous,
+            verifiedState = verifiedState,
         )
 
         return submitIntent(scope, intent, owner.authority.keyPair)
@@ -260,6 +265,9 @@ class TransactionController @Inject constructor(
             Result.success(Unit)
         }
 
+        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, Mint.usdf)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
         return accountResult.fold(
             onSuccess = {
                 repository.buy(
@@ -269,7 +277,9 @@ class TransactionController @Inject constructor(
                     amount = amount,
                     of = of,
                     source = source,
-                    fund = fund
+                    fund = fund,
+                    verifiedState = verifiedState,
+
                 )
             },
             onFailure = { error ->
@@ -288,15 +298,27 @@ class TransactionController @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
-    ): Result<Unit> = repository.sell(scope = scope, owner = owner, amount = amount, of = of)
-        .onFailure { error ->
-            trace(
-                tag = "TransactionController",
-                message = error.message.orEmpty(),
-                type = TraceType.Error,
-                error = error
-            )
-        }
+    ): Result<Unit> {
+        val verifiedState =
+            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
+                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
+        return repository.sell(
+            scope = scope,
+            owner = owner,
+            amount = amount,
+            of = of,
+            verifiedState = verifiedState
+        )
+            .onFailure { error ->
+                trace(
+                    tag = "TransactionController",
+                    message = error.message.orEmpty(),
+                    type = TraceType.Error,
+                    error = error
+                )
+            }
+    }
 
     internal suspend fun submitIntent(
         scope: CoroutineScope,

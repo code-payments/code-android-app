@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.domain.repositories
 
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.internal.network.executors.IntentExecutor
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -12,7 +12,6 @@ import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
-import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.repositories.TransactionRepository
@@ -63,14 +62,31 @@ internal class InternalTransactionRepository @Inject constructor(
         amount: LocalFiat,
         of: Token,
         swapId: SwapId?,
+        verifiedState: VerifiedState,
         source: SwapFundingSource,
         fund: (suspend (SwapRequest) -> Result<Unit>)?
-    ): Result<Unit> = service.buy(scope, swapId, amount, of, owner, source, fund)
+    ): Result<Unit> = service.buy(
+        scope = scope,
+        swapId = swapId,
+        amount = amount,
+        of = of,
+        owner = owner,
+        verifiedState = verifiedState,
+        source = source,
+        fund = fund
+    )
 
     override suspend fun sell(
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
-        of: Token
-    ): Result<Unit> = service.sell(scope, amount, of, owner)
+        of: Token,
+        verifiedState: VerifiedState,
+    ): Result<Unit> = service.sell(
+        scope = scope,
+        amount = amount,
+        of = of,
+        owner = owner,
+        verifiedState = verifiedState
+    )
 }

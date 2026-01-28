@@ -6,6 +6,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.internal.network.executors.SwapExecutor
@@ -45,7 +46,6 @@ internal class TransactionService @Inject constructor(
     private val api: TransactionApi,
     private val transactionMetadataMapper: TransactionMetadataMapper,
     private val swapFunding: SwapFunding,
-    private val verifiedStateManager: VerifiedProtoManager,
 ) {
     suspend fun submitIntent(
         scope: CoroutineScope,
@@ -195,12 +195,10 @@ internal class TransactionService @Inject constructor(
         amount: LocalFiat,
         of: Token,
         owner: AccountCluster,
+        verifiedState: VerifiedState,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<Unit> {
-        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
-            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
-
         val request = SwapRequest(
             owner = owner,
             swapAuthority = Ed25519.createKeyPair(),
@@ -226,10 +224,9 @@ internal class TransactionService @Inject constructor(
         of: Token,
         owner: AccountCluster,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        verifiedState: VerifiedState,
     ): Result<Unit> {
         val tokenCluster = owner.withTimelockForToken(of)
-        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
-            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         val request = SwapRequest(
             owner = tokenCluster,

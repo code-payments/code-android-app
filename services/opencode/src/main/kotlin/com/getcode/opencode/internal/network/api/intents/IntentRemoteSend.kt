@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.actions.ActionOpenAccount
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
@@ -32,6 +33,7 @@ internal class IntentRemoteSend(
             giftCard: GiftCardAccount,
             amount: LocalFiat,
             token: Token,
+            verifiedState: VerifiedState,
         ): IntentRemoteSend {
             // 1. Open gift card account
             val openGiftCardAccount = ActionOpenAccount.createGiftCard(giftCard.cluster, token.address)
@@ -71,7 +73,8 @@ internal class IntentRemoteSend(
                     amount = amount,
                     mint = token.address,
                     isRemoteSend = true,
-                    isWithdrawal = false
+                    isWithdrawal = false,
+                    verifiedState = verifiedState,
                 ),
                 actionGroup = actions
             )
