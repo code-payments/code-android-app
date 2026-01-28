@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.codeinc.opencode.gen.currency.v1.mint
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.model.LiveMintDataResponse
@@ -41,6 +42,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -189,11 +191,22 @@ class TokenController @Inject constructor(
                                     if (launchpad == null) {
                                         token
                                     } else {
-                                        token.copy(
+                                        val updatedToken = token.copy(
                                             launchpadMetadata = launchpad.copy(
                                                 currentCirculatingSupplyQuarks = state.reserveState.currentSupply
                                             )
                                         )
+
+                                        // update balance for token with new reserve state (circulating supply)
+                                        val currentBalance = mintBalances.value[token.address]
+                                        if (currentBalance != null) {
+                                            val updatedBalance = Fiat.tokenBalance(
+                                                quarks = currentBalance.quarks,
+                                                token = updatedToken
+                                            )
+                                            mintBalances.update { it + (token.address to updatedBalance) }
+                                        }
+                                        updatedToken
                                     }
                                 } else {
                                     token
@@ -326,13 +339,14 @@ class TokenController @Inject constructor(
                     val currentSupply = tokens.value.find { it.address == account.mint }?.launchpadMetadata?.currentCirculatingSupplyQuarks
                         ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
 
-                    val tokenBalance = Fiat.tokenBalance(account.balance, token = token)
+                    val updatedToken = token.copy(
+                        launchpadMetadata = token.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
+                    )
+                    val tokenBalance = Fiat.tokenBalance(account.balance, token = updatedToken)
                     val costBasis = Fiat(fiat = account.usdCostBasis)
 
                     TokenWithBalance(
-                        token = token.copy(
-                            launchpadMetadata = token.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
-                        ),
+                        token = updatedToken,
                         balance = tokenBalance,
                         appreciation = tokenBalance - costBasis
                     )
