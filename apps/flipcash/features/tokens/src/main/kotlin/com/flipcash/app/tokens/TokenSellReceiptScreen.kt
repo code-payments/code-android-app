@@ -55,9 +55,6 @@ class TokenSellReceiptScreen: ModalScreen, Parcelable {
             composeScope.launch { close() }
         }
 
-        val notificationPermissionCheck =
-            notificationPermissionCheck { onNotificationResult(it) }
-
         val viewModel = getStackScopedViewModel<BuySellSwapTokenViewModel>(BuySellFlow.key)
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
@@ -85,42 +82,9 @@ class TokenSellReceiptScreen: ModalScreen, Parcelable {
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<BuySellSwapTokenViewModel.Event.OnSellSubmitted>()
-                .onEach {
-                    val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
-                    BottomBarManager.showMessage(
-                        title = context.getString(R.string.prompt_title_cashOnTheWay),
-                        subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
-                        showScrim = true,
-                        actions = buildList {
-                            if (hasPushPerms) {
-                                add(
-                                    BottomBarAction(
-                                        text = context.getString(R.string.action_ok),
-                                    ) {
-                                        close()
-                                    }
-                                )
-                            } else {
-                                add(
-                                    BottomBarAction(
-                                        text = context.getString(R.string.action_notifyMe)
-                                    ) {
-                                        notificationPermissionCheck(true)
-                                    }
-                                )
-
-                                add(
-                                    BottomBarAction(
-                                        text = context.getString(R.string.action_dismiss),
-                                        style = BottomBarManager.BottomBarButtonStyle.Text
-                                    ) {
-                                        close()
-                                    }
-                                )
-                            }
-                        },
-                        type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                    )
+                .map { it.swapId }
+                .onEach { swapId ->
+                    navigator.push(ScreenRegistry.get(AppRoute.Token.TxProcessing(swapId)))
                 }.launchIn(this)
         }
     }

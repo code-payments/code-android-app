@@ -8,6 +8,7 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.transfers.TransferDirection
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -69,6 +70,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data class Info(val mint: Mint): Token
         data class Transactions(val mint: Mint): Token
         data class SwapTransact(val purpose: TokenSwapPurpose): Token
+        data class TxProcessing(val swapId: SwapId): Token
         data object SellReceipt: Token
     }
 

@@ -5,7 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,10 +20,8 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.material.Button
 import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.ButtonDefaults.elevation
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
@@ -258,7 +255,7 @@ fun CodeButton(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        ProvideTextStyle(value = style) {
+                                        ProvideTextStyle(value = style.copy(color = colors.contentColor(enabled).value)) {
                                             this@Row.content()
                                         }
                                     }
@@ -333,7 +330,7 @@ fun getButtonColors(
             backgroundColor = White,
             contentColor = textColor.takeOrElse { Color(0XFF121212) },
             disabledBackgroundColor = White10,
-            disabledContentColor = White10,
+            disabledContentColor = White50,
         )
 
         ButtonState.Bordered ->
@@ -346,7 +343,7 @@ fun getButtonColors(
         ButtonState.Filled50 ->
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = White50,
-                disabledContentColor = White50,
+                disabledContentColor = White20,
                 contentColor = textColor.takeOrElse { White },
             )
 
@@ -360,14 +357,14 @@ fun getButtonColors(
         ButtonState.Filled10 ->
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = White10,
-                disabledContentColor = White10,
+                disabledContentColor = White50,
                 contentColor = textColor.takeOrElse { White },
             )
 
         ButtonState.Subtle ->
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = Transparent,
-                disabledContentColor = Transparent,
+                disabledContentColor = White50,
                 contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.textSecondary } else Color.White.copy(
                     0.30f
                 )

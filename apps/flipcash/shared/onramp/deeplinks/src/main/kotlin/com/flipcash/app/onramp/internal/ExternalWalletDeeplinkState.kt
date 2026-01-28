@@ -372,7 +372,7 @@ class ExternalWalletDeeplinkState(
         }
     }
 
-    private suspend fun initiateBuy(): Result<Unit> {
+    private suspend fun initiateBuy(): Result<SwapId> {
         val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
         val token = requireNotNull(tokenToPurchase) { "Token is null" }
         val amountToSend = requireNotNull(amount) { "Amount is null" }

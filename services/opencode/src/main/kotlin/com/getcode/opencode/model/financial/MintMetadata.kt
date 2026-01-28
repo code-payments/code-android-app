@@ -20,6 +20,9 @@ data class TokenWithBalance(
 ) {
     val isReserves: Boolean
         get() = token.address == Mint.usdf
+
+    val costBasis: Fiat
+        get() = balance - appreciation
 }
 
 data class TokenWithLocalizedBalance(
@@ -30,6 +33,9 @@ data class TokenWithLocalizedBalance(
 ) {
     val isReserves: Boolean
         get() = token.address == Mint.usdf
+
+    val costBasis: LocalFiat
+        get() = balance - appreciation
 }
 
 typealias Token = MintMetadata

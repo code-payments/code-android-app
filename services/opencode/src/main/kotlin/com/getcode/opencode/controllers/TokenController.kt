@@ -235,7 +235,7 @@ class TokenController @Inject constructor(
             fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
         modifyBalance(token) { it + balanceAdditionAmount }
         // fetch token account to get latest additional metadata (cost basis)
-        updateTokenAccount(token.address)
+        updateTokenAccount(token)
     }
 
     suspend fun subtract(token: Token, fiat: LocalFiat) {
@@ -243,7 +243,7 @@ class TokenController @Inject constructor(
             fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
         modifyBalance(token) { it - balanceReductionAmount }
         // fetch token account to get latest additional metadata (cost basis)
-        updateTokenAccount(token.address)
+        updateTokenAccount(token)
     }
 
     suspend fun update() {
@@ -369,7 +369,11 @@ class TokenController @Inject constructor(
         }
     }
 
-    private suspend fun updateTokenAccount(mint: Mint) {
+    suspend fun updateTokenAccount(token: Token) {
+        updateTokenAccount(token.address)
+    }
+
+    suspend fun updateTokenAccount(mint: Mint) {
         val owner = cluster.value
         if (owner == null) {
             trace(

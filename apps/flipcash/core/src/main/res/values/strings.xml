@@ -297,6 +297,7 @@
     <string name="prompt_description_cashOnTheWay">It should be available in a few minutes. If you have any issues please contact support@flipcash.com</string>
     <string name="prompt_description_tokenPurchaseOnTheWay">It should be available in a few minutes. If you have any issues please contact support@flipcash.com</string>
     <string name="action_notifyMe">Notify Me</string>
+    <string name="action_notifyMeWhenComplete">Notify Me When Complete</string>
 
     <string name="title_onrampProviderCoinbaseVirtual">Debit Card with Google Pay</string>
     <string name="title_onrampProviderCoinbaseDebit">Debit Card</string>
@@ -379,6 +380,8 @@
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
     <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
+    <string name="title_purchasingToken">Purchasing %1$s</string>
+    <string name="title_sellingToken">Selling %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 
     <string name="label_yes">Yes</string>
@@ -403,5 +406,10 @@
 
     <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
     <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
+
+    <string name="title_processingYourTransaction">Processing Your Transaction</string>
+    <string name="subtitle_processingYourTransaction">This usually takes just under a minute</string>
+    <string name="subtitle_wasAddedToYourWallet">was added to your Flipcash wallet</string>
+    <string name="label_ofToken">of %1s</string>
 
 </resources>

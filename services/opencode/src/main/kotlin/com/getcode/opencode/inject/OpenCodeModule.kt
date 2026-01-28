@@ -18,6 +18,7 @@ import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.internal.network.pollers.SwapPoller
 import com.getcode.opencode.internal.network.services.AccountService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
@@ -123,8 +124,9 @@ object OpenCodeModule {
     @Provides
     @Singleton
     internal fun providesSwapRepository(
-        service: SwapService
-    ): SwapRepository = InternalSwapRepository(service)
+        service: SwapService,
+        swapPoller: SwapPoller,
+    ): SwapRepository = InternalSwapRepository(service, swapPoller)
 
     @Provides
     @Singleton

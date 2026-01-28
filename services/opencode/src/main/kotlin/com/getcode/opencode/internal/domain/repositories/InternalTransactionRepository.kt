@@ -65,7 +65,7 @@ internal class InternalTransactionRepository @Inject constructor(
         verifiedState: VerifiedState,
         source: SwapFundingSource,
         fund: (suspend (SwapRequest) -> Result<Unit>)?
-    ): Result<Unit> = service.buy(
+    ): Result<SwapId> = service.buy(
         scope = scope,
         swapId = swapId,
         amount = amount,
@@ -82,7 +82,7 @@ internal class InternalTransactionRepository @Inject constructor(
         amount: LocalFiat,
         of: Token,
         verifiedState: VerifiedState,
-    ): Result<Unit> = service.sell(
+    ): Result<SwapId> = service.sell(
         scope = scope,
         amount = amount,
         of = of,

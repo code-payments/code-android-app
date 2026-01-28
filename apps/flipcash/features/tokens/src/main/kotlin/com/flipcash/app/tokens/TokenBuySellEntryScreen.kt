@@ -1,6 +1,5 @@
 package com.flipcash.app.tokens
 
-import android.Manifest
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,19 +20,15 @@ import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.tokens.internal.BuySellTokenEntryScreen
 import com.flipcash.features.tokens.R
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.util.permissions.LocalPermissionChecker
-import com.getcode.util.permissions.notificationPermissionCheck
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -109,53 +104,12 @@ class TokenBuySellEntryScreen(
                 }.launchIn(this)
         }
 
-        val onNotificationResult: (Boolean) -> Unit = { isGranted ->
-            composeScope.launch { navigator.pop() }
-        }
-
-        val notificationPermissionCheck =
-            notificationPermissionCheck { onNotificationResult(it) }
-
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
                 .filterIsInstance<BuySellSwapTokenViewModel.Event.OnPurchaseSubmitted>()
-                .map { it.token }
-                .onEach { token ->
-                    val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
-                    BottomBarManager.showMessage(
-                        title = context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name),
-                        subtitle = context.getString(R.string.prompt_description_tokenPurchaseOnTheWay),
-                        showScrim = true,
-                        actions = buildList {
-                            if (hasPushPerms) {
-                                add(
-                                    BottomBarAction(
-                                        text = context.getString(R.string.action_ok),
-                                    ) {
-                                        navigator.pop()
-                                    }
-                                )
-                            } else {
-                                add(
-                                    BottomBarAction(
-                                        text = context.getString(R.string.action_notifyMe)
-                                    ) {
-                                        notificationPermissionCheck(true)
-                                    }
-                                )
-
-                                add(
-                                    BottomBarAction(
-                                        text = context.getString(R.string.action_dismiss),
-                                        style = BottomBarManager.BottomBarButtonStyle.Text
-                                    ) {
-                                        navigator.pop()
-                                    }
-                                )
-                            }
-                        },
-                        type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                    )
+                .map { it.swapId }
+                .onEach { swapId ->
+                    navigator.push(ScreenRegistry.get(AppRoute.Token.TxProcessing(swapId)))
                 }.launchIn(this)
         }
     }

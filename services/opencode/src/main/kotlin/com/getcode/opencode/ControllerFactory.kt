@@ -34,6 +34,7 @@ object ControllerFactory {
 
         return TransactionController(
             repository = RepositoryFactory.createTransactionRepository(context, config),
+            swapRepository = RepositoryFactory.createSwapRepository(context, config),
             accountController = createAccountController(context, config),
             eventBus = module.providesEventBus(),
             verifiedStateManager = ManagerFactory.createVerifiedStateManager(),

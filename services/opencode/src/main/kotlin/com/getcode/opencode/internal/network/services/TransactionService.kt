@@ -198,7 +198,7 @@ internal class TransactionService @Inject constructor(
         verifiedState: VerifiedState,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)?,
-    ): Result<Unit> {
+    ): Result<SwapId> {
         val request = SwapRequest(
             owner = owner,
             swapAuthority = Ed25519.createKeyPair(),
@@ -225,7 +225,7 @@ internal class TransactionService @Inject constructor(
         owner: AccountCluster,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         verifiedState: VerifiedState,
-    ): Result<Unit> {
+    ): Result<SwapId> {
         val tokenCluster = owner.withTimelockForToken(of)
 
         val request = SwapRequest(
@@ -251,7 +251,7 @@ internal class TransactionService @Inject constructor(
         request: SwapRequest,
         owner: AccountCluster,
         fund: suspend (SwapRequest) -> Result<Unit> = { swapFunding.fund(scope, owner, it).map { Unit } },
-    ): Result<Unit> {
+    ): Result<SwapId> {
         val executor = SwapExecutor(api)
         return executor.execute(scope, request)
             .fold(
@@ -262,6 +262,6 @@ internal class TransactionService @Inject constructor(
                 onFailure = {
                     Result.failure(it)
                 }
-            )
+            ).map { request.swapId }
     }
 }

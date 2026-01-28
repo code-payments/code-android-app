@@ -46,6 +46,21 @@ abstract class BaseViewModel2<ViewState : Any, Event : Any>(
 data class LoadingSuccessState(
     val loading: Boolean = false,
     val success: Boolean = false,
+    val error: Boolean = false,
 ) {
-    val isIdle: Boolean = !loading && !success
+    sealed interface State {
+        data object Idle: State
+        data object Loading : State
+        data object Success : State
+        data object Error : State
+    }
+
+    val state: State = when {
+        loading -> State.Loading
+        success -> State.Success
+        error -> State.Error
+        else -> State.Idle
+    }
+
+    val isIdle: Boolean = state is State.Idle
 }

@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
@@ -10,6 +11,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -22,6 +24,7 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
+import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -31,6 +34,7 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -71,9 +75,11 @@ class BuySellSwapTokenViewModel @Inject constructor(
         val purpose: TokenSwapPurpose? = null,
         val tokenWithBalance: TokenWithBalance? = null,
         val reservesWithBalance: TokenWithBalance? = null,
+        val swapId: SwapId? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
         val buyProgress: LoadingSuccessState = LoadingSuccessState(),
         val sellProgress: LoadingSuccessState = LoadingSuccessState(),
+        val processingProgress: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val sellFee: Double?
             get() {
@@ -175,6 +181,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
+        data class OnSwapIdChanged(val swapId: SwapId) : Event
+
         data class CreateAndSendTransactionToWallet(val token: Token, val amount: LocalFiat) : Event
 
         data class OnAmountAccepted(val amount: LocalFiat) : Event
@@ -184,9 +192,14 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         data object ShowSellReceipt : Event
 
-        data class OnPurchaseSubmitted(val token: Token) : Event
-        data class OnSellSubmitted(val token: Token) : Event
+        data class OnPurchaseSubmitted(val token: Token, val swapId: SwapId) : Event
+        data class OnSellSubmitted(val token: Token, val swapId: SwapId) : Event
 
+        data class UpdateProcessingState(
+            val loading: Boolean = false,
+            val success: Boolean = false,
+            val error: Boolean = false,
+        ) : Event
         data object OnTransactionSuccessful : Event
 
         data object Exit : Event
@@ -490,8 +503,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     owner = owner,
                     amount = amount,
                     of = token,
-                ).onSuccess {
-                    dispatchEvent(Event.OnPurchaseSubmitted(token))
+                ).onSuccess { swapId ->
+                    dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
                     // buy submitted from reserves, drop reserves balance
                     tokenController.subtract(Token.usdf, amount)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
@@ -518,8 +531,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     owner = owner,
                     amount = amount,
                     of = token,
-                ).onSuccess {
-                    dispatchEvent(Event.OnSellSubmitted(token))
+                ).onSuccess { swapId ->
+                    dispatchEvent(Event.OnSellSubmitted(token, swapId))
                     // sell submitted, drop from balance
                     tokenController.subtract(token, amount)
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
@@ -531,6 +544,33 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     )
                 }
             }.launchIn(viewModelScope)
+
+        stateFlow
+            .mapNotNull { it.swapId }
+            .distinctUntilChanged()
+            .mapNotNull { swapId ->
+                val owner = userManager.accountCluster ?: return@mapNotNull null
+                owner to swapId
+            }
+            .map { (owner, swapId) ->
+                dispatchEvent(Event.UpdateProcessingState(loading = true))
+                transactionController.pollSwapForState(
+                    swapId = swapId,
+                    owner = owner,
+                    targetState = SwapState.FINALIZED
+                )
+            }.onResult(
+                onSuccess = {
+                    val token = stateFlow.value.tokenWithBalance!!.token
+                    viewModelScope.launch { tokenController.updateTokenAccount(token) }
+                    dispatchEvent(Event.OnTransactionSuccessful)
+                    dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
+                },
+                onError = {
+                    // TODO: show error
+                    dispatchEvent(Event.UpdateProcessingState(loading = false, success = false, error = true))
+                }
+            ).launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -608,6 +648,19 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         )
                     )
                 }
+
+                is Event.UpdateProcessingState -> { state ->
+                    val entryState = state.processingProgress
+                    state.copy(
+                        processingProgress = entryState.copy(
+                            loading = event.loading,
+                            success = event.success,
+                            error = event.error,
+                        )
+                    )
+                }
+
+                is Event.OnSwapIdChanged -> { state -> state.copy(swapId = event.swapId) }
 
                 is Event.ProceedWithPurchase -> { state -> state }
                 is Event.ProceedWithSale -> { state -> state }

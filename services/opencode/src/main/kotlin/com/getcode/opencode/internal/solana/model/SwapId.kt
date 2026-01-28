@@ -1,10 +1,13 @@
 package com.getcode.opencode.internal.solana.model
 
+import android.os.Parcelable
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
+import kotlinx.parcelize.Parcelize
 
 @JvmInline
-value class SwapId(val value: List<Byte>) {
+@Parcelize
+value class SwapId(val value: List<Byte>): Parcelable {
 
     init {
         require(value.size == 32) { "SwapId must be exactly 32 bytes" }

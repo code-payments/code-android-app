@@ -61,7 +61,7 @@ interface TransactionRepository {
         verifiedState: VerifiedState,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
-    ): Result<Unit>
+    ): Result<SwapId>
 
     suspend fun sell(
         scope: CoroutineScope,
@@ -69,5 +69,5 @@ interface TransactionRepository {
         amount: LocalFiat,
         of: Token,
         verifiedState: VerifiedState,
-    ): Result<Unit>
+    ): Result<SwapId>
 }

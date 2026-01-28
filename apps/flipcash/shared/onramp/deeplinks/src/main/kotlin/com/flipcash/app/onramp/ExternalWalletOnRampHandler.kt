@@ -1,6 +1,7 @@
 package com.flipcash.app.onramp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.to
 
+@SuppressLint("LocalContextGetResourceValueCall", "InlinedApi")
 @Composable
 fun ExternalWalletOnRampHandler(
     state: ExternalWalletDeeplinkState,
@@ -76,7 +78,7 @@ fun ExternalWalletOnRampHandler(
     val context = LocalContext.current
 
 
-    val onNotificationResult: (Boolean) -> Unit = { isGranted ->
+    val onNotificationResult: (Boolean) -> Unit = {
         composeScope.launch { close(true) }
     }
 
@@ -250,45 +252,53 @@ fun ExternalWalletOnRampHandler(
                     type = TraceType.Process
                 )
                 analytics.transactionSubmittedToWallet(state.provider!!)
-                state.reset()
-                val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
-                val title = state.tokenToPurchase?.let { token ->
-                    context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
-                } ?: context.getString(R.string.prompt_title_cashOnTheWay)
-                BottomBarManager.showMessage(
-                    title = title,
-                    subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
-                    showScrim = true,
-                    actions = buildList {
-                        if (hasPushPerms) {
-                            add(
-                                BottomBarAction(
-                                    text = context.getString(R.string.action_ok),
-                                ) {
-                                    close(true)
-                                }
-                            )
-                        } else {
-                            add(
-                                BottomBarAction(
-                                    text = context.getString(R.string.action_notifyMe)
-                                ) {
-                                    notificationPermissionCheck(true)
-                                }
-                            )
 
-                            add(
-                                BottomBarAction(
-                                    text = context.getString(R.string.action_dismiss),
-                                    style = BottomBarManager.BottomBarButtonStyle.Text
-                                ) {
-                                    close(true)
-                                }
-                            )
-                        }
-                    },
-                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                )
+                val swapId = state.swapId
+                state.reset()
+
+                if (swapId != null) {
+                    // confirmation is shown in finalization screen
+                    navigator.push(ScreenRegistry.get(AppRoute.Token.TxProcessing(swapId)))
+                } else {
+                    val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
+                    val title = state.tokenToPurchase?.let { token ->
+                        context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
+                    } ?: context.getString(R.string.prompt_title_cashOnTheWay)
+                    BottomBarManager.showMessage(
+                        title = title,
+                        subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
+                        showScrim = true,
+                        actions = buildList {
+                            if (hasPushPerms) {
+                                add(
+                                    BottomBarAction(
+                                        text = context.getString(R.string.action_ok),
+                                    ) {
+                                        close(true)
+                                    }
+                                )
+                            } else {
+                                add(
+                                    BottomBarAction(
+                                        text = context.getString(R.string.action_notifyMe)
+                                    ) {
+                                        notificationPermissionCheck(true)
+                                    }
+                                )
+
+                                add(
+                                    BottomBarAction(
+                                        text = context.getString(R.string.action_dismiss),
+                                        style = BottomBarManager.BottomBarButtonStyle.Text
+                                    ) {
+                                        close(true)
+                                    }
+                                )
+                            }
+                        },
+                        type = BottomBarManager.BottomBarMessageType.SUCCESS,
+                    )
+                }
             }
         }
     }
