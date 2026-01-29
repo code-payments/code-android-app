@@ -275,9 +275,17 @@ object Estimator {
     ): Result<SellEstimation> {
         return runCatching {
             val curve = getCurve(curveType)
-            require(amountInQuarks > 0) { "Amount must be positive" }
+            require(amountInQuarks >= 0) { "Amount must be positive" }
             require(marketState.amount >= 0) { "Current market state value must be non-negative" }
             require(feeBps >= 0) { "Fee basis points must be non-negative" }
+
+            if (amountInQuarks == 0L) {
+                println("Sell amount is 0")
+                return@runCatching SellEstimation(
+                    netAmountToReceive = BigDecimal.ZERO,
+                    fees = BigDecimal.ZERO,
+                )
+            }
 
             when (curveType) {
                 CurveType.Continuous -> {

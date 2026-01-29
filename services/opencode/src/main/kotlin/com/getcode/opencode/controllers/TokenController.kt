@@ -53,13 +53,11 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.concurrent.atomics.AtomicBoolean
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @Singleton
-@OptIn(ExperimentalAtomicApi::class)
 class TokenController @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val accountController: AccountController,
@@ -69,51 +67,53 @@ class TokenController @Inject constructor(
 ) : DefaultLifecycleObserver {
 
     companion object {
-        val mintPreferenceKey = stringPreferencesKey("tokenMint")
+        private const val TAG = "TokenController"
+        private val mintPreferenceKey = stringPreferencesKey("tokenMint")
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
     private var streamReserveStateJob: Job? = null
 
     private val selectedToken = PreferenceDataStoreFactory.create(
-        corruptionHandler = ReplaceFileCorruptionHandler(
-            produceNewData = { emptyPreferences() }
-        ),
-        migrations = listOf(),
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
         scope = scope,
         produceFile = { context.preferencesDataStoreFile("selected-token") }
     )
 
     private val cluster = MutableStateFlow<AccountCluster?>(null)
+    private val fetchingMints = ConcurrentHashMap.newKeySet<Mint>()
 
-    private val tokenFetchState = mutableMapOf<Mint, AtomicBoolean>()
-    private fun isFetchingToken(mint: Mint): Boolean {
-        return tokenFetchState[mint]?.load() ?: false
-    }
+    data class TokenState(
+        val tokens: Map<Mint, Token> = emptyMap(),
+        val balances: Map<Mint, Fiat> = emptyMap(),
+        val appreciation: Map<Mint, Fiat> = emptyMap(),
+    )
 
-    private val mintUsdAppreciationMap = MutableStateFlow(mapOf<Mint, Fiat>())
+    private val _state = MutableStateFlow(TokenState())
 
-    private val mintBalances = MutableStateFlow(mapOf<Mint, Fiat>())
-    val tokens = MutableStateFlow(emptyList<Token>())
+    val tokens: Flow<List<Token>> = _state.map { it.tokens.values.toList() }
 
-    val tokenBalances: Flow<List<TokenWithBalance>> = mintBalances.map {
-        it.mapNotNull { (mint, balance) ->
-            val token = tokens.value.find { it.address == mint } ?: return@mapNotNull null
-            if (token.address == Mint.usdf) {
-                // no appreciation for reserves
-                TokenWithBalance(token, balance)
-            } else {
-                val appreciation = mintUsdAppreciationMap.value[mint] ?: Fiat.Zero
-                TokenWithBalance(token, balance, appreciation)
-            }
+    val tokenBalances: Flow<List<TokenWithBalance>> = _state.map { state ->
+        state.balances.mapNotNull { (mint, balance) ->
+            val token = state.tokens[mint] ?: return@mapNotNull null
+            val appreciation = if (mint == Mint.usdf) Fiat.Zero else state.appreciation[mint] ?: Fiat.Zero
+            TokenWithBalance(token, balance, appreciation)
         }
     }
 
+    /**
+     * Initializes the token controller state when a user logs in.
+     *
+     * This function is called to set the active [AccountCluster] for the current session,
+     * which is necessary for subsequent token and account operations. It effectively signals
+     * the start of an authenticated user's session to this controller.
+     *
+     * @param cluster The [AccountCluster] associated with the logged-in user.
+     */
     fun onUserLoggedIn(cluster: AccountCluster) {
         trace(
-            tag = "Balance",
-            message = "onUserLoggedIn",
+            tag = TAG,
+            message = "User logged in, initializing token state",
             type = TraceType.User
         )
         this.cluster.value = cluster
@@ -124,352 +124,598 @@ class TokenController @Inject constructor(
 
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state }
-            .map { it.connected }
-            .onEach { connected ->
-                if (connected) {
-                    retryable { update() }
-                }
-            }.launchIn(scope)
+            .filter { it.connected }
+            .onEach {
+                trace(
+                    tag = TAG,
+                    message = "Network connected, triggering token update",
+                    type = TraceType.Process
+                )
+                retryable { update() }
+            }
+            .launchIn(scope)
 
-        tokens.map { t -> t.map { it.address } }
+        _state.map { it.tokens.keys.toList() }
             .debounce(500)
             .distinctUntilChanged()
             .filter { it.isNotEmpty() }
-            .onEach { exchange.updateUserMints(it) }
+            .onEach { mints ->
+                trace(
+                    tag = TAG,
+                    message = "Syncing ${mints.size} mints with exchange",
+                    type = TraceType.Process
+                )
+                exchange.updateUserMints(mints)
+            }
             .launchIn(scope)
     }
 
     override fun onResume(owner: LifecycleOwner) {
-        super.onResume(owner)
-        stopStreamingReserveStates()
+        trace(
+            tag = TAG,
+            message = "Lifecycle resumed, starting reserve state stream",
+            type = TraceType.Process
+        )
+        streamReserveStateJob?.cancel()
         streamReserveStates()
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        super.onStop(owner)
+        trace(
+            tag = TAG,
+            message = "Lifecycle stopped, cancelling reserve state stream",
+            type = TraceType.Process
+        )
         streamReserveStateJob?.cancel()
     }
 
-    fun balanceForToken(token: Token): Fiat {
-        return mintBalances.value[token.address] ?: Fiat.Zero
-    }
+    /**
+     * Retrieves the balance for a given token from the current state.
+     *
+     * This function provides a synchronous way to access the balance of a specific token.
+     * It looks up the balance in the in-memory state cache. If the token is not found
+     * or has no balance recorded, it returns [Fiat.Zero].
+     *
+     * For a reactive stream of balance updates, use [balanceForToken] with a [Mint] address.
+     *
+     * @param token The [Token] for which to retrieve the balance.
+     * @return The [Fiat] balance of the token, or [Fiat.Zero] if not available.
+     */
+    fun balanceForToken(token: Token): Fiat = _state.value.balances[token.address] ?: Fiat.Zero
 
-    fun balanceForToken(tokenAddress: Mint): Flow<Fiat> {
-        return mintBalances.map { it[tokenAddress] ?: Fiat.Zero }
-    }
+    /**
+     * Observes the balance for a specific token as a [Flow] of [Fiat] values.
+     *
+     * This function is useful for UI components that need to reactively display
+     * a token's balance as it changes. If the token is not found in the current
+     * state, it will emit [Fiat.Zero].
+     *
+     * @param tokenAddress The [Mint] address of the token to observe.
+     * @return A [Flow] that emits the latest balance of the specified token.
+     */
+    fun balanceForToken(tokenAddress: Mint): Flow<Fiat> =
+        _state.map { it.balances[tokenAddress] ?: Fiat.Zero }
 
-    fun appreciationForToken(tokenAddress: Mint): Flow<Fiat> {
-        return tokenBalances.mapNotNull { tokens ->
-            tokens.find { it.token.address == tokenAddress }?.appreciation
-        }
-    }
+    /**
+     * Observes the appreciation value for a specific token.
+     *
+     * Appreciation is calculated as the current market value of the user's balance
+     * minus the original cost basis of that balance.
+     *
+     * @param tokenAddress The [Mint] address of the token to observe.
+     * @return A [Flow] emitting the appreciation value as a [Fiat] amount. Emits [Fiat.Zero] if no
+     * appreciation data is available for the given token.
+     */
+    fun appreciationForToken(tokenAddress: Mint): Flow<Fiat> =
+        _state.map { it.appreciation[tokenAddress] ?: Fiat.Zero }
 
-    fun reservesBalance(): Fiat {
-        return balanceForToken(Token.usdf)
-    }
 
-    fun observeReservesBalance(): Flow<Fiat> {
-        return balanceForToken(Mint.usdf)
-    }
+    /**
+     * Retrieves the current balance of the user's reserve account (USDF).
+     *
+     * This is a synchronous function that returns the last known balance.
+     * For an observable flow of the balance, use [observeReservesBalance].
+     *
+     * @return The current reserve balance as a [Fiat] object. Returns [Fiat.Zero] if the balance is not yet available.
+     */
+    fun reservesBalance(): Fiat = balanceForToken(Token.usdf)
 
-    private fun streamReserveStates() {
-        streamReserveStateJob = scope.launch {
-            currencyController.streamLiveMintData(
-                scope = this,
-                mints = tokens.map { list -> list.map { it.address } },
-                tag = "token-reserves"
-            ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
-                .collect { update ->
-                    update.reserveStates.forEach { state ->
-                        tokens.update { current ->
-                            current.map { token ->
-                                if (token.address == state.reserveState.mint) {
-                                    val launchpad = token.launchpadMetadata
-                                    if (launchpad == null) {
-                                        token
-                                    } else {
-                                        val updatedToken = token.copy(
-                                            launchpadMetadata = launchpad.copy(
-                                                currentCirculatingSupplyQuarks = state.reserveState.currentSupply
-                                            )
-                                        )
+    /**
+     * Observes the balance of the user's USDF reserves.
+     *
+     * This function provides a reactive stream ([Flow]) of the user's balance in USDF,
+     * which is considered their primary reserve currency within the system. The balance
+     * is represented as a [Fiat] value.
+     *
+     * @return A [Flow] that emits the latest USDF balance whenever it changes.
+     */
+    fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
 
-                                        // update balance for token with new reserve state (circulating supply)
-                                        val currentBalance = mintBalances.value[token.address]
-                                        if (currentBalance != null) {
-                                            val updatedBalance = Fiat.tokenBalance(
-                                                quarks = currentBalance.quarks,
-                                                token = updatedToken
-                                            )
-                                            mintBalances.update { it + (token.address to updatedBalance) }
-                                        }
-                                        updatedToken
-                                    }
-                                } else {
-                                    token
-                                }
-                            }
-                        }
-                    }
-                }
-        }
-    }
-
-    private fun stopStreamingReserveStates() {
-        streamReserveStateJob?.cancel()
-    }
-
-    private suspend fun modifyBalance(token: Token, operation: (Fiat) -> Fiat) {
-        val balance = mintBalances.value[token.address] ?: Fiat.Zero
-        if (balance.decimalValue == 0.0) {
-            // attempt to fetch prior to modifying balance
-            updateTokenAccount(token.address)
-        } else {
-            val updatedBalance = operation(balance)
-            mintBalances.update { it + (token.address to updatedBalance) }
-        }
-    }
-
+    /**
+     * Increases the local balance of a specified token by a given fiat amount.
+     *
+     * This function is used for speculative balance updates, for example, after a successful
+     * deposit. It converts the provided fiat amount to its USD equivalent and then adds it
+     * to the current local balance of the token. It triggers a network
+     * update for the token's account to eventually sync with the authoritative state.
+     *
+     * @param token The [Token] whose balance is to be increased.
+     * @param fiat The [LocalFiat] amount to add, which will be converted to a USD value.
+     */
     suspend fun add(token: Token, fiat: LocalFiat) {
-        val balanceAdditionAmount =
-            fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
-        modifyBalance(token) { it + balanceAdditionAmount }
-        // fetch token account to get latest additional metadata (cost basis)
-        updateTokenAccount(token)
+        val amount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        trace(
+            tag = TAG,
+            message = "Adding ${amount.formatted()} to ${token.symbol}",
+            type = TraceType.Process
+        )
+        modifyBalance(token, amount) { current, delta -> current + delta }
     }
 
+    /**
+     * Subtracts a specified amount from a token's balance locally.
+     *
+     * This function calculates the USD value of the fiat amount and then subtracts it
+     * from the current in-memory balance of the given token. It triggers a network
+     * update for the token's account to eventually sync with the authoritative state.
+     *
+     * @param token The token from which to subtract the balance.
+     * @param fiat The amount to subtract, represented in a local fiat currency.
+     */
     suspend fun subtract(token: Token, fiat: LocalFiat) {
-        val balanceReductionAmount =
-            fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
-        modifyBalance(token) { it - balanceReductionAmount }
-        // fetch token account to get latest additional metadata (cost basis)
-        updateTokenAccount(token)
+        val amount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        trace(
+            tag = TAG,
+            message = "Subtracting ${amount.formatted()} from ${token.symbol}",
+            type = TraceType.Process
+        )
+        modifyBalance(token, amount) { current, delta -> current - delta }
     }
 
-    suspend fun update() {
-        updateTokens()
-    }
+    /**
+     * Triggers a comprehensive update of all token accounts and their balances.
+     * This function is the primary public entry point for forcing a refresh of the user's
+     * entire token portfolio. It fetches all primary accounts, updates token metadata,
+     * calculates balances and appreciation, and ensures a valid token selection is in place.
+     *
+     * This is useful after major state changes, on app foregrounding, or when a manual
+     * refresh is requested by the user.
+     */
+    suspend fun update() = updateTokens()
 
+    /**
+     * Retrieves metadata for a given token mint.
+     *
+     * This function first checks a local cache for the token's metadata. If a cached
+     * version is found, it's returned immediately with `DataSource.Cache`.
+     *
+     * If the token is not in the cache, it fetches the metadata from the network via
+     * the `currencyController`. Upon a successful fetch, the new token metadata is
+     * added to the local cache for future requests and returned with `DataSource.Network`.
+     *
+     * @param mint The [Mint] address of the token to retrieve metadata for.
+     * @return A [Result] containing a [TokenResult] on success, which includes the
+     *         [Token] metadata and the [DataSource] it was retrieved from. On failure,
+     *         it returns a [Result] with an exception.
+     */
     suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
-        val cachedToken = tokens.value.find { it.address == mint }
-        if (cachedToken != null) {
-            return Result.success(TokenResult(cachedToken, DataSource.Cache))
+        _state.value.tokens[mint]?.let { cached ->
+            trace(
+                tag = TAG,
+                message = "Token metadata cache hit for ${cached.symbol} (${mint.base58()}...)",
+                type = TraceType.Process
+            )
+            return Result.success(TokenResult(cached, DataSource.Cache))
         }
 
-        val metadata = currencyController.getMintMetadata(listOf(mint))
-            .onSuccess { token -> tokens.update { (it + token).distinctBy { t -> t.address } } }
-            .map { it.firstOrNull { tokenMetadata -> tokenMetadata.address == mint } }
-            .getOrNull()
+        trace(
+            tag = TAG,
+            message = "Token metadata cache miss for ${mint.base58()}..., fetching from network",
+            type = TraceType.Process
+        )
 
-        return metadata?.let { Result.success(TokenResult(it, DataSource.Network)) }
-            ?: Result.failure(IllegalStateException("No metadata found for token $mint"))
+        return currencyController.getMintMetadata(listOf(mint))
+            .onSuccess { tokens ->
+                trace(
+                    tag = TAG,
+                    message = "Fetched metadata for ${tokens.size} token(s) from network",
+                    type = TraceType.Process
+                )
+                _state.update { state ->
+                    state.copy(tokens = state.tokens + tokens.associateBy { it.address })
+                }
+            }
+            .onFailure { error ->
+                trace(
+                    tag = TAG,
+                    message = "Failed to fetch token metadata for ${mint.base58()}...: ${error.message}",
+                    type = TraceType.Error
+                )
+            }
+            .mapCatching { it.first { t -> t.address == mint } }
+            .map { TokenResult(it, DataSource.Network) }
     }
 
+    /**
+     * Sets the user's currently selected token. This selection is persisted locally
+     * and used to determine the default token for various operations (currently limited to the default
+     * currency during a Give).
+     *
+     * @param mint The [Mint] address of the token to be selected.
+     */
     suspend fun selectToken(mint: Mint) {
-        selectedToken.edit {
-            it[mintPreferenceKey] = mint.base58()
-        }
+        val token = _state.value.tokens[mint]
+        trace(
+            tag = TAG,
+            message = "Token selected: ${token?.symbol ?: mint.base58()}...",
+            type = TraceType.User
+        )
+        selectedToken.edit { it[mintPreferenceKey] = mint.base58() }
     }
 
+    /**
+     * Fetches historical market capitalization data for a given token mint.
+     *
+     * This function retrieves a list of historical data points (market cap),
+     * for a specific token over a defined time window. It delegates the call to the
+     * `CurrencyController`.
+     *
+     * @param mint The [Mint] address of the token for which to fetch historical data.
+     * @param currencyCode The [CurrencyCode] in which the historical data should be represented.
+     * @param windowedRange The [WindowedRange] (e.g., day, week, month) defining the time period for the data.
+     * @return A [Result] containing a list of [HistoricalMintData] on success, or an error on failure.
+     */
     suspend fun getHistoricalMarketCapData(
         mint: Mint,
         currencyCode: CurrencyCode,
         windowedRange: WindowedRange,
     ): Result<List<HistoricalMintData>> {
-        return currencyController.getHistoricalMintData(
-            mint,
-            currencyCode,
-            windowedRange,
+        trace(
+            tag = TAG,
+            message = "Fetching historical market cap for ${mint.base58()}..., range=$windowedRange",
+            type = TraceType.Process
+        )
+
+        return currencyController.getHistoricalMintData(mint, currencyCode, windowedRange)
+            .onSuccess { data ->
+                trace(
+                    tag = TAG,
+                    message = "Received ${data.size} historical data points",
+                    type = TraceType.Process
+                )
+            }
+            .onFailure { error ->
+                trace(
+                    tag = TAG,
+                    message = "Failed to fetch historical market cap: ${error.message}",
+                    type = TraceType.Error
+                )
+            }
+    }
+
+    /**
+     * Observes the currently selected token's mint address from user preferences.
+     *
+     * This function provides a reactive stream (`Flow`) that emits the `Mint` address
+     * of the token the user has selected. It reads the value from the data store
+     * and converts the stored public key string back into a `Mint` object.
+     *
+     * The flow will emit a new value whenever the selected token changes.
+     *
+     * @return A [Flow] emitting the [Mint] of the selected token.
+     */
+    fun observeSelectedTokenMint(): Flow<Mint> = selectedToken.data.mapNotNull { prefs ->
+        prefs[mintPreferenceKey]?.let { Mint(it) }
+    }
+
+    /**
+     * Convenience function to update the account information for a specific token.
+     * This is an overload of [updateTokenAccount] that accepts a [Token] object.
+     *
+     * @param token The [Token] object whose account information needs to be updated.
+     */
+    suspend fun updateTokenAccount(token: Token) = updateTokenAccount(token.address)
+
+    /**
+     * Fetches and updates the account information for a single token.
+     *
+     * This function retrieves the primary account associated with the given [mint] address for the
+     * currently authenticated user. It then calculates the token's balance and appreciation,
+     * and updates the internal state.
+     *
+     * It handles cases where no user is authenticated, prevents duplicate concurrent fetches for the
+     * same mint, and includes retry logic for network requests.
+     *
+     * @param mint The [Mint] address of the token account to update.
+     */
+    suspend fun updateTokenAccount(mint: Mint) {
+        val owner = cluster.value ?: run {
+            trace(
+                tag = TAG,
+                message = "Cannot update token account: no authenticated user",
+                type = TraceType.Error
+            )
+            return
+        }
+
+        if (!fetchingMints.add(mint)) {
+            trace(
+                tag = TAG,
+                message = "Skipping duplicate fetch for ${mint.base58()}...",
+                type = TraceType.Process
+            )
+            return
+        }
+
+        try {
+            trace(
+                tag = TAG,
+                message = "Fetching token account for ${mint.base58()}...",
+                type = TraceType.Process
+            )
+
+            val account = retryable(maxRetries = 3) {
+                accountController.getAccounts(owner, owner, AccountFilter.MintAddress(mint))
+            }?.getOrNull()
+                ?.accounts?.values
+                ?.firstOrNull { it.accountType == AccountType.Primary && it.mint == mint }
+
+            if (account == null) {
+                trace(
+                    tag = TAG,
+                    message = "No primary account found for ${mint.base58()}...",
+                    type = TraceType.Error
+                )
+                return
+            }
+
+            val tokenWithBalance = buildTokenWithBalance(mint, account.balance, account.usdCostBasis)
+
+            if (tokenWithBalance != null) {
+                applyTokenUpdates(listOf(tokenWithBalance))
+            }
+        } catch (e: Exception) {
+            trace(
+                tag = TAG,
+                message = "Exception updating token account ${mint.base58()}",
+                error = e,
+                type = TraceType.Error
+            )
+        } finally {
+            fetchingMints.remove(mint)
+        }
+    }
+
+    /**
+     * Resets the state of the controller to its initial default values.
+     *
+     * This function is typically called upon user logout. It clears all token data,
+     * balances, appreciation information, the current user cluster, and the persisted
+     * selected token preference.
+     */
+    suspend fun reset() {
+        val previousTokenCount = _state.value.tokens.size
+        _state.value = TokenState()
+        cluster.value = null
+        selectedToken.edit { it.clear() }
+
+        trace(
+            tag = TAG,
+            message = "Token controller reset complete, cleared $previousTokenCount tokens",
+            type = TraceType.Process
         )
     }
 
-    fun observeSelectedTokenMint(): Flow<Mint> {
-        return selectedToken.data.mapNotNull { prefs ->
-            prefs[mintPreferenceKey]?.let { Mint(it) } ?: return@mapNotNull null
+    private suspend fun buildTokenWithBalance(
+        mint: Mint,
+        balance: Long,
+        usdCostBasis: Double
+    ): TokenWithBalance? {
+        val metadata = getTokenMetadata(mint).getOrNull()?.token ?: return null
+
+        val currentSupply = _state.value.tokens[mint]?.launchpadMetadata?.currentCirculatingSupplyQuarks
+            ?: metadata.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
+
+        val token = metadata.copy(
+            launchpadMetadata = metadata.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
+        )
+        val tokenBalance = Fiat.tokenBalance(balance, token)
+        val appreciation = tokenBalance - Fiat(fiat = usdCostBasis)
+
+        return TokenWithBalance(token, tokenBalance, appreciation)
+    }
+
+    private fun applyTokenUpdates(updates: List<TokenWithBalance>) {
+        if (updates.isEmpty()) {
+            trace(
+                tag = TAG,
+                message = "No token updates to apply",
+                type = TraceType.Process
+            )
+            return
+        }
+
+        _state.update { state ->
+            state.copy(
+                tokens = state.tokens + updates.associate { it.token.address to it.token },
+                balances = state.balances + updates.associate { it.token.address to it.balance },
+                appreciation = state.appreciation + updates.associate { it.token.address to it.appreciation }
+            )
+        }
+
+        trace(
+            tag = TAG,
+            message = "Applied ${updates.size} token update(s), total tokens: ${_state.value.tokens.size}",
+            type = TraceType.Process
+        )
+    }
+
+    private suspend fun modifyBalance(token: Token, amount: Fiat, operation: (Fiat, Fiat) -> Fiat) {
+        val currentBalance = _state.value.balances[token.address]
+
+        if (currentBalance == null || currentBalance.decimalValue == 0.0) {
+            trace(
+                tag = TAG,
+                message = "No existing balance for ${token.symbol}, fetching from network before modification",
+                type = TraceType.Process
+            )
+            updateTokenAccount(token.address)
+        } else {
+            val newBalance = operation(currentBalance, amount)
+            trace(
+                tag = TAG,
+                message = "Modified ${token.symbol} balance: ${currentBalance.formatted()} -> ${newBalance.formatted()}",
+                type = TraceType.Process
+            )
+            _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
+        }
+
+        updateTokenAccount(token.address)
+    }
+
+    private fun streamReserveStates() {
+        streamReserveStateJob = scope.launch {
+            trace(
+                tag = TAG,
+                message = "Reserve state stream started",
+                type = TraceType.Process
+            )
+
+            currencyController.streamLiveMintData(
+                scope = this,
+                mints = _state.map { it.tokens.keys.toList() },
+                tag = "token-reserves"
+            ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
+                .collect { response ->
+                    trace(
+                        tag = TAG,
+                        message = "Received ${response.reserveStates.size} reserve state updates",
+                        type = TraceType.Process
+                    )
+
+                    _state.update { state ->
+                        var updatedTokens = state.tokens
+                        var updatedBalances = state.balances
+
+                        response.reserveStates.forEach { update ->
+                            val mint = update.reserveState.mint
+                            val token = state.tokens[mint] ?: return@forEach
+                            val launchpad = token.launchpadMetadata ?: return@forEach
+
+                            val updatedToken = token.copy(
+                                launchpadMetadata = launchpad.copy(
+                                    currentCirculatingSupplyQuarks = update.reserveState.currentSupply
+                                )
+                            )
+                            updatedTokens = updatedTokens + (mint to updatedToken)
+
+                            state.balances[mint]?.let { balance ->
+                                val newBalance = Fiat.tokenBalance(balance.quarks, updatedToken)
+                                updatedBalances = updatedBalances + (mint to newBalance)
+
+                                trace(
+                                    tag = TAG,
+                                    message = "Reserve state updated for ${token.symbol}: supply=${update.reserveState.currentSupply}, balance=${newBalance.formatted()}",
+                                    type = TraceType.Process
+                                )
+                            }
+                        }
+
+                        state.copy(tokens = updatedTokens, balances = updatedBalances)
+                    }
+                }
         }
     }
 
     private suspend fun ensureValidTokenSelection() {
-        val balances = mintBalances.value
-        if (balances.isEmpty()) return
-
-        val selectedToken = selectedToken.data.map { prefs ->
-            prefs[mintPreferenceKey]?.let { Mint(it) } ?: return@map null
-        }.firstOrNull()?.takeIf { balances[it] != null }
-
-        if (selectedToken != null) {
-            return // current selection is valid
+        val state = _state.value
+        if (state.balances.isEmpty()) {
+            trace(
+                tag = TAG,
+                message = "No balances available, skipping token selection validation",
+                type = TraceType.Process
+            )
+            return
         }
 
-        // No valid selection, default to highest balance of the non-reserve tokens
-        val highestBalanceToken =
-            balances.filter { it.key != Mint.usdf }.maxByOrNull { it.value }?.key
-        if (highestBalanceToken != null) {
-            selectToken(highestBalanceToken)
+        val currentSelection = selectedToken.data.firstOrNull()
+            ?.get(mintPreferenceKey)
+            ?.let { Mint(it) }
+            ?.takeIf { state.balances.containsKey(it) }
+
+        if (currentSelection != null) {
+            trace(
+                tag = TAG,
+                message = "Current token selection is valid: ${state.tokens[currentSelection]?.symbol}",
+                type = TraceType.Process
+            )
+            return
+        }
+
+        val highestBalance = state.balances
+            .filterKeys { it != Mint.usdf }
+            .maxByOrNull { it.value }
+
+        if (highestBalance != null) {
+            val token = state.tokens[highestBalance.key]
+            trace(
+                tag = TAG,
+                message = "Auto-selecting token with highest balance: ${token?.symbol} (${highestBalance.value.formatted()})",
+                type = TraceType.Process
+            )
+            selectToken(highestBalance.key)
+        } else {
+            trace(
+                tag = TAG,
+                message = "No valid token available for auto-selection",
+                type = TraceType.Error
+            )
         }
     }
 
     private suspend fun updateTokens() {
-        val owner = cluster.value
-        if (owner == null) {
+        val owner = cluster.value ?: run {
             trace(
-                tag = "Token",
-                message = "Missing owner while updating tokens",
+                tag = TAG,
+                message = "Cannot update tokens: no authenticated user",
                 type = TraceType.Error
             )
             return
         }
 
-        retryable(
-            maxRetries = 3,
-            call = suspend {
-                accountController.getAccounts(
-                    accountOwner = owner,
-                    requestingOwner = owner,
-                    filter = AccountFilter.AccountType(AccountType.Primary)
-                )
-            }
-        )?.map { response ->
-            response.accounts.values
-                .mapNotNull { account ->
-                    val token = currencyController.getMintMetadata(listOf(account.mint))
-                        .getOrDefault(emptyList())
-                        .firstOrNull() ?: return@mapNotNull null
+        trace(
+            tag = TAG,
+            message = "Fetching all token accounts",
+            type = TraceType.Process
+        )
 
-                    // use the latest streamed supply value if available
-                    val currentSupply = tokens.value.find { it.address == account.mint }?.launchpadMetadata?.currentCirculatingSupplyQuarks
-                        ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
-
-                    val updatedToken = token.copy(
-                        launchpadMetadata = token.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
-                    )
-                    val tokenBalance = Fiat.tokenBalance(account.balance, token = updatedToken)
-                    val costBasis = Fiat(fiat = account.usdCostBasis)
-
-                    TokenWithBalance(
-                        token = updatedToken,
-                        balance = tokenBalance,
-                        appreciation = tokenBalance - costBasis
-                    )
-                }
-        }?.onSuccess { tokensWithBalance ->
-            tokensWithBalance.onEach { (token, balance, appreciation) ->
-                trace(
-                    tag = "Tokens",
-                    message = "Updated balance for ${token.symbol} is ${balance.formatted()} USD",
-                    type = TraceType.Process
-                )
-
-                mintBalances.update { it + (token.address to balance) }
-                mintUsdAppreciationMap.update { it + (token.address to appreciation) }
-                tokens.update { (it + token).distinctBy { t -> t.address } }
-            }
-
-            ensureValidTokenSelection()
-        }
-    }
-
-    suspend fun updateTokenAccount(token: Token) {
-        updateTokenAccount(token.address)
-    }
-
-    suspend fun updateTokenAccount(mint: Mint) {
-        val owner = cluster.value
-        if (owner == null) {
+        retryable(maxRetries = 3) {
+            accountController.getAccounts(owner, owner, AccountFilter.AccountType(AccountType.Primary))
+        }?.onSuccess { response ->
             trace(
-                tag = "Token",
-                message = "Missing owner while fetching token balance",
-                type = TraceType.Error
-            )
-            return
-        }
-
-        if (!isFetchingToken(mint)) {
-            tokenFetchState[mint]?.store(true)
-
-            trace(
-                tag = "Tokens",
-                message = "Fetching Balance for token ${mint.base58()}",
+                tag = TAG,
+                message = "Received ${response.accounts.size} accounts, processing token balances",
                 type = TraceType.Process
             )
 
-            retryable(
-                maxRetries = 3,
-                call = suspend {
-                    accountController.getAccounts(
-                        accountOwner = owner,
-                        requestingOwner = owner,
-                        filter = AccountFilter.MintAddress(mint)
-                    )
-                }
-            )?.map {
-                it.accounts.values.toList()
-                    .firstOrNull { accountInfo -> accountInfo.accountType == AccountType.Primary && accountInfo.mint == mint }
-            }?.fold(
-                onSuccess = { account ->
-                    val token = getTokenMetadata(mint).getOrNull()
-
-                    if (token == null) {
-                        trace(
-                            tag = "Tokens",
-                            message = "Failed to fetch metadata for token ${mint.base58()}",
-                            type = TraceType.Error
-                        )
-                        return@fold Result.failure(IllegalStateException("No metadata found for token ${mint.base58()}"))
-                    }
-
-                    Result.success(account to token)
-                },
-                onFailure = {
-                    trace(
-                        tag = "Tokens",
-                        message = "Failed to fetch balance for token ${mint.base58()}",
-                        type = TraceType.Error
-                    )
-                    Result.failure(it)
-                }
-            )?.map { (account, result) ->
-                val token = result.token
-                when {
-                    account == null -> throw IllegalStateException("No account found for token with mint ${token.symbol}")
-                    else -> {
-                        // use the latest streamed supply value if available
-                        val currentSupply = tokens.value.find { it.address == account.mint }?.launchpadMetadata?.currentCirculatingSupplyQuarks
-                            ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
-
-                        val updatedToken = token.copy(
-                            launchpadMetadata = token.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
-                        )
-                        val tokenBalance = Fiat.tokenBalance(account.balance, token = updatedToken)
-                        val costBasis = Fiat(fiat = account.usdCostBasis)
-
-                        TokenWithBalance(
-                            token = updatedToken,
-                            balance = tokenBalance,
-                            appreciation = tokenBalance - costBasis
-                        )
-                    }
-                }
-            }?.onSuccess { (token, balance, appreciation) ->
-                mintBalances.update { it + (token.address to balance) }
-                mintUsdAppreciationMap.update { it + (token.address to appreciation) }
-                tokens.update { (it + token).distinctBy { t -> t.address } }
-                trace(
-                    tag = "Tokens",
-                    message = "Updated balance for ${token.symbol} is ${balance.formatted()} USD",
-                    type = TraceType.Process
-                )
-                tokenFetchState[mint]?.store(false)
-            }?.onFailure {
-                tokenFetchState[mint]?.store(false)
+            val updates = response.accounts.values.mapNotNull { account ->
+                buildTokenWithBalance(account.mint, account.balance, account.usdCostBasis)
             }
-        }
-    }
 
-    suspend fun reset() {
-        mintBalances.value = emptyMap()
-        tokens.value = emptyList()
-        cluster.value = null
-        selectedToken.edit { it.clear() }
+            trace(
+                tag = TAG,
+                message = "Successfully built ${updates.size} token balances",
+                type = TraceType.Process
+            )
+
+            applyTokenUpdates(updates)
+            ensureValidTokenSelection()
+        }?.onFailure { error ->
+            trace(
+                tag = TAG,
+                message = "Failed to update tokens after retries: ${error.message}",
+                type = TraceType.Error
+            )
+        }
     }
 }
