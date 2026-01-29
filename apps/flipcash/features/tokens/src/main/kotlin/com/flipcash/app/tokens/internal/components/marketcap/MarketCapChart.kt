@@ -111,8 +111,10 @@ internal fun MarketCapChart(
         }
     }
 
-    val trend = remember(windowedData) {
-        trendType.determineTrend(windowedData.yValues)
+    val trend by remember(windowedData) {
+        derivedStateOf {
+            trendType.determineTrend(windowedData.yValues)
+        }
     }
 
     MarketCapChart(
