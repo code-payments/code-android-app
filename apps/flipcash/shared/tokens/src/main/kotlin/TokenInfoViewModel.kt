@@ -190,9 +190,10 @@ class TokenInfoViewModel @Inject constructor(
             dispatchEvent(Event.OnReservesUpdated(it))
         }.launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnMarketCapPeriodSelected>()
-            .map { it.period }
+
+        stateFlow
+            .map { it.selectedPeriod }
+            .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(it)) }
             .launchIn(viewModelScope)
 

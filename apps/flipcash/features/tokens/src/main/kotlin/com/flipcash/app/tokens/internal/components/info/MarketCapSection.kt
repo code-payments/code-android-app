@@ -2,9 +2,17 @@ package com.flipcash.app.tokens.internal.components.info
 
 import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,7 +80,7 @@ internal fun MarketCapSection(
         rawHistoricalData.dataOrNull.orEmpty()
     }
 
-    val startCap by remember(selectedPeriod, data, marketCap.currencyCode) {
+    val startCap by remember(data, marketCap.currencyCode) {
         derivedStateOf {
             val startQuarks =
                 data.firstOrNull()?.y ?: return@derivedStateOf null
