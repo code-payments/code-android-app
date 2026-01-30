@@ -357,10 +357,11 @@ object Estimator {
         curveType: CurveType = DefaultCurveType,
     ): Result<BigDecimal> {
         return runCatching {
-            val spotPrice = currentPriceFor(currentSupplyInQuarks, curveType).getOrThrow()
-            (currentSupplyInQuarks.toBigDecimal() * spotPrice)
-                .divideWithHighPrecision(BigDecimal.TEN.pow(DefaultMintDecimals, mc)
-            )
+            val pricePerToken = currentPriceFor(currentSupplyInQuarks, curveType).getOrThrow()
+            val tokens = currentSupplyInQuarks.toBigDecimal()
+                .movePointLeft(DefaultMintDecimals)
+
+            tokens.multiply(pricePerToken)
         }
     }
 }
