@@ -41,14 +41,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.color
 import com.getcode.ui.utils.hsv
-import com.getcode.ui.utils.toAGColor
 import kotlin.math.abs
-import kotlin.math.floor
 import kotlin.math.max
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -202,7 +200,7 @@ private fun DrawScope.drawColorStrip(hsv: () -> Hsv, window: Float) {
 @Composable
 @Preview
 private fun ColorWheelPreview() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         val hsv = Color(0xFF2D36FA).hsv
         var selectedHsv by remember {
             mutableStateOf(hsv)

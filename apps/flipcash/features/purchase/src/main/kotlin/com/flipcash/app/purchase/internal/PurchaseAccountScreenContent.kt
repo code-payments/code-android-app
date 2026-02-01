@@ -25,10 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.BrandedGradientIcon
-import com.flipcash.app.theme.FlipcashDesignSystem
 import com.flipcash.features.purchase.R
 import com.flipcash.app.billing.IapProduct
 import com.flipcash.app.billing.ProductPrice
+import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.theme.CodeTheme
@@ -152,7 +152,7 @@ private fun PurchaseAccountScreenContent(
 @Preview
 @Composable
 private fun Preview_WelcomeBonus_Usd() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         PurchaseAccountScreenContent(
             state = PurchaseAccountViewModel.State(
                 productToBuy = IapProduct.CreateAccountWithWelcomeBonus,
@@ -169,7 +169,7 @@ private fun Preview_WelcomeBonus_Usd() {
 @Preview
 @Composable
 private fun Preview_NoBonus_Usd() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         PurchaseAccountScreenContent(
             state = PurchaseAccountViewModel.State(
                 productToBuy = IapProduct.CreateAccount,
@@ -186,7 +186,7 @@ private fun Preview_NoBonus_Usd() {
 @Preview
 @Composable
 private fun Preview_Pending() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         PurchaseAccountScreenContent(
             state = PurchaseAccountViewModel.State(
                 productToBuy = IapProduct.CreateAccount,

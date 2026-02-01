@@ -2,26 +2,32 @@ package com.flipcash.app.accesskey
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Environment
 import androidx.core.graphics.applyCanvas
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.internal.extensions.save
 import com.flipcash.app.core.storage.MediaScanner
+import com.flipcash.app.theme.internal.Flipcash2ColorSpec
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.accesskey.R
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.theme.Alert
-import com.getcode.theme.Brand
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.decodeBase64
 import com.getcode.view.BaseViewModel
+import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,10 +47,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 import com.getcode.theme.R as themeR
-import androidx.core.graphics.createBitmap
-import com.flipcash.app.theme.FlipcashColorSpec
-import com.getcode.view.LoadingSuccessState
-import kotlinx.coroutines.delay
 
 
 data class AccessKeyUiModel(
@@ -90,7 +92,7 @@ abstract class BaseAccessKeyViewModel(
         CoroutineScope(Dispatchers.IO).launch {
             val accessKeyBitmap = createBitmapForExport(words = words, entropyB64 = entropyB64)
             val accessKeyBitmapDisplay =
-                createBitmapForExport(drawBackground = false, words, entropyB64)
+                createBitmapForExport(drawBackground = true, words, entropyB64)
             val accessKeyCroppedBitmap =
                 Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 500, 1200, 1450)
 
@@ -156,8 +158,7 @@ abstract class BaseAccessKeyViewModel(
     ): Bitmap {
         val accessKeyText = getAccessKeyText(words)
 
-        val accessKeyBg = resources.getDrawable(R.drawable.ic_access_key_bg)
-            ?.toBitmap(812, 1353)!!
+        val accessKeyBg = createGlowBitmap(812, 1353)
 
         val imageLogo =
             resources.getDrawable(R.drawable.ic_flipcash_logo)
@@ -169,7 +170,7 @@ abstract class BaseAccessKeyViewModel(
 
             if (drawBackground) {
                 val paintBackground = Paint()
-                paintBackground.color = FlipcashColorSpec.primary.toAGColor()
+                paintBackground.color = Flipcash2ColorSpec.primary.toAGColor()
                 paintBackground.style = Paint.Style.FILL
                 drawPaint(paintBackground)
             }
@@ -188,7 +189,6 @@ abstract class BaseAccessKeyViewModel(
                     text = text
                 )
             }
-
 
             drawBitmap(
                 accessKeyBg,
@@ -246,6 +246,40 @@ abstract class BaseAccessKeyViewModel(
 
         }
         return imageOut
+    }
+
+    fun createGlowBitmap(
+        width: Int,
+        height: Int,
+        cornerRadius: Float = 40f
+    ): Bitmap {
+        val bitmap = createBitmap(width, height)
+        val canvas = Canvas(bitmap)
+
+        val clipPath = Path().apply {
+            addRoundRect(
+                RectF(0f, 0f, width.toFloat(), height.toFloat()),
+                cornerRadius,
+                cornerRadius,
+                Path.Direction.CW
+            )
+        }
+        canvas.clipPath(clipPath)
+
+        val accessKeyGradient = Flipcash2ColorSpec.accessKey
+
+        val diagonalGradient = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                0f, height.toFloat(),
+                width.toFloat(), 0f,
+                accessKeyGradient.colorsArray,
+                accessKeyGradient.stopsArray,
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), diagonalGradient)
+
+        return bitmap
     }
 
     private fun getQrCode(entropyB64: String): Bitmap? {

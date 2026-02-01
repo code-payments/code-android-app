@@ -366,8 +366,8 @@ enum class CurrencyCode {
         private val lookupTable: Map<CurrencyCode, Set<String>> by lazy {
             buildMap {
                 CurrencyCode.entries.forEach { currency ->
-                    val locale = currency.getClosestLocale()
                     try {
+                        val locale = currency.getClosestLocale()
                         val currencyInstance = Currency.getInstance(currency.name)
                         val usSymbol = currencyInstance.getSymbol(Locale.US)
                         val localeSymbol = currencyInstance.getSymbol(locale)

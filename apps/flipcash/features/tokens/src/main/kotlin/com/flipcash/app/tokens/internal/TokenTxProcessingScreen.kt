@@ -28,7 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.buildNotifyButtonLabel
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
@@ -206,7 +206,7 @@ private fun TokenTxProcessingScreen(
 @Preview
 @Composable
 private fun TxProcessiongPreview() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         TokenTxProcessingScreen(
             state = BuySellSwapTokenViewModel.State(
                 processingProgress = LoadingSuccessState(loading = true)

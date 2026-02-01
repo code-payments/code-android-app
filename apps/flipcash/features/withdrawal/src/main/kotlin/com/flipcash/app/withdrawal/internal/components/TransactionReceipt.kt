@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.core.ui.rememberTokenBalanceRowSizing
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.withdrawal.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
@@ -204,7 +204,7 @@ private val fee = Fiat(0.50, CurrencyCode.USD)
 @Preview
 @Composable
 private fun Preview_CadWithdrawalWithFeeReceipt() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         CompositionLocalProvider(
             LocalNetworkObserver provides NetworkObserverStub(),
             LocalExchange provides ExchangeStub(
@@ -228,7 +228,7 @@ private fun Preview_CadWithdrawalWithFeeReceipt() {
 @Preview
 @Composable
 private fun Preview_CadWithdrawalWithNoFeeReceipt() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         CompositionLocalProvider(
             LocalNetworkObserver provides NetworkObserverStub(),
             LocalExchange provides ExchangeStub(
@@ -252,7 +252,7 @@ private fun Preview_CadWithdrawalWithNoFeeReceipt() {
 @Preview
 @Composable
 private fun Preview_UsdWithdrawalWithFeeReceipt() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         CompositionLocalProvider(
             LocalNetworkObserver provides NetworkObserverStub(),
             LocalExchange provides ExchangeStub(
@@ -276,7 +276,7 @@ private fun Preview_UsdWithdrawalWithFeeReceipt() {
 @Preview
 @Composable
 private fun Preview_UsdWithdrawalWithNoFeeReceipt() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         CompositionLocalProvider(
             LocalNetworkObserver provides NetworkObserverStub(),
             LocalExchange provides ExchangeStub(
@@ -300,7 +300,7 @@ private fun Preview_UsdWithdrawalWithNoFeeReceipt() {
 @Preview
 @Composable
 private fun Preview_CadWithdrawalWithFeeButTooSmallReceipt() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         CompositionLocalProvider(
             LocalNetworkObserver provides NetworkObserverStub(),
             LocalExchange provides ExchangeStub(

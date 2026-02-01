@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.theme.CodeTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,8 +93,8 @@ private fun DrawScope.drawOpacityTrack(size: androidx.compose.ui.geometry.Size) 
 @Composable
 @Preview
 private fun Preview_AlphaSlider() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.fillMaxWidth().background(CodeTheme.colors.background)) {
+    FlipcashPreview(showBackground = true) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             AlphaSlider(
                 opacity = 0.5f,
                 onOpacityChange = { _, _ -> },

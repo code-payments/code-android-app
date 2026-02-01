@@ -32,7 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.MarketTrend
 import com.flipcash.app.tokens.data.Period
@@ -40,7 +40,6 @@ import com.flipcash.app.tokens.data.collapse
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
-import com.getcode.ui.components.charts.ChartPoint
 import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.charts.yValues
@@ -405,9 +404,8 @@ private fun PreviewMarketCapChart() {
             onPeriodSelected = { selectedPeriod = it },
         )
     }
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         Column(
-            modifier = Modifier.background(CodeTheme.colors.background),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8)
         ) {
             SampleChart(trend = MarketTrend.Bullish)

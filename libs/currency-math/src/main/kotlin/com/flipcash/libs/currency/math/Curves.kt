@@ -4,6 +4,7 @@ import android.content.Context
 import com.flipcash.libs.currency.math.internal.DefaultMintMaxTokenSupply
 import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
 import com.flipcash.libs.currency.math.internal.loader.AndroidTableLoader
+import com.flipcash.libs.currency.math.loader.TableLoader
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode

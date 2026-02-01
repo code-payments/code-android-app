@@ -208,6 +208,13 @@ class TokenController @Inject constructor(
      */
     fun appreciationForToken(tokenAddress: Mint): Flow<Fiat> =
         _state.map { it.appreciation[tokenAddress] ?: Fiat.Zero }
+            .map { appreciation ->
+                if (tokenAddress == Mint.usdf) {
+                    Fiat.MIN_VALUE
+                } else {
+                    appreciation
+                }
+            }
 
 
     /**
@@ -520,6 +527,7 @@ class TokenController @Inject constructor(
             launchpadMetadata = metadata.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
         )
         val tokenBalance = Fiat.tokenBalance(balance, token)
+        println("balance = ${tokenBalance.decimalValue} for ${token.symbol}")
         val appreciation = tokenBalance - Fiat(fiat = usdCostBasis)
 
         return TokenWithBalance(token, tokenBalance, appreciation)
@@ -699,6 +707,7 @@ class TokenController @Inject constructor(
             )
 
             val updates = response.accounts.values.mapNotNull { account ->
+                println("cost basis = ${account.usdCostBasis} for ${account.mint.base58()}")
                 buildTokenWithBalance(account.mint, account.balance, account.usdCostBasis)
             }
 

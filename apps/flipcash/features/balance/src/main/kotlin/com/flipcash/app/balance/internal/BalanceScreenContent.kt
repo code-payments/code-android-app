@@ -28,7 +28,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.onramp.AddCashRow
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.SelectTokenViewModel
 import com.flipcash.app.tokens.TokenList
 import com.flipcash.features.balance.R
@@ -178,7 +178,7 @@ private val usdCadRate = Rate(fx = 1.0 / 1.371881, currency = CurrencyCode.CAD)
 @Preview
 @Composable
 private fun Preview_BalanceScreen_Empty() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         CompositionLocalProvider(
             LocalExchange provides ExchangeStub(
                 providedRates = mapOf(

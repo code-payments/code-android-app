@@ -25,12 +25,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.utils.Hsv
-import com.getcode.ui.utils.color
 import com.getcode.ui.utils.hsv
 
 @Composable
@@ -89,7 +88,7 @@ internal fun ColorPanel(
 @Composable
 @Preview
 private fun ColorPanelPreview() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         val hsv = CodeTheme.colors.cashBillColor.hsv
         var selectedHsv by remember { mutableStateOf(hsv) }
 

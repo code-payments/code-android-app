@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.analytics.Action
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics
@@ -66,6 +66,7 @@ internal fun PermissionScreenContent(
                 navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
             }
         )
+
         Permission.Notifications -> NotificationScreenContent {
             if (permissionChecker.isDenied(Manifest.permission.CAMERA)) {
                 navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission(postCreate)))
@@ -234,22 +235,18 @@ internal fun NotificationScreenContent(onGranted: () -> Unit) {
 @Composable
 @Preview
 private fun PreviewCameraPermissionScreen() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            CameraPermissionScreenContent(
-                onGranted = {},
-                onNotGranted = {}
-            )
-        }
+    FlipcashPreview(showBackground = true) {
+        CameraPermissionScreenContent(
+            onGranted = {},
+            onNotGranted = {}
+        )
     }
 }
 
 @Composable
 @Preview
 private fun PreviewNotificationPermissionScreen() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            NotificationScreenContent { }
-        }
+    FlipcashPreview(showBackground = true) {
+        NotificationScreenContent { }
     }
 }

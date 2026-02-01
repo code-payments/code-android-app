@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.appupdates.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.BiometricsState
@@ -128,7 +128,7 @@ fun UpdateRequiredBlockingView(
 @Composable
 @Preview
 private fun PreviewUpdateRequiredView() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         val appUpdater = remember {
             object : AppUpdateController {
                 override val availableUpdate = MutableStateFlow<UpdateInfo?>(

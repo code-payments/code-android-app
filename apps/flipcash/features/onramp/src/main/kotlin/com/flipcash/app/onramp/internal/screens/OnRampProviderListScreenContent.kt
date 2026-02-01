@@ -30,7 +30,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.data.OnRampProviderItem
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.onramp.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.theme.CodeTheme
@@ -132,11 +132,10 @@ private fun OnRampProviderCell(
 @Composable
 @Preview
 private fun ProviderCellPreview() {
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CodeTheme.colors.background)
                 .padding(horizontal = CodeTheme.dimens.inset),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {

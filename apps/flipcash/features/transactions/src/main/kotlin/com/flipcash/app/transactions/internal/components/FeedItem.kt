@@ -22,7 +22,7 @@ import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -113,22 +113,20 @@ private val sampleItemWithToken = ActivityFeedMessageWithToken(
 @Preview
 @Composable
 private fun Preview_CollapsedItem() {
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         CompositionLocalProvider(
             LocalExchange provides ExchangeStub(
                 providedRates = rates,
                 context = LocalContext.current
             )
         ) {
-            Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-                FeedItem(
-                    item = sampleItemWithToken,
-                    isExpanded = false,
-                    canViewDetails = true,
-                    onCancel = {},
-                    onViewDetails = {}
-                )
-            }
+            FeedItem(
+                item = sampleItemWithToken,
+                isExpanded = false,
+                canViewDetails = true,
+                onCancel = {},
+                onViewDetails = {}
+            )
         }
     }
 }
@@ -136,22 +134,20 @@ private fun Preview_CollapsedItem() {
 @Preview
 @Composable
 private fun Preview_ExpandedItem() {
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         CompositionLocalProvider(
             LocalExchange provides ExchangeStub(
                 providedRates = rates,
                 context = LocalContext.current
             )
         ) {
-            Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-                FeedItem(
-                    item = sampleItemWithToken,
-                    isExpanded = true,
-                    canViewDetails = true,
-                    onViewDetails = {},
-                    onCancel = {}
-                )
-            }
+            FeedItem(
+                item = sampleItemWithToken,
+                isExpanded = true,
+                canViewDetails = true,
+                onViewDetails = {},
+                onCancel = {}
+            )
         }
     }
 }

@@ -55,7 +55,8 @@ internal val CodeDefaultColorScheme = ColorScheme(
     bannerError = Error,
     bannerWarning = Warning,
     bannerSuccess = BannerSuccess,
-    scrim = Black40
+    scrim = Black40,
+    accessKey = CodeAccessKey,
 )
 
 @Composable
@@ -142,6 +143,7 @@ class ColorScheme(
     bannerWarning: Color,
     bannerSuccess: Color,
     scrim: Color,
+    accessKey: GradientSpec,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -222,6 +224,10 @@ class ColorScheme(
     var scrim by mutableStateOf(scrim)
         private set
 
+    var accessKey by mutableStateOf(accessKey)
+        private set
+
+
     fun update(other: ColorScheme) {
         brand = other.brand
         brandLight = other.brandLight
@@ -261,6 +267,7 @@ class ColorScheme(
         bannerWarning = other.bannerWarning
         bannerSuccess = other.bannerSuccess
         scrim = other.scrim
+        accessKey = other.accessKey
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -301,7 +308,8 @@ class ColorScheme(
         bannerError = bannerError,
         bannerWarning = bannerWarning,
         bannerSuccess = bannerSuccess,
-        scrim = scrim
+        scrim = scrim,
+        accessKey = accessKey,
     )
 }
 

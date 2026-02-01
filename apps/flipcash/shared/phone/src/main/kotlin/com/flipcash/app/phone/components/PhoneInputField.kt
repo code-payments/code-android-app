@@ -2,7 +2,6 @@ package com.flipcash.app.phone.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -34,17 +32,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.text.isDigitsOnly
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.LocalPhoneUtils
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.phone.components.transformations.PhoneNumberOutputTransformation
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.phone.R
-import com.flipcash.app.theme.FlipcashDesignSystem
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.extraSmall
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.core.rememberAnimationScale
@@ -133,7 +129,7 @@ fun PhoneInputField(
 @Preview
 @Composable
 private fun Preview_PhoneEntry() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         val exchange = ExchangeStub(
             providedRates = emptyMap(),
             context = LocalContext.current

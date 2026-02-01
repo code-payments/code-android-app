@@ -149,10 +149,10 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnTokenChanged>()
             .map { it.token }
             .distinctUntilChanged()
-            .flatMapLatest {
+            .flatMapLatest { token ->
                 combine(
-                    tokenController.balanceForToken(it.address),
-                    tokenController.appreciationForToken(it.address),
+                    tokenController.balanceForToken(token.address),
+                    tokenController.appreciationForToken(token.address),
                     exchange.observeBalanceRate(),
                 ) { balance, appreciation, rate ->
                     val localizedBalance = LocalFiat(

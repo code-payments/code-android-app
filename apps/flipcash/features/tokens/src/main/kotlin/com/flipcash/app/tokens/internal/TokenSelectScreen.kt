@@ -19,13 +19,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.SelectTokenViewModel
 import com.flipcash.app.tokens.TokenList
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun SelectTokenScreen(
@@ -87,20 +85,14 @@ private fun SelectTokenScreenContent(
 @Composable
 @Preview
 private fun PreviewEmptyState() {
-    FlipcashDesignSystem {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(CodeTheme.colors.background)
+    FlipcashPreview(showBackground = true) {
+        SelectTokenScreenContent(
+            state = SelectTokenViewModel.State(
+                purpose = TokenPurpose.Select,
+                tokens = emptyList(),
+            ),
         ) {
-            SelectTokenScreenContent(
-                state = SelectTokenViewModel.State(
-                    purpose = TokenPurpose.Select,
-                    tokens = emptyList(),
-                ),
-            ) {
 
-            }
         }
     }
 }

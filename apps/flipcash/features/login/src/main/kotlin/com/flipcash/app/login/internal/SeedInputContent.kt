@@ -110,7 +110,7 @@ private fun SeedInputContent(
                     )
 
                     FloatingActionButton(
-                        backgroundColor = CodeTheme.colors.surfaceSuccess,
+                        backgroundColor = CodeTheme.colors.brandMuted,
                         contentColor = CodeTheme.colors.textMain,
                         shape = CircleShape,
                         onClick = {

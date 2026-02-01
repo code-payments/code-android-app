@@ -30,7 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
@@ -174,11 +174,10 @@ private fun EmailMagicLinkScreenContent(
 @Preview
 @Composable
 private fun Preview_MagicLinkScreen() {
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CodeTheme.colors.background)
         ) {
             EmailMagicLinkScreenContent(
                 state = EmailVerificationViewModel.State(

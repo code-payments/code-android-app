@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.LocalPhoneUtils
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.phone.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
@@ -107,7 +107,7 @@ private fun PhoneCountrySelectionList(
 @Preview
 @Composable
 private fun Preview_CountrySelection() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         Box(modifier = Modifier.fillMaxSize().background(CodeTheme.colors.background)) {
             PhoneCountrySelectionList(
                 availableLocales = listOf(

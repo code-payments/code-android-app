@@ -28,10 +28,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.WindowSizeClass
 import com.getcode.ui.components.TextInput
@@ -156,21 +155,19 @@ private fun OtpBox(
 @Preview
 @Composable
 private fun Preview_OptInput() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
-            ) {
-                OtpInputField(
-                    state = rememberTextFieldState(),
-                    lengthNeeded = 4,
-                )
+    FlipcashPreview(showBackground = true) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+        ) {
+            OtpInputField(
+                state = rememberTextFieldState(),
+                lengthNeeded = 4,
+            )
 
-                OtpInputField(
-                    state = rememberTextFieldState(initialText = "123"),
-                    lengthNeeded = 6,
-                )
-            }
+            OtpInputField(
+                state = rememberTextFieldState(initialText = "123"),
+                lengthNeeded = 6,
+            )
         }
     }
 }

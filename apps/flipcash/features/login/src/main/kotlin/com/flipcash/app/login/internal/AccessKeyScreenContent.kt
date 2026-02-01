@@ -47,9 +47,8 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.accesskey.AccessKeyUiModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
-import com.flipcash.app.core.internal.extensions.onSuccessWithDelay
 import com.flipcash.app.login.accesskey.LoginAccessKeyViewModel
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.login.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -318,8 +317,7 @@ private fun AccessKeyScreenContent(
 @Preview
 @Composable
 private fun Preview_AccessKeyScreen() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
+    FlipcashPreview(showBackground = true) {
         AccessKeyScreenContent(
             dataState = AccessKeyUiModel(
                 words = listOf("")
@@ -328,6 +326,5 @@ private fun Preview_AccessKeyScreen() {
             onSkip = { },
             onExit = { },
         )
-            }
     }
 }

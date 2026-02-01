@@ -1,6 +1,5 @@
 package com.flipcash.app.core.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,19 +11,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.onramp.ui.buildExternalWalletButtonLabel
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 @Preview
 @Composable
 private fun CodeButtonPreviews() {
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         Column(
             modifier = Modifier
-                .background(CodeTheme.colors.background)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

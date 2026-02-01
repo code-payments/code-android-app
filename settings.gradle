@@ -2,9 +2,10 @@ rootProject.name = "Code"
 
 include(
         // app containers
-        ":apps:codeApp",
-        ":apps:flipcash:app",
-        ":apps:flipchatApp",
+//        ":apps:codeApp",
+//        ":apps:flipcash:app",
+//        ":apps:flipchatApp",
+        ":apps:flipcash:app2",
 
         // flipcash modules
         ":apps:flipcash:core",
@@ -65,14 +66,14 @@ include(
         ":apps:flipcash:features:bill-customization",
 
         // protobuf model and service implementations for Code
-        ":definitions:code:models",
-        ":definitions:code:protos",
+//        ":definitions:code:models",
+//        ":definitions:code:protos",
 
         // protobuf model and service implementations for Flipchat (fc specific and code bridge RPCs on the VM)
-        ":definitions:flipchat-vm:models",
-        ":definitions:flipchat-vm:protos",
-        ":definitions:flipchat:models",
-        ":definitions:flipchat:protos",
+//        ":definitions:flipchat-vm:models",
+//        ":definitions:flipchat-vm:protos",
+//        ":definitions:flipchat:models",
+//        ":definitions:flipchat:protos",
 
         // protobuf model and service implementations for the Open Code Protocol
         ":definitions:opencode:models",
@@ -107,7 +108,7 @@ include(
         ":libs:logging",
         ":libs:messaging",
         ":libs:models",
-        ':libs:models-ktx',
+//        ':libs:models-ktx',
         ":libs:network:exchange",
         ":libs:opengraph",
 
@@ -126,18 +127,18 @@ include(
         ":libs:quickresponse",
         ":libs:requests",
         ":libs:search",
-        
+
         ":libs:vibrator:bindings",
         ":libs:vibrator:impl",
         ":libs:vibrator:public",
 
         // Services definition for app and lib access
         ':services:legacy-shared',
-        ":services:code",
-        ":services:flipchat:core",
-        ":services:flipchat:chat",
-        ":services:flipchat:payments",
-        ":services:flipchat:sdk",
+//        ":services:code",
+//        ":services:flipchat:core",
+//        ":services:flipchat:chat",
+//        ":services:flipchat:payments",
+//        ":services:flipchat:sdk",
 
         ":services:opencode",
         ":services:opencode-compose",

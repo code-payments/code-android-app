@@ -2,8 +2,7 @@ package com.getcode.theme
 
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.graphics.Color
-import android.graphics.Color as AndroidColor
-import androidx.core.graphics.toColorInt
+import com.getcode.ui.utils.toAGColor
 
 val Brand = Color(0xFF0F0C1F)
 val BrandLight = Color(0xFF7379A0)
@@ -55,3 +54,32 @@ val textSelectionColors = TextSelectionColors(
     handleColor = White,
     backgroundColor = BrandLight.copy(alpha = 0.4f)
 )
+
+val CodeAccessKey = GradientSpec(
+    colors = listOf(
+        Color(0xFF1A1A2E),
+        Color(0xFF2D3748),
+        Color(0xFF4A5568),
+        Color(0xFF6B7A90),
+    ),
+    stops = listOf(0f, 0.3f, 0.6f, 1f)
+)
+
+data class GradientSpec(
+    val colors: List<Color>,
+    val stops: List<Float>
+) {
+    val colorsArray = colors.map { it.toAGColor() }.toIntArray()
+    val stopsArray = stops.toFloatArray()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GradientSpec) return false
+        if (!colorsArray.contentEquals(other.colorsArray)) return false
+        return stopsArray.contentEquals(other.stopsArray)
+    }
+
+    override fun hashCode(): Int {
+        return 31 * colorsArray.contentHashCode() + stopsArray.contentHashCode()
+    }
+}

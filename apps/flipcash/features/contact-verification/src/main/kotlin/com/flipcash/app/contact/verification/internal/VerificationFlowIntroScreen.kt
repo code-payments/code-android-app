@@ -31,7 +31,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.navigation.FlowNavigator
 import com.flipcash.app.navigation.LocalFlowNavigator
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.contact.verification.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -144,7 +144,7 @@ private fun VerificationFlowIntroScreenContent(
 @Preview
 @Composable
 private fun Preview_FlowIntro() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         Box(modifier = Modifier.fillMaxSize().background(CodeTheme.colors.background)) {
             VerificationFlowIntroScreenContent(
                 isForOnRamp = true,

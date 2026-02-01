@@ -21,9 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.launchPhotos
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.login.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -114,7 +113,7 @@ private fun AccessKeyInPhotos(
 @Preview
 @Composable
 private fun PreviewAccessKeyHelp() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         AccessKeyInPhotos(
             goBack = {},
             openPhotos = {},

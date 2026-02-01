@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.onramp.internal.InternalOnRampAmountController
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.analytics.StubFlipcashAnalytics
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.common.R
@@ -189,11 +189,11 @@ private fun OnRampAmountSelectionModal_Preview() {
         selectAmount(OnRampAmount.Predefined(amounts.first()))
     }
 
-    FlipcashDesignSystem {
+    FlipcashPreview(showBackground = true) {
         CompositionLocalProvider(LocalOnRampAmountController provides controller) {
             Box(modifier = Modifier
                 .fillMaxSize()
-                .background(CodeTheme.colors.background)) {
+            ) {
                 OnRampAmountScaffold {
 
                 }

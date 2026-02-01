@@ -19,7 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
@@ -102,18 +102,16 @@ internal fun TokenDetailsSection(
 @Composable
 @Preview
 private fun PreviewTokenDetails() {
-    FlipcashDesignSystem {
-        Box(modifier = Modifier.background(CodeTheme.colors.background)) {
-            ExpandableText(
-                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                text = LoremIpsum(words = 400).values.joinToString(" "),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
-                isExpanded = false,
-                isExpandable = false,
-                onToggle = { }
-            )
-        }
+    FlipcashPreview(showBackground = true) {
+        ExpandableText(
+            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+            text = LoremIpsum(words = 400).values.joinToString(" "),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textSecondary,
+            isExpanded = false,
+            isExpandable = false,
+            onToggle = { }
+        )
     }
 }

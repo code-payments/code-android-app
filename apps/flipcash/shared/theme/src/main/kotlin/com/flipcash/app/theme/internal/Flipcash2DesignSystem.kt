@@ -1,4 +1,4 @@
-package com.flipcash.app.theme
+package com.flipcash.app.theme.internal
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -11,10 +11,10 @@ import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandIndicator
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
-import com.getcode.theme.BrandSlideToConfirm
 import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.Error
+import com.getcode.theme.GradientSpec
 import com.getcode.theme.Gray50
 import com.getcode.theme.TextError
 import com.getcode.theme.Warning
@@ -22,11 +22,10 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White08
 import com.getcode.theme.White10
-import com.getcode.theme.White20
 import com.getcode.theme.codeTypography
 
-object FlipcashColorSpec {
-    val primary = Color(0xFF001A0C)
+object Flipcash2ColorSpec {
+    val primary = Color(0xFF19191A)
     val primaryLight = Color(0xFF09550B)
     val secondary = Color(115, 129, 121)
     val secondaryText = Color.White.copy(alpha = 0.5f)
@@ -38,9 +37,19 @@ object FlipcashColorSpec {
     val surfaceVariant = Color.White.copy(alpha = 0.12f)
     val successSurface = Color(0x4A6FCF97)
     val errorSurface = Color(0x4AE75454)
+    val accessKey = GradientSpec(
+        colors = listOf(
+            Color(0xFF001A0C),
+            Color(0xFF042005),
+            Color(0xFF0C291A),
+            Color(0xFF004602),
+            Color(0xFF004602),
+        ),
+        stops = listOf(0f, 0.08f, 0.25f, 0.45f, 1f)
+    )
 }
 
-private val colors = with(FlipcashColorSpec) {
+private val colors = with(Flipcash2ColorSpec) {
     ColorScheme(
         brand = primary,
         brandLight = primaryLight,
@@ -79,12 +88,12 @@ private val colors = with(FlipcashColorSpec) {
         bannerError = Error,
         bannerWarning = Warning,
         bannerSuccess = BannerSuccess,
-        scrim = Black40
+        scrim = Black40,
+        accessKey = accessKey
     )
 }
-
 @Composable
-fun FlipcashDesignSystem(content: @Composable () -> Unit) {
+internal fun Flipcash2DesignSystem(content: @Composable () -> Unit) {
     DesignSystem(
         colorScheme = colors,
         // override code type system to make screen title's slightly bigger
@@ -94,4 +103,3 @@ fun FlipcashDesignSystem(content: @Composable () -> Unit) {
         content = content
     )
 }
-

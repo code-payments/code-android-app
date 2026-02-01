@@ -45,7 +45,7 @@ import com.flipcash.app.bill.customization.features.BackgroundControls
 import com.flipcash.app.bill.customization.features.TextureControls
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
-import com.flipcash.app.theme.FlipcashDesignSystem
+import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
 import com.getcode.ui.core.addIf
@@ -199,7 +199,7 @@ internal fun Modifier.presenceBorder(
 @Composable
 @Preview
 private fun PreviewCustomizationControls() {
-    FlipcashDesignSystem {
+    FlipcashPreview {
         val clipboardManager = LocalContext.current.getSystemService(ClipboardManager::class.java)
         val controller = remember {
             InternalBillPlaygroundController(clipboardManager)

@@ -67,6 +67,15 @@ private val colors = ColorScheme(
     bannerWarning = Warning,
     bannerSuccess = BannerSuccess,
     scrim = Black40,
+    accessKey = GradientSpec(
+        colors = listOf(
+            Color(0xFF1E1B4B),
+            Color(0xFF3730A3),
+            Color(0xFF7C3AED),
+            Color(0xFFC084FC),
+        ),
+        stops = listOf(0f, 0.3f, 0.6f, 1f)
+    )
 )
 
 @Composable
