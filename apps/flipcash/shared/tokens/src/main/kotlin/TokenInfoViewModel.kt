@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import kotlin.collections.map
 
@@ -250,8 +251,14 @@ class TokenInfoViewModel @Inject constructor(
                 }
             }.onEach {
                 dispatchEvent(Event.OnMarketCapChanged(it))
-                dispatchEvent(Event.LoadHistoricalDataForPeriod(stateFlow.value.selectedPeriod, evict = true))
             }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnMarketCapChanged>()
+            .map { it.mcap }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(stateFlow.value.selectedPeriod)) }
             .launchIn(viewModelScope)
 
         eventFlow

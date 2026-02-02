@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -47,16 +48,18 @@ internal fun BalanceHeader(
                 CodeCircularProgressIndicator()
             }
         } else {
-            Crossfade(balance.nativeAmount) { amount ->
-                AmountArea(
-                    amountText = amount.formatted(),
-                    isAltCaption = false,
-                    isAltCaptionKinIcon = false,
-                    currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
-                    isClickable = true,
-                    textStyle = CodeTheme.typography.displayLarge,
-                    onClick = onClick
-                )
+            key(balance.nativeAmount) {
+                Crossfade(balance.nativeAmount) { amount ->
+                    AmountArea(
+                        amountText = amount.formatted(),
+                        isAltCaption = false,
+                        isAltCaptionKinIcon = false,
+                        currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
+                        isClickable = true,
+                        textStyle = CodeTheme.typography.displayLarge,
+                        onClick = onClick
+                    )
+                }
             }
 
             if (appreciation != null) {

@@ -21,6 +21,7 @@ import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.TokenWithBalance
@@ -527,7 +528,6 @@ class TokenController @Inject constructor(
             launchpadMetadata = metadata.launchpadMetadata?.copy(currentCirculatingSupplyQuarks = currentSupply)
         )
         val tokenBalance = Fiat.tokenBalance(balance, token)
-        println("balance = ${tokenBalance.decimalValue} for ${token.symbol}")
         val appreciation = tokenBalance - Fiat(fiat = usdCostBasis)
 
         return TokenWithBalance(token, tokenBalance, appreciation)
@@ -591,7 +591,8 @@ class TokenController @Inject constructor(
 
             currencyController.streamLiveMintData(
                 scope = this,
-                mints = _state.map { it.tokens.keys.toList() },
+                mints = _state.map { it.tokens.keys.toList() }
+                    .distinctUntilChanged().debounce(300),
                 tag = "token-reserves"
             ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
                 .collect { response ->
@@ -618,7 +619,16 @@ class TokenController @Inject constructor(
                             updatedTokens = updatedTokens + (mint to updatedToken)
 
                             state.balances[mint]?.let { balance ->
-                                val newBalance = Fiat.tokenBalance(balance.quarks, updatedToken)
+                                val exchangedValue = LocalFiat.valueExchangeIn(
+                                    amount = balance,
+                                    token = token,
+                                    balance = balance,
+                                    rate = Rate.oneToOne,
+                                    debug = false,
+                                    trace = false,
+                                ).underlyingTokenAmount
+
+                                val newBalance = Fiat.tokenBalance(quarks = exchangedValue.quarks, token = token)
                                 updatedBalances = updatedBalances + (mint to newBalance)
 
                                 trace(
@@ -707,7 +717,6 @@ class TokenController @Inject constructor(
             )
 
             val updates = response.accounts.values.mapNotNull { account ->
-                println("cost basis = ${account.usdCostBasis} for ${account.mint.base58()}")
                 buildTokenWithBalance(account.mint, account.balance, account.usdCostBasis)
             }
 

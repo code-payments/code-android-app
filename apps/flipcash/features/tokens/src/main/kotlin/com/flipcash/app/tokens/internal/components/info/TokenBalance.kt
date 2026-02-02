@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,22 +44,26 @@ internal fun TokenBalance(
                 CodeCircularProgressIndicator()
             }
         } else {
-            Crossfade(balance) { amount ->
-                AmountArea(
-                    amountText = amount.formatted(),
-                    isAltCaption = false,
-                    isAltCaptionKinIcon = false,
-                    captionText = null,
-                    currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
-                    isClickable = true,
-                    textStyle = CodeTheme.typography.displayLarge,
-                    onClick = onClick
-                )
+            key(balance) {
+                Crossfade(balance) { amount ->
+                    AmountArea(
+                        amountText = amount.formatted(),
+                        isAltCaption = false,
+                        isAltCaptionKinIcon = false,
+                        captionText = null,
+                        currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
+                        isClickable = true,
+                        textStyle = CodeTheme.typography.displayLarge,
+                        onClick = onClick
+                    )
+                }
             }
 
             if (appreciation != null) {
-                Crossfade(appreciation) { amount ->
-                    CurrencyAppreciationLabel(amount)
+                key(appreciation) {
+                    Crossfade(appreciation) { amount ->
+                        CurrencyAppreciationLabel(amount)
+                    }
                 }
             }
         }

@@ -50,10 +50,10 @@ data class Fiat(
         estimation: () -> BigDecimal,
         tokenMintDecimals: Int,
     ) : this(
-        quarks = parseStringToDouble(
+        fiat = parseStringToDouble(
             estimation().toPlainString(),
             decimalPlaces = tokenMintDecimals
-        ).let { (it * MULTIPLIER).toLong() },
+        ),
         currencyCode = CurrencyCode.USD
     )
 

@@ -59,7 +59,7 @@ class SelectTokenViewModel @Inject constructor(
             get() = tokens.orEmpty().map { it.balance }.sum()
 
         val aggregateAppreciation: LocalFiat?
-            get() = tokens?.mapNotNull { it.appreciation }?.sum()
+            get() = tokens?.map { it.appreciation }?.sum()
     }
 
     sealed interface Event {
