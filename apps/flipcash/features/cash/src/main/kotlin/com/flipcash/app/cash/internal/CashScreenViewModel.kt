@@ -155,7 +155,7 @@ internal class CashScreenViewModel @Inject constructor(
                                 rate = rate,
                             )
 
-                            val neededAmount = amountFiat.underlyingTokenAmount - tokenBalance
+                            val neededAmount = amountFiat.nativeAmount - tokenBalance
 
                             dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
