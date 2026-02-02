@@ -186,7 +186,6 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
 
    desc "Build and Deploy a new version of Flipcash2 to the Google Play Store"
        lane :deploy_flipcash2 do
-         gradle(task: "generateEmojiList")
          gradle(
            task: "clean apps:flipcash:app2:bundle", #"clean app:bundleRelease",
            build_type: "release",
