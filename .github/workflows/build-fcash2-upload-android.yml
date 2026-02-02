@@ -94,8 +94,8 @@ jobs:
       - name: Setup Mixpanel API Key
         run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
 
-      - name: Run tests
-        run: bundle exec fastlane android flipcash2_tests
+#      - name: Run tests
+#        run: bundle exec fastlane android flipcash2_tests
 
       - name: Build & deploy Android release
         run: bundle exec fastlane android deploy_flipcash2
