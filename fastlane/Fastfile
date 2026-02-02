@@ -33,6 +33,12 @@ platform :android do
       gradle(task: "generateEmojiList")
       gradle(task: "app:flipcash:app:testDebug")
     end
+    
+  desc "Runs all the tests for Flipcash"
+    lane :flipcash_tests do
+      gradle(task: "generateEmojiList")
+      gradle(task: "app:flipcash:app2:testDebug")
+  end
 
   desc "Build and Deploy a new version of Code to the Google Play"
     lane :deploy_code do
