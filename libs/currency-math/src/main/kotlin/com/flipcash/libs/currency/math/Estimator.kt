@@ -280,7 +280,6 @@ object Estimator {
             require(feeBps >= 0) { "Fee basis points must be non-negative" }
 
             if (amountInQuarks == 0L) {
-                println("Sell amount is 0")
                 return@runCatching SellEstimation(
                     netAmountToReceive = BigDecimal.ZERO,
                     fees = BigDecimal.ZERO,

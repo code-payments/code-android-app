@@ -64,10 +64,10 @@ data class LocalFiat(
         ),
     )
 
-    constructor(usdf: Fiat, nativeAmount: Fiat) : this(
+    constructor(usdf: Fiat, nativeAmount: Fiat, mint: Mint = Mint.usdf) : this(
         underlyingTokenAmount = usdf,
         nativeAmount = nativeAmount,
-        mint = Mint.usdf,
+        mint = mint,
         rate = Rate(
             fx = nativeAmount.decimalValue / usdf.decimalValue,
             currency = nativeAmount.currencyCode

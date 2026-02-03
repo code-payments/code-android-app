@@ -32,6 +32,7 @@ import com.flipcash.app.tokens.data.Period
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.model.WindowedRange
@@ -60,6 +61,7 @@ import kotlin.collections.map
 
 @HiltViewModel
 class TokenInfoViewModel @Inject constructor(
+    private val accountController: AccountController,
     private val tokenController: TokenController,
     private val exchange: Exchange,
     private val shareController: ShareSheetController,
@@ -76,6 +78,8 @@ class TokenInfoViewModel @Inject constructor(
         val cashReservesEnabled: Boolean = false,
         val marketCapChartEnabled: Boolean = false,
         val balance: LocalFiat = LocalFiat.Zero,
+        val showAppreciation: Boolean = false,
+        val showTransactionHistory: Boolean = false,
         val appreciation: LocalFiat? = null,
         val descriptionExpanded: Boolean = false,
         val reservesBalance: LocalFiat = LocalFiat.Zero,
@@ -108,6 +112,8 @@ class TokenInfoViewModel @Inject constructor(
         data class OnMarketCapPeriodSelected(val period: Period) : Event
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
         data class OnReservesUpdated(val balance: LocalFiat) : Event
+        data class OnAppreciatedEnabled(val enabled: Boolean) : Event
+        data class OnTransactionHistoryEnabled(val enabled: Boolean): Event
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
@@ -159,6 +165,7 @@ class TokenInfoViewModel @Inject constructor(
                     val localizedBalance = LocalFiat(
                         usdf = balance,
                         nativeAmount = balance.convertingTo(rate),
+                        mint = token.address,
                     )
 
                     // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
@@ -167,6 +174,7 @@ class TokenInfoViewModel @Inject constructor(
                         LocalFiat(
                             usdf = appreciation,
                             nativeAmount = appreciation.convertingTo(rate),
+                            mint = token.address,
                         )
                     } else {
                         null
@@ -234,6 +242,15 @@ class TokenInfoViewModel @Inject constructor(
                 }.onFailure {
                     dispatchEvent(Event.OnHistoricalMarketCapDataUpdated(period, Loadable.Error(message = "Failed to load data for range", error = it)))
                 }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnBalanceUpdated>()
+            .mapNotNull { stateFlow.value.mint }
+            .onEach {
+                val hasAccount = accountController.hasAccountFor(it)
+                dispatchEvent(Event.OnAppreciatedEnabled(hasAccount))
+                dispatchEvent(Event.OnTransactionHistoryEnabled(hasAccount))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -379,6 +396,9 @@ class TokenInfoViewModel @Inject constructor(
                     historicalData[event.period] = event.data
                     state.copy(historicalMarketCapData = historicalData.toMap())
                 }
+
+                is Event.OnAppreciatedEnabled -> { state -> state.copy(showAppreciation = event.enabled) }
+                is Event.OnTransactionHistoryEnabled -> { state -> state.copy(showTransactionHistory = event.enabled) }
 
                 is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
                 is Event.OpenScreen -> { state -> state }

@@ -10,9 +10,11 @@ import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,7 +41,11 @@ class CurrencyController @Inject constructor(
                     awaitClose {
                         reference.cancel()
                     }
-                }
+                }.shareIn(
+                    scope = scope,
+                    started = SharingStarted.Lazily,
+                    replay = 1
+                )
             }
         }
     }

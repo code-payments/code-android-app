@@ -84,7 +84,7 @@ private fun TokenInfoScreen(
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
                         balance = state.balance.nativeAmount,
-                        appreciation = state.appreciation?.nativeAmount,
+                        appreciation = state.appreciation?.nativeAmount?.takeIf { state.showAppreciation },
                         onClick = {
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
@@ -95,7 +95,7 @@ private fun TokenInfoScreen(
                     )
                 }
 
-                if (!state.isCashReserve && state.cashReservesEnabled) {
+                if (!state.isCashReserve && state.showTransactionHistory) {
                     item {
                         CodeButton(
                             modifier = Modifier

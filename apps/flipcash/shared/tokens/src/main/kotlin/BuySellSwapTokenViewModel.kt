@@ -26,9 +26,11 @@ import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -277,7 +279,23 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         else -> exchange.observeEntryRate()
                     },
                 ) { tokens, rate ->
-                    val token = tokens.find { it.token.address == mint } ?: return@combine null
+                    var token = tokens.find { it.token.address == mint }
+                    if (token == null) {
+                        val tokenRef = tokenController.getTokenMetadata(mint).getOrNull()
+                        if (tokenRef != null) {
+                            token = TokenWithBalance(
+                                token = tokenRef.token,
+                                balance = Fiat.Zero,
+                            )
+                        }
+                    }
+
+                    if (token == null) {
+                        trace(tag = "BuySellSwap", message = "Unable to find token for mint ${mint.base58()}")
+                        dispatchEvent(Event.Exit)
+                        return@combine null
+                    }
+
                     val balance = LocalFiat(
                         usdf = token.balance,
                         nativeAmount = token.balance.convertingTo(rate),

@@ -39,6 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
@@ -583,6 +584,7 @@ class TokenController @Inject constructor(
 
     private fun streamReserveStates() {
         streamReserveStateJob = scope.launch {
+            delay(100) // Small debounce
             trace(
                 tag = TAG,
                 message = "Reserve state stream started",
@@ -619,23 +621,30 @@ class TokenController @Inject constructor(
                             updatedTokens = updatedTokens + (mint to updatedToken)
 
                             state.balances[mint]?.let { balance ->
-                                val exchangedValue = LocalFiat.valueExchangeIn(
-                                    amount = balance,
-                                    token = token,
-                                    balance = balance,
-                                    rate = Rate.oneToOne,
-                                    debug = false,
-                                    trace = false,
-                                ).underlyingTokenAmount
+                                val exchangedValue = runCatching {
+                                    LocalFiat.valueExchangeIn(
+                                        amount = balance,
+                                        token = token,
+                                        balance = balance,
+                                        rate = Rate.oneToOne,
+                                        debug = false,
+                                        trace = false,
+                                    ).underlyingTokenAmount
+                                }.getOrNull()
 
-                                val newBalance = Fiat.tokenBalance(quarks = exchangedValue.quarks, token = token)
-                                updatedBalances = updatedBalances + (mint to newBalance)
+                                if (exchangedValue != null) {
+                                    val newBalance = Fiat.tokenBalance(
+                                        quarks = exchangedValue.quarks,
+                                        token = token
+                                    )
+                                    updatedBalances = updatedBalances + (mint to newBalance)
 
-                                trace(
-                                    tag = TAG,
-                                    message = "Reserve state updated for ${token.symbol}: supply=${update.reserveState.currentSupply}, balance=${newBalance.formatted()}",
-                                    type = TraceType.Process
-                                )
+                                    trace(
+                                        tag = TAG,
+                                        message = "Reserve state updated for ${token.symbol}: supply=${update.reserveState.currentSupply}, balance=${newBalance.formatted()}",
+                                        type = TraceType.Process
+                                    )
+                                }
                             }
                         }
 
