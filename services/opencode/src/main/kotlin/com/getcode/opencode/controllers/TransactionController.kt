@@ -259,10 +259,12 @@ class TransactionController @Inject constructor(
         fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId> {
         trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
+        val tokenizedOwner = owner.withTimelockForToken(of)
+
         // create an account if we don't currently have one for this token
         val accountResult = if (!accountController.hasAccountFor(of.address)) {
             accountController.createUserAccount(
-                ownerForMint = owner,
+                ownerForMint = tokenizedOwner,
                 mint = of.address
             )
         } else {

@@ -378,10 +378,9 @@ class ExternalWalletDeeplinkState(
         val amountToSend = requireNotNull(amount) { "Amount is null" }
         val transactionSignature = requireNotNull(signature) { "Transaction not signed" }
 
-        val tokenizedOwner = owner.withTimelockForToken(token)
         return withContext(NonCancellable) {
             transactionController.buy(
-                owner = tokenizedOwner,
+                owner = owner,
                 amount = amountToSend,
                 of = token,
                 swapId = swapId,
