@@ -120,27 +120,3 @@ interface CodeNavigator: NavigationLocator {
         content: @Composable () -> Unit
     )
 }
-
-class NavigatorWrapper(
-    private val navigator: Navigator,
-): NavigationLocator {
-
-    override val lastItem: Screen?
-        get() = navigator.lastItemOrNull
-
-    override fun push(item: Screen, delay: Long) {
-        navigator.push(item)
-    }
-
-    override infix fun push(items: List<Screen>) {
-        navigator.push(items)
-    }
-
-    override fun pop(): Boolean {
-        return navigator.pop()
-    }
-
-    override fun popAll() {
-        navigator.popUntilRoot()
-    }
-}
