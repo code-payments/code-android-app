@@ -1,10 +1,12 @@
 package com.flipcash.app.tokens
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
@@ -65,11 +67,11 @@ class BuySellSwapTokenViewModel @Inject constructor(
     transactionController: TransactionController,
     resources: ResourceHelper,
     tokenController: TokenController,
+    feedCoordinator: ActivityFeedCoordinator,
 ) : BaseViewModel2<BuySellSwapTokenViewModel.State, BuySellSwapTokenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
 ) {
-
     private val numberInputHelper = NumberInputHelper()
 
     data class State(
@@ -93,7 +95,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
         val tokenName: String
             get() = tokenWithBalance?.token?.name.orEmpty()
         val canTransact: Boolean
-            get() = (amountEntryState.amountAnimatedModel.amountData.amount) > 0.00
+            get() = (amountEntryState.amountAnimatedModel.amountData.amount) > 0.00 && buyProgress.isIdle && sellProgress.isIdle && processingProgress.isIdle
 
         val maxAvailableToSwap: String
             get() = when (purpose) {
@@ -475,6 +477,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         )
 
                         dispatchEvent(Event.OnAmountAccepted(amountFiat))
+                        dispatchEvent(Event.UpdateBuyState(loading = true))
                         dispatchEvent(
                             Event.CreateAndSendTransactionToWallet(
                                 token = stateFlow.value.tokenWithBalance!!.token,
@@ -509,6 +512,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.ProceedWithPurchase>()
+            .onEach { dispatchEvent(Event.UpdateBuyState(loading = true)) }
             .map { it.amount }
             .mapNotNull { amount ->
                 val owner = userManager.accountCluster ?: return@mapNotNull null
@@ -537,6 +541,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.ProceedWithSale>()
+            .onEach { dispatchEvent(Event.UpdateSellState(loading = true)) }
             .map { it.amount }
             .mapNotNull { amount ->
                 val owner = userManager.accountCluster ?: return@mapNotNull null
@@ -581,6 +586,10 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 onSuccess = {
                     val token = stateFlow.value.tokenWithBalance!!.token
                     viewModelScope.launch { tokenController.updateTokenAccount(token) }
+                    viewModelScope.launch {
+                        // update activity feed to grab the tx as a result of this buy/sell
+                        feedCoordinator.fetchSinceLatest()
+                    }
                     dispatchEvent(Event.OnTransactionSuccessful)
                     dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
                 },
