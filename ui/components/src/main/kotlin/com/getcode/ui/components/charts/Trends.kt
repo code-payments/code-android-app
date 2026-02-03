@@ -63,7 +63,7 @@ sealed interface TrendType {
     data object FirstVsLast: TrendType {
         override fun determineTrend(data: List<Double>): LineTrend {
             if (data.size < 2) return LineTrend.Up
-            return if (data.first() >= data.last()) LineTrend.Down else LineTrend.Up
+            return if (data.first() <= data.last()) LineTrend.Up else LineTrend.Down
         }
     }
 
