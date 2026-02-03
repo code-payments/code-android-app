@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -18,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -86,9 +88,11 @@ private fun FeedList(
                             color = CodeTheme.colors.textMain,
                         )
                         Text(
+                            modifier = Modifier.fillMaxWidth(0.8f),
                             text = stringResource(R.string.description_noTransactionHistory),
                             style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.textSecondary,
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
