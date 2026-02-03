@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,7 +33,10 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.times
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
+import com.getcode.theme.White08
 import com.getcode.theme.bolded
+import com.getcode.theme.inputColors
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -120,7 +124,7 @@ private fun SellReceipt(
                 color = CodeTheme.colors.border,
                 shape = CodeTheme.shapes.medium
             )
-            .background(Color(0xFF071F10), CodeTheme.shapes.medium)
+            .background(White05, CodeTheme.shapes.medium)
             .padding(
                 horizontal = CodeTheme.dimens.grid.x4,
                 vertical = CodeTheme.dimens.inset

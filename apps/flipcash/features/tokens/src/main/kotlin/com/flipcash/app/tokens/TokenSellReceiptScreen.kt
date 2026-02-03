@@ -43,17 +43,7 @@ class TokenSellReceiptScreen: ModalScreen, Parcelable {
 
     @Composable
     override fun ModalContent() {
-        val context = LocalContext.current
         val navigator = LocalCodeNavigator.current
-        val permissions = LocalPermissionChecker.current
-        val composeScope = rememberCoroutineScope()
-
-        val close = {
-            navigator.popUntil { it is TokenInfoScreen }
-        }
-        val onNotificationResult: (Boolean) -> Unit = { isGranted ->
-            composeScope.launch { close() }
-        }
 
         val viewModel = getStackScopedViewModel<BuySellSwapTokenViewModel>(BuySellFlow.key)
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
