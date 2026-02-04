@@ -77,4 +77,9 @@ sealed interface NotificationMetadata {
     @Serializable
     data object WithdrewCrypto : NotificationMetadata
 
+    @Serializable
+    data object BoughtToken: NotificationMetadata
+    @Serializable
+    data object SoldToken: NotificationMetadata
+
 }

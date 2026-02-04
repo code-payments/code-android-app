@@ -62,6 +62,8 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
             NotificationMetadata.WelcomeBonus -> MessageMetadata.WelcomeBonus
             NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto
             NotificationMetadata.DepositedCrypto -> MessageMetadata.DepositedCrypto
+            NotificationMetadata.BoughtToken -> MessageMetadata.BoughtToken
+            NotificationMetadata.SoldToken -> MessageMetadata.SoldToken
         }
     }
 }

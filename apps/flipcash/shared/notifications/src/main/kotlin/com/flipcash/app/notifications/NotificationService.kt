@@ -14,8 +14,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.NavigationTrigger
+import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
 import com.getcode.opencode.controllers.TokenController
@@ -31,7 +35,8 @@ import java.security.SecureRandom
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class NotificationService: FirebaseMessagingService(), CoroutineScope by CoroutineScope(Dispatchers.IO) {
+class NotificationService : FirebaseMessagingService(),
+    CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     @Inject
     lateinit var authManager: AuthManager
@@ -65,40 +70,57 @@ class NotificationService: FirebaseMessagingService(), CoroutineScope by Corouti
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        message.notification?.let { notification ->
-            // dump everything into FCM fallback channel for now
-            val channel = NotificationChannelCompat.Builder(
-                "fcm_fallback_notification_channel",
-                NotificationManagerCompat.IMPORTANCE_DEFAULT
-            ).setName("Misc.").build()
 
-            notificationManager.createNotificationChannel(channel)
+        // dump everything into FCM fallback channel for now
+        val channel = NotificationChannelCompat.Builder(
+            "fcm_fallback_notification_channel",
+            NotificationManagerCompat.IMPORTANCE_DEFAULT
+        ).setName("Misc.").build()
 
-            val notificationBuilder: NotificationCompat.Builder =
-                NotificationCompat.Builder(this, channel.id)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-                    .setSmallIcon(R.drawable.flipcash_logo)
-                    .setColor(getColor(R.color.notification_color))
-                    .setAutoCancel(true)
-                    .setContentTitle(notification.title)
-                    .setContentText(notification.body)
-                    .setContentIntent(buildContentIntent())
+        val title = message.data["push_notification_title"]?.ifEmpty { message.notification?.title }
+        val body = message.data["push_notification_body"]?.ifEmpty { message.notification?.body }
 
-            val random = SecureRandom()
-            val notificationId = random.nextInt(256)
+        trace(
+            message = "onMessageReceived",
+            type = TraceType.Process,
+            metadata = {
+                "title" to title
+                "body" to body
+            }
+        )
 
-            launch {
-                tokenController.update()
+        if (title == null) {
+            return
+        }
+
+        val payload = message.data.getOrDefault("flipcash_payload", "")
+            .takeIf { it.isNotEmpty() }
+            ?.let { protoString ->
+                NotificationPayload.fromEncoded(protoString)
             }
 
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                notificationManager.notify(notificationId, notificationBuilder.build())
-            }
+        notificationManager.createNotificationChannel(channel)
+
+        val notificationBuilder: NotificationCompat.Builder =
+            NotificationCompat.Builder(this, channel.id)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                .setSmallIcon(R.drawable.flipcash_logo)
+                .setColor(getColor(R.color.notification_color))
+                .setAutoCancel(true)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setContentIntent(buildContentIntent(payload?.navigation))
+
+        val random = SecureRandom()
+        val notificationId = random.nextInt(256)
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationManager.notify(notificationId, notificationBuilder.build())
         }
     }
 
@@ -110,11 +132,19 @@ class NotificationService: FirebaseMessagingService(), CoroutineScope by Corouti
         }
     }
 
-    internal fun Context.buildContentIntent(): PendingIntent {
+    internal fun Context.buildContentIntent(navigation: NavigationTrigger?): PendingIntent {
+        val target = when (navigation) {
+            is NavigationTrigger.CurrencyInfo -> Intent(Intent.ACTION_VIEW).apply {
+                data = Linkify.tokenInfo(navigation.mint).toUri()
+            }
+
+            else -> packageManager.getLaunchIntentForPackage(packageName)
+        }
+
         return PendingIntent.getActivity(
             this,
             99,
-            packageManager.getLaunchIntentForPackage(packageName),
+            target,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }

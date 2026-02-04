@@ -138,7 +138,7 @@ internal fun TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.toM
         id = id.toSwapId(),
         fromMint = fromMint.toPublicKey(),
         toMint = toMint.toPublicKey(),
-        amount = amount.toFiat(),
+        amount = Fiat(quarks = amount),
         fundingSource = when (fundingSource) {
             TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
             TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)

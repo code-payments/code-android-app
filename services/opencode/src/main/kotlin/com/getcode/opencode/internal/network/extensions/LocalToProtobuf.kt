@@ -146,7 +146,6 @@ internal fun TransactionMetadata.asProtobufMetadata(): TransactionService.Metada
                     .setSource(source.asSolanaAccountId())
                     .setMint(exchangeData.mint.asSolanaAccountId())
                     .apply {
-                        println("verifiedExchangeData: $verifiedExchangeData")
                         if (verifiedExchangeData != null) {
                             setClientExchangeData(verifiedExchangeData.asProtobufExchangeData())
                         }

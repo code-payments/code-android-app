@@ -4,19 +4,13 @@ option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/g
 option java_package = "com.codeinc.flipcash.gen.push.v1";
 option objc_class_prefix = "FPBPushV1";
 import "common/v1/common.proto";
+import "push/v1/model.proto";
 
 service Push {
     // AddToken adds a push token associated with a user.
     rpc AddToken(AddTokenRequest) returns (AddTokenResponse);
     // DeleteTokens removes all push tokens within an app install for a user
     rpc DeleteTokens(DeleteTokensRequest) returns (DeleteTokensResponse);
-}
-enum TokenType {
-    UNKNOWN = 0;
-    // FCM registration token for an Android device
-    FCM_ANDROID = 1;
-    // FCM registration token or an iOS device
-    FCM_APNS = 2;
 }
 message AddTokenRequest {
     TokenType token_type = 1;

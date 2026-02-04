@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.common.v1.Common
+import com.codeinc.flipcash.gen.push.v1.Model
 import com.codeinc.flipcash.gen.push.v1.PushGrpcKt
 import com.codeinc.flipcash.gen.push.v1.PushService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
@@ -34,7 +35,7 @@ internal class PushApi @Inject constructor(
             PushService.AddTokenRequest.newBuilder()
                 .setPushToken(token)
                 .setAppInstall(Common.AppInstallId.newBuilder().setValue(installationId))
-                .setTokenType(PushService.TokenType.FCM_ANDROID)
+                .setTokenType(Model.TokenType.FCM_ANDROID)
                 .apply { setAuth(authenticate(owner)) }
                 .build()
 

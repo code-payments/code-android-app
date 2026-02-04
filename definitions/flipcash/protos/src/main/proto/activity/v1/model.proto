@@ -30,6 +30,8 @@ message Notification {
         WithdrewCryptoNotificationMetadata    withdrew_crypto    = 9;
         SentCryptoNotificationMetadata        sent_crypto        = 10;
         DepositedCryptoNotificationMetadata   deposited_crypto   = 11;
+        BoughtCryptoNotificationMetadata      bought_crypto      = 12;
+        SoldCryptoNotificationMetadata        sold_crypto        = 13;
     }
 }
 message WelcomeBonusNotificationMetadata {
@@ -47,6 +49,10 @@ message SentCryptoNotificationMetadata {
     bool can_initiate_cancel_action = 2;
 }
 message DepositedCryptoNotificationMetadata {
+}
+message BoughtCryptoNotificationMetadata {
+}
+message SoldCryptoNotificationMetadata {
 }
 // ActivityFeedType enables multiple activity feeds, where notifications may be
 // split across different parts of the app

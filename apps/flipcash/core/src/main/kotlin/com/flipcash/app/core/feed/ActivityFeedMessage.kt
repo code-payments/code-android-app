@@ -74,6 +74,12 @@ sealed interface MessageMetadata {
     data object DepositedCrypto : MessageMetadata
 
     @Serializable
+    data object BoughtToken: MessageMetadata
+
+    @Serializable
+    data object SoldToken: MessageMetadata
+
+    @Serializable
     data class PaidCrypto(
         val poolId: ID,
     ): MessageMetadata

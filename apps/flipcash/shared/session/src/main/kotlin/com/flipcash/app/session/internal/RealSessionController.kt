@@ -81,6 +81,29 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
+/**
+ * This class is the central orchestrator for the application's session, managing the user's
+ * interaction flow, data synchronization, and state transitions. It integrates various
+ * controllers and services to provide a cohesive user experience.
+ *
+ * Key Responsibilities:
+ * - **State Management**: Maintains and exposes the overall session state ([SessionState]) and bill state
+ *   ([BillState]), reacting to changes in authentication, network connectivity, and app lifecycle.
+ * - **Lifecycle Events**: Handles `onAppInForeground` and `onAppInBackground` events to start/stop
+ *   data polling (balances, activity feed), connect/disconnect services, and manage UI state.
+ * - **Transaction Flow**:
+ *   - **Scanning**: Processes scanned QR codes ([onCodeScan]) to initiate cash grabs.
+ *   - **Cash Links**: Manages the creation ([shareGiftCard]) and claiming ([openCashLink]) of cash links.
+ *   - **Bill Presentation**: Coordinates with [BillController] to display bills for sending or
+ *     receiving cash ([showBill], [presentBillToUser]).
+ * - **Data Synchronization**: Uses updaters ([TokenUpdater], [ActivityFeedUpdater], [ProfileUpdater])
+ *   to keep local data fresh.
+ * - **User Interaction**: Manages UI feedback like toasts ([ToastController]), vibrations ([Vibrator]),
+ *   and bottom bar messages ([BottomBarManager]). It also handles interactions with the native
+ *   share sheet ([ShareSheetController]).
+ * - **Feature & Settings Integration**: Responds to changes in feature flags and app settings,
+ *   such as `VibrateOnScan` and `CameraStartByDefault`.
+ */
 class RealSessionController @Inject constructor(
     private val billController: BillController,
     private val userManager: UserManager,
