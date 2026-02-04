@@ -26,26 +26,28 @@ import com.getcode.theme.codeTypography
 
 object Flipcash2ColorSpec {
     val primary = Color(0xFF19191A)
-    val primaryLight = Color(0xFF09550B)
+    val primaryLight = Color(0xFF303031)
     val secondary = Color(115, 129, 121)
     val secondaryText = Color.White.copy(alpha = 0.5f)
     val cashBill = Color(0xFF06450F)
     val trackColor = Color.White.copy(alpha = 0.07f)
-    val bannerThemed = Color(0xFF1A3125)
+    val bannerThemed = Color(0xFF252526)
     val success = Color(0xFF1AC86A)
     val successText = Color(0xFF73EAA4)
     val surfaceVariant = Color.White.copy(alpha = 0.12f)
-    val successSurface = Color(0x4A6FCF97)
     val errorSurface = Color(0x4AE75454)
     val accessKey = GradientSpec(
+        background = Color.Black,
         colors = listOf(
-            Color(0xFF001A0C),
-            Color(0xFF042005),
-            Color(0xFF0C291A),
-            Color(0xFF004602),
-            Color(0xFF004602),
+            Color(0xFF1A1A1A),
+            Color(0xFF252525),
+            Color(0xFF2A2A2A),
+            Color(0xFF1F1F1F),
+            Color(0xFF1A1A1A),
         ),
-        stops = listOf(0f, 0.08f, 0.25f, 0.45f, 1f)
+        stops = listOf(0f, 0.3f, 0.6f, 0.8f, 1f),
+        borderColor = Color(0xFF3A3A3A),
+        borderWidth = 4f
     )
 }
 
@@ -67,7 +69,6 @@ private val colors = with(Flipcash2ColorSpec) {
         onBackground = White,
         surface = primary,
         surfaceVariant = surfaceVariant,
-        surfaceSuccess = successSurface,
         surfaceError = errorSurface,
         onSurface = White,
         error = Error,

@@ -34,7 +34,6 @@ internal val CodeDefaultColorScheme = ColorScheme(
     onBackground = White,
     surface = Brand,
     surfaceVariant = BrandDark,
-    surfaceSuccess = BannerSuccess,
     surfaceError = Error,
     onSurface = White,
     error = Error,
@@ -121,7 +120,6 @@ class ColorScheme(
     onBackground: Color,
     surface: Color,
     surfaceVariant: Color,
-    surfaceSuccess: Color,
     surfaceError: Color,
     onSurface: Color,
     border: Color,
@@ -166,8 +164,6 @@ class ColorScheme(
     var surface by mutableStateOf(surface)
         private set
     var surfaceVariant by mutableStateOf(surfaceVariant)
-        private set
-    var surfaceSuccess by mutableStateOf(surfaceSuccess)
         private set
     var surfaceError by mutableStateOf(surfaceError)
         private set
@@ -240,7 +236,6 @@ class ColorScheme(
         onBackground = other.onBackground
         surface = other.surface
         surfaceVariant = other.surfaceVariant
-        surfaceSuccess = other.surfaceSuccess
         surfaceError = other.surfaceError
         onSurface = other.onSurface
         error = other.error
@@ -282,7 +277,6 @@ class ColorScheme(
         onBackground = onBackground,
         surface = surface,
         surfaceVariant = surfaceVariant,
-        surfaceSuccess = surfaceSuccess,
         surfaceError = surfaceError,
         onSurface = onSurface,
         error = error,

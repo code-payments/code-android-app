@@ -56,6 +56,7 @@ val textSelectionColors = TextSelectionColors(
 )
 
 val CodeAccessKey = GradientSpec(
+    background = Brand,
     colors = listOf(
         Color(0xFF1A1A2E),
         Color(0xFF2D3748),
@@ -66,8 +67,11 @@ val CodeAccessKey = GradientSpec(
 )
 
 data class GradientSpec(
+    val background: Color,
     val colors: List<Color>,
-    val stops: List<Float>
+    val stops: List<Float>,
+    val borderColor: Color? = null,
+    val borderWidth: Float = 0f
 ) {
     val colorsArray = colors.map { it.toAGColor() }.toIntArray()
     val stopsArray = stops.toFloatArray()

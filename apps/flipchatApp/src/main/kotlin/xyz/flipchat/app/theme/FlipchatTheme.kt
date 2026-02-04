@@ -44,7 +44,6 @@ private val colors = ColorScheme(
     background = FC_Primary,
     onBackground = White,
     surface = Color(0xFF28176E),
-    surfaceSuccess = BannerSuccess,
     surfaceError = Error,
     surfaceVariant = FC_Secondary,
     onSurface = White,
@@ -68,6 +67,7 @@ private val colors = ColorScheme(
     bannerSuccess = BannerSuccess,
     scrim = Black40,
     accessKey = GradientSpec(
+        background = FC_Primary,
         colors = listOf(
             Color(0xFF1E1B4B),
             Color(0xFF3730A3),

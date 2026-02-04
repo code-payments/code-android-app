@@ -58,7 +58,7 @@ fun CurrencyAppreciationLabel(
         Text(
             text = label,
             style = CodeTheme.typography.textSmall,
-            color = changeColor,
+            color = CodeTheme.colors.textSecondary,
         )
     }
 }

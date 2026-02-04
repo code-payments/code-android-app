@@ -38,9 +38,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.getButtonColors
 import kotlin.collections.emptyMap
-import kotlin.collections.mapOf
 import kotlin.to
 
 @Composable
@@ -114,7 +112,7 @@ private fun ConfirmationButton(
     modifier: Modifier = Modifier,
     dispatchEvent: (OnRampViewModel.Event) -> Unit
 ) {
-    val buttonColors = getButtonColors(state.canAdd, ButtonState.Filled, Color.Unspecified)
+    val buttonColors = ButtonState.Filled.colors()
     val (buttonText, assets) = when (provider) {
         is OnRampProvider.Coinbase -> when (provider.type) {
             // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text

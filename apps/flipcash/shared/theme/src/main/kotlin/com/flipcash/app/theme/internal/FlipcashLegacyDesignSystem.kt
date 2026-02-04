@@ -35,9 +35,9 @@ object FlipcashColorSpec {
     val success = Color(0xFF1AC86A)
     val successText = Color(0xFF73EAA4)
     val surfaceVariant = Color.White.copy(alpha = 0.12f)
-    val successSurface = Color(0x4A6FCF97)
     val errorSurface = Color(0x4AE75454)
     val accessKey = GradientSpec(
+        background = primary,
         colors = listOf(
             Color(0xFF001A0C),
             Color(0xFF042005),
@@ -67,13 +67,12 @@ private val colors = with(FlipcashColorSpec) {
         onBackground = White,
         surface = primary,
         surfaceVariant = surfaceVariant,
-        surfaceSuccess = successSurface,
         surfaceError = errorSurface,
         onSurface = White,
         error = Error,
         errorText = TextError,
         success = success,
-        successText = successText,
+        successText = success,
         textMain = Color.White,
         textSecondary = secondaryText,
         border = White08,

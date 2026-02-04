@@ -22,6 +22,7 @@ import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.theme.Alert
+import com.getcode.theme.GradientSpec
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
@@ -158,7 +159,8 @@ abstract class BaseAccessKeyViewModel(
     ): Bitmap {
         val accessKeyText = getAccessKeyText(words)
 
-        val accessKeyBg = createGlowBitmap(812, 1353)
+        val spec = Flipcash2ColorSpec.accessKey
+        val accessKeyBg = createGlowBitmap(spec, 812, 1353)
 
         val imageLogo =
             resources.getDrawable(R.drawable.ic_flipcash_logo)
@@ -196,6 +198,28 @@ abstract class BaseAccessKeyViewModel(
                 bgTopOffset.toFloat(),
                 null
             )
+
+            // Draw border
+            spec.borderColor?.let { borderColor ->
+                val borderPaint = Paint().apply {
+                    color = borderColor.toAGColor()
+                    style = Paint.Style.STROKE
+                    strokeWidth = spec.borderWidth
+                    isAntiAlias = true
+                }
+
+                val borderInset = spec.borderWidth / 2
+                val borderRect = RectF(
+                    ((targetWidth - accessBgActualWidth) / 2f) + borderInset,
+                    bgTopOffset.toFloat() + borderInset,
+                    ((targetWidth + accessBgActualWidth) / 2f) - borderInset,
+                    bgTopOffset.toFloat() + accessKeyBg.height - borderInset
+                )
+
+                // Adjust corner radius to match your card
+                val cornerRadius = 40f
+                drawRoundRect(borderRect, cornerRadius, cornerRadius, borderPaint)
+            }
 
             drawBitmap(
                 imageLogo,
@@ -249,6 +273,7 @@ abstract class BaseAccessKeyViewModel(
     }
 
     fun createGlowBitmap(
+        gradientSpec: GradientSpec,
         width: Int,
         height: Int,
         cornerRadius: Float = 40f
@@ -266,14 +291,12 @@ abstract class BaseAccessKeyViewModel(
         }
         canvas.clipPath(clipPath)
 
-        val accessKeyGradient = Flipcash2ColorSpec.accessKey
-
         val diagonalGradient = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = LinearGradient(
                 0f, height.toFloat(),
                 width.toFloat(), 0f,
-                accessKeyGradient.colorsArray,
-                accessKeyGradient.stopsArray,
+                gradientSpec.colorsArray,
+                gradientSpec.stopsArray,
                 Shader.TileMode.CLAMP
             )
         }

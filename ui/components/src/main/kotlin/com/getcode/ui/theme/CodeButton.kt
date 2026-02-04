@@ -1,5 +1,10 @@
 package com.getcode.ui.theme
 
+import android.graphics.RenderEffect
+import android.graphics.RuntimeShader
+import android.graphics.Shader
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalAbsoluteElevation
@@ -41,14 +45,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.innerShadow
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -64,6 +85,7 @@ import com.getcode.ui.components.R
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.measured
 import com.getcode.ui.utils.plus
+import com.getcode.ui.utils.toPx
 
 enum class ButtonState {
     Bordered,
@@ -71,8 +93,97 @@ enum class ButtonState {
     Filled50,
     Filled20,
     Filled10,
-    FilledGreen,
+    BgBlur20,
     Subtle,
+    ;
+
+    @Composable
+    internal fun ripple() = ripple(
+        bounded = true,
+        color = when (this) {
+            Bordered -> White
+            Filled -> Black50
+            Filled50 -> White50
+            Filled20 -> White20
+            Filled10 -> White10
+            Subtle -> White
+            BgBlur20 -> White20
+        }
+    )
+
+    @Composable
+    fun colors(
+        textColor: Color = Color.Unspecified,
+    ): ButtonColors {
+        return when (this) {
+            Filled -> ButtonDefaults.buttonColors(
+                backgroundColor = White,
+                contentColor = textColor.takeOrElse { Color(0XFF121212) },
+                disabledBackgroundColor = White10,
+                disabledContentColor = White50,
+            )
+
+            Bordered ->
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = Transparent,
+                    disabledContentColor = Color.White.copy(0.30f),
+                    contentColor = textColor.takeOrElse { Color.LightGray }
+                )
+
+            Filled50 ->
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = White50,
+                    disabledContentColor = White20,
+                    contentColor = textColor.takeOrElse { White },
+                )
+
+            Filled20 ->
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = White20,
+                    disabledContentColor = White20,
+                    contentColor = textColor.takeOrElse { White },
+                )
+
+            Filled10 ->
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = White10,
+                    disabledContentColor = White50,
+                    contentColor = textColor.takeOrElse { White },
+                )
+
+            Subtle ->
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = Transparent,
+                    disabledContentColor = White50,
+                    contentColor = textColor.takeOrElse { CodeTheme.colors.textSecondary }
+                )
+
+            BgBlur20 -> {
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = White20,
+                    disabledContentColor = White20,
+                    contentColor = textColor.takeOrElse { White },
+                )
+            }
+        }
+    }
+
+    @Composable
+    internal fun border(isEnabled: Boolean): BorderStroke {
+        val border = CodeTheme.dimens.border
+        return remember(this, isEnabled) {
+            when (this) {
+                Bordered -> BorderStroke(border, if (isEnabled) White50 else White20)
+                else -> BorderStroke(border, Transparent)
+            }
+        }
+    }
+}
+
+sealed interface ButtonContentState {
+    data object Loading : ButtonContentState
+    data object Successful : ButtonContentState
+    data object Content : ButtonContentState
 }
 
 @Composable
@@ -98,7 +209,7 @@ fun CodeButton(
         bottom = CodeTheme.dimens.grid.x2,
     ),
     overrideContentPadding: Boolean = false,
-    buttonState: ButtonState = ButtonState.Bordered,
+    buttonState: ButtonState = ButtonState.Filled,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
     style: TextStyle = CodeTheme.typography.textMedium,
@@ -186,9 +297,9 @@ fun CodeButton(
         derivedStateOf { isSuccess }
     }
 
-    val colors = getButtonColors(isEnabled, buttonState, contentColor)
-    val border = getButtonBorder(buttonState, isEnabled)
-    val ripple = getRipple(buttonState = buttonState)
+    val colors = buttonState.colors(contentColor)
+    val border = buttonState.border(isEnabled)
+    val ripple = buttonState.ripple()
 
     CompositionLocalProvider(
         LocalMinimumInteractiveComponentEnforcement provides false,
@@ -224,6 +335,9 @@ fun CodeButton(
                         .shadow(0.dp, shape, clip = false)
                         .border(border, shape)
                         .background(color = colors.backgroundColor(enabled).value, shape = shape)
+                        .addIf(buttonState == ButtonState.BgBlur20) {
+                            Modifier.frostedGlass()
+                        }
                         .clip(shape)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -241,6 +355,8 @@ fun CodeButton(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    val density = LocalDensity.current
+                    println("size=${with (density) { size.height.toPx() }}")
                     Box(
                         modifier = Modifier
                             .addIf(size.isSpecified) { Modifier.size(size) }
@@ -297,97 +413,57 @@ fun CodeButton(
     }
 }
 
-sealed interface ButtonContentState {
-    data object Loading : ButtonContentState
-    data object Successful : ButtonContentState
-    data object Content : ButtonContentState
-}
-
-@Composable
-fun getRipple(
-    buttonState: ButtonState,
-) = ripple(
-    bounded = true,
-    color = when (buttonState) {
-        ButtonState.Bordered -> White
-        ButtonState.Filled -> Black50
-        ButtonState.Filled50 -> White50
-        ButtonState.Filled20 -> White20
-        ButtonState.Filled10 -> White10
-        ButtonState.Subtle -> White
-        ButtonState.FilledGreen -> White
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private val FROSTED_GLASS_SHADER = RuntimeShader(
+    """
+    uniform shader content;
+    uniform float2 resolution;
+    uniform float blurRadius;
+    uniform float noiseStrength;
+    
+    float random(float2 st) {
+        return fract(sin(dot(st.xy, float2(12.9898, 78.233))) * 43758.5453123);
     }
+    
+    half4 main(float2 coord) {
+        half4 color = content.eval(coord);
+        
+        // Add subtle noise for frosted texture
+        float noise = random(coord / resolution) * noiseStrength;
+        color.rgb += half3(noise);
+        
+        return color;
+    }
+"""
 )
 
-@Composable
-fun getButtonColors(
-    enabled: Boolean,
-    buttonState: ButtonState = ButtonState.Bordered,
-    textColor: Color = Color.Unspecified,
-): ButtonColors {
-    return when (buttonState) {
-        ButtonState.Filled -> ButtonDefaults.buttonColors(
-            backgroundColor = White,
-            contentColor = textColor.takeOrElse { Color(0XFF121212) },
-            disabledBackgroundColor = White10,
-            disabledContentColor = White50,
-        )
+fun Modifier.frostedGlass(
+    tint: Color = Color.White.copy(alpha = 0.1f),
+    noiseStrength: Float = 0.03f,
+    shape: Shape = RectangleShape
+): Modifier = this.then(
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Modifier
+            .drawWithContent {
+                drawRect(tint)
 
-        ButtonState.Bordered ->
-            ButtonDefaults.outlinedButtonColors(
-                backgroundColor = Transparent,
-                disabledContentColor = Color.White.copy(0.30f),
-                contentColor = textColor.takeOrElse { Color.LightGray }
-            )
+                FROSTED_GLASS_SHADER.setFloatUniform("resolution", size.width, size.height)
+                FROSTED_GLASS_SHADER.setFloatUniform("noiseStrength", noiseStrength)
+                drawRect(brush = ShaderBrush(FROSTED_GLASS_SHADER))
 
-        ButtonState.Filled50 ->
-            ButtonDefaults.outlinedButtonColors(
-                backgroundColor = White50,
-                disabledContentColor = White20,
-                contentColor = textColor.takeOrElse { White },
-            )
-
-        ButtonState.Filled20 ->
-            ButtonDefaults.outlinedButtonColors(
-                backgroundColor = White20,
-                disabledContentColor = White20,
-                contentColor = textColor.takeOrElse { White },
-            )
-
-        ButtonState.Filled10 ->
-            ButtonDefaults.outlinedButtonColors(
-                backgroundColor = White10,
-                disabledContentColor = White50,
-                contentColor = textColor.takeOrElse { White },
-            )
-
-        ButtonState.Subtle ->
-            ButtonDefaults.outlinedButtonColors(
-                backgroundColor = Transparent,
-                disabledContentColor = White50,
-                contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.textSecondary } else Color.White.copy(
-                    0.30f
-                )
-            )
-
-        ButtonState.FilledGreen ->
-            ButtonDefaults.buttonColors(
-                backgroundColor = CodeTheme.colors.success,
-                contentColor = textColor.takeOrElse { Color.White },
-                disabledBackgroundColor = CodeTheme.colors.success.copy(ContentAlpha.disabled),
-                disabledContentColor = textColor.takeOrElse { Color.White }
-                    .copy(alpha = ContentAlpha.disabled),
-            )
+                drawContent()
+            }
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // API 31-32 fallback (no RuntimeShader)
+        Modifier
+            .drawWithContent {
+                drawRect(tint)
+                drawContent()
+            }
+    } else {
+        // Pre-API 31 fallback - just tinted background
+        Modifier
+            .clip(shape)
+            .background(tint)
     }
-}
-
-@Composable
-fun getButtonBorder(buttonState: ButtonState, isEnabled: Boolean = true): BorderStroke {
-    val border = CodeTheme.dimens.border
-    return remember(buttonState, isEnabled) {
-        when (buttonState) {
-            ButtonState.Bordered -> BorderStroke(border, if (isEnabled) White50 else White20)
-            else -> BorderStroke(border, Transparent)
-        }
-    }
-}
+)

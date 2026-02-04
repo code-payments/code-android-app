@@ -185,7 +185,7 @@ private fun BottomBar(
                 .drawWithGradient(
                     color = CodeTheme.colors.background,
                     startY = { 0f },
-                    endY = { size.height * 0.1f }
+                    endY = { size.height * 0.38f }
                 )
         )
         BottomBarButtons(
@@ -218,7 +218,7 @@ private fun BottomBarButtons(
         if (state.isCashReserve && state.cashReservesEnabled) {
             CodeButton(
                 modifier = Modifier.weight(1f),
-                buttonState = ButtonState.FilledGreen,
+                buttonState = ButtonState.Filled,
                 text = stringResource(R.string.action_withdraw),
             ) {
                 dispatch(
@@ -230,7 +230,7 @@ private fun BottomBarButtons(
         } else if (state.cashReservesEnabled) {
             CodeButton(
                 modifier = Modifier.weight(1f),
-                buttonState = ButtonState.FilledGreen,
+                buttonState = ButtonState.Filled,
                 text = stringResource(R.string.action_buy),
             ) {
                 dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods)

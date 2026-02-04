@@ -51,11 +51,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarAction.Companion.OK_DESCRIPTOR
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
-import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White50

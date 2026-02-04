@@ -42,7 +42,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.getButtonColors
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -55,7 +54,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import kotlin.collections.map
 
@@ -321,11 +319,7 @@ class TokenInfoViewModel @Inject constructor(
                                                 placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
                                             ),
                                             children = {
-                                                val buttonColors = getButtonColors(
-                                                    true,
-                                                    ButtonState.Filled,
-                                                    Color.Unspecified
-                                                )
+                                                val buttonColors = ButtonState.Filled.colors()
                                                 Box(
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentAlignment = Alignment.Center
