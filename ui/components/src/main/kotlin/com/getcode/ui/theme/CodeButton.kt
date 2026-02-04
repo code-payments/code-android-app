@@ -355,8 +355,6 @@ fun CodeButton(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val density = LocalDensity.current
-                    println("size=${with (density) { size.height.toPx() }}")
                     Box(
                         modifier = Modifier
                             .addIf(size.isSpecified) { Modifier.size(size) }
