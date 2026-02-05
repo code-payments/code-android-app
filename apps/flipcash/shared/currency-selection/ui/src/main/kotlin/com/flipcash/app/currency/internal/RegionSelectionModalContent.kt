@@ -2,6 +2,7 @@ package com.flipcash.app.currency.internal
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -52,7 +53,8 @@ internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
         }
         SearchBar(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-            state = state.searchState
+            state = state.searchState,
+            contentPadding = PaddingValues(start = CodeTheme.dimens.grid.x1),
         )
 
         RegionList(

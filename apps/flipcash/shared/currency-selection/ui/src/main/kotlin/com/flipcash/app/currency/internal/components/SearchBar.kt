@@ -1,5 +1,6 @@
 package com.flipcash.app.currency.internal.components
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
@@ -20,11 +21,13 @@ import com.getcode.ui.components.TextInput
 internal fun SearchBar(
     state: TextFieldState,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
     TextInput(
         modifier = modifier
             .padding(horizontal = CodeTheme.dimens.grid.x3),
         state = state,
+        contentPadding = contentPadding,
         leadingIcon = {
             Icon(
                 modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
