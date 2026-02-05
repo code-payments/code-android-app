@@ -62,14 +62,14 @@ private val customizationLookupTable = mapOf(
     ),
     Mint.bits to TokenBillCustomizations(
         background = BillBackground.Gradient(
-            listOf("#FFC88967", "#FF3E70BC", "#FF093372")
+            listOf("#FFACBEDD", "#FF3E70BC", "#FF093372")
         ),
         icon = null,
         texture = null,
     ),
     Mint.float to TokenBillCustomizations(
         background = BillBackground.Gradient(
-            listOf("#FFCA4705", "#FFB49E9F", "#FFD38562",)
+            listOf("#FFC88967", "#FFAF9F9E", "#FFBB4F21",)
         ),
         icon = null,
         texture = null,
