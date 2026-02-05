@@ -192,9 +192,7 @@ private fun DecoratorBox(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .addIf(leadingIcon != null) {
-                    Modifier.padding(start = CodeTheme.dimens.staticGrid.x2)
-                },
+            ,
             contentAlignment = textFieldAlignment
         ) {
             Box(modifier = Modifier.padding(contentPadding)) {
