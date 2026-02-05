@@ -182,7 +182,13 @@ private fun TokenTxProcessingScreen(
                             LoadingSuccessState.State.Error -> stringResource(R.string.error_title_buySellFailed)
                             LoadingSuccessState.State.Idle -> ""
                             LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
-                            LoadingSuccessState.State.Success -> state.enteredAmount.formatted(suffix = stringResource(R.string.label_ofToken, state.tokenName))
+                            LoadingSuccessState.State.Success -> {
+                                val name = when (state.purpose) {
+                                    is TokenSwapPurpose.BalanceIncrease -> state.tokenName
+                                    else -> stringResource(R.string.title_cashReserves)
+                                }
+                                state.netTransferAmount.formatted(suffix = stringResource(R.string.label_ofToken, name))
+                            }
                         },
                         style = CodeTheme.typography.textLarge,
                         color = CodeTheme.colors.textMain,

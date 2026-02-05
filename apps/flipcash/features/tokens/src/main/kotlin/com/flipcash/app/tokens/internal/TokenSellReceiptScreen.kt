@@ -12,13 +12,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,13 +26,9 @@ import com.flipcash.app.tokens.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.TokenWithBalance
-import com.getcode.opencode.model.financial.minus
-import com.getcode.opencode.model.financial.times
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
-import com.getcode.theme.White08
 import com.getcode.theme.bolded
-import com.getcode.theme.inputColors
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -101,10 +93,11 @@ private fun TokenSellReceiptScreen(
             )
         ) {
             SellReceipt(
-                tokenWithBalance = state.tokenWithBalance!!.copy(
-                    balance = state.amountEntryState.selectedAmount.nativeAmount
-                ),
-                fee = state.sellFee,
+                grossTransferAmount = state.enteredAmount,
+                netTransferAmount = state.netTransferAmount,
+                feeAmount = state.feeAmount,
+                feePercentage = state.sellFee,
+                tokenWithBalance = state.tokenWithBalance!!,
             )
         }
     }
@@ -113,7 +106,10 @@ private fun TokenSellReceiptScreen(
 @Composable
 private fun SellReceipt(
     tokenWithBalance: TokenWithBalance,
-    fee: Double?,
+    grossTransferAmount: Fiat,
+    netTransferAmount: Fiat,
+    feePercentage: Double?,
+    feeAmount: Fiat,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -133,33 +129,20 @@ private fun SellReceipt(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val feeAmount by remember(fee, tokenWithBalance.balance) {
-            derivedStateOf {
-                if (fee == null) return@derivedStateOf Fiat.Zero
-                tokenWithBalance.balance * (fee / 100.0)
-            }
-        }
-
-        val netTransferAmount by remember(tokenWithBalance.balance, feeAmount) {
-            derivedStateOf {
-                tokenWithBalance.balance - feeAmount
-            }
-        }
-
         Column(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
-                label = "Sell amount",
-                amount = tokenWithBalance.balance.formatted(),
+                label = stringResource(R.string.label_sellAmount),
+                amount = grossTransferAmount.formatted(),
             )
 
-            if (fee != null) {
+            if (feePercentage != null) {
                 ReceiptLineItem(
                     modifier = Modifier.fillMaxWidth(),
-                    label = "${fee.roundToInt()}% Fee",
+                    label = stringResource(R.string.label_percentFee, feePercentage.roundToInt()),
                     amount = feeAmount.formatted(
                         extraPrefix = if (feeAmount.decimalValue != 1.0) "~" else null,
                     ),

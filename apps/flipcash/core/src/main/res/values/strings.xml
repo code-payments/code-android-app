@@ -412,4 +412,7 @@
     <string name="subtitle_wasAddedToYourWallet">was added to your Flipcash wallet</string>
     <string name="label_ofToken">of %1s</string>
 
+    <string name="label_sellAmount">Sell Amount</string>
+    <string name="label_percentFee">%1$d Fee</string>
+
 </resources>

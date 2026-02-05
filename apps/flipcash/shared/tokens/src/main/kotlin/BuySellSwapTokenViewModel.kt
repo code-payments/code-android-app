@@ -1,5 +1,8 @@
 package com.flipcash.app.tokens
 
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
@@ -24,6 +27,8 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.times
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
@@ -93,7 +98,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }
 
         val tokenName: String
-            get() = tokenWithBalance?.token?.name.orEmpty()
+            get() = tokenWithBalance?.displayName.orEmpty()
+
         val canTransact: Boolean
             get() = (amountEntryState.amountAnimatedModel.amountData.amount) > 0.00 && buyProgress.isIdle && sellProgress.isIdle && processingProgress.isIdle
 
@@ -122,6 +128,18 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 fiat = amountEntryState.amountAnimatedModel.amountData.amount,
                 currencyCode = tokenBalance.currencyCode
             )
+
+        val feeAmount: Fiat
+            get() {
+                val fee = sellFee ?: return Fiat.Zero
+                return enteredAmount * (fee / 100.0)
+            }
+
+        val netTransferAmount: Fiat
+            get() = when (purpose) {
+               is TokenSwapPurpose.BalanceIncrease -> enteredAmount
+               else -> enteredAmount - feeAmount
+            }
 
         val transactionLimit: Fiat
             get() {
