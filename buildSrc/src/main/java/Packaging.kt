@@ -29,7 +29,6 @@ sealed class Packaging(
         majorVersion = 2026, // release year
         minorVersion = 2, // release month
         patchVersion = 1, // cycle in minor version
-        suffix = "cash2"
     )
 
     object Flipchat : Packaging(
