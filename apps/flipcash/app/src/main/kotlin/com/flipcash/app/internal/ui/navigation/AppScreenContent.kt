@@ -35,7 +35,6 @@ import com.flipcash.app.tokens.TokenSelectScreen
 import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.tokens.TokenTxProcessingScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
-import com.flipcash.app.transfers.TransferInformationalScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
@@ -151,10 +150,6 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<AppRoute.Menu.Lab> {
             LabsScreen()
-        }
-
-        register<AppRoute.Transfers.Learn> {
-            TransferInformationalScreen(it.direction)
         }
 
         register<AppRoute.Transfers.Withdrawal.Amount> {

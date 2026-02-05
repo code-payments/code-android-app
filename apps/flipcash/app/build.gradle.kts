@@ -21,7 +21,7 @@ plugins {
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
-val appNamespace = "${Gradle.flipcashNamespace}.android.app"
+val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 
 android {
     // static namespace
@@ -159,7 +159,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tokens"))
-    implementation(project(":apps:flipcash:shared:transfers"))
     implementation(project(":apps:flipcash:shared:web"))
     implementation(project(":apps:flipcash:shared:workers"))
     implementation(project(":apps:flipcash:features:login"))

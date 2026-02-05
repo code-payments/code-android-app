@@ -69,6 +69,59 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- app.flipcash.com App Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="app.flipcash.com" />
+                <data android:pathPattern="/login.*" />
+                <data android:pathPattern="/token.*" />
+                <data android:pathPattern="/verify.*" />
+                <data android:pathPattern="/external/.*/connected" />
+                <data android:pathPattern="/external/.*/signed" />
+            </intent-filter>
+
+            <!-- send.flipcash.com App Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="send.flipcash.com" />
+                <data android:pathPattern="/cash/.*" />
+                <data android:pathPattern="/c/.*" />
+            </intent-filter>
+
+            <!-- jump.flipcash.com App Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https"
+                    android:host="jump.flipcash.com"
+                    />
+            </intent-filter>
+
+            <!-- Custom scheme (codewallet) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="codewallet" />
+                <data android:host="send.flipcash.com" />
+                <data android:pathPattern="/c/.*" />
+
+                <data android:scheme="codewallet" />
+                <data android:host="app.flipcash.com" />
+                <data android:pathPattern="/token/.*" />
+            </intent-filter>
+
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -101,7 +154,7 @@
 
                 <data
                     android:host="app.flipcash.com"
-                    android:pathPattern="/token.*"
+                    android:pathPattern="/token/.*"
                     android:scheme="https" />
             </intent-filter>
 

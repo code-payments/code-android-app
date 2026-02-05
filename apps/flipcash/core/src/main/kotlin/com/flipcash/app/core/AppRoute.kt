@@ -61,8 +61,6 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         data object Menu : Sheets
         data object Lab: Sheets
         data object ShareApp : Sheets
-        @Deprecated("Moved to Advanced Features; this exist for deep link routing")
-        data object PoolList : Sheets
     }
 
     @Parcelize
@@ -86,7 +84,6 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
 
     @Parcelize
     sealed interface Transfers: AppRoute {
-        data class Learn(val direction: TransferDirection) : Transfers
 
         sealed interface Withdrawal {
             data class Amount(val mint: Mint) : Transfers

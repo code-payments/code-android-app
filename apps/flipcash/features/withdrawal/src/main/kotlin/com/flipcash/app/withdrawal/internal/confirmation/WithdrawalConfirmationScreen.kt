@@ -81,7 +81,6 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.error_title_withdrawalTooSmall),
                         subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
-                        showScrim = false,
                         showCancel = false,
                         actions = buildList {
                             add(

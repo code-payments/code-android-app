@@ -4,7 +4,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.biometric.BiometricManager
 import androidx.core.app.NotificationManagerCompat
-import com.flipcash.android.app.BuildConfig
+import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.annotations.AccountType
 import com.flipcash.services.analytics.FlipcashAnalyticsManager

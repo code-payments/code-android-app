@@ -9,7 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
-import com.flipcash.android.app.BuildConfig
+import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.appsettings.LocalAppSettings
 import com.flipcash.app.bill.customization.BillPlaygroundController
@@ -39,7 +39,6 @@ import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.compose.LocalTransactionController
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.rpc.RpcConfig

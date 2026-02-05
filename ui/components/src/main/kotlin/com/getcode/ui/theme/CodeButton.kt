@@ -397,7 +397,7 @@ fun CodeButton(
                                         Icon(
                                             modifier = Modifier.requiredSize(CodeTheme.dimens.grid.x3),
                                             painter = painterResource(id = R.drawable.ic_check),
-                                            tint = CodeTheme.colors.success,
+                                            tint = Color.White,
                                             contentDescription = "",
                                         )
                                     }

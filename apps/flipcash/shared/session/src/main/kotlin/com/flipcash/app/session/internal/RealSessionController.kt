@@ -558,6 +558,7 @@ class RealSessionController @Inject constructor(
                     ),
                     isDismissible = false,
                     showCancel = false,
+                    showScrim = false,
                 )
             }
 
@@ -745,6 +746,7 @@ class RealSessionController @Inject constructor(
                             title = resources.getString(R.string.prompt_title_collectOwnCash),
                             subtitle = resources.getString(R.string.prompt_description_collectOwnCash),
                             isDismissible = false,
+                            showScrim = false,
                             actions = buildList {
                                 add(
                                     BottomBarAction(

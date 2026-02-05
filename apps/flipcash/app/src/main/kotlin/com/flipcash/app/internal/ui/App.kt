@@ -41,7 +41,7 @@ import com.flipcash.app.onramp.rememberExternalWalletState
 import com.flipcash.app.payments.PaymentScaffold
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
-import com.flipcash.app.theme.Flipcash2DesignSystem
+import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.updates.UpdateRequiredBlockingView
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.modals.ModalManager
@@ -111,7 +111,7 @@ internal fun App(
     val session = LocalSessionController.currentOrThrow
     val userState by userManager.state.collectAsState()
 
-    Flipcash2DesignSystem {
+    FlipcashTheme {
         // save download QR early
         rememberQrBitmapPainter(
             content = stringResource(
@@ -158,18 +158,6 @@ internal fun App(
                                                 ) {
 
                                                     when (navigator.lastEvent) {
-                                                        StackEvent.Push,
-                                                        StackEvent.Pop -> {
-                                                            when (navigator.lastItemOrNull) {
-                                                                ScreenRegistry.get(AppRoute.Onboarding.SeedInput) -> {
-                                                                    CrossfadeTransition(navigator = navigator)
-                                                                }
-
-                                                                else -> SlideTransition(navigator = navigator)
-                                                            }
-                                                        }
-
-                                                        StackEvent.Idle -> CurrentScreen()
                                                         StackEvent.Replace -> {
                                                             when (navigator.lastItemOrNull) {
                                                                 ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
@@ -180,6 +168,7 @@ internal fun App(
                                                                 else -> CurrentScreen()
                                                             }
                                                         }
+                                                        else -> SlideTransition(navigator = navigator)
                                                     }
                                                 }
 

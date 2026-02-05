@@ -2,7 +2,7 @@ package com.flipcash.app.internal.startup
 
 import android.content.Context
 import androidx.startup.Initializer
-import com.flipcash.android.app.BuildConfig
+import com.flipcash.app.android.BuildConfig
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.initialize

@@ -2,7 +2,7 @@ name: Flipcash2 Build and Deploy
 
 env:
   # The name of the main module repository
-  main_project_module: apps:flipcash:app2
+  main_project_module: apps:flipcash:app
 
   # The name of the Play Store
   playstore_name: Flipcash
@@ -60,7 +60,7 @@ jobs:
         id: google_services_json_file
         with:
           fileName: google-services.json
-          fileDir: ./apps/flipcash/app2/src
+          fileDir: ./apps/flipcash/app/src
           encodedString: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
 
       - name: Decode Service Account Key JSON file
@@ -82,7 +82,7 @@ jobs:
         uses: timheuer/base64-to-file@v1
         with:
           fileName: key
-          fileDir: ./apps/flipcash/app2/key
+          fileDir: ./apps/flipcash/app/key
           encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
 
       - name: Setup BugSnag API Key
@@ -95,10 +95,10 @@ jobs:
         run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
-        run: bundle exec fastlane android flipcash2_tests
+        run: bundle exec fastlane android flipcash_tests
 
       - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_flipcash2
+        run: bundle exec fastlane android deploy_flipcash
         env:
           STORE_FILE: ${{ steps.signing_key.outputs.filePath }}
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -115,5 +115,5 @@ jobs:
         with:
           name: assets
           path: |
-            ${{ github.workspace }}/apps/flipcash/app2/build/outputs/bundle/release
-            ${{ github.workspace }}/apps/flipcash/app2/build/outputs/apk/release
+            ${{ github.workspace }}/apps/flipcash/app/build/outputs/bundle/release
+            ${{ github.workspace }}/apps/flipcash/app/build/outputs/apk/release

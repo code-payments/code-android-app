@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.Placeholder
@@ -282,7 +281,7 @@ class TokenInfoViewModel @Inject constructor(
                 BottomBarManager.showMessage(
                     bottomBarMessage = BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
-                        type = BottomBarManager.BottomBarMessageType.THEMED,
+                        type = BottomBarManager.BottomBarMessageType.DEFAULT,
                         actions = buildList {
                             if (stateFlow.value.hasReserves) {
                                 add(

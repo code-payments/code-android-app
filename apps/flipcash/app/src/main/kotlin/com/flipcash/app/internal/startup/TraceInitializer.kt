@@ -3,7 +3,7 @@ package com.flipcash.app.internal.startup
 import android.content.Context
 import androidx.startup.Initializer
 import com.bugsnag.android.Bugsnag
-import com.flipcash.android.app.BuildConfig
+import com.flipcash.app.android.BuildConfig
 import timber.log.Timber
 
 class TraceInitializer: Initializer<Unit> {

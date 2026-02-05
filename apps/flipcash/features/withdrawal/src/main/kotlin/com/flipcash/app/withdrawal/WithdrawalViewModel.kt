@@ -330,7 +330,6 @@ internal class WithdrawalViewModel @Inject constructor(
                     BottomBarManager.BottomBarMessage(
                         title = resources.getString(R.string.prompt_title_learnAboutWithdrawalFee),
                         subtitle = resources.getString(R.string.prompt_description_learnAboutWithdrawalFee),
-                        showScrim = false,
                         showCancel = false,
                         actions = buildList {
                             add(

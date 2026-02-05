@@ -317,7 +317,7 @@ fun BottomBarView(
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
                             }
 
-                            BottomBarManager.BottomBarMessageType.THEMED -> when (action.style) {
+                            BottomBarManager.BottomBarMessageType.DEFAULT -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.brand
                                 BottomBarManager.BottomBarButtonStyle.Filled50 -> CodeTheme.colors.brand
                                 BottomBarManager.BottomBarButtonStyle.Outlined -> Color.White
@@ -359,7 +359,7 @@ fun BottomBarView(
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                             BottomBarManager.BottomBarMessageType.INFO -> White50
 
-                            BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary
+                            BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.textSecondary
                             BottomBarManager.BottomBarMessageType.SUCCESS -> White50
                             BottomBarManager.BottomBarMessageType.WARNING -> White50
                         },
@@ -377,7 +377,8 @@ private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = whe
     BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
 
     BottomBarManager.BottomBarMessageType.INFO -> CodeTheme.colors.brandLight
-    BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.bannerThemed
+    BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.bannerThemed
     BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
-    BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerSuccess
+    // use themed banner's for success modals too
+    BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerThemed // CodeTheme.colors.bannerSuccess
 }

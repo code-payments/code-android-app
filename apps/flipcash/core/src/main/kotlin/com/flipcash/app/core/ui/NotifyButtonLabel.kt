@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.Placeholder
@@ -43,7 +44,7 @@ fun buildNotifyButtonLabel(): AnnotatedButtonLabel {
                             end = CodeTheme.dimens.staticGrid.x1
                         ),
                         painter = painterResource(R.drawable.ic_check),
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.success),
+                        colorFilter = ColorFilter.tint(Color.White),
                         contentDescription = null
                     )
                 }

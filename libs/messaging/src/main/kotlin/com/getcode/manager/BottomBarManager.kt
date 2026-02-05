@@ -61,7 +61,7 @@ object BottomBarManager {
         val onTimeout: () -> Unit = { },
         val type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
         val isDismissible: Boolean = true,
-        val showScrim: Boolean = false,
+        val showScrim: Boolean = true,
         val timeoutSeconds: Int? = null,
         val id: Long = UUID.randomUUID().mostSignificantBits,
     ) {
@@ -79,7 +79,7 @@ object BottomBarManager {
             onTimeout: () -> Unit = { },
             type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
             isDismissible: Boolean = true,
-            showScrim: Boolean = false,
+            showScrim: Boolean = true,
             timeoutSeconds: Int? = null,
             id: Long = UUID.randomUUID().mostSignificantBits
         ) : this(
@@ -122,7 +122,7 @@ object BottomBarManager {
         actions: List<BottomBarAction>,
         showCancel: Boolean = false,
         isDismissible: Boolean = true,
-        showScrim: Boolean = false,
+        showScrim: Boolean = true,
         type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
         timeoutSeconds: Int? = null,
         onClose: (SelectedBottomBarAction) -> Unit = { }
@@ -199,7 +199,7 @@ object BottomBarManager {
         ERROR,
         WARNING,
         INFO,
-        THEMED,
+        DEFAULT,
         SUCCESS,
     }
 

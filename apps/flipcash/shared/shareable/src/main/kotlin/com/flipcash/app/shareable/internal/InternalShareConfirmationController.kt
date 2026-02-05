@@ -82,6 +82,7 @@ internal class InternalShareConfirmationController(
                     },
                     type = BottomBarManager.BottomBarMessageType.INFO,
                     isDismissible = false,
+                    showScrim = false,
                     showCancel = false,
                     timeoutSeconds = timeout.inWholeSeconds.toInt(),
                 )
