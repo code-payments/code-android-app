@@ -3,21 +3,26 @@ sealed class Packaging(
     minorVersion: String,
     patchVersion: String,
     suffix: String? = null,
+    versionCodeOverride: Int? = null,
 ) {
     constructor(
         majorVersion: Int,
         minorVersion: Int,
         patchVersion: Int,
         suffix: String? = null,
+        versionCodeOverride: Int? = null,
     ) : this(
         majorVersion = majorVersion.toString(),
         minorVersion = minorVersion.toString(),
         patchVersion = patchVersion.toString(),
         suffix = suffix,
+        versionCodeOverride = versionCodeOverride,
     )
 
     private val suffixString = suffix?.let { "-$it" } ?: ""
     val versionName = "$majorVersion.$minorVersion.$patchVersion$suffixString"
+
+    val versionCode: Int? = versionCodeOverride
 
     object Code : Packaging(
         majorVersion = 2,

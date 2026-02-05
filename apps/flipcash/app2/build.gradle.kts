@@ -29,7 +29,7 @@ android {
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        versionCode = versioning.getVersionCode()
+        versionCode = Packaging.Flipcash.versionCode ?: versioning.getVersionCode()
         versionName = Packaging.Flipcash.versionName
         applicationId = appNamespace
         minSdk = Android.minSdkVersion
