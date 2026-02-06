@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -51,6 +50,7 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
 import com.getcode.theme.bolded
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkObserverStub
@@ -70,7 +70,7 @@ internal fun TransactionReceipt(
                 color = CodeTheme.colors.border,
                 shape = CodeTheme.shapes.medium
             )
-            .background(Color(0xFF071F10), CodeTheme.shapes.medium)
+            .background(White05, CodeTheme.shapes.medium)
             .padding(
                 horizontal = CodeTheme.dimens.grid.x4,
                 vertical = CodeTheme.dimens.grid.x8

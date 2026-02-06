@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
 
 @Composable
 internal fun DestinationBox(
@@ -26,7 +27,7 @@ internal fun DestinationBox(
                 color = CodeTheme.colors.border,
                 shape = CodeTheme.shapes.medium
             )
-            .background(Color(0xFF071F10), CodeTheme.shapes.medium)
+            .background(White05, CodeTheme.shapes.medium)
             .padding(CodeTheme.dimens.grid.x4)
             .then(modifier),
         contentAlignment = Alignment.Center

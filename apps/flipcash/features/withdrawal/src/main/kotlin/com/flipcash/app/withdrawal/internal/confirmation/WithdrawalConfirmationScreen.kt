@@ -115,6 +115,7 @@ private fun WithdrawalConfirmationScreenContent(
                     .padding(bottom = CodeTheme.dimens.grid.x3),
                 text = stringResource(R.string.action_withdraw),
                 buttonState = ButtonState.Filled,
+                enabled = state.withdrawalState.isIdle,
                 isLoading = state.withdrawalState.loading,
                 isSuccess = state.withdrawalState.success,
             ) {
