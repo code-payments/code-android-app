@@ -311,7 +311,7 @@ class TokenController @Inject constructor(
         _state.value.tokens[mint]?.let { cached ->
             trace(
                 tag = TAG,
-                message = "Token metadata cache hit for ${cached.symbol} (${mint.base58()}...)",
+                message = "Token metadata cache hit for ${cached.symbol}",
                 type = TraceType.Process
             )
             return Result.success(TokenResult(cached, DataSource.Cache))

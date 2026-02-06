@@ -45,7 +45,9 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -134,6 +136,7 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
             .map { it.mint }
+            .distinctUntilChanged()
             .map { tokenController.getTokenMetadata(it) }
             .onResult(
                 onSuccess = {
@@ -192,13 +195,14 @@ class TokenInfoViewModel @Inject constructor(
                 usdf = balance,
                 nativeAmount = balance.convertingTo(rate),
             )
-        }.onEach {
+        }.distinctUntilChanged().onEach {
             dispatchEvent(Event.OnReservesUpdated(it))
         }.launchIn(viewModelScope)
 
 
-        stateFlow
-            .map { it.selectedPeriod }
+        eventFlow
+            .filterIsInstance<Event.OnMarketCapPeriodSelected>()
+            .map { it.period }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(it)) }
             .launchIn(viewModelScope)
@@ -263,7 +267,7 @@ class TokenInfoViewModel @Inject constructor(
                 ) { usdMcap, rate ->
                     usdMcap?.convertingTo(rate)
                 }
-            }.onEach {
+            }.distinctUntilChanged().onEach {
                 dispatchEvent(Event.OnMarketCapChanged(it))
             }
             .launchIn(viewModelScope)
@@ -374,6 +378,7 @@ class TokenInfoViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            println("TOKEN INFO EVENT: ${event.javaClass.simpleName}")
             when (event) {
                 is Event.CashReservesEnabled -> { state -> state.copy(cashReservesEnabled = event.enabled) }
                 is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }

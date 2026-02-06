@@ -96,9 +96,14 @@ internal fun MarketCapChart(
         }
     }
 
+    var trend by remember { mutableStateOf<LineTrend>(LineTrend.Up) }
+
     // Update the model when the window changes
     LaunchedEffect(windowedData) {
         if (windowedData.isNotEmpty()) {
+            // Update trend BEFORE the model transaction
+            trend = trendType.determineTrend(windowedData.yValues)
+
             modelProducer.runTransaction {
                 lineSeries {
                     series(
@@ -107,12 +112,6 @@ internal fun MarketCapChart(
                     )
                 }
             }
-        }
-    }
-
-    val trend by remember(windowedData) {
-        derivedStateOf {
-            trendType.determineTrend(windowedData.yValues)
         }
     }
 

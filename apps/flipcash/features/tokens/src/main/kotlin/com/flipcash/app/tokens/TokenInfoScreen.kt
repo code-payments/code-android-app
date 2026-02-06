@@ -86,7 +86,7 @@ class TokenInfoScreen(private val mint: Mint) : AppScreen(), ModalScreen, Parcel
 
             TokenInfoScreen(viewModel)
 
-            LaunchedEffect(viewModel, mint) {
+            LaunchedEffect(Unit) {
                 viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))
             }
 
