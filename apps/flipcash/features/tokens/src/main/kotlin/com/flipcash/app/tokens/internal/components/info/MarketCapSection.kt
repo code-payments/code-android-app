@@ -108,16 +108,11 @@ internal fun MarketCapSection(
             val diff = marketCapDiff
             when {
                 highlightedPoint != null -> MarketCapLabelState.Highlighted(highlightedPoint, selectedPeriod)
-                diff != null && selectedPeriod != Period.All -> {
+                diff != null -> {
                     MarketCapLabelState.Change(diff, selectedPeriod).also { lastChange = it }
                 }
                 else ->
-                    if (selectedPeriod == Period.All) {
-                        lastChange = null
-                        MarketCapLabelState.Hidden
-                    } else {
-                        lastChange ?: MarketCapLabelState.Hidden
-                    }
+                    lastChange ?: MarketCapLabelState.Hidden
             }
         }
     }
