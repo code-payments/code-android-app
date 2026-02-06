@@ -200,7 +200,8 @@ fun ExternalWalletOnRampHandler(
                             navigator.push(
                                 ScreenRegistry.get(
                                     AppRoute.Token.SwapTransact(
-                                        TokenSwapPurpose.FundWithWallet(origin.mint)
+                                        TokenSwapPurpose.FundWithWallet(origin.mint),
+                                        forNeededFunds = origin.forNeededFunds
                                     )
                                 )
                             )

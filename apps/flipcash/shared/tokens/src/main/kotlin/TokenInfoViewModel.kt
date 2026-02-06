@@ -19,6 +19,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
@@ -55,6 +56,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
 import javax.inject.Inject
 import kotlin.collections.map
 
@@ -98,8 +100,8 @@ class TokenInfoViewModel @Inject constructor(
     sealed interface Event {
         data class CashReservesEnabled(val enabled: Boolean) : Event
         data class MarketCapChartEnabled(val enabled: Boolean) : Event
-        data class OnMintProvided(val mint: Mint) : Event
-        data class OnTokenChanged(val token: Token) : Event
+        data class OnMintProvided(val mint: Mint, val forNeededFunds: Boolean = false) : Event
+        data class OnTokenChanged(val token: Token, val forNeededFunds: Boolean = false) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
         data class LoadHistoricalDataForPeriod(val period: Period, val evict: Boolean = false) : Event
 
@@ -116,7 +118,7 @@ class TokenInfoViewModel @Inject constructor(
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
-        data object OpenPurchaseMethods : Event
+        data class OpenPurchaseMethods(val forNeededFunds: Boolean = false) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object ConnectPhantomWallet : Event
         data object Exit : Event
@@ -135,28 +137,25 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
-            .map { it.mint }
             .distinctUntilChanged()
-            .map { tokenController.getTokenMetadata(it) }
-            .onResult(
-                onSuccess = {
-                    dispatchEvent(Event.OnTokenChanged(it.token))
-                },
-                onError = {
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_tokenNotFound),
-                        message = resources.getString(R.string.error_description_tokenNotFound),
-                    ) {
-                        dispatchEvent(Event.Exit)
+            .onEach {
+                tokenController.getTokenMetadata(it.mint)
+                    .onSuccess { result ->
+                        dispatchEvent(Event.OnTokenChanged(result.token, it.forNeededFunds))
+                    }.onFailure {
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_tokenNotFound),
+                            message = resources.getString(R.string.error_description_tokenNotFound),
+                        ) {
+                            dispatchEvent(Event.Exit)
+                        }
                     }
-                }
-            ).launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
-            .map { it.token }
             .distinctUntilChanged()
-            .flatMapLatest { token ->
+            .flatMapLatest { (token, needsFunds) ->
                 combine(
                     tokenController.balanceForToken(token.address),
                     tokenController.appreciationForToken(token.address),
@@ -180,12 +179,20 @@ class TokenInfoViewModel @Inject constructor(
                         null
                     }
 
-                    localizedBalance to localizedAppreciation
+                    localizedBalance to localizedAppreciation to  needsFunds
                 }
-            }.onEach { (balance, appreciation) ->
+            }.map { (balance, appreciation, needsFunds) ->
                 dispatchEvent(Event.OnBalanceUpdated(balance))
                 dispatchEvent(Event.OnAppreciationUpdated(appreciation))
-            }.launchIn(viewModelScope)
+
+                needsFunds
+            }.take(1)
+            .onEach {
+                if (it) {
+                    dispatchEvent(Event.OpenPurchaseMethods(true))
+                }
+            }
+            .launchIn(viewModelScope)
 
         combine(
             tokenController.observeReservesBalance(),
@@ -298,7 +305,8 @@ class TokenInfoViewModel @Inject constructor(
                                             dispatchEvent(
                                                 Event.OpenScreen(
                                                     AppRoute.Token.SwapTransact(
-                                                        purpose = TokenSwapPurpose.Buy(stateFlow.value.token!!.address)
+                                                        purpose = TokenSwapPurpose.Buy(stateFlow.value.token!!.address),
+                                                        forNeededFunds = it.forNeededFunds
                                                     )
                                                 )
                                             )

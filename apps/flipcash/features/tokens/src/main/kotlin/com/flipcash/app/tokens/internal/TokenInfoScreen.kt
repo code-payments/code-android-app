@@ -45,20 +45,21 @@ import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
-internal fun TokenInfoScreen(viewModel: TokenInfoViewModel) {
+internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, isForNeededFunds: Boolean) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenInfoScreen(state, viewModel::dispatchEvent)
+    TokenInfoScreen(isForNeededFunds, state, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun TokenInfoScreen(
+    isForNeededFunds: Boolean,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
 
     CodeScaffold(
-        bottomBar = { BottomBar(state, dispatch) }
+        bottomBar = { BottomBar(isForNeededFunds, state, dispatch) }
     ) { innerPadding ->
         Box(
             modifier = Modifier.verticalScrollStateGradient(
@@ -172,6 +173,7 @@ private fun TokenInfoScreen(
 
 @Composable
 private fun BottomBar(
+    isForNeededFunds: Boolean,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
@@ -197,6 +199,7 @@ private fun BottomBar(
                     top = CodeTheme.dimens.grid.x9,
                     bottom = CodeTheme.dimens.grid.x3
                 ),
+            isForNeededFunds = isForNeededFunds,
             state = state,
             dispatch = dispatch
         )
@@ -205,6 +208,7 @@ private fun BottomBar(
 
 @Composable
 private fun BottomBarButtons(
+    isForNeededFunds: Boolean,
     state: TokenInfoViewModel.State,
     modifier: Modifier = Modifier,
     dispatch: (TokenInfoViewModel.Event) -> Unit
@@ -233,7 +237,7 @@ private fun BottomBarButtons(
                 buttonState = ButtonState.Filled,
                 text = stringResource(R.string.action_buy),
             ) {
-                dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods)
+                dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
             }
 
             if (state.canSell) {
@@ -246,7 +250,7 @@ private fun BottomBarButtons(
                     dispatch(
                         TokenInfoViewModel.Event.OpenScreen(
                             AppRoute.Token.SwapTransact(
-                                purpose = TokenSwapPurpose.Sell(state.token!!.address)
+                                purpose = TokenSwapPurpose.Sell(state.token!!.address),
                             )
                         )
                     )

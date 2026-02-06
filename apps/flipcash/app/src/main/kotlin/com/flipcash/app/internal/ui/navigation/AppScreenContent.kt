@@ -81,7 +81,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Token.Info> {
-            TokenInfoScreen(it.mint)
+            TokenInfoScreen(it.mint, it.forNeededFunds)
         }
 
         register<AppRoute.Token.Transactions> {
@@ -89,7 +89,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Token.SwapTransact> {
-            BuySellFlow.start()
+            BuySellFlow.start(it.forNeededFunds)
             TokenBuySellEntryScreen(it.purpose)
         }
 

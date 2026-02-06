@@ -40,8 +40,12 @@ class TokenTxProcessingScreen(val swapId: SwapId) : ModalScreen, NamedScreen, Pa
             viewModel.eventFlow
                 .filterIsInstance<Event.OnTransactionSuccessful>()
                 .onEach {
-                    navigator.popUntil { it is TokenInfoScreen }
-                }
+                    if (BuySellFlow.isForNeededFunds) {
+                        navigator.popAll()
+                    } else {
+                        navigator.popUntil { it is TokenInfoScreen }
+                    }
+                }.launchIn(this)
         }
 
         LaunchedEffect(viewModel) {

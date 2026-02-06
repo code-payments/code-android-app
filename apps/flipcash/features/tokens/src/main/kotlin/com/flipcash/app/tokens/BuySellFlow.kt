@@ -8,8 +8,12 @@ object BuySellFlow {
     internal var key: String = ""
         private set
 
+    var isForNeededFunds: Boolean = false
+        private set
+
     @OptIn(ExperimentalUuidApi::class)
-    fun start() {
+    fun start(forNeededFunds: Boolean) {
         key = Uuid.random().toString()
+        isForNeededFunds = forNeededFunds
     }
 }

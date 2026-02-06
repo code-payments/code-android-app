@@ -44,7 +44,7 @@ fun buildNotifyButtonLabel(): AnnotatedButtonLabel {
                             end = CodeTheme.dimens.staticGrid.x1
                         ),
                         painter = painterResource(R.drawable.ic_check),
-                        colorFilter = ColorFilter.tint(Color.White),
+                        colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
                         contentDescription = null
                     )
                 }

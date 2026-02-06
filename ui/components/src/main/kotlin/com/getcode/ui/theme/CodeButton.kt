@@ -382,7 +382,7 @@ fun CodeButton(
                                     ) {
                                         CodeCircularProgressIndicator(
                                             strokeWidth = CodeTheme.dimens.thickBorder,
-                                            color = White,
+                                            color = colors.contentColor(enabled).value,
                                             modifier = Modifier
                                                 .size(CodeTheme.dimens.grid.x3)
                                         )

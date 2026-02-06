@@ -120,7 +120,7 @@ private fun TokenTxProcessingScreen(
                         text = stringResource(R.string.action_ok),
                         buttonState = ButtonState.Filled,
                         onClick = {
-                            dispatch(BuySellSwapTokenViewModel.Event.Exit)
+                            dispatch(BuySellSwapTokenViewModel.Event.OnTransactionSuccessful)
                         }
                     )
                 }

@@ -608,7 +608,6 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         // update activity feed to grab the tx as a result of this buy/sell
                         feedCoordinator.fetchSinceLatest()
                     }
-                    dispatchEvent(Event.OnTransactionSuccessful)
                     dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
                 },
                 onError = {

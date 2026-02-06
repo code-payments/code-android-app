@@ -323,10 +323,13 @@ internal class CashScreenViewModel @Inject constructor(
                     // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {
-                    // route to provider list
+                    // route to buy the token
                     dispatchEvent(
                         Event.OpenScreen(
-                            AppRoute.Menu.Deposit(mint = stateFlow.value.selectedTokenAddress!!),
+                            AppRoute.Token.Info(
+                                mint = stateFlow.value.selectedTokenAddress!!,
+                                forNeededFunds = true
+                            ),
                         )
                     )
                 }

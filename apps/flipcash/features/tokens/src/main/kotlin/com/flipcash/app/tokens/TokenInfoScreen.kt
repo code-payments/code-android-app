@@ -14,7 +14,6 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.OnRampFlowTracker
@@ -24,7 +23,6 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.AppScreen
-import com.getcode.navigation.screens.OnScreenResult
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -40,7 +38,10 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TokenInfoScreen(private val mint: Mint) : AppScreen(), ModalScreen, Parcelable {
+class TokenInfoScreen(
+    private val mint: Mint,
+    private val forNeededFunds: Boolean,
+) : AppScreen(), ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -84,10 +85,10 @@ class TokenInfoScreen(private val mint: Mint) : AppScreen(), ModalScreen, Parcel
                 },
             )
 
-            TokenInfoScreen(viewModel)
+            TokenInfoScreen(viewModel, forNeededFunds)
 
             LaunchedEffect(Unit) {
-                viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))
+                viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint, forNeededFunds))
             }
 
             LaunchedEffect(viewModel) {
