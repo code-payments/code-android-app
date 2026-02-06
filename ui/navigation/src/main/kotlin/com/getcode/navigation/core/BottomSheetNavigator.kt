@@ -139,6 +139,9 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
     private val coroutineScope: CoroutineScope
 ) : Stack<Screen> by navigator {
 
+    private var _isSheetActive by mutableStateOf(false)
+    val isSheetActive: Boolean get() = _isSheetActive
+
     val isVisible: Boolean
         get() = sheetState.isVisible
 
@@ -162,6 +165,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
                 replaceAll(screen)
                 // setup stack
                 sheetStacks.push(screen)
+                _isSheetActive = true
                 sheetState.show()
             } else {
                 hideAndShow(screen)
@@ -177,6 +181,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
                 val firstScreen = items.first()
                 val remainingScreens = items.drop(1)
                 sheetStacks.push(firstScreen to remainingScreens)
+                _isSheetActive = true
                 sheetState.show()
             } else {
                 hideAndShow(screens)
@@ -189,12 +194,14 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             sheetStacks.pop()
             // animate sheet out
             sheetState.hide()
+            _isSheetActive = false
             // replacing w/ dummy sheet
             replaceAll(HiddenBottomSheetScreen)
             // push new stack
             sheetStacks.push(screen)
             // show new sheet
             replaceAll(screen)
+            _isSheetActive = true
             sheetState.show()
         } else {
             Timber.e("shouldn't get here; but ensuring a sheet is shown when requested.")
@@ -208,6 +215,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             sheetStacks.pop()
             // animate sheet out
             sheetState.hide()
+            _isSheetActive = false
             // replacing w/ dummy sheet
             replaceAll(HiddenBottomSheetScreen)
             // push new stack
@@ -216,6 +224,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             sheetStacks.push(firstScreen to remainingScreens)
             // show new sheet
             replaceAll(screens)
+            _isSheetActive = true
             sheetState.show()
         } else {
             Timber.e("shouldn't get here; but ensuring a sheet is shown when requested.")
@@ -230,11 +239,13 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             if (isVisible) {
                 sheetStacks.pop()
                 sheetState.hide()
+                _isSheetActive = false
                 replaceAll(HiddenBottomSheetScreen)
                 showPreviousSheet()
             } else if (sheetState.targetValue == ModalBottomSheetValue.Hidden) {
                 // Swipe down - sheetState is already hidden here so `isVisible` is false
                 replaceAll(HiddenBottomSheetScreen)
+                _isSheetActive = false
             }
         }
     }

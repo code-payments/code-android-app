@@ -24,18 +24,21 @@ class CombinedNavigator(
     override var screensNavigator: Navigator? = null
     override var tabsNavigator: TabNavigator? = null
 
+    private val isSheetActive: Boolean
+        get() = sheetNavigator.isSheetActive
+
     override val lastItem: Screen?
-        get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
+        get() = if (isSheetActive) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
+
+    override val lastEvent: StackEvent
+        get() = if (isSheetActive) sheetNavigator.lastEvent else screensNavigator?.lastEvent
+            ?: StackEvent.Idle
 
     override val lastModalItem: Screen?
         get() = sheetNavigator.lastItemOrNull
 
     override val sheetStackRoot: Screen?
         get() = sheetNavigator.sheetStacks.lastItemOrNull?.first
-
-    override val lastEvent: StackEvent
-        get() = if (isVisible) sheetNavigator.lastEvent else screensNavigator?.lastEvent
-            ?: StackEvent.Idle
 
     override val isVisible: Boolean
         get() = sheetNavigator.isVisible
@@ -90,7 +93,7 @@ class CombinedNavigator(
         trace(message = "navigating to ${item::class.java.simpleName}")
         launch {
             delay(delay)
-            if (isVisible) {
+            if (isSheetActive) {
                 sheetNavigator.push(item)
             } else {
                 screensNavigator?.push(item)
@@ -100,7 +103,7 @@ class CombinedNavigator(
 
     override fun push(items: List<Screen>) {
         trace(message = "navigating to ${items.joinToString { it::class.java.simpleName }}")
-        if (isVisible) {
+        if (isSheetActive) {
             sheetNavigator.push(items)
         } else {
             screensNavigator?.push(items)
@@ -126,7 +129,7 @@ class CombinedNavigator(
     }
 
     override fun isAtRoot(): Boolean {
-        return if (isVisible) {
+        return if (isSheetActive) {
             sheetNavigator.items.count() == 1
         } else {
             screensNavigator?.items?.count() == 1
@@ -135,7 +138,7 @@ class CombinedNavigator(
 
     override fun pop(): Boolean {
         trace(message = "popping from back stack")
-        return if (isVisible) {
+        return if (isSheetActive) {
             sheetNavigator.pop()
         } else {
             screensNavigator?.pop() ?: false
@@ -143,7 +146,7 @@ class CombinedNavigator(
     }
 
     override fun <T> popWithResult(result: T): Boolean {
-        return if (isVisible) {
+        return if (isSheetActive) {
             with(sheetNavigator) {
                 val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
                 prev?.onResult(result)
@@ -170,7 +173,7 @@ class CombinedNavigator(
 
     override fun popAll() {
         trace(message = "popping all from back stack")
-        if (isVisible) {
+        if (isSheetActive) {
             sheetNavigator.popAll()
         } else {
             screensNavigator?.popAll()
@@ -178,7 +181,7 @@ class CombinedNavigator(
     }
 
     override fun popUntil(predicate: (Screen) -> Boolean): Boolean {
-        return if (isVisible) {
+        return if (isSheetActive) {
             sheetNavigator.popUntil(predicate)
         } else {
             screensNavigator?.popUntil(predicate) == true
@@ -191,7 +194,7 @@ class CombinedNavigator(
         screen: Screen?,
         content: @Composable () -> Unit
     ) {
-        if (isVisible) {
+        if (isSheetActive) {
             sheetNavigator.saveableState(key, screen = screen, content = content)
         } else {
             val lastScreen by remember(screen) {
