@@ -140,16 +140,10 @@ private fun SeedInputContent(
                 .padding(bottom = CodeTheme.dimens.grid.x4),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {
-            Text(
-                style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center),
-                color = CodeTheme.colors.textSecondary,
-                text = stringResource(R.string.subtitle_loginDescription)
-            )
-
             Box {
                 OutlinedTextField(
                     modifier = Modifier
-                        .padding(top = CodeTheme.dimens.grid.x1)
+                        .padding(top = CodeTheme.dimens.grid.x3)
                         .fillMaxWidth()
                         .height(120.dp)
                         .focusRequester(focusRequester),
