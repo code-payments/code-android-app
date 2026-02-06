@@ -2,13 +2,8 @@ package com.flipcash.app.tokens.internal.components.info
 
 import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,19 +13,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,9 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
-import com.flipcash.app.tokens.data.collapse
 import com.flipcash.app.tokens.internal.components.marketcap.MarketCapChart
-import com.flipcash.app.tokens.internal.components.marketcap.TARGET_POINTS
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.minus
@@ -63,6 +52,12 @@ import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+private sealed interface MarketCapLabelState {
+    data object Hidden : MarketCapLabelState
+    data class Change(val change: Fiat, val period: Period) : MarketCapLabelState
+    data class Highlighted(val point: MarketCapPoint, val period: Period) : MarketCapLabelState
+}
 
 @Composable
 internal fun MarketCapSection(
@@ -105,6 +100,28 @@ internal fun MarketCapSection(
         }
     }
 
+    var lastChange by remember { mutableStateOf<MarketCapLabelState.Change?>(null) }
+
+    val labelState by remember(marketCapDiff, highlightedCapPoint, selectedPeriod) {
+        derivedStateOf {
+            val highlightedPoint = highlightedCapPoint
+            val diff = marketCapDiff
+            when {
+                highlightedPoint != null -> MarketCapLabelState.Highlighted(highlightedPoint, selectedPeriod)
+                diff != null && selectedPeriod != Period.All -> {
+                    MarketCapLabelState.Change(diff, selectedPeriod).also { lastChange = it }
+                }
+                else ->
+                    if (selectedPeriod == Period.All) {
+                        lastChange = null
+                        MarketCapLabelState.Hidden
+                    } else {
+                        lastChange ?: MarketCapLabelState.Hidden
+                    }
+            }
+        }
+    }
+
     Column(
         modifier = modifier,
     ) {
@@ -123,30 +140,46 @@ internal fun MarketCapSection(
         )
 
         if (chartEnabled) {
-            Box(
+            AnimatedContent(
                 modifier = Modifier
                     .padding(
                         start = contentPadding.calculateStartPadding(),
                         top = CodeTheme.dimens.grid.x1,
-                    ).height(IntrinsicSize.Min),
-            ) {
-                Crossfade(marketCapDiff) { diff ->
-                    if (diff != null) {
-                        MarketCapChangeLabel(
-                            change = diff,
-                            isVisible = highlightedCapPoint == null,
-                            period = selectedPeriod,
-                        )
-                    } else {
-                        Spacer(Modifier.size(CodeTheme.dimens.grid.x3))
+                    )
+                    .height(IntrinsicSize.Max),
+                targetState = labelState,
+                label = "MarketCapLabel",
+                transitionSpec = {
+                    fadeIn().togetherWith(fadeOut()).using(SizeTransform(clip = false))
+                },
+                contentKey = { state ->
+                    when (state) {
+                        is MarketCapLabelState.Change -> "change"
+                        is MarketCapLabelState.Highlighted -> "highlighted"
+                        MarketCapLabelState.Hidden -> "hidden"
                     }
                 }
+            ) { state ->
+                when (state) {
+                    is MarketCapLabelState.Change -> MarketCapChangeLabel(
+                        change = state.change,
+                        period = state.period,
+                    )
 
-                HighlightedPointLabel(
-                    point = highlightedCapPoint,
-                    isVisible = highlightedCapPoint != null,
-                    period = selectedPeriod,
-                )
+                    is MarketCapLabelState.Highlighted -> HighlightedPointLabel(
+                        modifier = Modifier.padding(bottom = 4.dp),
+                        point = state.point,
+                        period = state.period,
+                    )
+
+                    MarketCapLabelState.Hidden -> {
+                        MarketCapChangeLabel(
+                            modifier = Modifier.alpha(0f),
+                            change = Fiat.Zero,
+                            period = selectedPeriod,
+                        )
+                    }
+                }
             }
 
             MarketCapChart(
@@ -169,9 +202,10 @@ internal fun MarketCapSection(
                         is Loadable.Error -> Unit
                         is Loadable.Loaded -> Unit
                         is Loadable.Loading -> {
-                            Box(modifier = Modifier
-                                .fillMaxWidth()
-                                .requiredHeight(240.dp)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .requiredHeight(240.dp)
                             ) {
                                 CodeCircularProgressIndicator(
                                     modifier = Modifier.align(Alignment.Center),
@@ -189,21 +223,17 @@ internal fun MarketCapSection(
 @Composable
 private fun MarketCapChangeLabel(
     change: Fiat,
-    isVisible: Boolean,
     period: Period,
+    modifier: Modifier = Modifier,
 ) {
     val isPositiveChange = change.decimalValue >= 0
     val changeColor by animateColorAsState(
-        if (isPositiveChange) LineTrend.Up.color else LineTrend.Down.color
-    )
-
-    val alpha by animateFloatAsState(
-        if (isVisible) 1f else 0f
+        if (isPositiveChange) LineTrend.Up.color else LineTrend.Down.color,
+        label = "change color"
     )
 
     Text(
-        modifier = Modifier
-            .alpha(alpha)
+        modifier = modifier
             .background(
                 color = changeColor.copy(0.20f),
                 shape = MaterialTheme.shapes.extraSmall,
@@ -229,18 +259,14 @@ private fun MarketCapChangeLabel(
 
 @Composable
 private fun HighlightedPointLabel(
-    point: MarketCapPoint?,
+    point: MarketCapPoint,
     period: Period,
-    isVisible: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-    val alpha by animateFloatAsState(
-        if (isVisible) 1f else 0f
-    )
-
     val context = LocalContext.current
 
     val timeLabel = remember(point, period) {
-        val epoch = point?.x ?: return@remember null
+        val epoch = point.x
         val instant = Instant.fromEpochMilliseconds(epoch)
         val now = Clock.System.now()
         val isCurrentYear = instant.toLocalDateTime(TimeZone.currentSystemDefault()).year ==
@@ -285,13 +311,10 @@ private fun HighlightedPointLabel(
         }
     }
 
-    if (timeLabel != null) {
-        Text(
-            modifier = Modifier
-                .alpha(alpha),
-            text = timeLabel,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
-        )
-    }
+    Text(
+        modifier = modifier,
+        text = timeLabel,
+        style = CodeTheme.typography.textSmall,
+        color = CodeTheme.colors.textSecondary,
+    )
 }
