@@ -1,22 +1,43 @@
 #!/bin/bash
 
-key="$1"
-token="$2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                        
+source "$SCRIPT_DIR/../.env.local"
 
-# Access the JSON object passed as the first argument
-contents="$3"
+ACCESS_TOKEN=$(python3 << EOF
+from google.oauth2 import service_account
+from google.auth.transport.requests import Request
 
-data=$(cat <<-END
-{
-  "registration_ids":["${token}"],
-  "data": $contents
-}
-END
+credentials = service_account.Credentials.from_service_account_file(
+    "$SERVER_SERVICE_ACCOUNT_KEY_JSON",
+    scopes=["https://www.googleapis.com/auth/firebase.messaging"]
+)
+credentials.refresh(Request())
+print(credentials.token)
+EOF
 )
 
-  echo $data
 
-curl -i -H 'Content-type: application/json' \
-  -H "Authorization: key=$key" \
-  -XPOST https://fcm.googleapis.com/fcm/send \
-  -d "$data"
+DEVICE_TOKEN=$1
+
+# Access the JSON object passed as the first argument
+contents="$2"
+
+JSON_PAYLOAD=$(jq -n \
+  --arg token "$DEVICE_TOKEN" \
+  --argjson data "$contents" \
+  '{
+    message: {
+      token: $token,
+      android: {
+        priority: "high",
+        data: $data
+      }
+    }
+  }')
+
+curl -X POST \
+  "https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$JSON_PAYLOAD"
