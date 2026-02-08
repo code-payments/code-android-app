@@ -58,15 +58,32 @@ sealed interface AggregationType {
             val withCurrent = points + MarketCapPoint(x = now, y = currentValue)
             val sorted = withCurrent.sortedBy { it.x }
 
+            // Find the first real data point (non-zero timestamp)
+            // Instead of checking for x == 0, check if there's a gap at the start
+            val firstRealPoint = sorted.firstOrNull { it.x >= startTime && it.y > 0.0 }
+                ?: sorted.firstOrNull { it.x > 0 }
+
+            // Build the effective point list: if data starts after startTime,
+            // anchor zeros from startTime up to the first real point
+            val effective = if (firstRealPoint != null && firstRealPoint.x > startTime) {
+                val zeroAnchors = listOf(
+                    MarketCapPoint(x = startTime, y = 0.0),
+                    MarketCapPoint(x = firstRealPoint.x - 1, y = 0.0),
+                )
+                zeroAnchors + sorted.filter { it.x > 0 }
+            } else {
+                sorted
+            }
+
             // Select visually significant points using LTTB
             val selected = when {
-                sorted.size <= targetPoints -> sorted
+                effective.size <= targetPoints -> effective
                 targetPoints < 3 -> listOfNotNull(
-                    sorted.firstOrNull(),
-                    sorted.lastOrNull()
+                    effective.firstOrNull(),
+                    effective.lastOrNull()
                 ).distinct()
 
-                else -> selectPoints(sorted, targetPoints)
+                else -> selectPoints(effective, targetPoints)
             }
 
             // Interpolate to evenly-spaced timestamps
