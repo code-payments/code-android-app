@@ -148,7 +148,7 @@ private fun TokenInfoScreen(
                     // market cap
                     state.marketCap?.let { mcap ->
                         val loadable = state.historicalMarketCapData[state.selectedPeriod] ?: Loadable.Loaded(emptyList())
-                        item(key = "mcap") {
+                        item {
                              MarketCapSection(
                                 modifier = Modifier
                                     .fillParentMaxWidth(),

@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -137,7 +138,6 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
-            .distinctUntilChanged()
             .onEach {
                 tokenController.getTokenMetadata(it.mint)
                     .onSuccess { result ->
@@ -155,7 +155,7 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
             .distinctUntilChanged()
-            .flatMapLatest { (token, needsFunds) ->
+            .flatMapLatest { (token, _) ->
                 combine(
                     tokenController.balanceForToken(token.address),
                     tokenController.appreciationForToken(token.address),
@@ -179,20 +179,21 @@ class TokenInfoViewModel @Inject constructor(
                         null
                     }
 
-                    localizedBalance to localizedAppreciation to  needsFunds
+                    localizedBalance to localizedAppreciation
                 }
-            }.map { (balance, appreciation, needsFunds) ->
+            }.onEach { (balance, appreciation) ->
                 dispatchEvent(Event.OnBalanceUpdated(balance))
                 dispatchEvent(Event.OnAppreciationUpdated(appreciation))
-
-                needsFunds
-            }.take(1)
-            .onEach {
-                if (it) {
-                    dispatchEvent(Event.OpenPurchaseMethods(true))
-                }
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnTokenChanged>()
+            .distinctUntilChanged()
+            .filter { it.forNeededFunds }
+            .onEach {
+                 dispatchEvent(Event.OpenPurchaseMethods(true))
+            }.launchIn(viewModelScope)
 
         combine(
             tokenController.observeReservesBalance(),
@@ -202,7 +203,7 @@ class TokenInfoViewModel @Inject constructor(
                 usdf = balance,
                 nativeAmount = balance.convertingTo(rate),
             )
-        }.distinctUntilChanged().onEach {
+        }.onEach {
             dispatchEvent(Event.OnReservesUpdated(it))
         }.launchIn(viewModelScope)
 
@@ -386,7 +387,6 @@ class TokenInfoViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("TOKEN INFO EVENT: ${event.javaClass.simpleName}")
             when (event) {
                 is Event.CashReservesEnabled -> { state -> state.copy(cashReservesEnabled = event.enabled) }
                 is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }
