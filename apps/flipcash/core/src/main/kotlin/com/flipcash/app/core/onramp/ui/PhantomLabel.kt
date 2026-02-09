@@ -1,6 +1,7 @@
 package com.flipcash.app.core.onramp.ui
 
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.material.ButtonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -12,7 +13,8 @@ typealias AnnotatedButtonLabel = Pair<AnnotatedString, Map<String, InlineTextCon
 @Composable
 fun buildPhantomButtonLabel(
     prefix: String,
-    iconColor: Color = ButtonState.Filled.colors().contentColor(true).value,
+    isEnabled: Boolean = true,
+    colors: ButtonColors = ButtonState.Filled.colors(),
 ): AnnotatedButtonLabel {
-    return buildExternalWalletButtonLabel(prefix, OnRampProvider.Phantom, iconColor)
+    return buildExternalWalletButtonLabel(prefix, OnRampProvider.Phantom, isEnabled = isEnabled, colors = colors)
 }

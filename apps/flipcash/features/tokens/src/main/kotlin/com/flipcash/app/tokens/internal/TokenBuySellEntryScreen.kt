@@ -102,7 +102,10 @@ internal fun BuySellTokenEntryScreen(
         Box(modifier = Modifier.fillMaxWidth()) {
             val (text, inlineContent) = when (state.purpose) {
                 is TokenSwapPurpose.Buy -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
-                is TokenSwapPurpose.FundWithWallet -> buildPhantomButtonLabel(prefix = stringResource(R.string.label_confirmIn))
+                is TokenSwapPurpose.FundWithWallet -> buildPhantomButtonLabel(
+                    prefix = stringResource(R.string.label_confirmIn),
+                    isEnabled = state.canTransact
+                )
                 is TokenSwapPurpose.Sell -> AnnotatedString(stringResource(R.string.action_next)) to emptyMap()
                 else -> AnnotatedString("") to emptyMap()
             }

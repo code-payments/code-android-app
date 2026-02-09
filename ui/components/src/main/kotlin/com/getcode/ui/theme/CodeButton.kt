@@ -42,6 +42,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -266,7 +267,8 @@ fun CodeButton(
         style = style,
         sizeKey = text
     ) {
-        Text(text = text, inlineContent = inlineContent)
+        val updatedInlineContent by rememberUpdatedState(inlineContent)
+        Text(text = text, inlineContent = updatedInlineContent)
     }
 }
 

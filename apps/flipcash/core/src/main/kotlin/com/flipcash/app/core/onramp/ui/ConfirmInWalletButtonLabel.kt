@@ -6,7 +6,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.material.ButtonColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,18 +26,23 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.core.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.theme.ButtonState
 
 @Composable
 fun buildExternalWalletButtonLabel(
     prefix: String,
     provider: OnRampProvider.UsesDeeplinks,
-    iconColor: Color
+    isEnabled: Boolean = true,
+    colors: ButtonColors = ButtonState.Filled.colors(),
 ): AnnotatedButtonLabel {
     val (title, icon) = when (provider) {
         OnRampProvider.Backpack -> stringResource(R.string.label_backpack) to painterResource(R.drawable.ic_backpack_wallet)
         OnRampProvider.Phantom -> stringResource(R.string.label_phantom) to painterResource(R.drawable.ic_phantom_wallet)
         OnRampProvider.Solflare -> stringResource(R.string.label_solflare) to painterResource(R.drawable.ic_solflare_wallet)
     }
+
+    val currentIsEnabled by rememberUpdatedState(isEnabled)
+    val currentColors by rememberUpdatedState(colors)
 
     return buildAnnotatedString {
         append(prefix)
@@ -50,6 +60,7 @@ fun buildExternalWalletButtonLabel(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
+                    val iconColor by currentColors.contentColor(currentIsEnabled)
                     Image(
                         modifier = Modifier.padding(
                             start = CodeTheme.dimens.staticGrid.x1 + 2.dp,

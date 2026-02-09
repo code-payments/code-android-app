@@ -71,12 +71,28 @@ private fun Buttons() {
         buildExternalWalletButtonLabel(
             "Confirm in",
             provider = OnRampProvider.Phantom,
-            Color.Black
         )
     ) {
         CodeButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = {},
+            text = first,
+            inlineContent = second,
+            buttonState = ButtonState.Filled,
+        )
+    }
+
+    with(
+        buildExternalWalletButtonLabel(
+            "Confirm in",
+            provider = OnRampProvider.Phantom,
+            isEnabled = false,
+        )
+    ) {
+        CodeButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {},
+            enabled = false,
             text = first,
             inlineContent = second,
             buttonState = ButtonState.Filled,

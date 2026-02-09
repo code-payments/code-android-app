@@ -1,28 +1,15 @@
 package com.flipcash.app.onramp.internal.screens
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
@@ -38,8 +25,6 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import kotlin.collections.emptyMap
-import kotlin.to
 
 @Composable
 internal fun OnRampAmountScreen(
@@ -112,7 +97,6 @@ private fun ConfirmationButton(
     modifier: Modifier = Modifier,
     dispatchEvent: (OnRampViewModel.Event) -> Unit
 ) {
-    val buttonColors = ButtonState.Filled.colors()
     val (buttonText, assets) = when (provider) {
         is OnRampProvider.Coinbase -> when (provider.type) {
             // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
@@ -125,7 +109,7 @@ private fun ConfirmationButton(
             buildExternalWalletButtonLabel(
                 prefix = stringResource(R.string.label_confirmIn),
                 provider = provider,
-                iconColor = buttonColors.contentColor(state.canAdd).value
+                isEnabled = state.canAdd
             )
         }
 
