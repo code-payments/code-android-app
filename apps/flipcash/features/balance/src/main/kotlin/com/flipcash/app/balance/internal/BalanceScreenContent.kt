@@ -144,7 +144,7 @@ private fun BalanceScreenContent(
 
                     Icon(
                         modifier = Modifier
-                            .padding(vertical = CodeTheme.dimens.grid.x1)
+                            .padding(top = CodeTheme.dimens.grid.x1)
                             .padding(start = CodeTheme.dimens.grid.x1),
                         painter = painterResource(id = R.drawable.ic_chevron_right),
                         contentDescription = null,
