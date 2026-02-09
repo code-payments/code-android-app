@@ -18,22 +18,5 @@ class Mint(bytes: List<Byte>): PublicKey(bytes) {
         val usdf: Mint
             get() = Mint("5AMAA9JV9H97YYVxx8F6FsCMmTwXSuTTQneiup4RYAUQ")
 
-        val jeffy: Mint
-            get() = Mint("54ggcQ23uen5b9QXMAns99MQNTKn7iyzq4wvCW6e8r25")
-
-        val bogey: Mint
-            get() = Mint("3AhBb1fpDTp1F9hPkZjRPDejXBM9S5vfpVdvn66vLYnT")
-
-        val marketCoin: Mint
-            get() = Mint("311m6Sb1814PfAxkEcqq6MNdBiVZLr8VWuAWDSC72euW")
-
-        val xp: Mint
-            get() = Mint("6oZnhB1FPrUaDfhRCVZnbVWNKVx9wgj84vKGH7eMpzXL")
-
-        val float: Mint
-            get() = Mint("5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP")
-
-        val bits: Mint
-            get() = Mint("A3e8dzb1y4gqGP2cnCS3UU8dm5YNrFpZBpjjdoZdtfnB")
     }
 }

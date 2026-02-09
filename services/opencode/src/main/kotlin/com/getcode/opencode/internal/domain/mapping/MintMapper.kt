@@ -95,8 +95,46 @@ private val customizationLookupTable = mapOf(
         icon = null,
         texture = null,
     ),
+    Mint.badboys to TokenBillCustomizations(
+        background = BillBackground.Gradient(
+            listOf("#AAAAAA", "#2C2C2C")
+        ),
+        icon = null,
+        texture = null,
+    ),
+    Mint.sandbox to TokenBillCustomizations(
+        background = BillBackground.Gradient(
+            listOf("#AAAAAA", "#2C2C2C")
+        ),
+        icon = null,
+        texture = null,
+    )
 )
 
 private fun customizationLookup(mint: Mint): TokenBillCustomizations? {
     return customizationLookupTable[mint]
 }
+
+private val Mint.Companion.jeffy: Mint
+    get() = Mint("54ggcQ23uen5b9QXMAns99MQNTKn7iyzq4wvCW6e8r25")
+
+private val Mint.Companion.bogey: Mint
+    get() = Mint("3AhBb1fpDTp1F9hPkZjRPDejXBM9S5vfpVdvn66vLYnT")
+
+private val Mint.Companion.marketCoin: Mint
+    get() = Mint("311m6Sb1814PfAxkEcqq6MNdBiVZLr8VWuAWDSC72euW")
+
+private val Mint.Companion.xp: Mint
+    get() = Mint("6oZnhB1FPrUaDfhRCVZnbVWNKVx9wgj84vKGH7eMpzXL")
+
+private val Mint.Companion.float: Mint
+    get() = Mint("5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP")
+
+private val Mint.Companion.bits: Mint
+    get() = Mint("A3e8dzb1y4gqGP2cnCS3UU8dm5YNrFpZBpjjdoZdtfnB")
+
+private val Mint.Companion.badboys: Mint
+    get() = Mint("64dkhPKhdjc2xg3NLyDjC14wiXHLnGXHHUxJnqZVugJt")
+
+private val Mint.Companion.sandbox: Mint
+    get() = Mint("2psDP3LAvbNzfvBYNMs9ieMpsD8PVzyQsKNfZrjEKoDN")
