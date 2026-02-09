@@ -54,12 +54,10 @@ object OpenCodeModule {
         currencyController: CurrencyController,
         resources: ResourceHelper,
         locale: LocaleHelper,
-        verifiedStateManager: VerifiedProtoManager,
     ): Exchange = OpenCodeExchange(
         currencyController = currencyController,
         resources = resources,
         locale = locale,
-        verifiedStateManager = verifiedStateManager,
     )
 
     @Singleton

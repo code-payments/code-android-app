@@ -38,7 +38,6 @@ internal class OpenCodeExchange @Inject constructor(
     private val currencyController: CurrencyController,
     private val resources: ResourceHelper,
     private val locale: LocaleHelper,
-    private val verifiedStateManager: VerifiedProtoManager,
 ) : Exchange, DefaultLifecycleObserver {
 
     private var exchangeRatesStream: Job? = null
@@ -76,6 +75,8 @@ internal class OpenCodeExchange @Inject constructor(
         balanceCurrency = currencyCode
         rates.rateFor(currencyCode)?.let {
             _balanceRate.value = it
+        } ?: run {
+            _balanceRate.value = Rate.oneToOne.copy(currency = currencyCode)
         }
     }
 
@@ -93,6 +94,8 @@ internal class OpenCodeExchange @Inject constructor(
         entryCurrency = currencyCode
         rates.rateFor(currencyCode)?.let {
             _entryRate.value = it
+        } ?: run {
+            _entryRate.value = Rate.oneToOne.copy(currency = currencyCode)
         }
     }
 

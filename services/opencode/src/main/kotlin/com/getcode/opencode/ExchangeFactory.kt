@@ -30,7 +30,6 @@ object ExchangeFactory {
             currencyController = controller,
             resources = resources,
             locale = locale,
-            verifiedStateManager = ManagerFactory.createVerifiedStateManager(),
         )
     }
 }
