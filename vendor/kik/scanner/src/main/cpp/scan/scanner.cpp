@@ -40,13 +40,13 @@ static uint64_t getTimestamp()
 typedef struct {
     double dx;
     double dy;
-    
+
     double x;
     double y;
-    
+
     double angle;
     double dist;
-    
+
     int contourIndex;
     int contourSize;
 } FinderPoint;
@@ -119,11 +119,11 @@ void dilation(Mat &src, Mat &out, size_t dilation_size)
     Mat element = getStructuringElement(MORPH_CROSS,
                                         Size2i(2 * dilation_size + 1, 2 * dilation_size + 1),
                                         Point2i(dilation_size, dilation_size));
-    
+
     dilate(src, out, element);
 }
 
-void unsharpMask(cv::Mat &im) 
+void unsharpMask(cv::Mat &im)
 {
     cv::Mat tmp;
     cv::GaussianBlur(im, tmp, cv::Size(0, 0), 2);
@@ -157,16 +157,16 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
     // start by masking off the region where we expect to find the finder
     // ring (between 1.22 and 1.525 times the size of the inner circle)
     Mat finder_point_range = Mat::zeros(whitish.size(), whitish.type());
-    
+
     inner_ring.size.width *= 1.525;
     inner_ring.size.height *= 1.525;
-    
+
     START_DEBUG_TIMING(efp_ellipse_region);
     ellipse(finder_point_range, inner_ring, Scalar(255, 255, 255), -1);
-    
+
     inner_ring.size.width *= 0.805;
     inner_ring.size.height *= 0.805;
-    
+
     ellipse(finder_point_range, inner_ring, Scalar(0, 0, 0), -1);
 
     if (debug) {
@@ -176,7 +176,7 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
 
         imwrite(filename, finder_point_range);
     }
-    
+
     END_DEBUG_TIMING(timing, efp_ellipse_region);
     Point2i last_point;
 
@@ -195,12 +195,12 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
 
     vector<vector<Point2i> > contours;
     vector<Vec4i> hierarchy;
-    
+
     // detect all blobs within the candidate region
     START_DEBUG_TIMING(efp_contours);
     findContours(candidate_region, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE, Point2i(0, 0));
     END_DEBUG_TIMING(timing, efp_contours);
-    
+
     // compute the image moments for each blob in the candidate region, we use these
     // moments to look and the relative angles between the **centers** of each blob
     START_DEBUG_TIMING(efp_moments);
@@ -240,50 +240,50 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
     START_DEBUG_TIMING(efp_extraction);
     for (int i = 0; i < contours.size(); ++i) {
         vector<Point2i> &contour = contours[i];
-        
+
         Point2i point = mc[i];
-        
+
         double dist = sqrt(pow(point.x - last_point.x, 2.0) + pow(point.y - last_point.y, 2.0));
-        
+
         if (dist < 2) {
             continue;
         }
-        
+
         last_point = point;
-        
+
         if (contour.size() > 1) {
             if (mc[i].y > 0 && mc[i].x > 0) {
                 if (finder_point_range.at<char>(mc[i].y, mc[i].x) != 0) {
                     FinderPoint finder;
-                    
+
                     finder.x = mc[i].x;
                     finder.y = mc[i].y;
-                    
+
                     finder.dx = finder.x - inner_ring.center.x;
                     finder.dy = finder.y - inner_ring.center.y;
-                    
+
                     finder.contourIndex = i;
 
                     finder.contourSize = contour.size();
-                    
+
                     finder.dist = sqrt(finder.dx * finder.dx + finder.dy * finder.dy);
-                    
+
                     finder.angle = atan2(finder.dy, finder.dx);
-                    
+
                     finder_points.push_back(finder);
                 }
             }
         }
     }
     END_DEBUG_TIMING(timing, efp_extraction);
-    
+
     START_DEBUG_TIMING(efp_filter_and_sort);
     if (finder_points.size() > 0) {
         // disard small shards that were erroneously picked up
         sort(finder_points.begin(), finder_points.end(), compareFinderPointsSize);
 
         int p90_size = finder_points[finder_points.size() * 0.9].contourSize;
-        
+
         for (int i = 0; i < finder_points.size(); ++i) {
             if (finder_points[i].contourSize < p90_size / 5) {
                 finder_points.erase(finder_points.begin() + i);
@@ -316,18 +316,18 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
     if (finder_points.size() != sizeof(finder_deltas) / sizeof(double) + 1) {
         return false;
     }
-    
+
     // sort the finder points into a clockwise winding based on the angle of the computed vector
     sort(finder_points.begin(), finder_points.end(), compareFinderPoints);
     END_DEBUG_TIMING(timing, efp_filter_and_sort);
-    
+
     vector<double> point_deltas(finder_points.size());
-    
+
     START_DEBUG_TIMING(efp_check_ratio);
     // compute the relative angles between each neighbouring pair of finder points
     for (int j = 0; j < finder_points.size(); ++j) {
         point_deltas[j] = finder_points[(j + 1) % finder_points.size()].angle - finder_points[j].angle;
-        
+
         while (point_deltas[j] < 0.0) {
             point_deltas[j] += 2 * M_PI;
         }
@@ -340,13 +340,13 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
     // the given starting offset
     for (int j = 0; j < point_deltas.size(); ++j) {
         bool found = true;
-        
+
         for (int k = 0; k < sizeof(finder_deltas) / sizeof(double); ++k) {
             double pointRatio = point_deltas[(j + k) % point_deltas.size()];
-            
+
             double lower_bound = finder_deltas[k] - 0.25;
             double upper_bound = finder_deltas[k] + 0.25;
-            
+
             if (pointRatio < lower_bound) {
                 found = false;
                 break;
@@ -356,7 +356,7 @@ bool extractFinderPoints(int ellipse_id, bool check_high, RotatedRect inner_ring
                 break;
             }
         }
-        
+
         if (found) {
             offset = j;
             break;
@@ -445,7 +445,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 
     if (out_progress) {
         Mat rgb_colour;
-        
+
         cvtColor(greyscale, rgb_colour, COLOR_GRAY2RGB);
 
         progress = rgb_colour;
@@ -479,11 +479,11 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 #endif
 
     Mat contour_mat = whitish.clone();
-    
+
     // extract the contours and blobs from the thresholded image
     vector<vector<Point2i> > contours;
     vector<Vec4i> hierarchy;
-    
+
     START_DEBUG_TIMING(contours_1);
     findContours(contour_mat, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE, Point2i(0, 0));
     END_DEBUG_TIMING(timing, contours_1);
@@ -499,16 +499,16 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
         imwrite("03_contours.jpg", contour_debug);
     }
 #endif
-    
+
     // compute the moments of each contour to search for large, roundish, blobs
     vector<Moments> mu(contours.size());
     vector<Point2f> mc(contours.size());
-    
+
     START_DEBUG_TIMING(moment_pass_1);
 
     // find ellipses
     Mat ellipse_boundaries = Mat::zeros(contour_mat.size(), CV_8UC1);
-    
+
     for (int i = 0; i < contours.size(); ++i) {
         vector<Point2i> &contour = contours[i];
 
@@ -531,7 +531,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
         }
 
         Moments moment = mu[i];
-        
+
         // the contour must be...
         // large enough
         const double minimum_ellipse_area = 220 * scaling_rate;
@@ -645,7 +645,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 #endif
 
     END_DEBUG_TIMING(timing, ellipse_fitting_1);
-    
+
     // only keep edges that share edges with the fitted ellipses
     Mat matches_near_ellipses;
 
@@ -664,7 +664,8 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
         for (int j = 0; j < contour.size(); ++j) {
             Point2i &point = contour[j];
 
-            if (matches_near_ellipses.at<char>(point.y, point.x) != 0) {
+            if (point.x >= 0 && point.y >= 0 && point.x < matches_near_ellipses.cols && point.y < matches_near_ellipses.rows
+                    && matches_near_ellipses.at<char>(point.y, point.x) != 0) {
                 pruned_contour.push_back(point);
             }
         }
@@ -674,7 +675,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 
     vector<vector<Point2i> > contours2 = pruned_contours;
     vector<Vec4i> hierarchy2;
-    
+
     // search the limited edges to find strong ellipse matches
     vector<RotatedRect> ellipses;
     vector<size_t> contour_indices;
@@ -693,7 +694,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 
     vector<RotatedRect> potential_ellipses;
     vector<size_t> potential_contour_indices;
-    
+
     // re-fit the ellipses based on only the filtered points
     // and only if the contours have enough points to be useful
     // (ellipse fitting requires 5 reference points at a minimum)
@@ -701,7 +702,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
     // find all ellipses in the search space by estimating the fit
     for (int i = 0; i < contours2.size(); ++i) {
         vector<Point2i> &contour = contours2[i];
-        
+
         // the contour must be sufficiently dense
         // and the mass of the moment must be large enough
         if (contour.size() > 5) {
@@ -752,7 +753,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
         imwrite("06_candidates.jpg", candidates);
     }
 #endif
-    
+
     // iterate over each candidate ring and determine if it's really the
     // center of a Kik code
     START_DEBUG_TIMING(ellipse_search);
@@ -770,12 +771,12 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
 
         size_t dark_count = 0;
 
-        for (int j = 0; j < contour.size(); ++j) {
-            Point2i point = contour[j];
+        for (auto point : contour) {
             int x = 0.9 * (point.x - candidate_center.center.x) + candidate_center.center.x;
             int y = 0.9 * (point.y - candidate_center.center.y) + candidate_center.center.y;
 
-            if (whitish.at<char>(y, x) == 0) {
+            if (x >= 0 && y >= 0 && x < whitish.cols && y < whitish.rows
+                    && whitish.at<char>(y, x) == 0) {
                 ++dark_count;
             }
         }
@@ -800,7 +801,7 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
             if (finder_points.size() != FINDER_POINT_COUNT) {
                 continue;
             }
-            
+
             double current_angle = M_PI / 16 - M_PI / 2;
             vector<Point2f> object_finder_points;
             vector<Point2f> scene_finder_points;
@@ -811,17 +812,17 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
             float modifier = 42;
             float offset_x = 195.0;
             float offset_y = 195.0;
-            
+
             // create the set of scene points and object points for computing the homography to map
             // our exemplar Kik code onto the scene
             START_DEBUG_TIMING(generate_scene_points);
             for (int j = 0; j < finder_points.size(); ++j) {
                 object_finder_points.push_back(
                     Point2f(modifier * 2.025 * cos(current_angle) + offset_x, modifier * 2.025 * sin(current_angle) + offset_y));
-                
+
                 current_angle += finder_deltas[j];
             }
-            
+
             for (int j = 0; j < finder_points.size(); ++j) {
                 FinderPoint point = finder_points[(j+offset) % finder_points.size()];
                 scene_finder_points.push_back(Point2f(point.x, point.y));
@@ -833,29 +834,29 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
                 START_DEBUG_TIMING(find_homography);
                 Mat H = findHomography(object_finder_points, scene_finder_points, FM_RANSAC);
                 END_DEBUG_TIMING(timing, find_homography);
-                
+
                 START_DEBUG_TIMING(transform_finder_points);
                 vector<Point2f> scene_corners(object_finder_points.size());
-                
+
                 perspectiveTransform(object_finder_points, scene_corners, H);
                 END_DEBUG_TIMING(timing, transform_finder_points);
 
                 START_DEBUG_TIMING(transform_all_points);
                 vector<Point2f> all_points;
                 vector<Point2f> scene_points;
-                
+
                 // generate all positions on the Kik code in the object space
                 for (int r = 1; r < 6; ++r) {
                     size_t n = 32 + 8 * r;
-                    
+
                     for (int j = 0; j < n; ++j) {
                         double angle = j * M_PI / n * 2 - M_PI / 2;
                         double radius = modifier * ((r + 1) * 0.4 + 1.8);
-                        
+
                         all_points.push_back(Point2f(radius * cos(angle) + offset_x, radius * sin(angle) + offset_y));
                     }
                 }
-                
+
                 // map each position in the object-space Kik code on to the scene space
                 perspectiveTransform(all_points, scene_points, H);
                 END_DEBUG_TIMING(timing, transform_all_points);
@@ -865,14 +866,14 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
                 // we always have the finder pattern in the first 32 bits
                 memset(scan_data, 0, sizeof(scan_data));
                 memcpy(scan_data, finder_bytes, sizeof(finder_bytes));
-                
+
                 // use the scene-space points to determine the data contained in the Kik code
                 for (int j = 0; j < scene_points.size(); ++j) {
                     int x = (int)floor(scene_points[j].x);
                     int y = (int)floor(scene_points[j].y);
 
                     size_t pos = j + 32;
-                    
+
                     // at each position, if the data is white (black in the case of inverted-colour
                     // codes), it's a 1, otherwise it's a 0
                     if (x >= 0 && y >= 0 && x < whitish.cols && y < whitish.rows) {
