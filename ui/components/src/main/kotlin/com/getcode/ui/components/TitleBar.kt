@@ -31,6 +31,7 @@ import com.getcode.theme.DesignSystem
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.calculateHorizontalPadding
+import kotlin.math.max
 
 object AppBarDefaults {
     val ContentPadding: PaddingValues
@@ -214,6 +215,11 @@ private fun TopAppBarBase(
     val inset = CodeTheme.dimens.inset
     val horizontal = contentPadding.calculateHorizontalPadding()
 
+    val emptyLeftSlot = @Composable {
+        Box(modifier = Modifier.padding(5.dp)) {
+            AppBarDefaults.UpNavigation() { }
+        }
+    }
     val leftSlot = @Composable {
         Box(modifier = Modifier.padding(5.dp)) {
             leftIcon()
@@ -233,6 +239,9 @@ private fun TopAppBarBase(
             .height(56.dp),
     ) { constraints ->
         // Measure left icon, if provided
+        val emptyLeftIconPlaceable = subcompose("empty_leftIcon", emptyLeftSlot).firstOrNull()?.measure(
+            constraints.copy(minWidth = 0, minHeight = 0)
+        )
         val leftIconPlaceable = subcompose("leftIcon", leftSlot).firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0)
         )
@@ -244,12 +253,13 @@ private fun TopAppBarBase(
             )
 
         // Calculate the remaining space for the title region
-        val leftIconWidth = leftIconPlaceable?.width ?: 0
+        val leftIconWidth = max(leftIconPlaceable?.width ?: 0, emptyLeftIconPlaceable?.width ?: 0)
+        val isEmpty = (leftIconPlaceable?.width ?: 0) == 5.dp.roundToPx()
         val rightContentsWidth = rightContentsPlaceable?.width ?: 0
         val remainingWidth =
-            constraints.maxWidth - leftIconWidth - rightContentsWidth - contentPadding.calculateLeftPadding(
+            constraints.maxWidth - leftIconWidth - rightContentsWidth - (contentPadding.calculateLeftPadding(
                 layoutDirection
-            ).roundToPx() - (contentPadding.calculateRightPadding(layoutDirection).roundToPx() * 2)
+            ).roundToPx() * 2) - (contentPadding.calculateRightPadding(layoutDirection).roundToPx() * 2)
 
         // Measure title region with the remaining space, if provided
         val titleRegionPlaceable = subcompose("titleRegion", titleRegion).firstOrNull()?.measure(
@@ -258,9 +268,10 @@ private fun TopAppBarBase(
 
         layout(constraints.maxWidth, constraints.maxHeight) {
             // Place left icon, if present
-            leftIconPlaceable?.placeRelative(
+            val left = if (isEmpty) emptyLeftIconPlaceable else leftIconPlaceable
+            left?.placeRelative(
                 x = contentPadding.calculateLeftPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - (leftIconPlaceable.height)) / 2 + contentPadding.calculateTopPadding()
+                y = (constraints.maxHeight - (left.height)) / 2 + contentPadding.calculateTopPadding()
                     .roundToPx()
             )
 

@@ -1,5 +1,6 @@
-package com.flipcash.app.core.ui
+package com.flipcash.app.core.internal.ui.previews
 
+import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,12 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.paint
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.onramp.ui.buildExternalWalletButtonLabel
+import com.flipcash.app.core.ui.buildNotifyButtonLabel
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.theme.CodeTheme
@@ -164,7 +165,7 @@ private fun CodeButtonPreviewsOnImage() {
             modifier = Modifier
                 .padding(16.dp)
                 .paint(
-                    painter = painterResource(android.R.drawable.ic_menu_always_landscape_portrait),
+                    painter = painterResource(R.drawable.ic_menu_always_landscape_portrait),
                     contentScale = ContentScale.Crop
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)

@@ -25,10 +25,11 @@ import com.getcode.ui.components.R
 
 @Composable
 fun TokenIconWithName(
-    token: Token,
+    tokenName: String,
+    tokenImageUrl: String?,
+    tokenSymbol: String,
     imageSize: Dp,
     modifier: Modifier = Modifier,
-    displayName: (Token) -> String = { it.name },
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
     spacing: Dp = 0.dp,
@@ -39,11 +40,12 @@ fun TokenIconWithName(
         verticalAlignment = Alignment.CenterVertically
     ) {
         TokenIcon(
-            token = token,
+            imageUrl = tokenImageUrl,
+            symbol = tokenSymbol,
             modifier = Modifier.size(imageSize)
         )
         Text(
-            text = displayName(token),
+            text = tokenName,
             style = textStyle,
             color = textColor,
         )
@@ -51,19 +53,54 @@ fun TokenIconWithName(
 }
 
 @Composable
+fun TokenIconWithName(
+    token: Token,
+    imageSize: Dp,
+    modifier: Modifier = Modifier,
+    displayName: (Token) -> String = { it.name },
+    textStyle: TextStyle = CodeTheme.typography.screenTitle,
+    textColor: Color = CodeTheme.colors.textMain,
+    spacing: Dp = 0.dp,
+) {
+    TokenIconWithName(
+        tokenName = displayName(token),
+        tokenImageUrl = token.imageUrl,
+        tokenSymbol = token.symbol,
+        imageSize = imageSize,
+        modifier = modifier,
+        textStyle = textStyle,
+        textColor = textColor,
+        spacing = spacing
+    )
+}
+
+@Composable
 fun TokenIcon(
     token: Token,
-    modifier: Modifier
+    modifier: Modifier = Modifier
+) {
+    TokenIcon(
+        imageUrl = token.imageUrl,
+        symbol = token.symbol,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun TokenIcon(
+    imageUrl: String?,
+    symbol: String,
+    modifier: Modifier = Modifier,
 ) {
     AsyncImage(
         modifier = modifier.clip(CircleShape),
         model = ImageRequest.Builder(LocalPlatformContext.current)
-            .data(token.imageUrl)
+            .data(imageUrl)
             .crossfade(false)
             .error(R.drawable.ic_placeholder_user)
-            .memoryCacheKey(token.symbol)
+            .memoryCacheKey(symbol)
             .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCacheKey(token.symbol)
+            .diskCacheKey(symbol)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build(),
         contentDescription = null,

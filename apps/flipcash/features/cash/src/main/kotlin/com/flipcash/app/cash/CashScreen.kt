@@ -31,6 +31,7 @@ import com.flipcash.app.cash.internal.GiveScreenContent
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.features.cash.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -80,44 +81,12 @@ class CashScreen(
             AppBarWithTitle(
                 isInModal = true,
                 title = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .rememberedClickable {
-                                    navigator.push(
-                                        ScreenRegistry.get(
-                                            AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
-                                        )
-                                    )
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(
-                                space = CodeTheme.dimens.grid.x1,
-                                alignment = Alignment.CenterHorizontally
+                    TokenSelectionPill(state.token?.token) {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
                             )
-                        ) {
-                            state.token?.let { (token, _) ->
-                                TokenIconWithName(
-                                    token = token,
-                                    imageSize = CodeTheme.dimens.staticGrid.x5,
-                                    spacing = CodeTheme.dimens.grid.x1,
-                                )
-
-                                Image(
-                                    modifier = Modifier
-                                        .width(CodeTheme.dimens.grid.x4),
-                                    painter = painterResource(R.drawable.ic_dropdown),
-                                    contentDescription = ""
-                                )
-                            }
-
-                        }
+                        )
                     }
                 },
                 rightContents = {
