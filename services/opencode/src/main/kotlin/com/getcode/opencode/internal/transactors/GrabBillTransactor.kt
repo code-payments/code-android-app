@@ -10,7 +10,6 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope

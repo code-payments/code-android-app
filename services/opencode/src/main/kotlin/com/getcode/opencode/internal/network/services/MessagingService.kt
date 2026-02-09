@@ -1,5 +1,8 @@
 package com.getcode.opencode.internal.network.services
 
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
@@ -123,6 +126,7 @@ internal class MessagingService @Inject constructor(
     suspend fun pollMessages(
         rendezvous: KeyPair,
     ): Result<List<MessagingService.Message>> {
+        trace("Message polling.")
         return runCatching { api.pollMessages(rendezvous) }
             .foldWithSuppression(
                 onSuccess = { response ->

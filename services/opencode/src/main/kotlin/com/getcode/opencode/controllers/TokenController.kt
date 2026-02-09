@@ -152,7 +152,7 @@ class TokenController @Inject constructor(
             .launchIn(scope)
     }
 
-    override fun onResume(owner: LifecycleOwner) {
+    override fun onStart(owner: LifecycleOwner) {
         trace(
             tag = TAG,
             message = "Lifecycle resumed, starting reserve state stream",

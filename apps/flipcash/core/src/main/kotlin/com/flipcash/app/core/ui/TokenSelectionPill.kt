@@ -16,7 +16,6 @@ import androidx.compose.ui.res.painterResource
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.R
-import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.rememberedClickable
 
 @Composable

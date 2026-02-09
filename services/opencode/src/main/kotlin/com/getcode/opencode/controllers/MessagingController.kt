@@ -164,6 +164,7 @@ class MessagingController @Inject constructor(
         return repository.pollMessages(rendezvous)
             .map { messages ->
                 messages.filter {
+                    trace(message = "Polled message kind: ${it.kindCase}")
                     it.kindCase == MessagingService.Message.KindCase.REQUEST_TO_GIVE_BILL
                 }
             }.mapCatching { messages ->

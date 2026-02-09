@@ -52,8 +52,7 @@ internal class OpenCodeExchange @Inject constructor(
         }
     }
 
-    override fun onResume(owner: LifecycleOwner) {
-        super.onResume(owner)
+    override fun onStart(owner: LifecycleOwner) {
         streamRates()
     }
 
