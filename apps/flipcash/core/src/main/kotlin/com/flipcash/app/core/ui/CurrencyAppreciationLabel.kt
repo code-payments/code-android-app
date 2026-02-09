@@ -21,7 +21,8 @@ fun CurrencyAppreciationLabel(
     appreciation: Fiat,
     modifier: Modifier = Modifier,
 ) {
-    val hasAppreciation = appreciation.decimalValue >= 0
+    val isZero = !appreciation.valueNonZero()
+    val hasAppreciation = appreciation.toDouble() >= 0
     val changeColor = if (hasAppreciation) {
         CodeTheme.colors.successText
     } else {
@@ -44,7 +45,11 @@ fun CurrencyAppreciationLabel(
                     horizontal = CodeTheme.dimens.grid.x1
                 ),
             text = appreciation.formatted(
-                extraPrefix = if (hasAppreciation) "+" else "-",
+                extraPrefix = when {
+                    isZero -> null
+                    hasAppreciation -> "+"
+                    else -> "-"
+                },
             ),
             style = CodeTheme.typography.textSmall,
             color = changeColor,
