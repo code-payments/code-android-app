@@ -60,12 +60,16 @@ sealed interface AggregationType {
 
             // Find the first real data point (non-zero timestamp)
             // Instead of checking for x == 0, check if there's a gap at the start
-            val firstRealPoint = sorted.firstOrNull { it.x >= startTime && it.y > 0.0 }
-                ?: sorted.firstOrNull { it.x > 0 }
+            val firstRealPoint = sorted.firstOrNull { it.x > 0 }
 
-            // Build the effective point list: if data starts after startTime,
-            // anchor zeros from startTime up to the first real point
-            val effective = if (firstRealPoint != null && firstRealPoint.x > startTime) {
+            val duration = now - startTime
+            val gapThreshold = duration * 0.05 // 5% of the period
+
+            val effective = if (
+                firstRealPoint != null &&
+                firstRealPoint.x > startTime &&
+                (firstRealPoint.x - startTime) > gapThreshold
+            ) {
                 val zeroAnchors = listOf(
                     MarketCapPoint(x = startTime, y = 0.0),
                     MarketCapPoint(x = firstRealPoint.x - 1, y = 0.0),
@@ -87,7 +91,6 @@ sealed interface AggregationType {
             }
 
             // Interpolate to evenly-spaced timestamps
-            val duration = now - startTime
             val intervalMs = (duration / targetPoints).coerceAtLeast(1)
 
             return (0 until targetPoints).map { bucket ->
