@@ -126,6 +126,7 @@ class TokenController @Inject constructor(
 
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state }
+            .distinctUntilChanged()
             .filter { it.connected }
             .onEach {
                 trace(
@@ -579,7 +580,9 @@ class TokenController @Inject constructor(
             _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
         }
 
-        updateTokenAccount(token.address)
+        scope.launch(Dispatchers.IO) {
+            updateTokenAccount(token.address)
+        }
     }
 
     private fun streamReserveStates() {

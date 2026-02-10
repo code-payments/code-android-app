@@ -74,8 +74,8 @@ class BillTransactionManager @Inject constructor(
 
             giveTransactor = transactor
 
-            presentBillForGive(onTimeout)
             present(transactor.data)
+            presentBillForGive(onTimeout)
 
             transactor.start()
                 .onSuccess {
@@ -136,7 +136,9 @@ class BillTransactionManager @Inject constructor(
                     )
                     onGrabbed(token, amount)
                     tokenController.add(token, amount)
-                    transactionController.updateLimits(owner, force = true)
+                    sharedScope.launch {
+                        transactionController.updateLimits(owner, force = true)
+                    }
                 }.onFailure {
                     onError(it)
                     transactor.dispose()

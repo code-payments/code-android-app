@@ -120,12 +120,14 @@ internal fun BillContainer(
             .fillMaxSize()
             .then(modifier)
     ) {
+        val availableUpdate by LocalAppUpdater.current.availableUpdate.collectAsStateWithLifecycle()
+
         when {
             LocalBiometricsState.current.isAwaitingAuthentication -> {
                 // waiting for result
             }
 
-            LocalAppUpdater.current.availableUpdate.value != null -> {
+            availableUpdate != null -> {
                 // waiting for update
             }
 

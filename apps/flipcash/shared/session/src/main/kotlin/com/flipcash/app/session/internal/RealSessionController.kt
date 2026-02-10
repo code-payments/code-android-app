@@ -814,12 +814,14 @@ class RealSessionController @Inject constructor(
                 val grabTime = grabStart?.let {
                     Clock.System.now().toEpochMilliseconds() - it
                 }
-                analytics.transfer(AnalyticsEvent.GrabBill, amount, grabTime = grabTime)
-                BottomBarManager.clear()
-                toastController.enqueue(amount, isDeposit = true)
+
                 showBill(
                     bill = Bill.Cash(amount = amount, token = token, didReceive = true),
                 )
+
+                analytics.transfer(AnalyticsEvent.GrabBill, amount, grabTime = grabTime)
+                BottomBarManager.clear()
+                toastController.enqueue(amount, isDeposit = true)
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
@@ -839,21 +841,6 @@ class RealSessionController @Inject constructor(
     private fun presentBillToUser(data: List<Byte>, bill: Bill) {
         if (billController.state.value.bill != null) return
 
-        if (bill.didReceive) {
-            billController.update {
-                it.copy(
-                    valuation = PaymentValuation(bill.amount.nativeAmount),
-                )
-            }
-
-            vibrator.vibrate()
-        }
-
-        val style: BillDeterminationResult =
-            if (bill.didReceive) Grabbed else PutInWallet
-
-        _state.update { it.copy(billResult = style) }
-
         billController.update {
             it.copy(
                 bill = Bill.Cash(
@@ -867,15 +854,14 @@ class RealSessionController @Inject constructor(
             )
         }
 
-        if (style is BillDeterminationResult.ActedUpon) {
-//            analytics.billShown(
-//                bill.amountFloored.kin,
-//                bill.amountFloored.rate.currency,
-//                when (style) {
-//                    PresentationStyle.Pop -> CodeAnalyticsManager.BillPresentationStyle.Pop
-//                    PresentationStyle.Slide -> CodeAnalyticsManager.BillPresentationStyle.Slide
-//                }
-//            )
+        val style: BillDeterminationResult =
+            if (bill.didReceive) Grabbed else PutInWallet
+
+        _state.update { it.copy(billResult = style) }
+
+        if (bill.didReceive) {
+            // shorter punch than standard
+            vibrator.vibrate(duration = 50)
         }
     }
 
