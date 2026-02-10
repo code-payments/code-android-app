@@ -2,10 +2,12 @@ package com.getcode.opencode
 
 import android.content.Context
 import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.domain.mapping.SocialLinkMapper
 import com.getcode.opencode.internal.domain.mapping.SwapMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
@@ -139,6 +141,8 @@ object RepositoryFactory {
         val mintMapper = MintMapper(
             vmMetadataMapper = VmMetadataMapper(),
             launchpadMetadataMapper = LaunchpadMetadataMapper(),
+            socialLinkMapper = SocialLinkMapper(),
+            customizationMapper = BillCustomizationMapper(),
         )
         val historicalMintDataMapper = HistoricalMintDataMapper()
         val liveMintDataMapper = LiveMintDataMapper()

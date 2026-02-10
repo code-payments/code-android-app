@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
+import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.drawWithGradient
 
 @Composable
@@ -46,6 +47,8 @@ fun ExpandableText(
     onToggle: () -> Unit,
 ) {
     var hasOverflow by remember(text) { mutableStateOf(false) }
+
+    if (text.trim().isEmpty()) return
 
     Box(modifier = modifier) {
         if (!isExpandable) {

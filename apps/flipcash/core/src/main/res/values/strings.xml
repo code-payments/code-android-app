@@ -415,4 +415,6 @@
     <string name="label_sellAmount">Sell Amount</string>
     <string name="label_percentFee">%1$d Fee</string>
 
+    <string name="label_social_website">Website</string>
+    <string name="label_social_x">\@%1$s</string>
 </resources>

@@ -26,34 +26,6 @@ internal class CurrencyApi @Inject constructor(
         .withWaitForReady()
 
     /**
-     * Returns the exchange rates for the core mint token against all available currencies
-     *
-     * @param timestampInMillis If timestamp is included, the returned rate will be the most recent available
-     * exchange rate prior to the provided timestamp within the same day. Otherwise,
-     * the latest rates will be returned.
-     *
-     * @return The [CurrencyService.GetAllRatesResponse] with the price of 1 core mint token in
-     * different currencies, keyed on 3- or 4-letter lowercase currency code.
-     *
-     */
-    @Deprecated("Use StreamLiveMintData instead")
-    suspend fun getAllRates(
-        timestampInMillis: Long?
-    ): CurrencyService.GetAllRatesResponse {
-        val builder = CurrencyService.GetAllRatesRequest.newBuilder()
-
-        if (timestampInMillis != null) {
-            builder.setTimestamp(timestampInMillis.asProtobufTimestamp())
-        }
-
-        val request = builder.build()
-
-        return withContext(Dispatchers.IO) {
-            api.getAllRates(request)
-        }
-    }
-
-    /**
      * Gets mint account metadata by address
      *
      * @param mintAddresses The list of mint addresses to query

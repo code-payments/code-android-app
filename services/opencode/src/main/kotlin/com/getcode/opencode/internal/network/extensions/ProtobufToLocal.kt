@@ -173,6 +173,8 @@ internal fun CurrencyService.LaunchpadMetadata.toMetadata(): LaunchpadMetadata {
         mintVault = mintVault.toPublicKey(),
         coreMintVault = coreMintVault.toPublicKey(),
         currentCirculatingSupplyQuarks = supplyFromBonding,
-        sellFeeBps = sellFeeBps
+        sellFeeBps = sellFeeBps,
+        price = Fiat(fiat = price),
+        marketCap = Fiat(fiat = marketCap),
     )
 }

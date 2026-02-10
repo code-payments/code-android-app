@@ -9,6 +9,7 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlin.time.Instant
 
@@ -40,28 +41,6 @@ data class TokenWithLocalizedBalance(
 
 typealias Token = MintMetadata
 
-val MintMetadata.Companion.usdc: Token
-    get() = MintMetadata(
-        address = Mint.usdc,
-        decimals = 6,
-        name = "USDC",
-        symbol = "USDC",
-        description = "",
-        createdAt = Instant.parse("2018-05-15T05:00:00Z"),
-        imageUrl = "",
-        vmMetadata = VmMetadata(
-            authority = vmAuthority,
-            vm = PublicKey.deriveVirtualMachineAccount(
-                mint = Mint.usdc,
-                authority = vmAuthority,
-                lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
-            ).publicKey,
-            lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
-        ),
-        launchpadMetadata = null,
-        billCustomizations = null,
-    )
-
 val MintMetadata.Companion.usdf: Token
     get() = MintMetadata(
         address = Mint.usdf,
@@ -81,6 +60,7 @@ val MintMetadata.Companion.usdf: Token
             lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
         ),
         launchpadMetadata = null,
+        socialLinks = emptyList(),
         billCustomizations = null,
     )
 
@@ -111,6 +91,7 @@ data class MintMetadata(
     val vmMetadata: VmMetadata,
     val launchpadMetadata: LaunchpadMetadata?,
     val billCustomizations: TokenBillCustomizations?,
+    val socialLinks: List<SocialLink>,
 ) : Parcelable {
     fun marketCap(): Fiat? {
         val launchpad = launchpadMetadata ?: return null
@@ -164,5 +145,28 @@ data class LaunchpadMetadata(
     val coreMintVault: PublicKey,
     val currentCirculatingSupplyQuarks: Long,
     val sellFeeBps: Int, // currently hardcoded to 1%
+    val price: Fiat,
+    val marketCap: Fiat,
 ) : Parcelable
 
+/**
+ * Represents social links for a currency.
+ *
+ * @property type The type of social media platform (e.g., "twitter", "website").
+ * @property url The URL to the social media profile or website.
+ */
+@Parcelize
+sealed interface SocialLink : Parcelable {
+    val uri: String
+    @Parcelize
+    data class Website(val url: String) : SocialLink {
+        @IgnoredOnParcel
+        override val uri: String = url
+    }
+
+    @Parcelize
+    data class X(val username: String) : SocialLink {
+        @IgnoredOnParcel
+        override val uri: String = "https://x.com/$username"
+    }
+}

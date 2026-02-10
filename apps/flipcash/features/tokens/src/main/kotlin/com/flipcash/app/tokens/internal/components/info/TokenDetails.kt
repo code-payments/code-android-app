@@ -1,14 +1,14 @@
 package com.flipcash.app.tokens.internal.components.info
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -87,6 +87,20 @@ internal fun TokenDetailsSection(
             contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
         ) {
             dispatch(TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded))
+        }
+
+        state.token?.socialLinks?.let { links ->
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = CodeTheme.dimens.grid.x4),
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
+            ) {
+                items(links) { link ->
+                    SocialChip(link)
+                }
+            }
         }
 
         Divider(

@@ -7,36 +7,12 @@ import "common/v1/model.proto";
 
 import "google/protobuf/timestamp.proto";
 service Currency {
-    // GetAllRates returns the exchange rates for the core mint token against all
-    // available currencies
-    //
-    // Deprecated: Use StreamLiveMintData instead
-    rpc GetAllRates(GetAllRatesRequest) returns (GetAllRatesResponse);
     // GetMints gets mint account metadata by address
     rpc GetMints(GetMintsRequest) returns (GetMintsResponse);
     // GetHistoricalMintData returns historical market data for a mint
     rpc GetHistoricalMintData(GetHistoricalMintDataRequest) returns (GetHistoricalMintDataResponse);
     // StreamLiveMintData streams live mint data for a set of mints
     rpc StreamLiveMintData(stream StreamLiveMintDataRequest) returns (stream StreamLiveMintDataResponse);
-}
-message GetAllRatesRequest {
-    // If timestamp is included, the returned rate will be the most recent available
-    // exchange rate prior to the provided timestamp within the same day. Otherwise,
-    // the latest rates will be returned.
-    google.protobuf.Timestamp timestamp = 1;
-}
-message GetAllRatesResponse {
-    Result result = 1;
-    enum Result {
-        OK = 0;
-        // No currency data is available for the requested timestamp.
-        MISSING_DATA = 1;
-    }
-    // The time the exchange rates were observed
-    google.protobuf.Timestamp as_of = 2;
-    // The price of 1 core mint token in different currencies, keyed on 3- or 4-
-    // letter lowercase currency code.
-    map<string, double> rates = 3 ;
 }
 message GetMintsRequest {
     repeated common.v1.SolanaAccountId addresses = 1 ;
@@ -123,6 +99,10 @@ message Mint {
     LaunchpadMetadata launchpad_metadata = 8;
     // Timestamp the currency was created
     google.protobuf.Timestamp created_at = 9;
+    // Social links for this currency
+    repeated SocialLink social_links = 10 ;
+    // Bill customization for this currency. Use the default if not provided
+    BillCustomization bill_customization = 11;
 }
 message VmMetadata {
     // VM address
@@ -154,6 +134,10 @@ message LaunchpadMetadata {
     uint64 supply_from_bonding = 7;
     // Precent fee for sells in basis points, currently hardcoded to 1%
     uint32 sell_fee_bps = 8;
+    // The current price in USD
+    double price = 9;
+    // The current market capitalization in USD
+    double market_cap = 10;
 }
 message HistoricalMintData {
     // Timestamp for this data point
@@ -192,4 +176,24 @@ message VerifiedLaunchpadCurrencyReserveState {
 }
 message VerifiedLaunchapdCurrencyReserveStateBatch {
     repeated VerifiedLaunchpadCurrencyReserveState reserve_states = 2  ;
+}
+message SocialLink {
+    oneof type {
+        Website website = 1;
+        X       x       = 2;
+    }
+    message Website {
+        string url = 1 ;
+    }
+    message X {
+        string username = 1 ;
+    }
+}
+message BillCustomization {
+    // Bill background colors (from top to bottom)
+    repeated Color colors = 1 ;
+}
+message Color {
+    // Hex colour value (e.g. "#19191A")
+    string hex = 1 ;
 }
