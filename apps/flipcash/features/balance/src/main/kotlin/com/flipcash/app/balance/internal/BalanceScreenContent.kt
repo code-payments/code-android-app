@@ -12,7 +12,6 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,8 +28,8 @@ import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.onramp.AddCashRow
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.app.tokens.SelectTokenViewModel
-import com.flipcash.app.tokens.TokenList
+import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.features.balance.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange

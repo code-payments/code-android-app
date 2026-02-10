@@ -1,4 +1,4 @@
-package com.flipcash.app.tokens
+package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute

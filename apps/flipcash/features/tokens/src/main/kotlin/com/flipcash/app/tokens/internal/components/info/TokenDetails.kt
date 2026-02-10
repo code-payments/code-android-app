@@ -20,7 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.app.tokens.TokenInfoViewModel
+import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.ExpandableText

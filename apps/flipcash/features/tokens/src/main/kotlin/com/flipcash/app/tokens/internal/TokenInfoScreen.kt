@@ -28,7 +28,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenSwapPurpose
-import com.flipcash.app.tokens.TokenInfoViewModel
+import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection

@@ -18,6 +18,7 @@ import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.tokens.internal.TokenInfoScreen
+import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.core.LocalCodeNavigator

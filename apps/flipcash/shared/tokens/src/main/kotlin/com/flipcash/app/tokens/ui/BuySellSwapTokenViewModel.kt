@@ -1,15 +1,11 @@
-package com.flipcash.app.tokens
+package com.flipcash.app.tokens.ui
 
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
-import com.flipcash.services.controllers.ActivityFeedController
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
@@ -41,7 +37,6 @@ import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter

@@ -6,8 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.tokens.BuySellSwapTokenViewModel.Event
+import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel.Event
 import com.flipcash.app.tokens.internal.TokenTxProcessingScreen
+import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.modal.ModalScreen

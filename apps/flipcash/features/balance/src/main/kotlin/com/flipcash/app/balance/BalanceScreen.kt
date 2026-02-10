@@ -17,7 +17,7 @@ import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.tokens.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel

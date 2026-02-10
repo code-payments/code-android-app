@@ -19,7 +19,7 @@ import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.AmountWithKeypad
-import com.flipcash.app.tokens.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme

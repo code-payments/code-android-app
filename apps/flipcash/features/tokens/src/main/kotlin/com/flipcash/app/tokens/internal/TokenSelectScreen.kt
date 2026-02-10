@@ -1,10 +1,8 @@
 package com.flipcash.app.tokens.internal
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,8 +18,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.app.tokens.SelectTokenViewModel
-import com.flipcash.app.tokens.TokenList
+import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 

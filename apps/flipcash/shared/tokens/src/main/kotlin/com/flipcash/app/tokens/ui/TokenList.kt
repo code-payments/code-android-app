@@ -1,4 +1,4 @@
-package com.flipcash.app.tokens
+package com.flipcash.app.tokens.ui
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets

@@ -7,7 +7,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.charts.ChartPoint
 import java.util.Random
 import kotlin.math.pow
-import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days

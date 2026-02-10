@@ -29,7 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.buildNotifyButtonLabel
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.app.tokens.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle

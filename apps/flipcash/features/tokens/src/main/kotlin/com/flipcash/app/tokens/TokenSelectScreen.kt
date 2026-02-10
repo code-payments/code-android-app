@@ -16,6 +16,7 @@ import com.flipcash.app.core.AppRoute.Menu.Deposit
 import com.flipcash.app.core.AppRoute.Transfers.Withdrawal.Amount
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
+import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen

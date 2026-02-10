@@ -22,7 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.core.ui.rememberTokenBalanceRowSizing
-import com.flipcash.app.tokens.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.TokenWithBalance
