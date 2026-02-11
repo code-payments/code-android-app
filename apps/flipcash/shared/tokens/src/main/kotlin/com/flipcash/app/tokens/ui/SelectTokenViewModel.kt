@@ -47,7 +47,6 @@ class SelectTokenViewModel @Inject constructor(
     initialState = State(purpose = TokenPurpose.Balance),
     updateStateForEvent = updateStateForEvent
 ) {
-
     data class State(
         val purpose: TokenPurpose,
         val reservesEnabled: Boolean = false,
@@ -110,11 +109,6 @@ class SelectTokenViewModel @Inject constructor(
                         .map {
                             TokenWithLocalizedBalance(
                                 token = it.token,
-                                displayName = if (it.token.address == Mint.usdf) {
-                                    resources.getString(R.string.title_cashReserves)
-                                } else {
-                                    it.token.name
-                                },
                                 balance = LocalFiat(
                                     usdf = it.balance,
                                     nativeAmount = it.balance.convertingTo(rate),
