@@ -56,7 +56,7 @@ internal fun TokenDetailsSection(
             )
         }
 
-        state.token?.createdAt?.let { mintDate ->
+        state.token.dataOrNull?.createdAt?.let { mintDate ->
             Text(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset)
@@ -69,17 +69,16 @@ internal fun TokenDetailsSection(
                 color = CodeTheme.colors.textSecondary,
             )
         }
-
         ExpandableText(
             modifier = Modifier
                 .padding(
-                    top = if (state.token?.createdAt == null) {
+                    top = if (state.token.dataOrNull?.createdAt == null) {
                         CodeTheme.dimens.grid.x1
                     } else {
                         CodeTheme.dimens.grid.x2
                     }
                 ),
-            text = state.token?.description.orEmpty(),
+            text = state.token.dataOrNull?.description.orEmpty(),
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
             isExpanded = state.descriptionExpanded,
@@ -89,7 +88,7 @@ internal fun TokenDetailsSection(
             dispatch(TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded))
         }
 
-        state.token?.socialLinks?.let { links ->
+        state.token.dataOrNull?.socialLinks?.let { links ->
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()

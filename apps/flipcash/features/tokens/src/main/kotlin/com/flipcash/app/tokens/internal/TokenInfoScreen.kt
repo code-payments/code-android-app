@@ -1,10 +1,12 @@
 package com.flipcash.app.tokens.internal
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +44,7 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
@@ -79,93 +85,138 @@ private fun TokenInfoScreen(
                     .sheetResignmentBehavior(listState),
                 state = listState,
             ) {
-                item {
-                    TokenBalance(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset),
-                        balance = state.balance.nativeAmount,
-                        appreciation = state.appreciation?.nativeAmount?.takeIf { state.showAppreciation },
-                        onClick = {
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Balance)
-                                )
-                            )
-                        }
-                    )
-                }
-
-                if (!state.isCashReserve && state.showTransactionHistory) {
-                    item {
-                        CodeButton(
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .padding(horizontal = CodeTheme.dimens.inset)
-                                .padding(top = CodeTheme.dimens.grid.x5),
-                            buttonState = ButtonState.Filled10,
-                            text = stringResource(R.string.action_viewTransactionHistory),
-                        ) {
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Token.Transactions(state.token?.address!!)
-                                )
-                            )
-                        }
-
-                        Divider(
-                            modifier = Modifier.padding(
-                                horizontal = CodeTheme.dimens.inset,
-                                vertical = CodeTheme.dimens.grid.x5
-                            ),
-                            color = CodeTheme.colors.dividerVariant,
-                        )
-                    }
-                }
-
-                // currency info
-                item {
-                    if (state.isCashReserve && state.cashReservesEnabled) {
-                        Text(
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .padding(horizontal = CodeTheme.dimens.inset),
-                            text = state.token?.description.orEmpty(),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.textSecondary,
-                        )
-                    } else {
-                        TokenDetailsSection(
-                            modifier = Modifier
-                                .fillParentMaxWidth(),
-                            state = state,
-                            dispatch = dispatch
-                        )
-                    }
-                }
-
-                if (!state.isCashReserve) {
-                    // market cap
-                    state.marketCap?.let { mcap ->
-                        val loadable = state.historicalMarketCapData[state.selectedPeriod] ?: Loadable.Loaded(emptyList())
+                when (val loadable = state.token) {
+                    is Loadable.Loading -> {
                         item {
-                             MarketCapSection(
+                            Box(modifier = Modifier.fillParentMaxSize()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillParentMaxSize(0.24f)
+                                        .aspectRatio(1f)
+                                        .align(Alignment.Center),
+                                ) {
+                                    CodeCircularProgressIndicator(
+                                        modifier = Modifier
+                                            .matchParentSize(),
+                                        strokeWidth = CodeTheme.dimens.grid.x1,
+                                        color = Color.White,
+                                        backgroundColor = Color.White.copy(0.30f),
+                                        strokeCap = StrokeCap.Butt,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    is Loadable.Error -> {
+                        item {
+                            Box(modifier = Modifier.fillParentMaxSize()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillParentMaxSize(0.24f)
+                                        .aspectRatio(1f)
+                                        .align(Alignment.Center),
+                                ) {
+                                    Image(
+                                        modifier = Modifier
+                                            .matchParentSize(),
+                                        painter = painterResource(R.drawable.ic_circle_exclamation_large),
+                                        contentDescription = null,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    is Loadable.Loaded -> {
+                        item {
+                            TokenBalance(
                                 modifier = Modifier
-                                    .fillParentMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
-                                marketCap = mcap,
-                                chartEnabled = state.marketCapChartEnabled,
-                                selectedPeriod = state.selectedPeriod,
-                                rawHistoricalData = loadable,
-                                onPeriodSelected = {
-                                    dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
-                                },
+                                    .fillMaxWidth()
+                                    .padding(horizontal = CodeTheme.dimens.inset),
+                                balance = state.balance.nativeAmount,
+                                appreciation = state.appreciation?.nativeAmount?.takeIf { state.showAppreciation },
+                                onClick = {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.OpenScreen(
+                                            AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Balance)
+                                        )
+                                    )
+                                }
                             )
                         }
+
+                        if (!state.isCashReserve && state.showTransactionHistory) {
+                            item {
+                                CodeButton(
+                                    modifier = Modifier
+                                        .fillParentMaxWidth()
+                                        .padding(horizontal = CodeTheme.dimens.inset)
+                                        .padding(top = CodeTheme.dimens.grid.x5),
+                                    buttonState = ButtonState.Filled10,
+                                    text = stringResource(R.string.action_viewTransactionHistory),
+                                ) {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.OpenScreen(
+                                            AppRoute.Token.Transactions(loadable.data.address)
+                                        )
+                                    )
+                                }
+
+                                Divider(
+                                    modifier = Modifier.padding(
+                                        horizontal = CodeTheme.dimens.inset,
+                                        vertical = CodeTheme.dimens.grid.x5
+                                    ),
+                                    color = CodeTheme.colors.dividerVariant,
+                                )
+                            }
+                        }
+
+                        // currency info
+                        item {
+                            if (state.isCashReserve && state.cashReservesEnabled) {
+                                Text(
+                                    modifier = Modifier
+                                        .fillParentMaxWidth()
+                                        .padding(horizontal = CodeTheme.dimens.inset),
+                                    text = loadable.data.description,
+                                    style = CodeTheme.typography.textMedium,
+                                    color = CodeTheme.colors.textSecondary,
+                                )
+                            } else {
+                                TokenDetailsSection(
+                                    modifier = Modifier
+                                        .fillParentMaxWidth(),
+                                    state = state,
+                                    dispatch = dispatch
+                                )
+                            }
+                        }
+
+                        if (!state.isCashReserve) {
+                            // market cap
+                            state.marketCap?.let { mcap ->
+                                val loadable = state.historicalMarketCapData[state.selectedPeriod] ?: Loadable.Loaded(emptyList())
+                                item {
+                                    MarketCapSection(
+                                        modifier = Modifier
+                                            .fillParentMaxWidth(),
+                                        contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
+                                        marketCap = mcap,
+                                        chartEnabled = state.marketCapChartEnabled,
+                                        selectedPeriod = state.selectedPeriod,
+                                        rawHistoricalData = loadable,
+                                        onPeriodSelected = {
+                                            dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
+                                        },
+                                    )
+                                }
+                            }
+                        }
+
+                        item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) }
                     }
                 }
 
-                item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) }
             }
         }
     }
@@ -213,65 +264,71 @@ private fun BottomBarButtons(
     modifier: Modifier = Modifier,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        if (state.isCashReserve && state.cashReservesEnabled) {
-            CodeButton(
-                modifier = Modifier.weight(1f),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_withdraw),
+    when (val loadable = state.token) {
+        is Loadable.Error -> Unit
+        is Loadable.Loaded -> {
+            Row(
+                modifier = modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Transfers.Withdrawal.Amount(state.mint!!)
-                    )
-                )
-            }
-        } else if (state.cashReservesEnabled) {
-            CodeButton(
-                modifier = Modifier.weight(1f),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_buy),
-            ) {
-                dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
-            }
-
-            if (state.canSell) {
-                CodeButton(
-                    modifier = Modifier
-                        .weight(1f),
-                    buttonState = ButtonState.Filled20,
-                    text = stringResource(R.string.action_sell),
-                ) {
-                    dispatch(
-                        TokenInfoViewModel.Event.OpenScreen(
-                            AppRoute.Token.SwapTransact(
-                                purpose = TokenSwapPurpose.Sell(state.token!!.address),
+                if (state.isCashReserve && state.cashReservesEnabled) {
+                    CodeButton(
+                        modifier = Modifier.weight(1f),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(R.string.action_withdraw),
+                    ) {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Transfers.Withdrawal.Amount(loadable.data.address)
                             )
                         )
-                    )
+                    }
+                } else if (state.cashReservesEnabled) {
+                    CodeButton(
+                        modifier = Modifier.weight(1f),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(R.string.action_buy),
+                    ) {
+                        dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
+                    }
+
+                    if (state.canSell) {
+                        CodeButton(
+                            modifier = Modifier
+                                .weight(1f),
+                            buttonState = ButtonState.Filled20,
+                            text = stringResource(R.string.action_sell),
+                        ) {
+                            dispatch(
+                                TokenInfoViewModel.Event.OpenScreen(
+                                    AppRoute.Token.SwapTransact(
+                                        purpose = TokenSwapPurpose.Sell(loadable.data.address),
+                                    )
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(bottom = CodeTheme.dimens.grid.x3)
+                            .navigationBarsPadding(),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(R.string.action_give),
+                    ) {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Main.Give(mint = loadable.data.address)
+                            )
+                        )
+                    }
                 }
             }
-        } else {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x3)
-                    .navigationBarsPadding(),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_give),
-            ) {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Main.Give(mint = state.token?.address!!)
-                    )
-                )
-            }
         }
+        is Loadable.Loading -> Unit
     }
 }

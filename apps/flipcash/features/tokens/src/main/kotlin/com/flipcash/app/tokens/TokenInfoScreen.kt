@@ -61,7 +61,7 @@ class TokenInfoScreen(
             AppBarWithTitle(
                 isInModal = true,
                 title = {
-                    state.token?.let { token ->
+                    state.token.dataOrNull?.let { token ->
                         if (state.isCashReserve && state.cashReservesEnabled) {
                             AppBarDefaults.Title(text = stringResource(R.string.title_cashReserves))
                         } else {
@@ -78,9 +78,11 @@ class TokenInfoScreen(
                     AppBarDefaults.UpNavigation { navigator.pop() }
                 },
                 rightContents = {
-                    if (!state.isCashReserve) {
-                        AppBarDefaults.Share {
-                            viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
+                    state.token.dataOrNull?.let {
+                        if (!state.isCashReserve) {
+                            AppBarDefaults.Share {
+                                viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
+                            }
                         }
                     }
                 },

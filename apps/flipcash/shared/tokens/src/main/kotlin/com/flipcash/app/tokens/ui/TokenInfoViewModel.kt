@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
@@ -70,7 +71,7 @@ class TokenInfoViewModel @Inject constructor(
 ) {
     data class State(
         val mint: Mint? = null,
-        val token: Token? = null,
+        val token: Loadable<Token> = Loadable.Loading(),
         val marketCap: Fiat? = null,
         val cashReservesEnabled: Boolean = false,
         val marketCapChartEnabled: Boolean = false,
@@ -90,14 +91,14 @@ class TokenInfoViewModel @Inject constructor(
             get() = cashReservesEnabled && reservesBalance.underlyingTokenAmount.valueNonZero()
 
         val isCashReserve: Boolean
-            get() = token?.address == Mint.usdf
+            get() = token.dataOrNull?.address == Mint.usdf
     }
 
     sealed interface Event {
         data class CashReservesEnabled(val enabled: Boolean) : Event
         data class MarketCapChartEnabled(val enabled: Boolean) : Event
         data class OnMintProvided(val mint: Mint, val forNeededFunds: Boolean = false) : Event
-        data class OnTokenChanged(val token: Token, val forNeededFunds: Boolean = false) : Event
+        data class OnTokenChanged(val token: Loadable<Token>, val forNeededFunds: Boolean = false) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
         data class LoadHistoricalDataForPeriod(val period: Period, val evict: Boolean = false) : Event
 
@@ -133,11 +134,20 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
+            .onEach { dispatchEvent(Event.OnTokenChanged(Loadable.Loading())) }
             .onEach {
                 tokenController.getTokenMetadata(it.mint)
                     .onSuccess { result ->
-                        dispatchEvent(Event.OnTokenChanged(result.token, it.forNeededFunds))
-                    }.onFailure {
+                        dispatchEvent(Event.OnTokenChanged(Loadable.Loaded(result.token), it.forNeededFunds))
+                    }.onFailure { cause ->
+                        dispatchEvent(
+                            Event.OnTokenChanged(
+                                Loadable.Error(
+                                    message = resources.getString(R.string.error_description_tokenNotFound),
+                                    error = cause
+                                )
+                            )
+                        )
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_tokenNotFound),
                             message = resources.getString(R.string.error_description_tokenNotFound),
@@ -150,6 +160,8 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
             .distinctUntilChanged()
+            .filter { it.token.isLoaded() }
+            .map { it.token.dataOrNull!! to it.forNeededFunds }
             .flatMapLatest { (token, _) ->
                 combine(
                     tokenController.balanceForToken(token.address),
@@ -260,7 +272,7 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnBalanceUpdated>()
             .map { _ ->
-                val token = stateFlow.value.token ?: return@map null
+                val token = stateFlow.value.token.dataOrNull ?: return@map null
                 token.marketCap()
             }
             .flatMapLatest { mcap ->
@@ -301,7 +313,7 @@ class TokenInfoViewModel @Inject constructor(
                                             dispatchEvent(
                                                 Event.OpenScreen(
                                                     AppRoute.Token.SwapTransact(
-                                                        purpose = TokenSwapPurpose.Buy(stateFlow.value.token!!.address),
+                                                        purpose = TokenSwapPurpose.Buy(stateFlow.value.token.dataOrNull!!.address),
                                                         forNeededFunds = it.forNeededFunds
                                                     )
                                                 )
@@ -351,7 +363,7 @@ class TokenInfoViewModel @Inject constructor(
                                     onClick = {
                                         // start the onramp flow here since we skip the provider list
                                         OnRampFlowTracker.start(
-                                            AppRoute.Token.Info(stateFlow.value.token!!.address)
+                                            AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
                                         )
 
                                         dispatchEvent(Event.ConnectPhantomWallet)
@@ -374,7 +386,7 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.Share>()
-            .mapNotNull { stateFlow.value.token }
+            .mapNotNull { stateFlow.value.token.dataOrNull }
             .map { Shareable.TokenInfo(it) }
             .onEach { shareController.present(it) }
             .launchIn(viewModelScope)
