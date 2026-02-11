@@ -16,6 +16,7 @@ import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.toFiat
@@ -50,13 +51,25 @@ class SelectTokenViewModel @Inject constructor(
 
     data class State(
         val purpose: TokenPurpose,
+        val rate: Rate = Rate.oneToOne,
         val reservesEnabled: Boolean = false,
         val preferredOnRampProvider: OnRampProvider? = null,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
     ) {
         val totalBalance: LocalFiat
-            get() = tokens.orEmpty().map { it.balance }.sum()
+            get() {
+                val set = tokens.orEmpty()
+                if (set.isEmpty()) {
+                    return LocalFiat.Zero
+                        .copy(
+                            nativeAmount = 0.toFiat(currencyCode = rate.currency),
+                            rate = rate
+                        )
+                }
+
+                return set.map { it.balance }.sum()
+            }
 
         val aggregateAppreciation: LocalFiat?
             get() = tokens?.map { it.appreciation }?.sum()
@@ -65,6 +78,8 @@ class SelectTokenViewModel @Inject constructor(
     sealed interface Event {
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
         data class OnReservesEnabled(val enabled: Boolean) : Event
+
+        data class OnRateChanged(val rate: Rate): Event
 
         data class OnPurposeChanged(val purpose: TokenPurpose) : Event
         data class OnTokensUpdated(val tokens: List<TokenWithLocalizedBalance>) : Event
@@ -106,8 +121,28 @@ class SelectTokenViewModel @Inject constructor(
                         TokenPurpose.Deposit -> exchange.observeEntryRate()
                     }
                 ) { state, balances, rate ->
+                    dispatchEvent(Event.OnRateChanged(rate))
                     balances
                         .map {
+                            val balance = LocalFiat(
+                                usdf = it.balance,
+                                nativeAmount = it.balance.convertingTo(rate),
+                            )
+
+                            // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
+                            // with true zero's.
+                            val appreciation = if (it.appreciation == Fiat.MIN_VALUE) {
+                                LocalFiat(
+                                    usdf = 0.toFiat(),
+                                    nativeAmount = 0.toFiat(rate.currency),
+                                )
+                            } else {
+                                LocalFiat(
+                                    usdf = it.appreciation,
+                                    nativeAmount = it.appreciation.convertingTo(rate),
+                                )
+                            }
+
                             TokenWithLocalizedBalance(
                                 token = it.token,
                                 displayName = if (it.token.address == Mint.usdf) {
@@ -115,23 +150,8 @@ class SelectTokenViewModel @Inject constructor(
                                 } else {
                                     it.token.name
                                 },
-                                balance = LocalFiat(
-                                    usdf = it.balance,
-                                    nativeAmount = it.balance.convertingTo(rate),
-                                ),
-                                // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
-                                // with true zero's.
-                                appreciation = if (it.appreciation == Fiat.MIN_VALUE) {
-                                    LocalFiat(
-                                        usdf = 0.toFiat(),
-                                        nativeAmount = 0.toFiat(rate.currency),
-                                    )
-                                } else {
-                                    LocalFiat(
-                                        usdf = it.appreciation,
-                                        nativeAmount = it.appreciation.convertingTo(rate),
-                                    )
-                                }
+                                balance = balance,
+                                appreciation = appreciation
                             )
                         }
                         .sortedWith(compareByDescending { item ->
@@ -191,6 +211,10 @@ class SelectTokenViewModel @Inject constructor(
 
                 is Event.OnReservesEnabled -> { state ->
                     state.copy(reservesEnabled = event.enabled)
+                }
+
+                is Event.OnRateChanged -> { state ->
+                    state.copy(rate = event.rate)
                 }
 
                 is Event.OnPurposeChanged -> { state -> state.copy(purpose = event.purpose) }

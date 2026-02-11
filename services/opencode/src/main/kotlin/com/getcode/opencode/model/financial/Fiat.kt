@@ -125,6 +125,14 @@ data class Fiat(
     // String representation
     override fun toString(): String = formatted()
 
+    fun debugInfo(): String = "quarks: $quarks," +
+            "decimalValue: $decimalValue," +
+            "currencyCode: $currencyCode," +
+            "isPositive: $isPositive," +
+            "isNegative: $isNegative," +
+            "formatted(): ${formatted()}," +
+            "rounded(): ${rounded()}"
+
     // Currency conversion
     fun convertingTo(rate: Rate): Fiat = Fiat(
         fiat = (quarks.toDouble() / MULTIPLIER) * rate.fx,
@@ -208,7 +216,9 @@ data class Fiat(
                 estimation = {
                     Estimator.sell(
                         amountInQuarks = quarks,
-                        marketState = MarketState.FromSupply(token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,),
+                        marketState = MarketState.FromSupply(
+                            token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
+                        ),
                         mintDecimals = token.decimals,
                         outputDecimals = 6, // The desired value here is USDF which is 6
                         feeBps = 0,

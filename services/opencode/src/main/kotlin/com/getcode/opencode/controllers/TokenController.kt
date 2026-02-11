@@ -98,7 +98,7 @@ class TokenController @Inject constructor(
     val tokenBalances: Flow<List<TokenWithBalance>> = _state.map { state ->
         state.balances.mapNotNull { (mint, balance) ->
             val token = state.tokens[mint] ?: return@mapNotNull null
-            val appreciation = if (mint == Mint.usdf) Fiat.Zero else state.appreciation[mint] ?: Fiat.Zero
+            val appreciation = if (mint == Mint.usdf) Fiat.MIN_VALUE else state.appreciation[mint] ?: Fiat.Zero
             TokenWithBalance(token, balance, appreciation)
         }
     }
