@@ -5,7 +5,10 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.grpc.ManagedChannel
 
-abstract class GrpcApi(protected val managedChannel: ManagedChannel): DefaultLifecycleObserver {
+abstract class GrpcApi(protected val managedChannels: List<ManagedChannel>): DefaultLifecycleObserver {
+
+    constructor(managedChannel: ManagedChannel): this(listOf(managedChannel))
+    constructor(vararg managedChannels: ManagedChannel): this(managedChannels.toList())
 
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
@@ -18,6 +21,6 @@ abstract class GrpcApi(protected val managedChannel: ManagedChannel): DefaultLif
     }
 
     private fun warmUp() {
-        managedChannel.getState(true)
+        managedChannels.onEach { it.enterIdle() }
     }
 }

@@ -13,10 +13,11 @@ import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class ProfileApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,

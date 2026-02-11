@@ -9,6 +9,7 @@ import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository
 import com.getcode.opencode.internal.domain.repositories.InternalCurrencyRepository
@@ -44,6 +45,8 @@ import io.grpc.android.AndroidChannelBuilder
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @InstallIn(SingletonComponent::class)
 @Module
@@ -89,8 +92,28 @@ object OpenCodeModule {
             .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(config.baseUrl, config.port))
             .context(context)
             .userAgent(config.userAgent)
-            .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-            .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .keepAliveWithoutCalls(false)
+            .idleTimeout(5, TimeUnit.MINUTES) // drop idle connections
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    this.intercept(LoggingClientInterceptor())
+                }
+            }
+            .build()
+    }
+
+    @Singleton
+    @Provides
+    @OpenCodeManagedStreamingChannel
+    fun provideManagedStreamingChannel(
+        @ApplicationContext context: Context,
+        @OpenCodeProtocol
+        config: ProtocolConfig,
+    ): ManagedChannel {
+        return AndroidChannelBuilder
+            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(config.baseUrl, config.port))
+            .context(context)
+            .userAgent(config.userAgent)
             .keepAliveWithoutCalls(true)
             .apply {
                 if (BuildConfig.DEBUG) {

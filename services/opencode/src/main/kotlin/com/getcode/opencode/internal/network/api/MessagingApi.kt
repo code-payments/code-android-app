@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class MessagingApi @Inject constructor(
     @OpenCodeManagedChannel
     managedChannel: ManagedChannel,

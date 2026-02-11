@@ -137,7 +137,10 @@ object RepositoryFactory {
             OpenCodeModule::class.java,
         )
 
-        val api = CurrencyApi(module.provideManagedChannel(context, config))
+        val api = CurrencyApi(
+            managedChannel = module.provideManagedChannel(context, config),
+            streamingChannel = module.provideManagedStreamingChannel(context, config)
+        )
         val mintMapper = MintMapper(
             vmMetadataMapper = VmMetadataMapper(),
             launchpadMetadataMapper = LaunchpadMetadataMapper(),

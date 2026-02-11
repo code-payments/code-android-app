@@ -13,7 +13,9 @@ import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class PhoneVerificationApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,

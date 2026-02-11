@@ -2,6 +2,7 @@ package com.getcode.opencode.repositories
 
 import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.opencode.internal.network.streamers.ManagedMintStream
 import com.getcode.opencode.internal.network.streamers.OcpMintStreamingReference
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
@@ -17,7 +18,7 @@ interface CurrencyRepository {
         mints: List<Mint>,
         tag: String? = null,
         onUpdate: (LiveMintDataResponse) -> Unit,
-    ): OcpMintStreamingReference
+    ): ManagedMintStream
 
     suspend fun getMintMetadata(addresses: List<Mint>): Result<List<MintMetadata>>
 

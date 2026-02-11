@@ -3,26 +3,33 @@ package com.getcode.opencode.internal.network.api
 import com.codeinc.opencode.gen.currency.v1.CurrencyGrpcKt
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
+import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
+import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.internal.network.core.GrpcApi
-import com.getcode.opencode.internal.network.extensions.asProtobufTimestamp
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.grpc.ManagedChannel
-import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class CurrencyApi @Inject constructor(
     @OpenCodeManagedChannel
     managedChannel: ManagedChannel,
-) : GrpcApi(managedChannel) {
+
+    @OpenCodeManagedStreamingChannel
+    streamingChannel: ManagedChannel,
+) : GrpcApi(managedChannel, streamingChannel) {
 
     private val api = CurrencyGrpcKt.CurrencyCoroutineStub(managedChannel)
+        .withWaitForReady()
+
+    private val streamingApi = CurrencyGrpcKt.CurrencyCoroutineStub(streamingChannel)
         .withWaitForReady()
 
     /**
@@ -73,6 +80,6 @@ internal class CurrencyApi @Inject constructor(
     fun streamLiveMintData(
         requests: Flow<CurrencyService.StreamLiveMintDataRequest>
     ): Flow<CurrencyService.StreamLiveMintDataResponse> {
-        return api.streamLiveMintData(requests)
+        return streamingApi.streamLiveMintData(requests)
     }
 }

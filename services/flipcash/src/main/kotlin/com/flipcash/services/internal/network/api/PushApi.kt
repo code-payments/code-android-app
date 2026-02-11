@@ -14,7 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class PushApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,

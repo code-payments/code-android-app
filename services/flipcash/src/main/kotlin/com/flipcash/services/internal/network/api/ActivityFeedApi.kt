@@ -15,9 +15,10 @@ import com.getcode.opencode.model.core.ID
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 internal class ActivityFeedApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,

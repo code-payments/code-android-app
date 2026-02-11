@@ -10,6 +10,7 @@ import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
+import com.getcode.opencode.internal.network.streamers.ManagedMintStream
 import com.getcode.opencode.internal.network.streamers.OcpMintStreamingReference
 import com.getcode.opencode.model.core.errors.GetHistoricalMintDataError
 import com.getcode.opencode.model.core.errors.GetMintsError
@@ -92,7 +93,7 @@ internal class CurrencyService @Inject constructor(
         scope: CoroutineScope,
         mints: List<Mint>,
         onUpdate: (LiveMintDataResponse) -> Unit
-    ): OcpMintStreamingReference {
+    ): ManagedMintStream {
         val streamer = LiveMintDataStreamer(api)
         return streamer.stream(scope = scope, mints = mints, tag = tag,) { update ->
             // save protos for later use

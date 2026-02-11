@@ -11,3 +11,14 @@ import javax.inject.Qualifier
     AnnotationTarget.FIELD
 )
 internal annotation class OpenCodeManagedChannel
+
+
+@Qualifier
+@Target(
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY_GETTER,
+    AnnotationTarget.PROPERTY_SETTER,
+    AnnotationTarget.VALUE_PARAMETER,
+    AnnotationTarget.FIELD
+)
+internal annotation class OpenCodeManagedStreamingChannel

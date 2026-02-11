@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.TimeoutException
 import kotlin.collections.forEach
 import kotlin.coroutines.resume
 
@@ -41,6 +42,20 @@ class IntentExecutor(
             message = "Opening stream."
         )
         val streamReference = OcpIntentStreamReference(scope, "submitIntent")
+
+        streamReference.timeoutHandler = {
+            trace(
+                tag = "SubmitIntent",
+                message = "Stream timed out, cleaning up.",
+                type = TraceType.Error
+            )
+            streamReference.cancel()
+            if (!cont.isCompleted) {
+                cont.resume(Result.failure(SubmitIntentError.Other(
+                    cause = TimeoutException("Intent stream timed out")
+                )))
+            }
+        }
 
         streamReference.retain()
 

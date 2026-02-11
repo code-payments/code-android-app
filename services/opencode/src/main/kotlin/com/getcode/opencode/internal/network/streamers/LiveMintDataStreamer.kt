@@ -7,6 +7,7 @@ import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import kotlinx.coroutines.CoroutineScope
@@ -23,45 +24,78 @@ internal class LiveMintDataStreamer @Inject constructor(
         mints: List<Mint>,
         tag: String? = null,
         onUpdate: (CurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
-    ): OcpMintStreamingReference {
+    ): ManagedMintStream {
         trace(
             tag = "Mint Streamer",
             message = "Opening live data stream"
         )
 
-        val streamReference = OcpMintStreamingReference(scope, "live mint data - $tag")
+        val stream = ManagedMintStream(
+            scope = scope,
+            tag = tag,
+            mints = mints,
+            onUpdate = onUpdate,
+            api = currencyApi,
+        )
 
-        streamReference.retain()
+        stream.start()
 
-        streamReference.timeoutHandler = {
+        return stream
+    }
+}
+
+class ManagedMintStream internal constructor(
+    private val scope: CoroutineScope,
+    private val tag: String?,
+    private val mints: List<Mint>,
+    private val onUpdate: (CurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
+    private val api: CurrencyApi,
+) {
+    private var activeReference: OcpMintStreamingReference? = null
+    private var isDestroyed = false
+
+    fun start() {
+        connect()
+    }
+
+    private fun connect() {
+        if (isDestroyed) return
+
+        val ref = OcpMintStreamingReference(scope, "live mint data - $tag")
+        activeReference = ref
+
+        ref.retain()
+
+        ref.timeoutHandler = {
             trace(
                 tag = "Mint Streamer",
-                message = "Live data stream timed out"
+                message = "Live data stream timed out for $tag, reconnecting...",
+                type = TraceType.Error
             )
-            openStream(
-                reference = streamReference,
-                mints = mints,
-                onUpdate = onUpdate,
-            )
+            ref.destroy()
+
+            // Reconnect with a fresh reference
+            connect()
         }
 
         scope.launch {
             try {
-                openStream(
-                    streamReference,
-                    mints = mints,
-                    onUpdate = onUpdate,
-                )
+                openStream(ref, mints, onUpdate)
             } catch (e: Exception) {
                 trace(
                     tag = "Mint Streamer",
-                    message = "Failed to open stream.",
+                    message = "Failed to open stream for $tag.",
                     error = e
                 )
             }
         }
+    }
 
-        return streamReference
+    fun cancel() {
+        isDestroyed = true
+        activeReference?.complete()
+        activeReference?.destroy()
+        activeReference = null
     }
 
     private fun openStream(
@@ -70,7 +104,7 @@ internal class LiveMintDataStreamer @Inject constructor(
         onUpdate: (CurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
     ) = openBidirectionalStream(
         streamRef = reference,
-        apiCall = currencyApi::streamLiveMintData,
+        apiCall = api::streamLiveMintData,
         reconnectOnCancelled = true,
         reconnectOnUnavailable = true,
         reconnectOnDeadlineExceeded = true,
