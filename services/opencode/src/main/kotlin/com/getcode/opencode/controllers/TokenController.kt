@@ -483,6 +483,7 @@ class TokenController @Inject constructor(
 
             if (tokenWithBalance != null) {
                 applyTokenUpdates(listOf(tokenWithBalance))
+                ensureValidTokenSelection()
             }
         } catch (e: Exception) {
             trace(
@@ -578,10 +579,10 @@ class TokenController @Inject constructor(
                 type = TraceType.Process
             )
             _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
-        }
 
-        scope.launch(Dispatchers.IO) {
-            updateTokenAccount(token.address)
+            scope.launch(Dispatchers.IO) {
+                updateTokenAccount(token.address)
+            }
         }
     }
 
