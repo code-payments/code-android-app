@@ -65,8 +65,6 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     var isStoragePermissionGranted by remember { mutableStateOf(false) }
     val isAccessKeyVisible = remember { MutableTransitionState(false) }
 
-    var saved by remember(dataState.exportState.success) { mutableStateOf(dataState.exportState.success) }
-
     val onPermissionResult = { result: PermissionResult ->
         isStoragePermissionGranted = result == PermissionResult.Granted
 
@@ -93,10 +91,6 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
         if (isExportSeedRequested && isStoragePermissionGranted) {
             viewModel.saveImage()
-                .onSuccess {
-                    delay(2.seconds)
-                    saved = false
-                }
                 .onFailure {
                     isExportSeedRequested = false
                 }
@@ -169,7 +163,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
                         buttonState = ButtonState.Filled,
                         isLoading = dataState.exportState.loading,
                         enabled = dataState.exportState.isIdle,
-                        isSuccess = saved,
+                        isSuccess = dataState.exportState.success,
                     )
                 }
             }

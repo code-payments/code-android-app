@@ -6,8 +6,12 @@ import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 internal class BackupKeyScreenViewModel @Inject constructor(
@@ -23,7 +27,14 @@ internal class BackupKeyScreenViewModel @Inject constructor(
     userManager,
     qrCodeGenerator
 ) {
-    suspend fun saveImage(): Result<Unit> = saveBitmapToFile()
-        .map { Unit }
+    suspend fun saveImage(): Result<Unit> = saveBitmapToFile().map {
+        delay(150)
+        uiFlow.update { s -> s.copy(exportState = LoadingSuccessState(success = true)) }
+        it
+    }.map {
+        delay(2.seconds)
+        uiFlow.update { s -> s.copy(exportState = LoadingSuccessState()) }
+        it
+    }
 
 }
