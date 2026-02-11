@@ -13,6 +13,9 @@
     public static <fields>;
 }
 
+# Keep screen names
+-keepnames class * implements cafe.adriel.voyager.core.screen.Screen
+
 # Flipcash protos
 -keep class com.codeinc.flipcash.gen.** {*;}
 # Flipcash services
