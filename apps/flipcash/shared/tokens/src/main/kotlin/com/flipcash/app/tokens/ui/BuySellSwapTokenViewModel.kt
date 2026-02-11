@@ -37,6 +37,7 @@ import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -367,6 +368,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 usdf = balance,
                 nativeAmount = balance.convertingTo(rate),
             )
+        }.filter {
+            stateFlow.value.buyProgress.isIdle && stateFlow.value.sellProgress.isIdle
         }.onEach {
             dispatchEvent(Event.OnReservesUpdated(TokenWithBalance(Token.usdf, it.nativeAmount)))
         }.launchIn(viewModelScope)
@@ -540,9 +543,9 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     of = token,
                 ).onSuccess { swapId ->
                     dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
+                    dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                     // buy submitted from reserves, drop reserves balance
                     tokenController.subtract(Token.usdf, amount)
-                    dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                 }.onFailure {
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
                     BottomBarManager.showError(
@@ -569,9 +572,9 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     of = token,
                 ).onSuccess { swapId ->
                     dispatchEvent(Event.OnSellSubmitted(token, swapId))
+                    dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                     // sell submitted, drop from balance
                     tokenController.subtract(token, amount)
-                    dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                 }.onFailure {
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
                     BottomBarManager.showError(
@@ -598,7 +601,12 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }.onResult(
                 onSuccess = {
                     val token = stateFlow.value.tokenWithBalance!!.token
+                    val isUsingReserves = stateFlow.value.purpose is TokenSwapPurpose.Buy ||
+                            stateFlow.value.purpose is TokenSwapPurpose.Sell
                     viewModelScope.launch { tokenController.updateTokenAccount(token) }
+                    if (isUsingReserves) {
+                        viewModelScope.launch { tokenController.updateTokenAccount(Mint.usdf) }
+                    }
                     viewModelScope.launch {
                         // update activity feed to grab the tx as a result of this buy/sell
                         feedCoordinator.fetchSinceLatest()
@@ -606,7 +614,6 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
                 },
                 onError = {
-                    // TODO: show error
                     dispatchEvent(Event.UpdateProcessingState(loading = false, success = false, error = true))
                 }
             ).launchIn(viewModelScope)

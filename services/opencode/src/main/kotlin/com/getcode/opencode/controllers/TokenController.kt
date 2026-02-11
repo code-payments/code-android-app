@@ -320,7 +320,7 @@ class TokenController @Inject constructor(
 
         trace(
             tag = TAG,
-            message = "Token metadata cache miss for ${mint.base58()}..., fetching from network",
+            message = "Token metadata cache miss for ${mint.base58()}, fetching from network",
             type = TraceType.Process
         )
 
@@ -338,7 +338,7 @@ class TokenController @Inject constructor(
             .onFailure { error ->
                 trace(
                     tag = TAG,
-                    message = "Failed to fetch token metadata for ${mint.base58()}...: ${error.message}",
+                    message = "Failed to fetch token metadata for ${mint.base58()}: ${error.message}",
                     type = TraceType.Error
                 )
             }
@@ -357,7 +357,7 @@ class TokenController @Inject constructor(
         val token = _state.value.tokens[mint]
         trace(
             tag = TAG,
-            message = "Token selected: ${token?.symbol ?: mint.base58()}...",
+            message = "Token selected: ${token?.symbol ?: mint.base58()}",
             type = TraceType.User
         )
         selectedToken.edit { it[mintPreferenceKey] = mint.base58() }
@@ -382,7 +382,7 @@ class TokenController @Inject constructor(
     ): Result<List<HistoricalMintData>> {
         trace(
             tag = TAG,
-            message = "Fetching historical market cap for ${mint.base58()}..., range=$windowedRange",
+            message = "Fetching historical market cap for ${mint.base58()}, range=$windowedRange",
             type = TraceType.Process
         )
 
@@ -451,7 +451,7 @@ class TokenController @Inject constructor(
         if (!fetchingMints.add(mint)) {
             trace(
                 tag = TAG,
-                message = "Skipping duplicate fetch for ${mint.base58()}...",
+                message = "Skipping duplicate fetch for ${mint.base58()}",
                 type = TraceType.Process
             )
             return
@@ -460,7 +460,7 @@ class TokenController @Inject constructor(
         try {
             trace(
                 tag = TAG,
-                message = "Fetching token account for ${mint.base58()}...",
+                message = "Fetching token account for ${mint.base58()}",
                 type = TraceType.Process
             )
 
@@ -473,7 +473,7 @@ class TokenController @Inject constructor(
             if (account == null) {
                 trace(
                     tag = TAG,
-                    message = "No primary account found for ${mint.base58()}...",
+                    message = "No primary account found for ${mint.base58()}",
                     type = TraceType.Error
                 )
                 return
