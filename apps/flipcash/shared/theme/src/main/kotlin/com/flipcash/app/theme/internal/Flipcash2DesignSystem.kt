@@ -39,15 +39,18 @@ object Flipcash2ColorSpec {
     val accessKey = GradientSpec(
         background = Color.Black,
         colors = listOf(
-            Color(0xFF1A1A1A),
-            Color(0xFF252525),
+            Color(0xFF1E1E1E),
             Color(0xFF2A2A2A),
-            Color(0xFF1F1F1F),
-            Color(0xFF1A1A1A),
+            Color(0xFF3C3C3C),
+            Color(0xFF5A5A5A),
+            Color(0xFF808080),
+            Color(0xFF959595),
+            Color(0xFF4A4A4A),
+            Color(0xFF303030),
         ),
-        stops = listOf(0f, 0.3f, 0.6f, 0.8f, 1f),
-        borderColor = Color(0xFF3A3A3A),
-        borderWidth = 4f
+        stops = listOf(0f, 0.15f, 0.30f, 0.45f, 0.60f, 0.72f, 0.85f, 1f),
+        borderColor = null,
+        borderWidth = 0f,
     )
 }
 

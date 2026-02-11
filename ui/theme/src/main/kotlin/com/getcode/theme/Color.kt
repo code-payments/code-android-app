@@ -71,7 +71,7 @@ data class GradientSpec(
     val colors: List<Color>,
     val stops: List<Float>,
     val borderColor: Color? = null,
-    val borderWidth: Float = 0f
+    val borderWidth: Float = 0f,
 ) {
     val colorsArray = colors.map { it.toAGColor() }.toIntArray()
     val stopsArray = stops.toFloatArray()
