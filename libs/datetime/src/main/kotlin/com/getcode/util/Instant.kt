@@ -31,3 +31,15 @@ fun Instant.format(format: String = "yyyy-MM-dd", locale: Locale = Locale.getDef
 
     return formatter.format(date)
 }
+
+fun Instant.formatLocalized(
+    if12Hour: String,
+    is24Hour: Boolean = false,
+    if24Hour: String = if12Hour,
+): String {
+    return if (is24Hour) {
+        format(if24Hour, Locale.US)
+    } else {
+        format(if12Hour, Locale.US)
+    }
+}

@@ -1,5 +1,7 @@
 package com.flipcash.app.transactions.internal.components
 
+import android.text.format.DateFormat
+import android.text.format.DateUtils
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,13 +11,14 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.ui.FlagWithFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.noRippleClickable
-import com.getcode.util.DateUtils
 import com.getcode.util.format
+import com.getcode.util.formatLocalized
 import kotlinx.datetime.Instant
 
 
@@ -72,9 +75,12 @@ internal fun FeedItemSummary(
     }
 }
 
+@Composable
 private fun Instant.formatRelativeToToday(): String {
+    val context = LocalContext.current
+    val is24Hour = DateFormat.is24HourFormat(context)
     if (DateUtils.isToday(toEpochMilliseconds())) {
-        return format("hh:mm a")
+        return formatLocalized("hh:mm a", is24Hour = is24Hour, if24Hour = "hh:mm")
     }
     return format("MMMM dd, yyyy")
 }

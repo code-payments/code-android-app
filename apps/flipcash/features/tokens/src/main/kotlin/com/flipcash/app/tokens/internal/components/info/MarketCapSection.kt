@@ -46,6 +46,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.util.format
+import com.getcode.util.formatLocalized
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
@@ -268,22 +269,14 @@ private fun HighlightedPointLabel(
 
         val is24Hour = DateFormat.is24HourFormat(context)
 
-        fun Instant.formatLocalized(if12Hour: String, if24Hour: String = if12Hour): String {
-            return if (is24Hour) {
-                format(if24Hour, Locale.US)
-            } else {
-                format(if12Hour, Locale.US)
-            }
-        }
-
         when (period) {
             Period.All -> instant.formatLocalized("MMMM d, yyyy")
-            Period.Day -> instant.formatLocalized("hh:mm a", "hh:mm")
+            Period.Day -> instant.formatLocalized("hh:mm a", is24Hour = is24Hour, if24Hour = "hh:mm")
             Period.Week -> {
                 if (isCurrentYear) {
-                    instant.formatLocalized("MMMM d, hh:mm a", "MMMM d, hh:mm")
+                    instant.formatLocalized("MMMM d, hh:mm a", is24Hour = is24Hour, if24Hour = "MMMM d, hh:mm")
                 } else {
-                    instant.formatLocalized("MMMM d, yyyy, hh:mm a", "MMMM d, yyyy, hh:mm")
+                    instant.formatLocalized("MMMM d, yyyy, hh:mm a", is24Hour = is24Hour, if24Hour = "MMMM d, yyyy, hh:mm")
                 }
             }
 
