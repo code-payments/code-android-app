@@ -350,10 +350,12 @@ fun CodeButton(
                 propagateMinConstraints = true,
             ) {
                 Row(
-                    Modifier.defaultMinSize(
-                        minWidth = ButtonDefaults.MinWidth,
-                        minHeight = ButtonDefaults.MinHeight,
-                    ).padding(cp),
+                    Modifier
+                        .defaultMinSize(
+                            minWidth = ButtonDefaults.MinWidth,
+                            minHeight = ButtonDefaults.MinHeight,
+                        )
+                        .padding(cp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -371,7 +373,13 @@ fun CodeButton(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        ProvideTextStyle(value = style.copy(color = colors.contentColor(enabled).value)) {
+                                        ProvideTextStyle(
+                                            value = style.copy(
+                                                color = colors.contentColor(
+                                                    enabled
+                                                ).value
+                                            )
+                                        ) {
                                             this@Row.content()
                                         }
                                     }
@@ -413,9 +421,7 @@ fun CodeButton(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-private val FROSTED_GLASS_SHADER = RuntimeShader(
-    """
+private val FROSTED_GLASS_SHADER = """
     uniform shader content;
     uniform float2 resolution;
     uniform float blurRadius;
@@ -435,7 +441,6 @@ private val FROSTED_GLASS_SHADER = RuntimeShader(
         return color;
     }
 """
-)
 
 fun Modifier.frostedGlass(
     tint: Color = Color.White.copy(alpha = 0.1f),
@@ -443,13 +448,14 @@ fun Modifier.frostedGlass(
     shape: Shape = RectangleShape
 ): Modifier = this.then(
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val shader = RuntimeShader(FROSTED_GLASS_SHADER)
         Modifier
             .drawWithContent {
                 drawRect(tint)
 
-                FROSTED_GLASS_SHADER.setFloatUniform("resolution", size.width, size.height)
-                FROSTED_GLASS_SHADER.setFloatUniform("noiseStrength", noiseStrength)
-                drawRect(brush = ShaderBrush(FROSTED_GLASS_SHADER))
+                shader.setFloatUniform("resolution", size.width, size.height)
+                shader.setFloatUniform("noiseStrength", noiseStrength)
+                drawRect(brush = ShaderBrush(shader))
 
                 drawContent()
             }
