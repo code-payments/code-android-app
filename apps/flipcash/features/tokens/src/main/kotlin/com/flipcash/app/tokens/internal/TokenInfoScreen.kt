@@ -273,58 +273,48 @@ private fun BottomBarButtons(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                if (state.isCashReserve && state.cashReservesEnabled) {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(R.string.action_withdraw),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Transfers.Withdrawal.Amount(loadable.data.address)
-                            )
-                        )
-                    }
-                } else if (state.cashReservesEnabled) {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(R.string.action_buy),
-                    ) {
-                        dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
-                    }
+                if (!state.isCashReserve) {
+                    if (state.cashReservesEnabled) {
+                        CodeButton(
+                            modifier = Modifier.weight(1f),
+                            buttonState = ButtonState.Filled,
+                            text = stringResource(R.string.action_buy),
+                        ) {
+                            dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
+                        }
 
-                    if (state.canSell) {
+                        if (state.canSell) {
+                            CodeButton(
+                                modifier = Modifier
+                                    .weight(1f),
+                                buttonState = ButtonState.Filled20,
+                                text = stringResource(R.string.action_sell),
+                            ) {
+                                dispatch(
+                                    TokenInfoViewModel.Event.OpenScreen(
+                                        AppRoute.Token.SwapTransact(
+                                            purpose = TokenSwapPurpose.Sell(loadable.data.address),
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    } else {
                         CodeButton(
                             modifier = Modifier
-                                .weight(1f),
-                            buttonState = ButtonState.Filled20,
-                            text = stringResource(R.string.action_sell),
+                                .fillMaxWidth()
+                                .padding(horizontal = CodeTheme.dimens.inset)
+                                .padding(bottom = CodeTheme.dimens.grid.x3)
+                                .navigationBarsPadding(),
+                            buttonState = ButtonState.Filled,
+                            text = stringResource(R.string.action_give),
                         ) {
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Token.SwapTransact(
-                                        purpose = TokenSwapPurpose.Sell(loadable.data.address),
-                                    )
+                                    AppRoute.Main.Give(mint = loadable.data.address)
                                 )
                             )
                         }
-                    }
-                } else {
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(bottom = CodeTheme.dimens.grid.x3)
-                            .navigationBarsPadding(),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(R.string.action_give),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Main.Give(mint = loadable.data.address)
-                            )
-                        )
                     }
                 }
             }
