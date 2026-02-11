@@ -99,6 +99,12 @@ class NotificationService : FirebaseMessagingService(),
                 NotificationPayload.fromEncoded(protoString)
             }
 
+        if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
+            launch {
+                tokenController.update()
+            }
+        }
+
         notificationManager.createNotificationChannel(channel)
 
         val notificationBuilder: NotificationCompat.Builder =
