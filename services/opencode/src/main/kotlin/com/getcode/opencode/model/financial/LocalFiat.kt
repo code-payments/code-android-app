@@ -114,11 +114,10 @@ data class LocalFiat(
             debug: Boolean = BuildConfig.DEBUG,
             trace: Boolean = true,
         ): LocalFiat {
-            val usdBalance = balance?.convertingToUsdIfNeeded(rate)
             val usdValue = amount.convertingToUsdIfNeeded(rate)
             // cap the entered amount as well, since our display rounds HALF_UP
             // e,g entered 0.02 USD, but balance is 0.016 USD
-            val cappedValue = usdBalance?.let { min(it, usdValue) } ?: usdValue
+            val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
             if (token.address == Mint.usdf) {
                 // this doesn't need a calculated value exchange since we are USDC
@@ -155,7 +154,7 @@ data class LocalFiat(
                 rate = rate,
                 amount = amount,
                 usdValue = usdValue,
-                balance = usdBalance,
+                balance = balance,
                 cappedValue = cappedValue,
                 token = token,
                 supply = supply,

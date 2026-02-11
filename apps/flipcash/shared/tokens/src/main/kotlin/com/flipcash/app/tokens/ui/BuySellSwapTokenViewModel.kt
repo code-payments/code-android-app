@@ -134,7 +134,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
         val netTransferAmount: Fiat
             get() = when (purpose) {
                is TokenSwapPurpose.BalanceIncrease -> enteredAmount
-               else -> enteredAmount - feeAmount
+               else -> Fiat(fiat = enteredAmount.decimalValue - feeAmount.decimalValue, currencyCode = enteredAmount.currencyCode)
             }
 
         val transactionLimit: Fiat
@@ -473,7 +473,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         val amountFiat = LocalFiat.valueExchangeIn(
                             amount = Fiat(data.amountData.amount, rate.currency),
                             token = Token.usdf,
-                            balance = stateFlow.value.reservesBalance,
+                            balance = stateFlow.value.reservesBalance.convertingToUsdIfNeeded(rate),
                             rate = rate
                         )
 
