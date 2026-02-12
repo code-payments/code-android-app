@@ -6,7 +6,6 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.extensions.fromCode
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode

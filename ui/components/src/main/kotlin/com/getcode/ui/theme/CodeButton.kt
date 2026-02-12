@@ -247,7 +247,7 @@ fun CodeButton(
         bottom = CodeTheme.dimens.grid.x2,
     ),
     overrideContentPadding: Boolean = false,
-    buttonState: ButtonState = ButtonState.Bordered,
+    buttonState: ButtonState = ButtonState.Filled,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
     style: TextStyle = CodeTheme.typography.textMedium,
@@ -280,7 +280,7 @@ fun CodeButton(
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
     enabled: Boolean = true,
-    buttonState: ButtonState = ButtonState.Bordered,
+    buttonState: ButtonState = ButtonState.Filled,
     shape: Shape = CodeTheme.shapes.small,
     contentPadding: PaddingValues = PaddingValues(
         top = CodeTheme.dimens.grid.x2,

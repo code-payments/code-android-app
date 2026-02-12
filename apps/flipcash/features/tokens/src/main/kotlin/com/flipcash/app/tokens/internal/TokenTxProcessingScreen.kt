@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.buildNotifyButtonLabel
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.app.tokens.internal.components.processing.ProcessingLoadingIndicator
 import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
@@ -139,38 +140,15 @@ private fun TokenTxProcessingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
             ) {
-                Crossfade(state.processingProgress) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.24f)
-                            .aspectRatio(1f),
-                    ) {
-                        when (it.state) {
-                            LoadingSuccessState.State.Error -> Image(
-                                modifier = Modifier
-                                    .matchParentSize(),
-                                painter = painterResource(R.drawable.ic_circle_exclamation_large),
-                                contentDescription = null,
-                            )
-
-                            LoadingSuccessState.State.Idle -> Unit
-                            LoadingSuccessState.State.Loading -> CodeCircularProgressIndicator(
-                                modifier = Modifier
-                                    .matchParentSize(),
-                                strokeWidth = CodeTheme.dimens.grid.x1,
-                                color = Color.White,
-                                backgroundColor = Color.White.copy(0.30f),
-                                strokeCap = StrokeCap.Butt,
-                            )
-
-                            LoadingSuccessState.State.Success -> Image(
-                                modifier = Modifier
-                                    .matchParentSize(),
-                                painter = painterResource(R.drawable.ic_circle_check_large),
-                                contentDescription = null,
-                            )
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.24f)
+                        .aspectRatio(1f),
+                ) {
+                    ProcessingLoadingIndicator(
+                        processingState = state.processingProgress,
+                        modifier = Modifier.matchParentSize(),
+                    )
                 }
 
                 Column(

@@ -17,3 +17,14 @@ fun CodeCircularProgressIndicator(
     backgroundColor: Color = Color.Transparent,
     strokeCap: StrokeCap = StrokeCap.Round,
 ) = CircularProgressIndicator(modifier, color, strokeWidth, backgroundColor, strokeCap)
+
+
+@Composable
+fun CodeCircularProgressIndicator(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    color: Color = White,
+    strokeWidth: Dp = ProgressIndicatorDefaults.StrokeWidth,
+    backgroundColor: Color = Color.Transparent,
+    strokeCap: StrokeCap = StrokeCap.Round,
+) = CircularProgressIndicator(progress, modifier, color, strokeWidth, backgroundColor, strokeCap)
