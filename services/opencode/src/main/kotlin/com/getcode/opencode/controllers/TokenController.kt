@@ -1,5 +1,6 @@
 package com.getcode.opencode.controllers
 
+import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
@@ -17,6 +18,9 @@ import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterIsInstance
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,8 +29,8 @@ import javax.inject.Singleton
  *
  * This controller provides direct access to token-related network APIs
  * without any caching, persistence, or state management. It is designed
- * to be usable both within the Flipcash app and as part of a standalone public SDK.
- * (Have that need ever arise)
+ * to be usable both within the Flipcash app (wrapped by [TokenCoordinator])
+ * and as part of a standalone public SDK.
  *
  * All state management (caching, persistence, lifecycle, balance tracking)
  * is the responsibility of the consumer.
@@ -176,6 +180,34 @@ class TokenController @Inject constructor(
             .onFailure { error ->
                 trace(tag = TAG, message = "Failed to fetch historical market cap: ${error.message}", type = TraceType.Error)
             }
+    }
+
+    // endregion
+
+    // region Reserve state streaming
+
+    /**
+     * Creates a flow of reserve state updates for the given mints.
+     *
+     * This is a stateless factory — the caller owns the [CoroutineScope] and
+     * manages the collection lifecycle. The underlying stream also feeds
+     * [VerifiedProtoManager] as a side effect inside [CurrencyService], ensuring
+     * verified protos are available at intent submission time.
+     *
+     * @param scope The [CoroutineScope] that controls the stream's lifetime.
+     * @param mints A reactive flow of mint lists to subscribe to. The stream
+     *   restarts when the mint list changes.
+     * @return A [Flow] of [LiveMintDataResponse.LaunchpadReserveState] updates.
+     */
+    fun streamReserveStates(
+        scope: CoroutineScope,
+        mints: Flow<List<Mint>>,
+    ): Flow<LiveMintDataResponse.LaunchpadReserveState> {
+        return currencyController.streamLiveMintData(
+            scope = scope,
+            mints = mints,
+            tag = "token-reserves"
+        ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
     }
 
     // endregion

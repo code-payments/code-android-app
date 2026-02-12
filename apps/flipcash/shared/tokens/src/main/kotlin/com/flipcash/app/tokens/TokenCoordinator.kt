@@ -11,10 +11,8 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.persistence.sources.TokenDataSource
-import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.LiveMintDataResponse
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -48,7 +46,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -80,7 +77,6 @@ import javax.inject.Singleton
 class TokenCoordinator @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val tokenController: TokenController,
-    private val currencyController: CurrencyController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
     private val dataSource: TokenDataSource,
@@ -401,56 +397,54 @@ class TokenCoordinator @Inject constructor(
             delay(100)
             trace(tag = TAG, message = "Reserve state stream started", type = TraceType.Process)
 
-            currencyController.streamLiveMintData(
+            tokenController.streamReserveStates(
                 scope = this,
                 mints = _state.map { it.tokens.keys.toList() }
                     .distinctUntilChanged().debounce(300),
-                tag = "token-reserves"
-            ).filterIsInstance<LiveMintDataResponse.LaunchpadReserveState>()
-                .collect { response ->
-                    trace(tag = TAG, message = "Received ${response.reserveStates.size} reserve state updates", type = TraceType.Process)
+            ).collect { response ->
+                trace(tag = TAG, message = "Received ${response.reserveStates.size} reserve state updates", type = TraceType.Process)
 
-                    _state.update { state ->
-                        var updatedTokens = state.tokens
-                        var updatedBalances = state.balances
+                _state.update { state ->
+                    var updatedTokens = state.tokens
+                    var updatedBalances = state.balances
 
-                        response.reserveStates.forEach { update ->
-                            val mint = update.reserveState.mint
-                            val token = state.tokens[mint] ?: return@forEach
-                            val launchpad = token.launchpadMetadata ?: return@forEach
+                    response.reserveStates.forEach { update ->
+                        val mint = update.reserveState.mint
+                        val token = state.tokens[mint] ?: return@forEach
+                        val launchpad = token.launchpadMetadata ?: return@forEach
 
-                            val updatedToken = token.copy(
-                                launchpadMetadata = launchpad.copy(
-                                    currentCirculatingSupplyQuarks = update.reserveState.currentSupply
-                                )
+                        val updatedToken = token.copy(
+                            launchpadMetadata = launchpad.copy(
+                                currentCirculatingSupplyQuarks = update.reserveState.currentSupply
                             )
-                            updatedTokens = updatedTokens + (mint to updatedToken)
+                        )
+                        updatedTokens = updatedTokens + (mint to updatedToken)
 
-                            state.balances[mint]?.let { balance ->
-                                val exchangedValue = runCatching {
-                                    LocalFiat.valueExchangeIn(
-                                        amount = balance,
-                                        token = token,
-                                        balance = balance,
-                                        rate = Rate.oneToOne,
-                                        debug = false,
-                                        trace = false,
-                                    ).underlyingTokenAmount
-                                }.getOrNull()
+                        state.balances[mint]?.let { balance ->
+                            val exchangedValue = runCatching {
+                                LocalFiat.valueExchangeIn(
+                                    amount = balance,
+                                    token = token,
+                                    balance = balance,
+                                    rate = Rate.oneToOne,
+                                    debug = false,
+                                    trace = false,
+                                ).underlyingTokenAmount
+                            }.getOrNull()
 
-                                if (exchangedValue != null) {
-                                    val newBalance = Fiat.tokenBalance(
-                                        quarks = exchangedValue.quarks,
-                                        token = token
-                                    )
-                                    updatedBalances = updatedBalances + (mint to newBalance)
-                                }
+                            if (exchangedValue != null) {
+                                val newBalance = Fiat.tokenBalance(
+                                    quarks = exchangedValue.quarks,
+                                    token = token
+                                )
+                                updatedBalances = updatedBalances + (mint to newBalance)
                             }
                         }
-
-                        state.copy(tokens = updatedTokens, balances = updatedBalances)
                     }
+
+                    state.copy(tokens = updatedTokens, balances = updatedBalances)
                 }
+            }
         }
     }
 

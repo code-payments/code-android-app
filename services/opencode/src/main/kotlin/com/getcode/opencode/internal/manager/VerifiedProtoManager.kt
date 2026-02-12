@@ -1,11 +1,11 @@
 package com.getcode.opencode.internal.manager
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
-import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,7 +24,7 @@ class VerifiedProtoManager @Inject constructor() {
     /**
      * A [MutableStateFlow] holding the latest cached exchange rate data.
      * The data is stored in a map where the key is the [CurrencyCode] (e.g., "USD", "EUR")
-     * and the value is the corresponding [VerifiedResponseData.ExchangeRate] object,
+     * and the value is the corresponding [com.getcode.opencode.internal.model.VerifiedResponseData.ExchangeRate] object,
      * which includes the rate and the timestamp of when it was fetched.
      */
     private val exchangeData = MutableStateFlow<Map<CurrencyCode, CurrencyService.VerifiedCoreMintFiatExchangeRate>>(emptyMap())
@@ -38,13 +38,20 @@ class VerifiedProtoManager @Inject constructor() {
     private val reserveStates = MutableStateFlow<Map<Mint, CurrencyService.VerifiedLaunchpadCurrencyReserveState>>(emptyMap())
 
     fun saveRates(exchangeData: List<CurrencyService.VerifiedCoreMintFiatExchangeRate>) {
-        this.exchangeData.value = exchangeData.mapNotNull { data ->
+        val incoming = exchangeData.mapNotNull { data ->
             CurrencyCode.tryValueOf(data.exchangeRate.currencyCode)?.let { it to data }
         }.toMap()
+        this.exchangeData.update { it + incoming }
     }
 
     fun saveReserveStates(reserveStates: List<CurrencyService.VerifiedLaunchpadCurrencyReserveState>) {
-        this.reserveStates.value = reserveStates.associateBy { it.reserveState.mint.toMint() }
+        val incoming = reserveStates.associateBy { it.reserveState.mint.toMint() }
+        this.reserveStates.update { it + incoming }
+    }
+
+    fun reset() {
+        exchangeData.value = emptyMap()
+        reserveStates.value = emptyMap()
     }
 
     private fun get(currencyCode: CurrencyCode): CurrencyService.VerifiedCoreMintFiatExchangeRate? {
