@@ -3,8 +3,9 @@ package com.getcode.opencode.internal.transactors
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.extensions.exchangeDataFor
 import com.getcode.opencode.internal.extensions.toPublicKey
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
@@ -12,26 +13,25 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
-import com.getcode.opencode.utils.base58
 import com.getcode.opencode.utils.nonce
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlin.time.Duration
 
 internal class GiveBillTransactor(
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
+    private val verifiedProtoManager: VerifiedProtoManager,
 ): Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
     private var token: Token? = null
     private var amount: LocalFiat? = null
+    private var exchangeDataTimeout: Duration? = null
     private var owner: AccountCluster? = null
 
     private var rendezvousKey: KeyPair? = null
@@ -41,9 +41,10 @@ internal class GiveBillTransactor(
     var data: List<Byte> = emptyList()
         private set
 
-    fun with(token: Token, amount: LocalFiat, owner: AccountCluster) {
+    fun with(token: Token, amount: LocalFiat, owner: AccountCluster, billExchangeDataTimeout: Duration?) {
         this.token = token
         this.amount = amount
+        this.exchangeDataTimeout = billExchangeDataTimeout
         this.owner = owner
 
         receivingAccount = null
@@ -66,10 +67,18 @@ internal class GiveBillTransactor(
             ?: return logAndFail(GiveTransactorError.Other(message = "No token. Did you call with() first?"))
         val rendezvous = rendezvousKey
             ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
+        val sendingAmount = amount
+            ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
+
+        val verifiedState = verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address)
+            ?: return logAndFail(GiveTransactorError.Other(message = "No verified state found"))
+
+        val exchangeData = verifiedState.exchangeDataFor(amount = sendingAmount, mint = desiredToken.address, billExchangeDataTimeout = exchangeDataTimeout)
+            ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
 
         // 1. Send request to "give" the bill to the recipient
         // This provides the recipient with the desired token mint of the cash
-        messagingController.sendRequestToGiveBill(desiredToken.address, rendezvous)
+        messagingController.sendRequestToGiveBill(desiredToken.address, rendezvous, exchangeData)
             .onSuccess {
                 trace(
                     tag = "Messaging",
@@ -125,7 +134,8 @@ internal class GiveBillTransactor(
             mint = desiredToken.address,
             source = sendingVault,
             destination = transferRequest.account,
-            rendezvous = rendezvous.toPublicKey()
+            rendezvous = rendezvous.toPublicKey(),
+            exchangeData = exchangeData,
         ).fold(
             onSuccess = {
                 transactionController.pollIntentMetadata(
@@ -156,6 +166,7 @@ internal class GiveBillTransactor(
     ) : CodeServerError(message, cause) {
         class DuplicateTransferException : GiveTransactorError(message = "Duplicate Transfer")
         class DestinationSignatureInvalidException : GiveTransactorError(message = "Destination signature invalid")
+        class ExchangeRateExpiredException : GiveTransactorError(message = "Exchange rate expired")
         data class Other(
             override val message: String? = null,
             override val cause: Throwable? = null

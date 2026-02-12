@@ -225,6 +225,7 @@ internal fun TransferRequest.asProtobufMessage(): MessagingService.Message {
                 MessagingService.RequestToGiveBill
                     .newBuilder()
                     .setMint(mint.asSolanaAccountId())
+                    .setExchangeData(exchangeData.asProtobufExchangeData())
             ).build()
 
         is GrabRequest -> MessagingService.Message

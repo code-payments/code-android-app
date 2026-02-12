@@ -20,6 +20,7 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapRequest
@@ -120,17 +121,15 @@ class TransactionController @Inject constructor(
         destination: PublicKey,
         rendezvous: PublicKey,
         scope: CoroutineScope = this.scope,
+        exchangeData: ExchangeData.Verified,
     ): Result<IntentType> {
-        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, mint)
-            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
-
         val intent = IntentTransfer.create(
             amount = amount,
             mint = mint,
             sourceCluster = source,
             destination = destination,
             rendezvous = rendezvous,
-            verifiedState = verifiedState,
+            exchangeData = exchangeData,
         )
 
         return submitIntent(scope, intent, source.authority.keyPair)

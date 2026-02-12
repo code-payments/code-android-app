@@ -24,6 +24,7 @@ sealed interface TransactionMetadata {
     sealed interface PublicPayment: TransactionMetadata {
         val source: PublicKey
         val exchangeData: ExchangeData.WithRate
+        val verifiedExchangeData: ExchangeData.Verified?
     }
 
     /**
@@ -50,7 +51,7 @@ sealed interface TransactionMetadata {
         val destination: PublicKey,
         val destinationOwner: PublicKey? = null,
         override val exchangeData: ExchangeData.WithRate,
-        val verifiedExchangeData: ExchangeData.Verified? = null,
+        override val verifiedExchangeData: ExchangeData.Verified? = null,
         val isRemoteSend: Boolean,
         val isWithdrawal: Boolean,
     ): PublicPayment {
@@ -106,6 +107,31 @@ sealed interface TransactionMetadata {
             isRemoteSend = isRemoteSend,
             isWithdrawal = isWithdrawal,
         )
+
+        constructor(
+            source: PublicKey,
+            destination: PublicKey,
+            destinationOwner: PublicKey? = null,
+            amount: LocalFiat,
+            exchangeData: ExchangeData.Verified,
+            mint: Mint,
+            isRemoteSend: Boolean,
+            isWithdrawal: Boolean,
+        ) : this(
+            source = source,
+            destination = destination,
+            destinationOwner = destinationOwner,
+            exchangeData = ExchangeData.WithRate(
+                currencyCode = exchangeData.verifiedState.rateProto.exchangeRate.currencyCode,
+                exchangeRate = exchangeData.verifiedState.rateProto.exchangeRate.exchangeRate,
+                nativeAmount = amount.nativeAmount.decimalValue,
+                quarks = amount.underlyingTokenAmount.quarks,
+                mint = mint,
+            ),
+            verifiedExchangeData = exchangeData,
+            isRemoteSend = isRemoteSend,
+            isWithdrawal = isWithdrawal,
+        )
     }
 
     /**
@@ -135,6 +161,7 @@ sealed interface TransactionMetadata {
         val quarks: Long,
         val isRemoteSend: Boolean,
         override val exchangeData: ExchangeData.WithRate,
+        override val verifiedExchangeData: ExchangeData.Verified? = null,
         val mint: Mint,
     ): PublicPayment {
         constructor(

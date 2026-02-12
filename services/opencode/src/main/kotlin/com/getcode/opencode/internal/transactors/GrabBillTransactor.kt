@@ -66,7 +66,7 @@ internal class GrabBillTransactor(
         data: OpenCodePayload
     ): Result<TransactionMetadata.PublicPayment> {
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
-        val (messageId, giveRequestMint) = messagingController.pollForGiveRequest(data.rendezvous)
+        val (messageId, giveRequestMint, exchangeData) = messagingController.pollForGiveRequest(data.rendezvous)
             .getOrNull()
             ?: return logAndFail(GiveTransactorError.Other(message = "No give request found for rendezvous"))
 

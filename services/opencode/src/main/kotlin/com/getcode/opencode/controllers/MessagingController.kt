@@ -1,18 +1,23 @@
 package com.getcode.opencode.controllers
 
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.exchangeDataOrNull
+import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.exchangeData
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.extensions.toPublicKey
+import com.getcode.opencode.internal.manager.VerifiedState
+import com.getcode.opencode.internal.network.extensions.asProtobufExchangeData
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.toMint
+import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.internal.network.services.OcpMessageStreamReference
 import com.getcode.opencode.model.core.OpenCodePayload
-import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
 import com.getcode.opencode.repositories.MessagingRepository
-import com.getcode.opencode.utils.flowInterval
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
@@ -20,20 +25,11 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.fold
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -159,7 +155,7 @@ class MessagingController @Inject constructor(
 
     suspend fun pollForGiveRequest(
         rendezvous: KeyPair,
-    ): Result<Pair<PublicKey, Mint>>{
+    ): Result<GiveRequest>{
 
         return repository.pollMessages(rendezvous)
             .map { messages ->
@@ -170,17 +166,25 @@ class MessagingController @Inject constructor(
             }.mapCatching { messages ->
                 val message = messages.firstOrNull() ?: throw IllegalStateException("No message found")
                 val mint = message.requestToGiveBill.mint.toMint()
+                val exchangeData = message.requestToGiveBill.exchangeData.toModel()
 
-                (message.id.toPublicKey() to mint)
+                GiveRequest(
+                    messageId = message.id.toPublicKey(),
+                    mint = mint,
+                    exchangeData = exchangeData
+                )
             }
     }
 
     suspend fun sendRequestToGiveBill(
         tokenMint: Mint,
         rendezvous: KeyPair,
+        exchangeRate: ExchangeData.Verified,
     ): Result<PublicKey> {
         val paymentRequest = MessagingService.RequestToGiveBill.newBuilder()
             .setMint(tokenMint.asSolanaAccountId())
+            .setExchangeData(exchangeRate.asProtobufExchangeData())
+            .build()
 
         val message = MessagingService.Message.newBuilder()
             .setRequestToGiveBill(paymentRequest)

@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.exchangeData
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
@@ -9,6 +10,7 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asExchangeData
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
@@ -31,7 +33,7 @@ internal class IntentTransfer(
             sourceCluster: AccountCluster,
             destination: PublicKey,
             rendezvous: PublicKey,
-            verifiedState: VerifiedState,
+            exchangeData: ExchangeData.Verified,
         ): IntentTransfer {
             val transfer = ActionPublicTransfer.newInstance(
                 owner = sourceCluster.authority.keyPair,
@@ -50,7 +52,7 @@ internal class IntentTransfer(
                     mint = mint,
                     isRemoteSend = false,
                     isWithdrawal = false,
-                    verifiedState = verifiedState,
+                    exchangeData = exchangeData,
                 ),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(transfer)

@@ -6,6 +6,8 @@ import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import javax.inject.Inject
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 internal class UserFlagsMapper @Inject constructor():
     Mapper<FlipcashAccountService.UserFlags, UserFlags> {
@@ -16,7 +18,8 @@ internal class UserFlagsMapper @Inject constructor():
             requiresIapForRegistration = from.requiresIapForRegistration,
             preferredOnRampProvider = from.preferredOnRampProvider.toDomain().takeIf { it != OnRampProvider.Unknown },
             supportedOnRampProviders = from.supportedOnRampProvidersList.map { it.toDomain() },
-            minimumVersion = from.minBuildNumber
+            minimumVersion = from.minBuildNumber,
+            billExchangeDataTimeout = from.billExchangeDataTimeout.seconds.toDuration(DurationUnit.SECONDS),
         )
     }
 }

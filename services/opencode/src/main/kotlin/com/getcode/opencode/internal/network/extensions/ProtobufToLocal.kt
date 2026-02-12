@@ -9,6 +9,7 @@ import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.extensions.toSignature
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
@@ -63,6 +64,18 @@ internal fun TransactionService.ExchangeDataWithoutRate.toModel(): ExchangeData.
     return ExchangeData.WithoutRate(
         currencyCode = this.currency,
         nativeAmount = this.nativeAmount,
+    )
+}
+
+internal fun TransactionService.VerifiedExchangeData.toModel(): ExchangeData.Verified {
+    return ExchangeData.Verified(
+        mint = this.mint.toMint(),
+        quarks = this.quarks,
+        nativeAmount = this.nativeAmount,
+        verifiedState = VerifiedState(
+            rateProto = this.coreMintFiatExchangeRate,
+            reserveProto = this.launchpadCurrencyReserveState,
+        )
     )
 }
 

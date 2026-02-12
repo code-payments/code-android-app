@@ -1,6 +1,7 @@
 package com.flipcash.app.core.internal.bill
 
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.BillTransactionManager
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -17,6 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class BillController @Inject constructor(
     private val transactionManager: BillTransactionManager,
+    private val userManager: UserManager,
 ) {
     private val _state = MutableStateFlow(BillState.Default)
     val state: StateFlow<BillState>
@@ -41,7 +43,16 @@ class BillController @Inject constructor(
         onGrabbed: suspend (LocalFiat) -> Unit,
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
-    ) = transactionManager.awaitGrabFromRecipient(token, amount, owner, present, onGrabbed, onTimeout, onError)
+    ) = transactionManager.awaitGrabFromRecipient(
+        token = token,
+        amount = amount,
+        owner = owner,
+        billExchangeDataTimeout = userManager.userFlags?.billExchangeDataTimeout,
+        present = present,
+        onGrabbed = onGrabbed,
+        onTimeout = onTimeout,
+        onError = onError,
+    )
 
     fun cancelAwaitForGrab() = transactionManager.cancelAwaitForGrab()
 

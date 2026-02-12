@@ -3,6 +3,7 @@ package com.getcode.opencode.managers
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
 import com.getcode.opencode.internal.transactors.GrabBillTransactor
 import com.getcode.opencode.internal.transactors.ReceiveGiftCardTransactor
@@ -26,6 +27,7 @@ import java.util.TimerTask
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.schedule
+import kotlin.time.Duration
 
 @Singleton
 class BillTransactionManager @Inject constructor(
@@ -35,6 +37,7 @@ class BillTransactionManager @Inject constructor(
     private val tokenProvider: TokenMetadataProvider,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
+    private val verifiedProtoManager: VerifiedProtoManager,
 ) {
     private var billDismissTimer: TimerTask? = null
 
@@ -52,6 +55,7 @@ class BillTransactionManager @Inject constructor(
         token: Token,
         amount: LocalFiat,
         owner: AccountCluster,
+        billExchangeDataTimeout: Duration?,
         present:  (List<Byte>) -> Unit,
         onGrabbed: suspend (LocalFiat) -> Unit,
         onTimeout: () -> Unit,
@@ -66,8 +70,9 @@ class BillTransactionManager @Inject constructor(
                 messagingController,
                 transactionController,
                 childScope,
+                verifiedProtoManager,
             ).apply {
-                with(token, amount, owner)
+                with(token, amount, owner, billExchangeDataTimeout)
             }
 
             giveTransactor = transactor
