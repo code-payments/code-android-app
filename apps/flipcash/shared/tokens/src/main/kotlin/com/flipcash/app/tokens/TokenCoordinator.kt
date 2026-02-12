@@ -212,7 +212,7 @@ class TokenCoordinator @Inject constructor(
         // 1. In-memory cache
         _state.value.tokens[mint]?.let { cached ->
             trace(tag = TAG, message = "Token metadata memory hit for ${cached.symbol}", type = TraceType.Process)
-            return Result.success(TokenResult(cached, DataSource.Cache))
+            return Result.success(TokenResult(cached, DataSource.Memory))
         }
 
         // 2. Room persistence

@@ -7,6 +7,7 @@ data class TokenResult(
 
 enum class DataSource {
     Cache,
+    Memory,
     Network,
     ;
 }
