@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:google-play-billing"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:workers"))
     implementation(project(":apps:flipcash:core"))
     implementation(project(":services:flipcash"))

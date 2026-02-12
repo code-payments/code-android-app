@@ -4,7 +4,6 @@ import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.AccountController
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.managers.GiftCardManager
 import com.getcode.opencode.managers.MnemonicManager
@@ -13,6 +12,7 @@ import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.timedTraceSuspend
@@ -20,7 +20,7 @@ import com.getcode.utils.timedTraceSuspend
 internal class ReceiveGiftCardTransactor(
     private val accountController: AccountController,
     private val transactionController: TransactionController,
-    private val tokenController: TokenController,
+    private val tokenProvider: TokenMetadataProvider,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
 ) : Transactor<ReceiveGiftTransactorError>("Transactor::Receive") {
@@ -85,7 +85,7 @@ internal class ReceiveGiftCardTransactor(
 
             val tokenMint = info.mint
 
-            val token = tokenController.getTokenMetadata(tokenMint)
+            val token = tokenProvider.getTokenMetadata(tokenMint)
                 .getOrNull()?.token
 
             if (token == null) {

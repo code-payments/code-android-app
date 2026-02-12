@@ -8,6 +8,7 @@ import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.auth.internal.extensions.token
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
@@ -34,7 +35,7 @@ class AuthManager @Inject constructor(
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
     private val pushController: PushController,
-    private val tokenController: TokenController,
+    private val tokenCoordinator: TokenCoordinator,
     private val persistence: PersistenceProvider,
     private val featureFlagController: FeatureFlagController,
     private val appSettings: AppSettingsCoordinator,
@@ -195,7 +196,7 @@ class AuthManager @Inject constructor(
         pushController.deleteTokens()
         notificationManager.cancelAll()
         userManager.clear()
-        tokenController.reset()
+        tokenCoordinator.reset()
         persistence.close()
         featureFlagController.reset()
         appSettings.reset()

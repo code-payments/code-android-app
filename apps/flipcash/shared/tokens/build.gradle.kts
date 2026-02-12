@@ -54,10 +54,13 @@ dependencies {
 
     implementation(Libs.androidx_datastore)
 
+    implementation(Libs.androidx_lifecycle_process)
+
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:activityfeed"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
+    implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))

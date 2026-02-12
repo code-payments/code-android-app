@@ -7,6 +7,7 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -52,7 +53,7 @@ import kotlin.math.min
 internal class CashScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
-    tokenController: TokenController,
+    tokenCoordinator: TokenCoordinator,
     transactionController: TransactionController,
     onrampController: OnRampAmountController,
     analytics: FlipcashAnalyticsService,
@@ -187,7 +188,7 @@ internal class CashScreenViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        tokenController.observeSelectedTokenMint()
+        tokenCoordinator.observeSelectedTokenMint()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnTokenSelected(it)) }
             .launchIn(viewModelScope)
@@ -196,8 +197,8 @@ internal class CashScreenViewModel @Inject constructor(
             .mapNotNull { it.selectedTokenAddress }
             .flatMapLatest { tokenAddress ->
                 combine(
-                    tokenController.tokens,
-                    tokenController.balanceForToken(tokenAddress),
+                    tokenCoordinator.tokens,
+                    tokenCoordinator.balanceForToken(tokenAddress),
                     exchange.observeEntryRate(),
                 ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null

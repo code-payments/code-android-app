@@ -6,10 +6,10 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -23,7 +23,6 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
-import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.times
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
@@ -37,7 +36,6 @@ import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -67,7 +65,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
     exchange: Exchange,
     transactionController: TransactionController,
     resources: ResourceHelper,
-    tokenController: TokenController,
+    tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
 ) : BaseViewModel2<BuySellSwapTokenViewModel.State, BuySellSwapTokenViewModel.Event>(
     initialState = State(),
@@ -289,7 +287,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 }
 
                 combine(
-                    tokenController.tokenBalances,
+                    tokenCoordinator.tokenBalances,
                     when (purpose) {
                         is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
                         else -> exchange.observeEntryRate()
@@ -297,7 +295,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 ) { tokens, rate ->
                     var token = tokens.find { it.token.address == mint }
                     if (token == null) {
-                        val tokenRef = tokenController.getTokenMetadata(mint).getOrNull()
+                        val tokenRef = tokenCoordinator.getTokenMetadata(mint).getOrNull()
                         if (tokenRef != null) {
                             token = TokenWithBalance(
                                 token = tokenRef.token,
@@ -335,8 +333,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 }
 
                 combine(
-                    tokenController.tokens,
-                    tokenController.balanceForToken(tokenAddress),
+                    tokenCoordinator.tokens,
+                    tokenCoordinator.balanceForToken(tokenAddress),
                     when (purpose) {
                         is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
                         else -> exchange.observeEntryRate()
@@ -358,7 +356,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         combine(
-            tokenController.observeReservesBalance(),
+            tokenCoordinator.observeReservesBalance(),
             when (stateFlow.value.purpose) {
                 is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
                 else -> exchange.observeEntryRate()
@@ -545,7 +543,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                     // buy submitted from reserves, drop reserves balance
-                    tokenController.subtract(Token.usdf, amount)
+                    tokenCoordinator.subtract(Token.usdf, amount)
                 }.onFailure {
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
                     BottomBarManager.showError(
@@ -574,7 +572,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     dispatchEvent(Event.OnSellSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                     // sell submitted, drop from balance
-                    tokenController.subtract(token, amount)
+                    tokenCoordinator.subtract(token, amount)
                 }.onFailure {
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
                     BottomBarManager.showError(
@@ -603,9 +601,9 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     val token = stateFlow.value.tokenWithBalance!!.token
                     val isUsingReserves = stateFlow.value.purpose is TokenSwapPurpose.Buy ||
                             stateFlow.value.purpose is TokenSwapPurpose.Sell
-                    viewModelScope.launch { tokenController.updateTokenAccount(token) }
+                    viewModelScope.launch { tokenCoordinator.updateTokenAccount(token) }
                     if (isUsingReserves) {
-                        viewModelScope.launch { tokenController.updateTokenAccount(Mint.usdf) }
+                        viewModelScope.launch { tokenCoordinator.updateTokenAccount(Mint.usdf) }
                     }
                     viewModelScope.launch {
                         // update activity feed to grab the tx as a result of this buy/sell

@@ -1,10 +1,10 @@
 package com.getcode.opencode.internal.domain.repositories
 
 import com.getcode.opencode.controllers.AccountController
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.events.Events
 import com.getcode.opencode.model.transactions.AirdropType
+import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.repositories.EventRepository
 import com.hoc081098.channeleventbus.ChannelEvent
 import com.hoc081098.channeleventbus.ChannelEventBus
@@ -22,22 +22,26 @@ import javax.inject.Inject
 internal class InternalEventRepository @Inject constructor(
     eventBus: ChannelEventBus,
     private val accountController: AccountController,
-    private val tokenController: TokenController,
     private val transactionController: TransactionController,
+    private val sessionListeners: Set<@JvmSuppressWildcards SessionListener>,
 ): EventRepository {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
         eventBus.handle(Events.FetchBalance) {
             scope.launch {
-                tokenController.update()
+                sessionListeners.onEach { listener ->
+                    listener.onBalanceUpdateRequested()
+                }
             }
         }
 
         eventBus.handle(Events.OnLoggedIn) {
             scope.launch {
                 accountController.onUserLoggedIn(it.owner)
-                tokenController.onUserLoggedIn(it.owner)
+                sessionListeners.onEach { listener ->
+                    listener.onUserLoggedIn(it.owner)
+                }
             }
         }
 

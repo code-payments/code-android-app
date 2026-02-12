@@ -11,8 +11,13 @@ import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.flipcash.app.persistence.converters.TokenTypeConverters
 import com.flipcash.app.persistence.dao.MessageDao
+import com.flipcash.app.persistence.dao.TokenDao
 import com.flipcash.app.persistence.entities.MessageEntity
+import com.flipcash.app.persistence.entities.SocialLinkEntity
+import com.flipcash.app.persistence.entities.TokenEntity
+import com.flipcash.app.persistence.entities.TokenValuationEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -21,6 +26,9 @@ import org.kin.sdk.base.tools.subByteArray
 @Database(
     entities = [
         MessageEntity::class,
+        TokenEntity::class,
+        SocialLinkEntity::class,
+        TokenValuationEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -33,12 +41,15 @@ import org.kin.sdk.base.tools.subByteArray
         AutoMigration(from = 8, to = 9),
         AutoMigration(from = 9, to = 10, spec = FlipcashDatabase.Migration9To10::class),
         AutoMigration(from = 10, to = 11, spec = FlipcashDatabase.Migration10To11::class),
+        AutoMigration(from = 11, to = 12),
     ],
-    version = 11,
+    version = 12,
 )
+@TypeConverters(TokenTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
+    abstract fun tokenDao(): TokenDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {

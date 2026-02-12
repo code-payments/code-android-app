@@ -5,6 +5,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -12,7 +13,6 @@ import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -39,7 +39,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SelectTokenViewModel @Inject constructor(
     userManager: UserManager,
-    tokenController: TokenController,
+    tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
     analytics: FlipcashAnalyticsService,
     featureFlags: FeatureFlagController,
@@ -113,7 +113,7 @@ class SelectTokenViewModel @Inject constructor(
             .flatMapLatest { purpose ->
                 combine(
                     stateFlow,
-                    tokenController.tokenBalances,
+                    tokenCoordinator.tokenBalances,
                     when (purpose) {
                         TokenPurpose.Balance -> exchange.observeBalanceRate()
                         TokenPurpose.Select -> exchange.observeEntryRate()
@@ -187,7 +187,7 @@ class SelectTokenViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        tokenController.observeSelectedTokenMint()
+        tokenCoordinator.observeSelectedTokenMint()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnTokenSelected(it, fromUser = false)) }
             .launchIn(viewModelScope)
@@ -197,7 +197,7 @@ class SelectTokenViewModel @Inject constructor(
             .filter { stateFlow.value.purpose is TokenPurpose.Select }
             .filter { it.fromUser }
             .map { it.mint }
-            .onEach { tokenController.selectToken(it) }
+            .onEach { tokenCoordinator.selectToken(it) }
             .onEach { dispatchEvent(Event.OnTokenChanged) }
             .launchIn(viewModelScope)
     }

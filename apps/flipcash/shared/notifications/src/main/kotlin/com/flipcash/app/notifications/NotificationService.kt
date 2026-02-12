@@ -17,6 +17,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationPayload
@@ -51,7 +52,7 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var notificationManager: NotificationManagerCompat
 
     @Inject
-    lateinit var tokenController: TokenController
+    lateinit var tokenCoordinator: TokenCoordinator
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -101,7 +102,7 @@ class NotificationService : FirebaseMessagingService(),
 
         if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
             launch {
-                tokenController.update()
+                tokenCoordinator.update()
             }
         }
 

@@ -25,6 +25,7 @@ import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.network.services.TransactionService
+import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
@@ -154,9 +155,9 @@ object OpenCodeModule {
     internal fun providesEventRepository(
         eventBus: ChannelEventBus,
         accountController: AccountController,
-        tokenController: TokenController,
         transactionController: TransactionController,
-    ): EventRepository = InternalEventRepository(eventBus, accountController, tokenController, transactionController)
+        sessionListeners: @JvmSuppressWildcards Set<SessionListener>,
+    ): EventRepository = InternalEventRepository(eventBus, accountController, transactionController, sessionListeners)
 
     @Provides
     @Singleton

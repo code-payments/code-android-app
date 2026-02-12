@@ -1,7 +1,6 @@
-package com.flipcash.app.core.internal.updater
+package com.flipcash.app.tokens
 
 import com.flipcash.app.core.updater.NetworkUpdater
-import com.getcode.opencode.controllers.TokenController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -9,7 +8,7 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration
 
 class TokenUpdater @Inject constructor(
-    private val tokenController: TokenController,
+    private val coordinator: TokenCoordinator,
 ) : NetworkUpdater() {
     override fun poll(
         key: Any?,
@@ -24,7 +23,7 @@ class TokenUpdater @Inject constructor(
             period = frequency.inWholeMilliseconds
         ) {
             scope.launch {
-                tokenController.update()
+                coordinator.update()
             }
         }
     }

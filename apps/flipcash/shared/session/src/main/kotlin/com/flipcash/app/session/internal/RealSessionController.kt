@@ -11,7 +11,7 @@ import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.ProfileUpdater
-import com.flipcash.app.core.internal.updater.TokenUpdater
+import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.session.BillDeterminationResult
@@ -25,6 +25,7 @@ import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.core.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
@@ -120,7 +121,7 @@ class RealSessionController @Inject constructor(
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: ToastController,
     private val billingClient: BillingClient,
-    private val tokenController: TokenController,
+    private val tokenCoordinator: TokenCoordinator,
     private val featureFlagController: FeatureFlagController,
     private val analytics: FlipcashAnalyticsService,
     appSettingsCoordinator: AppSettingsCoordinator,
@@ -176,16 +177,16 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
-        tokenController.tokenBalances
+        tokenCoordinator.tokenBalances
             .map { tokens -> tokens.filterNot { it.isReserves } }
             .map { tokens -> tokens.map { it.balance } }
             .map { balances -> balances.sum() }
             .onEach { balance -> _state.update { it.copy(giveableBalance = balance) } }
             .launchIn(scope)
 
-        tokenController.tokens
+        tokenCoordinator.tokens
             .onEach { tokens ->
-                _state.update { it.copy(tokens = tokens.map { it.address }) }
+                _state.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
 
         state
@@ -414,7 +415,8 @@ class RealSessionController @Inject constructor(
             amount = bill.amount,
             token = bill.token,
             owner = owner,
-            onGrabbed = {
+            onGrabbed = { amount ->
+                tokenCoordinator.subtract(bill.token, amount)
                 analytics.transfer(AnalyticsEvent.GiveBill, bill.amount)
                 toastController.enqueue(bill.amount, isDeposit = false)
                 dismissBill(Grabbed)
@@ -621,6 +623,7 @@ class RealSessionController @Inject constructor(
             token = token,
             owner = owner,
             onFunded = {
+                tokenCoordinator.subtract(token, amount)
                 shareSheetController.reset()
                 cont.resume(Result.success(it))
             },
@@ -645,7 +648,7 @@ class RealSessionController @Inject constructor(
         ).onFailure {
             dismissBill(PutInWallet)
         }.onSuccess {
-            tokenController.update()
+            tokenCoordinator.update()
             checkPendingItemsInFeed()
             dismissBill(PutInWallet)
         }
@@ -719,6 +722,7 @@ class RealSessionController @Inject constructor(
             owner = owner,
             claimIfOwned = claimIfOwned,
             onReceived = { token, amount ->
+                tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 analytics.transfer(AnalyticsEvent.ClaimedCashLink, amount = amount)
                 toastController.enqueue(amount, isDeposit = true)
@@ -810,6 +814,7 @@ class RealSessionController @Inject constructor(
             owner = owner,
             payload = payload,
             onGrabbed = { token, amount ->
+                tokenCoordinator.add(token, amount)
                 val grabStart = scannedRendezvous[payload.rendezvous.publicKey]
                 val grabTime = grabStart?.let {
                     Clock.System.now().toEpochMilliseconds() - it

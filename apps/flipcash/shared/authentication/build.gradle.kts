@@ -53,5 +53,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:persistence:provider"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":services:flipcash"))
 }

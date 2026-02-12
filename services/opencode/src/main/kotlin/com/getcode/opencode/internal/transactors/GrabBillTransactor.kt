@@ -2,7 +2,6 @@ package com.getcode.opencode.internal.transactors
 
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.transactors.GiveBillTransactor.GiveTransactorError
@@ -10,6 +9,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +19,7 @@ internal class GrabBillTransactor(
     private val accountController: AccountController,
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
-    private val tokenController: TokenController,
+    private val tokenProvider: TokenMetadataProvider,
     private val scope: CoroutineScope,
 ) : Transactor<GrabTransactorError>("Transactor::Grab") {
     private var owner: AccountCluster? = null
@@ -71,7 +71,7 @@ internal class GrabBillTransactor(
             ?: return logAndFail(GiveTransactorError.Other(message = "No give request found for rendezvous"))
 
         // 2. Utilize the mint from the give request to get the Token metadata
-        val token = tokenController.getTokenMetadata(giveRequestMint)
+        val token = tokenProvider.getTokenMetadata(giveRequestMint)
             .getOrNull()?.token
             ?: return logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint"))
 

@@ -48,11 +48,8 @@ object ControllerFactory {
 
     fun createTokenController(context: Context, config: ProtocolConfig): TokenController {
         return TokenController(
-            context = context,
             accountController = createAccountController(context, config),
             currencyController = createCurrencyController(context, config),
-            networkObserver = NetworkFactory.createNetworkObserver(context),
-            exchange = ExchangeFactory.createOpenCodeExchange(context, config),
         )
     }
 }

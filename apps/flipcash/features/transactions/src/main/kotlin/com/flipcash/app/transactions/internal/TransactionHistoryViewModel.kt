@@ -9,6 +9,7 @@ import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.transactions.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
@@ -32,7 +33,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TransactionHistoryViewModel @Inject constructor(
-    tokenController: TokenController,
+    tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
     transactionController: TransactionController,
     featureFlags: FeatureFlagController,
@@ -124,7 +125,7 @@ class TransactionHistoryViewModel @Inject constructor(
                 onSuccess = {
                     viewModelScope.launch {
                         feedCoordinator.checkPendingMessagesForUpdates()
-                        tokenController.update()
+                        tokenCoordinator.update()
                     }
                 }
             ).launchIn(viewModelScope)

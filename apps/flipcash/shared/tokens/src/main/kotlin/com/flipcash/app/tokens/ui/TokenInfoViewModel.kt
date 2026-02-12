@@ -26,13 +26,13 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.model.WindowedRange
 import com.getcode.opencode.model.financial.Fiat
@@ -55,12 +55,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
-import kotlin.collections.map
 
 @HiltViewModel
 class TokenInfoViewModel @Inject constructor(
     private val accountController: AccountController,
-    private val tokenController: TokenController,
+    private val tokenCoordinator: TokenCoordinator,
     private val exchange: Exchange,
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
@@ -136,7 +135,7 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnMintProvided>()
             .onEach { dispatchEvent(Event.OnTokenChanged(Loadable.Loading())) }
             .onEach {
-                tokenController.getTokenMetadata(it.mint)
+                tokenCoordinator.getTokenMetadata(it.mint)
                     .onSuccess { result ->
                         dispatchEvent(Event.OnTokenChanged(Loadable.Loaded(result.token), it.forNeededFunds))
                     }.onFailure { cause ->
@@ -164,8 +163,8 @@ class TokenInfoViewModel @Inject constructor(
             .map { it.token.dataOrNull!! to it.forNeededFunds }
             .flatMapLatest { (token, _) ->
                 combine(
-                    tokenController.balanceForToken(token.address),
-                    tokenController.appreciationForToken(token.address),
+                    tokenCoordinator.balanceForToken(token.address),
+                    tokenCoordinator.appreciationForToken(token.address),
                     exchange.observeBalanceRate(),
                 ) { balance, appreciation, rate ->
                     val localizedBalance = LocalFiat(
@@ -203,7 +202,7 @@ class TokenInfoViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         combine(
-            tokenController.observeReservesBalance(),
+            tokenCoordinator.observeReservesBalance(),
             exchange.observeBalanceRate(),
         ) { balance, rate ->
             LocalFiat(
@@ -242,7 +241,7 @@ class TokenInfoViewModel @Inject constructor(
                     )
                 )
 
-                tokenController.getHistoricalMarketCapData(
+                tokenCoordinator.getHistoricalMarketCapData(
                     mint = mint,
                     currencyCode = currency,
                     windowedRange = window,

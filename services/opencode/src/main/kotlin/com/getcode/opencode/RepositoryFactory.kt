@@ -65,13 +65,12 @@ object RepositoryFactory {
 
         val accountController = ControllerFactory.createAccountController(context, config)
         val transactionController = ControllerFactory.createTransactionController(context, config)
-        val tokenController = ControllerFactory.createTokenController(context, config)
 
         return module.providesEventRepository(
             eventBus = bus,
             accountController = accountController,
-            tokenController = tokenController,
-            transactionController = transactionController
+            transactionController = transactionController,
+            sessionListeners = emptySet(), // TODO:
         )
     }
 

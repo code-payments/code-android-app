@@ -8,13 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.withdrawal.R
 import com.flipcash.services.analytics.AnalyticsEvent
 import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -34,7 +34,6 @@ import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -73,7 +72,7 @@ internal class WithdrawalViewModel @Inject constructor(
     clipboardManager: ClipboardManager,
     activityFeedCoordinator: ActivityFeedCoordinator,
     analytics: FlipcashAnalyticsService,
-    tokenController: TokenController,
+    tokenCoordinator: TokenCoordinator,
 ) : BaseViewModel2<WithdrawalViewModel.State, WithdrawalViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -181,8 +180,8 @@ internal class WithdrawalViewModel @Inject constructor(
             .mapNotNull { it.selectedTokenAddress }
             .flatMapLatest { tokenAddress ->
                 combine(
-                    tokenController.tokens,
-                    tokenController.balanceForToken(tokenAddress),
+                    tokenCoordinator.tokens,
+                    tokenCoordinator.balanceForToken(tokenAddress),
                 ) { tokens, balance ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
                     TokenWithBalance(

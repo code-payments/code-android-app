@@ -38,7 +38,7 @@ class BillController @Inject constructor(
         token: Token,
         owner: AccountCluster,
         present: (List<Byte>) -> Unit,
-        onGrabbed: () -> Unit,
+        onGrabbed: suspend (LocalFiat) -> Unit,
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.awaitGrabFromRecipient(token, amount, owner, present, onGrabbed, onTimeout, onError)
@@ -48,7 +48,7 @@ class BillController @Inject constructor(
     fun attemptGrab(
         owner: AccountCluster,
         payload: OpenCodePayload,
-        onGrabbed: (Token, LocalFiat) -> Unit,
+        onGrabbed: suspend (Token, LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.attemptGrabFromSender(owner, payload, onGrabbed, onError)
 
@@ -57,7 +57,7 @@ class BillController @Inject constructor(
         amount: LocalFiat,
         token: Token,
         owner: AccountCluster,
-        onFunded: (LocalFiat) -> Unit,
+        onFunded: suspend (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.fundGiftCard(giftCard, amount, owner, token, onFunded, onError)
 
@@ -65,7 +65,7 @@ class BillController @Inject constructor(
         entropy: String,
         owner: AccountCluster,
         claimIfOwned: Boolean,
-        onReceived: (Token, LocalFiat) -> Unit,
+        onReceived: suspend (Token, LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.receiveGiftCard(owner, entropy, claimIfOwned, onReceived, onError)
 }

@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.managers.BillTransactionManager
 import com.getcode.opencode.managers.GiftCardManager
@@ -39,6 +40,7 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
     private val userManager: UserManager,
     private val transactionManager: BillTransactionManager,
     private val giftCardManager: GiftCardManager,
+    private val tokenCoordinator: TokenCoordinator,
 ) : CoroutineWorker(appContext, workerParams) {
     internal companion object {
         fun tagFor(giftCard: GiftCardAccount) = "gift_card_funding-${giftCard.entropy}"
@@ -106,6 +108,9 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
 
         return try {
             val result = fundGiftCard(giftCard, amount, token)
+                .onSuccess {
+                    tokenCoordinator.subtract(token, amount)
+                }
             if (result.isSuccess) {
                 Result.success()
             } else {

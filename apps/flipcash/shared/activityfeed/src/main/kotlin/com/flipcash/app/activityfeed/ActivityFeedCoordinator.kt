@@ -16,7 +16,7 @@ import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.controllers.TokenController
+import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
 
 @Singleton
 class ActivityFeedCoordinator @Inject constructor(
@@ -36,7 +35,7 @@ class ActivityFeedCoordinator @Inject constructor(
     private val dataSource: MessageDataSource,
     private val mapper: MessageEntityToFeedMessageMapper,
     private val userManager: UserManager,
-    private val tokenController: TokenController,
+    private val tokenProvider: TokenMetadataProvider,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -63,7 +62,7 @@ class ActivityFeedCoordinator @Inject constructor(
             page.filter { message ->
                 message.amount?.mint == mint
             }.map { msg ->
-                val result = msg.amount?.mint?.let { tokenController.getTokenMetadata(it) }?.getOrNull()
+                val result = msg.amount?.mint?.let { tokenProvider.getTokenMetadata(it) }?.getOrNull()
                 ActivityFeedMessageWithToken(msg, result?.token)
             }
         }

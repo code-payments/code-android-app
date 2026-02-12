@@ -2,9 +2,7 @@ package com.getcode.opencode.managers
 
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
 import com.getcode.opencode.internal.transactors.GrabBillTransactor
 import com.getcode.opencode.internal.transactors.ReceiveGiftCardTransactor
@@ -14,6 +12,7 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -33,10 +32,9 @@ class BillTransactionManager @Inject constructor(
     private val accountController: AccountController,
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
-    private val tokenController: TokenController,
+    private val tokenProvider: TokenMetadataProvider,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
-    private val exchange: Exchange,
 ) {
     private var billDismissTimer: TimerTask? = null
 
@@ -54,8 +52,8 @@ class BillTransactionManager @Inject constructor(
         token: Token,
         amount: LocalFiat,
         owner: AccountCluster,
-        present: (List<Byte>) -> Unit,
-        onGrabbed: () -> Unit,
+        present:  (List<Byte>) -> Unit,
+        onGrabbed: suspend (LocalFiat) -> Unit,
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
     ) {
@@ -80,8 +78,7 @@ class BillTransactionManager @Inject constructor(
             transactor.start()
                 .onSuccess {
                     childScope.cancel()
-                    onGrabbed()
-                    tokenController.subtract(token, LocalFiat(it.exchangeData))
+                    onGrabbed(LocalFiat(it.exchangeData))
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     onError(it)
@@ -93,7 +90,7 @@ class BillTransactionManager @Inject constructor(
     fun attemptGrabFromSender(
         owner: AccountCluster,
         payload: OpenCodePayload,
-        onGrabbed: (Token, LocalFiat) -> Unit,
+        onGrabbed: suspend (Token, LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         grabTransactor?.dispose()
@@ -105,7 +102,7 @@ class BillTransactionManager @Inject constructor(
                     accountController = accountController,
                     messagingController,
                     transactionController,
-                    tokenController,
+                    tokenProvider,
                     childScope
                 ).apply {
                     with(owner, payload)
@@ -124,7 +121,7 @@ class BillTransactionManager @Inject constructor(
                     val mint = metadata.exchangeData.mint
                     val amount = LocalFiat(metadata.exchangeData)
 
-                    val token = tokenController.getTokenMetadata(mint).getOrNull()?.token
+                    val token = tokenProvider.getTokenMetadata(mint).getOrNull()?.token
                     if (token == null) {
                         onError(IllegalStateException("No metadata found for token $mint"))
                         return@onSuccess
@@ -135,7 +132,6 @@ class BillTransactionManager @Inject constructor(
                         message = "Grabbed ${amount.nativeAmount.formatted()} of ${token.symbol} from sender"
                     )
                     onGrabbed(token, amount)
-                    tokenController.add(token, amount)
                     sharedScope.launch {
                         transactionController.updateLimits(owner, force = true)
                     }
@@ -151,7 +147,7 @@ class BillTransactionManager @Inject constructor(
         amount: LocalFiat,
         owner: AccountCluster,
         token: Token,
-        onFunded: (LocalFiat) -> Unit,
+        onFunded: suspend (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         giftTransactor?.dispose()
@@ -165,7 +161,6 @@ class BillTransactionManager @Inject constructor(
             transactor.start()
                 .onSuccess {
                     onFunded(amount)
-                    tokenController.subtract(token, amount)
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
                     ErrorUtils.handleError(it)
@@ -179,7 +174,7 @@ class BillTransactionManager @Inject constructor(
         owner: AccountCluster,
         entropy: String,
         claimIfOwned: Boolean,
-        onReceived: (Token, LocalFiat) -> Unit,
+        onReceived: suspend (Token, LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         receiveTransactor?.dispose()
@@ -188,7 +183,7 @@ class BillTransactionManager @Inject constructor(
             val transactor = ReceiveGiftCardTransactor(
                 accountController = accountController,
                 transactionController = transactionController,
-                tokenController = tokenController,
+                tokenProvider = tokenProvider,
                 mnemonicManager = mnemonicManager,
                 giftCardManager = giftCardManager
             ).apply {
@@ -200,7 +195,6 @@ class BillTransactionManager @Inject constructor(
             receiveTransactor?.start(claimIfOwned)
                 ?.onSuccess { (token, amount) ->
                     onReceived(token, amount)
-                    tokenController.add(token, amount)
                 }?.onFailure {
                     onError(it)
                     transactor.dispose()
