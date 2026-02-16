@@ -1,5 +1,6 @@
 package com.flipcash.app.bills
 
+import android.R.attr.fillType
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -32,17 +33,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -50,11 +66,13 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -76,6 +94,7 @@ import com.getcode.ui.core.punchRectangle
 import com.getcode.ui.utils.Geometry
 import com.getcode.ui.utils.deriveTargetColor
 import com.getcode.ui.utils.hexToColor
+import com.getcode.ui.utils.hls
 import com.getcode.ui.utils.nonScaledSp
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -127,7 +146,7 @@ private object CashBillDefaults {
     fun punchBrushIn(punch: Punch, token: Token): Brush {
         val billCustomizations = token.billCustomizations
         if (billCustomizations?.background == null) {
-            val color = Color.Black.copy(0.15f)
+            val color = Black.copy(0.15f)
                 .compositeOver(CodeTheme.colors.cashBillColor.copy(alpha = CodeBackgroundOpacity))
             return Brush.verticalGradient(
                 colors = listOf(color, color)
@@ -138,7 +157,7 @@ private object CashBillDefaults {
             is BillBackground.Gradient -> {
                 when (punch) {
                     Punch.SecurityStrip -> {
-                        val color = Color.Black.copy(0.15f)
+                        val color = Black.copy(0.15f)
                             .compositeOver(
                                 hexToColor(bg.colors.first())
                                     .copy(alpha = CodeBackgroundOpacity)
@@ -150,22 +169,7 @@ private object CashBillDefaults {
                     }
 
                     Punch.Code -> {
-                        val bgColors = if (bg.colors.size == 3) {
-                            bg.colors.slice(listOf(0, 2))
-                        } else {
-                            bg.colors
-                        }
-
-                        Brush.verticalGradient(
-                            colors = bgColors.map { hexToColor(it) }
-                                .map {
-                                    deriveTargetColor(
-                                        sourceColor = it,
-                                        targetLightness = -0.314f,
-                                        targetSaturation = -0.203f
-                                    ).copy(alpha = 0.62f)
-                                }
-                        )
+                        punchBrushFrom(bg.colors.map { hexToColor(it) })
                     }
                 }
             }
@@ -173,7 +177,7 @@ private object CashBillDefaults {
             is BillBackground.Solid -> {
                 when (punch) {
                     Punch.SecurityStrip -> {
-                        val color = Color.Black.copy(0.15f)
+                        val color = Black.copy(0.15f)
                             .compositeOver(hexToColor(bg.colorHex).copy(alpha = 0.62f))
 
                         Brush.verticalGradient(
@@ -182,15 +186,7 @@ private object CashBillDefaults {
                     }
 
                     Punch.Code -> {
-                        val color = deriveTargetColor(
-                            sourceColor = hexToColor(bg.colorHex),
-                            targetLightness = -0.314f,
-                            targetSaturation = -0.203f
-                        ).copy(alpha = 0.62f)
-
-                        Brush.verticalGradient(
-                            colors = listOf(color, color)
-                        )
+                        punchBrushFrom( listOf(hexToColor(bg.colorHex)))
                     }
                 }
             }
@@ -313,86 +309,103 @@ internal fun CashBill(
                 .aspectRatio(CashBillDefaults.AspectRatio, matchHeightConstraintsFirst = true)
                 .fillMaxHeight()
                 .fillMaxWidth(0.95f)
-                .background(CashBillDefaults.billColor(token))
                 .clipToBounds()
         ) {
             val geometry = remember(maxWidth, maxHeight) {
                 CashBillGeometry(maxWidth, maxHeight)
             }
 
-            if (hasCustomTexture) {
-                val context = LocalContext.current
-                val resources = LocalResources.current
-                val pattern = runCatching {
-                    resources.getIdentifier("bill_texture_${customTexture.index}", "drawable", context.packageName)
-                }.getOrNull()
-
-                if (pattern != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .patternBlend(
-                                pattern = ImageBitmap.imageResource(resources, pattern),
-                                blendMode = when (customTexture.blendMode) {
-                                    PlaygroundBlendMode.Normal -> null
-                                    PlaygroundBlendMode.Lighten -> BlendMode.Lighten
-                                    PlaygroundBlendMode.Screen -> BlendMode.Screen
-                                    PlaygroundBlendMode.ColorDodge -> BlendMode.ColorDodge
-                                    PlaygroundBlendMode.PlusLighter -> BlendMode.Softlight
-                                },
-                                strength = customTexture.strength,
-                            ),
-                    )
-                }
-            } else {
-                // Hexagons
-                BillDecorImage(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    image = loadBillAsset(R.drawable.ic_bill_hexagons),
-                    blendMode = BlendMode.Multiply,
-                    alpha = 0.6f,
-                )
-
-                // Grid pattern
-                BillDecorImage(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    image = loadBillAsset(R.drawable.ic_bill_grid),
-                    size = DpSize(width = geometry.gridWidth, height = geometry.gridHeight),
-                    topLeft = Offset(
-                        x = geometry.gridPosition.x,
-                        y = geometry.gridPosition.y,
-                    )
-                )
+            val punchShape = remember(geometry) {
+                BillPunchShape(codeSize = geometry.codeSize)
             }
 
-            // Globe
-            Image(
+            // Background with punch hole
+            Box(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .requiredWidth(geometry.globeWidth)
-                    .offset {
-                        IntOffset(
-                            x = geometry.globePosition.x.toInt(),
-                            y = geometry.globePosition.y.toInt()
-                        )
-                    },
-                painter = painterResource(R.drawable.ic_bill_globe),
-                contentDescription = null
+                    .fillMaxSize()
+                    .background(CashBillDefaults.billColor(token), punchShape)
             )
 
-            if (!hasCustomTexture) {
-                // Waves
+            // Texture layers — clipped with even-odd punch
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(punchShape)
+            ) {
+                if (hasCustomTexture) {
+                    val context = LocalContext.current
+                    val resources = LocalResources.current
+                    val pattern = runCatching {
+                        resources.getIdentifier("bill_texture_${customTexture.index}", "drawable", context.packageName)
+                    }.getOrNull()
+
+                    if (pattern != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .patternBlend(
+                                    pattern = ImageBitmap.imageResource(resources, pattern),
+                                    blendMode = when (customTexture.blendMode) {
+                                        PlaygroundBlendMode.Normal -> null
+                                        PlaygroundBlendMode.Lighten -> BlendMode.Lighten
+                                        PlaygroundBlendMode.Screen -> BlendMode.Screen
+                                        PlaygroundBlendMode.ColorDodge -> BlendMode.ColorDodge
+                                        PlaygroundBlendMode.PlusLighter -> BlendMode.Softlight
+                                    },
+                                    strength = customTexture.strength,
+                                ),
+                        )
+                    }
+                } else {
+                    // Hexagons
+                    BillDecorImage(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        image = loadBillAsset(R.drawable.ic_bill_hexagons),
+                        blendMode = BlendMode.Multiply,
+                        alpha = 0.6f,
+                    )
+
+                    // Grid pattern
+                    BillDecorImage(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        image = loadBillAsset(R.drawable.ic_bill_grid),
+                        size = DpSize(width = geometry.gridWidth, height = geometry.gridHeight),
+                        topLeft = Offset(
+                            x = geometry.gridPosition.x,
+                            y = geometry.gridPosition.y,
+                        )
+                    )
+                }
+
+                // Globe
                 Image(
                     modifier = Modifier
-                        .requiredWidth(geometry.globeWidth)
                         .fillMaxHeight()
-                        .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) },
-                    contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
-                    painter = painterResource(R.drawable.ic_bill_waves),
+                        .requiredWidth(geometry.globeWidth)
+                        .offset {
+                            IntOffset(
+                                x = geometry.globePosition.x.toInt(),
+                                y = geometry.globePosition.y.toInt()
+                            )
+                        },
+                    painter = painterResource(R.drawable.ic_bill_globe),
+                    contentDescription = null
                 )
+
+                if (!hasCustomTexture) {
+                    // Waves
+                    Image(
+                        modifier = Modifier
+                            .requiredWidth(geometry.globeWidth)
+                            .fillMaxHeight()
+                            .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) },
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        painter = painterResource(R.drawable.ic_bill_waves),
+                    )
+                }
             }
 
             // Security strip
@@ -580,7 +593,6 @@ private fun BillCode(
         modifier = modifier
             .punchCircle(
                 brush = CashBillDefaults.punchBrushIn(punch = Punch.Code, token),
-//                blendMode = BlendMode.SrcOver,
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -604,4 +616,39 @@ private fun loadBillAsset(drawableRes: Int): ImageBitmap {
         drawableRes,
         option
     ).asImageBitmap()
+}
+
+private class BillPunchShape(
+    private val codeSize: Dp,
+) : Shape {
+    override fun createOutline(
+        size: Size, layoutDirection: LayoutDirection, density: Density
+    ): Outline {
+        val radius = with(density) { (codeSize / 2f).toPx() }
+        val path = Path().apply {
+            fillType = PathFillType.EvenOdd
+            addRect(Rect(Offset.Zero, size))
+            addOval(
+                Rect(
+                    center = Offset(size.width / 2f, size.height / 2f),
+                    radius = radius
+                )
+            )
+        }
+        return Outline.Generic(path)
+    }
+}
+
+fun punchColorsFrom(billColors: List<Color>): List<Color> {
+    return billColors.map { color ->
+        lerp(color, Color.Black, 0.30f)
+    }
+}
+
+fun punchBrushFrom(billColors: List<Color>): Brush {
+    val punched = punchColorsFrom(billColors)
+    return when {
+        punched.size == 1 -> SolidColor(punched[0])
+        else -> Brush.verticalGradient(punched.map { it.copy(0.83f) })
+    }
 }

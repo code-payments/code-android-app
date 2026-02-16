@@ -21,13 +21,16 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
@@ -35,6 +38,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -199,16 +203,6 @@ fun Modifier.circleBackground(color: Color, padding: Dp): Modifier {
     return this then backgroundModifier then layoutModifier
 }
 
-fun Modifier.punchRectangle(color: Color, blendMode: BlendMode = BlendMode.Src) =
-    this.drawWithContent {
-        drawRect(
-            color,
-            blendMode = blendMode
-        )
-
-        drawContent()
-    }
-
 fun Modifier.punchRectangle(brush: Brush, blendMode: BlendMode = BlendMode.Src) =
     this.drawWithContent {
         drawRect(
@@ -219,29 +213,10 @@ fun Modifier.punchRectangle(brush: Brush, blendMode: BlendMode = BlendMode.Src) 
         drawContent()
     }
 
-fun Modifier.punchCircle(color: Color, blendMode: BlendMode = BlendMode.Src) =
-    this.drawWithContent {
-        drawCircle(
-            color,
-            blendMode = blendMode
-        )
-
+fun Modifier.punchCircle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = drawWithContent {
+        drawCircle(brush = brush, blendMode = blendMode)
         drawContent()
     }
-
-fun Modifier.punchCircle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = this.drawWithContent {
-    drawCircle(
-        brush = brush,
-        blendMode = BlendMode.Clear,
-    )
-
-    drawCircle(
-        brush = brush,
-        blendMode = blendMode
-    )
-
-    drawContent()
-}
 
 @Composable
 fun Modifier.withTopBorder(color: Color = CodeTheme.colors.brandLight) = drawBehind {
