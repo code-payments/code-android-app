@@ -81,7 +81,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Token.Info> {
-            TokenInfoScreen(it.mint, it.forNeededFunds)
+            TokenInfoScreen(it.mint, it.forNeededFunds, it.fromDeeplink)
         }
 
         register<AppRoute.Token.Transactions> {

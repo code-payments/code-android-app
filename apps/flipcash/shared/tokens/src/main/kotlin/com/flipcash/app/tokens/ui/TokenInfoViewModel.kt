@@ -16,6 +16,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
@@ -64,6 +66,7 @@ class TokenInfoViewModel @Inject constructor(
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
     features: FeatureFlagController,
+    analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -309,6 +312,7 @@ class TokenInfoViewModel @Inject constructor(
                                             stateFlow.value.reservesBalance.formatted()
                                         ),
                                         onClick = {
+                                            analytics.action(Action.BuyWithReserves)
                                             dispatchEvent(
                                                 Event.OpenScreen(
                                                     AppRoute.Token.SwapTransact(
@@ -364,7 +368,7 @@ class TokenInfoViewModel @Inject constructor(
                                         OnRampFlowTracker.start(
                                             AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
                                         )
-
+                                        analytics.action(Action.BuyWithPhantom)
                                         dispatchEvent(Event.ConnectPhantomWallet)
                                     }
                                 )

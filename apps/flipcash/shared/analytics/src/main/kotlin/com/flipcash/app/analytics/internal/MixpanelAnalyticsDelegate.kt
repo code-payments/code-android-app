@@ -10,6 +10,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
@@ -142,10 +143,40 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(event.name, *properties.toList().toTypedArray())
     }
 
+    override fun openTokenInfo(from: AnalyticsEvent.OpenTokenInfoEvent, mint: Mint) {
+        val properties = from.properties(mint = mint)
+        track(from.name, *properties.toList().toTypedArray())
+    }
+
+    override fun buy(
+        method: AnalyticsEvent.TokenTransactionEvent.Purchase,
+        amount: Fiat,
+        mint: Mint,
+        error: Throwable?
+    ) {
+        val properties = method.properties(mint = mint, nativeAmount = amount, error = error)
+        track(method.name, *properties.toList().toTypedArray())
+    }
+
+    override fun sell(
+        amount: Fiat,
+        feeAmount: Fiat,
+        mint: Mint,
+        error: Throwable?
+    ) {
+        val event = AnalyticsEvent.TokenTransactionEvent.Sell
+        val properties = event.properties(mint = mint, nativeAmount = amount, error = error)
+        track(event.name, *properties.toList().toTypedArray())
+    }
+
     private fun track(name: String, vararg properties: Pair<String, String>) {
         if (BuildConfig.DEBUG) {
+            val propsString = properties.joinToString { "${it.first} => ${it.second}" }
             trace(
-                "debug track ${name}, ${properties.joinToString { "${it.first} => ${it.second}" }}",
+                buildString {
+                    append("debug track $name")
+                    if (propsString.isNotEmpty()) append(", $propsString")
+                },
                 type = TraceType.Silent
             )
             return
@@ -162,6 +193,8 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 private fun AnalyticsEvent.properties(
     localizedAmount: LocalFiat? = null,
     nativeAmount: Fiat? = null,
+    feeAmount: Fiat? = null,
+    mint: Mint? = null,
     grabTime: Long? = null,
     successful: Boolean? = null,
     error: Throwable? = null,
@@ -233,6 +266,17 @@ private fun AnalyticsEvent.properties(
             }
 
             is AnalyticsEvent.OnRampOpenEvent -> Unit
+            is AnalyticsEvent.OpenTokenInfoEvent -> {
+                put("Mint", mint?.base58().orEmpty())
+            }
+            is AnalyticsEvent.TokenTransactionEvent -> {
+                put("Mint", mint?.base58().orEmpty())
+                put("Fiat", nativeAmount?.decimalValue.toString())
+                if (feeAmount != null) {
+                    put("Fee", feeAmount.decimalValue.toString())
+                }
+                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
+            }
             is AnalyticsEvent.OnRampVerificationEvent -> Unit
             AnalyticsEvent.OnRampPurchaseEvent.Completed -> {
                 put("Fiat", nativeAmount?.decimalValue.toString())

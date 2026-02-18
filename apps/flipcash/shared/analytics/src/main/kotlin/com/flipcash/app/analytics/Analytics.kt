@@ -8,8 +8,9 @@ import com.getcode.libs.analytics.AppActionSource
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
 
-interface FlipcashAnalyticsService: AnalyticsService {
+interface FlipcashAnalyticsService : AnalyticsService {
     fun transfer(
         event: AnalyticsEvent.Transfer,
         amount: LocalFiat? = null,
@@ -59,6 +60,21 @@ interface FlipcashAnalyticsService: AnalyticsService {
     fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
     fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks)
     fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks)
+
+    fun openTokenInfo(from: AnalyticsEvent.OpenTokenInfoEvent, mint: Mint)
+    fun buy(
+        method: AnalyticsEvent.TokenTransactionEvent.Purchase,
+        amount: Fiat,
+        mint: Mint,
+        error: Throwable? = null
+    )
+
+    fun sell(
+        amount: Fiat,
+        feeAmount: Fiat,
+        mint: Mint,
+        error: Throwable? = null
+    )
 }
 
 class StubFlipcashAnalytics : FlipcashAnalyticsService {
@@ -103,4 +119,14 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) = Unit
+
+    override fun openTokenInfo(from: AnalyticsEvent.OpenTokenInfoEvent, mint: Mint) = Unit
+    override fun buy(
+        method: AnalyticsEvent.TokenTransactionEvent.Purchase,
+        amount: Fiat,
+        mint: Mint,
+        error: Throwable?
+    ) = Unit
+
+    override fun sell(amount: Fiat, feeAmount: Fiat, mint: Mint, error: Throwable?) = Unit
 }

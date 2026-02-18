@@ -119,6 +119,40 @@ sealed interface AnalyticsEvent {
         }
     }
 
+    sealed interface OpenTokenInfoEvent : AnalyticsEvent {
+        data object Deeplink : OpenTokenInfoEvent {
+            override val name: String = "Token Info: Opened From Deeplink"
+        }
+
+        data object Wallet : OpenTokenInfoEvent {
+            override val name: String = "Token Info: Opened From Wallet"
+        }
+
+        data object Give : OpenTokenInfoEvent {
+            override val name: String = "Token Info: Opened From Give"
+        }
+    }
+
+    sealed interface TokenTransactionEvent: AnalyticsEvent {
+        sealed interface Purchase: TokenTransactionEvent {
+            data object Reserves: Purchase {
+                override val name: String = "Token Purchase With Reserves"
+            }
+
+            data object Phantom: Purchase {
+                override val name: String = "Token Purchase With Phantom"
+            }
+
+            data object Coinbase: Purchase {
+                override val name: String = "Token Purchase With Coinbase"
+            }
+        }
+
+        data object Sell: TokenTransactionEvent {
+            override val name: String = "Token Sell"
+        }
+    }
+
     sealed interface WalletEvent : AnalyticsEvent {
         val provider: OnRampProvider.UsesDeeplinks
     }

@@ -2,6 +2,8 @@ package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
+import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.tokens.TokenSwapPurpose
@@ -67,6 +69,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
     resources: ResourceHelper,
     tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
+    private val analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<BuySellSwapTokenViewModel.State, BuySellSwapTokenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -540,11 +543,13 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     amount = amount,
                     of = token,
                 ).onSuccess { swapId ->
+                    trackTransaction(token)
                     dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                     // buy submitted from reserves, drop reserves balance
                     tokenCoordinator.subtract(Token.usdf, amount)
                 }.onFailure {
+                    trackTransaction(token, error = it)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_buySellFailed),
@@ -569,11 +574,13 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     amount = amount,
                     of = token,
                 ).onSuccess { swapId ->
+                    trackTransaction(token)
                     dispatchEvent(Event.OnSellSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                     // sell submitted, drop from balance
                     tokenCoordinator.subtract(token, amount)
                 }.onFailure {
+                    trackTransaction(token, error = it)
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_buySellFailed),
@@ -615,6 +622,34 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateProcessingState(loading = false, success = false, error = true))
                 }
             ).launchIn(viewModelScope)
+    }
+
+    private fun trackTransaction(token: Token, error: Throwable? = null) {
+        val purpose = stateFlow.value.purpose
+        val method = when (purpose) {
+            is TokenSwapPurpose.Buy -> AnalyticsEvent.TokenTransactionEvent.Purchase.Reserves
+            is TokenSwapPurpose.FundWithWallet -> AnalyticsEvent.TokenTransactionEvent.Purchase.Phantom
+            else -> AnalyticsEvent.TokenTransactionEvent.Sell
+        }
+
+        when (method) {
+            AnalyticsEvent.TokenTransactionEvent.Sell -> {
+                analytics.sell(
+                    amount = stateFlow.value.netTransferAmount,
+                    feeAmount = stateFlow.value.feeAmount,
+                    mint = token.address,
+                    error = error
+                )
+            }
+            is AnalyticsEvent.TokenTransactionEvent.Purchase -> {
+                analytics.buy(
+                    method = method,
+                    amount = stateFlow.value.netTransferAmount,
+                    mint = token.address,
+                    error = error
+                )
+            }
+        }
     }
 
     internal companion object {

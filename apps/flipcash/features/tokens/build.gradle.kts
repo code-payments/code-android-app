@@ -56,6 +56,7 @@ dependencies {
     implementation(Libs.haze)
     implementation(Libs.haze_materials)
 
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tokens"))

@@ -21,7 +21,7 @@ class NavigationStateRestorer(
                 navigator.show(
                     listOf(
                         ScreenRegistry.get(AppRoute.Sheets.Wallet),
-                        ScreenRegistry.get(AppRoute.Token.Info(deeplink.mint))
+                        ScreenRegistry.get(AppRoute.Token.Info(deeplink.mint, fromDeeplink = true))
                     )
                 )
             }

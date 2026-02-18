@@ -30,4 +30,16 @@ sealed class Action : AppAction {
     data object CompletedOnboarding : Action() {
         override val value: String = "Complete Onboarding"
     }
+
+    data object BuyWithReserves : Action() {
+        override val value: String = "Button: Buy With Reserves"
+    }
+
+    data object BuyWithPhantom : Action() {
+        override val value: String = "Button: Buy With Phantom"
+    }
+
+    data object Sell : Action() {
+        override val value: String = "Button: Sell"
+    }
 }

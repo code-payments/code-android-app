@@ -10,10 +10,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.OnRampFlowTracker
@@ -21,6 +25,7 @@ import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.modal.ModalScreen
 import com.getcode.navigation.screens.AppScreen
@@ -42,11 +47,13 @@ import kotlinx.parcelize.Parcelize
 class TokenInfoScreen(
     private val mint: Mint,
     private val forNeededFunds: Boolean,
+    private val fromDeeplink: Boolean,
 ) : AppScreen(), ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @OptIn(ExperimentalVoyagerApi::class)
     @Composable
     override fun ModalContent() {
         val navigator = LocalCodeNavigator.current
@@ -56,6 +63,7 @@ class TokenInfoScreen(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val analytics = LocalAnalytics.current as FlipcashAnalyticsService
             val viewModel = getViewModel<TokenInfoViewModel>()
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             AppBarWithTitle(
@@ -87,6 +95,19 @@ class TokenInfoScreen(
                     }
                 },
             )
+
+            LifecycleEffectOnce {
+                val event = when {
+                    forNeededFunds -> AnalyticsEvent.OpenTokenInfoEvent.Give
+                    fromDeeplink -> AnalyticsEvent.OpenTokenInfoEvent.Deeplink
+                    else -> AnalyticsEvent.OpenTokenInfoEvent.Wallet
+                }
+
+                analytics.openTokenInfo(
+                    from = event,
+                    mint = mint
+                )
+            }
 
             TokenInfoScreen(viewModel, forNeededFunds)
 
