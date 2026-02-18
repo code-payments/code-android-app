@@ -40,7 +40,7 @@ class LoginAccessKeyViewModel @Inject constructor(
             it
         }
 
-    suspend fun onWroteDownInstead(): Result<Boolean> = trackButton(Action.SaveAccessKey)
+    suspend fun onWroteDownInstead(): Result<Boolean> = trackButton(Action.WroteAccessKey)
         .map {
             uiFlow.update { it.copy(skipState = LoadingSuccessState(loading = true)) }
         }
