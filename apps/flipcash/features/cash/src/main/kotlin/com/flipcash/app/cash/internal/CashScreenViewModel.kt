@@ -316,9 +316,9 @@ internal class CashScreenViewModel @Inject constructor(
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
             .onEach { amount ->
-                analytics.openOnramp(AnalyticsEvent.OnRampOpenEvent.Give)
                 val provider = stateFlow.value.preferredOnRampProvider
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
+                    analytics.openOnramp(AnalyticsEvent.OnRampOpenEvent.Give)
                     // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {
