@@ -1,4 +1,4 @@
-package com.flipcash.app.tokens.di
+package com.flipcash.app.tokens.inject
 
 import com.flipcash.app.tokens.TokenCoordinator
 import com.getcode.opencode.providers.SessionListener

@@ -26,9 +26,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.analytics.Action
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.services.analytics.Action
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator

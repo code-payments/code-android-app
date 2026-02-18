@@ -53,10 +53,10 @@ dependencies {
     implementation(Libs.kotlinx_serialization_json)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))

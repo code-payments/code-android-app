@@ -1,6 +1,5 @@
 package com.flipcash.app.login.seed
 
-import android.Manifest
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -8,7 +7,6 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.AppRoute
 import com.flipcash.features.login.R
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.user.UserManager
@@ -16,7 +14,6 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
-import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel

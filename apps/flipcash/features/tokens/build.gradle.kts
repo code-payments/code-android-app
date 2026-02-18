@@ -66,7 +66,6 @@ dependencies {
     implementation(project(":libs:logging"))
     implementation(project(":libs:quickresponse"))
     implementation(project(":libs:vibrator:bindings"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

@@ -58,7 +58,6 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
     api(project(":libs:quickresponse"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

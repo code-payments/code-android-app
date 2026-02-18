@@ -55,7 +55,6 @@ dependencies {
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":libs:messaging"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

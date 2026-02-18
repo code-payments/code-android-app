@@ -1,9 +1,9 @@
 package com.flipcash.app.billing.inject
 
 import android.content.Context
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.billing.internal.GooglePlayBillingClient
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.PurchaseController
 import com.flipcash.services.user.UserManager
 import dagger.Module

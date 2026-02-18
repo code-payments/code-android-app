@@ -7,13 +7,10 @@ import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.annotations.AccountType
-import com.flipcash.services.analytics.FlipcashAnalyticsManager
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.AndroidSettingsHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.SettingsHelper
-import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -56,11 +53,6 @@ object AppModule {
     fun providesNotificationManager(
         @ApplicationContext context: Context
     ): NotificationManagerCompat = NotificationManagerCompat.from(context)
-
-    @Provides
-    fun providesAnalyticsService(
-        mixpanelAPI: MixpanelAPI
-    ): FlipcashAnalyticsService = FlipcashAnalyticsManager(mixpanelAPI)
 
     @Provides
     @Singleton

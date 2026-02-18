@@ -8,8 +8,9 @@ include(
 
         // flipcash modules
         ":apps:flipcash:core",
-        // shared flipcash coordinators/controllers/viewmodels
+        // shared flipcash coordinators/controllers/viewmodels/services
         ":apps:flipcash:shared:accesskey",
+        ":apps:flipcash:shared:analytics",
         ":apps:flipcash:shared:appsettings",
         ":apps:flipcash:shared:authentication",
         ":apps:flipcash:shared:activityfeed",

@@ -12,6 +12,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.canNativelyHandle
@@ -23,7 +24,6 @@ import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.onramp.internal.packageName
 import com.flipcash.app.router.Router
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
 import com.getcode.libs.analytics.LocalAnalytics

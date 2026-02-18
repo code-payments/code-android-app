@@ -70,7 +70,6 @@ dependencies {
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_crashlytics)
     implementation(Libs.firebase_installations)
-    implementation(Libs.firebase_perf)
     implementation(Libs.firebase_messaging)
 
     implementation(Libs.play_integrity)

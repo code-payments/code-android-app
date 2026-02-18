@@ -16,12 +16,12 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.internal.phone.PhoneEntryScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
 import com.flipcash.features.contact.verification.R
-import com.flipcash.services.analytics.AnalyticsEvent
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel

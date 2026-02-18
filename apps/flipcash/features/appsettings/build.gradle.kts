@@ -55,7 +55,6 @@ dependencies {
 
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:appsettings"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:components"))

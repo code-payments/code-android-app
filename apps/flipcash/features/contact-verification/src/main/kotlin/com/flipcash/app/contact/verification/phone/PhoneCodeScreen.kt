@@ -14,6 +14,8 @@ import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.phone.PhoneCodeScreen
@@ -21,8 +23,6 @@ import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationVie
 import com.flipcash.app.navigation.FlowNavigator
 import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.features.contact.verification.R
-import com.flipcash.services.analytics.AnalyticsEvent
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.navigation.screens.NamedScreen

@@ -47,6 +47,7 @@ dependencies {
     implementation(Libs.compose_ui)
 
     implementation(project(":apps:flipcash:shared:activityfeed"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:google-play-billing"))
     implementation(project(":apps:flipcash:shared:featureflags"))

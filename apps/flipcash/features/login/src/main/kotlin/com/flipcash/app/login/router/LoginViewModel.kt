@@ -1,10 +1,10 @@
 package com.flipcash.app.login.router
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.features.login.R
-import com.flipcash.services.analytics.Action
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.AccountController
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -12,7 +12,6 @@ import com.getcode.utils.encodeBase64
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot

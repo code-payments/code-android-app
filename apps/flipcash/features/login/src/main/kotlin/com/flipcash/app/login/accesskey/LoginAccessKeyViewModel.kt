@@ -1,13 +1,12 @@
 package com.flipcash.app.login.accesskey
 
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
+import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaScanner
-import com.flipcash.services.analytics.Action
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
-import com.getcode.manager.TopBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
@@ -15,7 +14,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginAccessKeyViewModel @Inject constructor(

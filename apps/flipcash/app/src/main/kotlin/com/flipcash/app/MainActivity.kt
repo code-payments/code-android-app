@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.appsettings.LocalAppSettings
@@ -34,7 +35,6 @@ import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.updates.AppUpdateController
 import com.flipcash.app.updates.LocalAppUpdater
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange

@@ -1,22 +1,20 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
-import com.flipcash.app.updates.AppUpdateController
 import com.flipcash.features.menu.R
-import com.flipcash.services.analytics.AnalyticsEvent
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState

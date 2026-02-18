@@ -58,6 +58,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:activityfeed"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
@@ -65,7 +66,6 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

@@ -58,7 +58,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:logging"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

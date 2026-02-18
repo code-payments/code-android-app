@@ -1,8 +1,8 @@
 package com.flipcash.app.onramp.inject
 
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.onramp.internal.InternalOnRampAmountController
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

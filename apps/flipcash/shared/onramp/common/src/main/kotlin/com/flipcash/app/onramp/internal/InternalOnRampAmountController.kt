@@ -1,11 +1,11 @@
 package com.flipcash.app.onramp.internal
 
+import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.onramp.State
-import com.flipcash.services.analytics.AnalyticsEvent
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

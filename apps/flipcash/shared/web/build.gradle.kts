@@ -50,7 +50,6 @@ dependencies {
     implementation(Libs.compose_materialIconsExtended)
     implementation(Libs.compose_webview)
 
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

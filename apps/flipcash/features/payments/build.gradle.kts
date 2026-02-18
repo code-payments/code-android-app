@@ -58,7 +58,6 @@ dependencies {
 
     implementation(project(":services:flipcash"))
 
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

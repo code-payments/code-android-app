@@ -65,8 +65,6 @@ dependencies {
     api(project(":libs:network:connectivity:bindings"))
     implementation(project(":ui:resources"))
 
-    api(project(":libs:analytics"))
-
     api(project(":vendor:kik:scanner"))
 
     implementation(Libs.inject)

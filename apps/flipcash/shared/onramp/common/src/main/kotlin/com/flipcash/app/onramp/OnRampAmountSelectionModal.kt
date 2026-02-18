@@ -25,9 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.onramp.internal.InternalOnRampAmountController
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.services.analytics.StubFlipcashAnalytics
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.common.R
 import com.getcode.opencode.model.financial.Fiat

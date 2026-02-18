@@ -56,7 +56,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))

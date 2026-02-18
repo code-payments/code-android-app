@@ -21,6 +21,7 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.billing.BillingClientConnection
 import com.flipcash.app.billing.BillingClientState
@@ -28,7 +29,6 @@ import com.flipcash.app.billing.IapPaymentError
 import com.flipcash.app.billing.IapPaymentEvent
 import com.flipcash.app.billing.IapProduct
 import com.flipcash.app.billing.ProductPrice
-import com.flipcash.services.analytics.FlipcashAnalyticsService
 import com.flipcash.services.controllers.PurchaseController
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt

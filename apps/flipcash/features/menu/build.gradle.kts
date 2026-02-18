@@ -53,6 +53,7 @@ dependencies {
     implementation(Libs.compose_materialIconsExtended)
 
     implementation(project(":apps:flipcash:shared:appupdates"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:menu"))
@@ -63,7 +64,6 @@ dependencies {
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
-    implementation(project(":ui:analytics"))
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))

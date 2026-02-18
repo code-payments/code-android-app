@@ -140,6 +140,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:accesskey"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:authentication"))
