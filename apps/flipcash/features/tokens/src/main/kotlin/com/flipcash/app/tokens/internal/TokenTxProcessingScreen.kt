@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenSwapPurpose
@@ -172,6 +173,8 @@ private fun TokenTxProcessingScreen(
                         color = CodeTheme.colors.textMain,
                     )
                     Text(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.grid.x12),
                         text = when (state.processingProgress.state) {
                             LoadingSuccessState.State.Error -> stringResource(R.string.error_description_buySellFailed)
                             LoadingSuccessState.State.Idle -> ""
@@ -180,6 +183,7 @@ private fun TokenTxProcessingScreen(
                         },
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center
                     )
                 }
             }

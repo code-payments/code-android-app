@@ -407,8 +407,8 @@
     <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
     <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
 
-    <string name="title_processingYourTransaction">Processing Your Transaction</string>
-    <string name="subtitle_processingYourTransaction">This usually takes about a minute</string>
+    <string name="title_processingYourTransaction">This Will Take a Minute</string>
+    <string name="subtitle_processingYourTransaction">This transaction typically takes about a minute. You may leave the app while it completes</string>
     <string name="subtitle_wasAddedToYourWallet">was added to your Flipcash wallet</string>
     <string name="label_ofToken">of %1s</string>
 
