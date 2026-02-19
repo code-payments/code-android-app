@@ -42,8 +42,9 @@ import org.kin.sdk.base.tools.subByteArray
         AutoMigration(from = 9, to = 10, spec = FlipcashDatabase.Migration9To10::class),
         AutoMigration(from = 10, to = 11, spec = FlipcashDatabase.Migration10To11::class),
         AutoMigration(from = 11, to = 12),
+        AutoMigration(from = 12, to = 13, spec = FlipcashDatabase.Migration12To13::class),
     ],
-    version = 12,
+    version = 13,
 )
 @TypeConverters(TokenTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -116,6 +117,13 @@ abstract class FlipcashDatabase : RoomDatabase() {
         DeleteTable(tableName = "pool_rendezvous_keys")
     )
     class Migration10To11 : Migration(10, 11), AutoMigrationSpec
+
+    class Migration12To13 : Migration(12, 13), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM tokens")
+            db.execSQL("DELETE FROM token_valuation")
+        }
+    }
 
     companion object {
         private var instance: FlipcashDatabase? = null

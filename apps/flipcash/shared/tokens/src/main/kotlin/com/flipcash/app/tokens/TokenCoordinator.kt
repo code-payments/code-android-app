@@ -11,6 +11,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.persistence.sources.TokenDataSource
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.model.WindowedRange
@@ -77,6 +78,7 @@ import javax.inject.Singleton
 class TokenCoordinator @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val tokenController: TokenController,
+    private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
     private val dataSource: TokenDataSource,
@@ -229,11 +231,15 @@ class TokenCoordinator @Inject constructor(
 
         return tokenController.getTokenMetadata(mint)
             .onSuccess { result ->
-                // Persist to Room
-                dataSource.upsert(listOf(result.token))
-                // Hydrate in-memory
-                _state.update { state ->
-                    state.copy(tokens = state.tokens + (result.token.address to result.token))
+                val hasAccount = accountController.hasAccountFor(result.token.address)
+                // if we have an account for this mint, persist and hydrate
+                if (hasAccount) {
+                    // Persist to Room
+                    dataSource.upsert(listOf(result.token))
+                    // Hydrate in-memory
+                    _state.update { state ->
+                        state.copy(tokens = state.tokens + (result.token.address to result.token))
+                    }
                 }
             }
     }
