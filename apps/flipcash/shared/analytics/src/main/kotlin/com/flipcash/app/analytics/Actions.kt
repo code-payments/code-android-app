@@ -31,15 +31,19 @@ sealed class Action : AppAction {
         override val value: String = "Complete Onboarding"
     }
 
-    data object BuyWithReserves : Action() {
+    data object TokenBuyWithReserves : Action() {
         override val value: String = "Button: Buy With Reserves"
     }
 
-    data object BuyWithPhantom : Action() {
+    data object TokenBuyWithPhantom : Action() {
         override val value: String = "Button: Buy With Phantom"
     }
 
-    data object Sell : Action() {
+    data object TokenSell : Action() {
         override val value: String = "Button: Sell"
+    }
+
+    data object TokenShare : Action() {
+        override val value: String = "Button: Share Token Info"
     }
 }

@@ -17,6 +17,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.EmailVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
@@ -58,7 +59,7 @@ class EmailMagicLinkScreen(
             flowNavigator.exit(false)
         }
 
-        val analytics = LocalAnalytics.current as FlipcashAnalyticsService
+        val analytics = rememberAnalytics()
         LifecycleEffectOnce {
             analytics.onrampVerification(AnalyticsEvent.OnRampVerificationEvent.ConfirmEmail)
         }

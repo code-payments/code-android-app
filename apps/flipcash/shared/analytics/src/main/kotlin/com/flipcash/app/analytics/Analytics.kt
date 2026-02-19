@@ -1,10 +1,12 @@
 package com.flipcash.app.analytics
 
+import androidx.compose.runtime.Composable
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -129,4 +131,9 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     ) = Unit
 
     override fun sell(amount: Fiat, feeAmount: Fiat, mint: Mint, error: Throwable?) = Unit
+}
+
+@Composable
+fun rememberAnalytics(): FlipcashAnalyticsService {
+    return LocalAnalytics.current as FlipcashAnalyticsService
 }

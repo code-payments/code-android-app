@@ -13,6 +13,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.canNativelyHandle
@@ -54,7 +55,7 @@ fun ExternalWalletOnRampHandler(
 ) {
     val permissions = LocalPermissionChecker.current
     val composeScope = rememberCoroutineScope()
-    val analytics = LocalAnalytics.current as FlipcashAnalyticsService
+    val analytics = rememberAnalytics()
 
     fun close(exit: Boolean) {
         if (exit) {

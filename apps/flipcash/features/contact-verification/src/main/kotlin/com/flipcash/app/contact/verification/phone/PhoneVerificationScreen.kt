@@ -18,6 +18,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.internal.phone.PhoneEntryScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
@@ -69,7 +70,7 @@ class PhoneVerificationScreen : Screen, NamedScreen, Parcelable  {
             PhoneEntryScreen(viewModel)
         }
 
-        val analytics = LocalAnalytics.current as FlipcashAnalyticsService
+        val analytics = rememberAnalytics()
         LifecycleEffectOnce {
             analytics.onrampVerification(AnalyticsEvent.OnRampVerificationEvent.EnterPhone)
         }

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.RegionSelectionKind
@@ -267,7 +268,7 @@ private fun BottomBarButtons(
     modifier: Modifier = Modifier,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
-    val analytics = LocalAnalytics.current as FlipcashAnalyticsService
+    val analytics = rememberAnalytics()
     when (val loadable = state.token) {
         is Loadable.Error -> Unit
         is Loadable.Loaded -> {
@@ -294,7 +295,7 @@ private fun BottomBarButtons(
                                 buttonState = ButtonState.Filled20,
                                 text = stringResource(R.string.action_sell),
                             ) {
-                                analytics.action(Action.Sell)
+                                analytics.action(Action.TokenSell)
                                 dispatch(
                                     TokenInfoViewModel.Event.OpenScreen(
                                         AppRoute.Token.SwapTransact(

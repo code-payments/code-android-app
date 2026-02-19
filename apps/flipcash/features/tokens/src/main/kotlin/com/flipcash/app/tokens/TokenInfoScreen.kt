@@ -16,8 +16,10 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.OnRampFlowTracker
@@ -63,7 +65,7 @@ class TokenInfoScreen(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val analytics = LocalAnalytics.current as FlipcashAnalyticsService
+            val analytics = rememberAnalytics()
             val viewModel = getViewModel<TokenInfoViewModel>()
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             AppBarWithTitle(
@@ -89,6 +91,7 @@ class TokenInfoScreen(
                     state.token.dataOrNull?.let {
                         if (!state.isCashReserve) {
                             AppBarDefaults.Share {
+                                analytics.action(Action.TokenShare)
                                 viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
                             }
                         }

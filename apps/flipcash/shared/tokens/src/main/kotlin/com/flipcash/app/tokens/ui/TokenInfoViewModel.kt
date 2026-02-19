@@ -312,7 +312,7 @@ class TokenInfoViewModel @Inject constructor(
                                             stateFlow.value.reservesBalance.formatted()
                                         ),
                                         onClick = {
-                                            analytics.action(Action.BuyWithReserves)
+                                            analytics.action(Action.TokenBuyWithReserves)
                                             dispatchEvent(
                                                 Event.OpenScreen(
                                                     AppRoute.Token.SwapTransact(
@@ -368,7 +368,7 @@ class TokenInfoViewModel @Inject constructor(
                                         OnRampFlowTracker.start(
                                             AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
                                         )
-                                        analytics.action(Action.BuyWithPhantom)
+                                        analytics.action(Action.TokenBuyWithPhantom)
                                         dispatchEvent(Event.ConnectPhantomWallet)
                                     }
                                 )
