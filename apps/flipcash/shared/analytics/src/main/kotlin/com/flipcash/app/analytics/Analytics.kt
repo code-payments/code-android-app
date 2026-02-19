@@ -77,6 +77,10 @@ interface FlipcashAnalyticsService : AnalyticsService {
         mint: Mint,
         error: Throwable? = null
     )
+
+    fun buttonTapped(button: Button) {
+        action(button)
+    }
 }
 
 class StubFlipcashAnalytics : FlipcashAnalyticsService {

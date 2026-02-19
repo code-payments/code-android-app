@@ -18,6 +18,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.ui.TokenIconWithName
@@ -91,7 +92,7 @@ class TokenInfoScreen(
                     state.token.dataOrNull?.let {
                         if (!state.isCashReserve) {
                             AppBarDefaults.Share {
-                                analytics.action(Action.TokenShare)
+                                analytics.buttonTapped(Button.TokenShare)
                                 viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
                             }
                         }

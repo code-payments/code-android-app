@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.Button
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.permissions.R
@@ -81,14 +83,14 @@ internal fun PermissionScreenContent(
 
 @Composable
 internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: () -> Unit) {
-    val analytics = LocalAnalytics.current
+    val analytics = rememberAnalytics()
     var isResultHandled by remember { mutableStateOf(false) }
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (!isResultHandled) {
             isResultHandled = true
 
             if (isGranted) {
-                analytics.action(Action.AllowCamera)
+                analytics.buttonTapped(Button.AllowCamera)
                 onGranted()
             } else {
                 onNotGranted()
@@ -158,13 +160,13 @@ internal fun CameraPermissionScreenContent(onGranted: () -> Unit, onNotGranted: 
 
 @Composable
 internal fun NotificationScreenContent(onGranted: () -> Unit) {
-    val analytics = LocalAnalytics.current
+    val analytics = rememberAnalytics()
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
-            analytics.action(Action.AllowPush)
+            analytics.action(Button.AllowPush)
             onGranted()
         } else {
-            analytics.action(Action.SkipPush)
+            analytics.action(Button.SkipPush)
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = {

@@ -2,6 +2,7 @@ package com.flipcash.app.login.accesskey
 
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
 import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaScanner
@@ -26,7 +27,7 @@ class LoginAccessKeyViewModel @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
 ): BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, userManager, qrCodeGenerator) {
 
-    suspend fun saveImage(): Result<Boolean> = trackButton(Action.SaveAccessKey)
+    suspend fun saveImage(): Result<Boolean> = trackButton(Button.SaveAccessKey)
         .fold(
             onSuccess = { saveBitmapToFile() },
             onFailure = { Result.failure(it) }
@@ -40,7 +41,7 @@ class LoginAccessKeyViewModel @Inject constructor(
             it
         }
 
-    suspend fun onWroteDownInstead(): Result<Boolean> = trackButton(Action.WroteAccessKey)
+    suspend fun onWroteDownInstead(): Result<Boolean> = trackButton(Button.WroteAccessKey)
         .map {
             uiFlow.update { it.copy(skipState = LoadingSuccessState(loading = true)) }
         }
@@ -59,8 +60,8 @@ class LoginAccessKeyViewModel @Inject constructor(
             it
         }
 
-    private fun trackButton(action: Action): Result<Unit> {
-        analytics.action(action)
+    private fun trackButton(button: Button): Result<Unit> {
+        analytics.buttonTapped(button)
         return Result.success(Unit)
     }
 }

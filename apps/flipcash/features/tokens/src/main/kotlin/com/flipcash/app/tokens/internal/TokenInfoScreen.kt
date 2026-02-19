@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
@@ -295,7 +296,7 @@ private fun BottomBarButtons(
                                 buttonState = ButtonState.Filled20,
                                 text = stringResource(R.string.action_sell),
                             ) {
-                                analytics.action(Action.TokenSell)
+                                analytics.buttonTapped(Button.TokenSell)
                                 dispatch(
                                     TokenInfoViewModel.Event.OpenScreen(
                                         AppRoute.Token.SwapTransact(
