@@ -16,22 +16,29 @@ import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.features.scanner.R
+import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.orZero
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.ui.scanner.NoCamerasAvailableException
+import com.getcode.util.vibration.LocalVibrator
 import com.getcode.utils.ErrorUtils
+import com.kik.kikx.kikcodes.implementation.KikCodeResult
+import dev.theolm.rinku.DeepLink
+import kotlinx.coroutines.delay
 import timber.log.Timber
 import java.util.Timer
 import kotlin.concurrent.schedule
 
 @Composable
 internal fun Scanner(deepLink: DeeplinkType?) {
+    val router = LocalRouter.currentOrThrow
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.currentOrThrow
     val state by session.state.collectAsState()
@@ -58,12 +65,20 @@ internal fun Scanner(deepLink: DeeplinkType?) {
 
     val context = LocalContext.current
 
+    var deepLinkSaved by remember(deepLink) {
+        mutableStateOf(deepLink)
+    }
+
+    val vibrator = LocalVibrator.current
+
     ScannerDeepLinkHandler(
-        deepLink = deepLink,
+        deepLink = deepLinkSaved,
         previewing = previewing,
         session = session,
         navigator = navigator
-    )
+    ) {
+        deepLinkSaved = null
+    }
 
     @SuppressLint("LocalContextGetResourceValueCall")
     BillContainer(
@@ -97,7 +112,24 @@ internal fun Scanner(deepLink: DeeplinkType?) {
                     cameraAvailable = true
                     previewing = it
                 },
-                onCodeScanned = session::onCodeScan,
+                onCodeScanned = { result ->
+                    when (result) {
+                        is CodeScanResult.QrCode -> {
+                            val urls = result.results
+                            val deeplink = urls.firstNotNullOfOrNull { url ->
+                                router.processType(DeepLink(url))
+                            }
+                            println("deeplink type = $deeplink")
+                            if (deeplink != null) {
+                                vibrator.vibrate(duration = 50)
+                                deepLinkSaved = deeplink
+                            }
+                        }
+                        is KikCodeResult -> {
+                            session.onCodeScan(result.kikCode)
+                        }
+                    }
+                },
                 onError = {
                     if (it is NoCamerasAvailableException) {
                         cameraAvailable = false

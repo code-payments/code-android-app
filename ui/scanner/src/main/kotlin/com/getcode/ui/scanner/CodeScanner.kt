@@ -3,13 +3,12 @@ package com.getcode.ui.scanner
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Size
 import androidx.camera.core.Camera
-import androidx.camera.core.CameraProvider
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -34,17 +33,16 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.getcode.libs.biometrics.Biometrics
+import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.internal.CameraGestureController
 import com.getcode.ui.scanner.internal.FocusIndicator
+import com.getcode.ui.scanner.processing.rememberMultiCodeAnalyzer
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
-import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
-import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -62,17 +60,14 @@ fun CodeScanner(
     invertedDragZoomEnabled: Boolean,
     modifier: Modifier = Modifier,
     onPreviewStateChanged: (Boolean) -> Unit,
-    onCodeScanned: (ScannableKikCode) -> Unit,
+    onCodeScanned: (CodeScanResult) -> Unit,
     onError: (Throwable) -> Unit = { },
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
-    val scanner = remember { KikCodeScannerImpl() }
 
-    val cameraController = remember { LifecycleCameraController(context) }
-
-    val previewView = remember(context, cameraController) {
-        PreviewView(context).apply { controller = cameraController }
+    val previewView = remember(context) {
+        PreviewView(context)
     }
 
     val preview = remember {
@@ -88,6 +83,7 @@ fun CodeScanner(
 
     val imageAnalysis = remember {
         ImageAnalysis.Builder()
+            .setTargetResolution(Size(1920, 1080))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .build()
@@ -99,8 +95,7 @@ fun CodeScanner(
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
     var gestureController by remember { mutableStateOf<CameraGestureController?>(null) }
 
-    val kikCodeAnalyzer = rememberKikCodeAnalyzer(
-        scanner = scanner,
+    val codeAnalyzer = rememberMultiCodeAnalyzer(
         onCodeScanned = onCodeScanned,
         onError = onError
     )
@@ -108,7 +103,7 @@ fun CodeScanner(
     val biometricsState = LocalBiometricsState.current
 
     val scope = rememberCoroutineScope()
-    LaunchedEffect(scanner, biometricsState.isAwaitingAuthentication, Biometrics.promptActive) {
+    LaunchedEffect(biometricsState.isAwaitingAuthentication, Biometrics.promptActive) {
         val active = Biometrics.promptActive || biometricsState.isAwaitingAuthentication
         val cameraProvider = context.getCameraProvider()
         if (!active) {
@@ -187,9 +182,9 @@ fun CodeScanner(
         }
     }
 
-    LaunchedEffect(streamState, scanningEnabled) {
+    LaunchedEffect(streamState, scanningEnabled, codeAnalyzer) {
         if (streamState == PreviewView.StreamState.STREAMING && scanningEnabled) {
-            imageAnalysis.setAnalyzer(cameraExecutor, kikCodeAnalyzer)
+            imageAnalysis.setAnalyzer(cameraExecutor, codeAnalyzer)
         } else {
             imageAnalysis.clearAnalyzer()
         }

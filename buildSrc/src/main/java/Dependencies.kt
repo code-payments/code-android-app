@@ -54,6 +54,7 @@ object Versions {
     const val crashlytics_gradle: String = "3.0.2"
     const val play_service_auth = "21.4.0"
     const val play_service_auth_phone = "18.3.0"
+    const val play_service_ml_barcode = "18.3.1"
     const val google_play_billing = "8.0.0"
     const val google_play_updates = "2.1.0"
 
@@ -285,6 +286,9 @@ object Libs {
         "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
     const val play_service_auth_phone =
         "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
+
+    const val play_service_ml_barcode =
+       "com.google.android.gms:play-services-mlkit-barcode-scanning:${Versions.play_service_ml_barcode}"
 
     const val google_play_billing_runtime =
         "com.android.billingclient:billing:${Versions.google_play_billing}"

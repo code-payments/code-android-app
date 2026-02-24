@@ -65,6 +65,7 @@ dependencies {
     implementation(Libs.inject)
     implementation(Libs.hilt)
 
+    implementation(project(":libs:code-detection"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":vendor:opencv:sdk"))
 }

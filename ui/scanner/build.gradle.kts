@@ -42,7 +42,9 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":libs:code-detection"))
     implementation(project(":libs:logging"))
+    implementation(project(":libs:quickresponse"))
 
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:components"))

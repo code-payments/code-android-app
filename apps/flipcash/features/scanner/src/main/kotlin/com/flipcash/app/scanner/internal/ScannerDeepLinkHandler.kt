@@ -18,11 +18,9 @@ internal fun ScannerDeepLinkHandler(
     deepLink: DeeplinkType?,
     previewing: Boolean?,
     session: SessionController,
-    navigator: CodeNavigator
+    navigator: CodeNavigator,
+    onDeeplinkHandled: () -> Unit,
 ) {
-    var deepLinkSaved by remember {
-        mutableStateOf(deepLink)
-    }
 
     val focusManager = LocalFocusManager.current
     val biometricsState = LocalBiometricsState.current
@@ -36,7 +34,7 @@ internal fun ScannerDeepLinkHandler(
     LaunchedEffect(
         biometricsState,
         previewing,
-        deepLinkSaved
+        deepLink
     ) {
         if (previewing == true) {
             focusManager.clearFocus()
@@ -48,19 +46,19 @@ internal fun ScannerDeepLinkHandler(
             session.onCameraScanning(previewing)
         }
 
-        val deeplink = deepLinkSaved ?: return@LaunchedEffect
+        val link = deepLink ?: return@LaunchedEffect
 
-        when (deeplink) {
+        when (link) {
             is DeeplinkType.CashLink -> {
-                session.openCashLink(deeplink.entropy)
+                session.openCashLink(link.entropy)
             }
 
             is DeeplinkType.Login -> Unit
             is DeeplinkType.Navigatable -> {
-                stateRestorer.restoreState(deeplink, animationScale)
+                stateRestorer.restoreState(link, animationScale)
             }
         }
 
-        deepLinkSaved = null
+        onDeeplinkHandled()
     }
 }
