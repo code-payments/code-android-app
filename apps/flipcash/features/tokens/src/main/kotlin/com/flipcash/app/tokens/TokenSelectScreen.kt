@@ -19,8 +19,7 @@ import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -31,13 +30,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TokenSelectScreen(private val purpose: TokenPurpose) : ModalScreen, NamedScreen, Parcelable {
+class TokenSelectScreen(private val purpose: TokenPurpose) : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_selectCurrency)
+    @IgnoredOnParcel
+    override val testTag: String = "token_select_screen"
 
     @Composable
     override fun ModalContent() {
@@ -48,7 +47,7 @@ class TokenSelectScreen(private val purpose: TokenPurpose) : ModalScreen, NamedS
         ) {
             AppBarWithTitle(
                 isInModal = true,
-                title = name,
+                title = stringResource(R.string.title_selectCurrency),
                 backButton = true,
                 onBackIconClicked = { navigator.pop() },
                 titleAlignment = Alignment.CenterHorizontally,

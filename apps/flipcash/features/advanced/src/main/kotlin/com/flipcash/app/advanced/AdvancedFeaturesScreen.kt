@@ -17,8 +17,7 @@ import com.flipcash.app.advanced.internal.AdvancedFeaturesScreenViewModel
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.ui.components.AppBarWithTitle
@@ -30,13 +29,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class AdvancedFeaturesScreen: ModalScreen, NamedScreen, Parcelable {
+class AdvancedFeaturesScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_advancedFeatures)
+    @IgnoredOnParcel
+    override val testTag: String = "advanced_features_screen"
 
     @Composable
     override fun ModalContent() {
@@ -49,7 +48,7 @@ class AdvancedFeaturesScreen: ModalScreen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_advancedFeatures),
                 titleAlignment = Alignment.CenterHorizontally,
                 isInModal = true,
                 backButton = true,

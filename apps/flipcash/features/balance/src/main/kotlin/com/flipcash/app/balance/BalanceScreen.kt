@@ -21,8 +21,7 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
@@ -33,14 +32,14 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
+class BalanceScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key:
             ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_wallet)
+    @IgnoredOnParcel
+    override val testTag: String = "wallet_screen"
 
     @Composable
     override fun ModalContent() {
@@ -50,7 +49,7 @@ class BalanceScreen: ModalScreen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_wallet),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 endContent = {

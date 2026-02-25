@@ -15,6 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -27,6 +29,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
@@ -271,11 +274,31 @@ private fun AppNavHost(
     var combinedNavigator by remember {
         mutableStateOf<CombinedNavigator?>(null)
     }
-    BottomSheetNavigator(
-        modifier = Modifier.fillMaxSize(),
-        sheetBackgroundColor = LocalCodeColors.current.background,
-        sheetContentColor = LocalCodeColors.current.onBackground,
-        sheetContent = { sheetNav ->
+
+    val semanticsModifier = if (BuildConfig.DEBUG) {
+        Modifier.semantics { testTagsAsResourceId = true }
+    } else Modifier
+
+    Box(modifier = semanticsModifier) {
+        BottomSheetNavigator(
+            modifier = Modifier.fillMaxSize(),
+            sheetBackgroundColor = LocalCodeColors.current.background,
+            sheetContentColor = LocalCodeColors.current.onBackground,
+            sheetContent = { sheetNav ->
+                if (combinedNavigator == null) {
+                    combinedNavigator = CombinedNavigator(sheetNav)
+                }
+                combinedNavigator?.let {
+                    CompositionLocalProvider(
+                        LocalCodeNavigator provides it,
+                        LocalBiometricsState provides biometricsState,
+                    ) {
+                        SheetSlideTransition(navigator = it)
+                    }
+                }
+            },
+            onHide = ModalManager::clear
+        ) { sheetNav ->
             if (combinedNavigator == null) {
                 combinedNavigator = CombinedNavigator(sheetNav)
             }
@@ -284,21 +307,8 @@ private fun AppNavHost(
                     LocalCodeNavigator provides it,
                     LocalBiometricsState provides biometricsState,
                 ) {
-                    SheetSlideTransition(navigator = it)
+                    content()
                 }
-            }
-        },
-        onHide = ModalManager::clear
-    ) { sheetNav ->
-        if (combinedNavigator == null) {
-            combinedNavigator = CombinedNavigator(sheetNav)
-        }
-        combinedNavigator?.let {
-            CompositionLocalProvider(
-                LocalCodeNavigator provides it,
-                LocalBiometricsState provides biometricsState,
-            ) {
-                content()
             }
         }
     }

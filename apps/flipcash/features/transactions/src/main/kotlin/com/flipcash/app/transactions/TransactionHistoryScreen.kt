@@ -15,20 +15,20 @@ import com.flipcash.app.transactions.internal.TransactionHistoryScreen
 import com.flipcash.app.transactions.internal.TransactionHistoryViewModel
 import com.flipcash.features.transactions.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TransactionHistoryScreen(private val mint: Mint) : ModalScreen, NamedScreen, Parcelable {
+class TransactionHistoryScreen(private val mint: Mint) : ModalScreen, Parcelable {
 
     override val key: ScreenKey
         get() = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_transactionHistory)
+    @IgnoredOnParcel
+    override val testTag: String = "transaction_history_screen"
 
     @Composable
     override fun ModalContent() {
@@ -39,7 +39,7 @@ class TransactionHistoryScreen(private val mint: Mint) : ModalScreen, NamedScree
         ) {
             AppBarWithTitle(
                 isInModal = true,
-                title = name,
+                title = stringResource(R.string.title_transactionHistory),
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
                 onBackIconClicked = { navigator.pop() }

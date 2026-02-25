@@ -12,12 +12,11 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.money.RegionSelectionKind
-import com.flipcash.app.currency.internal.RegionSelectionModalContent
 import com.flipcash.app.currency.internal.CurrencyViewModel
+import com.flipcash.app.currency.internal.RegionSelectionModalContent
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -25,13 +24,12 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 class RegionSelectionScreen(
     private val kind: RegionSelectionKind
-) : ModalScreen, NamedScreen, Parcelable {
+) : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
-
-    override val name: String
-        @Composable get() = stringResource(R.string.title_selectRegion)
+    @IgnoredOnParcel
+    override val testTag: String = "region_selection_screen"
 
     @Composable
     override fun ModalContent() {
@@ -41,7 +39,7 @@ class RegionSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_selectRegion),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

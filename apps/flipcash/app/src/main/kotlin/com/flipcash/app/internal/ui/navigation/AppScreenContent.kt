@@ -39,7 +39,7 @@ import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
 import com.flipcash.app.withdrawal.WithdrawalFlow
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.ModalScreen
 
 @Composable
 internal fun AppScreenContent(content: @Composable () -> Unit) {
@@ -186,18 +186,4 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
     PreloadLabs()
 
     content()
-}
-
-private class Dummy: Screen {
-    @Composable
-    override fun Content() {
-
-    }
-}
-
-private class DummyModal: ModalScreen {
-    @Composable
-    override fun ModalContent() {
-
-    }
 }

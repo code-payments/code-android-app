@@ -14,20 +14,19 @@ import com.flipcash.app.backupkey.internal.BackupKeyScreenContent
 import com.flipcash.app.backupkey.internal.BackupKeyScreenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class BackupKeyScreen: ModalScreen, NamedScreen, Parcelable {
+class BackupKeyScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_accessKey)
+    @IgnoredOnParcel
+    override val testTag: String = "access_key_screen"
 
 
     @Composable
@@ -40,7 +39,7 @@ class BackupKeyScreen: ModalScreen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_accessKey),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

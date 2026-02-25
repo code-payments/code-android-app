@@ -16,10 +16,8 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.Button
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.onramp.LocalExternalWalletState
@@ -28,10 +26,9 @@ import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.AppScreen
+import com.getcode.navigation.screens.ModalScreen
+import com.getcode.navigation.screens.ReturnResultScreen
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -51,10 +48,13 @@ class TokenInfoScreen(
     private val mint: Mint,
     private val forNeededFunds: Boolean,
     private val fromDeeplink: Boolean,
-) : AppScreen(), ModalScreen, Parcelable {
+) : ReturnResultScreen(), ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+    @IgnoredOnParcel
+    override val testTag: String = "token_info_screen"
 
     @OptIn(ExperimentalVoyagerApi::class)
     @Composable

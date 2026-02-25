@@ -15,7 +15,6 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.analytics.AnalyticsEvent
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowStep
@@ -24,9 +23,8 @@ import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationVie
 import com.flipcash.app.navigation.FlowNavigator
 import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.features.contact.verification.R
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -35,17 +33,17 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class PhoneCodeScreen: Screen, NamedScreen, Parcelable {
+class PhoneCodeScreen: AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_enterTheCode)
+    @IgnoredOnParcel
+    override val testTag: String = "phone_code_screen"
 
     @OptIn(ExperimentalVoyagerApi::class)
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
         val viewModel = getStackScopedViewModel<PhoneVerificationViewModel>(key = PhoneVerificationFlow.key)
 
@@ -55,7 +53,7 @@ class PhoneCodeScreen: Screen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_enterTheCode),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

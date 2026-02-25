@@ -20,8 +20,7 @@ import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -31,13 +30,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class OnRampCustomAmountScreen : ModalScreen, NamedScreen, Parcelable {
+class OnRampCustomAmountScreen : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_amountToDeposit)
+    @IgnoredOnParcel
+    override val testTag: String = "onramp_custom_amount_screen"
 
     @Composable
     override fun ModalContent() {
@@ -64,7 +63,7 @@ class OnRampCustomAmountScreen : ModalScreen, NamedScreen, Parcelable {
                 modifier = Modifier.fillMaxSize(),
             ) {
                 AppBarWithTitle(
-                    title = name,
+                    title = stringResource(R.string.title_amountToDeposit),
                     isInModal = true,
                     backButton = true,
                     onBackIconClicked = { navigator.pop() },

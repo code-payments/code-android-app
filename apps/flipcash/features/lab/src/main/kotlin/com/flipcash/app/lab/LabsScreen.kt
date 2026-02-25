@@ -7,17 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.lab.internal.LabsScreenContent
 import com.flipcash.app.lab.internal.LabsScreenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
@@ -25,13 +22,13 @@ import kotlinx.parcelize.Parcelize
 
 
 @Parcelize
-class LabsScreen: ModalScreen, NamedScreen, Parcelable {
+class LabsScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_betaFlags)
+    @IgnoredOnParcel
+    override val testTag: String = "labs_screen"
 
     @Composable
     override fun ModalContent() {
@@ -42,7 +39,7 @@ class LabsScreen: ModalScreen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_betaFlags),
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
                 isInModal = true,
@@ -57,13 +54,13 @@ class LabsScreen: ModalScreen, NamedScreen, Parcelable {
 }
 
 @Parcelize
-class StandaloneLabsScreen: ModalScreen, NamedScreen, Parcelable {
+class StandaloneLabsScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_betaFlags)
+    @IgnoredOnParcel
+    override val testTag: String = "labs_screen"
 
     @Composable
     override fun ModalContent() {
@@ -74,7 +71,7 @@ class StandaloneLabsScreen: ModalScreen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_betaFlags),
                 titleAlignment = Alignment.CenterHorizontally,
                 isInModal = true,
                 endContent = {

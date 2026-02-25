@@ -27,7 +27,7 @@ import com.flipcash.features.contact.verification.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.ModalScreen
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -43,6 +43,9 @@ class VerificationFlowScreen(
 ) : ModalScreen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+    @IgnoredOnParcel
+    override val testTag: String = "verification_screen"
 
     @OptIn(ExperimentalVoyagerApi::class)
     @Composable

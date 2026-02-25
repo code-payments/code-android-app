@@ -27,6 +27,7 @@ import com.flipcash.app.core.android.extensions.launchPhotos
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.login.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
@@ -36,13 +37,16 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class PhotoAccessKeyScreen : Screen, Parcelable {
+class PhotoAccessKeyScreen : AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @IgnoredOnParcel
+    override val testTag: String = "access_key_help_screen"
+
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val navigator = LocalCodeNavigator.current
         val context = LocalContext.current
         

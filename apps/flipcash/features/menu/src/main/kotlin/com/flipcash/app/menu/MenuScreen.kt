@@ -11,8 +11,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.menu.internal.MenuScreenContent
 import com.flipcash.app.menu.internal.MenuScreenViewModel
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -25,6 +24,9 @@ class MenuScreen : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+    @IgnoredOnParcel
+    override val testTag: String = "menu_screen"
 
     @Composable
     override fun ModalContent() {

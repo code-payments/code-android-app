@@ -13,19 +13,18 @@ import com.flipcash.app.withdrawal.internal.destination.WithdrawalDestinationScr
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class WithdrawalDestinationScreen: ModalScreen, NamedScreen, Parcelable {
+class WithdrawalDestinationScreen: ModalScreen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_withdraw)
+    @IgnoredOnParcel
+    override val testTag: String = "withdraw_destination_screen"
 
     @Composable
     override fun ModalContent() {
@@ -34,7 +33,7 @@ class WithdrawalDestinationScreen: ModalScreen, NamedScreen, Parcelable {
             modifier = Modifier.fillMaxSize(),
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_withdraw),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

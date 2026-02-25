@@ -19,9 +19,8 @@ import com.flipcash.app.onramp.internal.screens.OnRampProviderListScreen
 import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.AppScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
+import com.getcode.navigation.screens.ReturnResultScreen
 import com.getcode.navigation.screens.OnScreenResult
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.ui.components.AppBarWithTitle
@@ -36,13 +35,13 @@ import kotlinx.parcelize.Parcelize
 class OnRampProviderListScreen(
     val neededAmount: Long? = null,
     val neededCurrency: CurrencyCode? = null,
-): AppScreen(), ModalScreen, NamedScreen, Parcelable {
+): ReturnResultScreen(), ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_depositFunds)
+    @IgnoredOnParcel
+    override val testTag: String = "onramp_provider_list_screen"
 
     @Composable
     override fun ModalContent() {
@@ -58,7 +57,7 @@ class OnRampProviderListScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AppBarWithTitle(
-                    title = name,
+                    title = stringResource(R.string.title_depositFunds),
                     titleAlignment = Alignment.CenterHorizontally,
                     isInModal = true,
                     backButton = true,

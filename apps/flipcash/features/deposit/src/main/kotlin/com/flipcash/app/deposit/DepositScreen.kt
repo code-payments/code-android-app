@@ -15,8 +15,7 @@ import com.flipcash.app.deposit.internal.DepositScreen
 import com.flipcash.app.deposit.internal.DepositViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
@@ -25,12 +24,12 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 class DepositScreen(
     private val mint: Mint,
-) : ModalScreen, NamedScreen, Parcelable {
+) : ModalScreen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_onrampProviderManualDeposit)
+    @IgnoredOnParcel
+    override val testTag: String = "deposit_screen"
 
     @Composable
     override fun ModalContent() {
@@ -43,7 +42,7 @@ class DepositScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_onrampProviderManualDeposit),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

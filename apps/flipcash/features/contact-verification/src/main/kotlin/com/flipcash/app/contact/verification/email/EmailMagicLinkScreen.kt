@@ -16,7 +16,6 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.analytics.AnalyticsEvent
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.EmailVerificationFlow
 import com.flipcash.app.contact.verification.VerificationFlowStep
@@ -26,9 +25,8 @@ import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.navigation.FlowNavigator
 import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.features.contact.verification.R
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -40,17 +38,17 @@ import kotlinx.parcelize.Parcelize
 class EmailMagicLinkScreen(
     private val email: String? = null,
     private val code: String? = null
-) : Screen, NamedScreen, Parcelable {
+) : AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_verifyEmailAddress)
+    @IgnoredOnParcel
+    override val testTag: String = "email_magic_link_screen"
 
     @OptIn(ExperimentalVoyagerApi::class)
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
         val viewModel =
             getStackScopedViewModel<EmailVerificationViewModel>(EmailVerificationFlow.key)
@@ -69,7 +67,7 @@ class EmailMagicLinkScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_verifyEmailAddress),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

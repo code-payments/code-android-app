@@ -18,7 +18,7 @@ import com.flipcash.app.contact.verification.internal.phone.PhoneCountryCodeScre
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -27,16 +27,16 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class PhoneCountryCodeScreen: Screen, NamedScreen, Parcelable {
+class PhoneCountryCodeScreen: AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_verifyPhoneNumber)
+    @IgnoredOnParcel
+    override val testTag: String = "phone_country_code_screen"
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = getStackScopedViewModel<PhoneVerificationViewModel>(PhoneVerificationFlow.key)
 
@@ -45,7 +45,7 @@ class PhoneCountryCodeScreen: Screen, NamedScreen, Parcelable {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_verifyPhoneNumber),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

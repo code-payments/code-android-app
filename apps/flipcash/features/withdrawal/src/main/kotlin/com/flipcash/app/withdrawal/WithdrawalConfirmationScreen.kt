@@ -10,24 +10,22 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.withdrawal.internal.confirmation.WithdrawalConfirmationScreen
-import com.flipcash.app.withdrawal.internal.destination.WithdrawalDestinationScreen
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class WithdrawalConfirmationScreen: ModalScreen, NamedScreen, Parcelable {
+class WithdrawalConfirmationScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_withdraw)
+    @IgnoredOnParcel
+    override val testTag: String = "withdraw_confirmation_screen"
 
     @Composable
     override fun ModalContent() {
@@ -36,7 +34,7 @@ class WithdrawalConfirmationScreen: ModalScreen, NamedScreen, Parcelable {
             modifier = Modifier.fillMaxSize(),
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_withdraw),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

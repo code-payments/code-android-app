@@ -19,7 +19,7 @@ import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -33,6 +33,9 @@ class TokenSellReceiptScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+    @IgnoredOnParcel
+    override val testTag: String = "token_sell_receipt_screen"
 
     @Composable
     override fun ModalContent() {

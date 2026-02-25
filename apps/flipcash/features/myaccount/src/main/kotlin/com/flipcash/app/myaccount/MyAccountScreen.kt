@@ -19,8 +19,7 @@ import com.flipcash.app.myaccount.internal.MyAccountScreen
 import com.flipcash.app.myaccount.internal.MyAccountScreenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.rememberedClickable
@@ -31,13 +30,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
+class MyAccountScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_myAccount)
+    @IgnoredOnParcel
+    override val testTag: String = "my_account_screen"
 
     @Composable
     override fun ModalContent() {
@@ -56,7 +55,7 @@ class MyAccountScreen: ModalScreen, NamedScreen, Parcelable {
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { viewModel.dispatchEvent(MyAccountScreenViewModel.Event.OnTitleClicked) },
-                        text = name,
+                        text = stringResource(R.string.title_myAccount),
                     )
                 },
                 isInModal = true,

@@ -24,7 +24,7 @@ import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.shared.transfers.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle

@@ -15,7 +15,7 @@ import com.flipcash.app.shareapp.internal.ShareAppScreenContent
 import com.flipcash.features.shareapp.R
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.modal.ModalScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -27,6 +27,9 @@ class ShareAppScreen: ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+    @IgnoredOnParcel
+    override val testTag: String = "share_app_screen"
 
     @Composable
     override fun ModalContent() {

@@ -34,6 +34,7 @@ import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.user.AuthState
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.utils.trace
@@ -48,13 +49,16 @@ import kotlinx.parcelize.Parcelize
 import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
-internal class MainRoot(private val deepLink: () -> DeepLink?) : Screen, Parcelable {
+internal class MainRoot(private val deepLink: () -> DeepLink?) : AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @IgnoredOnParcel
+    override val testTag: String = "root_screen"
+
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val navigator = LocalNavigator.currentOrThrow
         val userManager = LocalUserManager.currentOrThrow
         var showLoading by remember { mutableStateOf(false) }

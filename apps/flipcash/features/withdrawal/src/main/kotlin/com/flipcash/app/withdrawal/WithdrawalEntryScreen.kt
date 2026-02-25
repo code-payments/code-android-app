@@ -4,7 +4,6 @@ import android.os.Parcelable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -14,8 +13,7 @@ import com.flipcash.app.withdrawal.internal.entry.WithdrawalEntryScreen
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
@@ -26,13 +24,13 @@ import kotlin.uuid.Uuid
 @Parcelize
 class WithdrawalEntryScreen(
     private val selectedMint: Mint
-): ModalScreen, NamedScreen, Parcelable {
+): ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_withdraw)
+    @IgnoredOnParcel
+    override val testTag: String = "withdraw_entry_screen"
 
     @Composable
     override fun ModalContent() {
@@ -41,7 +39,7 @@ class WithdrawalEntryScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_withdraw),
                 isInModal = true,
                 backButton = true,
                 onBackIconClicked = { navigator.pop() },

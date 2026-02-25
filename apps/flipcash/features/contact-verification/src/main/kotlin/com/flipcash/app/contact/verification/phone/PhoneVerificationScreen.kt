@@ -17,16 +17,14 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.analytics.AnalyticsEvent
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.internal.phone.PhoneEntryScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
 import com.flipcash.features.contact.verification.R
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
@@ -36,17 +34,17 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class PhoneVerificationScreen : Screen, NamedScreen, Parcelable  {
+class PhoneVerificationScreen : AppScreen, Parcelable  {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_verifyPhoneNumber)
+    @IgnoredOnParcel
+    override val testTag: String = "phone_verify_screen"
 
     @OptIn(ExperimentalVoyagerApi::class)
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val codeNavigator = LocalCodeNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = getStackScopedViewModel<PhoneVerificationViewModel>(key = PhoneVerificationFlow.key)
@@ -57,7 +55,7 @@ class PhoneVerificationScreen : Screen, NamedScreen, Parcelable  {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppBarWithTitle(
-                title = name,
+                title = stringResource(R.string.title_verifyPhoneNumber),
                 isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,

@@ -6,13 +6,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel.Event
 import com.flipcash.app.tokens.internal.TokenTxProcessingScreen
 import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel.Event
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.modal.ModalScreen
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.ModalScreen
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.ui.utils.DisableSheetGestures
 import kotlinx.coroutines.flow.filterIsInstance
@@ -22,10 +21,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TokenTxProcessingScreen(val swapId: SwapId) : ModalScreen, NamedScreen, Parcelable {
+class TokenTxProcessingScreen(val swapId: SwapId) : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+    @IgnoredOnParcel
+    override val testTag: String = "token_buy_sell_processing_screen"
 
     @Composable
     override fun ModalContent() {

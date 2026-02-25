@@ -6,32 +6,34 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.login.internal.LoginRouterScreenContent
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AppScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import kotlin.time.Duration.Companion.seconds
 
 @Parcelize
 class LoginRouter(
     private val seed: String? = null,
     private val fromDeeplink: Boolean = false,
-) : Screen, Parcelable {
+) : AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    @IgnoredOnParcel
+    override val testTag: String = "login_screen"
+
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val vm = getViewModel<LoginViewModel>()
         val state by vm.stateFlow.collectAsState()
         val navigator = LocalCodeNavigator.current

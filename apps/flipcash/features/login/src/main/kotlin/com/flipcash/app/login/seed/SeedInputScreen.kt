@@ -14,22 +14,22 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.flipcash.app.login.internal.SeedInputContent
 import com.flipcash.features.login.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.AppScreen
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class SeedInputScreen: Screen, NamedScreen, Parcelable {
+class SeedInputScreen: AppScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
-    override val name: String
-        @Composable get() = stringResource(R.string.title_enterAccessKeyWords)
+    @IgnoredOnParcel
+    override val testTag: String = "seed_input_screen"
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val viewModel: SeedInputViewModel = getViewModel()
         val navigator = LocalCodeNavigator.current
         Column {
@@ -38,7 +38,7 @@ class SeedInputScreen: Screen, NamedScreen, Parcelable {
                 backButton = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = { navigator.pop() },
-                title = name,
+                title = stringResource(R.string.title_enterAccessKeyWords),
             )
             SeedInputContent(viewModel)
         }
