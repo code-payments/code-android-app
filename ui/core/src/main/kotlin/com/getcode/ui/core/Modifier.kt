@@ -45,7 +45,10 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
@@ -214,9 +217,9 @@ fun Modifier.punchRectangle(brush: Brush, blendMode: BlendMode = BlendMode.Src) 
     }
 
 fun Modifier.punchCircle(brush: Brush, blendMode: BlendMode = BlendMode.Src) = drawWithContent {
-        drawCircle(brush = brush, blendMode = blendMode)
-        drawContent()
-    }
+    drawCircle(brush = brush, blendMode = blendMode)
+    drawContent()
+}
 
 @Composable
 fun Modifier.withTopBorder(color: Color = CodeTheme.colors.brandLight) = drawBehind {
@@ -502,3 +505,8 @@ fun Modifier.patternBlend(
             blendMode = blendMode ?: BlendMode.SrcOver
         )
     }
+
+fun Modifier.textFieldTestTag(tag: String): Modifier =
+    this
+        .testTag(tag)
+        .semantics { contentDescription = tag }

@@ -1,0 +1,23 @@
+# maestro/login.yaml
+appId: com.flipcash.app.android.dev
+---
+- launchApp:
+    clearState: true
+    arguments:
+      isUiTest: true
+- extendedWaitUntil:
+      visible:
+          id: "login_screen"
+- tapOn:
+    id: "login_button"
+- extendedWaitUntil:
+      visible:
+          id: seed_input_screen
+- tapOn: 
+    id: "seed_input_field"
+- inputText: ${SEED_PHRASE}
+- tapOn: 
+    id: "login_confirm_button"
+- extendedWaitUntil:
+      visible:
+          id: "scanner_screen"

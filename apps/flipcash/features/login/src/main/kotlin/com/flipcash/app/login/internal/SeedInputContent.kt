@@ -33,12 +33,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -52,8 +52,11 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
+import com.getcode.ui.core.MaskWithSpacesTransformation
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.scaled
+import com.getcode.ui.core.textFieldTestTag
+import com.getcode.ui.testing.LocalUiTesting
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -146,9 +149,15 @@ private fun SeedInputContent(
                         .padding(top = CodeTheme.dimens.grid.x3)
                         .fillMaxWidth()
                         .height(120.dp)
-                        .focusRequester(focusRequester),
+                        .focusRequester(focusRequester)
+                        .textFieldTestTag("seed_input_field"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    visualTransformation = VisualTransformation.None,
+                    visualTransformation = if (LocalUiTesting.current) {
+                        // mask words if running in UI testing to not leak recovery phrase
+                        MaskWithSpacesTransformation()
+                    } else {
+                        VisualTransformation.None
+                    },
                     value = state.wordsString,
                     onValueChange = { onTextChange(it) },
                     textStyle = CodeTheme.typography.textLarge.copy(
@@ -189,7 +198,8 @@ private fun SeedInputContent(
             CodeButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = CodeTheme.dimens.grid.x4),
+                    .padding(bottom = CodeTheme.dimens.grid.x4)
+                    .testTag("login_confirm_button"),
                 onClick = {
                     focusManager.clearFocus()
                     onLogin()

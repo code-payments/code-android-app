@@ -42,6 +42,7 @@ import com.getcode.opencode.compose.LocalTransactionController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.rpc.RpcConfig
+import com.getcode.ui.testing.LocalUiTesting
 import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.LocalResources
@@ -162,6 +163,7 @@ class MainActivity : FragmentActivity() {
                 LocalPhoneUtils provides phoneUtils,
                 LocalBillPlaygroundController provides billPlaygroundController,
                 LocalAppUpdater provides appUpdater,
+                LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 Rinku {
                     App(
@@ -171,6 +173,10 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        private const val UI_TEST = "isUiTest"
     }
 }
 

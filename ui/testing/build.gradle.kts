@@ -8,16 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.codeNamespace}.ui.core"
+    namespace = "${Gradle.codeNamespace}.ui.testing"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(Versions.java)
-        targetCompatibility = JavaVersion.toVersion(Versions.java)
     }
 
     buildFeatures {
@@ -42,13 +37,8 @@ kotlin {
 
 dependencies {
     implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_animation)
-    implementation(Libs.compose_foundation)
     implementation(Libs.compose_ui)
-    implementation(Libs.compose_activities)
-    implementation(Libs.compose_material)
+    implementation(Libs.compose_foundation)
 
-    api(project(":ui:resources"))
-    api(project(":ui:testing"))
-    implementation(project(":ui:theme"))
+    implementation(Libs.timber)
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -74,7 +75,8 @@ internal fun LoginRouterScreenContent(
             CodeButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset),
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .testTag("create_account_button"),
                 enabled = !isLoggingIn.loading && !isLoggingIn.success,
                 onClick = createAccount,
                 text = stringResource(R.string.action_createNewAccount),
@@ -83,7 +85,8 @@ internal fun LoginRouterScreenContent(
             CodeButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset),
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .testTag("login_button"),
                 onClick = login,
                 isLoading = isLoggingIn.loading,
                 isSuccess = isLoggingIn.success,

@@ -155,6 +155,7 @@ include(
         ":ui:navigation",
         ":ui:resources",
         ":ui:scanner",
+        ":ui:testing",
         ":ui:theme",
 
         // 3rd party imported dependencies
