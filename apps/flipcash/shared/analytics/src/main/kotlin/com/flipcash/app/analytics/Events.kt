@@ -1,5 +1,6 @@
 package com.flipcash.app.analytics
 
+import androidx.core.net.toUri
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -32,7 +33,20 @@ internal sealed interface AnalyticsEvent {
     sealed interface DeeplinkEvent : AnalyticsEvent {
         data class Open(val url: String) : DeeplinkEvent {
             override val name = "Deeplink: Open"
-            override fun toProperties() = mapOf("URL" to url)
+            override fun toProperties() = mapOf("URL" to url.sanitized())
+
+            private fun String.sanitized(): String {
+                val uri = this.toUri()
+                return try {
+                    uri.buildUpon()
+                        .clearQuery()
+                        .fragment(null)
+                        .build()
+                        .toString()
+                } catch (_: Exception) {
+                    uri.path ?: url
+                }
+            }
         }
 
         data class Parse(
