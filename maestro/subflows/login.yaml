@@ -1,0 +1,14 @@
+# Login
+appId: com.flipcash.app.android.dev
+---
+- tapOn: Log in
+- extendedWaitUntil:
+      visible:
+          id: seed_input_screen
+- tapOn: 
+    id: "seed_input_field"
+- inputText: ${SEED_PHRASE}
+- tapOn: Log in
+- extendedWaitUntil:
+      visible:
+          id: "scanner_screen"

@@ -1,0 +1,20 @@
+# Reusable Logout flow
+appId: com.flipcash.app.android.dev
+---
+- tapOn:
+    id: scanner_view
+- extendedWaitUntil:
+      visible:
+          id: scanner_screen
+- tapOn:
+    id: menu_button
+- extendedWaitUntil:
+      visible:
+          id: menu_screen
+- tapOn: Log Out
+- assertVisible: Log Out
+- assertVisible: Cancel
+- tapOn: Log Out
+- extendedWaitUntil:
+      visible:
+          id: login_screen

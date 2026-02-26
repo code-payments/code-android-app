@@ -1,0 +1,21 @@
+appId: com.flipcash.app.android.dev
+---
+- tapOn: Give
+- extendedWaitUntil:
+      visible: Float
+- extendedWaitUntil:
+      visible:
+        id: "keypad_dot"
+- tapOn: 
+    id: "keypad_dot"
+- tapOn: 
+    id: "keypad_1"
+- tapOn: 
+    id: "keypad_0"
+- assertVisible:
+    text: "Next"
+    enabled: true
+- tapOn: Next
+- extendedWaitUntil:
+      visible:
+        id: cash_bill

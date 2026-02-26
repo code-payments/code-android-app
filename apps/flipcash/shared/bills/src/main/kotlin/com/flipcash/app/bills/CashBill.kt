@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -310,6 +311,7 @@ internal fun CashBill(
                 .fillMaxHeight()
                 .fillMaxWidth(0.95f)
                 .clipToBounds()
+                .testTag("cash_bill")
         ) {
             val geometry = remember(maxWidth, maxHeight) {
                 CashBillGeometry(maxWidth, maxHeight)

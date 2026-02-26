@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
@@ -77,6 +78,7 @@ fun CodeKeyPad(
                                     KeyBoardButton(
                                         modifier = Modifier.weight(1f),
                                         text = DecimalFormatSymbols.getInstance().decimalSeparator.toString(),
+                                        testTag = "keypad_dot",
                                     ) { onDecimal() }
                                 } else {
                                     Spacer(modifier = Modifier.weight(1f),)
@@ -112,6 +114,7 @@ private fun NumberButton(
 private fun KeyBoardButton(
     modifier: Modifier = Modifier,
     text: String? = null,
+    testTag: String = "keypad_$text",
     resId: Int? = null,
     onClick: () -> Unit
 ) {
@@ -174,7 +177,7 @@ private fun KeyBoardButton(
                                 .graphicsLayer(
                                     scaleX = scale,
                                     scaleY = scale
-                                )
+                                ).testTag(testTag)
                         )
                     }
                 }

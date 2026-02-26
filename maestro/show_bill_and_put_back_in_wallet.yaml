@@ -1,0 +1,9 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: helpers/launch_app.yaml
+- runFlow: subflows/login.yaml
+- runFlow: subflows/pull_out_bill.yaml
+- tapOn: Cancel
+- extendedWaitUntil:
+      visible:
+          id: "scanner_screen"

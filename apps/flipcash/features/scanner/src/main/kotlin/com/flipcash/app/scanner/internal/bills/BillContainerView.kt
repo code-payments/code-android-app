@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -119,6 +120,7 @@ internal fun BillContainer(
         modifier = Modifier
             .fillMaxSize()
             .then(modifier)
+            .testTag("scanner_view")
     ) {
         val availableUpdate by LocalAppUpdater.current.availableUpdate.collectAsStateWithLifecycle()
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,6 +47,7 @@ object AppBarDefaults {
             modifier = modifier
                 .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
+                .testTag("action_back")
         )
     }
 
@@ -58,6 +60,7 @@ object AppBarDefaults {
             modifier = modifier
                 .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
+                .testTag("action_close")
         )
     }
 
@@ -70,6 +73,7 @@ object AppBarDefaults {
             modifier = modifier
                 .requiredSize(24.dp)
                 .unboundedClickable { onClick() }
+                .testTag("action_share")
         )
     }
 

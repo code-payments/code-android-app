@@ -1,0 +1,6 @@
+appId: com.flipcash.app.android.dev
+---
+- launchApp:
+    clearState: true
+    arguments:
+      isUiTest: true

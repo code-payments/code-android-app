@@ -159,12 +159,7 @@ object BottomBarManager {
         title: String,
         message: String,
         additionalInfo: Map<String, Any?> = emptyMap(),
-        actions: List<BottomBarAction> = listOf(
-            BottomBarAction(
-                text = "OK",
-                style = BottomBarButtonStyle.Filled
-            )
-        ),
+        actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
         showCancel: Boolean = false,
         onDismiss: (fromAction: Boolean) -> Unit = { },
     ) {

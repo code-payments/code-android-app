@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -74,7 +75,7 @@ internal fun DecorView(
                         indication = null
                     ) {
                         onAction(ScannerDecorItem.Logo)
-                    },
+                    }.testTag("flipcash_logo"),
                 painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
                 contentDescription = "Tap to share the app",
             )
@@ -93,7 +94,7 @@ internal fun DecorView(
                         .clip(CircleShape)
                         .unboundedClickable {
                             onAction(ScannerDecorItem.Menu)
-                        },
+                        }.testTag("menu_button"),
                     painter = painterResource(R.drawable.ic_home_options),
                     contentDescription = "",
                 )
