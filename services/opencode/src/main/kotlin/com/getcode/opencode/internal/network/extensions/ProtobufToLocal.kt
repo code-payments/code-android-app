@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.clientExchangeDataOrNull
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
@@ -102,6 +103,7 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
             destination = sendPublicPayment.destination.toPublicKey(),
             destinationOwner = sendPublicPayment.destinationOrNull?.toPublicKey(),
             exchangeData = sendPublicPayment.serverExchangeData.toModel(),
+            verifiedExchangeData = sendPublicPayment.clientExchangeDataOrNull?.toModel(),
             isRemoteSend = sendPublicPayment.isRemoteSend,
             isWithdrawal = sendPublicPayment.isWithdrawal,
         )

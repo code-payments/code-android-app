@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -122,6 +123,7 @@ sealed interface Bill {
         override val confirmationDelay: Duration = Duration.ZERO,
         override val data: List<Byte> = emptyList(),
         val kind: Kind = Kind.cash,
+        val verifiedState: VerifiedState? = null,
     ) : Bill {
         override val canFlip: Boolean = false
     }

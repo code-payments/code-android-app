@@ -2,6 +2,7 @@ package com.flipcash.app.core.internal.bill
 
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.managers.BillTransactionManager
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -39,6 +40,7 @@ class BillController @Inject constructor(
         amount: LocalFiat,
         token: Token,
         owner: AccountCluster,
+        verifiedState: VerifiedState?,
         present: (List<Byte>) -> Unit,
         onGrabbed: suspend (LocalFiat) -> Unit,
         onTimeout: () -> Unit,
@@ -47,6 +49,7 @@ class BillController @Inject constructor(
         token = token,
         amount = amount,
         owner = owner,
+        verifiedState = verifiedState,
         billExchangeDataTimeout = userManager.userFlags?.billExchangeDataTimeout,
         present = present,
         onGrabbed = onGrabbed,
@@ -59,7 +62,7 @@ class BillController @Inject constructor(
     fun attemptGrab(
         owner: AccountCluster,
         payload: OpenCodePayload,
-        onGrabbed: suspend (Token, LocalFiat) -> Unit,
+        onGrabbed: suspend (Token, LocalFiat, VerifiedState?) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.attemptGrabFromSender(owner, payload, onGrabbed, onError)
 
@@ -76,7 +79,7 @@ class BillController @Inject constructor(
         entropy: String,
         owner: AccountCluster,
         claimIfOwned: Boolean,
-        onReceived: suspend (Token, LocalFiat) -> Unit,
+        onReceived: suspend (Token, LocalFiat,) -> Unit,
         onError: (Throwable) -> Unit,
     ) = transactionManager.receiveGiftCard(owner, entropy, claimIfOwned, onReceived, onError)
 }

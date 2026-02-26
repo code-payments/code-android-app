@@ -237,7 +237,7 @@ class RealSessionController @Inject constructor(
      * Specifically, it clears the bottom bar, cancels any pending bill grab actions, and cancels
      * any ongoing send operations if:
      * - The share sheet is not currently checking for a share action, OR
-     * - There is an active bill and it has not yet been received.
+     * - There is an active bill, and it has not yet been received.
      */
     override fun onAppInBackground() {
         stopPolling()
@@ -414,6 +414,7 @@ class RealSessionController @Inject constructor(
         billController.awaitGrab(
             amount = bill.amount,
             token = bill.token,
+            verifiedState = (bill as? Bill.Cash)?.verifiedState,
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
@@ -425,11 +426,6 @@ class RealSessionController @Inject constructor(
             },
             onTimeout = {
                 dismissBill(action = PutInWallet)
-//                analytics.billTimeoutReached(
-//                    bill.amount.kin,
-//                    bill.amount.rate.currency,
-//                    CodeAnalyticsManager.BillPresentationStyle.Slide
-//                )
             },
             onError = {
                 analytics.transfer(
@@ -733,7 +729,11 @@ class RealSessionController @Inject constructor(
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
                 toastController.enqueue(amount, isDeposit = true)
                 showBill(
-                    bill = Bill.Cash(amount = amount, token = token, didReceive = true),
+                    bill = Bill.Cash(
+                        amount = amount,
+                        token = token,
+                        didReceive = true,
+                    ),
                 )
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
@@ -819,7 +819,7 @@ class RealSessionController @Inject constructor(
         billController.attemptGrab(
             owner = owner,
             payload = payload,
-            onGrabbed = { token, amount ->
+            onGrabbed = { token, amount, verifiedState ->
                 tokenCoordinator.add(token, amount)
                 val grabStart = scannedRendezvous[payload.rendezvous.publicKey]
                 val grabTime = grabStart?.let {
@@ -827,7 +827,12 @@ class RealSessionController @Inject constructor(
                 }
 
                 showBill(
-                    bill = Bill.Cash(amount = amount, token = token, didReceive = true),
+                    bill = Bill.Cash(
+                        amount = amount,
+                        token = token,
+                        didReceive = true,
+                        verifiedState = verifiedState
+                    ),
                 )
 
                 analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
@@ -860,6 +865,7 @@ class RealSessionController @Inject constructor(
                     didReceive = bill.didReceive,
                     confirmationDelay = bill.confirmationDelay,
                     token = bill.token,
+                    verifiedState = (bill as? Bill.Cash)?.verifiedState,
                 ),
                 valuation = PaymentValuation(bill.amount.nativeAmount),
             )

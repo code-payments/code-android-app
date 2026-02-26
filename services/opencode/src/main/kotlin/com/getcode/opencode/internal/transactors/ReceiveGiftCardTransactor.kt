@@ -5,6 +5,7 @@ import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.managers.GiftCardManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountCluster

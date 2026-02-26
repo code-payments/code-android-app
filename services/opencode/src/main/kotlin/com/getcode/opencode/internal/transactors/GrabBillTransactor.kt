@@ -64,7 +64,7 @@ internal class GrabBillTransactor(
     private suspend fun handleMultiMintScan(
         ownerKey: AccountCluster,
         data: OpenCodePayload
-    ): Result<TransactionMetadata.PublicPayment> {
+    ): Result<TransactionMetadata.SendPublicPayment> {
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
         val (messageId, giveRequestMint, exchangeData) = messagingController.pollForGiveRequest(data.rendezvous)
             .getOrNull()
@@ -97,11 +97,14 @@ internal class GrabBillTransactor(
         }.fold(
             onSuccess = {
                 // 5. Wait for confirmation
-                transactionController.pollIntentMetadata<TransactionMetadata.PublicPayment>(
+                transactionController.pollIntentMetadata<TransactionMetadata.SendPublicPayment>(
                     owner = tokenizedCluster.authority.keyPair,
                     intentId = data.rendezvous.toPublicKey(),
                     debugLogs = true
-                ).onSuccess {
+                ).map {
+                    // copy in exchange data we received from querying for give request
+                    it.copy(verifiedExchangeData = exchangeData)
+                }.onSuccess {
                     // 6. Ack the receipt of the give request to clear it from the stream
                     messagingController.ackMessages(data.rendezvous, listOf(messageId))
                 }

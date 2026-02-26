@@ -4,6 +4,7 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
 import com.getcode.opencode.internal.transactors.GrabBillTransactor
 import com.getcode.opencode.internal.transactors.ReceiveGiftCardTransactor
@@ -55,6 +56,7 @@ class BillTransactionManager @Inject constructor(
         token: Token,
         amount: LocalFiat,
         owner: AccountCluster,
+        verifiedState: VerifiedState?,
         billExchangeDataTimeout: Duration?,
         present:  (List<Byte>) -> Unit,
         onGrabbed: suspend (LocalFiat) -> Unit,
@@ -72,7 +74,7 @@ class BillTransactionManager @Inject constructor(
                 childScope,
                 verifiedProtoManager,
             ).apply {
-                with(token, amount, owner, billExchangeDataTimeout)
+                with(token, amount, owner, billExchangeDataTimeout, verifiedState)
             }
 
             giveTransactor = transactor
@@ -95,7 +97,7 @@ class BillTransactionManager @Inject constructor(
     fun attemptGrabFromSender(
         owner: AccountCluster,
         payload: OpenCodePayload,
-        onGrabbed: suspend (Token, LocalFiat) -> Unit,
+        onGrabbed: suspend (Token, LocalFiat, VerifiedState?) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         grabTransactor?.dispose()
@@ -136,7 +138,9 @@ class BillTransactionManager @Inject constructor(
                         tag = "Bill",
                         message = "Grabbed ${amount.nativeAmount.formatted()} of ${token.symbol} from sender"
                     )
-                    onGrabbed(token, amount)
+
+                    val verifiedState = metadata.verifiedExchangeData?.verifiedState
+                    onGrabbed(token, amount, verifiedState)
                     sharedScope.launch {
                         transactionController.updateLimits(owner, force = true)
                     }

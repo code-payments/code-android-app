@@ -6,6 +6,7 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.exchangeDataFor
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
@@ -28,7 +29,7 @@ internal class GiveBillTransactor(
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
     private val verifiedProtoManager: VerifiedProtoManager,
-): Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
+) : Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
     private var token: Token? = null
     private var amount: LocalFiat? = null
     private var exchangeDataTimeout: Duration? = null
@@ -37,15 +38,24 @@ internal class GiveBillTransactor(
     private var rendezvousKey: KeyPair? = null
     private var receivingAccount: PublicKey? = null
 
+    private var providedVerifiedState: VerifiedState? = null
+
     private var payload: OpenCodePayload = OpenCodePayload.Empty
     var data: List<Byte> = emptyList()
         private set
 
-    fun with(token: Token, amount: LocalFiat, owner: AccountCluster, billExchangeDataTimeout: Duration?) {
+    fun with(
+        token: Token,
+        amount: LocalFiat,
+        owner: AccountCluster,
+        billExchangeDataTimeout: Duration?,
+        verifiedState: VerifiedState?
+    ) {
         this.token = token
         this.amount = amount
         this.exchangeDataTimeout = billExchangeDataTimeout
         this.owner = owner
+        this.providedVerifiedState = verifiedState
 
         receivingAccount = null
 
@@ -70,11 +80,20 @@ internal class GiveBillTransactor(
         val sendingAmount = amount
             ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
 
-        val verifiedState = verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address)
-            ?: return logAndFail(GiveTransactorError.Other(message = "No verified state found"))
+        val verifiedState = if (providedVerifiedState != null) {
+            providedVerifiedState
+        } else {
+            verifiedProtoManager.getVerifiedStateFor(
+                sendingAmount.rate.currency,
+                desiredToken.address
+            )
+        } ?: return logAndFail(GiveTransactorError.Other(message = "No verified state found"))
 
-        val exchangeData = verifiedState.exchangeDataFor(amount = sendingAmount, mint = desiredToken.address, billExchangeDataTimeout = exchangeDataTimeout)
-            ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
+        val exchangeData = verifiedState.exchangeDataFor(
+            amount = sendingAmount,
+            mint = desiredToken.address,
+            billExchangeDataTimeout = exchangeDataTimeout
+        ) ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
 
         // 1. Send request to "give" the bill to the recipient
         // This provides the recipient with the desired token mint of the cash
