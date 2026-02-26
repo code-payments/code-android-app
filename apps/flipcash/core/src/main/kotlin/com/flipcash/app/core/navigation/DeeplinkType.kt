@@ -15,7 +15,7 @@ import kotlinx.parcelize.Parcelize
 sealed interface DeeplinkType: Parcelable {
     sealed interface Navigatable
     data class Login(val entropy: String) : DeeplinkType
-    data class CashLink(val entropy: String) : DeeplinkType
+    data class CashLink(val entropy: String = "") : DeeplinkType
 
     data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
 

@@ -29,8 +29,8 @@ internal fun ScannerDeepLinkHandler(
 
     val animationScale by rememberAnimationScale()
 
-    val stateRestorer = remember(navigator) {
-        NavigationStateRestorer(navigator)
+    val stateRestorer = remember(navigator, analytics) {
+        NavigationStateRestorer(navigator, analytics)
     }
 
     LaunchedEffect(biometricsState, previewing) {
@@ -56,7 +56,6 @@ internal fun ScannerDeepLinkHandler(
             }
             is DeeplinkType.Login -> Unit
             is DeeplinkType.Navigatable -> {
-                analytics.deeplinkRouted(link)
                 stateRestorer.restoreState(link, animationScale)
             }
         }

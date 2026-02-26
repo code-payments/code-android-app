@@ -689,8 +689,27 @@ class RealSessionController @Inject constructor(
     override fun openCashLink(cashLink: String?) {
         BottomBarManager.clear()
 
-        val entropy = cashLink?.trim()?.replace("\n", "") ?: return
-        val owner = userManager.accountCluster ?: return
+        val entropy = cashLink?.trim()?.replace("\n", "")
+        if (entropy == null) {
+            trace(
+                tag = "Session",
+                message = "Cash link not provided",
+                type = TraceType.Silent
+            )
+            analytics.deeplinkRouted(DeeplinkType.CashLink(), error = IllegalArgumentException("Cash link not provided"))
+            return
+        }
+        val owner = userManager.accountCluster
+
+        if (owner == null) {
+            trace(
+                tag = "Session",
+                message = "No owner found",
+                type = TraceType.Silent
+            )
+            analytics.deeplinkRouted(DeeplinkType.CashLink(), error = IllegalStateException("No owner found"))
+            return
+        }
 
         if (entropy.isEmpty()) {
             trace(
@@ -698,12 +717,13 @@ class RealSessionController @Inject constructor(
                 message = "Cash link empty",
                 type = TraceType.Silent
             )
+            analytics.deeplinkRouted(DeeplinkType.CashLink(), error = IllegalArgumentException("Cash link empty"))
             return
         }
 
         if (giftCardClaimInProgress.value == null) {
             giftCardClaimInProgress.value = entropy
-            analytics.deeplinkRouted(DeeplinkType.CashLink(entropy))
+            analytics.deeplinkRouted(DeeplinkType.CashLink()) // entropy omitted since not needed for analytics
             claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
         }
     }

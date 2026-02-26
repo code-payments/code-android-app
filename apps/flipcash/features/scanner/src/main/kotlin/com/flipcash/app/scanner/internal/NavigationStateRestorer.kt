@@ -1,6 +1,7 @@
 package com.flipcash.app.scanner.internal
 
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
@@ -13,6 +14,7 @@ import kotlinx.coroutines.delay
 
 class NavigationStateRestorer(
     private val navigator: CodeNavigator,
+    private val analytics: FlipcashAnalyticsService,
 ) {
     suspend fun restoreState(deeplink: DeeplinkType.Navigatable, animationScale: Float) {
         when (deeplink) {
@@ -79,7 +81,10 @@ class NavigationStateRestorer(
                 }
 
                 if (screens.isNotEmpty()) {
+                    analytics.deeplinkRouted(deeplink)
                     navigator.show(screens)
+                } else {
+                    analytics.deeplinkRouted(deeplink, IllegalStateException("Failed to route deeplink"))
                 }
             }
         }
