@@ -1,8 +1,6 @@
 package com.flipcash.app.scanner.internal
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -27,14 +25,12 @@ import com.getcode.opencode.model.financial.orZero
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
 import com.getcode.ui.scanner.NoCamerasAvailableException
+import com.getcode.ui.utils.KeepScreenOn
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.implementation.KikCodeResult
 import dev.theolm.rinku.DeepLink
-import kotlinx.coroutines.delay
 import timber.log.Timber
-import java.util.Timer
-import kotlin.concurrent.schedule
 
 @Composable
 internal fun Scanner(deepLink: DeeplinkType?) {
@@ -182,15 +178,10 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         if (billState.bill != null) {
             navigator.hide()
         }
-        resetScreenTimeout(context as Activity)
     }
-}
 
-private fun resetScreenTimeout(activity: Activity) {
-    activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    Timer().schedule(10000) {
-        activity.runOnUiThread {
-            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-    }
+    KeepScreenOn(
+        isEnabled = billState.bill != null,
+        useBrightness = true,
+    )
 }
