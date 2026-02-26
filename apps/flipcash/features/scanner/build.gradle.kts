@@ -54,6 +54,7 @@ dependencies {
     implementation(Libs.compose_activities)
 
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:bills"))

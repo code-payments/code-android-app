@@ -16,7 +16,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.ui.TokenIconWithName
@@ -101,14 +101,14 @@ class TokenInfoScreen(
             )
 
             LifecycleEffectOnce {
-                val event = when {
-                    forNeededFunds -> AnalyticsEvent.OpenTokenInfoEvent.Give
-                    fromDeeplink -> AnalyticsEvent.OpenTokenInfoEvent.Deeplink
-                    else -> AnalyticsEvent.OpenTokenInfoEvent.Wallet
+                val source = when {
+                    forNeededFunds -> Analytics.TokenInfoSource.Give
+                    fromDeeplink -> Analytics.TokenInfoSource.Deeplink
+                    else -> Analytics.TokenInfoSource.Wallet
                 }
 
                 analytics.openTokenInfo(
-                    from = event,
+                    source = source,
                     mint = mint
                 )
             }

@@ -1,7 +1,7 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
@@ -318,7 +318,7 @@ internal class CashScreenViewModel @Inject constructor(
             .onEach { amount ->
                 val provider = stateFlow.value.preferredOnRampProvider
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    analytics.openOnramp(AnalyticsEvent.OnRampOpenEvent.Give)
+                    analytics.openOnramp(Analytics.OnrampSource.Give)
                     // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal(amount))
                 } else {

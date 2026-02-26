@@ -2,7 +2,7 @@ package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
@@ -627,13 +627,13 @@ class BuySellSwapTokenViewModel @Inject constructor(
     private fun trackTransaction(token: Token, error: Throwable? = null) {
         val purpose = stateFlow.value.purpose
         val method = when (purpose) {
-            is TokenSwapPurpose.Buy -> AnalyticsEvent.TokenTransactionEvent.Purchase.Reserves
-            is TokenSwapPurpose.FundWithWallet -> AnalyticsEvent.TokenTransactionEvent.Purchase.Phantom
-            else -> AnalyticsEvent.TokenTransactionEvent.Sell
+            is TokenSwapPurpose.Buy -> Analytics.SwapMethod.Buy.Reserves
+            is TokenSwapPurpose.FundWithWallet -> Analytics.SwapMethod.Buy.Phantom
+            else -> Analytics.SwapMethod.Sell
         }
 
         when (method) {
-            AnalyticsEvent.TokenTransactionEvent.Sell -> {
+            Analytics.SwapMethod.Sell -> {
                 analytics.sell(
                     amount = stateFlow.value.netTransferAmount,
                     feeAmount = stateFlow.value.feeAmount,
@@ -641,9 +641,9 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     error = error
                 )
             }
-            is AnalyticsEvent.TokenTransactionEvent.Purchase -> {
+            is Analytics.SwapMethod.Buy -> {
                 analytics.buy(
-                    method = method,
+                    method = method.with,
                     amount = stateFlow.value.netTransferAmount,
                     mint = token.address,
                     error = error

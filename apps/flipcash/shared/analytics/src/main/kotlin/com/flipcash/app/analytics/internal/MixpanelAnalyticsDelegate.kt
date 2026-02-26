@@ -1,7 +1,11 @@
 package com.flipcash.app.analytics.internal
 
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.asProperties
+import com.flipcash.app.analytics.toAnalyticsEvent
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
@@ -11,10 +15,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
-import com.getcode.utils.base58
-import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.perf.metrics.Trace
@@ -44,9 +45,7 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         trace(
             tag = "Analytics",
             message = "App started",
-            metadata = {
-                "duration" to duration
-            },
+            metadata = { "duration" to duration },
             type = TraceType.Process
         )
     }
@@ -58,115 +57,154 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
     }
 
     override fun transfer(
-        event: AnalyticsEvent.Transfer,
+        event: Analytics.Transfer,
         amount: LocalFiat?,
-        grabTime: Long?,
         successful: Boolean,
         error: Throwable?
     ) {
-        val properties =
-            event.properties(localizedAmount = amount, successful = successful, error = error)
-        track(event.name, *properties.toList().toTypedArray())
+        track(
+            event.toAnalyticsEvent(),
+            "State" to if (successful) "Success" else "Failure",
+            *amount?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
+            *error.asProperty()
+        )
     }
 
     override fun transfer(
-        event: AnalyticsEvent.Transfer,
+        event: Analytics.Transfer,
         fiat: Fiat?,
-        grabTime: Long?,
         successful: Boolean,
         error: Throwable?
     ) {
-        val properties =
-            event.properties(nativeAmount = fiat, successful = successful, error = error)
-        track(event.name, *properties.toList().toTypedArray())
+        track(
+            event.toAnalyticsEvent(),
+            "State" to if (successful) "Success" else "Failure",
+            *fiat?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
+            *error.asProperty()
+        )
     }
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
-        val event = AnalyticsEvent.PaidForAccount(price, currency, owner)
-        val properties = event.properties()
-        track(event.name, *properties.toList().toTypedArray())
+        track(AnalyticsEvent.PaidForAccount(price, currency, owner))
     }
 
-    override fun openOnramp(openEvent: AnalyticsEvent.OnRampOpenEvent) {
-        val properties = openEvent.properties()
-        track(openEvent.name, *properties.toList().toTypedArray())
+    override fun openOnramp(source: Analytics.OnrampSource) {
+        val event = when (source) {
+            Analytics.OnrampSource.Settings -> AnalyticsEvent.OnRampOpenEvent.Settings
+            Analytics.OnrampSource.Balance -> AnalyticsEvent.OnRampOpenEvent.Balance
+            Analytics.OnrampSource.Give -> AnalyticsEvent.OnRampOpenEvent.Give
+        }
+        track(event)
     }
 
-    override fun onrampVerification(verificationEvent: AnalyticsEvent.OnRampVerificationEvent) {
-        val properties = verificationEvent.properties()
-        track(verificationEvent.name, *properties.toList().toTypedArray())
+    override fun onrampVerification(step: Analytics.OnrampVerificationStep) {
+        val event = when (step) {
+            Analytics.OnrampVerificationStep.ShowInfo -> AnalyticsEvent.OnRampVerificationEvent.ShowInfo
+            Analytics.OnrampVerificationStep.EnterPhone -> AnalyticsEvent.OnRampVerificationEvent.EnterPhone
+            Analytics.OnrampVerificationStep.ConfirmPhone -> AnalyticsEvent.OnRampVerificationEvent.ConfirmPhone
+            Analytics.OnrampVerificationStep.EnterEmail -> AnalyticsEvent.OnRampVerificationEvent.EnterEmail
+            Analytics.OnrampVerificationStep.ConfirmEmail -> AnalyticsEvent.OnRampVerificationEvent.ConfirmEmail
+        }
+        track(event)
     }
 
     override fun onrampPurchase(
-        purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent,
-        fiat: Fiat?,
-        successful: Boolean,
-        error: Throwable?
+        step: Analytics.OnrampPurchaseStep,
+        amount: Fiat?
     ) {
-        val properties =
-            purchaseEvent.properties(nativeAmount = fiat, successful = successful, error = error)
-        track(purchaseEvent.name, *properties.toList().toTypedArray())
+        val event = when (step) {
+            Analytics.OnrampPurchaseStep.PresetSelected -> AnalyticsEvent.OnRampPurchaseEvent.PresetSelected
+            Analytics.OnrampPurchaseStep.EnterCustomAmount -> AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount
+            Analytics.OnrampPurchaseStep.InvokePayment -> amount?.let {
+                AnalyticsEvent.OnRampPurchaseEvent.InvokePayment(
+                    it
+                )
+            }
+
+            Analytics.OnrampPurchaseStep.InvokePaymentCustom -> amount?.let {
+                AnalyticsEvent.OnRampPurchaseEvent.InvokePaymentCustom(
+                    it
+                )
+            }
+
+            Analytics.OnrampPurchaseStep.Completed -> amount?.let {
+                AnalyticsEvent.OnRampPurchaseEvent.Completed(
+                    it
+                )
+            }
+        } ?: return
+        track(event)
     }
 
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
-        val event = AnalyticsEvent.WalletConnect(provider)
-        val properties = event.properties()
-        track(event.name, *properties.toList().toTypedArray())
+        track(AnalyticsEvent.WalletConnect(provider))
     }
 
     override fun amountSelectedForWalletTransfer(
         provider: OnRampProvider.UsesDeeplinks,
         amount: Fiat
     ) {
-        val event = AnalyticsEvent.WalletRequestAmount(provider)
-        val properties = event.properties(
-            nativeAmount = amount
-        )
-        track(event.name, *properties.toList().toTypedArray())
+        track(AnalyticsEvent.WalletRequestAmount(provider, amount))
     }
 
     override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) {
-        val event = AnalyticsEvent.WalletSubmitTransaction(provider)
-        val properties = event.properties()
-        track(event.name, *properties.toList().toTypedArray())
+        track(AnalyticsEvent.WalletSubmitTransaction(provider))
     }
 
     override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) {
-        val event = AnalyticsEvent.WalletTransactionFailed(provider)
-        val properties = event.properties()
-        track(event.name, *properties.toList().toTypedArray())
+        track(AnalyticsEvent.WalletTransactionFailed(provider))
     }
 
     override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) {
-        val event = AnalyticsEvent.WalletTransactionCancelled(provider)
-        val properties = event.properties()
-        track(event.name, *properties.toList().toTypedArray())
+        track(AnalyticsEvent.WalletTransactionCancelled(provider))
     }
 
-    override fun openTokenInfo(from: AnalyticsEvent.OpenTokenInfoEvent, mint: Mint) {
-        val properties = from.properties(mint = mint)
-        track(from.name, *properties.toList().toTypedArray())
+    override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) {
+        val event = when (source) {
+            Analytics.TokenInfoSource.Deeplink -> AnalyticsEvent.OpenTokenInfoEvent.Deeplink(mint)
+            Analytics.TokenInfoSource.Wallet -> AnalyticsEvent.OpenTokenInfoEvent.Wallet(mint)
+            Analytics.TokenInfoSource.Give -> AnalyticsEvent.OpenTokenInfoEvent.Give(mint)
+        }
+        track(event)
     }
 
     override fun buy(
-        method: AnalyticsEvent.TokenTransactionEvent.Purchase,
-        amount: Fiat,
+        method: Analytics.PurchaseMethod,
         mint: Mint,
+        amount: Fiat,
         error: Throwable?
     ) {
-        val properties = method.properties(mint = mint, nativeAmount = amount, error = error)
-        track(method.name, *properties.toList().toTypedArray())
+        val event = when (method) {
+            Analytics.PurchaseMethod.Reserves -> AnalyticsEvent.TokenTransactionEvent.Purchase.Reserves(
+                mint,
+                amount,
+                error
+            )
+
+            Analytics.PurchaseMethod.Phantom -> AnalyticsEvent.TokenTransactionEvent.Purchase.Phantom(
+                mint,
+                amount,
+                error
+            )
+
+            Analytics.PurchaseMethod.Coinbase -> AnalyticsEvent.TokenTransactionEvent.Purchase.Coinbase(
+                mint,
+                amount,
+                error
+            )
+        }
+        track(event)
     }
 
-    override fun sell(
-        amount: Fiat,
-        feeAmount: Fiat,
-        mint: Mint,
-        error: Throwable?
-    ) {
-        val event = AnalyticsEvent.TokenTransactionEvent.Sell
-        val properties = event.properties(mint = mint, nativeAmount = amount, error = error)
-        track(event.name, *properties.toList().toTypedArray())
+    override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) {
+        track(AnalyticsEvent.TokenTransactionEvent.Sell(mint, amount, feeAmount, error))
+    }
+
+    // region Internal
+
+    private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {
+        val properties = (event.toProperties().toList() + extra.toList()).toTypedArray()
+        track(event.name, *properties)
     }
 
     private fun track(name: String, vararg properties: Pair<String, String>) {
@@ -180,155 +218,14 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
                 type = TraceType.Silent
             )
             return
-        } //no logging in debug
+        }
 
         val jsonObject = JSONObject()
-        properties.forEach { property ->
-            jsonObject.put(property.first, property.second)
-        }
+        properties.forEach { jsonObject.put(it.first, it.second) }
         mixpanelAPI.track(name, jsonObject)
     }
-}
 
-private fun AnalyticsEvent.properties(
-    localizedAmount: LocalFiat? = null,
-    nativeAmount: Fiat? = null,
-    feeAmount: Fiat? = null,
-    mint: Mint? = null,
-    grabTime: Long? = null,
-    successful: Boolean? = null,
-    error: Throwable? = null,
-): Map<String, String> {
-    return buildMap {
-        if (successful != null) {
-            if (successful) {
-                put("State", "Success")
-            } else {
-                put("State", "Failure")
-            }
-        }
-
-        val providerName = if (this@properties is AnalyticsEvent.WalletEvent) {
-            when (provider) {
-                OnRampProvider.Backpack -> "Backpack"
-                OnRampProvider.Solflare -> "Solflare"
-                OnRampProvider.Phantom -> "Phantom"
-            }
-        } else {
-            ""
-        }
-
-        when (val event = this@properties) {
-            is AnalyticsEvent.SentCashLink -> {
-                if (event.clipboard == true) {
-                    put("Cash Link Choice", "Copied to clipboard")
-                } else if (event.app != null) {
-                    put("Cash Link Choice", "Shared to app")
-                    put("App", event.app)
-                }
-            }
-
-            AnalyticsEvent.Withdrawal,
-            AnalyticsEvent.ClaimedCashLink,
-            AnalyticsEvent.GiveBill,
-            AnalyticsEvent.GrabBill -> Unit
-
-            is AnalyticsEvent.PaidForAccount -> {
-                put("Fiat", event.price.toString())
-                put("Currency", event.currency.name)
-                put("Owner Public Key", event.owner.getPublicKeyBase58())
-            }
-
-            is AnalyticsEvent.PoolEvent -> {
-                put("ID", event.id.base58)
-            }
-
-            is AnalyticsEvent.WalletConnect -> {
-                put("Provider", providerName)
-            }
-
-            is AnalyticsEvent.WalletRequestAmount -> {
-                put("Provider", providerName)
-                put("Fiat", nativeAmount?.decimalValue.toString())
-                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
-            }
-
-            is AnalyticsEvent.WalletSubmitTransaction -> {
-                put("Provider", providerName)
-            }
-
-            is AnalyticsEvent.WalletTransactionCancelled -> {
-                put("Provider", providerName)
-            }
-
-            is AnalyticsEvent.WalletTransactionFailed -> {
-                put("Provider", providerName)
-            }
-
-            is AnalyticsEvent.OnRampOpenEvent -> Unit
-            is AnalyticsEvent.OpenTokenInfoEvent -> {
-                put("Mint", mint?.base58().orEmpty())
-            }
-            is AnalyticsEvent.TokenTransactionEvent -> {
-                put("Mint", mint?.base58().orEmpty())
-                put("Fiat", nativeAmount?.decimalValue.toString())
-                if (feeAmount != null) {
-                    put("Fee", feeAmount.decimalValue.toString())
-                }
-                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
-            }
-            is AnalyticsEvent.OnRampVerificationEvent -> Unit
-            AnalyticsEvent.OnRampPurchaseEvent.Completed -> {
-                put("Fiat", nativeAmount?.decimalValue.toString())
-                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
-            }
-
-            AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount -> Unit
-            AnalyticsEvent.OnRampPurchaseEvent.InvokePayment -> {
-                put("Fiat", nativeAmount?.decimalValue.toString())
-                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
-            }
-
-            AnalyticsEvent.OnRampPurchaseEvent.InvokePaymentCustom -> {
-                put("Fiat", nativeAmount?.decimalValue.toString())
-                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
-            }
-
-            AnalyticsEvent.OnRampPurchaseEvent.PresetSelected -> {
-                put("Fiat", nativeAmount?.decimalValue.toString())
-                put("Currency", nativeAmount?.currencyCode?.name.orEmpty())
-            }
-        }
-
-        if (localizedAmount != null) {
-            putAll(localizedAmount.asProperties())
-        } else if (nativeAmount != null) {
-            putAll(nativeAmount.asProperties())
-        }
-
-        if (grabTime != null) {
-            put("Grab Time", grabTime.toString())
-        }
-
-        if (error != null) {
-            put("Error", error.message.orEmpty())
-        }
-    }
-}
-
-private fun LocalFiat.asProperties(): Map<String, String> {
-    return buildMap {
-        putAll(underlyingTokenAmount.asProperties())
-        "Fiat" to nativeAmount.decimalValue.toString()
-        "Exchange Rate" to rate.fx.toString()
-        "Currency" to rate.currency.name
-        "Mint" to mint.base58()
-    }
-}
-
-private fun Fiat.asProperties(): Map<String, String> {
-    return buildMap {
-        "USDC" to decimalValue.toString()
-        "Quarks" to quarks.toDouble().toString()
-    }
+    private fun Throwable?.asProperty(): Array<Pair<String, String>> =
+        this?.let { arrayOf("Error" to it.message.orEmpty()) } ?: emptyArray()
+    // endregion
 }

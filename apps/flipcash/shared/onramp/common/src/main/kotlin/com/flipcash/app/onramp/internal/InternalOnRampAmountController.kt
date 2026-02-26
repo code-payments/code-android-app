@@ -1,6 +1,6 @@
 package com.flipcash.app.onramp.internal
 
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
@@ -48,8 +48,8 @@ internal class InternalOnRampAmountController(
                             it.copy(selectedAmount = null)
                         } else {
                             analytics.onrampPurchase(
-                                purchaseEvent = AnalyticsEvent.OnRampPurchaseEvent.PresetSelected,
-                                fiat = amount.fiat
+                                step = Analytics.OnrampPurchaseStep.PresetSelected,
+                                amount = amount.fiat
                             )
 
                             it.copy(selectedAmount = amount)
@@ -63,7 +63,7 @@ internal class InternalOnRampAmountController(
                         it.copy(selectedAmount = null)
                     } else {
                         analytics.onrampPurchase(
-                            purchaseEvent = AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount,
+                            step = Analytics.OnrampPurchaseStep.EnterCustomAmount,
                         )
 
                         it.copy(selectedAmount = amount)

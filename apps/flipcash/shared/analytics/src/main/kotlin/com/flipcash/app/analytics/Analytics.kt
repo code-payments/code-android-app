@@ -1,6 +1,7 @@
 package com.flipcash.app.analytics
 
 import androidx.compose.runtime.Composable
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
@@ -13,73 +14,50 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 
 interface FlipcashAnalyticsService : AnalyticsService {
-    fun transfer(
-        event: AnalyticsEvent.Transfer,
-        amount: LocalFiat? = null,
-        grabTime: Long? = null,
-        successful: Boolean = true,
-        error: Throwable? = null
-    )
-
-    fun transfer(
-        event: AnalyticsEvent.Transfer,
-        fiat: Fiat? = null,
-        grabTime: Long? = null,
-        successful: Boolean = true,
-        error: Throwable? = null
-    )
-
-    fun paidForAccount(
-        price: Double,
-        currency: CurrencyCode,
-        owner: KeyPair,
-    )
-
-    fun openOnramp(
-        openEvent: AnalyticsEvent.OnRampOpenEvent,
-    )
-
-    fun onrampVerification(
-        verificationEvent: AnalyticsEvent.OnRampVerificationEvent,
-    )
-
-    fun onrampPurchase(
-        purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent,
-        fiat: Fiat? = null,
-        successful: Boolean = true,
-        error: Throwable? = null
-    )
-
-    fun connectWallet(
-        provider: OnRampProvider.UsesDeeplinks
-    )
-
-    fun amountSelectedForWalletTransfer(
-        provider: OnRampProvider.UsesDeeplinks,
-        amount: Fiat
-    )
-
+    fun transfer(event: Analytics.Transfer, amount: LocalFiat?, successful: Boolean = true, error: Throwable? = null)
+    fun transfer(event: Analytics.Transfer, fiat: Fiat?, successful: Boolean = true, error: Throwable? = null)
+    fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
+    fun openOnramp(source: Analytics.OnrampSource)
+    fun onrampVerification(step: Analytics.OnrampVerificationStep)
+    fun onrampPurchase(step: Analytics.OnrampPurchaseStep, amount: Fiat? = null)
+    fun connectWallet(provider: OnRampProvider.UsesDeeplinks)
+    fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat)
     fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
     fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks)
     fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks)
-
-    fun openTokenInfo(from: AnalyticsEvent.OpenTokenInfoEvent, mint: Mint)
-    fun buy(
-        method: AnalyticsEvent.TokenTransactionEvent.Purchase,
-        amount: Fiat,
-        mint: Mint,
-        error: Throwable? = null
-    )
-
-    fun sell(
-        amount: Fiat,
-        feeAmount: Fiat,
-        mint: Mint,
-        error: Throwable? = null
-    )
+    fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
+    fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
+    fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
 
     fun buttonTapped(button: Button) {
         action(button)
+    }
+}
+
+object Analytics {
+
+    sealed interface Transfer {
+        data class GrabBill(val time: Long? = null) : Transfer
+        data object GiveBill : Transfer
+        data object Withdrawal : Transfer
+        data object ClaimedCashLink : Transfer
+        sealed interface SentCashLink : Transfer {
+            data object Clipboard : SentCashLink
+            data class App(val name: String) : SentCashLink
+        }
+    }
+    enum class OnrampSource { Settings, Balance, Give }
+    enum class OnrampVerificationStep { ShowInfo, EnterPhone, ConfirmPhone, EnterEmail, ConfirmEmail }
+    enum class OnrampPurchaseStep { PresetSelected, EnterCustomAmount, InvokePayment, InvokePaymentCustom, Completed }
+    enum class TokenInfoSource { Deeplink, Wallet, Give }
+    enum class PurchaseMethod { Reserves, Phantom, Coinbase }
+    sealed interface SwapMethod {
+        enum class Buy(val with: PurchaseMethod) : SwapMethod {
+            Reserves(PurchaseMethod.Reserves),
+            Phantom(PurchaseMethod.Phantom),
+            Coinbase(PurchaseMethod.Coinbase)
+        }
+        data object Sell : SwapMethod
     }
 }
 
@@ -88,53 +66,24 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun onAppStarted() = Unit
     override fun unintentionalLogout() = Unit
     override fun action(action: AppAction, source: AppActionSource?) = Unit
-    override fun transfer(
-        event: AnalyticsEvent.Transfer,
-        amount: LocalFiat?,
-        grabTime: Long?,
-        successful: Boolean,
-        error: Throwable?
-    ) = Unit
 
-    override fun transfer(
-        event: AnalyticsEvent.Transfer,
-        fiat: Fiat?,
-        grabTime: Long?,
-        successful: Boolean,
-        error: Throwable?
-    ) = Unit
-
+    override fun transfer(event: Analytics.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) = Unit
+    override fun transfer(event: Analytics.Transfer, fiat: Fiat?, successful: Boolean, error: Throwable?) = Unit
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
-    override fun openOnramp(openEvent: AnalyticsEvent.OnRampOpenEvent) = Unit
-    override fun onrampVerification(verificationEvent: AnalyticsEvent.OnRampVerificationEvent) =
-        Unit
 
-    override fun onrampPurchase(
-        purchaseEvent: AnalyticsEvent.OnRampPurchaseEvent,
-        fiat: Fiat?,
-        successful: Boolean,
-        error: Throwable?
-    ) = Unit
+    override fun openOnramp(source: Analytics.OnrampSource) = Unit
+    override fun onrampVerification(step: Analytics.OnrampVerificationStep) = Unit
+    override fun onrampPurchase(step: Analytics.OnrampPurchaseStep, amount: Fiat?) = Unit
 
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
-    override fun amountSelectedForWalletTransfer(
-        provider: OnRampProvider.UsesDeeplinks,
-        amount: Fiat
-    ) = Unit
-
+    override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) = Unit
     override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) = Unit
 
-    override fun openTokenInfo(from: AnalyticsEvent.OpenTokenInfoEvent, mint: Mint) = Unit
-    override fun buy(
-        method: AnalyticsEvent.TokenTransactionEvent.Purchase,
-        amount: Fiat,
-        mint: Mint,
-        error: Throwable?
-    ) = Unit
-
-    override fun sell(amount: Fiat, feeAmount: Fiat, mint: Mint, error: Throwable?) = Unit
+    override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) = Unit
+    override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
+    override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
 }
 
 @Composable

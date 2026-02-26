@@ -44,6 +44,7 @@ dependencies {
 
     api(project(":ui:navigation"))
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":ui:resources"))
     api(Libs.rinku_compose)
 }

@@ -1,7 +1,7 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
@@ -130,7 +130,7 @@ internal class MenuScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAddCashClicked>()
             .onEach {
-                analytics.openOnramp(AnalyticsEvent.OnRampOpenEvent.Settings)
+                analytics.openOnramp(Analytics.OnrampSource.Settings)
                 val provider = stateFlow.value.preferredOnRampProvider
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
                     // has coinbase provider supporting google pay - pop selection for quick add

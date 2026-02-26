@@ -11,12 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.PhoneVerificationFlow
 import com.flipcash.app.contact.verification.internal.phone.PhoneEntryScreen
@@ -70,7 +69,7 @@ class PhoneVerificationScreen : AppScreen, Parcelable  {
 
         val analytics = rememberAnalytics()
         LifecycleEffectOnce {
-            analytics.onrampVerification(AnalyticsEvent.OnRampVerificationEvent.EnterPhone)
+            analytics.onrampVerification(Analytics.OnrampVerificationStep.EnterPhone)
         }
 
         BackHandler {

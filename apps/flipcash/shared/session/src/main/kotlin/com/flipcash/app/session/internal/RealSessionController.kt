@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal
 
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.activityfeed.ActivityFeedUpdater
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
@@ -13,6 +13,7 @@ import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.ProfileUpdater
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -416,7 +417,7 @@ class RealSessionController @Inject constructor(
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
-                analytics.transfer(AnalyticsEvent.GiveBill, bill.amount)
+                analytics.transfer(Analytics.Transfer.GiveBill, bill.amount)
                 toastController.enqueue(bill.amount, isDeposit = false)
                 dismissBill(Grabbed)
                 vibrator.vibrate()
@@ -432,7 +433,7 @@ class RealSessionController @Inject constructor(
             },
             onError = {
                 analytics.transfer(
-                    event = AnalyticsEvent.GiveBill,
+                    event = Analytics.Transfer.GiveBill,
                     amount = bill.amount,
                     successful = false,
                     error = it
@@ -570,7 +571,7 @@ class RealSessionController @Inject constructor(
                         dismissBill(Grabbed)
                         vibrator.vibrate()
                         bringActivityFeedCurrent()
-                        analytics.transfer(AnalyticsEvent.SentCashLink(clipboard = true), amount)
+                        analytics.transfer(Analytics.Transfer.SentCashLink.Clipboard, amount)
                         trace(
                             tag = "Session",
                             message = "Cash link copied",
@@ -590,7 +591,12 @@ class RealSessionController @Inject constructor(
                         dismissBill(Grabbed)
                         vibrator.vibrate()
                         bringActivityFeedCurrent()
-                        analytics.transfer(AnalyticsEvent.SentCashLink(app = result.to), amount)
+
+                        analytics.transfer(
+                            event = Analytics.Transfer.SentCashLink.App(name = result.to),
+                            amount = amount
+                        )
+
                         trace(
                             tag = "Session",
                             message = "Cash link shared",
@@ -723,7 +729,7 @@ class RealSessionController @Inject constructor(
             onReceived = { token, amount ->
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
-                analytics.transfer(AnalyticsEvent.ClaimedCashLink, amount = amount)
+                analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
                 toastController.enqueue(amount, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(amount = amount, token = token, didReceive = true),
@@ -735,7 +741,7 @@ class RealSessionController @Inject constructor(
                 giftCardClaimInProgress.value = null
                 if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
                     analytics.transfer(
-                        AnalyticsEvent.ClaimedCashLink,
+                        Analytics.Transfer.ClaimedCashLink,
                         amount = null,
                         successful = false,
                         error = cause
@@ -823,7 +829,7 @@ class RealSessionController @Inject constructor(
                     bill = Bill.Cash(amount = amount, token = token, didReceive = true),
                 )
 
-                analytics.transfer(AnalyticsEvent.GrabBill, amount, grabTime = grabTime)
+                analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
                 BottomBarManager.clear()
                 toastController.enqueue(amount, isDeposit = true)
                 checkPendingItemsInFeed()
@@ -831,7 +837,7 @@ class RealSessionController @Inject constructor(
             },
             onError = {
                 analytics.transfer(
-                    event = AnalyticsEvent.GrabBill,
+                    event = Analytics.Transfer.GrabBill(),
                     fiat = payload.fiat,
                     successful = false,
                     error = it

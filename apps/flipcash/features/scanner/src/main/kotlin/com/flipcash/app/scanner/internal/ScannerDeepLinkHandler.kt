@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalFocusManager
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.session.SessionController
 import com.getcode.navigation.core.CodeNavigator

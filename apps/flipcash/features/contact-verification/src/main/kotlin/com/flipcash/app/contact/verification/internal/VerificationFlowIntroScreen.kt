@@ -27,7 +27,7 @@ import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.navigation.FlowNavigator
@@ -69,7 +69,7 @@ class VerificationFlowIntroScreen(
 
         val analytics = rememberAnalytics()
         LifecycleEffectOnce {
-            analytics.onrampVerification(AnalyticsEvent.OnRampVerificationEvent.ShowInfo)
+            analytics.onrampVerification(Analytics.OnrampVerificationStep.ShowInfo)
         }
 
         BackHandler {

@@ -54,6 +54,7 @@ dependencies {
     implementation(Libs.firebase_perf)
 
     api(project(":libs:analytics"))
+    implementation(project(":apps:flipcash:core"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
 

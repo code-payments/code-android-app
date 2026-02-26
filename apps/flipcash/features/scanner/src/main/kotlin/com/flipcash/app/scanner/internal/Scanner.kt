@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.BillContainer
@@ -39,6 +40,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
     val session = LocalSessionController.currentOrThrow
     val state by session.state.collectAsState()
     val billState by session.billState.collectAsState()
+    val analytics = rememberAnalytics()
 
     val sheetLifecycleHandler = rememberSheetAutoResign()
     LaunchedEffect(sheetLifecycleHandler) {
@@ -71,7 +73,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         deepLink = deepLinkSaved,
         previewing = previewing,
         session = session,
-        navigator = navigator
+        navigator = navigator,
     ) {
         deepLinkSaved = null
     }

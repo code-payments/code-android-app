@@ -6,7 +6,7 @@ import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
@@ -423,7 +423,7 @@ internal class WithdrawalViewModel @Inject constructor(
             }.onResult(
                 onError = {
                     analytics.transfer(
-                        event = AnalyticsEvent.Withdrawal,
+                        event = Analytics.Transfer.Withdrawal,
                         amount = stateFlow.value.amountEntryState.selectedAmount,
                         successful = false,
                         error = it,
@@ -436,8 +436,8 @@ internal class WithdrawalViewModel @Inject constructor(
                 },
                 onSuccess = {
                     analytics.transfer(
-                        AnalyticsEvent.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount
+                        event = Analytics.Transfer.Withdrawal,
+                        amount = stateFlow.value.amountEntryState.selectedAmount,
                     )
                     viewModelScope.launch {
                         coroutineScope {

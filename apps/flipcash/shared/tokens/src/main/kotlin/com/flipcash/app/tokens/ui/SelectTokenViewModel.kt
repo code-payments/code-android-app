@@ -1,7 +1,7 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.AnalyticsEvent
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
@@ -179,7 +179,7 @@ class SelectTokenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAddCashClicked>()
             .onEach {
-                analytics.openOnramp(AnalyticsEvent.OnRampOpenEvent.Balance)
+                analytics.openOnramp(Analytics.OnrampSource.Balance)
                 val provider = stateFlow.value.preferredOnRampProvider
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
                     // has coinbase provider supporting google pay - pop selection for quick add
