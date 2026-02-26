@@ -3,6 +3,7 @@ package com.flipcash.app.router.internal
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
@@ -30,6 +31,7 @@ import org.json.JSONObject
 
 internal class AppRouter(
     private val userManager: UserManager,
+    private val analytics: FlipcashAnalyticsService,
 ) : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
     companion object {
         val login = listOf("login")

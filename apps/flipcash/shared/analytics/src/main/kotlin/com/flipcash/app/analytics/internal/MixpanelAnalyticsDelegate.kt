@@ -200,6 +200,18 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.TokenTransactionEvent.Sell(mint, amount, feeAmount, error))
     }
 
+    override fun deeplinkOpened(url: String) {
+        track(AnalyticsEvent.DeeplinkEvent.Open(url))
+    }
+
+    override fun deeplinkParsed(type: DeeplinkType?, url: String) {
+        track(AnalyticsEvent.DeeplinkEvent.Parse(type, url))
+    }
+
+    override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) {
+        track(AnalyticsEvent.DeeplinkEvent.Routed(type, error))
+    }
+
     // region Internal
 
     private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {

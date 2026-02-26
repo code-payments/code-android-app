@@ -74,6 +74,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         previewing = previewing,
         session = session,
         navigator = navigator,
+        analytics = analytics,
     ) {
         deepLinkSaved = null
     }
@@ -115,9 +116,10 @@ internal fun Scanner(deepLink: DeeplinkType?) {
                         is CodeScanResult.QrCode -> {
                             val urls = result.results
                             val deeplink = urls.firstNotNullOfOrNull { url ->
-                                router.processType(DeepLink(url))
+                                val type = router.processType(DeepLink(url))
+                                analytics.deeplinkParsed(type, url)
+                                type
                             }
-                            println("deeplink type = $deeplink")
                             if (deeplink != null) {
                                 vibrator.vibrate(duration = 50)
                                 deepLinkSaved = deeplink

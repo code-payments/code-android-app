@@ -28,6 +28,9 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
     fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
+    fun deeplinkOpened(url: String)
+    fun deeplinkParsed(type: DeeplinkType?, url: String)
+    fun deeplinkRouted(type: DeeplinkType, error: Throwable? = null)
 
     fun buttonTapped(button: Button) {
         action(button)
@@ -84,6 +87,10 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) = Unit
     override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
     override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
+
+    override fun deeplinkOpened(url: String) = Unit
+    override fun deeplinkParsed(type: DeeplinkType?, url: String) = Unit
+    override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) = Unit
 }
 
 @Composable

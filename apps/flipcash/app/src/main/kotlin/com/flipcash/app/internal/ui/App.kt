@@ -29,6 +29,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.transitions.CrossfadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
@@ -80,7 +81,7 @@ internal fun App(
     solanaRpcConfig: RpcConfig,
 ) {
     val router = LocalRouter.currentOrThrow
-
+    val analytics = rememberAnalytics()
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
     val requireBiometrics by viewModel.requireBiometrics.collectAsStateWithLifecycle()
     val biometricsState = rememberBiometricsState(
@@ -104,7 +105,9 @@ internal fun App(
     var loginRequest by remember { mutableStateOf<String?>(null) }
     val userManager = LocalUserManager.currentOrThrow
     DeepLinkListener {
+        analytics.deeplinkOpened(it.data)
         val type = router.processType(it)
+        analytics.deeplinkParsed(type, it.data)
         if (type is DeeplinkType.Login) {
             loginRequest = type.entropy
         }

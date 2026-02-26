@@ -29,6 +29,37 @@ internal sealed interface AnalyticsEvent {
         )
     }
 
+    sealed interface DeeplinkEvent : AnalyticsEvent {
+        data class Open(val url: String) : DeeplinkEvent {
+            override val name = "Deeplink: Open"
+            override fun toProperties() = mapOf("URL" to url)
+        }
+
+        data class Parse(
+            val type: DeeplinkType? = null,
+            val url: String,
+        ) : DeeplinkEvent {
+            override val name = "Deeplink: Parse"
+            override fun toProperties() = buildMap {
+                type?.let { put("Type", it.javaClass.simpleName) }
+                if (type == null) {
+                    put("Error", "Failed to parse deeplink => $url")
+                }
+            }
+        }
+
+        data class Routed(
+            val type: DeeplinkType,
+            val error: Throwable? = null
+        ) : DeeplinkEvent {
+            override val name = "Deeplink: Routed"
+            override fun toProperties() = buildMap {
+                put("Type", type.javaClass.simpleName)
+                error?.let { put("Error", it.message.orEmpty()) }
+            }
+        }
+    }
+
     sealed interface Transfer : AnalyticsEvent
 
     data class GrabBill(val time: Long?) : Transfer {

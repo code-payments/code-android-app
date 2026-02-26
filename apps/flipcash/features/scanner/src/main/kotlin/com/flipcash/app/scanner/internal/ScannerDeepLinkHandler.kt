@@ -20,6 +20,7 @@ internal fun ScannerDeepLinkHandler(
     previewing: Boolean?,
     session: SessionController,
     navigator: CodeNavigator,
+    analytics: FlipcashAnalyticsService,
     onDeeplinkHandled: () -> Unit,
 ) {
 
@@ -32,11 +33,7 @@ internal fun ScannerDeepLinkHandler(
         NavigationStateRestorer(navigator)
     }
 
-    LaunchedEffect(
-        biometricsState,
-        previewing,
-        deepLink
-    ) {
+    LaunchedEffect(biometricsState, previewing) {
         if (previewing == true) {
             focusManager.clearFocus()
         }
@@ -46,6 +43,10 @@ internal fun ScannerDeepLinkHandler(
         if (previewing != null) {
             session.onCameraScanning(previewing)
         }
+    }
+
+    LaunchedEffect(deepLink, biometricsState.passed) {
+        if (!biometricsState.passed) return@LaunchedEffect
 
         val link = deepLink ?: return@LaunchedEffect
 
@@ -53,9 +54,9 @@ internal fun ScannerDeepLinkHandler(
             is DeeplinkType.CashLink -> {
                 session.openCashLink(link.entropy)
             }
-
             is DeeplinkType.Login -> Unit
             is DeeplinkType.Navigatable -> {
+                analytics.deeplinkRouted(link)
                 stateRestorer.restoreState(link, animationScale)
             }
         }

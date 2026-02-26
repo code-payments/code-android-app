@@ -707,6 +707,7 @@ class RealSessionController @Inject constructor(
 
         if (giftCardClaimInProgress.value == null) {
             giftCardClaimInProgress.value = entropy
+            analytics.deeplinkRouted(DeeplinkType.CashLink(entropy))
             claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
         }
     }
