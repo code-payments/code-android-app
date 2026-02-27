@@ -1,0 +1,14 @@
+appId: com.flipcash.app.android.dev
+---
+- tapOn: Send as a Link
+# we need maestro to gain access to the content as well
+- copyTextFrom:
+    id: content_preview_text 
+# trigger copy flow
+- tapOn:
+    id: copy
+- waitForAnimationToEnd
+- tapOn: 
+    text: ".*Yes.*"
+    waitToSettleTimeoutMs: 500
+    retryTapIfNoChange: true

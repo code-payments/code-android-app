@@ -1,0 +1,9 @@
+appId: com.flipcash.app.android.dev
+---
+- assertVisible: Collect
+- tapOn: Collect
+- waitForAnimationToEnd
+- assertVisible: $0.01
+- assertVisible: Float
+- assertVisible: Put in Wallet
+- tapOn: Put in Wallet

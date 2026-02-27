@@ -1,0 +1,7 @@
+appId: com.flipcash.app.android.dev
+---
+- swipe:
+    direction: DOWN
+- extendedWaitUntil:
+      visible:
+          id: scanner_screen

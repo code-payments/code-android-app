@@ -247,7 +247,7 @@ fun CodeButton(
         shape = shape,
         contentColor = textColor,
         style = style,
-        sizeKey = text
+        sizeKey = text,
     ) {
         val updatedInlineContent by rememberUpdatedState(inlineContent)
         Text(text = text, inlineContent = updatedInlineContent)

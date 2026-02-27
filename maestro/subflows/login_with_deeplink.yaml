@@ -1,0 +1,12 @@
+appId: com.flipcash.app.android.dev
+---
+- stopApp
+- runFlow: 
+    file: ../helpers/launch_deeplink.yaml
+    env:
+      clearAppState: "true"
+      deeplink: ${LOGIN_DEEPLINK}
+
+- extendedWaitUntil:
+      visible:
+          id: "scanner_screen"

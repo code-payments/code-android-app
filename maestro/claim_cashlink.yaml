@@ -1,0 +1,13 @@
+appId: com.flipcash.app.android.dev
+onFlowStart:
+    - runScript: scripts/extract_url.js
+---
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: subflows/pull_out_bill.yaml
+- runFlow: subflows/share_cashlink.yaml
+- pressKey: home
+- evalScript: ${output.url = output.utils.getUrl(maestro.copiedText)}
+- openLink: ${output.url}
+- runFlow: subflows/collect_own_cashlink.yaml
+
+

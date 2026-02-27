@@ -1,0 +1,4 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: subflows/open_token_info.yaml

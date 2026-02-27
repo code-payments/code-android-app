@@ -1,0 +1,16 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: 
+   file: helpers/launch_deeplink.yaml
+   env:       
+      deeplink: https://app.flipcash.com/token/5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP
+- extendedWaitUntil:
+   visible:
+      id: token_info_screen
+- runFlow: helpers/close_open_sheet.yaml
+- pressKey: home
+- runFlow: 
+   file: helpers/launch_deeplink.yaml
+   env:       
+      deeplink: https://app.flipcash.com/token/5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP

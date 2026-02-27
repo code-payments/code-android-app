@@ -1,11 +1,9 @@
 appId: com.flipcash.app.android.dev
 ---
+# Conditionally clear state
 - runFlow:
     when:
       true: ${clearAppState == "true"}
     commands:
       - clearState
-      
-- launchApp:
-    arguments:
-      isUiTest: true
+- openLink: ${deeplink}

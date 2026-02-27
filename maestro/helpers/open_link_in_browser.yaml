@@ -1,0 +1,24 @@
+appId: com.flipcash.app.android.dev
+# helpers/open_link_in_browser.yaml
+# Opens a URL from clipboard in Chrome (or another app)
+
+---
+
+# 1. Copy the link to clipboard
+- setClipboard: ${url}
+
+# 2. Launch the target app (e.g. Chrome)
+- launchApp: com.android.chrome
+
+# 3. Tap the address bar
+- tapOn:
+    id: "com.android.chrome:id/url_bar"
+
+# 4. Clear it and paste
+- eraseText
+- pasteText
+
+# 5. Press enter / go
+- pressKey: Enter
+
+- waitForAnimationToEnd

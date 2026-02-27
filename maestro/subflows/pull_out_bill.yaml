@@ -1,5 +1,6 @@
 appId: com.flipcash.app.android.dev
 ---
+- runFlow: ../helpers/close_open_sheet.yaml
 - tapOn: Give
 - extendedWaitUntil:
       visible: Float
@@ -9,9 +10,9 @@ appId: com.flipcash.app.android.dev
 - tapOn: 
     id: "keypad_dot"
 - tapOn: 
-    id: "keypad_1"
-- tapOn: 
     id: "keypad_0"
+- tapOn: 
+    id: "keypad_1"
 - assertVisible:
     text: "Next"
     enabled: true
