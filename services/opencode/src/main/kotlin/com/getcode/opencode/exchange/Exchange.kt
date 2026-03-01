@@ -27,9 +27,7 @@ interface Exchange {
     fun getFlag(countryCode: String): Int?
 
     fun rateFor(currencyCode: CurrencyCode): Rate?
-    fun proofFor(currencyCode: CurrencyCode): Signature?
 
     fun rateForUsd(): Rate
-    fun proofForUsd(): Signature?
     fun rateToUsd(from: CurrencyCode): Rate?
 }

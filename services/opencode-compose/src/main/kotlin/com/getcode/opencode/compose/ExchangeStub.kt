@@ -80,16 +80,8 @@ class ExchangeStub(
         return providedRates[currencyCode]
     }
 
-    override fun proofFor(currencyCode: CurrencyCode): Signature? {
-        return providedProofs[currencyCode]
-    }
-
     override fun rateForUsd(): Rate {
         return providedRates[CurrencyCode.USD]!!
-    }
-
-    override fun proofForUsd(): Signature? {
-        return providedProofs[CurrencyCode.USD]
     }
 
     override fun rateToUsd(from: CurrencyCode): Rate? {

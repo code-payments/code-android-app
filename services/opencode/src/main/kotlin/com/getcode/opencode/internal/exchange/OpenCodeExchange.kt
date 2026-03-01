@@ -149,10 +149,8 @@ internal class OpenCodeExchange @Inject constructor(
     }
 
     override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
-    override fun proofFor(currencyCode: CurrencyCode): Signature? = rates.proofFor(currencyCode)
 
     override fun rateForUsd(): Rate = rates.rateForUsd()
-    override fun proofForUsd(): Signature? = rates.proofFor(CurrencyCode.USD)
 
     override fun rateToUsd(from: CurrencyCode): Rate? {
         val fromRate = rates.rateFor(from) ?: return null
@@ -174,7 +172,6 @@ internal class OpenCodeExchange @Inject constructor(
                     rates = RatesBox(
                         dateMillis = Clock.System.now().toEpochMilliseconds(),
                         rates = associatedRates.mapValues { it.value.rate },
-                        proofs = associatedRates.mapValues { it.value.signature }
                     )
                     updateRates()
                 }
@@ -248,12 +245,10 @@ internal class OpenCodeExchange @Inject constructor(
 private data class RatesBox(
     val dateMillis: Long,
     val rates: Map<CurrencyCode, Rate>,
-    val proofs: Map<CurrencyCode, Signature> = emptyMap()
 ) {
     constructor(dateMillis: Long, rates: List<Rate>) : this(
         dateMillis,
         rates.associateBy { it.currency },
-        emptyMap()
     )
 
 
@@ -266,8 +261,6 @@ private data class RatesBox(
         val currencyCode = CurrencyCode.tryValueOf(currency.code)
         return currencyCode?.let { rates[it] }
     }
-
-    fun proofFor(currencyCode: CurrencyCode): Signature? = proofs[currencyCode]
 
     fun rateForUsd(): Rate {
         return rates[CurrencyCode.USD] ?: Rate.oneToOne

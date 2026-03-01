@@ -191,13 +191,13 @@ class TokenCoordinator @Inject constructor(
     fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
 
     suspend fun add(token: Token, fiat: LocalFiat) {
-        val amount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        val amount = fiat.nativeAmount.convertingToUsdIfNeeded(fiat.rate)
         trace(tag = TAG, message = "Adding ${amount.formatted()} to ${token.symbol}", type = TraceType.Process)
         modifyBalance(token, amount) { current, delta -> current + delta }
     }
 
     suspend fun subtract(token: Token, fiat: LocalFiat) {
-        val amount = fiat.nativeAmount.convertingTo(exchange.rateToUsd(fiat.rate.currency)!!)
+        val amount = fiat.nativeAmount.convertingToUsdIfNeeded(fiat.rate)
         trace(tag = TAG, message = "Subtracting ${amount.formatted()} from ${token.symbol}", type = TraceType.Process)
         modifyBalance(token, amount) { current, delta -> current - delta }
     }

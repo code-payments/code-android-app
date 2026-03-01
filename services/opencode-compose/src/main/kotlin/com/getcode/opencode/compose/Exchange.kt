@@ -74,16 +74,8 @@ private class ExchangeNull : Exchange {
         return null
     }
 
-    override fun proofFor(currencyCode: CurrencyCode): Signature? {
-        return null
-    }
-
     override fun rateForUsd(): Rate {
         return Rate.oneToOne
-    }
-
-    override fun proofForUsd(): Signature? {
-        return null
     }
 
     override fun rateToUsd(from: CurrencyCode): Rate? = null
