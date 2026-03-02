@@ -191,14 +191,20 @@ class TokenCoordinator @Inject constructor(
     fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
 
     suspend fun add(token: Token, fiat: LocalFiat) {
-        val amount = fiat.nativeAmount.convertingToUsdIfNeeded(fiat.rate)
-        trace(tag = TAG, message = "Adding ${amount.formatted()} to ${token.symbol}", type = TraceType.Process)
+        val rate = exchange.rateToUsd(fiat.rate.currency)
+        val amount = rate?.let { fiat.nativeAmount.convertingTo(it) }
+        if (amount != null) {
+            trace(tag = TAG, message = "Adding ${amount.formatted()} to ${token.symbol}", type = TraceType.Process)
+        }
         modifyBalance(token, amount) { current, delta -> current + delta }
     }
 
     suspend fun subtract(token: Token, fiat: LocalFiat) {
-        val amount = fiat.nativeAmount.convertingToUsdIfNeeded(fiat.rate)
-        trace(tag = TAG, message = "Subtracting ${amount.formatted()} from ${token.symbol}", type = TraceType.Process)
+        val rate = exchange.rateToUsd(fiat.rate.currency)
+        val amount = rate?.let { fiat.nativeAmount.convertingTo(it) }
+        if (amount != null) {
+            trace(tag = TAG, message = "Subtracting ${amount.formatted()} to ${token.symbol}", type = TraceType.Process)
+        }
         modifyBalance(token, amount) { current, delta -> current - delta }
     }
 
@@ -381,10 +387,10 @@ class TokenCoordinator @Inject constructor(
         trace(tag = TAG, message = "Persisted ${updates.size} token(s) to Room", type = TraceType.Process)
     }
 
-    private suspend fun modifyBalance(token: Token, amount: Fiat, operation: (Fiat, Fiat) -> Fiat) {
+    private suspend fun modifyBalance(token: Token, amount: Fiat?, operation: (Fiat, Fiat) -> Fiat) {
         val currentBalance = _state.value.balances[token.address]
 
-        if (currentBalance == null || currentBalance.decimalValue == 0.0) {
+        if (currentBalance == null || currentBalance.decimalValue == 0.0 || amount == null) {
             trace(tag = TAG, message = "No existing balance for ${token.symbol}, fetching from network before modification", type = TraceType.Process)
             updateTokenAccount(token.address)
         } else {
