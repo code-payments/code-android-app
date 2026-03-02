@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.transactors
 
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.exchangeDataFor
@@ -25,6 +26,7 @@ import kotlinx.coroutines.cancel
 import kotlin.time.Duration
 
 internal class GiveBillTransactor(
+    private val currencyController: CurrencyController,
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
@@ -80,14 +82,16 @@ internal class GiveBillTransactor(
         val sendingAmount = amount
             ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
 
-        val verifiedState = if (providedVerifiedState != null) {
-            providedVerifiedState
-        } else {
-            verifiedProtoManager.getVerifiedStateFor(
-                sendingAmount.rate.currency,
-                desiredToken.address
-            )
-        } ?: return logAndFail(GiveTransactorError.Other(message = "No verified state found"))
+        // Resolve the verified state for the given currency/token pair using a fallback chain:
+        // 1. Use the provided state directly if available
+        // 2. Otherwise, check the local proto store
+        // 3. If still missing, fetch live mint data (which internally persists to the store) and re-query
+        val verifiedState = providedVerifiedState
+            ?: verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address)
+            ?: currencyController.getLiveMintData(scope, desiredToken.address)
+                .map { verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address) }
+                .getOrNull()
+            ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
 
         val exchangeData = verifiedState.exchangeDataFor(
             amount = sendingAmount,

@@ -66,7 +66,6 @@ internal class ReceiveGiftCardTransactor(
                     return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.FailedToQuery(message = "No accounts found"))
                 }
 
-            onStep("account query")
             val info = accounts.values.first()
 
             if (info.claimState == AccountInfo.ClaimState.Claimed) {

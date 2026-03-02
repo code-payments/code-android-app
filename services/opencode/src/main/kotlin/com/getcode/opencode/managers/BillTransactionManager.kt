@@ -1,6 +1,7 @@
 package com.getcode.opencode.managers
 
 import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
@@ -33,6 +34,7 @@ import kotlin.time.Duration
 @Singleton
 class BillTransactionManager @Inject constructor(
     private val accountController: AccountController,
+    private val currencyController: CurrencyController,
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val tokenProvider: TokenMetadataProvider,
@@ -69,10 +71,11 @@ class BillTransactionManager @Inject constructor(
             val childScope = CoroutineScope(sharedScope.coroutineContext + Job())
 
             val transactor = GiveBillTransactor(
-                messagingController,
-                transactionController,
-                childScope,
-                verifiedProtoManager,
+                currencyController = currencyController,
+                messagingController = messagingController,
+                transactionController = transactionController,
+                scope = childScope,
+                verifiedProtoManager = verifiedProtoManager,
             ).apply {
                 with(token, amount, owner, billExchangeDataTimeout, verifiedState)
             }

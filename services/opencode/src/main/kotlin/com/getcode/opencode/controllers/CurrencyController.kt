@@ -13,11 +13,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class CurrencyController @Inject constructor(
@@ -48,6 +51,19 @@ class CurrencyController @Inject constructor(
                 )
             }
         }
+    }
+
+    suspend fun getLiveMintData(
+        scope: CoroutineScope,
+        mint: Mint,
+        tag: String? = null
+    ): Result<LiveMintDataResponse> = runCatching {
+        callbackFlow {
+            val reference = repository.streamMintData(scope = scope, mints = listOf(mint), tag = tag) {
+                trySend(it)
+            }
+            awaitClose { reference.cancel() }
+        }.first()
     }
 
     suspend fun getMintMetadata(
