@@ -152,6 +152,13 @@ fun TokenBalanceRow(
                 )
             }
 
+            showLogo && !showName -> {
+                TokenIcon(
+                    token = token,
+                    modifier = Modifier.size(sizing.iconSize)
+                )
+            }
+
             showName -> {
                 Text(
                     text = displayName,

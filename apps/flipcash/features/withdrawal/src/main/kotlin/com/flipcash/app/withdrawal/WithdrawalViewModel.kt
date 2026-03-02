@@ -182,11 +182,12 @@ internal class WithdrawalViewModel @Inject constructor(
                 combine(
                     tokenCoordinator.tokens,
                     tokenCoordinator.balanceForToken(tokenAddress),
-                ) { tokens, balance ->
+                    exchange.observeEntryRate(),
+                ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
                     TokenWithBalance(
                         token = token,
-                        balance = balance
+                        balance = balance.convertingTo(rate)
                     )
                 }
             }.filterNotNull()
