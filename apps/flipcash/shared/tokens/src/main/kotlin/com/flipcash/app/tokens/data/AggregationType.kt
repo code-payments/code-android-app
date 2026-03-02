@@ -60,7 +60,7 @@ sealed interface AggregationType {
 
             // Find the first real data point (non-zero timestamp)
             // Instead of checking for x == 0, check if there's a gap at the start
-            val firstRealPoint = sorted.firstOrNull { it.x > 0 }
+            val firstRealPoint = sorted.firstOrNull { it.y > 0.0 }
 
             val duration = now - startTime
             val gapThreshold = duration * 0.05 // 5% of the period
@@ -92,13 +92,14 @@ sealed interface AggregationType {
 
             // Interpolate to evenly-spaced timestamps
             val intervalMs = (duration / targetPoints).coerceAtLeast(1)
+            val firstRealTimestamp = firstRealPoint?.x ?: startTime
 
             return (0 until targetPoints).map { bucket ->
                 val timestamp = startTime + (bucket * intervalMs) + (intervalMs / 2)
-                val y = if (bucket == targetPoints - 1) {
-                    currentValue
-                } else {
-                    interpolateAt(selected, timestamp)
+                val y = when {
+                    bucket == targetPoints - 1 -> currentValue
+                    timestamp < firstRealTimestamp -> 0.0
+                    else -> interpolateAt(selected, timestamp)
                 }
                 MarketCapPoint(x = timestamp, y = y)
             }
