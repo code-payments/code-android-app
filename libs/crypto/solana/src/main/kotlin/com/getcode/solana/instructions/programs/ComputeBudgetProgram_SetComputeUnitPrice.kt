@@ -2,8 +2,8 @@ package com.getcode.solana.instructions.programs
 
 import com.getcode.solana.Instruction
 import com.getcode.utils.DataSlice.consume
-import org.kin.sdk.base.tools.byteArrayToLong
-import org.kin.sdk.base.tools.longToByteArray
+import com.getcode.utils.byteArrayToLong
+import com.getcode.utils.longToByteArray
 
 class ComputeBudgetProgram_SetComputeUnitPrice(
     val microLamports: Long,

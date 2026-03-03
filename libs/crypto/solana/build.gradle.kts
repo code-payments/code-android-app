@@ -16,7 +16,6 @@ dependencies {
     implementation(project(":libs:encryption:sha256"))
     implementation(project(":libs:encryption:sha512"))
     implementation(project(":libs:encryption:utils"))
-    implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:currency"))
     implementation(libs.kotlinx.serialization.json)
 

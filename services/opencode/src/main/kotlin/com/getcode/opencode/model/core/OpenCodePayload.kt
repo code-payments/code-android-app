@@ -7,8 +7,8 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.deriveRendezvousKey
 import com.kik.scan.Scanner
-import org.kin.sdk.base.tools.byteArrayToLong
-import org.kin.sdk.base.tools.longToByteArray
+import com.getcode.utils.byteArrayToLong
+import com.getcode.utils.longToByteArray
 
 data class OpenCodePayload(
     val kind: PayloadKind,

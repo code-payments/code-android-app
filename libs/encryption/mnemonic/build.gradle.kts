@@ -7,7 +7,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":libs:crypto:kin"))
+    implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:hmac"))
     implementation(project(":libs:encryption:sha256"))

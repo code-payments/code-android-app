@@ -7,11 +7,11 @@ android {
 }
 
 dependencies {
-    implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:sha256"))
     implementation(project(":libs:encryption:utils"))
 
+    implementation(libs.protobuf.kotlin.lite)
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.kotlin)
     implementation(libs.kotlinx.serialization.json)

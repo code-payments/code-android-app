@@ -7,5 +7,4 @@ android {
 }
 
 dependencies {
-    implementation(libs.kin.sdk)
 }

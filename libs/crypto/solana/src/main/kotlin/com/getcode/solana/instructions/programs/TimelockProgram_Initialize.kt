@@ -4,8 +4,8 @@ import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.utils.toByteArray
-import org.kin.sdk.base.tools.byteArrayToLong
-import org.kin.sdk.base.tools.longToByteArray
+import com.getcode.utils.byteArrayToLong
+import com.getcode.utils.longToByteArray
 
 // Reference: https://github.com/code-wallet/code-server/blob/master/pkg/solana/timelock/instruction_initialize.go
 class TimelockProgram_Initialize(

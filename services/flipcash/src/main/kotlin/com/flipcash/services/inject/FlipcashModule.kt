@@ -39,7 +39,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.grpc.ManagedChannel
 import io.grpc.android.AndroidChannelBuilder
-import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
+import io.grpc.okhttp.OkHttpChannelBuilder
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -72,7 +72,7 @@ internal object FlipcashModule {
         config: ProtocolConfig,
     ): ManagedChannel {
         return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(config.baseUrl, config.port))
+            .usingBuilder(OkHttpChannelBuilder.forAddress(config.baseUrl, config.port))
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)

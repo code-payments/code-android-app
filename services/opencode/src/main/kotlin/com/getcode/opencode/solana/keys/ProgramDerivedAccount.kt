@@ -5,7 +5,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
-import org.kin.sdk.base.models.toUTF8Bytes
+import com.getcode.utils.toUTF8Bytes
 
 data class ProgramDerivedAccount(val publicKey: PublicKey, val bump: Int)
 

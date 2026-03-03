@@ -3,7 +3,7 @@ package com.getcode.crypt
 import com.getcode.ed25519.Ed25519
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.encodeBase64
-import org.kin.sdk.base.tools.Base58
+import com.getcode.vendor.Base58
 
 
 class MnemonicPhrase(val kind: Kind, val words: List<String>) {

@@ -1,7 +1,7 @@
 package com.getcode.opencode.model.core
 
 import com.getcode.vendor.Base58
-import org.kin.sdk.base.tools.intToByteArray
+import com.getcode.utils.intToByteArray
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.UUID

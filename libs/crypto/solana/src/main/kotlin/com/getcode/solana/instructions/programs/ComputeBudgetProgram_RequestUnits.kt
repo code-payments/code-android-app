@@ -3,9 +3,9 @@ package com.getcode.solana.instructions.programs
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.programs.ComputeBudgetProgram.Command
 import com.getcode.utils.DataSlice.consume
-import org.kin.sdk.base.tools.byteArrayToLong
-import org.kin.sdk.base.tools.intToByteArray
-import org.kin.sdk.base.tools.longToByteArray
+import com.getcode.utils.byteArrayToLong
+import com.getcode.utils.intToByteArray
+import com.getcode.utils.longToByteArray
 
 class ComputeBudgetProgram_RequestUnits(
     val limit: Long,

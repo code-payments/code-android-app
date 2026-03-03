@@ -8,7 +8,7 @@ import com.getcode.opencode.solana.intents.CompactMessageArgs
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.utils.toByteArray
-import org.kin.sdk.base.models.toUTF8Bytes
+import com.getcode.utils.toUTF8Bytes
 
 abstract class ActionType {
     abstract var id: Int

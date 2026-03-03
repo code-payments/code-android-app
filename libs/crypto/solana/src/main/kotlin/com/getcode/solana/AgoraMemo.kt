@@ -3,9 +3,9 @@ package com.getcode.solana
 import com.getcode.solana.AgoraMemo.Companion.maxMagicByteIndicatorSize
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.encodeBase64ToArray
-import org.kin.sdk.base.tools.byteArrayToInt
-import org.kin.sdk.base.tools.shl
-import org.kin.sdk.base.tools.subByteArray
+import com.getcode.utils.byteArrayToInt
+import com.getcode.utils.shl
+import com.getcode.utils.subByteArray
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.experimental.xor

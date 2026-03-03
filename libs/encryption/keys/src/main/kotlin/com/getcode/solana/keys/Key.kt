@@ -1,7 +1,7 @@
 package com.getcode.solana.keys
 
 import com.getcode.utils.encodeBase64
-import org.kin.sdk.base.tools.Base58
+import com.getcode.vendor.Base58
 
 abstract class KeyType(bytes: List<Byte>) {
     abstract val size: Int

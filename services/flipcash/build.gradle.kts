@@ -36,6 +36,7 @@ dependencies {
     implementation(libs.grpc.android)
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.kotlin)
+    implementation(libs.grpc.protobuf.lite)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

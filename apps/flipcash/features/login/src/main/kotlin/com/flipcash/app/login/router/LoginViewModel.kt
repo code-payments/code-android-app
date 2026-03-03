@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import org.kin.sdk.base.tools.Base58
+import com.getcode.vendor.Base58
 import javax.inject.Inject
 
 @HiltViewModel

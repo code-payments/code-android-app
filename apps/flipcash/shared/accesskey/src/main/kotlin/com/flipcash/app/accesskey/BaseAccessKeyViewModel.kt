@@ -41,7 +41,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.kin.sdk.base.tools.Base58
+import com.getcode.vendor.Base58
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date

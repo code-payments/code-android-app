@@ -52,7 +52,6 @@ import com.getcode.utils.SuppressibleException
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
-import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlin.coroutines.resume
 import kotlin.math.pow
@@ -204,7 +203,7 @@ internal class GooglePlayBillingClient(
 
         val billingFlowParams = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
-                ImmutableList.of(
+                listOf(
                     BillingFlowParams.ProductDetailsParams.newBuilder()
                         .setProductDetails(details)
                         .build()
@@ -354,7 +353,7 @@ internal class GooglePlayBillingClient(
         suspendCancellableCoroutine { cont ->
             val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
                 .setProductList(
-                    ImmutableList.of(
+                    listOf(
                         QueryProductDetailsParams.Product.newBuilder()
                             .setProductId(productId)
                             .setProductType(ProductType.INAPP)

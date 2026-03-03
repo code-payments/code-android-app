@@ -110,8 +110,32 @@ fun String.replaceParam(index: Int = 0, value: String?): String {
     return this.replace(param, value.orEmpty())
 }
 
+fun ByteArray.byteArrayToLong(): Long {
+    var result = 0L
+    for (i in (size - 1) downTo 0) {
+        result = (result shl 8) or (this[i].toLong() and 0xFFL)
+    }
+    return result
+}
+
+fun ByteArray.byteArrayToInt(): Int {
+    var result = 0
+    for (i in (size - 1) downTo 0) {
+        result = (result shl 8) or (this[i].toInt() and 0xFF)
+    }
+    return result
+}
+
+fun Long.longToByteArray(): ByteArray = toByteArray()
+
+fun ByteArray.subByteArray(start: Int, count: Int): ByteArray = copyOfRange(start, start + count)
+
+infix fun Byte.shl(bitCount: Int): Byte = (toInt() shl bitCount).toByte()
+
+fun String.toUTF8Bytes(): ByteArray = toByteArray(Charsets.UTF_8)
+
 fun Ed25519.KeyPair.getPublicKeyBase58(): String {
-    return org.kin.sdk.base.tools.Base58.encode(publicKeyBytes)
+    return Base58.encode(publicKeyBytes)
 }
 
 fun List<Byte>.hexEncodedString(options: Set<HexEncodingOptions> = emptySet()): String {

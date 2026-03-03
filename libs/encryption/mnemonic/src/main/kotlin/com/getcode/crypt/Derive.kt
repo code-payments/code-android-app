@@ -2,7 +2,7 @@ package com.getcode.crypt
 
 import com.getcode.ed25519.Ed25519
 import com.getcode.utils.encodeBase64
-import org.kin.sdk.base.tools.subByteArray
+import com.getcode.utils.subByteArray
 import java.nio.ByteBuffer
 
 

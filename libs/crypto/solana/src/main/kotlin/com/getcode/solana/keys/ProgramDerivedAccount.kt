@@ -2,7 +2,7 @@ package com.getcode.solana.keys
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.model.Kin
-import org.kin.sdk.base.models.toUTF8Bytes
+import com.getcode.utils.toUTF8Bytes
 
 data class ProgramDerivedAccount(val publicKey: PublicKey, val bump: Int)
 

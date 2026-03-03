@@ -2,7 +2,7 @@ package com.getcode.solana.instructions.programs
 
 import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.Instruction
-import org.kin.sdk.base.tools.intToByteArray
+import com.getcode.utils.intToByteArray
 
 class SystemProgram_AdvanceNonce(
     val nonce: com.getcode.solana.keys.PublicKey,

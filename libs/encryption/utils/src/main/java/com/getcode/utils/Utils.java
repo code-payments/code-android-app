@@ -31,12 +31,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.io.BaseEncoding;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
 import timber.log.Timber;
 
 /**
@@ -46,12 +40,33 @@ import timber.log.Timber;
 public class Utils {
     public static final String TAG = "Api Utils";
 
-    /** Joiner for concatenating words with a space inbetween. */
-    public static final Joiner SPACE_JOINER = Joiner.on(" ");
-    /** Splitter for splitting words on whitespaces. */
-    public static final Splitter WHITESPACE_SPLITTER = Splitter.on(Pattern.compile("\\s+"));
-    /** Hex encoding used throughout the framework. Use with HEX.encode(byte[]) or HEX.decode(CharSequence). */
-    public static final BaseEncoding HEX = BaseEncoding.base16().lowerCase();
+    /** Hex encoder for use throughout the framework. */
+    public static final HexEncoder HEX = new HexEncoder();
+
+    public static class HexEncoder {
+        private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
+
+        public String encode(byte[] data) {
+            char[] result = new char[data.length * 2];
+            for (int i = 0; i < data.length; i++) {
+                result[i * 2] = HEX_CHARS[(data[i] >> 4) & 0xF];
+                result[i * 2 + 1] = HEX_CHARS[data[i] & 0xF];
+            }
+            return new String(result);
+        }
+    }
+
+    /** Joins strings with a space. */
+    public static String spaceJoin(Iterable<?> parts) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Object part : parts) {
+            if (!first) sb.append(' ');
+            sb.append(part);
+            first = false;
+        }
+        return sb.toString();
+    }
 
     /**
      * Max initial size of variable length arrays and ArrayLists that could be attacked.
@@ -79,13 +94,13 @@ public class Utils {
      * @return numBytes byte long array.
      */
     public static byte[] bigIntegerToBytes(BigInteger b, int numBytes) {
-        checkArgument(b.signum() >= 0, "b must be positive or zero");
-        checkArgument(numBytes > 0, "numBytes must be positive");
+        if (b.signum() < 0) throw new IllegalArgumentException("b must be positive or zero");
+        if (numBytes <= 0) throw new IllegalArgumentException("numBytes must be positive");
         byte[] src = b.toByteArray();
         byte[] dest = new byte[numBytes];
         boolean isFirstByteOnlyForSign = src[0] == 0;
         int length = isFirstByteOnlyForSign ? src.length - 1 : src.length;
-        checkArgument(length <= numBytes, "The given number does not fit in " + numBytes);
+        if (length > numBytes) throw new IllegalArgumentException("The given number does not fit in " + numBytes);
         int srcPos = isFirstByteOnlyForSign ? 1 : 0;
         int destPos = numBytes - length;
         System.arraycopy(src, srcPos, dest, destPos, length);
@@ -535,6 +550,6 @@ public class Utils {
         List<String> parts = new ArrayList<>(stack.size());
         for (byte[] push : stack)
             parts.add('[' + HEX.encode(push) + ']');
-        return SPACE_JOINER.join(parts);
+        return spaceJoin(parts);
     }
 }

@@ -26,7 +26,6 @@ dependencies {
     implementation(project(":libs:models"))
     implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:utils"))
-    implementation(project(":libs:crypto:kin"))
 
     implementation(project(":services:flipcash"))
 }

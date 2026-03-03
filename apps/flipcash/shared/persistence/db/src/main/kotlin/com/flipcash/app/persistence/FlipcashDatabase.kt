@@ -21,7 +21,7 @@ import com.flipcash.app.persistence.entities.TokenValuationEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
-import org.kin.sdk.base.tools.subByteArray
+import com.getcode.utils.subByteArray
 
 @Database(
     entities = [

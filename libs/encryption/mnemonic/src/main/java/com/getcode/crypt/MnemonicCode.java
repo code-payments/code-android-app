@@ -132,7 +132,7 @@ public class MnemonicCode {
         // used as a pseudo-random function. Desired length of the
         // derived key is 512 bits (= 64 bytes).
         //
-        String pass = Utils.SPACE_JOINER.join(words);
+        String pass = Utils.spaceJoin(words);
         String salt = "mnemonic" + passphrase;
 
         final Stopwatch watch = Stopwatch.createStarted();

@@ -2,8 +2,8 @@ package com.getcode.opencode.internal.solana.programs
 
 import com.getcode.opencode.internal.solana.utils.DataSlice.consume
 import com.getcode.opencode.solana.Instruction
-import org.kin.sdk.base.tools.byteArrayToInt
-import org.kin.sdk.base.tools.intToByteArray
+import com.getcode.utils.byteArrayToInt
+import com.getcode.utils.intToByteArray
 
 internal class ComputeBudgetProgram_SetComputeUnitLimit(
     val units: Int,

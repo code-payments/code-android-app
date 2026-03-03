@@ -2,8 +2,8 @@ package com.getcode.solana.instructions.programs
 
 import com.getcode.solana.Instruction
 import com.getcode.utils.DataSlice.consume
-import org.kin.sdk.base.tools.byteArrayToInt
-import org.kin.sdk.base.tools.intToByteArray
+import com.getcode.utils.byteArrayToInt
+import com.getcode.utils.intToByteArray
 
 class ComputeBudgetProgram_SetComputeUnitLimit(
     val limit: Int,

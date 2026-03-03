@@ -1,8 +1,5 @@
 package com.getcode.vendor
 
-import org.kin.sdk.base.tools.Base58.AddressFormatException.InvalidCharacter
-import org.kin.sdk.base.tools.Base58.AddressFormatException.InvalidChecksum
-import org.kin.sdk.base.tools.Base58.AddressFormatException.InvalidDataLength
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -144,7 +141,7 @@ object Base58 {
             val c = input[i]
             val digit = if (c.toInt() < 128) INDEXES[c.toInt()] else -1
             if (digit < 0) {
-                throw InvalidCharacter(c, i)
+                throw AddressFormatException.InvalidCharacter(c, i)
             }
             input58[i] = digit.toByte()
         }
@@ -187,11 +184,11 @@ object Base58 {
     @Throws(AddressFormatException::class)
     fun decodeChecked(input: String): ByteArray {
         val decoded = decode(input)
-        if (decoded.size < 4) throw InvalidDataLength("Input too short: " + decoded.size)
+        if (decoded.size < 4) throw AddressFormatException.InvalidDataLength("Input too short: " + decoded.size)
         val data = Arrays.copyOfRange(decoded, 0, decoded.size - 4)
         val checksum = Arrays.copyOfRange(decoded, decoded.size - 4, decoded.size)
         val actualChecksum: ByteArray = Arrays.copyOfRange(hashTwice(data), 0, 4)
-        if (!Arrays.equals(checksum, actualChecksum)) throw InvalidChecksum()
+        if (!Arrays.equals(checksum, actualChecksum)) throw AddressFormatException.InvalidChecksum()
         return data
     }
 

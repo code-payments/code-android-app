@@ -97,8 +97,14 @@ android {
     }
 
     packaging {
-        resources.excludes += setOf("**/*.proto", "META-INF/LICENSE.md", "META-INF/LICENSE-notice.md")
+        resources.excludes += setOf("**/*.proto", "META-INF/LICENSE.md", "META-INF/LICENSE-notice.md", "META-INF/versions/9/OSGI-INF/MANIFEST.MF")
     }
+}
+
+configurations.all {
+    // protobuf-javalite 4.x already includes well-known types, making
+    // Firebase's protolite-well-known-types redundant and conflicting.
+    exclude(group = "com.google.firebase", module = "protolite-well-known-types")
 }
 
 versioning {
