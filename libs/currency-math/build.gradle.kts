@@ -1,51 +1,21 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_ksp)
-    id(Plugins.kotlin_serialization)
-    id(Plugins.kotlin_parcelize)
+    alias(libs.plugins.flipcash.android.library)
+    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.currency.math"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
 }
 
 dependencies {
-    androidTestImplementation(Libs.androidx_junit)
-    androidTestImplementation(Libs.junit)
-    androidTestImplementation(Libs.androidx_test_runner)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 
-    implementation(Libs.inject)
-    implementation(Libs.hilt)
-    implementation(Libs.timber)
-    implementation(Libs.bugsnag)
+    implementation(libs.javax.inject)
+    implementation(libs.hilt.android)
+    implementation(libs.bugsnag)
 
     testImplementation(kotlin("test"))
 }

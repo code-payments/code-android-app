@@ -1,29 +1,15 @@
 plugins {
-    id(Plugins.android_library)
+    alias(libs.plugins.flipcash.android.library)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.ed25519"
-    compileSdk = Android.compileSdkVersion
+    ndkVersion = "29.0.14206865"
     defaultConfig {
-        minSdk = Android.minSdkVersion
-        ndkVersion = "29.0.14206865"
         externalNativeBuild {
             cmake {
-                ndkVersion = "29.0.14206865"
                 cppFlags += "-std=c++11"
             }
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
-    }
-
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
 
@@ -36,5 +22,5 @@ android {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation(Libs.kotlinx_serialization_json)
+    implementation(libs.kotlinx.serialization.json)
 }

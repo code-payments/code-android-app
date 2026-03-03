@@ -1,20 +1,11 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
-    id(Plugins.kotlin_serialization)
-    id(Plugins.jetbrains_compose_compiler)
+    alias(libs.plugins.flipcash.android.library.compose)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.services.opencode.compose"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
 
+    defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
 
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
@@ -27,29 +18,9 @@ android {
 
     buildFeatures {
         buildConfig = true
-        compose = true
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
     }
 }
 
 dependencies {
     api(project(":services:opencode"))
-
-    //Jetpack compose
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
 }

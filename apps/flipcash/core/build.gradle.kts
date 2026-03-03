@@ -1,72 +1,28 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_ksp)
-    id(Plugins.kotlin_serialization)
-    id(Plugins.kotlin_parcelize)
-    id(Plugins.jetbrains_compose_compiler)
+    alias(libs.plugins.flipcash.android.feature)
 }
 
 android {
     namespace = "${Gradle.flipcashNamespace}.core"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    buildFeatures {
-        buildConfig = true
-        compose = true
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
 }
 
 dependencies {
-    implementation(Libs.inject)
-    implementation(Libs.hilt)
-    ksp(Libs.hilt_android_compiler)
-    ksp(Libs.hilt_compiler)
+    implementation(libs.androidx.browser)
 
-    implementation(Libs.timber)
+    implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kotlinx.serialization.json)
 
-    implementation(Libs.androidx_browser)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.bugsnag)
 
-    implementation(Libs.kotlinx_serialization_core)
-    implementation(Libs.kotlinx_serialization_json)
+    implementation(libs.androidx.localbroadcastmanager)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.auth)
+    implementation(libs.androidx.datastore)
 
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
-    implementation(Libs.compose_foundation)
-    implementation(Libs.compose_material)
-
-    implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_messaging)
-    implementation(Libs.bugsnag)
-
-    implementation(Libs.androidx_localbroadcastmanager)
-    implementation(Libs.androidx_credentials)
-    implementation(Libs.androidx_credentials_play_auth)
-    implementation(Libs.androidx_datastore)
-
-    api(Libs.coil3)
-    api(Libs.coil3_network)
+    api(libs.coil3)
+    api(libs.coil3.network)
 
     api(project(":services:flipcash-compose"))
 
@@ -76,13 +32,7 @@ dependencies {
 
     api(project(":apps:flipcash:shared:theme"))
 
-    implementation(project(":ui:components"))
-    implementation(project(":ui:navigation"))
-    implementation(project(":ui:theme"))
-    implementation(Libs.rinku_compose)
-
-    api(Libs.sodium_bindings)
-
+    api(libs.sodium.bindings)
 
     api(project(":vendor:kik:scanner"))
 

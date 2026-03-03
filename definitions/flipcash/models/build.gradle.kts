@@ -1,9 +1,7 @@
 import org.apache.tools.ant.taskdefs.condition.Os
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
+    alias(libs.plugins.flipcash.android.library)
     id("com.google.protobuf")
 }
 
@@ -15,53 +13,31 @@ group = "com.codeinc.flipcash.gen"
 dependencies {
     protobuf(project(":definitions:flipcash:protos"))
 
-    implementation(Libs.grpc_protobuf_lite)
-    implementation(Libs.grpc_stub)
+    implementation(libs.grpc.protobuf.lite)
+    implementation(libs.grpc.stub)
 
     // Kotlin Generation
-    implementation(Libs.grpc_kotlin)
-    implementation(Libs.protobuf_kotlin_lite)
-    implementation(Libs.kotlinx_coroutines_core)
-}
-
-kotlin {
-    jvmToolchain(Versions.java.toInt())
+    implementation(libs.grpc.kotlin)
+    implementation(libs.protobuf.kotlin.lite)
 }
 
 android {
     namespace = "${Gradle.flipcashNamespace}.defs.models"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
-}
+val protobufVersion = libs.versions.protobuf.asProvider().get()
+val grpcVersion = libs.versions.grpc.asProvider().get()
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:${Versions.protobuf}$archSuffix"
+        artifact = "com.google.protobuf:protoc:${protobufVersion}$archSuffix"
     }
     plugins {
         create("java") {
-            artifact = "io.grpc:protoc-gen-grpc-java:${Versions.grpc}"
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
         }
         create("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:${Versions.grpc}"
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
         }
         create("grpckt") {
             artifact = "io.grpc:protoc-gen-grpc-kotlin:1.4.1:jdk8@jar"

@@ -1,24 +1,9 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
-    id(Plugins.kotlin_serialization)
+    alias(libs.plugins.flipcash.android.library)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.logging"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
-    }
 
     buildTypes {
         getByName("release") {
@@ -38,27 +23,12 @@ android {
     }
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
-}
-
 dependencies {
-    api(Libs.timber)
-    implementation(Libs.bugsnag)
-    implementation(Libs.rxjava)
-    implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_crashlytics)
-    implementation(Libs.grpc_kotlin)
+    api(libs.timber)
+    implementation(libs.bugsnag)
+    implementation(libs.rxjava)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.grpc.kotlin)
     implementation(project(":libs:messaging"))
 }

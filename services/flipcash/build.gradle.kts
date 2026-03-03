@@ -1,19 +1,12 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_ksp)
-    id(Plugins.kotlin_serialization)
+    alias(libs.plugins.flipcash.android.library)
+    id("com.google.devtools.ksp")
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.services.flipcash"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
 
+    defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
 
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
@@ -29,69 +22,52 @@ android {
     }
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
-}
-
 dependencies {
     implementation(project(":definitions:flipcash:models"))
     api(project(":libs:network:jwt"))
     api(project(":services:opencode"))
     implementation(project(":ui:resources"))
 
-    implementation(Libs.inject)
+    implementation(libs.javax.inject)
 
-    implementation(Libs.kotlinx_coroutines_core)
-    implementation(Libs.kotlinx_serialization_json)
-    implementation(Libs.inject)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.javax.inject)
 
-    implementation(Libs.grpc_android)
-    implementation(Libs.grpc_okhttp)
-    implementation(Libs.grpc_kotlin)
-    implementation(Libs.androidx_lifecycle_runtime)
-    implementation(Libs.androidx_room_runtime)
-    implementation(Libs.androidx_room_ktx)
-    implementation(Libs.androidx_room_rxjava3)
-    implementation(Libs.androidx_room_paging)
-    implementation(Libs.okhttp)
-    implementation(Libs.mixpanel)
+    implementation(libs.grpc.android)
+    implementation(libs.grpc.okhttp)
+    implementation(libs.grpc.kotlin)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.rxjava3)
+    implementation(libs.androidx.room.paging)
+    implementation(libs.okhttp)
+    implementation(libs.mixpanel)
 
-    implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_crashlytics)
-    implementation(Libs.firebase_installations)
-    implementation(Libs.firebase_messaging)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.installations)
+    implementation(libs.firebase.messaging)
 
-    implementation(Libs.play_integrity)
+    implementation(libs.play.integrity)
 
-    implementation(Libs.androidx_paging_runtime)
+    implementation(libs.androidx.paging.runtime)
 
-    ksp(Libs.androidx_room_compiler)
+    ksp(libs.androidx.room.compiler)
 
-    implementation(Libs.fingerprint_pro)
+    implementation(libs.fingerprint.pro)
 
-    implementation(Libs.lib_phone_number_google)
+    implementation(libs.lib.phone.number.google)
 
-    androidTestImplementation(Libs.androidx_junit)
-    androidTestImplementation(Libs.junit)
-    androidTestImplementation(Libs.androidx_test_runner)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 
-    implementation(Libs.hilt)
-    ksp(Libs.hilt_android_compiler)
-    ksp(Libs.hilt_compiler)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    ksp(libs.hilt.compiler)
 
-    implementation(Libs.timber)
-    implementation(Libs.bugsnag)
+    implementation(libs.bugsnag)
 
-    implementation(Libs.eventBus)
+    implementation(libs.event.bus)
 }

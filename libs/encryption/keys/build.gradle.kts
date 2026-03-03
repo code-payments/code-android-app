@@ -1,39 +1,9 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
-    id(Plugins.kotlin_serialization)
+    alias(libs.plugins.flipcash.android.library)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.encryption.keys"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
 }
 
 dependencies {
@@ -42,7 +12,7 @@ dependencies {
     implementation(project(":libs:encryption:sha256"))
     implementation(project(":libs:encryption:utils"))
 
-    implementation(Libs.grpc_okhttp)
-    implementation(Libs.grpc_kotlin)
-    implementation(Libs.kotlinx_serialization_json)
+    implementation(libs.grpc.okhttp)
+    implementation(libs.grpc.kotlin)
+    implementation(libs.kotlinx.serialization.json)
 }

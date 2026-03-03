@@ -1,51 +1,49 @@
 buildscript {
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
-        maven(url = "https://jitpack.io")
         google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven(url = "https://jitpack.io")
         maven(url = "https://repo.gradle.org/gradle/libs-releases")
     }
 
     dependencies {
-        classpath(Classpath.android_gradle_build_tools)
-        classpath(Classpath.kotlin_hilt_plugin)
-        classpath(Classpath.androidx_navigation_safeargs)
-        classpath(Classpath.kotlin_gradle_plugin)
-        classpath(Classpath.google_services)
-        classpath(Classpath.crashlytics_gradle)
-        classpath(Classpath.bugsnag_android_gradle_plugin)
-        classpath(Classpath.bugsnag_gradle_plugin)
-        classpath(Classpath.firebase_perf)
-        classpath(Classpath.secrets_gradle_plugin)
-        classpath(Classpath.kotlin_serialization_plugin)
-        classpath(Classpath.protobuf_plugin)
-        classpath(Classpath.versioning_gradle_plugin)
-        classpath(Classpath.androidx_room_gradle_plugin)
-        classpath(Classpath.opencv_gradle_plugin)
+        // plugins that lack standard plugin markers
+        classpath("com.ahasbini.tools:android-opencv-gradle-plugin:0.1.3-dev")
+        // needed at configuration time by :libs:emojis build script
+        classpath(libs.kotlinx.serialization.json)
     }
 }
 
 plugins {
-    id(Plugins.kotlin_ksp) version Versions.kotlin_ksp apply false
-    id(Plugins.jetbrains_compose_compiler) version Versions.kotlin apply false
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.parcelize) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.kotlin.ksp) apply false
+    alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.firebase.crashlytics) apply false
+    alias(libs.plugins.firebase.perf) apply false
+    alias(libs.plugins.bugsnag.android) apply false
+    alias(libs.plugins.bugsnag.gradle) apply false
+    alias(libs.plugins.secrets) apply false
+    alias(libs.plugins.versioning) apply false
+    alias(libs.plugins.navigation.safeargs) apply false
+    alias(libs.plugins.protobuf) apply false
+    alias(libs.plugins.androidx.room) apply false
+    alias(libs.plugins.screenshot) apply false
 }
 
 allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven(url = "https://plugins.gradle.org/m2/")
-        maven(url = "https://maven.fpregistry.io/releases")
-        maven(url = "https://jitpack.io")
-        maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
-    }
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
         resolutionStrategy {
-            force(Libs.kotlinx_serialization_core)
-            force(Libs.kotlinx_serialization_json)
-            force(Libs.protobuf_java)
+            force(libs.kotlinx.serialization.core.get().toString())
+            force(libs.kotlinx.serialization.json.get().toString())
+            force(libs.protobuf.java.get().toString())
         }
     }
 

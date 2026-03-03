@@ -127,8 +127,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
+        sourceCompatibility(Android.javaVersion)
+        targetCompatibility(Android.javaVersion)
     }
 
     buildTypes {

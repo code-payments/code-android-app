@@ -1,62 +1,20 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
-    id(Plugins.kotlin_serialization)
-    id(Plugins.jetbrains_compose_compiler)
+    alias(libs.plugins.flipcash.android.library.compose)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.opengraph"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
-    }
-
-    buildFeatures {
-        compose = true
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
 }
 
 dependencies {
-    //Jetpack compose
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
-
     implementation("org.jsoup:jsoup:1.16.1")
     implementation(project(":libs:encryption:utils"))
 
-    implementation(Libs.kotlinx_coroutines_core)
-    implementation(Libs.kotlinx_serialization_json)
-    implementation(Libs.inject)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.javax.inject)
 
-    implementation(Libs.androidx_datastore)
+    implementation(libs.androidx.datastore)
+    implementation(libs.hilt.android)
 
-    implementation(Libs.hilt)
-
-    implementation(Libs.timber)
-    implementation(Libs.bugsnag)
+    implementation(libs.bugsnag)
 }

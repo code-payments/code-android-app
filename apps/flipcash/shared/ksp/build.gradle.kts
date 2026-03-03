@@ -1,9 +1,9 @@
 plugins {
     kotlin("jvm")
-    id(Plugins.kotlin_ksp)
+    id("com.google.devtools.ksp")
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation(Libs.ksp_symbol_processing)
+    implementation(libs.ksp.symbol.processing)
 }

@@ -5,55 +5,22 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath(Libs.kotlinx_serialization_json)
-    }
-}
 
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
-    id(Plugins.kotlin_serialization)
+    alias(libs.plugins.flipcash.android.library)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.emojis"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
 }
 
 dependencies {
-    implementation(Libs.inject)
-    implementation(Libs.hilt)
-    implementation(Libs.kotlinx_serialization_core)
-    implementation(Libs.kotlinx_serialization_json)
-    implementation(Libs.kotlinx_datetime)
-    implementation(Libs.androidx_datastore)
+    implementation(libs.javax.inject)
+    implementation(libs.hilt.android)
+    implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.datetime)
+    implementation(libs.androidx.datastore)
 }
 
 private val emojiUrl = "https://unicode.org/Public/emoji/16.0/emoji-test.txt"

@@ -4,20 +4,20 @@ import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id(Plugins.android_application)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_parcelize)
-    id(Plugins.kotlin_ksp)
-    id(Plugins.kotlin_serialization)
-    id(Plugins.androidx_navigation_safeargs)
-    id(Plugins.hilt)
-    id(Plugins.google_services)
-    id(Plugins.firebase_crashlytics)
-    id(Plugins.firebase_perf)
-    id(Plugins.bugsnag_gradle)
-    id(Plugins.secrets_gradle_plugin)
-    id(Plugins.versioning_gradle_plugin)
-    id(Plugins.jetbrains_compose_compiler)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.navigation.safeargs)
+    id("dagger.hilt.android.plugin")
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.perf)
+    alias(libs.plugins.bugsnag.gradle)
+    alias(libs.plugins.secrets)
+    alias(libs.plugins.versioning)
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -91,15 +91,13 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
+        sourceCompatibility(Android.javaVersion)
+        targetCompatibility(Android.javaVersion)
         isCoreLibraryDesugaringEnabled = true
     }
 
     packaging {
-        resources.excludes.add("**/*.proto")
-        resources.excludes.add("META-INF/LICENSE.md")
-        resources.excludes.add("META-INF/LICENSE-notice.md")
+        resources.excludes += setOf("**/*.proto", "META-INF/LICENSE.md", "META-INF/LICENSE-notice.md")
     }
 }
 
@@ -121,11 +119,11 @@ bugsnag {
 
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
+        languageVersion.set(JavaLanguageVersion.of(Android.javaVersion))
     }
 
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
+        jvmTarget.set(JvmTarget.fromTarget(Android.javaVersion))
         optIn.addAll(
             "kotlin.time.ExperimentalTime",
             "kotlin.ExperimentalUnsignedTypes",
@@ -200,66 +198,66 @@ dependencies {
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
 
-    coreLibraryDesugaring(Libs.android_desugaring)
+    coreLibraryDesugaring(libs.android.desugaring)
 
     //standard libraries
-    implementation(Libs.kotlinx_collections_immutable)
-    implementation(Libs.kotlinx_serialization_json)
-    implementation(Libs.androidx_core)
-    implementation(Libs.androidx_lifecycle_runtime)
-    implementation(Libs.androidx_lifecycle_viewmodel)
-    implementation(Libs.androidx_navigation_ui)
-    implementation(Libs.androidx_work)
+    implementation(libs.kotlinx.collections.immutable)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.viewmodel)
+    implementation(libs.androidx.navigation.ui)
+    implementation(libs.androidx.work)
     implementation("androidx.webkit:webkit:1.14.0")
 
     //hilt dependency injection
-    implementation(Libs.hilt)
-    implementation(Libs.hilt_worker)
-    ksp(Libs.hilt_android_compiler)
-    ksp(Libs.hilt_compiler)
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.worker)
+    ksp(libs.hilt.android.compiler)
+    ksp(libs.hilt.compiler)
 
-    androidTestImplementation(Libs.hilt)
-    androidTestImplementation(Libs.hilt_android_test)
-    kspAndroidTest(Libs.hilt_android_compiler)
-    testImplementation(Libs.hilt_android_test)
-    kspTest(Libs.hilt_android_compiler)
+    androidTestImplementation(libs.hilt.android)
+    androidTestImplementation(libs.hilt.android.test)
+    kspAndroidTest(libs.hilt.android.compiler)
+    testImplementation(libs.hilt.android.test)
+    kspTest(libs.hilt.android.compiler)
 
     androidTestImplementation("io.mockk:mockk:1.14.6")
 
     //Jetpack compose
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
-    debugImplementation(Libs.compose_ui_tools)
-    implementation(Libs.compose_accompanist)
-    implementation(Libs.compose_foundation)
-    implementation(Libs.compose_material)
-    implementation(Libs.compose_materialIconsExtended)
-    implementation(Libs.compose_activities)
-    implementation(Libs.compose_view_models)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    debugImplementation(libs.compose.ui.tools)
+    implementation(libs.compose.accompanist)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material)
+    implementation(libs.compose.material.icons.extended)
+    implementation(libs.compose.activities)
+    implementation(libs.compose.view.models)
 
-    implementation(Libs.androidx_activity)
+    implementation(libs.androidx.activity)
 
-    implementation(Libs.androidx_browser)
+    implementation(libs.androidx.browser)
 
-    implementation(Libs.slf4j)
-    implementation(Libs.grpc_android)
+    implementation(libs.slf4j)
+    implementation(libs.grpc.android)
 
-    implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_analytics)
-    implementation(Libs.firebase_crashlytics)
-    implementation(Libs.firebase_messaging)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.messaging)
 
-    implementation(Libs.mixpanel)
+    implementation(libs.mixpanel)
 
-    androidTestImplementation(Libs.androidx_test_runner)
-    androidTestImplementation(Libs.androidx_junit)
-    androidTestImplementation(Libs.junit)
-    androidTestImplementation(Libs.espresso_core)
-    androidTestImplementation(Libs.espresso_contrib) {
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.espresso.contrib) {
         exclude(module = "protobuf-lite")
     }
-    androidTestImplementation(Libs.espresso_intents)
+    androidTestImplementation(libs.espresso.intents)
 
-    implementation(Libs.timber)
-    implementation(Libs.bugsnag)
+    implementation(libs.timber)
+    implementation(libs.bugsnag)
 }

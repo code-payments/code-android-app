@@ -1,63 +1,22 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id(Plugins.android_library)
-    id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
-    id(Plugins.kotlin_serialization)
-    id(Plugins.jetbrains_compose_compiler)
+    alias(libs.plugins.flipcash.android.library.compose)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.qr"
-    compileSdk = Android.compileSdkVersion
-    defaultConfig {
-        minSdk = Android.minSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    compileOptions {
-        sourceCompatibility(Versions.java)
-        targetCompatibility(Versions.java)
-    }
-
-    buildFeatures {
-        compose = true
-    }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Versions.java))
-    }
-
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Versions.java))
-        optIn.addAll(
-            "kotlin.time.ExperimentalTime",
-            "kotlin.ExperimentalUnsignedTypes",
-            "kotlin.RequiresOptIn"
-        )
-    }
 }
 
 dependencies {
     implementation(project(":libs:code-detection"))
 
-    //Jetpack compose
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
+    implementation(libs.zxing)
+    implementation(libs.play.service.ml.barcode)
+    implementation(libs.javax.inject)
 
-    implementation(Libs.zxing)
-    implementation(Libs.play_service_ml_barcode)
-    implementation(Libs.inject)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    implementation(libs.hilt.android)
 
-
-    androidTestImplementation(Libs.androidx_junit)
-    androidTestImplementation(Libs.junit)
-    androidTestImplementation(Libs.androidx_test_runner)
-    implementation(Libs.hilt)
-
-    implementation(Libs.timber)
-    implementation(Libs.bugsnag)
+    implementation(libs.bugsnag)
 }
