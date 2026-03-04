@@ -109,7 +109,7 @@ private fun WithdrawalDestinationScreenContent(
                     maxLines = 1,
                     contentPadding = PaddingValues(CodeTheme.dimens.grid.x2),
                     colors = inputColors(placeholderColor = CodeTheme.colors.textSecondary,),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 )
 
                 AnimatedContent(
