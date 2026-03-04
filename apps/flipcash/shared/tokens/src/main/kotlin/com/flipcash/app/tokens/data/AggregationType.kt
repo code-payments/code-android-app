@@ -65,14 +65,18 @@ sealed interface AggregationType {
             val duration = now - startTime
             val gapThreshold = duration * 0.05 // 5% of the period
 
-            val effective = if (
-                firstRealPoint != null &&
+            // Only treat the start as a zero-region when the gap before
+            // the first real data point is significant (> 5 % of the period).
+            // Small gaps (data starting a few minutes/hours into the window)
+            // should NOT produce a zero spike at the left edge of the chart.
+            val hasSignificantGap = firstRealPoint != null &&
                 firstRealPoint.x > startTime &&
                 (firstRealPoint.x - startTime) > gapThreshold
-            ) {
+
+            val effective = if (hasSignificantGap) {
                 val zeroAnchors = listOf(
                     MarketCapPoint(x = startTime, y = 0.0),
-                    MarketCapPoint(x = firstRealPoint.x - 1, y = 0.0),
+                    MarketCapPoint(x = firstRealPoint!!.x - 1, y = 0.0),
                 )
                 zeroAnchors + sorted.filter { it.x > 0 }
             } else {
@@ -98,7 +102,8 @@ sealed interface AggregationType {
                 val timestamp = startTime + (bucket * intervalMs) + (intervalMs / 2)
                 val y = when {
                     bucket == targetPoints - 1 -> currentValue
-                    timestamp < firstRealTimestamp -> 0.0
+                    // Zero-fill only when there is a genuine gap at the start
+                    hasSignificantGap && timestamp < firstRealTimestamp -> 0.0
                     else -> interpolateAt(selected, timestamp)
                 }
                 MarketCapPoint(x = timestamp, y = y)
