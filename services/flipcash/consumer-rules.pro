@@ -1,7 +1,6 @@
 # Room
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *
--keep class net.sqlcipher.** { *; }
 
 # libsodium
 -keep class com.ionspin.kotlin.crypto.** { *; }

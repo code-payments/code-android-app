@@ -30,12 +30,6 @@
 # Keep our scan classes that interact with native
 -keep class com.kik.scan.** { *; }
 
-# BouncyCastle
--keep public class org.bouncycastle.** # Refine this further!
--keepclassmembers class org.bouncycastle.crypto.** {
-    <methods>;
-}
-
 -assumenosideeffects class android.util.Log {
     public static int v(...);
     public static int i(...);
@@ -50,6 +44,10 @@
 # https://github.com/firebase/firebase-android-sdk/issues/3688
 -keep class org.json.** { *; }
 -keepclassmembers class org.json.** { *; }
+
+# Keep generic signature of Call, Response (R8 full mode strips signatures from non-kept items).
+ -keep,allowobfuscation,allowshrinking interface retrofit2.Call
+ -keep,allowobfuscation,allowshrinking class retrofit2.Response
 
  # With R8 full mode generic signatures are stripped for classes that are not
  # kept. Suspend functions are wrapped in continuations where the type argument
