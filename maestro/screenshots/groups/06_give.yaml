@@ -1,0 +1,32 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Give Flow"
+tags:
+  - screenshot
+---
+- runFlow: ../../subflows/login_with_deeplink.yaml
+
+# Screenshot: Cash/Give screen (keypad)
+- runFlow: ../../subflows/navigate_to_give.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: cash_screen
+
+# Return to scanner first, then use pull_out_bill for bill screenshot
+- runFlow: ../../helpers/close_open_sheet.yaml
+- extendedWaitUntil:
+    visible:
+      id: scanner_screen
+
+# Screenshot: Cash bill (reuses pull_out_bill subflow)
+- runFlow: ../../subflows/pull_out_bill.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: cash_bill
+
+# Cancel and return
+- tapOn: Cancel
+- extendedWaitUntil:
+    visible:
+      id: scanner_screen

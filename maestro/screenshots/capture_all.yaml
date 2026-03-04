@@ -1,0 +1,17 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: All"
+tags:
+  - screenshot
+---
+# Pre-login screens
+- runFlow: groups/01_pre_login.yaml
+
+# Post-login screens
+- runFlow: groups/02_home.yaml
+- runFlow: groups/03_menu.yaml
+- runFlow: groups/04_account.yaml
+- runFlow: groups/05_features.yaml
+- runFlow: groups/06_give.yaml
+- runFlow: groups/07_tokens.yaml
+- runFlow: groups/08_withdraw.yaml
+- runFlow: groups/09_history.yaml

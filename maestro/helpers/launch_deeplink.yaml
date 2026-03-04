@@ -1,9 +1,12 @@
 appId: com.flipcash.app.android.dev
 ---
-# Conditionally clear state
+# Conditionally clear state (launchApp + stopApp brings app out of
+# Android's "stopped" state so the subsequent openLink can reach it)
 - runFlow:
     when:
       true: ${clearAppState == "true"}
     commands:
       - clearState
+      - launchApp
+      - stopApp
 - openLink: ${deeplink}

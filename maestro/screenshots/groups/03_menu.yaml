@@ -1,0 +1,30 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Menu"
+tags:
+  - screenshot
+---
+- runFlow: ../../subflows/login_with_deeplink.yaml
+
+# Screenshot: Menu
+- runFlow: ../../subflows/navigate_to_menu.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: menu_screen
+
+# Return to scanner
+- runFlow: ../../helpers/close_open_sheet.yaml
+
+# Screenshot: Share app (tap logo)
+- tapOn:
+    id: flipcash_logo
+- extendedWaitUntil:
+    visible:
+      id: share_app_screen
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: share_app_screen
+
+# Return to scanner
+- runFlow: ../../helpers/close_open_sheet.yaml

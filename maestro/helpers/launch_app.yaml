@@ -5,7 +5,9 @@ appId: com.flipcash.app.android.dev
       true: ${clearAppState == "true"}
     commands:
       - clearState
-      
+      - launchApp
+      - stopApp
+
 - launchApp:
     arguments:
       isUiTest: true

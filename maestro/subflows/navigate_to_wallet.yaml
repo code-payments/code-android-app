@@ -1,0 +1,7 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: ../helpers/close_open_sheet.yaml
+- tapOn: Wallet
+- extendedWaitUntil:
+    visible:
+      id: wallet_screen

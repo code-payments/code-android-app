@@ -20,3 +20,7 @@ apps/flipcash/app/dapp_publishing/.asset-manifest.json
 fastlane/report.xml
 *.env.*
 .claude/
+
+# Maestro screenshot test artifacts
+maestro/screenshots/results/
+maestro/screenshots/diffs/

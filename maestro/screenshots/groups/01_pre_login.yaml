@@ -1,0 +1,29 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Pre-Login"
+tags:
+  - screenshot
+---
+# Launch with clear state to show login screen
+- runFlow:
+    file: ../../helpers/launch_app.yaml
+    env:
+      clearAppState: "true"
+
+# Screenshot: Login screen
+- extendedWaitUntil:
+    visible:
+      id: login_screen
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: login_screen
+
+# Navigate to seed input
+- tapOn: Log in
+- extendedWaitUntil:
+    visible:
+      id: seed_input_screen
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: seed_input_screen

@@ -1,0 +1,7 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: navigate_to_menu.yaml
+- tapOn: Advanced Features
+- extendedWaitUntil:
+    visible:
+      id: advanced_features_screen

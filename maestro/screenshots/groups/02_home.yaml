@@ -1,0 +1,22 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Home"
+tags:
+  - screenshot
+---
+- runFlow: ../../subflows/login_with_deeplink.yaml
+
+# Screenshot: Scanner/home screen
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: scanner_screen
+
+# Navigate to wallet
+- runFlow: ../../subflows/navigate_to_wallet.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: wallet_screen
+
+# Return to scanner
+- runFlow: ../../helpers/close_open_sheet.yaml

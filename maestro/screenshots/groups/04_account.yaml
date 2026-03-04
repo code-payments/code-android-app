@@ -1,0 +1,26 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Account & Settings"
+tags:
+  - screenshot
+---
+- runFlow: ../../subflows/login_with_deeplink.yaml
+
+# Screenshot: My Account
+- runFlow: ../../subflows/navigate_to_my_account.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: my_account_screen
+
+# Return to scanner
+- runFlow: ../../subflows/return_to_scanner.yaml
+
+# Screenshot: App Settings
+- runFlow: ../../subflows/navigate_to_app_settings.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: app_settings_screen
+
+# Return to scanner
+- runFlow: ../../subflows/return_to_scanner.yaml

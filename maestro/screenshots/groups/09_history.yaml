@@ -1,0 +1,30 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Transaction History"
+tags:
+  - screenshot
+---
+- runFlow: ../../subflows/login_with_deeplink.yaml
+
+# Navigate to token info via deeplink
+- runFlow:
+    file: ../../helpers/launch_deeplink.yaml
+    env:
+      deeplink: https://app.flipcash.com/token/5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP
+- extendedWaitUntil:
+    visible:
+      id: token_info_screen
+
+# Navigate to transaction history
+- tapOn: View Transaction History
+- extendedWaitUntil:
+    visible:
+      id: transaction_history_screen
+    timeout: 5000
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: transaction_history_screen
+
+# Return to scanner
+- back
+- runFlow: ../../helpers/close_open_sheet.yaml

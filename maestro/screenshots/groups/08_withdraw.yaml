@@ -1,0 +1,56 @@
+appId: com.flipcash.app.android.dev
+name: "Screenshots: Withdraw Flow"
+tags:
+  - screenshot
+---
+- runFlow: ../../subflows/login_with_deeplink.yaml
+
+# Step 1: Screenshot withdrawal entry (amount keypad)
+- runFlow: ../../subflows/navigate_to_withdraw.yaml
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: withdraw_entry_screen
+
+# Step 2: Enter amount and advance to destination
+- tapOn: 
+    id: "keypad_dot"
+- tapOn: 
+    id: "keypad_2"
+- tapOn: 
+    id: "keypad_5"
+- tapOn: Next
+- extendedWaitUntil:
+    visible:
+      id: withdraw_destination_screen
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: withdraw_destination_screen
+
+# Step 3: Enter a valid Solana address
+- tapOn: Enter address
+- inputText: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+- extendedWaitUntil:
+    visible: Next
+    timeout: 10000
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: withdraw_destination_filled
+
+# Step 4: Advance to confirmation (do NOT tap "Withdraw")
+- tapOn: Next
+- extendedWaitUntil:
+    visible:
+      id: withdraw_confirmation_screen
+- runFlow:
+    file: ../../helpers/screenshot.yaml
+    env:
+      SCREENSHOT_NAME: withdraw_confirmation_screen
+
+# Back out without submitting
+- back
+- back
+- back
+- runFlow: ../../subflows/return_to_scanner.yaml

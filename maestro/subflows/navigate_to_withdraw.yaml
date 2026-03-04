@@ -1,0 +1,11 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: navigate_to_menu.yaml
+- tapOn: Withdraw Funds
+- extendedWaitUntil:
+    visible:
+      text: Select Currency
+- tapOn: Float
+- extendedWaitUntil:
+    visible:
+      id: withdraw_entry_screen

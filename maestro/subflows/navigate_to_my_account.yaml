@@ -1,0 +1,7 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: navigate_to_menu.yaml
+- tapOn: My Account
+- extendedWaitUntil:
+    visible:
+      id: my_account_screen

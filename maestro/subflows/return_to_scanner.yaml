@@ -1,0 +1,7 @@
+appId: com.flipcash.app.android.dev
+---
+- back
+- runFlow: ../helpers/close_open_sheet.yaml
+- extendedWaitUntil:
+    visible:
+      id: scanner_screen

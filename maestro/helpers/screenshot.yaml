@@ -1,0 +1,4 @@
+appId: com.flipcash.app.android.dev
+---
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_NAME}

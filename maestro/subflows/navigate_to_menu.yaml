@@ -1,0 +1,8 @@
+appId: com.flipcash.app.android.dev
+---
+- runFlow: ../helpers/close_open_sheet.yaml
+- tapOn:
+    id: menu_button
+- extendedWaitUntil:
+    visible:
+      id: menu_screen
