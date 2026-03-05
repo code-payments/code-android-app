@@ -39,6 +39,31 @@ internal class ReceiveGiftCardTransactor(
         )
     }
 
+    /**
+     * Claims a gift card by its entropy — looks up the on-chain state, validates
+     * eligibility, and transfers the balance into the receiver's vault.
+     *
+     * Flow:
+     *  1. Derive the gift card's owner key pair from the entropy-based mnemonic.
+     *  2. Query the server for the gift card's account info.
+     *  3. Pre-claim checks:
+     *     - Fail if already claimed.
+     *     - Fail if expired or in an unknown state.
+     *     - If the current user is the issuer and [claimIfOwned] is false,
+     *       return [ReceiveGiftTransactorError.UsersGiftCard] so the caller
+     *       can prompt for confirmation.
+     *  4. Resolve the token mint and metadata from the gift card's account info.
+     *  5. Create a user account for that token if one doesn't exist yet.
+     *  6. Submit a receive-remotely intent to transfer the gift card balance
+     *     into the receiver's token vault.
+     *
+     * Preconditions: [with] must be called first to set the owner cluster and
+     * the gift card's base-58 entropy string.
+     *
+     * @param claimIfOwned when `true`, allows claiming even if the current user
+     *   issued the gift card (self-claim).
+     * @return the claimed [Token] and its [LocalFiat] value on success.
+     */
     suspend fun start(claimIfOwned: Boolean): Result<Pair<Token, LocalFiat>> {
         val requestingOwner = owner
             ?: return logAndFail(ReceiveGiftTransactorError.Other(message = "No owner key. Did you call with() first?"))

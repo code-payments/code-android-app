@@ -44,6 +44,20 @@ internal class SendGiftCardTransactor(
         data = payloadInfo.codeData.toList()
     }
 
+    /**
+     * Funds a gift card for remote sending — submits a remote-send intent so the
+     * gift card can later be claimed by a recipient via link or QR code.
+     *
+     * Flow:
+     *  1. Resolve the sender's token vault (timelock account for the target token).
+     *  2. Submit a remote-send intent to the server, transferring funds from
+     *     the sender's vault into the pre-created [GiftCardAccount].
+     *
+     * Preconditions: [with] must be called first to set the gift card account,
+     * amount, token, and owner cluster.
+     *
+     * @return the [IntentRemoteSend] details on success.
+     */
     suspend fun start(): Result<IntentRemoteSend> {
        val rendezvous = rendezvousKey
             ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))

@@ -30,6 +30,31 @@ internal class GrabBillTransactor(
         this.payload = payload
     }
 
+    /**
+     * Claims a cash bill from a sender, handling both legacy single-mint and
+     * multi-mint payment flows.
+     *
+     * Flow (dispatched by [PayloadKind]):
+     *
+     *  **Legacy Cash** — sends a grab request directly, then polls for the
+     *  intent confirmation.
+     *
+     *  **MultiMintCash:**
+     *   1. Poll the rendezvous messaging stream for the sender's "give" request
+     *      to learn which token mint and exchange data to use.
+     *   2. Resolve token metadata for the proposed mint.
+     *   3. Create a user account for that token if one doesn't exist yet.
+     *   4. Send a "grab bill" request back to the sender with this account's
+     *      vault as the destination.
+     *   5. Poll for intent confirmation, copying in the verified exchange data
+     *      received from the give request.
+     *   6. Acknowledge the give-request message to clear it from the stream.
+     *
+     * Preconditions: [with] must be called first to set the owner cluster and
+     * the scanned [OpenCodePayload].
+     *
+     * @return the confirmed [TransactionMetadata.PublicPayment] on success.
+     */
     suspend fun start(): Result<TransactionMetadata.PublicPayment> {
         val ownerKey = owner
             ?: return logAndFail(GrabTransactorError.Other(message = "No owner cluster available. Did you call with() first?"))

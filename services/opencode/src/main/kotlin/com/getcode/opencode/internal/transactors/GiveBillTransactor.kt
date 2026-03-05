@@ -72,6 +72,30 @@ internal class GiveBillTransactor(
         data = payloadInfo.codeData.toList()
     }
 
+    /**
+     * Presents a cash bill and waits for a recipient to claim it via peer-to-peer
+     * messaging, then executes the on-chain transfer.
+     *
+     * Flow:
+     *  1. Resolve a [VerifiedState] for the currency/token pair using a fallback
+     *     chain: provided state -> local proto store -> live mint data fetch.
+     *  2. Compute exchange data from the verified state (fails if the rate has
+     *     expired past [exchangeDataTimeout]).
+     *  3. Publish a "give bill" request on the rendezvous messaging stream,
+     *     advertising the token mint and exchange data to potential recipients.
+     *  4. Block until a "grab bill" response arrives on the same rendezvous stream.
+     *  5. Verify the grab request's destination signature against the rendezvous
+     *     key to ensure the destination hasn't been tampered with.
+     *  6. Guard against duplicate transfers (same receiving account seen twice).
+     *  7. Transfer funds from the sender's token vault to the recipient's
+     *     destination account.
+     *  8. Poll for the intent metadata confirmation from the server.
+     *
+     * Preconditions: [with] must be called first to set the token, amount, owner,
+     * and (optionally) a pre-resolved [VerifiedState].
+     *
+     * @return the confirmed [TransactionMetadata.SendPublicPayment] on success.
+     */
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
         val ownerKey = owner
             ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
@@ -99,8 +123,10 @@ internal class GiveBillTransactor(
             billExchangeDataTimeout = exchangeDataTimeout
         ) ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
 
-        // 1. Send request to "give" the bill to the recipient
-        // This provides the recipient with the desired token mint of the cash
+        // 1. Send request to "give" the bill to the recipient.
+        // This provides the recipient with the desired token mint of the cash.
+        // If this fails, bail out immediately — the receiver never got the
+        // advertisement so the stream will never deliver a grab request.
         messagingController.sendRequestToGiveBill(desiredToken.address, rendezvous, exchangeData)
             .onSuccess {
                 trace(
@@ -109,12 +135,9 @@ internal class GiveBillTransactor(
                     type = TraceType.Log
                 )
             }.onFailure { cause ->
-                trace(
-                    tag = "Messaging",
-                    message = "Failed to send request to give bill for ${desiredToken.symbol}",
-                    type = TraceType.Error,
-                    error = cause
-                )
+                return logAndFail(cause) {
+                    "token" to desiredToken.symbol
+                }
             }
 
         trace(
@@ -150,6 +173,23 @@ internal class GiveBillTransactor(
 
         receivingAccount = transferRequest.account
 
+        /**
+         * At transfer time:
+         * 1. If providedVerifiedState exists → use it (caller knows best)
+         * 2. Otherwise → try fresh from proto store
+         * 3. Otherwise → fall back to the upfront-resolved state
+         */
+        val transferVerifiedState = providedVerifiedState
+            ?: verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address)
+            ?: verifiedState
+
+        val transferExchangeData = transferVerifiedState.exchangeDataFor(
+            amount = sendingAmount,
+            mint = desiredToken.address,
+            billExchangeDataTimeout = exchangeDataTimeout
+        ) ?: exchangeData
+
+
         // 4. Send the funds to destination
         return transactionController.transfer(
             scope = scope,
@@ -158,7 +198,7 @@ internal class GiveBillTransactor(
             source = sendingVault,
             destination = transferRequest.account,
             rendezvous = rendezvous.toPublicKey(),
-            exchangeData = exchangeData,
+            exchangeData = transferExchangeData,
         ).fold(
             onSuccess = {
                 transactionController.pollIntentMetadata(
