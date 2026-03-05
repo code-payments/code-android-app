@@ -7,17 +7,24 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -27,21 +34,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.app.tokens.internal.components.marketcap.MarketCapChart
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.text.AnimatedNumberText
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
@@ -67,6 +81,7 @@ internal fun MarketCapSection(
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    onRetry: () -> Unit,
     onPeriodSelected: (Period) -> Unit
 ) {
     var highlightedCapPoint by remember {
@@ -193,24 +208,63 @@ internal fun MarketCapSection(
                 onPointHighlighted = { highlightedCapPoint = it },
                 onPeriodSelected = onPeriodSelected,
                 placeholder = {
-                    when (rawHistoricalData) {
-                        is Loadable.Error -> Unit
-                        is Loadable.Loaded -> Unit
-                        is Loadable.Loading -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .requiredHeight(240.dp)
-                            ) {
-                                CodeCircularProgressIndicator(
-                                    modifier = Modifier.align(Alignment.Center),
-                                    color = CodeTheme.colors.dividerVariant,
-                                )
-                            }
-                        }
-                    }
+                    MarketCapChartPlaceholder(rawHistoricalData, onRetry)
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun MarketCapChartPlaceholder(
+    data: Loadable<List<MarketCapPoint>>,
+    onRetry: () -> Unit
+) {
+    when (data) {
+        is Loadable.Error -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .requiredHeight(240.dp)
+            ) {
+                Column(
+                    modifier = Modifier.matchParentSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterVertically),
+                ) {
+                    Image(
+                        modifier = Modifier.size(CodeTheme.dimens.grid.x8),
+                        colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+                        imageVector = Icons.AutoMirrored.Default.ShowChart,
+                        contentDescription = null
+                    )
+                    Text(
+                        text = stringResource(R.string.error_unableToLoadChartData),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                    CodeButton(
+                        text = stringResource(R.string.action_retry),
+                        buttonState = ButtonState.Subtle,
+                        textColor = CodeTheme.colors.textMain,
+                    ) {
+                        onRetry()
+                    }
+                }
+            }
+        }
+        is Loadable.Loaded -> Unit
+        is Loadable.Loading -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .requiredHeight(240.dp)
+            ) {
+                CodeCircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = CodeTheme.colors.dividerVariant,
+                )
+            }
         }
     }
 }
@@ -304,4 +358,19 @@ private fun HighlightedPointLabel(
         style = CodeTheme.typography.textSmall,
         color = CodeTheme.colors.textSecondary,
     )
+}
+
+@Preview
+@Composable
+private fun Preview_MarketCapSection() {
+    FlipcashPreview(showBackground = true) {
+        MarketCapSection(
+            24.44.toFiat(),
+            rawHistoricalData = Loadable.Error(""),
+            selectedPeriod = Period.All,
+            chartEnabled = true,
+            onRetry = {},
+            onPeriodSelected = {}
+        )
+    }
 }

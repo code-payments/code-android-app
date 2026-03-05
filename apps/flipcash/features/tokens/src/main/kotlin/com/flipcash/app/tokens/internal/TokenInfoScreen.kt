@@ -210,6 +210,9 @@ private fun TokenInfoScreen(
                                         chartEnabled = state.marketCapChartEnabled,
                                         selectedPeriod = state.selectedPeriod,
                                         rawHistoricalData = loadable,
+                                        onRetry = {
+                                            dispatch(TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(state.selectedPeriod))
+                                        },
                                         onPeriodSelected = {
                                             dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
                                         },
