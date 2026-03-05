@@ -1,6 +1,7 @@
 package com.getcode.ui.utils
 
 import android.app.Activity
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,7 +42,22 @@ fun KeepScreenOn(
         val layoutParams = window.attributes
         val originalBrightness = layoutParams.screenBrightness
 
-        if (useBrightness && (originalBrightness < minBrightness || originalBrightness == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)) {
+        // When brightness is system-managed (adaptive brightness), the window
+        // reports BRIGHTNESS_OVERRIDE_NONE (-1.0). We must query the actual
+        // system brightness rather than treating -1.0 as "below threshold" —
+        // otherwise we unconditionally override to targetBrightness which on
+        // modern Pixel panels with non-linear curves appears as near-max.
+        val effectiveBrightness = if (originalBrightness == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) {
+            Settings.System.getInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS,
+                128 // ~50% fallback if unreadable
+            ) / 255f
+        } else {
+            originalBrightness
+        }
+
+        if (useBrightness && effectiveBrightness < minBrightness) {
             layoutParams.screenBrightness = targetBrightness
             window.attributes = layoutParams
         }
