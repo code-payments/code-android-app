@@ -242,7 +242,7 @@ sodium-bindings = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-
 
 # Misc
 cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
-fingerprint-pro = { module = "com.fingerprint.android:pro", version = "2.4.0" }
+fingerprint-pro = { module = "com.fingerprint.android:pro", version = "2.13.1" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
