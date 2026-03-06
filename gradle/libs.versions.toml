@@ -4,7 +4,7 @@ kotlin = "2.3.10"
 ksp = "2.3.4"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.10.0"
-kotlinx-datetime = "0.7.1"
+kotlinx-datetime = "0.7.1-0.6.x-compat"
 
 agp = "8.9.3"
 google-services = "4.4.4"
