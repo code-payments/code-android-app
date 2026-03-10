@@ -160,6 +160,7 @@ sealed class GetIntentMetadataError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class NotFound : GetIntentMetadataError("Not found")
+    class Denied : GetIntentMetadataError("Denied")
     class Unrecognized : GetIntentMetadataError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : GetIntentMetadataError(message = cause?.message, cause = cause)
 }
@@ -177,16 +178,6 @@ sealed class WithdrawalAvailabilityError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     data class Other(override val cause: Throwable? = null) : WithdrawalAvailabilityError(message = cause?.message, cause = cause)
-}
-
-sealed class AirdropError(
-    override val message: String? = null,
-    override val cause: Throwable? = null
-) : CodeServerError(message, cause) {
-    class Unavailable: AirdropError("Unavailable")
-    class AlreadyClaimed: AirdropError("Already claimed")
-    class Unrecognized: AirdropError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : AirdropError(message = cause?.message, cause = cause)
 }
 
 sealed class VoidGiftCardError(
