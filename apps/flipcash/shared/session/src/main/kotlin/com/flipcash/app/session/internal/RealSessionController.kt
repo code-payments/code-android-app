@@ -14,7 +14,6 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.ProfileUpdater
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.session.BillDeterminationResult
@@ -29,6 +28,7 @@ import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
@@ -44,9 +44,6 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.sum
-import com.getcode.opencode.model.financial.usdf
-import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.utils.nonce
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -72,7 +69,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -188,18 +184,6 @@ class RealSessionController @Inject constructor(
             .onEach { tokens ->
                 _state.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
-
-        state
-            .map { it.isCameraUp }
-            .distinctUntilChanged() // Emit only when value changes
-            .scan(Pair(null as Boolean?, null as Boolean?)) { previousPair, current ->
-                Pair(previousPair.second, current)
-            }
-            .mapNotNull { (previous, current) ->
-                if (previous == null && current != null) current else null
-            }
-            .onEach { checkForAirdrops() }
-            .launchIn(scope)
     }
 
     /**
@@ -271,56 +255,6 @@ class RealSessionController @Inject constructor(
             scope.launch {
                 accountController.getUserFlags()
             }
-        }
-    }
-
-    private fun checkForAirdrops() {
-        if (userManager.authState.canAccessAuthenticatedApis) {
-            scope.launch {
-                userManager.accountCluster?.let {
-                    transactionController.airdrop(
-                        type = AirdropType.WelcomeBonus,
-                        destination = it.authority.keyPair
-                    ).onSuccess { amount ->
-                        presentWelcomeBonus(amount)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun presentWelcomeBonus(amount: LocalFiat) {
-        scope.launch {
-            val presentWithBill = featureFlagController.get(FeatureFlag.WelcomeBonusBill)
-            toastController.enqueue(
-                amount = amount,
-                isDeposit = true,
-                initialDelay = if (presentWithBill) ToastController.INITIAL_DELAY else AIRDROP_INITIAL_DELAY
-            )
-
-            if (!presentWithBill) {
-                // consume the toast immediately
-                toastController.consumeQueue()
-                return@launch
-            }
-
-            delay(1.seconds)
-            val payloadInfo = OpenCodePayload(
-                kind = PayloadKind.Cash,
-                value = amount.nativeAmount,
-                nonce = nonce
-            )
-
-            val bill = Bill.Cash(
-                token = Token.usdf,
-                data = payloadInfo.codeData.toList(),
-                amount = amount,
-                didReceive = true,
-                confirmationDelay = 500.milliseconds
-            )
-
-            presentBillToUser(data = payloadInfo.codeData.toList(), bill = bill)
-            feedCoordinator.fetchSinceLatest()
         }
     }
 

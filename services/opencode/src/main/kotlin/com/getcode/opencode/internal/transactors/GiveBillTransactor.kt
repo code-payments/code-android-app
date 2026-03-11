@@ -16,6 +16,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.utils.nonce
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.TraceType
@@ -106,15 +107,7 @@ internal class GiveBillTransactor(
         val sendingAmount = amount
             ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
 
-        // Resolve the verified state for the given currency/token pair using a fallback chain:
-        // 1. Use the provided state directly if available
-        // 2. Otherwise, check the local proto store
-        // 3. If still missing, fetch live mint data (which internally persists to the store) and re-query
-        val verifiedState = providedVerifiedState
-            ?: verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address)
-            ?: currencyController.getLiveMintData(scope, desiredToken.address)
-                .map { verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address) }
-                .getOrNull()
+        val verifiedState = resolveVerifiedState(sendingAmount, desiredToken)
             ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
 
         val exchangeData = verifiedState.exchangeDataFor(
@@ -173,15 +166,8 @@ internal class GiveBillTransactor(
 
         receivingAccount = transferRequest.account
 
-        /**
-         * At transfer time:
-         * 1. If providedVerifiedState exists → use it (caller knows best)
-         * 2. Otherwise → try fresh from proto store
-         * 3. Otherwise → fall back to the upfront-resolved state
-         */
-        val transferVerifiedState = providedVerifiedState
-            ?: verifiedProtoManager.getVerifiedStateFor(sendingAmount.rate.currency, desiredToken.address)
-            ?: verifiedState
+        val transferVerifiedState = resolveVerifiedState(sendingAmount, desiredToken)
+            ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
 
         val transferExchangeData = transferVerifiedState.exchangeDataFor(
             amount = sendingAmount,
@@ -222,6 +208,54 @@ internal class GiveBillTransactor(
 
         scope.cancel()
     }
+
+    /**
+     * Resolve the verified state for the given currency/token pair using a fallback chain:
+     * 1. Use the provided state directly if available
+     * 2. Otherwise, check the local proto store
+     * 3. If still missing, fetch live mint data (which internally persists to the store) and re-query
+     */
+    private suspend fun resolveVerifiedState(
+        sendingAmount: LocalFiat,
+        desiredToken: Token
+    ): VerifiedState? {
+        val currency = sendingAmount.rate.currency
+        val mint = desiredToken.address
+        val label = "${currency}/${desiredToken.symbol}"
+        val needsReserveState = mint != Mint.usdf
+
+        providedVerifiedState?.let {
+            trace(tag = tag, message = "Using provided verified state for $label")
+            return it
+        }
+
+        verifiedProtoManager.getVerifiedStateFor(currency, mint)?.let {
+            if (!needsReserveState || it.reserveProto != null) {
+                trace(tag = tag, message = "Resolved verified state from proto store for $label")
+                return it
+            }
+
+            trace(tag = tag, message = "Proto store hit but missing reserve state for $label — fetching live mint data")
+        }
+
+        trace(tag = tag, message = "Proto store miss — fetching live mint data for ${desiredToken.symbol}")
+
+        return currencyController.getLiveMintData(scope, mint)
+            .onFailure { cause ->
+                trace(
+                    tag = tag,
+                    message = "Live mint data fetch failed for ${desiredToken.symbol}",
+                    type = TraceType.Error,
+                    error = cause
+                )
+            }
+            .map { verifiedProtoManager.getVerifiedStateFor(currency, mint) }
+            .getOrNull()
+            ?.also {
+                trace(tag = tag, message = "Resolved verified state after live mint fetch for $label")
+            }
+    }
+
 
     sealed class GiveTransactorError(
         override val message: String? = null,

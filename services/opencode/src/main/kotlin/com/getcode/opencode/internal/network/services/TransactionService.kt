@@ -5,7 +5,6 @@ import com.codeinc.opencode.gen.transaction.v1.feeAmountOrNull
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.executors.IntentExecutor
@@ -15,19 +14,15 @@ import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.funding.SwapFunding
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.core.errors.AirdropError
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
-import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.model.transactions.ExchangeData
-import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapDirection
+import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -75,6 +70,10 @@ internal class TransactionService @Inject constructor(
 
                     TransactionService.GetIntentMetadataResponse.Result.UNRECOGNIZED -> Result.failure(
                         GetIntentMetadataError.Unrecognized()
+                    )
+
+                    TransactionService.GetIntentMetadataResponse.Result.DENIED -> Result.failure(
+                        GetIntentMetadataError.Denied()
                     )
 
                     else -> Result.failure(GetIntentMetadataError.Other())
@@ -140,28 +139,6 @@ internal class TransactionService @Inject constructor(
             },
             onFailure = { error ->
                 Result.failure(WithdrawalAvailabilityError.Other(cause = error))
-            }
-        )
-    }
-
-    suspend fun airdrop(
-        type: AirdropType,
-        destination: KeyPair,
-    ): Result<ExchangeData.WithRate> {
-        return runCatching {
-            api.airdrop(type, destination)
-        }.foldWithSuppression(
-            onSuccess = { response ->
-                when (response.result) {
-                    TransactionService.AirdropResponse.Result.OK -> Result.success(response.exchangeData.toModel())
-                    TransactionService.AirdropResponse.Result.UNAVAILABLE -> Result.failure(AirdropError.Unavailable())
-                    TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> Result.failure(AirdropError.AlreadyClaimed())
-                    TransactionService.AirdropResponse.Result.UNRECOGNIZED -> Result.failure(AirdropError.Unrecognized())
-                    else -> Result.failure(AirdropError.Other())
-                }
-            },
-            onFailure = { error ->
-                Result.failure(AirdropError.Other(cause = error))
             }
         )
     }

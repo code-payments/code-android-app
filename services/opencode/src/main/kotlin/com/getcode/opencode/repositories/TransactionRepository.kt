@@ -7,8 +7,6 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -41,11 +39,6 @@ interface TransactionRepository {
         destination: PublicKey,
         mint: Mint,
     ): Result<WithdrawalAvailability>
-
-    suspend fun airdrop(
-        type: AirdropType,
-        destination: KeyPair,
-    ): Result<ExchangeData.WithRate>
 
     suspend fun voidGiftCard(
         owner: KeyPair,
