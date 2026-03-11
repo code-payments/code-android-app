@@ -34,7 +34,8 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 class CashScreen(
-    private val selectedMint: Mint?
+    private val selectedMint: Mint?,
+    private val fromTokenInfo: Boolean,
 ) : ModalScreen, Parcelable {
 
     @IgnoredOnParcel
@@ -80,8 +81,15 @@ class CashScreen(
                         )
                     }
                 },
+                leftIcon = {
+                    if (fromTokenInfo) {
+                        AppBarDefaults.UpNavigation { navigator.pop() }
+                    }
+                },
                 rightContents = {
-                    AppBarDefaults.Close { navigator.hide() }
+                    if (!fromTokenInfo) {
+                        AppBarDefaults.Close { navigator.hide() }
+                    }
                 }
             )
             GiveScreenContent(viewModel)
