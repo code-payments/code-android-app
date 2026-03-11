@@ -3,7 +3,6 @@ package com.getcode.opencode.internal.domain.repositories
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.events.Events
-import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.repositories.EventRepository
 import com.hoc081098.channeleventbus.ChannelEvent
@@ -42,15 +41,6 @@ internal class InternalEventRepository @Inject constructor(
                 sessionListeners.onEach { listener ->
                     listener.onUserLoggedIn(it.owner)
                 }
-            }
-        }
-
-        eventBus.handle(Events.RequestWelcomeBonus) {
-            scope.launch {
-                transactionController.airdrop(
-                    type = AirdropType.WelcomeBonus,
-                    destination = it.owner.authority.keyPair
-                )
             }
         }
 
