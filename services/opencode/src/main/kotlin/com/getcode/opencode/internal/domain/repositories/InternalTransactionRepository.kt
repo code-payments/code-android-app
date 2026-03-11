@@ -8,8 +8,6 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -45,11 +43,6 @@ internal class InternalTransactionRepository @Inject constructor(
         destination: PublicKey,
         mint: Mint,
     ): Result<WithdrawalAvailability> = service.withdrawalAvailability(destination, mint)
-
-    override suspend fun airdrop(
-        type: AirdropType,
-        destination: Ed25519.KeyPair
-    ): Result<ExchangeData.WithRate> = service.airdrop(type, destination)
 
     override suspend fun voidGiftCard(
         owner: Ed25519.KeyPair,

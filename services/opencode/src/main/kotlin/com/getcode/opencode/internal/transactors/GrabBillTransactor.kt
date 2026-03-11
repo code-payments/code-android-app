@@ -4,7 +4,6 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.toPublicKey
-import com.getcode.opencode.internal.transactors.GiveBillTransactor.GiveTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -93,7 +92,7 @@ internal class GrabBillTransactor(
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
         val (messageId, giveRequestMint, exchangeData) = messagingController.pollForGiveRequest(data.rendezvous)
             .getOrNull()
-            ?: return logAndFail(GiveTransactorError.Other(message = "No give request found for rendezvous"))
+            ?: return logAndFail(GrabTransactorError.Other(message = "No give request found for rendezvous"))
 
         // 2. Utilize the mint from the give request to get the Token metadata
         val token = tokenProvider.getTokenMetadata(giveRequestMint)
@@ -103,49 +102,33 @@ internal class GrabBillTransactor(
         val tokenizedCluster = ownerKey.withTimelockForToken(token)
 
         // 3. create an account if we don't currently have one for this token
-        val userAccountResult = if (!accountController.hasAccountFor(token.address)) {
+        if (!accountController.hasAccountFor(token.address)) {
             accountController.createUserAccount(
                 ownerForMint = tokenizedCluster,
                 mint = token.address
-            )
-        } else {
-            Result.success(Unit)
+            ).onFailure { return handleGrabError(it) }
         }
 
-        // 4. Send the grab request to the recipient with the correct vault
-        return userAccountResult.map {
-            requestGrab(tokenizedCluster, data)
-            messagingController.sendRequestToGrabBill(
-                destination = tokenizedCluster.vaultPublicKey,
-                payload = data
-            )
-        }.fold(
-            onSuccess = {
-                // 5. Wait for confirmation
-                transactionController.pollIntentMetadata<TransactionMetadata.SendPublicPayment>(
-                    owner = tokenizedCluster.authority.keyPair,
-                    intentId = data.rendezvous.toPublicKey(),
-                    debugLogs = true
-                ).map {
-                    // copy in exchange data we received from querying for give request
-                    it.copy(verifiedExchangeData = exchangeData)
-                }.onSuccess {
-                    // 6. Ack the receipt of the give request to clear it from the stream
-                    messagingController.ackMessages(data.rendezvous, listOf(messageId))
-                }
-            }, onFailure = {
-                if (it !is GrabTransactorError) {
-                    ErrorUtils.handleError(it)
-                }
-                logAndFail(it)
+        // 4. Send grab request and wait for confirmation
+        return requestGrab<TransactionMetadata.SendPublicPayment>(tokenizedCluster, data)
+            .map { it.copy(verifiedExchangeData = exchangeData) }
+            .onSuccess {
+                // 5. Ack the receipt of the give request to clear it from the stream
+                messagingController.ackMessages(data.rendezvous, listOf(messageId))
             }
-        )
     }
 
-    private suspend fun requestGrab(
+    private fun handleGrabError(error: Throwable): Result<Nothing> {
+        if (error !is GrabTransactorError) {
+            ErrorUtils.handleError(error)
+        }
+        return logAndFail(error)
+    }
+
+    private suspend fun <T : TransactionMetadata.PublicPayment> requestGrab(
         owner: AccountCluster,
         data: OpenCodePayload
-    ): Result<TransactionMetadata.PublicPayment> {
+    ): Result<T> {
         return messagingController.sendRequestToGrabBill(
             destination = owner.vaultPublicKey,
             payload = data
@@ -157,12 +140,7 @@ internal class GrabBillTransactor(
                     intentId = data.rendezvous.toPublicKey(),
                     debugLogs = true
                 )
-            }, onFailure = {
-                if (it !is GrabTransactorError) {
-                    ErrorUtils.handleError(it)
-                }
-                logAndFail(it)
-            }
+            }, onFailure = { handleGrabError(it) }
         )
     }
 }
