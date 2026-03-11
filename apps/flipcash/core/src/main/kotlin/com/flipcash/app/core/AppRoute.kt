@@ -41,7 +41,7 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         // TODO: is there a better place for this to live?
         data class RegionSelection(val kind: RegionSelectionKind) : Main
 
-        data class Give(val mint: Mint? = null) : Main
+        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Main
     }
 
     @Parcelize

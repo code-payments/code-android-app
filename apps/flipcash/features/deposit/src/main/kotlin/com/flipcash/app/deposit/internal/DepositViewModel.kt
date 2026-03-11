@@ -7,7 +7,7 @@ import com.flipcash.app.core.extensions.setText
 import com.flipcash.features.deposit.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TokenController
+import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 internal class DepositViewModel @Inject constructor(
     userManager: UserManager,
-    tokenController: TokenController,
+    tokenController: TokenMetadataProvider,
     clipboardManager: ClipboardManager,
     resources: ResourceHelper,
 ) : BaseViewModel2<DepositViewModel.State, DepositViewModel.Event>(

@@ -215,6 +215,10 @@ class TokenCoordinator @Inject constructor(
     /**
      * 3-tier lookup: in-memory → Room → network (via [TokenController]).
      * Each hit hydrates the layer above it.
+     *
+     * Cache hits return immediately for fast UI, but also trigger a background
+     * network refresh so that stale metadata (icon, description, etc.) is
+     * eventually replaced with fresh data.
      */
     override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
         // 1. In-memory cache
@@ -323,7 +327,12 @@ class TokenCoordinator @Inject constructor(
 
         trace(tag = TAG, message = "Fetching all token accounts", type = TraceType.Process)
 
-        // Pass `this` as metadataProvider so network fetches benefit from memory/Room cache
+        // Batch-refresh metadata for all known mints in a single RPC call,
+        // hydrating memory and Room so that fetchTokenAccounts hits warm caches
+        // without triggering per-mint background refreshes.
+        refreshAllMetadata()
+
+        // Pass `this` as metadataProvider so fetches benefit from the now-warm cache
         tokenController.fetchTokenAccounts(owner, metadataProvider = this)
             .onSuccess { updates ->
                 trace(tag = TAG, message = "Successfully built ${updates.size} token balances", type = TraceType.Process)
@@ -334,6 +343,31 @@ class TokenCoordinator @Inject constructor(
             .onFailure { error ->
                 trace(tag = TAG, message = "Failed to update tokens: ${error.message}", type = TraceType.Error)
             }
+    }
+
+    /**
+     * Batch-fetches fresh metadata for all known mints in a single RPC call
+     * and updates both in-memory state and Room persistence for any changes.
+     */
+    private suspend fun refreshAllMetadata() {
+        val mints = _state.value.tokens.keys.toList()
+        if (mints.isEmpty()) return
+
+        val freshMetadata = tokenController.getTokenMetadata(mints)
+            .getOrNull() ?: return
+
+        trace(tag = TAG, message = "Batch-refreshed metadata for ${freshMetadata.size} mint(s)", type = TraceType.Process)
+
+        val changed = freshMetadata.filter { fresh ->
+            _state.value.tokens[fresh.address] != fresh
+        }
+
+        if (changed.isNotEmpty()) {
+            _state.update { state ->
+                state.copy(tokens = state.tokens + changed.associateBy { it.address })
+            }
+            dataSource.upsert(changed)
+        }
     }
 
     suspend fun updateTokenAccount(mint: Mint) {

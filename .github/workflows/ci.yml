@@ -38,19 +38,16 @@ jobs:
         with:
           fileName: google-services.json
           fileDir: ./apps/flipcash/app/src
-          encodedString: ${{ secrets.FLIPCASH_GOOGLE_SERVICES_JSON }}
+          encodedString: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES_JSON }}
 
       - name: Setup BugSnag API Key
         run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\" > ./local.properties
-
-      - name: Setup Fingerprint API Key
-        run: echo FINGERPRINT_API_KEY=${{ secrets.FINGERPRINT_API_KEY }} >> ./local.properties
-
+        
       - name: Setup Google Cloud Project Number
         run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
 
       - name: Setup Mixpanel API Key
         run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
 
-      - name: Run Code tests
+      - name: Run Flipcash tests
         run: bundle exec fastlane android flipcash_tests
