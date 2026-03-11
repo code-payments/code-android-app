@@ -11,6 +11,7 @@ import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fee
@@ -19,7 +20,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapMetadata
@@ -36,6 +36,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.trace
+import com.getcode.vendor.Base58
 import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +51,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
-import com.getcode.vendor.Base58
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
@@ -95,23 +95,6 @@ class TransactionController @Inject constructor(
                 )
             }
         }
-    }
-
-    suspend fun airdrop(
-        destination: KeyPair,
-        type: AirdropType
-    ): Result<LocalFiat> {
-        return repository.airdrop(
-            type = type,
-            destination = destination
-        ).onSuccess {
-            trace(
-                tag = "Transactions",
-                message = "Airdrop was successful.",
-                type = TraceType.Process
-            )
-            eventBus.send(Events.FetchBalance())
-        }.map { LocalFiat(it) }
     }
 
     suspend fun transfer(
@@ -350,7 +333,6 @@ class TransactionController @Inject constructor(
         maxAttempts: Int = 10,
         debugLogs: Boolean = false,
     ): Result<T> {
-        val stopped = AtomicBoolean()
         val attemptCount = AtomicInteger()
 
         if (debugLogs) {
@@ -362,7 +344,7 @@ class TransactionController @Inject constructor(
         }
 
         return flowInterval({ 50L * (attemptCount.get() / 10) })
-            .takeWhile { !stopped.get() && attemptCount.get() < maxAttempts }
+            .takeWhile { attemptCount.get() < maxAttempts }
             .map { attemptCount.incrementAndGet() }
             .onEach {
                 if (debugLogs) {
@@ -373,16 +355,7 @@ class TransactionController @Inject constructor(
                     )
                 }
             }
-            .map {
-                try {
-                    val result = repository.getIntentMetadata(intentId, owner)
-                    Result.success(
-                        result.getOrNull() ?: throw IllegalStateException("No metadata received")
-                    )
-                } catch (e: Exception) {
-                    Result.failure(e)
-                }
-            }
+            .map { repository.getIntentMetadata(intentId, owner) }
             .onEach {
                 if (debugLogs) {
                     trace(
@@ -392,7 +365,6 @@ class TransactionController @Inject constructor(
                     )
                 }
             }
-            .filter { !stopped.get() }
             .mapNotNull { result ->
                 result.fold(
                     onSuccess = { metadata ->
@@ -405,7 +377,10 @@ class TransactionController @Inject constructor(
                         }
                         metadata
                     },
-                    onFailure = { null }
+                    onFailure = { error ->
+                        if (error is GetIntentMetadataError.Denied) throw error
+                        null
+                    }
                 )
             }.mapNotNull { it as? T }
             .map { Result.success(it) }

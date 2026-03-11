@@ -282,46 +282,44 @@ private fun BottomBarButtons(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                if (!state.isCashReserve) {
-                    if (state.cashReservesEnabled) {
-                        CodeButton(
-                            modifier = Modifier.weight(1f),
-                            buttonState = ButtonState.Filled,
-                            text = stringResource(R.string.action_buy),
-                        ) {
-                            dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
-                        }
+                if (state.isCashReserve) return@Row
+                val canGive = state.balance.nativeAmount.isPositive
+                if (canGive) {
+                    CodeButton(
+                        modifier = Modifier.weight(1f),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(R.string.action_give),
+                    ) {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
+                            )
+                        )
+                    }
+                }
 
-                        if (state.canSell) {
-                            CodeButton(
-                                modifier = Modifier
-                                    .weight(1f),
-                                buttonState = ButtonState.Filled20,
-                                text = stringResource(R.string.action_sell),
-                            ) {
-                                analytics.buttonTapped(Button.TokenSell)
-                                dispatch(
-                                    TokenInfoViewModel.Event.OpenScreen(
-                                        AppRoute.Token.SwapTransact(
-                                            purpose = TokenSwapPurpose.Sell(loadable.data.address),
-                                        )
-                                    )
-                                )
-                            }
-                        }
-                    } else {
+                if (state.cashReservesEnabled) {
+                    CodeButton(
+                        modifier = Modifier.weight(1f),
+                        buttonState = if (canGive) ButtonState.Filled20 else ButtonState.Filled,
+                        text = stringResource(R.string.action_buy),
+                    ) {
+                        dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
+                    }
+
+                    if (state.canSell) {
                         CodeButton(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = CodeTheme.dimens.inset)
-                                .padding(bottom = CodeTheme.dimens.grid.x3)
-                                .navigationBarsPadding(),
-                            buttonState = ButtonState.Filled,
-                            text = stringResource(R.string.action_give),
+                                .weight(1f),
+                            buttonState = ButtonState.Filled20,
+                            text = stringResource(R.string.action_sell),
                         ) {
+                            analytics.buttonTapped(Button.TokenSell)
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Main.Give(mint = loadable.data.address)
+                                    AppRoute.Token.SwapTransact(
+                                        purpose = TokenSwapPurpose.Sell(loadable.data.address),
+                                    )
                                 )
                             )
                         }

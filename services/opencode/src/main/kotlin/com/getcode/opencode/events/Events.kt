@@ -15,12 +15,6 @@ sealed interface Events {
         companion object Key : ChannelEventKey<OnLoggedIn>(OnLoggedIn::class)
     }
 
-    data class RequestWelcomeBonus(internal val owner: AccountCluster): ChannelEvent<RequestWelcomeBonus>,
-        Events {
-        override val key: ChannelEvent.Key<RequestWelcomeBonus> = Key
-        companion object Key : ChannelEventKey<RequestWelcomeBonus>(RequestWelcomeBonus::class)
-    }
-
     data class UpdateLimits(internal val owner: AccountCluster, internal val force: Boolean = false): ChannelEvent<UpdateLimits>,
         Events {
         override val key: ChannelEvent.Key<UpdateLimits> = Key

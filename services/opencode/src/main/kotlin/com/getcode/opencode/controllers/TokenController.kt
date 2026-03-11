@@ -7,8 +7,10 @@ import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HistoricalMintData
+import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
@@ -39,13 +41,11 @@ import javax.inject.Singleton
 class TokenController @Inject constructor(
     private val accountController: AccountController,
     private val currencyController: CurrencyController,
-) : TokenMetadataProvider {
+) {
 
     companion object {
         private const val TAG = "TokenController"
     }
-
-    // region TokenMetadataProvider
 
     /**
      * Fetches token metadata directly from the network.
@@ -56,30 +56,40 @@ class TokenController @Inject constructor(
      * @param mint The [Mint] address of the token to fetch metadata for.
      * @return A [Result] containing a [TokenResult] on success, or an error on failure.
      */
-    override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
+    suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
+        return getTokenMetadata(listOf(mint))
+            .mapCatching { it.first { t -> t.address == mint } }
+            .map { TokenResult(it, DataSource.Network) }
+    }
+
+    /**
+     * Batch-fetches token metadata for multiple mints in a single RPC call.
+     *
+     * @param mints The list of [Mint] addresses to fetch metadata for.
+     * @return A [Result] containing the list of [MintMetadata] on success.
+     */
+    suspend fun getTokenMetadata(mints: List<Mint>): Result<List<MintMetadata>> {
         trace(
             tag = TAG,
-            message = "Fetching token metadata for ${mint.base58()} from network",
+            message = "Batch-fetching token metadata for ${mints.size} mint(s) from network",
             type = TraceType.Process
         )
 
-        return currencyController.getMintMetadata(listOf(mint))
+        return currencyController.getMintMetadata(mints)
             .onSuccess { tokens ->
                 trace(
                     tag = TAG,
-                    message = "Fetched metadata for ${tokens.size} token(s)",
+                    message = "Batch-fetched metadata for ${tokens.size} token(s)",
                     type = TraceType.Process
                 )
             }
             .onFailure { error ->
                 trace(
                     tag = TAG,
-                    message = "Failed to fetch token metadata for ${mint.base58()}: ${error.message}",
+                    message = "Failed to batch-fetch token metadata: ${error.message}",
                     type = TraceType.Error
                 )
             }
-            .mapCatching { it.first { t -> t.address == mint } }
-            .map { TokenResult(it, com.getcode.opencode.model.financial.DataSource.Network) }
     }
 
     // endregion
@@ -98,7 +108,7 @@ class TokenController @Inject constructor(
      */
     suspend fun fetchTokenAccounts(
         cluster: AccountCluster,
-        metadataProvider: TokenMetadataProvider = this,
+        metadataProvider: TokenMetadataProvider,
     ): Result<List<TokenWithBalance>> {
         trace(tag = TAG, message = "Fetching all primary token accounts", type = TraceType.Process)
 
@@ -132,7 +142,7 @@ class TokenController @Inject constructor(
     suspend fun fetchTokenAccount(
         cluster: AccountCluster,
         mint: Mint,
-        metadataProvider: TokenMetadataProvider = this,
+        metadataProvider: TokenMetadataProvider,
     ): Result<TokenWithBalance> {
         trace(tag = TAG, message = "Fetching token account for ${mint.base58()}", type = TraceType.Process)
 
