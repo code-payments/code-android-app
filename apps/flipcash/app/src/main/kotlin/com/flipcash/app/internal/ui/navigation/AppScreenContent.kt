@@ -77,7 +77,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Main.Give> {
-            CashScreen(it.mint)
+            CashScreen(it.mint, it.fromTokenInfo)
         }
 
         register<AppRoute.Token.Info> {
