@@ -15,17 +15,25 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
 
+/**
+ * Provides access to live and historical mint/currency data backed by
+ * server-streamed updates and one-shot RPCs.
+ */
 @Singleton
 class CurrencyController @Inject constructor(
     private val repository: CurrencyRepository,
 ) {
+    /**
+     * Returns a long-lived [Flow] of [LiveMintDataResponse] events for the
+     * given [mints]. The flow re-subscribes whenever the mint list changes
+     * and replays the most recent emission to late collectors.
+     */
     fun streamLiveMintData(
         scope: CoroutineScope,
         mints: Flow<List<Mint>>,
@@ -53,25 +61,48 @@ class CurrencyController @Inject constructor(
         }
     }
 
+    /**
+     * Opens a short-lived mint data stream and suspends until all required data
+     * has been received and persisted to the proto store.
+     *
+     * For most mints this waits for both exchange rates and launchpad reserve
+     * state. USDF only requires exchange rates (no reserve state exists).
+     */
     suspend fun getLiveMintData(
         scope: CoroutineScope,
         mint: Mint,
         tag: String? = null
-    ): Result<LiveMintDataResponse> = runCatching {
+    ): Result<Unit> = runCatching {
+        val needsReserveState = mint != Mint.usdf
+
         callbackFlow {
             val reference = repository.streamMintData(scope = scope, mints = listOf(mint), tag = tag) {
                 trySend(it)
             }
             awaitClose { reference.cancel() }
-        }.first()
+        }.scan(emptySet<Class<out LiveMintDataResponse>>()) { seen, response ->
+            seen + response::class.java
+        }.first { seen ->
+            seen.contains(LiveMintDataResponse.ExchangeRates::class.java) &&
+                    (!needsReserveState || seen.contains(LiveMintDataResponse.LaunchpadReserveState::class.java))
+        }
     }
 
+
+    /**
+     * Fetches static metadata (name, symbol, decimals, etc.) for the given
+     * mint [addresses] in a single RPC call.
+     */
     suspend fun getMintMetadata(
         addresses: List<Mint>
     ): Result<List<MintMetadata>> {
         return repository.getMintMetadata(addresses)
     }
 
+    /**
+     * Fetches historical price/exchange data for [mint] denominated in
+     * [currencyCode] over the specified [windowedRange].
+     */
     suspend fun getHistoricalMintData(
         mint: Mint,
         currencyCode: CurrencyCode,

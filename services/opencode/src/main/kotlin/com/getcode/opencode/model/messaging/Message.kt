@@ -1,11 +1,6 @@
 package com.getcode.opencode.model.messaging
 
-import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.model.Domain
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.transactions.AirdropType
-import com.getcode.opencode.model.transactions.ExchangeData
-import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 
