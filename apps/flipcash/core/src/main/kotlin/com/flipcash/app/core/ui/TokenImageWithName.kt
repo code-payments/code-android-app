@@ -98,9 +98,7 @@ fun TokenIcon(
             .data(imageUrl)
             .crossfade(false)
             .error(R.drawable.ic_placeholder_user)
-            .memoryCacheKey(symbol)
             .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCacheKey(symbol)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build(),
         contentDescription = null,

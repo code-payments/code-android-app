@@ -2,8 +2,6 @@ package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionGrpcKt
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.AirdropRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.AirdropResponse
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.CanWithdrawToAccountRequest
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.CanWithdrawToAccountResponse
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetIntentMetadataRequest
@@ -25,7 +23,6 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.asSwapId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.transactions.AirdropType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.grpc.ManagedChannel
@@ -148,27 +145,6 @@ class TransactionApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.canWithdrawToAccount(request)
-        }
-    }
-
-    /**
-     * Airdrops Kin to the requesting account
-     *
-     * @param type The type of airdrop to claim
-     * @param destination The owner account to airdrop Kin to
-     */
-    suspend fun airdrop(
-        type: AirdropType,
-        destination: KeyPair,
-    ): AirdropResponse {
-        val request = AirdropRequest.newBuilder()
-            .setAirdropType(TransactionService.AirdropType.forNumber(type.ordinal))
-            .setOwner(destination.asSolanaAccountId())
-            .apply { setSignature(sign(destination)) }
-            .build()
-
-        return withContext(Dispatchers.IO) {
-            api.airdrop(request)
         }
     }
 

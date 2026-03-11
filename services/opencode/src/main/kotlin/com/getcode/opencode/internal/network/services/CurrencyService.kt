@@ -11,18 +11,14 @@ import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
 import com.getcode.opencode.internal.network.streamers.ManagedMintStream
-import com.getcode.opencode.internal.network.streamers.OcpMintStreamingReference
 import com.getcode.opencode.model.core.errors.GetHistoricalMintDataError
 import com.getcode.opencode.model.core.errors.GetMintsError
-import com.getcode.opencode.model.core.errors.GetRatesError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
-import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 internal class CurrencyService @Inject constructor(
