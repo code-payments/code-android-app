@@ -284,27 +284,28 @@ private fun BottomBarButtons(
             ) {
                 if (state.isCashReserve) return@Row
                 val canGive = state.balance.nativeAmount.isPositive
-                if (canGive) {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(R.string.action_give),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
-                            )
-                        )
-                    }
-                }
 
                 if (state.cashReservesEnabled) {
                     CodeButton(
                         modifier = Modifier.weight(1f),
-                        buttonState = if (canGive) ButtonState.Filled20 else ButtonState.Filled,
+                        buttonState = ButtonState.Filled,
                         text = stringResource(R.string.action_buy),
                     ) {
                         dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
+                    }
+
+                    if (canGive) {
+                        CodeButton(
+                            modifier = Modifier.weight(1f),
+                            buttonState = ButtonState.Filled20,
+                            text = stringResource(R.string.action_give),
+                        ) {
+                            dispatch(
+                                TokenInfoViewModel.Event.OpenScreen(
+                                    AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
+                                )
+                            )
+                        }
                     }
 
                     if (state.canSell) {
@@ -323,6 +324,18 @@ private fun BottomBarButtons(
                                 )
                             )
                         }
+                    }
+                } else {
+                    CodeButton(
+                        modifier = Modifier.weight(1f),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(R.string.action_give),
+                    ) {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
+                            )
+                        )
                     }
                 }
             }
