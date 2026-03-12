@@ -160,16 +160,15 @@ class SelectTokenViewModel @Inject constructor(
                         })
                         .filter {
                             val baselineAmount = 0.01.toFiat(rate.currency)
+                            val hasBalance = it.balance.nativeAmount.valueNonZero() &&
+                                    it.balance.nativeAmount.valueGreaterThanOrEqualTo(baselineAmount)
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
                                 // when reserves are enabled, we must prevent sending USDF directly (it's used for reserves)
-                                TokenPurpose.Select -> !state.reservesEnabled || it.token.address != Mint.usdf
+                                TokenPurpose.Select -> (!state.reservesEnabled || it.token.address != Mint.usdf) && hasBalance
                                 // show all tokens with non-zero balance
-                                else -> {
-                                    it.balance.nativeAmount.valueNonZero() &&
-                                            it.balance.nativeAmount.valueGreaterThanOrEqualTo(baselineAmount)
-                                }
+                                else -> hasBalance
                             }
                         }
                 }
