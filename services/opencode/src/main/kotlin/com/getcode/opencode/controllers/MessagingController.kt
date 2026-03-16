@@ -1,12 +1,13 @@
 package com.getcode.opencode.controllers
 
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
-import com.codeinc.opencode.gen.messaging.v1.exchangeDataOrNull
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.codeinc.opencode.gen.transaction.v1.exchangeData
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
+import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.domain.mapping.SocialLinkMapper
+import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
 import com.getcode.opencode.internal.extensions.toPublicKey
-import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.extensions.asProtobufExchangeData
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.toMint
@@ -42,6 +43,13 @@ class MessagingController @Inject constructor(
 
     // Thread-safe streamReference management
     private val streamReferenceMutex = Mutex()
+
+    private val mintMapper = MintMapper(
+        vmMetadataMapper = VmMetadataMapper(),
+        launchpadMetadataMapper = LaunchpadMetadataMapper(),
+        socialLinkMapper = SocialLinkMapper(),
+        customizationMapper = BillCustomizationMapper(),
+    )
 
     suspend fun awaitRequestToGrabBill(
         scope: CoroutineScope,
@@ -167,11 +175,13 @@ class MessagingController @Inject constructor(
                 val message = messages.firstOrNull() ?: throw IllegalStateException("No message found")
                 val mint = message.requestToGiveBill.mint.toMint()
                 val exchangeData = message.requestToGiveBill.exchangeData.toModel()
+                val token = message.additionalContext.requestToGiveBill.mintMetadata
 
                 GiveRequest(
                     messageId = message.id.toPublicKey(),
                     mint = mint,
-                    exchangeData = exchangeData
+                    exchangeData = exchangeData,
+                    tokenMetadata = mintMapper.map(token)
                 )
             }
     }
