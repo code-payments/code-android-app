@@ -169,4 +169,16 @@ sealed interface SocialLink : Parcelable {
         @IgnoredOnParcel
         override val uri: String = "https://x.com/$username"
     }
+
+    @Parcelize
+    data class Telegram(val username: String) : SocialLink {
+        @IgnoredOnParcel
+        override val uri: String = "https://t.me/$username"
+    }
+
+    @Parcelize
+    data class Discord(val inviteCode: String) : SocialLink {
+        @IgnoredOnParcel
+        override val uri: String = "https://discord.gg/$inviteCode"
+    }
 }

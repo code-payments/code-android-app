@@ -51,6 +51,14 @@ sealed interface SocialLinkSerialized {
     @Serializable
     @SerialName("x")
     data class X(val username: String) : SocialLinkSerialized
+
+    @Serializable
+    @SerialName("tg")
+    data class Telegram(val username: String) : SocialLinkSerialized
+
+    @Serializable
+    @SerialName("discord")
+    data class Discord(val inviteCode: String) : SocialLinkSerialized
 }
 
 @Serializable

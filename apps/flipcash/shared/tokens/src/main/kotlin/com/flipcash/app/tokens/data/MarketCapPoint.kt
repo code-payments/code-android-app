@@ -23,8 +23,13 @@ fun List<MarketCapPoint>.collapse(
         Period.All -> minOfOrNull { it.x } ?: now
     }
 
-    val filtered = filter { it.x >= startTime }
-    if (filtered.isEmpty()) return emptyList()
+    val filtered = filter { it.x >= startTime }.ifEmpty {
+        // No points fall within the period window — use the closest point
+        // so the chart still renders with targetPoints entries.
+        val nearest = minByOrNull { kotlin.math.abs(it.x - startTime) }
+            ?: return emptyList()
+        listOf(nearest)
+    }
 
     val duration = now - startTime
     val intervalMs = (duration / targetPoints).coerceAtLeast(1)

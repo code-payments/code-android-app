@@ -417,6 +417,8 @@
 
     <string name="label_social_website">Website</string>
     <string name="label_social_x">\@%1$s</string>
+    <string name="label_social_tg">Telegram</string>
+    <string name="label_social_discord">Discord</string>
 
     <string name="action_retry">Retry</string>
     <string name="error_unableToLoadChartData">Unable To Load</string>
