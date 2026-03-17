@@ -94,7 +94,7 @@ internal fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<AppRoute.Token.TxProcessing> {
-            TokenTxProcessingScreen(it.swapId)
+            TokenTxProcessingScreen(it.swapId, it.awaitExternalWallet)
         }
 
         register<AppRoute.Token.SellReceipt> {
