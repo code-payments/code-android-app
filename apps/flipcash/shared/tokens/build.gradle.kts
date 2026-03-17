@@ -7,6 +7,8 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+
     implementation(libs.androidx.datastore)
 
     implementation(libs.androidx.lifecycle.process)

@@ -431,6 +431,7 @@ class TokenCoordinator @Inject constructor(
             val newBalance = operation(currentBalance, amount)
             trace(tag = TAG, message = "Modified ${token.symbol} balance: ${currentBalance.formatted()} -> ${newBalance.formatted()}", type = TraceType.Process)
             _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
+            ensureValidTokenSelection()
 
             scope.launch(Dispatchers.IO) {
                 updateTokenAccount(token.address)
@@ -495,22 +496,18 @@ class TokenCoordinator @Inject constructor(
     }
 
     private suspend fun ensureValidTokenSelection() {
-        val state = _state.value
-        if (state.balances.isEmpty()) return
-
         val currentSelection = selectedToken.data.firstOrNull()
             ?.get(mintPreferenceKey)
             ?.let { Mint(it) }
-            ?.takeIf { state.balances.containsKey(it) }
 
-        if (currentSelection != null) return
+        val resolved = resolveTokenSelection(
+            balances = _state.value.balances,
+            currentSelection = currentSelection,
+            rate = exchange.entryRate,
+        )
 
-        val highestBalance = state.balances
-            .filterKeys { it != Mint.usdf }
-            .maxByOrNull { it.value }
-
-        if (highestBalance != null) {
-            selectToken(highestBalance.key)
+        if (resolved != null && resolved != currentSelection) {
+            selectToken(resolved)
         }
     }
 
