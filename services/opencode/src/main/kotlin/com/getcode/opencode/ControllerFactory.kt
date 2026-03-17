@@ -7,7 +7,6 @@ import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.inject.OpenCodeModule
-import com.getcode.util.locale.AndroidLocale
 import dagger.hilt.android.EntryPointAccessors
 
 object ControllerFactory {

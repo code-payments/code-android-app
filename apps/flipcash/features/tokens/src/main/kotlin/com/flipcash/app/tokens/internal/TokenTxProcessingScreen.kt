@@ -45,10 +45,16 @@ import com.getcode.view.LoadingSuccessState
 
 @Composable
 internal fun TokenTxProcessingScreen(
-    viewModel: BuySellSwapTokenViewModel
+    viewModel: BuySellSwapTokenViewModel,
+    processingProgressOverride: LoadingSuccessState? = null,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenTxProcessingScreen(state = state, dispatch = viewModel::dispatchEvent)
+    val effectiveState = if (processingProgressOverride != null) {
+        state.copy(processingProgress = processingProgressOverride)
+    } else {
+        state
+    }
+    TokenTxProcessingScreen(state = effectiveState, dispatch = viewModel::dispatchEvent)
 }
 
 @Composable

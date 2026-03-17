@@ -86,6 +86,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
         val buyProgress: LoadingSuccessState = LoadingSuccessState(),
         val sellProgress: LoadingSuccessState = LoadingSuccessState(),
         val processingProgress: LoadingSuccessState = LoadingSuccessState(),
+        val confirmedNetTransferAmount: Fiat? = null,
     ) {
         val sellFee: Double?
             get() {
@@ -133,7 +134,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }
 
         val netTransferAmount: Fiat
-            get() = when (purpose) {
+            get() = confirmedNetTransferAmount ?: when (purpose) {
                is TokenSwapPurpose.BalanceIncrease -> enteredAmount
                else -> Fiat(fiat = enteredAmount.decimalValue - feeAmount.decimalValue, currencyCode = enteredAmount.currencyCode)
             }
@@ -204,7 +205,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         data class CreateAndSendTransactionToWallet(val token: Token, val amount: LocalFiat) : Event
 
-        data class OnAmountAccepted(val amount: LocalFiat) : Event
+        data class OnAmountAccepted(val amount: LocalFiat, val netTransferAmount: Fiat) : Event
 
         data class ProceedWithPurchase(val amount: LocalFiat) : Event
         data class ProceedWithSale(val amount: LocalFiat) : Event
@@ -477,9 +478,10 @@ class BuySellSwapTokenViewModel @Inject constructor(
                             balance = stateFlow.value.reservesBalance.convertingToUsdIfNeeded(rate),
                             rate = rate
                         )
+                        val netAmount = amountFiat.nativeAmount
 
                         dispatchEvent(Event.UpdateBuyState(loading = true))
-                        dispatchEvent(Event.OnAmountAccepted(amountFiat))
+                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = netAmount))
                         dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                     }
 
@@ -493,7 +495,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                             nativeAmount = nativeAmount,
                         )
 
-                        dispatchEvent(Event.OnAmountAccepted(amountFiat))
+                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = nativeAmount))
                         dispatchEvent(Event.UpdateBuyState(loading = true))
                         dispatchEvent(
                             Event.CreateAndSendTransactionToWallet(
@@ -512,8 +514,9 @@ class BuySellSwapTokenViewModel @Inject constructor(
                             balance = tokenWithBalance.balance,
                             rate = rate,
                         )
+                        val netAmount = stateFlow.value.netTransferAmount
 
-                        dispatchEvent(Event.OnAmountAccepted(amountFiat))
+                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = netAmount))
                         dispatchEvent(Event.ShowSellReceipt)
                     }
                 }
@@ -662,6 +665,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 is Event.OnAmountAccepted -> { state ->
                     val entryState = state.amountEntryState
                     state.copy(
+                        confirmedNetTransferAmount = event.netTransferAmount,
                         amountEntryState = entryState.copy(
                             selectedAmount = event.amount,
                         )

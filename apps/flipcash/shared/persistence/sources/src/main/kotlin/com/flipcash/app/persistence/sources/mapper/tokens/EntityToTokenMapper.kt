@@ -71,6 +71,8 @@ private fun LaunchpadMetadataEmbedded.toDomain() = LaunchpadMetadata(
 private fun SocialLinkSerialized.toDomain(): SocialLink = when (this) {
     is SocialLinkSerialized.Website -> SocialLink.Website(url)
     is SocialLinkSerialized.X -> SocialLink.X(username)
+    is SocialLinkSerialized.Discord -> SocialLink.Discord(inviteCode)
+    is SocialLinkSerialized.Telegram -> SocialLink.Telegram(username)
 }
 
 private fun BillCustomizationsSerialized.toDomain() = TokenBillCustomizations(

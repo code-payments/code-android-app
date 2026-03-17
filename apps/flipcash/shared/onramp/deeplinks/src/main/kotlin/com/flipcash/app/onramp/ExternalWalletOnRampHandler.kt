@@ -5,7 +5,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
@@ -75,6 +79,9 @@ fun ExternalWalletOnRampHandler(
             }
         } ?: run { navigator.popAll() }
     }
+    var preNavigatedToEntry by remember { mutableStateOf(false) }
+    var preNavigatedToProcessing by remember { mutableStateOf(false) }
+
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
@@ -167,6 +174,19 @@ fun ExternalWalletOnRampHandler(
                     type = TraceType.Process
                 )
                 if (uri?.canNativelyHandle(context) == true) {
+                    val origin = state.origin
+                    if (origin is AppRoute.Token.Info) {
+                        preNavigatedToEntry = true
+                        navigator.push(
+                            ScreenRegistry.get(
+                                AppRoute.Token.SwapTransact(
+                                    TokenSwapPurpose.FundWithWallet(origin.mint),
+                                    forNeededFunds = origin.forNeededFunds
+                                )
+                            )
+                        )
+                    }
+
                     analytics.connectWallet(state.provider!!)
                     uriHandler.openUri(uri.toString())
                     state.deeplinkState = ExternalWalletState.CONNECTING
@@ -196,19 +216,24 @@ fun ExternalWalletOnRampHandler(
                         message = "wallet connected",
                         type = TraceType.Process
                     )
-                    when (val origin = state.origin) {
-                        is AppRoute.Token.Info -> {
-                            navigator.push(
-                                ScreenRegistry.get(
-                                    AppRoute.Token.SwapTransact(
-                                        TokenSwapPurpose.FundWithWallet(origin.mint),
-                                        forNeededFunds = origin.forNeededFunds
+                    if (preNavigatedToEntry) {
+                        // Already pushed SwapTransact at STARTED
+                        preNavigatedToEntry = false
+                    } else {
+                        when (val origin = state.origin) {
+                            is AppRoute.Token.Info -> {
+                                navigator.push(
+                                    ScreenRegistry.get(
+                                        AppRoute.Token.SwapTransact(
+                                            TokenSwapPurpose.FundWithWallet(origin.mint),
+                                            forNeededFunds = origin.forNeededFunds
+                                        )
                                     )
                                 )
-                            )
-                        }
-                        else -> {
-                            navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
+                            }
+                            else -> {
+                                navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
+                            }
                         }
                     }
                 }
@@ -226,6 +251,17 @@ fun ExternalWalletOnRampHandler(
                     message = "wallet transact uri: $uri",
                     type = TraceType.Process
                 )
+
+                val swapId = state.swapId
+                if (state.origin is AppRoute.Token.Info && swapId != null) {
+                    preNavigatedToProcessing = true
+                    navigator.push(
+                        ScreenRegistry.get(
+                            AppRoute.Token.TxProcessing(swapId, awaitExternalWallet = true)
+                        )
+                    )
+                }
+
                 analytics.amountSelectedForWalletTransfer(state.provider!!, state.amount!!.underlyingTokenAmount)
                 uriHandler.openUri(uri.toString())
             }
@@ -254,6 +290,12 @@ fun ExternalWalletOnRampHandler(
                     type = TraceType.Process
                 )
                 analytics.transactionSubmittedToWallet(state.provider!!)
+
+                if (preNavigatedToProcessing) {
+                    // TxProcessingScreen observes TRANSACTED, calls reset() and dispatches OnSwapIdChanged
+                    preNavigatedToProcessing = false
+                    return@LaunchedEffect
+                }
 
                 val swapId = state.swapId
                 state.reset()
