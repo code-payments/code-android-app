@@ -1,122 +1,205 @@
 package com.getcode.navigation.core
 
-import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
-import cafe.adriel.voyager.core.lifecycle.JavaSerializable
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.stack.StackEvent
-import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.navigator.tab.TabNavigator
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.results.NavResultStore
+import com.getcode.navigation.results.NavResultStoreImpl
+import com.getcode.navigation.results.NavigationRetVal
+import com.getcode.navigation.results.SavedStateHandleNavResultController
+import com.getcode.navigation.results.rememberNavResultStore
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import timber.log.Timber
+import kotlin.reflect.KClass
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
-    staticCompositionLocalOf { CodeNavigatorStub }
+    staticCompositionLocalOf { EmptyCodeNavigator }
 
-object NavigatorStub: NavigationLocator {
-    override val lastItem: Screen? = null
-    override fun push(item: Screen, delay: Long) { }
-    override infix fun push(items: List<Screen>) { }
+val EmptyCodeNavigator = CodeNavigator(
+    backStack = NavBackStack(),
+    resultStore = NavResultStoreImpl(SavedStateHandleNavResultController { null }),
+    onRootReached = {},
+)
 
-    override fun pop(): Boolean { return false }
-    override fun popAll() { }
-}
-
-object CodeNavigatorStub : CodeNavigator {
-    override val lastItem: Screen? = null
-    override val lastModalItem: Screen? = null
-    override val sheetStackRoot: Screen? = null
-    override val lastEvent: StackEvent = StackEvent.Idle
-    override val isVisible: Boolean = false
-    override val sheetFullyVisible: Boolean = false
-    override val progress: Float = 0f
-
-    override var screensNavigator: Navigator? = null
-    override var tabsNavigator: TabNavigator? = null
-
-    override fun show(screen: Screen) = Unit
-    override fun show(items: List<Screen>) = Unit
-
-    override fun hide() = Unit
-    override fun <T> hideWithResult(result: T) = Unit
-
-    override fun push(item: Screen, delay: Long) = Unit
-
-    override fun push(items: List<Screen>) = Unit
-
-    override fun replace(item: Screen) = Unit
-
-    override fun replaceAll(item: Screen) = Unit
-
-    override fun replaceAll(items: List<Screen>) = Unit
-
-    override fun isAtRoot(): Boolean = true
-
-    override fun pop(): Boolean = false
-    override fun <T> popWithResult(result: T) = false
-
-    override fun popAll() = Unit
-
-    override fun popUntil(predicate: (Screen) -> Boolean): Boolean = false
-
-    @Composable
-    override fun saveableState(
-        key: String,
-        screen: Screen?,
-        content: @Composable () -> Unit
-    ) {
-        content()
+@Composable
+fun rememberCodeNavigator(
+    backStack: NavBackStack<NavKey>,
+    resultStateRegistry: NavResultStateRegistry,
+    onRootReached: () -> Unit,
+): CodeNavigator {
+    val navResultStore = rememberNavResultStore(resultStateRegistry = resultStateRegistry)
+    return remember(navResultStore, onRootReached) {
+        CodeNavigator(backStack = backStack, resultStore = navResultStore, onRootReached = onRootReached)
     }
 }
 
-interface NavigationLocator {
-    val lastItem: Screen?
-    fun push(item: Screen, delay: Long = 0)
-    infix fun push(items: List<Screen>)
-    fun pop(): Boolean
-    fun popAll()
-}
+data class CodeNavigator(
+    val backStack: NavBackStack<NavKey>,
+    val resultStore: NavResultStore,
+    val onRootReached: () -> Unit,
+) {
+    val currentRouteKey: NavKey?
+        get() = backStack.lastOrNull()
 
-interface CodeNavigator: NavigationLocator {
-    override val lastItem: Screen?
-    val lastModalItem: Screen?
-    val sheetStackRoot: Screen?
-    val lastEvent: StackEvent
-    val isVisible: Boolean
-    val sheetFullyVisible: Boolean
-    val progress: Float
-    var screensNavigator: Navigator?
-    var tabsNavigator: TabNavigator?
+    fun navigate(
+        route: NavKey,
+        options: NavOptions = NavOptions(),
+    ) {
+        if (options.debugRouting) {
+            trace("Navigating to $route from ${backStack.lastOrNull()} with $options", type = TraceType.Navigation)
+        }
 
-    fun show(screen: Screen)
-    fun show(items: List<Screen>)
-    fun hide()
-    fun <T> hideWithResult(result: T)
-    override fun push(item: Screen, delay: Long)
+        if (!options.navigatingForResult && route is NavigationRetVal<*>) {
+            if (options.debugRouting) {
+                trace("Navigating to NavigationRetVal without navigatingForResult = true", type = TraceType.Log)
+            }
+        }
 
-    override infix fun push(items: List<Screen>)
+        when (options.popUpTo) {
+            NavOptions.PopUpTo.ClearAll -> {
+                Snapshot.withMutableSnapshot {
+                    if (currentRouteKey != route) {
+                        backStack.add(route)
+                        // Remove all entries before the new one
+                        while (backStack.size > 1) {
+                            backStack.removeAt(0)
+                        }
+                    }
+                }
+            }
+            is NavOptions.PopUpTo.ClearToFirst<*> -> {
+                Snapshot.withMutableSnapshot {
+                    if (currentRouteKey != route) {
+                        val routeFound = clearToFirst(options.popUpTo.routeClass)
+                        if (routeFound && options.popUpTo.inclusive) {
+                            if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
+                        }
+                        backStack.add(route)
+                    }
+                }
+            }
+            NavOptions.PopUpTo.None -> {
+                Snapshot.withMutableSnapshot {
+                    if (currentRouteKey != route) {
+                        backStack.add(route)
+                    }
+                }
+            }
+            NavOptions.PopUpTo.PopLast -> {
+                Snapshot.withMutableSnapshot {
+                    if (currentRouteKey != route) {
+                        backStack.add(route)
+                        val lastIndex = backStack.lastIndex - 1
+                        if (lastIndex >= 0) backStack.removeAt(lastIndex)
+                    }
+                }
+            }
+        }
+    }
 
-    infix fun replace(item: Screen)
+    fun restoreRouting(routes: List<NavKey>) {
+        val list = routes.toMutableList()
+        val base = list.removeAt(0)
+        navigate(
+            route = base,
+            options = NavOptions(
+                popUpTo = NavOptions.PopUpTo.ClearAll
+            ),
+        )
+        list.forEach {
+            navigate(it)
+        }
+    }
 
-    fun replaceAll(item: Screen)
+    fun navigateBack(navigatingForResult: Boolean = false) {
+        trace("Navigating back from ${backStack.lastOrNull()}", type = TraceType.Navigation)
+        if (!navigatingForResult && backStack.lastOrNull() is NavigationRetVal<*>) {
+            trace("Navigating up from a NavigationRetVal route, no result will be set.", type = TraceType.Log)
+        }
+        if (backStack.size <= 1) {
+            onRootReached()
+            return
+        }
 
-    fun replaceAll(items: List<Screen>)
+        backStack.removeAt(backStack.lastIndex)
+    }
 
-    fun isAtRoot(): Boolean
-    override fun pop(): Boolean
-    fun <T> popWithResult(result: T): Boolean
+    fun <T : NavKey> clearToFirst(routeClass: KClass<T>): Boolean {
+        Timber.d("Clearing backstack to first instance of $routeClass")
+        var routeFound = false
+        Snapshot.withMutableSnapshot {
+            val first = backStack.indexOfFirst { it::class == routeClass }
+            if (first != -1) {
+                // Remove everything after the first occurrence
+                while (backStack.size > first + 1) {
+                    backStack.removeAt(backStack.lastIndex)
+                }
+                routeFound = true
+            }
+        }
+        return routeFound
+    }
 
-    override fun popAll()
+    // Bridge methods — compatible API surface for migrating from Voyager
 
-    infix fun popUntil(predicate: (Screen) -> Boolean): Boolean
+    /** Push a route onto the back stack (equivalent to Voyager Navigator.push). */
+    fun push(route: NavKey) = navigate(route)
 
-    @SuppressLint("ComposableNaming")
-    @Composable
-    fun saveableState(
-        key: String,
-        screen: Screen?,
-        content: @Composable () -> Unit
-    )
+    /** Push multiple routes onto the back stack. */
+    fun push(routes: List<NavKey>) {
+        routes.forEach { navigate(it) }
+    }
+
+    /** Pop the current route (equivalent to Voyager Navigator.pop). */
+    fun pop() = navigateBack()
+
+    /** Replace entire back stack with a single route. */
+    fun replaceAll(route: NavKey) = navigate(route, NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll))
+
+    /** Replace entire back stack with multiple routes. */
+    fun replaceAll(routes: List<NavKey>) = restoreRouting(routes)
+
+    /** Show a sheet route (sheets are identified by metadata in Nav3). */
+    fun show(route: NavKey) = navigate(route)
+
+    /** Show multiple sheet routes (pushes each in order). */
+    fun show(routes: List<NavKey>) {
+        routes.forEach { navigate(it) }
+    }
+
+    /** Hide/dismiss a sheet (pops the current route). */
+    fun hide() = navigateBack()
+
+    /** Replace the current route with a new one. */
+    fun replace(route: NavKey) = navigate(route, NavOptions(popUpTo = NavOptions.PopUpTo.PopLast))
+
+    /** Pop back stack until the predicate returns true. */
+    fun popUntil(predicate: (NavKey) -> Boolean) {
+        Snapshot.withMutableSnapshot {
+            while (backStack.size > 1 && !predicate(backStack.last())) {
+                backStack.removeAt(backStack.lastIndex)
+            }
+        }
+    }
+
+    /** Pop all routes except the root. */
+    fun popAll() {
+        Snapshot.withMutableSnapshot {
+            while (backStack.size > 1) {
+                backStack.removeAt(backStack.lastIndex)
+            }
+        }
+    }
+
+    /** The last item on the back stack (used by features checking current route). */
+    val lastItem: NavKey? get() = backStack.lastOrNull()
+
+    /** The last item on the back stack or null. */
+    val lastItemOrNull: NavKey? get() = backStack.lastOrNull()
 }

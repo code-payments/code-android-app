@@ -15,7 +15,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
@@ -35,7 +34,7 @@ import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
 import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.notificationPermissionCheck
 import com.getcode.utils.TraceType
@@ -70,12 +69,10 @@ fun ExternalWalletOnRampHandler(
             return
         }
 
-        state.origin?.let { screenProvider ->
-            val screen = ScreenRegistry.get(screenProvider)
+        state.origin?.let { route ->
             composeScope.launch {
                 delay(300)
-                val popped = navigator.popUntil { it::class == screen::class }
-                if (!popped) navigator.popAll()
+                navigator.popUntil { it::class == route::class }
             }
         } ?: run { navigator.popAll() }
     }
@@ -178,11 +175,9 @@ fun ExternalWalletOnRampHandler(
                     if (origin is AppRoute.Token.Info) {
                         preNavigatedToEntry = true
                         navigator.push(
-                            ScreenRegistry.get(
-                                AppRoute.Token.SwapTransact(
-                                    TokenSwapPurpose.FundWithWallet(origin.mint),
-                                    forNeededFunds = origin.forNeededFunds
-                                )
+                            AppRoute.Token.SwapTransact(
+                                TokenSwapPurpose.FundWithWallet(origin.mint),
+                                forNeededFunds = origin.forNeededFunds
                             )
                         )
                     }
@@ -223,16 +218,14 @@ fun ExternalWalletOnRampHandler(
                         when (val origin = state.origin) {
                             is AppRoute.Token.Info -> {
                                 navigator.push(
-                                    ScreenRegistry.get(
-                                        AppRoute.Token.SwapTransact(
-                                            TokenSwapPurpose.FundWithWallet(origin.mint),
-                                            forNeededFunds = origin.forNeededFunds
-                                        )
+                                    AppRoute.Token.SwapTransact(
+                                        TokenSwapPurpose.FundWithWallet(origin.mint),
+                                        forNeededFunds = origin.forNeededFunds
                                     )
                                 )
                             }
                             else -> {
-                                navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
+                                navigator.push(AppRoute.OnRamp.AmountEntry)
                             }
                         }
                     }
@@ -256,9 +249,7 @@ fun ExternalWalletOnRampHandler(
                 if (state.origin is AppRoute.Token.Info && swapId != null) {
                     preNavigatedToProcessing = true
                     navigator.push(
-                        ScreenRegistry.get(
-                            AppRoute.Token.TxProcessing(swapId, awaitExternalWallet = true)
-                        )
+                        AppRoute.Token.TxProcessing(swapId, awaitExternalWallet = true)
                     )
                 }
 
@@ -302,7 +293,7 @@ fun ExternalWalletOnRampHandler(
 
                 if (swapId != null) {
                     // confirmation is shown in finalization screen
-                    navigator.push(ScreenRegistry.get(AppRoute.Token.TxProcessing(swapId)))
+                    navigator.push(AppRoute.Token.TxProcessing(swapId))
                 } else {
                     val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
                     val title = state.tokenToPurchase?.let { token ->

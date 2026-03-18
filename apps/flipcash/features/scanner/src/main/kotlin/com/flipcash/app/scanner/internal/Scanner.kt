@@ -11,9 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.analytics.rememberAnalytics
+import com.flipcash.app.core.extensions.navigateTo
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.BillContainer
@@ -35,9 +34,9 @@ import timber.log.Timber
 
 @Composable
 internal fun Scanner(deepLink: DeeplinkType?) {
-    val router = LocalRouter.currentOrThrow
+    val router = LocalRouter.current!!
     val navigator = LocalCodeNavigator.current
-    val session = LocalSessionController.currentOrThrow
+    val session = LocalSessionController.current!!
     val state by session.state.collectAsState()
     val billState by session.billState.collectAsState()
     val analytics = rememberAnalytics()
@@ -100,7 +99,7 @@ internal fun Scanner(deepLink: DeeplinkType?) {
                 }
                 else -> Unit
             }
-            navigator.show(ScreenRegistry.get(it.screen))
+            navigator.navigateTo(it.screen)
         },
         scannerView = {
             CodeScanner(
@@ -174,8 +173,8 @@ internal fun Scanner(deepLink: DeeplinkType?) {
         }
     }
 
-    LaunchedEffect(navigator.isVisible) {
-        previewing = !navigator.isVisible
+    LaunchedEffect(navigator.backStack.size) {
+        previewing = navigator.backStack.size <= 1
     }
 
     LaunchedEffect(billState.bill) {

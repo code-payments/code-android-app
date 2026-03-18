@@ -2,8 +2,6 @@ package com.flipcash.app.internal.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -13,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -21,23 +18,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.startup.AppInitializer
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.stack.StackEvent
-import cafe.adriel.voyager.navigator.CurrentScreen
-import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.navigator.currentOrThrow
-import cafe.adriel.voyager.transitions.CrossfadeTransition
-import cafe.adriel.voyager.transitions.SlideTransition
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.app.internal.startup.DiscreteBondingCurveInitializer
-import com.flipcash.app.internal.ui.navigation.AppScreenContent
-import com.flipcash.app.internal.ui.navigation.MainRoot
+import com.flipcash.app.internal.ui.navigation.AppPreloads
+import com.flipcash.app.internal.ui.navigation.appEntryProvider
+import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.OnRampAmountScaffold
@@ -48,28 +40,23 @@ import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.updates.UpdateRequiredBlockingView
 import com.flipcash.features.shareapp.R
-import com.flipcash.services.modals.ModalManager
 import com.flipcash.services.user.AuthState
 import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.qr.rememberQrBitmapPainter
-import com.getcode.navigation.core.BottomSheetNavigator
-import com.getcode.navigation.core.CombinedNavigator
+import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
-import com.getcode.navigation.transitions.SheetSlideTransition
+import com.getcode.navigation.results.rememberNavResultStateRegistry
+import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.solana.rpc.RpcConfig
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.LocalCodeColors
-import com.getcode.ui.biometrics.BiometricsState
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.biometrics.rememberBiometricsState
 import com.getcode.ui.biometrics.views.BiometricsBlockingView
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.bars.BottomBarContainer
-import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
-import com.getcode.ui.theme.CodeScaffold
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
@@ -80,7 +67,7 @@ internal fun App(
     tipsEngine: TipsEngine,
     solanaRpcConfig: RpcConfig,
 ) {
-    val router = LocalRouter.currentOrThrow
+    val router = LocalRouter.current!!
     val analytics = rememberAnalytics()
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
     val requireBiometrics by viewModel.requireBiometrics.collectAsStateWithLifecycle()
@@ -99,11 +86,9 @@ internal fun App(
         }
     }
 
-    // We are obtaining deep link here to handle a login request while already logged in to
-    // present the option for the user to switch accounts
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }
     var loginRequest by remember { mutableStateOf<String?>(null) }
-    val userManager = LocalUserManager.currentOrThrow
+    val userManager = LocalUserManager.current!!
     DeepLinkListener {
         analytics.deeplinkOpened(it.data)
         val type = router.processType(it)
@@ -114,11 +99,10 @@ internal fun App(
         deepLink = it
     }
 
-    val session = LocalSessionController.currentOrThrow
+    val session = LocalSessionController.current!!
     val userState by userManager.state.collectAsState()
 
     FlipcashTheme {
-        // save download QR early
         rememberQrBitmapPainter(
             content = stringResource(
                 R.string.app_download_link,
@@ -134,123 +118,122 @@ internal fun App(
         CompositionLocalProvider(
             LocalExternalWalletState provides externalWalletOnRamp
         ) {
-            AppScreenContent {
-                PaymentScaffold {
-                    OnRampAmountScaffold {
-                        BillPlaygroundScaffold {
-                            TipScaffold(tipsEngine = tipsEngine) {
-                                AppNavHost(biometricsState) {
-                                    val codeNavigator = LocalCodeNavigator.current
+            AppPreloads()
+
+            PaymentScaffold {
+                OnRampAmountScaffold {
+                    BillPlaygroundScaffold {
+                        TipScaffold(tipsEngine = tipsEngine) {
+                            val backStack = remember { NavBackStack<NavKey>(AppRoute.Loading) }
+                            val resultStateRegistry = rememberNavResultStateRegistry()
+                            val codeNavigator = rememberCodeNavigator(
+                                backStack = backStack,
+                                resultStateRegistry = resultStateRegistry,
+                                onRootReached = { /* handled by activity back press */ },
+                            )
+
+                            val semanticsModifier = if (BuildConfig.DEBUG) {
+                                Modifier.semantics { testTagsAsResourceId = true }
+                            } else Modifier
+
+                            Box(modifier = semanticsModifier) {
+                                CompositionLocalProvider(
+                                    LocalCodeNavigator provides codeNavigator,
+                                    LocalBiometricsState provides biometricsState,
+                                ) {
                                     ExternalWalletOnRampHandler(
                                         state = externalWalletOnRamp,
                                         lifecycleOwner = LocalLifecycleOwner.current,
                                         navigator = codeNavigator,
                                         router = router,
-                                        deepLink = deepLink
+                                        deepLink = deepLink,
                                     ) {
-                                        CodeScaffold { innerPaddingModifier ->
-                                            Navigator(
-                                                screen = MainRoot { deepLink },
-                                            ) { navigator ->
-                                                LaunchedEffect(navigator.lastItemOrNull) {
-                                                    // update global navigator for platform access to support push/pop from a single
-                                                    // navigator current
-                                                    codeNavigator.screensNavigator = navigator
-                                                }
+                                        AppNavHost(
+                                            navigator = codeNavigator,
+                                            resultStateRegistry = resultStateRegistry,
+                                            decorators = listOf(
+                                                rememberNavMessagingEntryDecorator(
+                                                    codeNavigator.backStack,
+                                                    barManager
+                                                )
+                                            ),
+                                            sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
+                                                codeNavigator.resultStore
+                                            ) {
+                                                codeNavigator.backStack.getOrNull(
+                                                    codeNavigator.backStack.lastIndex - 1
+                                                )
+                                            } then SinglePaneSceneStrategy(),
+                                            onBack = { codeNavigator.navigateBack() },
+                                            entryProvider = { key ->
+                                                appEntryProvider(
+                                                    key = key,
+                                                    resultStateRegistry = resultStateRegistry,
+                                                    barManager = barManager,
+                                                    deepLink = { deepLink },
+                                                )
+                                            },
+                                        )
+                                    }
 
-                                                Box(
-                                                    modifier = Modifier
-                                                        .padding(innerPaddingModifier)
-                                                ) {
-
-                                                    when (navigator.lastEvent) {
-                                                        StackEvent.Replace -> {
-                                                            when (navigator.lastItemOrNull) {
-                                                                ScreenRegistry.get(AppRoute.Onboarding.SeedInput),
-                                                                ScreenRegistry.get(AppRoute.Onboarding.AccessKey) -> {
-                                                                    CrossfadeTransition(navigator = navigator)
-                                                                }
-
-                                                                else -> CurrentScreen()
-                                                            }
-                                                        }
-                                                        else -> SlideTransition(navigator = navigator)
-                                                    }
-                                                }
-
-                                                LaunchedEffect(deepLink) {
-                                                    if (codeNavigator.lastItem !is MainRoot) {
-                                                        if (deepLink != null) {
-                                                            val screenSet =
-                                                                router.processDestination(deepLink)
-                                                            if (screenSet.isNotEmpty()) {
-                                                                codeNavigator.replaceAll(screenSet)
-                                                            }
-
-                                                            deepLink = null
-                                                        }
-                                                    }
-                                                }
-
-                                                LaunchedEffect(
-                                                    loginRequest,
-                                                    codeNavigator.lastItem,
-                                                    userManager.authState
-                                                ) {
-                                                    if (codeNavigator.lastItem is MainRoot) return@LaunchedEffect
-                                                    if (userManager.authState !is AuthState.LoggedInWithUser) {
-                                                        // reset login request here
-                                                        // if we are not currently logged in, then the deeplink
-                                                        // is most likely being processed in [MainRoot] during launch
-                                                        loginRequest = null
-                                                        return@LaunchedEffect
-                                                    }
-                                                    loginRequest?.let { entropy ->
-                                                        viewModel.handleLoginEntropy(
-                                                            entropy,
-                                                            onSwitchAccount = {
-                                                                loginRequest = null
-                                                                codeNavigator.replaceAll(
-                                                                    ScreenRegistry.get(
-                                                                        AppRoute.Onboarding.Login(
-                                                                            entropy,
-                                                                            fromDeeplink = true
-                                                                        )
-                                                                    )
-                                                                )
-                                                            },
-                                                            onDismissed = { loginRequest = null }
-                                                        )
-                                                    }
-                                                }
-
-                                                LaunchedEffect(userState.isTimelockUnlocked) {
-                                                    if (userState.isTimelockUnlocked) {
-                                                        codeNavigator.replaceAll(
-                                                            ScreenRegistry.get(
-                                                                AppRoute.Main.AppRestricted(
-                                                                    RestrictionType.TIMELOCK_UNLOCKED
-                                                                )
-                                                            )
-                                                        )
-                                                    }
-                                                }
-
-                                                OnLifecycleEvent { _, event ->
-                                                    when (event) {
-                                                        Lifecycle.Event.ON_RESUME -> {
-                                                            session.onAppInForeground()
-                                                        }
-
-                                                        Lifecycle.Event.ON_STOP,
-                                                        Lifecycle.Event.ON_DESTROY -> {
-                                                            session.onAppInBackground()
-                                                        }
-
-                                                        else -> Unit
-                                                    }
-                                                }
+                                    LaunchedEffect(deepLink) {
+                                        if (codeNavigator.currentRouteKey is AppRoute.Loading) return@LaunchedEffect
+                                        if (deepLink != null) {
+                                            val routes = router.processDestination(deepLink)
+                                            if (routes.isNotEmpty()) {
+                                                codeNavigator.replaceAll(routes)
                                             }
+                                            deepLink = null
+                                        }
+                                    }
+
+                                    LaunchedEffect(
+                                        loginRequest,
+                                        codeNavigator.lastItem,
+                                        userManager.authState
+                                    ) {
+                                        if (codeNavigator.currentRouteKey is AppRoute.Loading) return@LaunchedEffect
+                                        if (userManager.authState !is AuthState.LoggedInWithUser) {
+                                            loginRequest = null
+                                            return@LaunchedEffect
+                                        }
+                                        loginRequest?.let { entropy ->
+                                            viewModel.handleLoginEntropy(
+                                                entropy,
+                                                onSwitchAccount = {
+                                                    loginRequest = null
+                                                    codeNavigator.replaceAll(
+                                                        AppRoute.Onboarding.Login(
+                                                            entropy,
+                                                            fromDeeplink = true
+                                                        )
+                                                    )
+                                                },
+                                                onDismissed = { loginRequest = null }
+                                            )
+                                        }
+                                    }
+
+                                    LaunchedEffect(userState.isTimelockUnlocked) {
+                                        if (userState.isTimelockUnlocked) {
+                                            codeNavigator.replaceAll(
+                                                AppRoute.Main.AppRestricted(
+                                                    RestrictionType.TIMELOCK_UNLOCKED
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    OnLifecycleEvent { _, event ->
+                                        when (event) {
+                                            Lifecycle.Event.ON_RESUME -> {
+                                                session.onAppInForeground()
+                                            }
+                                            Lifecycle.Event.ON_STOP,
+                                            Lifecycle.Event.ON_DESTROY -> {
+                                                session.onAppInBackground()
+                                            }
+                                            else -> Unit
                                         }
                                     }
                                 }
@@ -262,57 +245,6 @@ internal fun App(
 
             BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
             UpdateRequiredBlockingView(modifier = Modifier.fillMaxSize(), biometricsState = biometricsState)
-            TopBarContainer(barManager.barMessages)
-            BottomBarContainer(barManager.barMessages)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-private fun AppNavHost(
-    biometricsState: BiometricsState,
-    content: @Composable () -> Unit
-) {
-    var combinedNavigator by remember {
-        mutableStateOf<CombinedNavigator?>(null)
-    }
-
-    val semanticsModifier = if (BuildConfig.DEBUG) {
-        Modifier.semantics { testTagsAsResourceId = true }
-    } else Modifier
-
-    Box(modifier = semanticsModifier) {
-        BottomSheetNavigator(
-            modifier = Modifier.fillMaxSize(),
-            sheetBackgroundColor = LocalCodeColors.current.background,
-            sheetContentColor = LocalCodeColors.current.onBackground,
-            sheetContent = { sheetNav ->
-                if (combinedNavigator == null) {
-                    combinedNavigator = CombinedNavigator(sheetNav)
-                }
-                combinedNavigator?.let {
-                    CompositionLocalProvider(
-                        LocalCodeNavigator provides it,
-                        LocalBiometricsState provides biometricsState,
-                    ) {
-                        SheetSlideTransition(navigator = it)
-                    }
-                }
-            },
-            onHide = ModalManager::clear
-        ) { sheetNav ->
-            if (combinedNavigator == null) {
-                combinedNavigator = CombinedNavigator(sheetNav)
-            }
-            combinedNavigator?.let {
-                CompositionLocalProvider(
-                    LocalCodeNavigator provides it,
-                    LocalBiometricsState provides biometricsState,
-                ) {
-                    content()
-                }
-            }
         }
     }
 }

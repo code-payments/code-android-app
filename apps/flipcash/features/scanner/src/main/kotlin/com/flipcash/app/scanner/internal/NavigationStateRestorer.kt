@@ -1,8 +1,8 @@
 package com.flipcash.app.scanner.internal
 
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.navigateTo
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
 import com.flipcash.app.core.tokens.TokenSwapPurpose
@@ -20,29 +20,25 @@ class NavigationStateRestorer(
         when (deeplink) {
             is DeeplinkType.TokenInfo -> {
                 delay(200.scaled(animationScale))
-                navigator.show(
-                    listOf(
-                        ScreenRegistry.get(AppRoute.Sheets.Wallet),
-                        ScreenRegistry.get(AppRoute.Token.Info(deeplink.mint, fromDeeplink = true))
-                    )
-                )
+                navigator.navigateTo(AppRoute.Sheets.Wallet)
+                navigator.push(AppRoute.Token.Info(deeplink.mint, fromDeeplink = true))
             }
 
 
             is DeeplinkType.ExternalWalletStep -> {
                 val screens = when (val origin = deeplink.origin) {
-                    OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
-                    is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Main.Give(origin.tokenAddress)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
-                    OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
-                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdf)) + ScreenRegistry.get(AppRoute.OnRamp.AmountEntry)
+                    OnRampDeeplinkOrigin.Menu -> buildOnRampScreenFlow(AppRoute.Sheets.Menu) + AppRoute.OnRamp.AmountEntry
+                    is OnRampDeeplinkOrigin.Give -> buildOnRampScreenFlow(AppRoute.Sheets.Give(origin.tokenAddress)) + AppRoute.OnRamp.AmountEntry
+                    OnRampDeeplinkOrigin.Wallet -> buildOnRampScreenFlow(AppRoute.Sheets.Wallet) + AppRoute.OnRamp.AmountEntry
+                    OnRampDeeplinkOrigin.Reserves -> buildOnRampScreenFlow(AppRoute.Token.Info(Mint.usdf)) + AppRoute.OnRamp.AmountEntry
                     is OnRampDeeplinkOrigin.TokenInfo -> listOf(
-                        ScreenRegistry.get(AppRoute.Sheets.Wallet),
-                        ScreenRegistry.get(AppRoute.Token.Info(origin.mint)),
-                        ScreenRegistry.get(AppRoute.Token.SwapTransact(TokenSwapPurpose.FundWithWallet(origin.mint)))
+                        AppRoute.Sheets.Wallet,
+                        AppRoute.Token.Info(origin.mint),
+                        AppRoute.Token.SwapTransact(TokenSwapPurpose.FundWithWallet(origin.mint))
                     )
                 }
 
-                navigator.show(screens)
+                navigator.navigateTo(screens)
             }
 
             is DeeplinkType.EmailVerification -> {
@@ -50,31 +46,27 @@ class NavigationStateRestorer(
                 val screens = when (origin) {
                     is EmailDeeplinkOrigin.OnRamp -> when (val source = origin.source) {
                         is AppRoute.Sheets.Menu -> {
-                            buildOnRampScreenFlow(source) + ScreenRegistry.get(
-                                AppRoute.Verification(
+                            buildOnRampScreenFlow(source) + AppRoute.Verification(
                                     origin = source,
                                     target = AppRoute.OnRamp.AmountEntry,
                                     includePhone = false,
                                     email = deeplink.email,
                                     emailVerificationCode = deeplink.code
                                 )
-                            )
                         }
                         else -> emptyList()
                     }
 
                     EmailDeeplinkOrigin.MyAccount ->
                         listOf(
-                            ScreenRegistry.get(AppRoute.Sheets.Menu),
-                            ScreenRegistry.get(AppRoute.Menu.MyAccount)
-                        ) + ScreenRegistry.get(
-                            AppRoute.Verification(
-                                origin = AppRoute.Menu.MyAccount,
-                                target = null,
-                                includePhone = false,
-                                email = deeplink.email,
-                                emailVerificationCode = deeplink.code
-                            )
+                            AppRoute.Sheets.Menu,
+                            AppRoute.Menu.MyAccount
+                        ) + AppRoute.Verification(
+                            origin = AppRoute.Menu.MyAccount,
+                            target = null,
+                            includePhone = false,
+                            email = deeplink.email,
+                            emailVerificationCode = deeplink.code
                         )
 
                     null -> emptyList()
@@ -82,7 +74,7 @@ class NavigationStateRestorer(
 
                 if (screens.isNotEmpty()) {
                     analytics.deeplinkRouted(deeplink)
-                    navigator.show(screens)
+                    navigator.navigateTo(screens)
                 } else {
                     analytics.deeplinkRouted(deeplink, IllegalStateException("Failed to route deeplink"))
                 }
@@ -92,8 +84,7 @@ class NavigationStateRestorer(
 }
 
 private fun buildOnRampScreenFlow(origin: List<AppRoute>) =
-    origin.dropLast(1).map { ScreenRegistry.get(it) } +
-    ScreenRegistry.get(AppRoute.OnRamp.ProviderList(origin.last())
-)
+    origin.dropLast(1) +
+    AppRoute.OnRamp.ProviderList(origin.last())
 
 private fun buildOnRampScreenFlow(origin: AppRoute) = buildOnRampScreenFlow(listOf(origin))

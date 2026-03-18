@@ -1,8 +1,7 @@
 package com.flipcash.app.router.internal
 
 import androidx.core.net.toUri
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
+import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -41,54 +40,54 @@ internal class AppRouter(
         val token = listOf("token")
     }
 
-    override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
+    override suspend fun processDestination(deeplink: DeepLink?): List<NavKey> {
         return deeplink?.let {
             val type = processType(deeplink) ?: return emptyList()
             when (type) {
                 is DeeplinkType.Login -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
+                        listOf(AppRoute.Main.Scanner(type))
                     } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login(type.entropy, true)))
+                        listOf(AppRoute.Onboarding.Login(type.entropy, true))
                     }
                 }
                 is DeeplinkType.CashLink -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
+                        listOf(AppRoute.Main.Scanner(type))
                     } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+                        listOf(AppRoute.Onboarding.Login())
                     }
                 }
 
                 is DeeplinkType.ExternalWalletConnection -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                        listOf(AppRoute.Main.Scanner())
                     } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+                        listOf(AppRoute.Onboarding.Login())
                     }
                 }
 
                 is DeeplinkType.ExternalWalletSignedTransaction ->  {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                        listOf(AppRoute.Main.Scanner())
                     } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+                        listOf(AppRoute.Onboarding.Login())
                     }
                 }
 
                 is DeeplinkType.EmailVerification -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
+                        listOf(AppRoute.Main.Scanner(type))
                     } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+                        listOf(AppRoute.Onboarding.Login())
                     }
                 }
 
                 is DeeplinkType.TokenInfo -> {
                     if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
+                        listOf(AppRoute.Main.Scanner(type))
                     } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+                        listOf(AppRoute.Onboarding.Login())
                     }
                 }
             }

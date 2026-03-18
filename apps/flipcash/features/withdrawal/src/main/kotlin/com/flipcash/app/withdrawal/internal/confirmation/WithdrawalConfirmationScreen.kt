@@ -19,9 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.withdrawal.WithdrawalEntryScreen
 import com.flipcash.app.withdrawal.WithdrawalFlow
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.app.withdrawal.internal.components.DestinationBox
@@ -66,7 +64,7 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                             )
                         ),
                         onClose = {
-                            navigator.popUntil { it == ScreenRegistry.get(AppRoute.Sheets.Menu) }
+                            navigator.popUntil { it == AppRoute.Sheets.Menu }
                         }
                     )
                 )
@@ -91,7 +89,7 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
                         },
                         onClose = {
                             WithdrawalFlow.start()
-                            navigator.popUntil { it is WithdrawalEntryScreen }
+                            navigator.popUntil { it is AppRoute.Transfers.Withdrawal.Amount }
                         }
                     )
                 )

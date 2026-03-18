@@ -12,6 +12,7 @@ import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
+import com.getcode.utils.serializer.ByteListAsBase64Serializer
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -31,21 +32,22 @@ data class ExternallySignedTransaction(
     val serializedTransaction: String,
 ): Parcelable
 
+@Serializable
 @Parcelize
 sealed class OnRampDeeplinkOrigin: Parcelable {
-    @Parcelize
+    @Serializable @Parcelize
     data object Menu : OnRampDeeplinkOrigin()
 
-    @Parcelize
+    @Serializable @Parcelize
     data class Give(val tokenAddress: Mint?) : OnRampDeeplinkOrigin()
 
-    @Parcelize
+    @Serializable @Parcelize
     data object Wallet: OnRampDeeplinkOrigin()
 
-    @Parcelize
+    @Serializable @Parcelize
     data class TokenInfo(val mint: Mint): OnRampDeeplinkOrigin()
 
-    @Parcelize
+    @Serializable @Parcelize
     data object Reserves: OnRampDeeplinkOrigin()
 
 
@@ -63,7 +65,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
         fun fromRoute(route: AppRoute?): OnRampDeeplinkOrigin? {
             return when (route) {
                 is AppRoute.Sheets.Menu -> Menu
-                is AppRoute.Main.Give -> Give(route.mint)
+                is AppRoute.Sheets.Give -> Give(route.mint)
                 is AppRoute.Sheets.Wallet -> Wallet
                 is AppRoute.Token.Info -> {
                     if (route.mint == Mint.usdf) Reserves else TokenInfo(route.mint)
@@ -100,17 +102,19 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     }
 }
 
+@Serializable
 @Parcelize
 data class WalletDeeplinkConnectionResult(
-    val encryptionPublicKey: List<Byte>,
-    val nonce: List<Byte>,
-    val encryptedData: List<Byte>
+    @Serializable(with = ByteListAsBase64Serializer::class) val encryptionPublicKey: List<Byte>,
+    @Serializable(with = ByteListAsBase64Serializer::class) val nonce: List<Byte>,
+    @Serializable(with = ByteListAsBase64Serializer::class) val encryptedData: List<Byte>
 ): Parcelable
 
+@Serializable
 @Parcelize
 data class WalletDeeplinkSigningResult(
-    val nonce: List<Byte>,
-    val encryptedData: List<Byte>,
+    @Serializable(with = ByteListAsBase64Serializer::class) val nonce: List<Byte>,
+    @Serializable(with = ByteListAsBase64Serializer::class) val encryptedData: List<Byte>,
 ): Parcelable
 
 @Serializable

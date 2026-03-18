@@ -33,7 +33,7 @@ import com.getcode.ui.biometrics.BiometricsState
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import kotlinx.coroutines.flow.MutableStateFlow

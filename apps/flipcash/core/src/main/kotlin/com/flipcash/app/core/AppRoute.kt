@@ -1,49 +1,57 @@
 package com.flipcash.app.core
 
 import android.os.Parcelable
-import cafe.adriel.voyager.core.registry.ScreenProvider
+import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
-import com.flipcash.app.core.transfers.TransferDirection
-import com.getcode.ed25519.Ed25519
+import com.getcode.navigation.Sheet
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Parcelize
-sealed interface AppRoute : ScreenProvider, Parcelable {
+sealed interface AppRoute : NavKey, Parcelable {
 
+    /** Initial loading/splash route shown while auth state resolves. */
+    @Serializable @Parcelize data object Loading : AppRoute
+
+    @Serializable
     @Parcelize
     // TODO: turn into a Flow
     sealed interface Onboarding: AppRoute {
-        data class Login(val seed: String? = null, val fromDeeplink: Boolean = false) : Onboarding
-        data object SeedInput : Onboarding
-        data object AccessKey : Onboarding
-        data object AccessKeySavedLocation: Onboarding
-        data class Purchase(val fromLogin: Boolean = false) : Onboarding
+        @Serializable data class Login(val seed: String? = null, val fromDeeplink: Boolean = false) : Onboarding
+        @Serializable data object SeedInput : Onboarding
+        @Serializable data object AccessKey : Onboarding
+        @Serializable data object AccessKeySavedLocation: Onboarding
+        @Serializable data class Purchase(val fromLogin: Boolean = false) : Onboarding
         @Deprecated("Onboarding streamlined; permissions now requested at time of use")
-        data class NotificationPermission(val postCreate: Boolean = false) : Onboarding
+        @Serializable data class NotificationPermission(val postCreate: Boolean = false) : Onboarding
         @Deprecated("Onboarding streamlined; permissions now requested at time of use")
-        data class CameraPermission(val postCreate: Boolean = false) : Onboarding
+        @Serializable data class CameraPermission(val postCreate: Boolean = false) : Onboarding
     }
 
 
+    @Serializable
     @Parcelize
     sealed interface Main: AppRoute {
-        data class AppRestricted(val restrictionType: RestrictionType) : Main
-        data class Scanner(val deeplink: DeeplinkType? = null) : Main
+        @Serializable data class AppRestricted(val restrictionType: RestrictionType) : Main
+        @Serializable data class Scanner(val deeplink: DeeplinkType? = null) : Main
 
         // TODO: is there a better place for this to live?
-        data class RegionSelection(val kind: RegionSelectionKind) : Main
+        @Serializable data class RegionSelection(val kind: RegionSelectionKind) : Main
 
-        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Main
+        @Serializable
+        @Parcelize
+        data class Sheet(val initialRoute: Sheets) : Main, com.getcode.navigation.Sheet
     }
 
+    @Serializable
     @Parcelize
     data class Verification(
         val origin: AppRoute,
@@ -54,54 +62,62 @@ sealed interface AppRoute : ScreenProvider, Parcelable {
         val emailVerificationCode: String? = null,
     ): AppRoute
 
+    @Serializable
     @Parcelize
     sealed interface Sheets: AppRoute {
-        data class TokenSelection(val purpose: TokenPurpose): Sheets
-        data object Wallet : Sheets
-        data object Menu : Sheets
-        data object Lab: Sheets
-        data object ShareApp : Sheets
+        @Serializable data class TokenSelection(val purpose: TokenPurpose): Sheets
+        @Serializable data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
+        @Serializable data object Wallet : Sheets
+        @Serializable data object Menu : Sheets
+        @Serializable data object Lab: Sheets
+        @Serializable data object ShareApp : Sheets
     }
 
+    @Serializable
     @Parcelize
     sealed interface Token: AppRoute {
-        data class Info(val mint: Mint, val forNeededFunds: Boolean = false, val fromDeeplink: Boolean = false): Token
-        data class Transactions(val mint: Mint): Token
-        data class SwapTransact(val purpose: TokenSwapPurpose, val forNeededFunds: Boolean = false): Token
-        data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false): Token
-        data object SellReceipt: Token
+        @Serializable data class Info(val mint: Mint, val forNeededFunds: Boolean = false, val fromDeeplink: Boolean = false): Token
+        @Serializable data class Transactions(val mint: Mint): Token
+        @Serializable data class SwapTransact(val purpose: TokenSwapPurpose, val forNeededFunds: Boolean = false): Token
+        @Serializable data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false): Token
+        @Serializable data object SellReceipt: Token
     }
 
+    @Serializable
     @Parcelize
     sealed interface OnRamp: AppRoute {
+        @Serializable
         data class ProviderList(
             val from: AppRoute? = null,
             val neededAmount: Fiat? = null,
         ) : OnRamp
 
-        data object AmountEntry: OnRamp
+        @Serializable data object AmountEntry: OnRamp
     }
 
+    @Serializable
     @Parcelize
     sealed interface Transfers: AppRoute {
 
         sealed interface Withdrawal {
-            data class Amount(val mint: Mint) : Transfers
-            data object Destination : Transfers
-            data object Confirmation : Transfers
+            @Serializable data class Amount(val mint: Mint) : Transfers
+            @Serializable data object Destination : Transfers
+            @Serializable data object Confirmation : Transfers
         }
     }
 
+    @Serializable
     @Parcelize
     sealed interface Menu: AppRoute {
-        data object MyAccount : Menu
-        data class Deposit(val mint: Mint) : Menu
-        data object BackupKey : Menu
-        data object AppSettings : Menu
-        data object AdvancedFeatures : Menu
-        data object Lab : Menu
+        @Serializable data object MyAccount : Menu
+        @Serializable data class Deposit(val mint: Mint) : Menu
+        @Serializable data object BackupKey : Menu
+        @Serializable data object AppSettings : Menu
+        @Serializable data object AdvancedFeatures : Menu
+        @Serializable data object Lab : Menu
     }
 
+    @Serializable
     @Parcelize
     sealed interface Advanced: AppRoute
 }

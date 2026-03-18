@@ -302,7 +302,7 @@ private fun BottomBarButtons(
                         ) {
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
+                                    AppRoute.Sheets.Give(mint = loadable.data.address, fromTokenInfo = true)
                                 )
                             )
                         }
@@ -333,7 +333,7 @@ private fun BottomBarButtons(
                     ) {
                         dispatch(
                             TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
+                                AppRoute.Sheets.Give(mint = loadable.data.address, fromTokenInfo = true)
                             )
                         )
                     }

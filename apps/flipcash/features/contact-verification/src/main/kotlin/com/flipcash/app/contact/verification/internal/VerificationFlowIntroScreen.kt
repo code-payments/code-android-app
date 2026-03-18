@@ -1,6 +1,5 @@
 package com.flipcash.app.contact.verification.internal
 
-import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
@@ -23,10 +23,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
-import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.VerificationFlowStep
@@ -35,47 +31,33 @@ import com.flipcash.app.navigation.LocalFlowNavigator
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.AppScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
 
-@Parcelize
-class VerificationFlowIntroScreen(
-    private val isForOnRamp: Boolean = true,
-) : AppScreen, Parcelable {
+@Composable
+fun VerificationFlowIntroContent(
+    isForOnRamp: Boolean = true,
+) {
+    val codeNavigator = LocalCodeNavigator.current
+    val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
+    val keyboard = rememberKeyboardController()
 
-    @IgnoredOnParcel
-    override val testTag: String = "verification_intro_screen"
+    VerificationFlowIntroScreenContent(
+        isForOnRamp = isForOnRamp,
+        onClick = { flowNavigator.continueFlowFrom(VerificationFlowStep.Intro) },
+    )
 
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
+    val analytics = rememberAnalytics()
+    LaunchedEffect(Unit) {
+        analytics.onrampVerification(Analytics.OnrampVerificationStep.ShowInfo)
+    }
 
-    @OptIn(ExperimentalVoyagerApi::class)
-    @Composable
-    override fun ScreenContent() {
-        val codeNavigator = LocalCodeNavigator.current
-        val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
-        val keyboard = rememberKeyboardController()
-
-        VerificationFlowIntroScreenContent(
-            isForOnRamp = isForOnRamp,
-            onClick = { flowNavigator.continueFlowFrom(VerificationFlowStep.Intro) },
-        )
-
-        val analytics = rememberAnalytics()
-        LifecycleEffectOnce {
-            analytics.onrampVerification(Analytics.OnrampVerificationStep.ShowInfo)
-        }
-
-        BackHandler {
-            keyboard.hideIfVisible {
-                codeNavigator.pop()
-            }
+    BackHandler {
+        keyboard.hideIfVisible {
+            codeNavigator.pop()
         }
     }
 }

@@ -1,91 +1,62 @@
 package com.getcode.navigation.extensions
 
-import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.CreationExtras
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.hilt.VoyagerHiltViewModelFactories
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivity
 
 @Composable
-inline fun <reified T: ViewModel> getActivityScopedViewModel(): T {
+inline fun <reified T : ViewModel> getActivityScopedViewModel(): T {
     val activity = LocalContext.current.getActivity() as ComponentActivity
-    val defaultFactory = (LocalLifecycleOwner.current as HasDefaultViewModelProviderFactory)
-    val viewModelStore = LocalContext.current.getActivity()!!.viewModelStore
+    val viewModelStore = activity.viewModelStore
+    val defaultFactory = activity as HasDefaultViewModelProviderFactory
     return remember(key1 = T::class) {
-        val factory = VoyagerHiltViewModelFactories.getVoyagerFactory(
-            activity = activity,
-            delegateFactory = defaultFactory.defaultViewModelProviderFactory
-        )
-
         val provider = ViewModelProvider(
             store = viewModelStore,
-            factory = factory,
+            factory = defaultFactory.defaultViewModelProviderFactory,
             defaultCreationExtras = defaultFactory.defaultViewModelCreationExtras
         )
         provider[T::class.java]
     }
 }
 
+/**
+ * Get a ViewModel scoped to a key (for multi-step flows sharing state).
+ * Falls back to activity-scoped hiltViewModel when no key is provided.
+ */
+@Deprecated(
+    "Use flowScopedViewModel(key) for flow-shared VMs or hiltViewModel() for entry-scoped VMs",
+    ReplaceWith("flowScopedViewModel(key)", "com.getcode.navigation.extensions.flowScopedViewModel")
+)
 @Composable
-inline fun <reified T: ViewModel> Screen.getStackScopedViewModel(key: String? = null): T {
-    val _key = key ?: LocalCodeNavigator.current.sheetStackRoot?.key
-    val activity = LocalContext.current.getActivity() as ComponentActivity
-    val viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner
-
-    return remember(key1 = _key) {
-        val factory = viewModelStoreOwner.createVoyagerFactory(activity, null)
-        viewModelStoreOwner.get(T::class.java, _key, factory)
-    }
-}
-
-@PublishedApi
-internal fun ViewModelStoreOwner.createVoyagerFactory(
-    context: Context,
-    viewModelProviderFactory: ViewModelProvider.Factory? = null
-): ViewModelProvider.Factory? {
-    val factory = viewModelProviderFactory
-        ?: (this as? HasDefaultViewModelProviderFactory)?.defaultViewModelProviderFactory
-    return if (factory != null) {
-        VoyagerHiltViewModelFactories.getVoyagerFactory(
-            activity = context.getActivity() as ComponentActivity,
-            delegateFactory = factory
-        )
-    } else {
-        null
-    }
-}
-
-@PublishedApi
-internal fun <T : ViewModel> ViewModelStoreOwner.get(
-    javaClass: Class<T>,
-    key: String?,
-    viewModelProviderFactory: ViewModelProvider.Factory? = null,
-    creationExtras: CreationExtras = if (this is HasDefaultViewModelProviderFactory) {
-        this.defaultViewModelCreationExtras
-    } else {
-        CreationExtras.Empty
-    }
-): T {
-    val factory = viewModelProviderFactory
-        ?: (this as? HasDefaultViewModelProviderFactory)?.defaultViewModelProviderFactory
-    val provider = if (factory != null) {
-        ViewModelProvider(viewModelStore, factory, creationExtras)
-    } else {
-        ViewModelProvider(this)
-    }
+inline fun <reified T : ViewModel> getStackScopedViewModel(key: String? = null): T {
     return if (key != null) {
-        provider[key, javaClass]
+        val activity = LocalContext.current.getActivity() as ComponentActivity
+        remember(key1 = key) {
+            val factory = activity.defaultViewModelProviderFactory
+            val extras = activity.defaultViewModelCreationExtras
+            val provider = ViewModelProvider(activity.viewModelStore, factory, extras)
+            provider[key, T::class.java]
+        }
     } else {
-        provider[javaClass]
+        hiltViewModel<T>()
     }
+}
+
+/**
+ * Get a Hilt ViewModel shared across multiple screens in a multi-step flow.
+ * The ViewModel is scoped to the activity's ViewModelStore with the given [key],
+ * so all screens using the same key get the same instance.
+ *
+ * @param key A unique key identifying the flow instance (typically a UUID generated at flow start).
+ */
+@Composable
+inline fun <reified T : ViewModel> flowScopedViewModel(key: String): T {
+    val activity = LocalContext.current.getActivity() as ComponentActivity
+    return hiltViewModel<T>(viewModelStoreOwner = activity, key = key)
 }

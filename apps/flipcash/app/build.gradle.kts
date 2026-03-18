@@ -200,6 +200,7 @@ dependencies {
     implementation(project(":libs:quickresponse"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:components"))
+    implementation(project(":ui:navigation"))
     implementation(project(":ui:scanner"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))

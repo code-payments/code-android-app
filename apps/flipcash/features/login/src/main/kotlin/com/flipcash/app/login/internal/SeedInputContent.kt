@@ -41,7 +41,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
@@ -73,7 +72,7 @@ internal fun SeedInputContent(viewModel: SeedInputViewModel) {
         onTextChange = { viewModel.onTextChange(it) },
         onLogin = { viewModel.onSubmit(navigator) },
         onRestore = { viewModel.restoreAccount(navigator) },
-        onCantFind = { navigator.push(ScreenRegistry.get(AppRoute.Onboarding.AccessKeySavedLocation)) }
+        onCantFind = { navigator.push(AppRoute.Onboarding.AccessKeySavedLocation) }
     )
 }
 
