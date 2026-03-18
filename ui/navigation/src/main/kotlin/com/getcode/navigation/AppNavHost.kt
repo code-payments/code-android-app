@@ -6,10 +6,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.navigation3.scene.OverlayScene
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,7 +41,11 @@ fun AppNavHost(
     resultStateRegistry: NavResultStateRegistry = rememberNavResultStateRegistry(),
     sceneStrategy: SceneStrategy<NavKey> = SinglePaneSceneStrategy(),
     transitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+        if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
+            EnterTransition.None togetherWith ExitTransition.None
+        } else {
+            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+        }
     },
     popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = transitionSpec,
     predictivePopTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = {

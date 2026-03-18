@@ -93,4 +93,14 @@ fun TokenBuySellEntryScreen(
                 navigator.push(AppRoute.Token.TxProcessing(swapId))
             }.launchIn(this)
     }
+
+    // Navigate to pending routes from ExternalWalletOnRampHandler using the
+    // sheet's inner navigator (which the handler can't access directly).
+    val pendingNav = externalWalletOnRamp.pendingNavigation
+    LaunchedEffect(pendingNav) {
+        if (pendingNav is AppRoute.Token.TxProcessing) {
+            navigator.push(pendingNav)
+            externalWalletOnRamp.pendingNavigation = null
+        }
+    }
 }

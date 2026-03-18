@@ -3,7 +3,6 @@ package com.flipcash.app.core
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.getcode.navigation.Sheet
@@ -41,14 +40,17 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Main: AppRoute {
         @Serializable data class AppRestricted(val restrictionType: RestrictionType) : Main
-        @Serializable data class Scanner(val deeplink: DeeplinkType? = null) : Main
+        @Serializable data object Scanner : Main
 
         // TODO: is there a better place for this to live?
         @Serializable data class RegionSelection(val kind: RegionSelectionKind) : Main
 
         @Serializable
         @Parcelize
-        data class Sheet(val initialRoute: Sheets) : Main, com.getcode.navigation.Sheet
+        data class Sheet(
+            val initialRoute: Sheets,
+            val innerRoutes: List<AppRoute> = emptyList(),
+        ) : Main, com.getcode.navigation.Sheet
     }
 
     @Serializable

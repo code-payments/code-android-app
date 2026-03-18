@@ -24,10 +24,14 @@ import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.android.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.resolveRoutes
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.user.AuthState
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -94,7 +98,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
                         "state" to state
                     }
                 )
-                val routes = buildNavGraphForLaunch(
+                val launch = buildNavGraphForLaunch(
                     state = state,
                     userFlags = flags,
                     router = router,
@@ -117,56 +121,115 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
                     }
                 }
 
-                if (routes != null) {
-                    navigator.replaceAll(routes)
+                if (launch != null) {
+                    val current = navigator.backStack.toList()
+                    val target = launch.resolvedBackStack()
+
+                    // Skip if the current stack already matches or extends the target.
+                    // This prevents blowing away screens the user has navigated into
+                    // (e.g. a verification code screen) when auth/flags re-emit.
+                    if (!current.startsWith(target)) {
+                        navigator.replaceAll(launch.baseRoutes)
+                        if (launch.deeplinkRoutes.isNotEmpty()) {
+                            navigator.navigateTo(launch.deeplinkRoutes)
+                        }
+                    }
                 }
             }.launchIn(this)
     }
 }
 
-private suspend fun buildNavGraphForLaunch(
+/**
+ * Result of building the initial nav graph.
+ *
+ * [baseRoutes] are set via replaceAll (root backstack).
+ * [deeplinkRoutes] are applied via navigateTo, which handles sheet wrapping
+ * so deeplinks targeting screens inside sheets render correctly.
+ */
+private data class LaunchNavGraph(
+    val baseRoutes: List<NavKey>,
+    val deeplinkRoutes: List<AppRoute> = emptyList(),
+) {
+    /**
+     * Predict the final backstack that [baseRoutes] + [navigateTo(deeplinkRoutes)] will produce.
+     * Uses the shared [resolveRoutes] to apply the same sheet-wrapping as [navigateTo]
+     * so we can compare against the current backstack and skip redundant navigation.
+     */
+    fun resolvedBackStack(): List<NavKey> {
+        if (deeplinkRoutes.isEmpty()) return baseRoutes
+        return baseRoutes + resolveRoutes(deeplinkRoutes)
+    }
+}
+
+/**
+ * Returns true if [this] list starts with [prefix] (element-wise structural equality).
+ * An exact match also returns true (prefix == full list).
+ *
+ * This lets us detect when the user has navigated *deeper* than the launch target
+ * (e.g. opened a sheet, pushed a verification screen) so we don't blow away their
+ * backstack on a harmless auth/flags re-emission.
+ */
+private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
+    if (size < prefix.size) return false
+    return prefix.indices.all { i -> this[i] == prefix[i] }
+}
+
+private fun buildNavGraphForLaunch(
     state: AuthState,
     userFlags: UserFlags?,
     router: Router,
     deepLink: () -> DeepLink?,
-): List<NavKey>? {
+): LaunchNavGraph? {
     return when (state) {
         is AuthState.Registered -> {
             if (state.seenAccessKey) {
-                buildList {
-                    if (userFlags?.requiresIapForRegistration == true) {
-                        addAll(
-                            listOf(
-                                AppRoute.Onboarding.Login(),
-                                AppRoute.Onboarding.AccessKey,
-                                AppRoute.Onboarding.Purchase()
-                            )
-                        )
-                    } else {
-                        addAll(listOf(AppRoute.Main.Scanner()))
-                    }
+                val routes = if (userFlags?.requiresIapForRegistration == true) {
+                    listOf(
+                        AppRoute.Onboarding.Login(),
+                        AppRoute.Onboarding.AccessKey,
+                        AppRoute.Onboarding.Purchase()
+                    )
+                } else {
+                    listOf(AppRoute.Main.Scanner)
                 }
+                LaunchNavGraph(routes)
             } else {
-                listOf(
-                    AppRoute.Onboarding.Login(),
-                    AppRoute.Onboarding.AccessKey
+                LaunchNavGraph(
+                    listOf(
+                        AppRoute.Onboarding.Login(),
+                        AppRoute.Onboarding.AccessKey
+                    )
                 )
             }
         }
 
         AuthState.LoggedInWithUser -> {
-            val routes = router.processDestination(deepLink())
-
-            routes.ifEmpty {
-                listOf(AppRoute.Main.Scanner())
+            val link = deepLink()
+            if (link != null) {
+                when (val action = router.dispatch(link)) {
+                    is DeeplinkAction.Navigate -> LaunchNavGraph(
+                        baseRoutes = listOf(AppRoute.Main.Scanner),
+                        deeplinkRoutes = action.routes,
+                    )
+                    // ExternalWallet/Login/OpenCashLink can't be handled on cold start
+                    // (encryption state lost, no session yet) — fall through to Scanner
+                    else -> LaunchNavGraph(listOf(AppRoute.Main.Scanner))
+                }
+            } else {
+                LaunchNavGraph(listOf(AppRoute.Main.Scanner))
             }
         }
 
         AuthState.LoggedOut,
         AuthState.Unknown -> {
-            val routes = router.processDestination(deepLink())
-            routes.ifEmpty {
-                listOf(AppRoute.Onboarding.Login())
+            val link = deepLink()
+            if (link != null) {
+                when (val action = router.dispatch(link)) {
+                    is DeeplinkAction.Navigate -> LaunchNavGraph(action.routes)
+                    else -> LaunchNavGraph(listOf(AppRoute.Onboarding.Login()))
+                }
+            } else {
+                LaunchNavGraph(listOf(AppRoute.Onboarding.Login()))
             }
         }
 

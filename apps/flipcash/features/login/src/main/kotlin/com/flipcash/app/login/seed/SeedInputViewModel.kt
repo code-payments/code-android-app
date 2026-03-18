@@ -134,7 +134,7 @@ class SeedInputViewModel @Inject constructor(
                 navigator.push(AppRoute.Onboarding.Purchase(true))
             }
 
-            else -> navigator.replaceAll(AppRoute.Main.Scanner())
+            else -> navigator.replaceAll(AppRoute.Main.Scanner)
         }
     }
 

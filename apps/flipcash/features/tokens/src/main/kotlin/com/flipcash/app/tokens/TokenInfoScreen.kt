@@ -125,5 +125,15 @@ fun TokenInfoScreen(
                     externalWalletOnRamp.start(OnRampFlowTracker.source, OnRampProvider.Phantom)
                 }.launchIn(this)
         }
+
+        // Navigate to pending routes from ExternalWalletOnRampHandler using the
+        // sheet's inner navigator (which the handler can't access directly).
+        val pendingNav = externalWalletOnRamp.pendingNavigation
+        LaunchedEffect(pendingNav) {
+            if (pendingNav is AppRoute.Token.SwapTransact) {
+                navigator.push(pendingNav)
+                externalWalletOnRamp.pendingNavigation = null
+            }
+        }
     }
 }

@@ -20,7 +20,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.ui.utils.DisableSheetGestures
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -45,9 +45,15 @@ fun TokenTxProcessingScreen(
     if (awaitExternalWallet) {
         val externalWalletState = LocalExternalWalletState.current
         LaunchedEffect(viewModel, swapId) {
-            // Wait for the transaction to be submitted before starting swap polling
-            snapshotFlow { externalWalletState.deeplinkState }
-                .first { it == ExternalWalletState.TRANSACTED }
+            // Wait for the transaction to be submitted or cancelled/errored
+            val terminalState = snapshotFlow { externalWalletState.deeplinkState }
+                .firstOrNull { it == ExternalWalletState.TRANSACTED || it == ExternalWalletState.IDLE  }
+
+            if (terminalState != ExternalWalletState.TRANSACTED) {
+                // User cancelled or error occurred — pop back to previous screen
+                navigator.pop()
+                return@LaunchedEffect
+            }
 
             externalWalletState.reset()
             viewModel.dispatchEvent(Event.OnSwapIdChanged(swapId))
@@ -57,7 +63,7 @@ fun TokenTxProcessingScreen(
             // the indicator's remember(processingState) won't reset, so the timer
             // and progress continue seamlessly with no jump.
             snapshotFlow { viewModel.stateFlow.value.processingProgress }
-                .first { it.loading }
+                .firstOrNull { it.loading }
 
             awaitingWallet = false
         }

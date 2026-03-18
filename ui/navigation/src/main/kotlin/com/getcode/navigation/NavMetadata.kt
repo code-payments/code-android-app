@@ -16,28 +16,39 @@ enum class NavMetadataKeys(val key: String, ) {
     NavResultKey("navresult_key"),
 }
 
-inline fun <reified T : NavKey> EntryProviderScope<NavKey>.annotatedEntry(noinline content: @Composable (T) -> Unit) {
-    val metadata = T::class.metadata()
-    return entry(metadata = metadata, content = content)
+/**
+ * DSL helper: registers an entry whose metadata is derived from [T]'s marker interfaces.
+ */
+inline fun <reified T : NavKey> EntryProviderScope<NavKey>.annotatedEntry(
+    noinline content: @Composable (T) -> Unit
+) {
+    entry(metadata = T::class.metadata(), content = content)
 }
 
-inline fun <reified T: Any> T.metadata(): Map<String, Any> {
-    val retValType = T::class.supertypes.find { it.classifier == NavigationRetVal::class }
+/**
+ * Compute metadata from a [KClass] by inspecting its marker interfaces.
+ */
+fun KClass<*>.metadata(): Map<String, Any> {
+    val retValType = supertypes.find { it.classifier == NavigationRetVal::class }
     val resultClass = retValType?.arguments?.firstOrNull()?.type?.classifier as? KClass<*>
 
-    val metadata = mapOf(
-        NavMetadataKeys.IsSheet.key to (this is Sheet),
-        NavMetadataKeys.IsSolitarySheet.key to (SolitarySheet::class.java.isAssignableFrom(T::class.java)),
-        NavMetadataKeys.IsNonDismissable.key to (NonDismissableRoute::class.java.isAssignableFrom(T::class.java)),
-        NavMetadataKeys.NavResultKey.key to (if (NavigationRetVal::class.isSuperclassOf(T::class)) {
+    return mapOf(
+        NavMetadataKeys.IsSheet.key to Sheet::class.java.isAssignableFrom(this.java),
+        NavMetadataKeys.IsSolitarySheet.key to SolitarySheet::class.java.isAssignableFrom(this.java),
+        NavMetadataKeys.IsNonDismissable.key to NonDismissableRoute::class.java.isAssignableFrom(this.java),
+        NavMetadataKeys.NavResultKey.key to (if (NavigationRetVal::class.isSuperclassOf(this)) {
             @Suppress("UNCHECKED_CAST")
-            (NavResultKey(
-                T::class as KClass<NavigationRetVal<Parcelable>>,
+            NavResultKey(
+                this as KClass<NavigationRetVal<Parcelable>>,
                 resultClass as KClass<Parcelable>
-            ))
+            )
         } else {
             ""
         })
     )
-    return metadata
 }
+
+/**
+ * Instance convenience: compute metadata from this object's runtime type.
+ */
+inline fun <reified T : Any> T.metadata(): Map<String, Any> = T::class.metadata()

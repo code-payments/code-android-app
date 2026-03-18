@@ -2,7 +2,11 @@ package com.getcode.navigation.core
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
@@ -44,6 +48,23 @@ data class CodeNavigator(
     val resultStore: NavResultStore,
     val onRootReached: () -> Unit,
 ) {
+    /**
+     * When set, signals the active sheet to animate its dismiss. The callback
+     * is invoked after the dismiss animation finishes and the sheet entry is removed
+     * from the backstack — use it to navigate to the replacement sheet.
+     * Uses [mutableStateOf] so any composable reading this property is guaranteed
+     * to recompose when it changes.
+     */
+    var pendingSheetDismiss: (() -> Unit)? by mutableStateOf(null)
+
+    /**
+     * Monotonic counter incremented on each dismiss-then-replace. Used as part of the
+     * composition key in [ModalBottomSheetScene] to force a fresh composition scope
+     * when the same route key is reused (otherwise Compose reuses the old Hidden
+     * SheetState because onBack + navigateTo happen in the same snapshot).
+     */
+    var sheetGeneration by mutableIntStateOf(0)
+
     val currentRouteKey: NavKey?
         get() = backStack.lastOrNull()
 

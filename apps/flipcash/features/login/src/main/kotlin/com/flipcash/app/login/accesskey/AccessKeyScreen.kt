@@ -31,7 +31,7 @@ fun AccessKeyScreen() {
             if (requiresIap) {
                 navigator.push(AppRoute.Onboarding.Purchase())
             } else {
-                navigator.replaceAll(AppRoute.Main.Scanner())
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }
         }
     }

@@ -34,7 +34,7 @@ fun LoginRouter(
         vm.eventFlow
             .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
             .onEach { delay(500) }
-            .onEach { navigator.replaceAll(AppRoute.Main.Scanner()) }
+            .onEach { navigator.replaceAll(AppRoute.Main.Scanner) }
             .launchIn(this)
     }
 

@@ -1,7 +1,11 @@
 package com.flipcash.app.internal.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -20,15 +24,18 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.contact.verification.EmailVerificationFlow
+import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.internal.ui.navigation.AppPreloads
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
+import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.onramp.LocalExternalWalletState
@@ -38,7 +45,6 @@ import com.flipcash.app.payments.PaymentScaffold
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
-import com.flipcash.app.updates.UpdateRequiredBlockingView
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.user.AuthState
 import com.getcode.libs.biometrics.BiometricsError
@@ -53,10 +59,10 @@ import com.getcode.solana.rpc.RpcConfig
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.biometrics.rememberBiometricsState
-import com.getcode.ui.biometrics.views.BiometricsBlockingView
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
+import com.flipcash.app.core.extensions.navigateTo
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
@@ -87,15 +93,9 @@ internal fun App(
     }
 
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }
-    var loginRequest by remember { mutableStateOf<String?>(null) }
     val userManager = LocalUserManager.current!!
     DeepLinkListener {
         analytics.deeplinkOpened(it.data)
-        val type = router.processType(it)
-        analytics.deeplinkParsed(type, it.data)
-        if (type is DeeplinkType.Login) {
-            loginRequest = type.entropy
-        }
         deepLink = it
     }
 
@@ -145,8 +145,6 @@ internal fun App(
                                         state = externalWalletOnRamp,
                                         lifecycleOwner = LocalLifecycleOwner.current,
                                         navigator = codeNavigator,
-                                        router = router,
-                                        deepLink = deepLink,
                                     ) {
                                         AppNavHost(
                                             navigator = codeNavigator,
@@ -155,7 +153,8 @@ internal fun App(
                                                 rememberNavMessagingEntryDecorator(
                                                     codeNavigator.backStack,
                                                     barManager
-                                                )
+                                                ),
+                                                rememberNavBlockingOverlayEntryDecorator(),
                                             ),
                                             sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
                                                 codeNavigator.resultStore
@@ -164,53 +163,90 @@ internal fun App(
                                                     codeNavigator.backStack.lastIndex - 1
                                                 )
                                             } then SinglePaneSceneStrategy(),
-                                            onBack = { codeNavigator.navigateBack() },
-                                            entryProvider = { key ->
-                                                appEntryProvider(
-                                                    key = key,
-                                                    resultStateRegistry = resultStateRegistry,
-                                                    barManager = barManager,
-                                                    deepLink = { deepLink },
-                                                )
+                                            transitionSpec = {
+                                                if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
+                                                    EnterTransition.None togetherWith ExitTransition.None
+                                                } else {
+                                                    slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { -it })
+                                                }
                                             },
+                                            popTransitionSpec = {
+                                                if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
+                                                    EnterTransition.None togetherWith ExitTransition.None
+                                                } else {
+                                                    slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { it })
+                                                }
+                                            },
+                                            predictivePopTransitionSpec = {
+                                                if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
+                                                    EnterTransition.None togetherWith ExitTransition.None
+                                                } else {
+                                                    slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { it })
+                                                }
+                                            },
+                                            onBack = { codeNavigator.navigateBack() },
+                                            entryProvider = appEntryProvider(
+                                                resultStateRegistry = resultStateRegistry,
+                                                barManager = barManager,
+                                                deepLink = { deepLink },
+                                            ),
                                         )
                                     }
 
                                     LaunchedEffect(deepLink) {
-                                        if (codeNavigator.currentRouteKey is AppRoute.Loading) return@LaunchedEffect
-                                        if (deepLink != null) {
-                                            val routes = router.processDestination(deepLink)
-                                            if (routes.isNotEmpty()) {
-                                                codeNavigator.replaceAll(routes)
-                                            }
-                                            deepLink = null
-                                        }
-                                    }
+                                        val link = deepLink ?: return@LaunchedEffect
 
-                                    LaunchedEffect(
-                                        loginRequest,
-                                        codeNavigator.lastItem,
-                                        userManager.authState
-                                    ) {
-                                        if (codeNavigator.currentRouteKey is AppRoute.Loading) return@LaunchedEffect
-                                        if (userManager.authState !is AuthState.LoggedInWithUser) {
-                                            loginRequest = null
+                                        if (codeNavigator.currentRouteKey is AppRoute.Loading) {
+                                            // Cold start — MainRoot handles it via the deepLink lambda
                                             return@LaunchedEffect
                                         }
-                                        loginRequest?.let { entropy ->
-                                            viewModel.handleLoginEntropy(
-                                                entropy,
+
+                                        when (val action = router.dispatch(link)) {
+                                            is DeeplinkAction.Navigate -> {
+                                                // If a verification code targets a screen already open,
+                                                // deliver via side-channel and skip navigation.
+                                                val verification = action.routes
+                                                    .filterIsInstance<AppRoute.Verification>()
+                                                    .firstOrNull()
+                                                val email = verification?.email
+                                                val code = verification?.emailVerificationCode
+                                                val delivered = if (email != null && code != null) {
+                                                    EmailVerificationFlow.deliverCode(email, code)
+                                                } else false
+
+                                                if (!delivered) {
+                                                    codeNavigator.navigateTo(action.routes)
+                                                }
+                                            }
+                                            is DeeplinkAction.ExternalWallet -> externalWalletOnRamp.handleWalletDeeplink(action.type)
+                                            is DeeplinkAction.Login -> viewModel.handleLoginEntropy(
+                                                action.entropy,
                                                 onSwitchAccount = {
-                                                    loginRequest = null
                                                     codeNavigator.replaceAll(
                                                         AppRoute.Onboarding.Login(
-                                                            entropy,
+                                                            action.entropy,
                                                             fromDeeplink = true
                                                         )
                                                     )
                                                 },
-                                                onDismissed = { loginRequest = null }
+                                                onDismissed = { }
                                             )
+                                            is DeeplinkAction.OpenCashLink -> session.openCashLink(action.entropy)
+                                            DeeplinkAction.None -> {}
+                                        }
+                                        deepLink = null
+                                    }
+
+                                    LaunchedEffect(userState.authState) {
+                                        if (userState.authState == AuthState.LoggedOut) {
+                                            val current = codeNavigator.currentRouteKey
+                                            if (current !is AppRoute.Loading && current !is AppRoute.Onboarding) {
+                                                codeNavigator.pendingSheetDismiss = null
+                                                codeNavigator.replaceAll(AppRoute.Onboarding.Login())
+                                            }
                                         }
                                     }
 
@@ -243,8 +279,6 @@ internal fun App(
                 }
             }
 
-            BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
-            UpdateRequiredBlockingView(modifier = Modifier.fillMaxSize(), biometricsState = biometricsState)
         }
     }
 }

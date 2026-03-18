@@ -60,10 +60,10 @@ internal fun PermissionScreenContent(
                 if (postCreate) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(AppRoute.Main.Scanner())
+                navigator.replaceAll(AppRoute.Main.Scanner)
             },
             onNotGranted = {
-                navigator.replaceAll(AppRoute.Main.Scanner())
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }
         )
 
@@ -74,7 +74,7 @@ internal fun PermissionScreenContent(
                 if (postCreate) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(AppRoute.Main.Scanner())
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }
         }
     }
