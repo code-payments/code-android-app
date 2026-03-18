@@ -8,9 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.lab.internal.LabsScreenContent
 import com.flipcash.app.lab.internal.LabsScreenViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 

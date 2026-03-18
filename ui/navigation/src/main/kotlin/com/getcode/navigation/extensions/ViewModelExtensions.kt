@@ -4,7 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -22,29 +22,6 @@ inline fun <reified T : ViewModel> getActivityScopedViewModel(): T {
             defaultCreationExtras = defaultFactory.defaultViewModelCreationExtras
         )
         provider[T::class.java]
-    }
-}
-
-/**
- * Get a ViewModel scoped to a key (for multi-step flows sharing state).
- * Falls back to activity-scoped hiltViewModel when no key is provided.
- */
-@Deprecated(
-    "Use flowScopedViewModel(key) for flow-shared VMs or hiltViewModel() for entry-scoped VMs",
-    ReplaceWith("flowScopedViewModel(key)", "com.getcode.navigation.extensions.flowScopedViewModel")
-)
-@Composable
-inline fun <reified T : ViewModel> getStackScopedViewModel(key: String? = null): T {
-    return if (key != null) {
-        val activity = LocalContext.current.getActivity() as ComponentActivity
-        remember(key1 = key) {
-            val factory = activity.defaultViewModelProviderFactory
-            val extras = activity.defaultViewModelCreationExtras
-            val provider = ViewModelProvider(activity.viewModelStore, factory, extras)
-            provider[key, T::class.java]
-        }
-    } else {
-        hiltViewModel<T>()
     }
 }
 
