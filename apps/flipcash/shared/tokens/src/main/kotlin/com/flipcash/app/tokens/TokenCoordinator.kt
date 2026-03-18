@@ -311,6 +311,7 @@ class TokenCoordinator @Inject constructor(
         }
 
         applyTokenUpdates(persisted)
+        ensureValidTokenSelection()
 
         trace(tag = TAG, message = "Hydrated ${persisted.size} tokens from persistence", type = TraceType.Process)
     }
