@@ -8,6 +8,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -53,11 +56,14 @@ import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
 import com.flipcash.app.withdrawal.WithdrawalFlow
 import com.getcode.navigation.AppNavHost
+import com.getcode.navigation.NonDismissableRoute
+import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
+import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
 import dev.theolm.rinku.DeepLink
@@ -184,6 +190,24 @@ private fun SheetContent(
             backStack.removeAt(backStack.lastIndex)
         } else {
             sheetDismissDispatcher()
+        }
+    }
+
+    // Toggle the outer sheet's drag/dismiss behavior based on the current inner route.
+    val sheetNavigator = LocalSheetNavigator.current
+    val currentInnerRoute by remember {
+        derivedStateOf { backStack.lastOrNull() }
+    }
+    if (sheetNavigator != null) {
+        val isDragDisabled = currentInnerRoute is NonDraggableRoute
+        val isDismissDisabled = currentInnerRoute is NonDismissableRoute
+        DisposableEffect(isDragDisabled, isDismissDisabled) {
+            sheetNavigator.sheetDragDisabled = isDragDisabled
+            sheetNavigator.sheetDismissDisabled = isDismissDisabled
+            onDispose {
+                sheetNavigator.sheetDragDisabled = false
+                sheetNavigator.sheetDismissDisabled = false
+            }
         }
     }
 

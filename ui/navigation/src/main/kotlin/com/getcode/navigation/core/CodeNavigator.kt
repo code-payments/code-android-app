@@ -63,6 +63,18 @@ data class CodeNavigator(
      * when the same route key is reused (otherwise Compose reuses the old Hidden
      * SheetState because onBack + navigateTo happen in the same snapshot).
      */
+    /**
+     * When true, the enclosing bottom sheet disables drag gestures.
+     * Inner sheet content sets this based on the current route's metadata.
+     */
+    var sheetDragDisabled by mutableStateOf(false)
+
+    /**
+     * When true, the enclosing bottom sheet blocks scrim tap and back press dismissal.
+     * Inner sheet content sets this based on the current route's metadata.
+     */
+    var sheetDismissDisabled by mutableStateOf(false)
+
     var sheetGeneration by mutableIntStateOf(0)
 
     val currentRouteKey: NavKey?
@@ -195,7 +207,7 @@ data class CodeNavigator(
     }
 
     /** Hide/dismiss a sheet (pops the current route). */
-    fun hide() = navigateBack()
+    fun hide() = popAll()
 
     /** Replace the current route with a new one. */
     fun replace(route: NavKey) = navigate(route, NavOptions(popUpTo = NavOptions.PopUpTo.PopLast))

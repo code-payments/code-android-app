@@ -17,7 +17,6 @@ import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel.Event
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.flowScopedViewModel
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.ui.utils.DisableSheetGestures
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -94,5 +93,4 @@ fun TokenTxProcessingScreen(
     }
 
     BackHandler { /* intercept */ }
-    DisableSheetGestures()
 }

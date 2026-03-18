@@ -4,4 +4,5 @@ import androidx.navigation3.runtime.NavKey
 
 interface Sheet: NavKey
 interface NonDismissableRoute: NavKey
+interface NonDraggableRoute: NavKey
 interface SolitarySheet: NavKey

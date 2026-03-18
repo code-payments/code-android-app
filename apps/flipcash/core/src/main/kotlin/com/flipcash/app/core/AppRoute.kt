@@ -5,6 +5,8 @@ import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.getcode.navigation.NonDismissableRoute
+import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.Sheet
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
@@ -81,7 +83,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable data class Info(val mint: Mint, val forNeededFunds: Boolean = false, val fromDeeplink: Boolean = false): Token
         @Serializable data class Transactions(val mint: Mint): Token
         @Serializable data class SwapTransact(val purpose: TokenSwapPurpose, val forNeededFunds: Boolean = false): Token
-        @Serializable data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false): Token
+        @Serializable data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false): Token, NonDismissableRoute, NonDraggableRoute
         @Serializable data object SellReceipt: Token
     }
 

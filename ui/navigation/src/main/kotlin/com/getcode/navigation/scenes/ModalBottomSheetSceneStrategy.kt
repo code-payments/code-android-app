@@ -9,11 +9,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,6 +27,7 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
 import com.getcode.navigation.NavMetadataKeys
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.results.NavResultKey
 import com.getcode.navigation.results.NavResultOrCanceled
@@ -64,7 +65,8 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
         val navigator = LocalCodeNavigator.current
         key(key, navigator.sheetGeneration) {
             val isNonDismissable =
-                (metadata[NavMetadataKeys.IsNonDismissable.key] as? Boolean) ?: false
+                (metadata[NavMetadataKeys.IsNonDismissable.key] as? Boolean ?: false)
+                    || navigator.sheetDismissDisabled
 
             val handleBackResult = {
                 val navResultKey =
@@ -82,10 +84,6 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
 
             var sheetState: SheetState = rememberModalBottomSheetState(
                 skipPartiallyExpanded = true,
-                confirmValueChange = { value ->
-                    // prevent dismissing via gesture if non-dismissable
-                    !(value == SheetValue.Hidden && isNonDismissable)
-                },
             )
 
             // Ensure the sheet shows when entering composition. Material3's internal
@@ -133,9 +131,15 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
             // Remove grab bar for bleed to top edge of sheet
             ModalBottomSheet(
                 sheetState = sheetState,
-                onDismissRequest = { dismiss(false) },
+                onDismissRequest = { if (!isNonDismissable) dismiss(false) },
+                sheetGesturesEnabled = !navigator.sheetDragDisabled,
                 scrimColor = CodeTheme.colors.scrim,
-                properties = modalBottomSheetProperties,
+                properties = if (isNonDismissable) {
+                    ModalBottomSheetProperties(
+                        shouldDismissOnBackPress = false,
+                        shouldDismissOnClickOutside = false,
+                    )
+                } else modalBottomSheetProperties,
                 dragHandle = null,
                 contentWindowInsets = { WindowInsets() },
                 containerColor = CodeTheme.colors.surface,
@@ -154,11 +158,10 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                         .fillMaxWidth()
                         .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
                 ) {
-                    CompositionLocalProvider(LocalBottomSheetDismissDispatcher provides {
-                        dismiss(
-                            true
-                        )
-                    }) {
+                    CompositionLocalProvider(
+                        LocalBottomSheetDismissDispatcher provides { dismiss(true) },
+                        LocalSheetNavigator provides navigator,
+                    ) {
                         entry.Content()
                     }
                 }
@@ -235,3 +238,10 @@ class ModalBottomSheetSceneStrategy<T : Any>(
 }
 
 val LocalBottomSheetDismissDispatcher = staticCompositionLocalOf { {} }
+
+/**
+ * Provides the outer (root) [CodeNavigator] to inner sheet content.
+ * Used to toggle [CodeNavigator.sheetDragDisabled] from within nested navigators.
+ */
+val LocalSheetNavigator: ProvidableCompositionLocal<CodeNavigator?> =
+    staticCompositionLocalOf { null }

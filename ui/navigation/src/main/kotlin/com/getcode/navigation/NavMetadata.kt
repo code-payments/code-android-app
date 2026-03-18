@@ -11,6 +11,7 @@ import kotlin.reflect.full.isSuperclassOf
 
 enum class NavMetadataKeys(val key: String, ) {
     IsNonDismissable("non_dismissable"),
+    IsNonDraggable("non_draggable"),
     IsSheet("sheet"),
     IsSolitarySheet("sheet_solitary"),
     NavResultKey("navresult_key"),
@@ -36,6 +37,7 @@ fun KClass<*>.metadata(): Map<String, Any> {
         NavMetadataKeys.IsSheet.key to Sheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsSolitarySheet.key to SolitarySheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDismissable.key to NonDismissableRoute::class.java.isAssignableFrom(this.java),
+        NavMetadataKeys.IsNonDraggable.key to NonDraggableRoute::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.NavResultKey.key to (if (NavigationRetVal::class.isSuperclassOf(this)) {
             @Suppress("UNCHECKED_CAST")
             NavResultKey(
