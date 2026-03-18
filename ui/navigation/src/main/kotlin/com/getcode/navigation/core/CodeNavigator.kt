@@ -207,7 +207,7 @@ data class CodeNavigator(
     }
 
     /** Hide/dismiss a sheet (pops the current route). */
-    fun hide() = popAll()
+    fun hide() = onRootReached()
 
     /** Replace the current route with a new one. */
     fun replace(route: NavKey) = navigate(route, NavOptions(popUpTo = NavOptions.PopUpTo.PopLast))
