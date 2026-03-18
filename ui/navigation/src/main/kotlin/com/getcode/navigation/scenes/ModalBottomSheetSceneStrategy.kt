@@ -14,10 +14,12 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.OverlayScene
@@ -138,6 +140,15 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 contentWindowInsets = { WindowInsets() },
                 containerColor = CodeTheme.colors.surface,
             ) {
+                // The sheet's popup window defaults to dark (black) status bar icons.
+                // Force light icons so they're visible against the dark scrim.
+                val view = LocalView.current
+                SideEffect {
+                    view.rootView.windowInsetsController?.setSystemBarsAppearance(
+                        0, // clear light status bars flag → light (white) icons
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
