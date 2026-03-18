@@ -55,8 +55,7 @@ open class Key32(bytes: List<Byte>) : KeyType(bytes), Comparable<Key32> {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-
-        other as Key32
+        if (other !is Key32) return false
         return size == other.size && bytes == other.bytes
     }
 

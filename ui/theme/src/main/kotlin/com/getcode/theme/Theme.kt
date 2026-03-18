@@ -2,6 +2,7 @@ package com.getcode.theme
 
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.Colors
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Shapes
 import androidx.compose.material.TextFieldDefaults
@@ -82,7 +83,10 @@ fun DesignSystem(
                     typography = LocalCodeTypography.current.toMaterial()
                 ) {
                     // setup after MDC theme to override defaults in theme
-                    CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
+                    CompositionLocalProvider(
+                        LocalTextSelectionColors provides textSelectionColors,
+                        LocalContentColor provides CodeTheme.colors.textMain,
+                    ) {
                         content()
                     }
                 }

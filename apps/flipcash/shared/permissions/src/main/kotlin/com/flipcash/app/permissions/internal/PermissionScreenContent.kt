@@ -25,7 +25,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
@@ -61,21 +60,21 @@ internal fun PermissionScreenContent(
                 if (postCreate) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                navigator.replaceAll(AppRoute.Main.Scanner)
             },
             onNotGranted = {
-                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }
         )
 
         Permission.Notifications -> NotificationScreenContent {
             if (permissionChecker.isDenied(Manifest.permission.CAMERA)) {
-                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.CameraPermission(postCreate)))
+                navigator.push(AppRoute.Onboarding.CameraPermission(postCreate))
             } else {
                 if (postCreate) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }
         }
     }

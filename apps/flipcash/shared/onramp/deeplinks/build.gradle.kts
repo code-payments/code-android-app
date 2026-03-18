@@ -10,7 +10,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(project(":apps:flipcash:shared:analytics"))
-    implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:messaging"))
 }

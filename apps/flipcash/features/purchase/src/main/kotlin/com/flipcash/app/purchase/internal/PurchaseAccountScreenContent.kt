@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.features.purchase.R
@@ -55,7 +54,7 @@ internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
             .onEach {
-                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }.launchIn(this)
     }
 

@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildExternalWalletButtonLabel
@@ -67,10 +66,8 @@ private fun OnRampAmountScreenContent(
             isClickable = provider !is OnRampProvider.Phantom,
             onAmountClicked = {
                 navigator.push(
-                    ScreenRegistry.get(
-                        AppRoute.Main.RegionSelection(
-                            kind = RegionSelectionKind.Entry
-                        )
+                    AppRoute.Main.RegionSelection(
+                        kind = RegionSelectionKind.Entry
                     )
                 )
             },

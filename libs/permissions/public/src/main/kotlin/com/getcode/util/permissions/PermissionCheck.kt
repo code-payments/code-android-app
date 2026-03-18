@@ -31,7 +31,7 @@ fun getPermissionLauncher(
         MockPermissionsLauncher()
     } else {
         val context = LocalContext.current
-        val activity = context as Activity
+        val activity = context.getActivity()!!
 
         DefaultPermissionsLauncher { isGranted: Boolean ->
             // This block will be triggered after the user chooses to grant or deny the permission

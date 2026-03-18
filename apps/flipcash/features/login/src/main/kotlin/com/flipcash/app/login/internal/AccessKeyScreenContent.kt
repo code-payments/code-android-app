@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.accesskey.AccessKeyUiModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
@@ -144,7 +143,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         onExport = onExportClick,
         onSkip = onSkipClick,
         onExit = {
-            navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+            navigator.replaceAll(AppRoute.Onboarding.Login())
         }
     )
 }

@@ -2,7 +2,6 @@ package com.flipcash.app.login.seed
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.AppRoute
@@ -132,10 +131,10 @@ class SeedInputViewModel @Inject constructor(
         delay(1.seconds)
         when {
             !flags.isRegistered && flags.requiresIapForRegistration -> {
-                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Purchase(true)))
+                navigator.push(AppRoute.Onboarding.Purchase(true))
             }
 
-            else -> navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+            else -> navigator.replaceAll(AppRoute.Main.Scanner)
         }
     }
 
@@ -191,7 +190,7 @@ class SeedInputViewModel @Inject constructor(
                 positiveText = resources.getString(R.string.action_createNewFlipcashAccount),
                 tertiaryText = resources.getString(R.string.action_tryDifferentFlipcashAccount),
                 onPositive = {
-                    navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+                    navigator.replaceAll(AppRoute.Onboarding.Login())
                 }
             )
         )

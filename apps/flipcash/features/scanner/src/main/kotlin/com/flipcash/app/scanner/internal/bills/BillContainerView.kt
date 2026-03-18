@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.navigator.currentOrThrow
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.android.extensions.launchAppSettings
@@ -74,7 +73,7 @@ internal fun BillContainer(
     onStartCamera: () -> Unit,
     onAction: (ScannerDecorItem) -> Unit
 ) {
-    val session = LocalSessionController.currentOrThrow
+    val session = LocalSessionController.current!!
     val context = LocalContext.current
     val onPermissionResult = { result: PermissionResult ->
         session.onCameraPermissionResult(result)
