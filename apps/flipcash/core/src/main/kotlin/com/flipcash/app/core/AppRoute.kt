@@ -7,7 +7,6 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
-import com.getcode.navigation.Sheet
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -96,7 +95,8 @@ sealed interface AppRoute : NavKey, Parcelable {
             val neededAmount: Fiat? = null,
         ) : OnRamp
 
-        @Serializable data object AmountEntry: OnRamp
+        @Serializable
+        data class AmountEntry(val mint: Mint? = null) : OnRamp
     }
 
     @Serializable

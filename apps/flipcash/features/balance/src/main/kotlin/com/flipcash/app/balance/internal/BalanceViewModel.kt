@@ -27,15 +27,12 @@ import javax.inject.Inject
 @HiltViewModel
 internal class BalanceViewModel @Inject constructor(
     userManager: UserManager,
-    onrampController: OnRampAmountController,
-    analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
         val preferredOnRampProvider: OnRampProvider? = null,
-        val quickActionsEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -43,9 +40,6 @@ internal class BalanceViewModel @Inject constructor(
 
         data object OpenCurrencySelection : Event
 
-        data object OnAddCashClicked : Event
-        data object OpenOnRampAmountModal : Event
-        data object OnWithdrawClicked : Event
         data class OpenScreen(val screen: AppRoute) : Event
     }
 
@@ -58,45 +52,6 @@ internal class BalanceViewModel @Inject constructor(
                 dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
             }
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnAddCashClicked>()
-            .onEach {
-                analytics.openOnramp(Analytics.OnrampSource.Balance)
-                val provider = stateFlow.value.preferredOnRampProvider
-                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    // has coinbase provider supporting google pay - pop selection for quick add
-                    dispatchEvent(Event.OpenOnRampAmountModal)
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnWithdrawClicked>()
-            .onEach {
-                dispatchEvent(
-                    Event.OpenScreen(
-                        AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw)
-                    )
-                )
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OpenOnRampAmountModal>()
-            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-            .flatMapLatest {
-                onrampController.confirmationEvents.take(1)
-            }.onEach { event ->
-                when (event) {
-                    is ConfirmationEvent.OnConfirmationSuccess -> {
-                        when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
-                            is OnRampAmount.Predefined -> Unit
-                        }
-                    }
-
-                    ConfirmationEvent.Cancelled -> Unit
-                }
-            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -106,10 +61,6 @@ internal class BalanceViewModel @Inject constructor(
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
                 }
-
-                Event.OnAddCashClicked -> { state -> state }
-                Event.OpenOnRampAmountModal -> { state -> state }
-                Event.OnWithdrawClicked -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
             }
         }

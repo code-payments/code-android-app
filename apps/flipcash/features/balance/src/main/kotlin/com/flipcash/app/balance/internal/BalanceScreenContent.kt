@@ -43,10 +43,8 @@ internal fun BalanceScreen(
     viewModel: BalanceViewModel,
     tokenViewModel: SelectTokenViewModel,
 ) {
-    val walletState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
     BalanceScreenContent(
-        walletState = walletState,
         tokenState = tokenState,
         dispatchEvent = viewModel::dispatchEvent
     )
@@ -54,7 +52,6 @@ internal fun BalanceScreen(
 
 @Composable
 private fun BalanceScreenContent(
-    walletState: BalanceViewModel.State,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
@@ -68,20 +65,7 @@ private fun BalanceScreenContent(
             dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
         }
 
-        if (walletState.quickActionsEnabled) {
-            AddCashRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = CodeTheme.dimens.inset,
-                        vertical = CodeTheme.dimens.grid.x4,
-                    ),
-                onAddCash = { dispatchEvent(BalanceViewModel.Event.OnAddCashClicked) },
-                onWithdraw = { dispatchEvent(BalanceViewModel.Event.OnWithdrawClicked) },
-            )
-        } else {
-            Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
-        }
+        Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
 
         val tokens = remember(tokenState.tokens) { tokenState.tokens }
 
@@ -188,7 +172,6 @@ private fun Preview_BalanceScreen_Empty() {
         ) {
             Box(modifier = Modifier.background(CodeTheme.colors.background)) {
                 BalanceScreenContent(
-                    walletState = BalanceViewModel.State(),
                     tokenState = SelectTokenViewModel.State(
                         purpose = TokenPurpose.Balance,
                         tokens = emptyList()

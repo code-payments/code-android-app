@@ -12,6 +12,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.flipcash.app.core.AppRoute
+import com.getcode.solana.keys.Mint
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
@@ -24,36 +26,39 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun OnRampCustomAmountScreen() {
+fun OnRampCustomAmountScreen(mint: Mint?) {
     val navigator = LocalCodeNavigator.current
     val viewModel = flowScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
     var paymentLink by rememberSaveable { mutableStateOf<String?>(null) }
 
-    Box {
-        paymentLink?.let {
-            CoinbaseOnRampWebview(
-                paymentLinkUrl = it,
-                onPaymentSuccess = {
-                    paymentLink = null
-                    viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentSuccess)
-                },
-                onPaymentFailure = {
-                    paymentLink = null
-                    viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentError(it))
-                }
-            )
-        }
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_amountToDeposit),
-                isInModal = true,
-                backButton = true,
-                onBackIconClicked = { navigator.pop() },
-                titleAlignment = Alignment.CenterHorizontally,
-            )
+    Column(
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        AppBarWithTitle(
+            title = stringResource(R.string.title_amountToBuy),
+            isInModal = true,
+            backButton = true,
+            onBackIconClicked = { navigator.pop() },
+            titleAlignment = Alignment.CenterHorizontally,
+        )
+        Box {
+            paymentLink?.let {
+                CoinbaseOnRampWebview(
+                    paymentLinkUrl = it,
+                    onPaymentSuccess = {
+                        paymentLink = null
+                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentSuccess)
+                    },
+                    onPaymentFailure = {
+                        paymentLink = null
+                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentError(it))
+                    },
+                    onCancel = {
+                        paymentLink = null
+                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentCancel)
+                    },
+                )
+            }
             OnRampAmountScreen(viewModel)
         }
     }
@@ -62,9 +67,8 @@ fun OnRampCustomAmountScreen() {
         viewModel.eventFlow
             .filterIsInstance<OnRampViewModel.Event.OnPaymentLinkGenerated>()
             .map { it.url }
-            .onEach {
-
-            }.launchIn(this)
+            .onEach { paymentLink = it }
+            .launchIn(this)
     }
 
     val externalWalletOnRamp = LocalExternalWalletState.current
@@ -74,5 +78,20 @@ fun OnRampCustomAmountScreen() {
             .map { it.amount }
             .onEach { externalWalletOnRamp.amount = it }
             .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<OnRampViewModel.Event.OnVerificationNeeded>()
+            .onEach { (phone, email) ->
+                navigator.push(
+                    AppRoute.Verification(
+                        origin = AppRoute.OnRamp.AmountEntry(mint),
+                        target = null,
+                        includePhone = phone,
+                        includeEmail = email,
+                    )
+                )
+            }.launchIn(this)
     }
 }

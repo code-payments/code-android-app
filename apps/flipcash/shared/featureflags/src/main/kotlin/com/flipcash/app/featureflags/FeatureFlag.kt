@@ -100,6 +100,14 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = true
     }
 
+    @FeatureFlagMarker
+    data object CoinbaseOnRamp: FeatureFlag {
+        override val key: String = "coinbase_onramp_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
 
     companion object {
         val entries: List<FeatureFlag>
@@ -124,6 +132,7 @@ val FeatureFlag.title: String
         FeatureFlag.ProductionLogging -> "Production Logging"
         FeatureFlag.CashReservesEnabled -> "Cash Reserves"
         FeatureFlag.MarketCapChart -> "Market Cap Chart"
+        FeatureFlag.CoinbaseOnRamp -> "Coinbase Onramp"
     }
 
 val FeatureFlag.message: String
@@ -138,6 +147,7 @@ val FeatureFlag.message: String
         FeatureFlag.ProductionLogging -> "When enabled, traces will print to log output"
         FeatureFlag.CashReservesEnabled -> "When enabled, USDC will be brandished as Cash Reserves throughout the app"
         FeatureFlag.MarketCapChart -> "When enabled, you'll gain access to the market cap chart in token info"
+        FeatureFlag.CoinbaseOnRamp -> "When enabled, you'll gain access to the Coinbase onramp for token buys"
     }
 
 

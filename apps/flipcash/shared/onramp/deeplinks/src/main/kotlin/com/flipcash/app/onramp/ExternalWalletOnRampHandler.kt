@@ -182,7 +182,7 @@ fun ExternalWalletOnRampHandler(
                             // SwapTransact already navigated via pendingNavigation at STARTED
                         }
                         else -> {
-                            navigator.push(AppRoute.OnRamp.AmountEntry)
+                            navigator.push(AppRoute.OnRamp.AmountEntry(state.tokenToPurchase?.address))
                         }
                     }
                 }

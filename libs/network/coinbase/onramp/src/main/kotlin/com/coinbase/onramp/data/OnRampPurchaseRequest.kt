@@ -11,7 +11,7 @@ import kotlin.time.Clock
  * - If exclusive of fees, the user will receive the exact amount of cryptocurrency specified in `purchaseAmount`.
  *
  * @property paymentCurrency The currency of the fiat to spend. For example, "USD".
- * @property paymentMethod The payment method to use for the purchase. Currently only [OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY] is supported.
+ * @property paymentMethod The payment method to use for the purchase.
  * @property phoneNumber The user's phone number. For example, "+14155551234".
  * @property partnerUserRef A unique identifier for the user in your system. For example, "user123".
  * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
@@ -31,7 +31,7 @@ sealed interface OnRampPurchaseRequest {
      * i.e. the user will pay this exact amount of the payment currency.
      * @property paymentAmount The amount of fiat to spend, in the currency specified by `paymentCurrency`.
      * @property partnerUserRef A unique identifier for the user in your system.
-     * @property paymentMethod The payment method to use for the purchase. Currently only [OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY] is supported.
+     * @property paymentMethod The payment method to use for the purchase.
      * @property email The user's email address.
      * @property phoneNumber The user's phone number.
      * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.

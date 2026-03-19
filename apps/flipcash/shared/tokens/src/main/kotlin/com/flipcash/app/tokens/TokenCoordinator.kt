@@ -223,13 +223,11 @@ class TokenCoordinator @Inject constructor(
     override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
         // 1. In-memory cache
         _state.value.tokens[mint]?.let { cached ->
-            trace(tag = TAG, message = "Token metadata memory hit for ${cached.symbol}", type = TraceType.Silent)
             return Result.success(TokenResult(cached, DataSource.Memory))
         }
 
         // 2. Room persistence
         dataSource.getById(mint)?.let { persisted ->
-            trace(tag = TAG, message = "Token metadata DB hit for ${persisted.symbol}", type = TraceType.Silent)
             _state.update { state ->
                 state.copy(tokens = state.tokens + (persisted.address to persisted))
             }
@@ -237,8 +235,6 @@ class TokenCoordinator @Inject constructor(
         }
 
         // 3. Network via TokenController
-        trace(tag = TAG, message = "Token metadata cache miss for ${mint.base58()}, delegating to network", type = TraceType.Silent)
-
         return tokenController.getTokenMetadata(mint)
             .onSuccess { result ->
                 val hasAccount = accountController.hasAccountFor(result.token.address)

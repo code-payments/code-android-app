@@ -1,6 +1,5 @@
 package com.flipcash.app.contact.verification
 
-import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -205,7 +204,7 @@ private fun buildStartingScreens(
     emailVerificationCode: String?,
 ): List<VerificationInternalScreen> {
     if (includePhone && includeEmail) {
-        return listOf(VerificationInternalScreen.Intro(origin is AppRoute.OnRamp.ProviderList))
+        return listOf(VerificationInternalScreen.Intro(origin is AppRoute.OnRamp.AmountEntry))
     }
     if (includePhone) {
         return listOf(VerificationInternalScreen.PhoneEntry)

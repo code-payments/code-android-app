@@ -343,7 +343,7 @@ internal class CashScreenViewModel @Inject constructor(
                 when (event) {
                     is ConfirmationEvent.OnConfirmationSuccess -> {
                         when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
+                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry()))
                             is OnRampAmount.Predefined -> Unit
                         }
                     }

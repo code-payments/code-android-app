@@ -400,6 +400,8 @@
 
     <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
     <string name="action_useCashReservesWithBalance">USDF (%1$s)</string>
+    <string name="action_debitCardWithPrefix">Debit Card with</string>
+    <string name="action_paySuffix">Pay</string>
 
     <string name="error_title_buySellFailed">Something Went Wrong</string>
     <string name="error_description_buySellFailed">Please try again</string>

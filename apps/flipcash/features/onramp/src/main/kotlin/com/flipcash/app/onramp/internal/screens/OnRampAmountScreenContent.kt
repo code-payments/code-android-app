@@ -95,13 +95,7 @@ private fun ConfirmationButton(
     dispatchEvent: (OnRampViewModel.Event) -> Unit
 ) {
     val (buttonText, assets) = when (provider) {
-        is OnRampProvider.Coinbase -> when (provider.type) {
-            // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
-            OnRampType.Virtual -> AnnotatedString(stringResource(R.string.action_addCashWithGooglePay)) to emptyMap()
-            OnRampType.PhysicalDebit -> AnnotatedString(stringResource(R.string.action_addCashWithDebitCard)) to emptyMap()
-            OnRampType.PhysicalCredit -> AnnotatedString(stringResource(R.string.action_addCashWithCreditCard)) to emptyMap()
-        }
-
+        is OnRampProvider.Coinbase -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
         is OnRampProvider.UsesDeeplinks -> {
             buildExternalWalletButtonLabel(
                 prefix = stringResource(R.string.label_confirmIn),

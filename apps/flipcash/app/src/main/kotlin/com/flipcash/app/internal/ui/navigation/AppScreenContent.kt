@@ -142,7 +142,7 @@ fun appEntryProvider(
             neededCurrency = key.neededAmount?.currencyCode,
         )
     }
-    annotatedEntry<AppRoute.OnRamp.AmountEntry> { OnRampCustomAmountScreen() }
+    annotatedEntry<AppRoute.OnRamp.AmountEntry> { key -> OnRampCustomAmountScreen(key.mint) }
 
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }

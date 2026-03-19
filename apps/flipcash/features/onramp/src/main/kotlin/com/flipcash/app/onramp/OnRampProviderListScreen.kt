@@ -31,8 +31,6 @@ fun OnRampProviderListScreen(
 
     val viewModel = flowScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
 
-    val externalWalletOnRamp = LocalExternalWalletState.current
-
     Box {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -47,32 +45,5 @@ fun OnRampProviderListScreen(
             )
             OnRampProviderListScreen(viewModel)
         }
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<OnRampViewModel.Event.OnProviderSelected>()
-            .map { it.item.destination }
-            .filterIsInstance<OnRampProviderDestination.Screen>()
-            .map { it.screen }
-            .onEach { destination ->
-                navigator.push(destination)
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<OnRampViewModel.Event.OnProviderSelected>()
-            .map { it.item.destination }
-            .filterIsInstance<OnRampProviderDestination.ExternalWalletConnection>()
-            .onEach { type ->
-                // bring up amount picker in flow always to match coinbase onramp flow
-                // i.e no delta passed
-//                    if (neededAmount != null && neededCurrency != null) {
-//                        externalWalletOnRamp.amount = Fiat(neededAmount, neededCurrency)
-//                    }
-                externalWalletOnRamp.start(OnRampFlowTracker.source, type.wallet)
-            }
-            .launchIn(this)
     }
 }

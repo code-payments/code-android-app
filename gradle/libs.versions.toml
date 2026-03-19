@@ -25,6 +25,7 @@ androidx-browser = "1.9.0"
 androidx-paging = "3.4.1"
 androidx-room = "2.8.4"
 androidx-work = "2.11.1"
+androidx-webkit = "1.14.0"
 androidx-ui = "1.10.4"
 
 sqlcipher = "4.5.4"
@@ -33,7 +34,7 @@ compose-bom = "2026.02.01"
 compose-activities = "1.12.4"
 compose-view-models = "2.10.0"
 compose-paging = "3.4.1"
-compose-webview = "0.33.6"
+compose-webview = "2.0.3"
 compose-accompanist = "0.36.0"
 compose-coil = "3.4.0"
 
@@ -128,6 +129,7 @@ androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "an
 androidx-work = { module = "androidx.work:work-runtime", version.ref = "androidx-work" }
 androidx-datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling-android", version.ref = "androidx-ui" }
+androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "androidx-webkit" }
 
 sqlcipher = { module = "net.zetetic:android-database-sqlcipher", version.ref = "sqlcipher" }
 
@@ -178,7 +180,7 @@ compose-material-icons-extended = { module = "androidx.compose.material:material
 compose-activities = { module = "androidx.activity:activity-compose", version.ref = "compose-activities" }
 compose-view-models = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "compose-view-models" }
 compose-paging = { module = "androidx.paging:paging-compose", version.ref = "compose-paging" }
-compose-webview = { module = "io.github.kevinnzou:compose-webview", version.ref = "compose-webview" }
+compose-webview = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "compose-webview" }
 
 # Voyager
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
