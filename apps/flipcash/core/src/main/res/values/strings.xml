@@ -367,7 +367,7 @@
     <string name="label_blendModeColorDodge">Color Dodge</string>
     <string name="label_blendModePlusLighter">Plus Lighter</string>
 
-    <string name="title_cashReserves">USD Reserves</string>
+    <string name="title_cashReserves">USDF</string>
     <string name="action_buyMore">Buy More</string>
 
     <string name="title_amountToBuy">Amount to Buy</string>
@@ -399,7 +399,7 @@
     <string name="label_marketCapYear">this year</string>
 
     <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
-    <string name="action_useCashReservesWithBalance">USD Reserves (%1$s)</string>
+    <string name="action_useCashReservesWithBalance">USDF (%1$s)</string>
 
     <string name="error_title_buySellFailed">Something Went Wrong</string>
     <string name="error_description_buySellFailed">Please try again</string>

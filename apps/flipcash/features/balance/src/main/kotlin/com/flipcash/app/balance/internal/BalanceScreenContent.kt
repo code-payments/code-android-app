@@ -138,16 +138,15 @@ private fun BalanceScreenContent(
                     Text(
                         text = stringResource(R.string.title_cashReserves),
                         style = CodeTheme.typography.screenTitle,
-                        color = CodeTheme.colors.textMain,
+                        color = CodeTheme.colors.textSecondary,
                     )
 
                     Icon(
                         modifier = Modifier
-                            .padding(top = CodeTheme.dimens.grid.x1)
-                            .padding(start = CodeTheme.dimens.grid.x1),
+                            .padding(start = CodeTheme.dimens.grid.x2),
                         painter = painterResource(id = R.drawable.ic_chevron_right),
                         contentDescription = null,
-                        tint = CodeTheme.colors.textMain,
+                        tint = CodeTheme.colors.textSecondary,
                     )
 
                     Spacer(Modifier.weight(1f))
