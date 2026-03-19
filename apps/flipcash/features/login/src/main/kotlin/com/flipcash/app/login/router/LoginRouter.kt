@@ -1,9 +1,15 @@
 package com.flipcash.app.login.router
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.navigateTo
@@ -22,6 +28,9 @@ fun LoginRouter(
     val vm = hiltViewModel<LoginViewModel>()
     val state by vm.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { visible = true }
 
     LaunchedEffect(vm) {
         vm.eventFlow
@@ -59,12 +68,17 @@ fun LoginRouter(
         }
     }
 
-     LoginRouterScreenContent(
-        isLoggingIn = state.loggingIn,
-        createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
-        login = { navigator.push(AppRoute.Onboarding.SeedInput) },
-        isLabsOpen = state.betaOptionsVisible,
-        onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-        openBetaFlags = { navigator.navigateTo(AppRoute.Sheets.Lab) }
-    )
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(150)),
+    ) {
+        LoginRouterScreenContent(
+            isLoggingIn = state.loggingIn,
+            createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
+            login = { navigator.push(AppRoute.Onboarding.SeedInput) },
+            isLabsOpen = state.betaOptionsVisible,
+            onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
+            openBetaFlags = { navigator.navigateTo(AppRoute.Sheets.Lab) }
+        )
+    }
 }

@@ -2,6 +2,9 @@ package com.flipcash.app.internal.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -164,26 +167,35 @@ internal fun App(
                                                 )
                                             } then SinglePaneSceneStrategy(),
                                             transitionSpec = {
-                                                if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
-                                                    EnterTransition.None togetherWith ExitTransition.None
-                                                } else {
-                                                    slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                                val hasLoading = initialState.key == AppRoute.Loading.toString() ||
+                                                        targetState.key == AppRoute.Loading.toString()
+                                                when {
+                                                    hasLoading -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+                                                    else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
                                                             slideOutHorizontally(targetOffsetX = { -it })
                                                 }
                                             },
                                             popTransitionSpec = {
-                                                if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
-                                                    EnterTransition.None togetherWith ExitTransition.None
-                                                } else {
-                                                    slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                val hasLoading = initialState.key == AppRoute.Loading.toString() ||
+                                                        targetState.key == AppRoute.Loading.toString()
+                                                when {
+                                                    hasLoading -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                                             slideOutHorizontally(targetOffsetX = { it })
                                                 }
                                             },
                                             predictivePopTransitionSpec = {
-                                                if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
-                                                    EnterTransition.None togetherWith ExitTransition.None
-                                                } else {
-                                                    slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                val hasLoading = initialState.key == AppRoute.Loading.toString() ||
+                                                        targetState.key == AppRoute.Loading.toString()
+                                                when {
+                                                    hasLoading -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                                             slideOutHorizontally(targetOffsetX = { it })
                                                 }
                                             },

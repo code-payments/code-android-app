@@ -86,6 +86,11 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
     }
 
 
+    LaunchedEffect(Unit) {
+        delay(1.seconds)
+        showLogo = true
+    }
+
     LaunchedEffect(userManager) {
         userManager.state
             .map { it.authState to it.flags }
@@ -109,16 +114,13 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
                     AuthState.LoggedInAwaitingUser -> {
                         delay(1.5.seconds)
                         showLoading = true
-                        showLogo = true
                     }
 
                     AuthState.LoggedInWithUser -> {
                         showLogo = false
                     }
 
-                    else -> {
-                        showLogo = true
-                    }
+                    else -> Unit
                 }
 
                 if (launch != null) {
