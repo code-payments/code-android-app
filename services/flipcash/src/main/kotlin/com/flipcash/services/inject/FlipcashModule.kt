@@ -14,6 +14,7 @@ import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.internal.network.services.PushService
+import com.flipcash.services.internal.network.services.SettingsService
 import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
@@ -21,6 +22,7 @@ import com.flipcash.services.internal.repositories.InternalContactVerificationRe
 import com.flipcash.services.internal.repositories.InternalProfileRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
+import com.flipcash.services.internal.repositories.InternalSettingsRepository
 import com.flipcash.services.internal.repositories.InternalThirdPartyRepository
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
@@ -28,6 +30,7 @@ import com.flipcash.services.repository.ContactVerificationRepository
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
+import com.flipcash.services.repository.SettingsRepository
 import com.flipcash.services.repository.ThirdPartyRepository
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
@@ -107,6 +110,11 @@ internal object FlipcashModule {
     internal fun providesPushRepository(
         service: PushService,
     ): PushRepository = InternalPushRepository(service)
+
+    @Provides
+    internal fun providesSettingsRepository(
+        service: SettingsService
+    ): SettingsRepository = InternalSettingsRepository(service)
 
     @Provides
     internal fun providesThirdPartyRepository(

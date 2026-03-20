@@ -100,3 +100,11 @@ message CountryCode {
     // ISO 3166-1 Alpha-2
     string value = 1 ;
 }
+// Locale represents an IETF BCP 47 language tag (e.g. "en", "en-US", "zh-Hans-CN")
+message Locale {
+    string value = 1 ;
+}
+// Region represents a fiat currency region identified by its ISO 4217 alpha-3 currency code (e.g. "usd", "eur")
+message Region {
+    string value = 1 ;
+}

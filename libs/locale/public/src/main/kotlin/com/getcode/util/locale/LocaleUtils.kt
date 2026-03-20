@@ -14,6 +14,9 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 object LocaleUtils {
+
+    fun getLanguageTag() = Locale.getDefault().toLanguageTag()
+
     suspend fun getDefaultCountry(context: Context): String? {
         val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         val networkCountryIso = tm.networkCountryIso.uppercase()
@@ -36,7 +39,7 @@ object LocaleUtils {
             val request = Request.Builder().url("http://ip-api.com/json/?fields=countryCode").build()
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val json = JSONObject(response.body?.string() ?: "{}")
+                val json = JSONObject(response.body.string())
                 val ipCountry = json.optString("countryCode", "").uppercase()
                 if (ipCountry.length == 2) ipCountry else "US"
             } else null
