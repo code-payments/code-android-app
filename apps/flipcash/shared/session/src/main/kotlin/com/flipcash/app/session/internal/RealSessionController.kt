@@ -356,6 +356,7 @@ class RealSessionController @Inject constructor(
     }
 
     private fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
+        analytics.transferStart(Analytics.Transfer.Initiate.GiveBillStart)
         billController.awaitGrab(
             amount = bill.amount,
             token = bill.token,
@@ -781,6 +782,7 @@ class RealSessionController @Inject constructor(
         )
         val owner = userManager.accountCluster ?: return
 
+        analytics.transferStart(Analytics.Transfer.Initiate.GrabBillStart)
         billController.attemptGrab(
             owner = owner,
             payload = payload,
