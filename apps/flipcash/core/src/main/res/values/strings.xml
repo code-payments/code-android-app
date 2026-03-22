@@ -73,7 +73,22 @@
     <string name="error_description_selectCredential">Failed to restore selected account. Please try again</string>
 
     <string name="permissions_description_camera">Your camera is used to grab Digital Cash. Please allow access to the camera to proceed</string>
-    <string name="permissions_description_push">Please allow Push Notifications to get notified when you receive cash</string>
+    <string name="permissions_title_push">Push Notifications Required</string>
+    <string name="permissions_description_push">Push notifications are used to update you on changes in your balance</string>
+
+    <string name="permissions_title_push_rationale">Are You Sure?</string>
+    <string name="permissions_description_push_rationale">You won\'t be notified of changes to your balance if you don\'t enable notifications</string>
+
+    <string name="title_allowNotifications">Allow Notifications</string>
+
+
+    <string name="notification_preview_title">You Bought $20.00</string>
+    <string name="notification_preview_body">$20.00 has been added to your wallet</string>
+
+    <string name="error_title_ignoredPushPermissions">Are You Sure?</string>
+    <string name="error_description_ignoredPushPermissions">You won\'t receive updates when your balance changes</string>
+    <string name="action_okAllow">Ok Allow</string>
+    <string name="action_imSure">I\'m Sure</string>
 
     <string name="subtitle_allowCameraAccess">Start your camera to grab cash</string>
     <string name="action_allowCameraAccess">Start Camera</string>

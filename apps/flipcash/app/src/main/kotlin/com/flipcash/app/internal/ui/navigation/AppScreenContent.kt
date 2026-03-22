@@ -41,6 +41,8 @@ import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.OnRampProviderListScreen
+import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
+import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
@@ -89,7 +91,8 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Onboarding.AccessKey> { AccessKeyScreen() }
     annotatedEntry<AppRoute.Onboarding.AccessKeySavedLocation> { PhotoAccessKeyScreen() }
     annotatedEntry<AppRoute.Onboarding.Purchase> { key -> PurchaseAccountScreen(key.fromLogin) }
-    annotatedEntry<AppRoute.Onboarding.NotificationPermission> { }
+    annotatedEntry<AppRoute.Onboarding.NotificationPermission> { key -> NotificationPermissionScreen(key.postCreate) }
+    annotatedEntry<AppRoute.Onboarding.NotificationPermissionRationale> { key -> NotificationPermissionRationaleScreen(key.permanentlyDenied) }
     annotatedEntry<AppRoute.Onboarding.CameraPermission> { }
 
     // Main
