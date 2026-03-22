@@ -1,8 +1,6 @@
 package com.flipcash.app.tokens.internal
 
 import android.Manifest
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,14 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -37,10 +29,9 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.permissions.LocalPermissionChecker
-import com.getcode.util.permissions.notificationPermissionCheck
+import com.getcode.util.permissions.ProvideTestPermissions
+import com.getcode.util.permissions.rememberNotificationPermission
 import com.getcode.view.LoadingSuccessState
 
 @Composable
@@ -62,12 +53,7 @@ private fun TokenTxProcessingScreen(
     state: BuySellSwapTokenViewModel.State,
     dispatch: (BuySellSwapTokenViewModel.Event) -> Unit,
 ) {
-    val permissions = LocalPermissionChecker.current
-    var hasPushPerms by remember {
-        mutableStateOf(permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS))
-    }
-
-    val notificationPermissionCheck = notificationPermissionCheck { hasPushPerms = it }
+    val notifications = rememberNotificationPermission()
 
     CodeScaffold(
         topBar = {
@@ -100,20 +86,20 @@ private fun TokenTxProcessingScreen(
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(bottom = CodeTheme.dimens.grid.x2)
                             .navigationBarsPadding(),
-                        text = if (hasPushPerms) {
+                        text = if (notifications.isGranted) {
                             notifyLabel.first
                         } else {
                             AnnotatedString(stringResource(R.string.action_notifyMeWhenComplete))
                         },
-                        inlineContent = if (hasPushPerms) {
+                        inlineContent = if (notifications.isGranted) {
                             notifyLabel.second
                         } else {
                             emptyMap()
                         },
                         buttonState = ButtonState.Filled,
-                        enabled = !hasPushPerms,
+                        enabled = !notifications.isGranted,
                         onClick = {
-                            notificationPermissionCheck(true)
+                            notifications.launch()
                         }
                     )
                 }
@@ -201,10 +187,12 @@ private fun TokenTxProcessingScreen(
 @Composable
 private fun TxProcessiongPreview() {
     FlipcashPreview {
-        TokenTxProcessingScreen(
-            state = BuySellSwapTokenViewModel.State(
-                processingProgress = LoadingSuccessState(loading = true)
-            )
-        ) { }
+        ProvideTestPermissions(granted = setOf(Manifest.permission.POST_NOTIFICATIONS)) {
+            TokenTxProcessingScreen(
+                state = BuySellSwapTokenViewModel.State(
+                    processingProgress = LoadingSuccessState(loading = true)
+                )
+            ) { }
+        }
     }
 }
