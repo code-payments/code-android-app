@@ -453,5 +453,8 @@
     <string name="error_discoverFailedToLoad">Check your connection and try again</string>
     <string name="subtitle_discoverEmptyNew">Check back soon for new currencies</string>
     <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
+    <string name="action_createYourOwnCurrency">Create Your Own Currency</string>
+    <string name="prompt_title_notYetAvailable">Not Yet Available</string>
+    <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
 
 </resources>

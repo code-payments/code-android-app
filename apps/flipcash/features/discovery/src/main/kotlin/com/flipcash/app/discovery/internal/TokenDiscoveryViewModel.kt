@@ -25,8 +25,8 @@ import javax.inject.Inject
 @HiltViewModel
 internal class TokenDiscoveryViewModel @Inject constructor(
     private val currencyController: CurrencyController,
-    private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
+    featureFlags: FeatureFlagController,
 ) : BaseViewModel2<TokenDiscoveryViewModel.State, TokenDiscoveryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -40,12 +40,16 @@ internal class TokenDiscoveryViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnCreateAllowed(val enabled: Boolean) : Event
-        data class OnCategorySelected(val category: DiscoverCategory, val fromUser: Boolean = false) : Event
+        data class OnCategorySelected(
+            val category: DiscoverCategory,
+            val fromUser: Boolean = false
+        ) : Event
+
         data class OnTokensUpdated(val loadable: Loadable<List<Token>>) : Event
 
         data class LoadTokensForCategory(val category: DiscoverCategory) : Event
         data object Refresh : Event
-        data class OpenTokenInfo(val mint: Mint): Event
+        data class OpenTokenInfo(val mint: Mint) : Event
     }
 
     init {

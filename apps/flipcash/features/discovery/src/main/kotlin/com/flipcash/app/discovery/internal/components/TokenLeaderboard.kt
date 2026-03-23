@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
@@ -30,10 +31,12 @@ internal fun TokenLeaderboard(
     category: DiscoverCategory?,
     tokens: Loadable<List<Token>>,
     padding: PaddingValues,
+    state: LazyListState,
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        state = state,
         contentPadding = PaddingValues(
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
