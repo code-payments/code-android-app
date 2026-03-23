@@ -27,8 +27,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.core.data.isLoaded
-import com.flipcash.app.core.data.isLoading
 import com.flipcash.app.discovery.internal.components.TokenLeaderboard
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.discovery.R
@@ -43,16 +41,12 @@ import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.addIf
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
-import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.CodeSegmentedControl
-import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.resources.LocalResources
-import kotlinx.coroutines.delay
 
 @Composable
 internal fun TokenDiscoveryScreen(viewModel: TokenDiscoveryViewModel) {
