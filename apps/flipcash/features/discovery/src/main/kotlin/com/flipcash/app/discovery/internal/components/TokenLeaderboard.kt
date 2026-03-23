@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
@@ -58,7 +59,7 @@ internal fun TokenLeaderboard(
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
             top = CodeTheme.dimens.grid.x2 + padding.calculateTopPadding(),
-            bottom = CodeTheme.dimens.grid.x2 + padding.calculateBottomPadding() - reduceBottomPadding,
+            bottom = (CodeTheme.dimens.grid.x2 + padding.calculateBottomPadding() - reduceBottomPadding).coerceAtLeast(0.dp)
         )
     ) {
         when (tokens) {
