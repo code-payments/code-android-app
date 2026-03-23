@@ -123,7 +123,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object SellReceipt : Token
 
         @Serializable
-        data object Discovery: AppRoute, NonDraggableRoute
+        data object Discovery: AppRoute
 
     }
     @Serializable

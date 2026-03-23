@@ -121,37 +121,19 @@ private fun TokenDiscoveryScreenContent(
             }
         },
     ) { padding ->
-        val ptrState = rememberPullToRefreshState()
-        LaunchedEffect(state.tokens) {
-            when (state.tokens) {
-                is Loadable.Error -> Unit
-                is Loadable.Loaded -> listState.scrollToItem(0)
-                is Loadable.Loading -> ptrState.animateToHidden()
-            }
-        }
-        PullToRefreshBox(
-            modifier = Modifier
-                .fillMaxSize(),
-            isRefreshing = false,
-            state = ptrState,
-            onRefresh = {
-                dispatch(TokenDiscoveryViewModel.Event.Refresh)
-            },
-        ) {
-            AnimatedContent(
-                targetState = state.tokens,
-                transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },
-                contentKey = { it::class }, // only crossfade on type change, not data updates
-            ) { tokens ->
-                TokenLeaderboard(
-                    category = state.category,
-                    state = listState,
-                    tokens = tokens,
-                    padding = padding,
-                    showGradientAtEnd = !state.createEnabled,
-                    dispatch = dispatch
-                )
-            }
+        AnimatedContent(
+            targetState = state.tokens,
+            transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },
+            contentKey = { it::class }, // only crossfade on type change, not data updates
+        ) { tokens ->
+            TokenLeaderboard(
+                category = state.category,
+                state = listState,
+                tokens = tokens,
+                padding = padding,
+                showGradientAtEnd = !state.createEnabled,
+                dispatch = dispatch
+            )
         }
     }
 }
