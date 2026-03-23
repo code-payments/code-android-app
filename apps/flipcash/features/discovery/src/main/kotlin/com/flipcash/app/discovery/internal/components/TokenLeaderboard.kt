@@ -16,32 +16,49 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.discovery.internal.TokenDiscoveryViewModel
 import com.flipcash.features.discovery.R
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
+import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
 internal fun TokenLeaderboard(
     category: DiscoverCategory?,
     tokens: Loadable<List<Token>>,
+    showGradientAtEnd: Boolean,
     padding: PaddingValues,
     state: LazyListState,
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
+    val reduceBottomPadding = if (showGradientAtEnd) 0.dp else CodeTheme.dimens.grid.x4
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScrollStateGradient(
+                state,
+                color = CodeTheme.colors.background,
+                isLongGradient = true,
+                showAtEnd = showGradientAtEnd,
+            )
+            .addIf(tokens.isLoaded()) {
+                Modifier.sheetResignmentBehavior(state)
+            },
         state = state,
         contentPadding = PaddingValues(
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
             top = CodeTheme.dimens.grid.x2 + padding.calculateTopPadding(),
-            bottom = CodeTheme.dimens.grid.x2,
+            bottom = CodeTheme.dimens.grid.x2 + padding.calculateBottomPadding() - reduceBottomPadding,
         )
     ) {
         when (tokens) {

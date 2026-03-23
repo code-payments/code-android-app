@@ -141,7 +141,8 @@ private fun BalanceScreenContent(
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset),
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(bottom = CodeTheme.dimens.grid.x3),
                         text = stringResource(R.string.action_discoverCurrencies),
                         buttonState = ButtonState.Filled10,
                         onClick = {

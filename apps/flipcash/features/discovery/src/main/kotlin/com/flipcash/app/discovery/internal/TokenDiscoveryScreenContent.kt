@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.data.isLoading
 import com.flipcash.app.discovery.internal.components.TokenLeaderboard
 import com.flipcash.app.theme.FlipcashPreview
@@ -41,12 +43,14 @@ import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.CodeSegmentedControl
+import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.delay
 
@@ -123,10 +127,19 @@ private fun TokenDiscoveryScreenContent(
             }
         },
     ) { padding ->
+        val ptrState = rememberPullToRefreshState()
+        LaunchedEffect(state.tokens) {
+            when (state.tokens) {
+                is Loadable.Error -> Unit
+                is Loadable.Loaded -> listState.scrollToItem(0)
+                is Loadable.Loading -> ptrState.animateToHidden()
+            }
+        }
         PullToRefreshBox(
             modifier = Modifier
                 .fillMaxSize(),
             isRefreshing = false,
+            state = ptrState,
             onRefresh = {
                 dispatch(TokenDiscoveryViewModel.Event.Refresh)
             },
@@ -136,22 +149,14 @@ private fun TokenDiscoveryScreenContent(
                 transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },
                 contentKey = { it::class }, // only crossfade on type change, not data updates
             ) { tokens ->
-                Box(
-                    modifier = Modifier.verticalScrollStateGradient(
-                        listState,
-                        color = CodeTheme.colors.background,
-                        isLongGradient = true,
-                        showAtEnd = !state.createEnabled,
-                    )
-                ) {
-                    TokenLeaderboard(
-                        category = state.category,
-                        state = listState,
-                        tokens = tokens,
-                        padding = padding,
-                        dispatch = dispatch
-                    )
-                }
+                TokenLeaderboard(
+                    category = state.category,
+                    state = listState,
+                    tokens = tokens,
+                    padding = padding,
+                    showGradientAtEnd = !state.createEnabled,
+                    dispatch = dispatch
+                )
             }
         }
     }

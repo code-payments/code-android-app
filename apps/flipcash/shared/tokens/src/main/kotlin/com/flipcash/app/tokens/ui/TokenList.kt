@@ -93,12 +93,20 @@ fun TokenList(
                         Fiat(0.0, cashReserves.rate.currency)
                     )
                 ) {
-                    item { it(Mint.usdf, cashReserves) }
+                    item {
+                        it(Mint.usdf, cashReserves)
+                        Divider(
+                            modifier = Modifier.padding(bottom = CodeTheme.dimens.inset),
+                            color = CodeTheme.colors.dividerVariant
+                        )
+                    }
                 }
             }
 
             footer?.let {
-                item { it() }
+                item {
+                    it()
+                }
             }
         }
     }

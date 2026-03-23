@@ -46,29 +46,26 @@ private class SheetResignmentModifierNode(
     override fun onAttach() {
         super.onAttach()
         observeJob = coroutineScope.launch {
-            snapshotFlow { isAtTop }
-                .collect { atTop -> updateGestures(atTop) }
+            snapshotFlow { isAtTop to listState.isScrollInProgress }
+                .collect { (atTop, scrolling) -> updateGestures(atTop, scrolling) }
         }
     }
 
-    private fun updateGestures(atTop: Boolean) {
+    private fun updateGestures(atTop: Boolean, scrolling: Boolean) {
         resetJob?.cancel()
 
-        if (atTop) {
-            // Just reached top → arm the "reject first downward drag"
+        if (atTop && !scrolling) {
             waitingForSecondDrag = true
-            setGesturesEnabled(false)  // sheet drag disabled initially
+            setGesturesEnabled(false)
 
-            // Optional: auto-allow after delay (so pause → second drag works)
             if (autoResetDelayMs > 0) {
                 resetJob = coroutineScope.launch {
                     delay(autoResetDelayMs)
                     waitingForSecondDrag = false
-                    setGesturesEnabled(true)  // now allow dismiss
+                    setGesturesEnabled(true)
                 }
             }
         } else {
-            // Scrolled away from top → normal scrolling mode, sheet drag disabled
             waitingForSecondDrag = false
             setGesturesEnabled(false)
         }
