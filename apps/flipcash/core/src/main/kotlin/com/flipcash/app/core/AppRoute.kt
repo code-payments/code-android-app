@@ -121,8 +121,11 @@ sealed interface AppRoute : NavKey, Parcelable {
 
         @Serializable
         data object SellReceipt : Token
-    }
 
+        @Serializable
+        data object Discovery: AppRoute
+
+    }
     @Serializable
     @Parcelize
     sealed interface OnRamp : AppRoute {

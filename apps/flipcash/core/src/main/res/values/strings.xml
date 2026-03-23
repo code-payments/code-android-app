@@ -218,6 +218,7 @@
     <string name="title_tapBelowToAddCashWallet">You don’t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
     <string name="description_noBalanceYet">Get another Flipcash user to give you some cash to get a balance</string>
+    <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 
@@ -439,4 +440,18 @@
 
     <string name="action_retry">Retry</string>
     <string name="error_unableToLoadChartData">Unable To Load</string>
+
+    <string name="title_discoverCurrencies">Currencies</string>
+    <string name="action_discoverCurrencies">Discover Currencies</string>
+    <string name="title_discoverPopular">Popular</string>
+    <string name="title_discoverNew">New</string>
+    <string name="label_holders">Holders</string>
+    <string name="label_holdersWithCount">%1$s Holders</string>
+    <string name="title_discoverFailedToLoad">Couldn\'t Load Currencies</string>
+    <string name="subtitle_discoverFailedToLoad">Check your connection and try again</string>
+    <string name="title_discoverEmpty">No currencies found</string>
+    <string name="error_discoverFailedToLoad">Check your connection and try again</string>
+    <string name="subtitle_discoverEmptyNew">Check back soon for new currencies</string>
+    <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
+
 </resources>

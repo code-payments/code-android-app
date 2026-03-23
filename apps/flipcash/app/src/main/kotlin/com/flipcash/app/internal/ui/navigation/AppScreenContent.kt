@@ -22,12 +22,12 @@ import com.flipcash.app.advanced.AdvancedFeaturesScreen
 import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
-import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositScreen
+import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.PreloadLabs
@@ -72,7 +72,6 @@ import dev.theolm.rinku.DeepLink
 
 @Composable
 fun AppPreloads() {
-    PreloadBalance()
     PreloadLabs()
 }
 
@@ -124,6 +123,7 @@ fun appEntryProvider(
         TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet)
     }
     annotatedEntry<AppRoute.Token.SellReceipt> { TokenSellReceiptScreen() }
+    annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
 
     // Verification
     annotatedEntry<AppRoute.Verification> { key ->
