@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVmOmnibusAddress
 import com.getcode.opencode.internal.solana.vmAuthority
@@ -62,6 +63,7 @@ val MintMetadata.Companion.usdf: Token
         launchpadMetadata = null,
         socialLinks = emptyList(),
         billCustomizations = null,
+        holderMetrics = HolderMetrics.None,
     )
 
 /**
@@ -92,6 +94,7 @@ data class MintMetadata(
     val launchpadMetadata: LaunchpadMetadata?,
     val billCustomizations: TokenBillCustomizations?,
     val socialLinks: List<SocialLink>,
+    val holderMetrics: HolderMetrics,
 ) : Parcelable {
     fun marketCap(): Fiat? {
         val launchpad = launchpadMetadata ?: return null
@@ -181,4 +184,24 @@ sealed interface SocialLink : Parcelable {
         @IgnoredOnParcel
         override val uri: String = "https://discord.gg/$inviteCode"
     }
+}
+
+@Parcelize
+data class HolderMetrics(
+    val currentHolders: Long,
+    val holderDeltas: List<HolderDelta>,
+) : Parcelable {
+    companion object {
+        val None = HolderMetrics(0, emptyList())
+    }
+
+    fun deltaForWindow(window: WindowedRange): Long {
+        return holderDeltas.firstOrNull { it.range == window }?.delta ?: 0
+    }
+
+    @Parcelize
+    data class HolderDelta(
+        val range: WindowedRange,
+        val delta: Long,
+    ) : Parcelable
 }

@@ -43,8 +43,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 10, to = 11, spec = FlipcashDatabase.Migration10To11::class),
         AutoMigration(from = 11, to = 12),
         AutoMigration(from = 12, to = 13, spec = FlipcashDatabase.Migration12To13::class),
+        AutoMigration(from = 13, to = 14),
     ],
-    version = 13,
+    version = 14,
 )
 @TypeConverters(TokenTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

@@ -1,7 +1,6 @@
 package com.getcode.opencode.model.transactions
 
 import com.getcode.opencode.internal.manager.VerifiedState
-import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.solana.keys.Mint
 
 /**

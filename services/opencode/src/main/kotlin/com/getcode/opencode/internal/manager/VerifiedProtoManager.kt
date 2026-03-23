@@ -24,7 +24,7 @@ class VerifiedProtoManager @Inject constructor() {
     /**
      * A [MutableStateFlow] holding the latest cached exchange rate data.
      * The data is stored in a map where the key is the [CurrencyCode] (e.g., "USD", "EUR")
-     * and the value is the corresponding [com.getcode.opencode.internal.model.VerifiedResponseData.ExchangeRate] object,
+     * and the value is the corresponding [com.getcode.opencode.model.financial.VerifiedResponseData.ExchangeRate] object,
      * which includes the rate and the timestamp of when it was fetched.
      */
     private val exchangeData = MutableStateFlow<Map<CurrencyCode, CurrencyService.VerifiedCoreMintFiatExchangeRate>>(emptyMap())
