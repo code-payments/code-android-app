@@ -43,7 +43,6 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.rpc.RpcConfig
 import com.getcode.ui.testing.LocalUiTesting
-import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.LocalSystemSettings
@@ -153,7 +152,6 @@ class MainActivity : FragmentActivity() {
                 LocalUserManager provides userManager,
                 LocalSessionController provides sessionController,
                 LocalBillingClient provides billing,
-                LocalPermissionChecker provides permissionChecker,
                 LocalShareController provides shareController,
                 LocalAppSettings provides appSettingsCoordinator,
                 LocalFeatureFlags provides featureFlagController,

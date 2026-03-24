@@ -13,6 +13,14 @@ service Currency {
     rpc GetHistoricalMintData(GetHistoricalMintDataRequest) returns (GetHistoricalMintDataResponse);
     // StreamLiveMintData streams live mint data for a set of mints
     rpc StreamLiveMintData(stream StreamLiveMintDataRequest) returns (stream StreamLiveMintDataResponse);
+    // Launch launches a new currency on the launchpad
+    rpc Launch(LaunchRequest) returns (LaunchResponse);
+    // UpdateIcon uploads and updates the icon for a currency
+    rpc UpdateIcon(UpdateIconRequest) returns (UpdateIconResponse);
+    // UpdateMetadata updates mutable metadata for a currency
+    rpc UpdateMetadata(UpdateMetadataRequest) returns (UpdateMetadataResponse);
+    // Discover returns a set of currencies to discover
+    rpc Discover(DiscoverRequest) returns (stream DiscoverResponse);
 }
 message GetMintsRequest {
     repeated common.v1.SolanaAccountId addresses = 1 ;
@@ -32,13 +40,6 @@ message GetHistoricalMintDataRequest {
     string currency_code = 2 ;
     oneof range {
         PredefinedRange predefined_range = 3;
-    }
-    enum PredefinedRange {
-        ALL_TIME   = 0;
-        LAST_DAY   = 1;
-        LAST_WEEK  = 2;
-        LAST_MONTH = 3;
-        LAST_YEAR  = 4;
     }
 }
 message GetHistoricalMintDataResponse {
@@ -103,6 +104,8 @@ message Mint {
     repeated SocialLink social_links = 10 ;
     // Bill customization for this currency. Use the default if not provided
     BillCustomization bill_customization = 11;
+    // Holder metrics. This is surfaced where needed (e.g. only in the Discover RPC)
+    HolderMetrics holder_metrics = 12;
 }
 message VmMetadata {
     // VM address
@@ -129,8 +132,6 @@ message LaunchpadMetadata {
     // The address where core mint tokens are locked against the liquidity pool
     common.v1.SolanaAccountId core_mint_vault = 6;
     // Current circulating mint token supply in quarks
-    //
-    // Deprecated: Use supply value from StreamLiveMintData
     uint64 supply_from_bonding = 7;
     // Precent fee for sells in basis points, currently hardcoded to 1%
     uint32 sell_fee_bps = 8;
@@ -179,14 +180,24 @@ message VerifiedLaunchapdCurrencyReserveStateBatch {
 }
 message SocialLink {
     oneof type {
-        Website website = 1;
-        X       x       = 2;
+        Website  website  = 1;
+        X        x        = 2;
+        Telegram telegram = 3;
+        Discord  discord  = 4;
     }
     message Website {
         string url = 1 ;
     }
     message X {
         string username = 1 ;
+    }
+    message Telegram {
+        // Telegram username (without the @ prefix)
+        string username = 1 ;
+    }
+    message Discord {
+        // Discord invite code (e.g. "abc123" from discord.gg/abc123)
+        string invite_code = 1 ;
     }
 }
 message BillCustomization {
@@ -196,4 +207,117 @@ message BillCustomization {
 message Color {
     // Hex colour value (e.g. "#19191A")
     string hex = 1 ;
+}
+message HolderMetrics {
+    // The current number of holders for a currency
+    uint64 current_holders = 1;
+    repeated DeltaHolders holder_deltas = 2 ;
+    message DeltaHolders {
+        // Predefined range where delta is calculated from
+        PredefinedRange range = 1;
+        // Net holders within the time range
+        int64 delta = 2;
+    }
+}
+message LaunchRequest {
+    // The owner account launching the currency
+    common.v1.SolanaAccountId owner = 1;
+    // The signature is of serialize(LaunchRequest) without this field set
+    // using the private key of the owner account. This provides an authentication
+    // mechanism to the RPC.
+    common.v1.Signature signature = 2;
+    // The name of the currency to launch
+    string name = 3 ;
+    // The ticker symbol for the currency. If not provided, a default will be
+    // generated using the currency name.
+    string symbol = 4 ;
+}
+message LaunchResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        // The launch was denied
+        DENIED = 1;
+        // A similar currency already exists
+        EXISTS = 2;
+    }
+    // The mint address of the launched currency on success
+    common.v1.SolanaAccountId mint = 2;
+}
+message UpdateIconRequest {
+    // The owner account of the currency
+    common.v1.SolanaAccountId owner = 1;
+    // The signature is of serialize(UpdateIconRequest) without this field set
+    // using the private key of the owner account. This provides an authentication
+    // mechanism to the RPC.
+    common.v1.Signature signature = 2;
+    // The mint address of the currency to update
+    common.v1.SolanaAccountId mint = 3;
+    // The raw image data for the icon
+    bytes icon = 4 ;
+}
+message UpdateIconResponse {
+    Result result = 1;
+    enum Result {
+        OK           = 0;
+        NOT_FOUND    = 1;
+        DENIED       = 2;
+        INVALID_ICON = 3;
+    }
+}
+message UpdateMetadataRequest {
+    // The owner account of the currency
+    common.v1.SolanaAccountId owner = 1;
+    // The signature is of serialize(UpdateMetadataRequest) without this field set
+    // using the private key of the owner account. This provides an authentication
+    // mechanism to the RPC.
+    common.v1.Signature signature = 2;
+    // The mint address of the currency to update
+    common.v1.SolanaAccountId mint = 3;
+    // Updated currency description. If not provided, description is not updated.
+    DescriptionUpdate new_description = 4;
+    // Updated bill customization. If not provided, bill customization is not updated.
+    BillCustomizationUpdate new_bill_customization = 5;
+    // Updated social links. This replaces the entire set of social links. If not
+    // provided, social links are not updated.
+    SocialLinksUpdate new_social_links = 6;
+    message DescriptionUpdate {
+        string value = 1 ;
+    }
+    message BillCustomizationUpdate {
+        BillCustomization value = 1;
+    }
+    message SocialLinksUpdate {
+        repeated SocialLink value = 1 ;
+    }
+}
+message UpdateMetadataResponse {
+    Result result = 1;
+    enum Result {
+        OK        = 0;
+        NOT_FOUND = 1;
+        DENIED    = 2;
+    }
+}
+message DiscoverRequest {
+    Category category = 1;
+    enum Category {
+        POPULAR = 0;
+        NEW     = 1;
+    }
+}
+message DiscoverResponse {
+    Result result = 1;
+    enum Result {
+        OK        = 0;
+        NOT_FOUND = 1;
+    }
+    repeated Mint mints = 2 ;
+}
+enum PredefinedRange {
+    ALL_TIME   = 0;
+    LAST_DAY   = 1;
+    LAST_WEEK  = 2;
+    LAST_MONTH = 3;
+    LAST_YEAR  = 4;
 }

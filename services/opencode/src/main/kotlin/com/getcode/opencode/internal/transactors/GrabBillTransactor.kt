@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.transactors
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.OpenCodePayload
@@ -90,14 +91,15 @@ internal class GrabBillTransactor(
         data: OpenCodePayload
     ): Result<TransactionMetadata.SendPublicPayment> {
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
-        val (messageId, giveRequestMint, exchangeData) = messagingController.pollForGiveRequest(data.rendezvous)
+        val (messageId, giveRequestMint, exchangeData, mintMetadata) = messagingController.pollForGiveRequest(data.rendezvous)
             .getOrNull()
             ?: return logAndFail(GrabTransactorError.Other(message = "No give request found for rendezvous"))
 
         // 2. Utilize the mint from the give request to get the Token metadata
-        val token = tokenProvider.getTokenMetadata(giveRequestMint)
-            .getOrNull()?.token
-            ?: return logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint"))
+        val token = mintMetadata
+            ?: (tokenProvider.getTokenMetadata(giveRequestMint)
+                .getOrNull()?.token
+                ?: return logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint")))
 
         val tokenizedCluster = ownerKey.withTimelockForToken(token)
 

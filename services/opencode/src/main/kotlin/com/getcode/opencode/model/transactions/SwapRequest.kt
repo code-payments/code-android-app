@@ -2,7 +2,6 @@ package com.getcode.opencode.model.transactions
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.manager.VerifiedState
-import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat

@@ -1,21 +1,17 @@
 package com.getcode.util.permissions
 
-import android.content.Context
-import dagger.Binds
+import android.app.Activity
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import dagger.hilt.android.components.ActivityComponent
 
 @Module
-@InstallIn(SingletonComponent::class)
+@InstallIn(ActivityComponent::class)
 object PermissionsModule {
 
     @Provides
-    @Singleton
     fun providesPermissionChecker(
-        @ApplicationContext context: Context
-    ): PermissionChecker = AndroidPermissions(context)
+        activity: Activity
+    ): PermissionChecker = AndroidPermissionChecker(activity)
 }

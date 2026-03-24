@@ -1,29 +1,35 @@
 plugins {
     alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.ksp)
+    alias(libs.plugins.hilt)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.navigation"
+    buildFeatures { buildConfig = true }
 }
 
 dependencies {
     implementation(project(":libs:logging"))
     implementation(project(":ui:core"))
+    api(project(":ui:resources"))
     implementation(project(":ui:theme"))
-    implementation(libs.androidx.annotation)
-    api(libs.kotlin.stdlib)
+
     api(libs.rxjava)
-    api(libs.rxandroid)
-    implementation(libs.compose.material)
+
+    implementation(libs.compose.material3)
     implementation(libs.compose.activities)
-    implementation(libs.androidx.lifecycle.runtime)
-    implementation(libs.androidx.lifecycle.viewmodel)
-    implementation(libs.androidx.navigation.fragment)
-    api(libs.voyager.navigator)
-    api(libs.voyager.transitions)
-    api(libs.voyager.bottomsheet)
-    api(libs.voyager.tabs)
-    api(libs.voyager.hilt)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlin.reflect)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+
+    api(libs.navigation3.runtime)
+    api(libs.navigation3.ui)
+    api(libs.lifecycle.viewmodel.navigation3)
+    api(libs.hilt.nav.compose)
     api(libs.rinku)
 }

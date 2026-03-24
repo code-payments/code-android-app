@@ -4,6 +4,8 @@ import com.flipcash.app.core.AppRoute
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.base64
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
@@ -20,9 +22,10 @@ sealed class EmailDeeplinkOrigin {
     fun serialize(): String {
         return when (this) {
             is OnRamp -> {
-                val amountString = amount?.let { Json.Default.encodeToString(Fiat.Companion.serializer(), it) }
+                val amountString = amount?.let { Json.encodeToString(Fiat.Companion.serializer(), it) }
                 when (source) {
                     is AppRoute.Sheets.Menu -> "onramp|menu|$amountString"
+                    is AppRoute.OnRamp.AmountEntry -> "onramp|amountentry|${source.mint?.base58()}"
 
                     else -> "onramp|null|$amountString"
                 }
@@ -35,8 +38,8 @@ sealed class EmailDeeplinkOrigin {
     companion object {
         fun fromRoute(route: AppRoute?): EmailDeeplinkOrigin? {
             return when (route) {
-                is AppRoute.OnRamp.ProviderList -> {
-                    OnRamp(route.from, route.neededAmount)
+                is AppRoute.OnRamp.AmountEntry -> {
+                    OnRamp(route)
                 }
 
                 is AppRoute.Menu.MyAccount -> MyAccount
@@ -51,12 +54,19 @@ sealed class EmailDeeplinkOrigin {
                 "onramp" -> {
                     val source = when (splits[1]) {
                         "menu" -> AppRoute.Sheets.Menu
-
+                        "amountentry" -> {
+                            println("deeplink origin amountentry")
+                            val mint = splits.getOrNull(2)?.let {
+                                println("deeplink mint = $it")
+                                Mint(it)
+                            }
+                            AppRoute.OnRamp.AmountEntry(mint)
+                        }
                         else -> null
                     }
 
                     val amount =
-                        splits.getOrNull(3)?.let { Json.Default.decodeFromString(Fiat.Companion.serializer(), it) }
+                        splits.getOrNull(3)?.let { Json.decodeFromString(Fiat.Companion.serializer(), it) }
 
                     OnRamp(source, amount)
                 }

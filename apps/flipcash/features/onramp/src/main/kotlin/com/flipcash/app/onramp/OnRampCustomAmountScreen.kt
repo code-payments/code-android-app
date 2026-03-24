@@ -1,6 +1,5 @@
 package com.flipcash.app.onramp
 
-import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,37 +12,35 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.flipcash.app.core.AppRoute
+import com.getcode.solana.keys.Mint
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.screens.ModalScreen
+import com.getcode.navigation.extensions.flowScopedViewModel
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
 
-@Parcelize
-class OnRampCustomAmountScreen : ModalScreen, Parcelable {
+@Composable
+fun OnRampCustomAmountScreen(mint: Mint?) {
+    val navigator = LocalCodeNavigator.current
+    val viewModel = flowScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
+    var paymentLink by rememberSaveable { mutableStateOf<String?>(null) }
 
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @IgnoredOnParcel
-    override val testTag: String = "onramp_custom_amount_screen"
-
-    @Composable
-    override fun ModalContent() {
-        val navigator = LocalCodeNavigator.current
-        val viewModel = getStackScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
-        var paymentLink by rememberSaveable { mutableStateOf<String?>(null) }
-
+    Column(
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        AppBarWithTitle(
+            title = stringResource(R.string.title_amountToBuy),
+            isInModal = true,
+            backButton = true,
+            onBackIconClicked = { navigator.pop() },
+            titleAlignment = Alignment.CenterHorizontally,
+        )
         Box {
             paymentLink?.let {
                 CoinbaseOnRampWebview(
@@ -55,40 +52,46 @@ class OnRampCustomAmountScreen : ModalScreen, Parcelable {
                     onPaymentFailure = {
                         paymentLink = null
                         viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentError(it))
-                    }
+                    },
+                    onCancel = {
+                        paymentLink = null
+                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentCancel)
+                    },
                 )
             }
+            OnRampAmountScreen(viewModel)
+        }
+    }
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                AppBarWithTitle(
-                    title = stringResource(R.string.title_amountToDeposit),
-                    isInModal = true,
-                    backButton = true,
-                    onBackIconClicked = { navigator.pop() },
-                    titleAlignment = Alignment.CenterHorizontally,
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<OnRampViewModel.Event.OnPaymentLinkGenerated>()
+            .map { it.url }
+            .onEach { paymentLink = it }
+            .launchIn(this)
+    }
+
+    val externalWalletOnRamp = LocalExternalWalletState.current
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<OnRampViewModel.Event.CreateAndSendTransactionToWallet>()
+            .map { it.amount }
+            .onEach { externalWalletOnRamp.amount = it }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<OnRampViewModel.Event.OnVerificationNeeded>()
+            .onEach { (phone, email) ->
+                navigator.push(
+                    AppRoute.Verification(
+                        origin = AppRoute.OnRamp.AmountEntry(mint),
+                        target = null,
+                        includePhone = phone,
+                        includeEmail = email,
+                    )
                 )
-                OnRampAmountScreen(viewModel)
-            }
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<OnRampViewModel.Event.OnPaymentLinkGenerated>()
-                .map { it.url }
-                .onEach {
-
-                }.launchIn(this)
-        }
-
-        val externalWalletOnRamp = LocalExternalWalletState.current
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<OnRampViewModel.Event.CreateAndSendTransactionToWallet>()
-                .map { it.amount }
-                .onEach { externalWalletOnRamp.amount = it }
-                .launchIn(this)
-        }
+            }.launchIn(this)
     }
 }

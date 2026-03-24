@@ -1,6 +1,5 @@
 package com.flipcash.app.router.inject
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.router.internal.AppRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.UserManager
@@ -18,6 +17,5 @@ object RouterModule {
     @Provides
     fun providesRouter(
         userManager: UserManager,
-        analytics: FlipcashAnalyticsService,
-    ): Router = AppRouter(userManager, analytics)
+    ): Router = AppRouter(authStateProvider = { userManager.authState })
 }

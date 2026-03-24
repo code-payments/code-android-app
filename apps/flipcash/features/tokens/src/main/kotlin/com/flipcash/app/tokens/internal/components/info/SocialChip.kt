@@ -47,6 +47,8 @@ internal fun SocialChip(
                 when (socialLink) {
                     is SocialLink.Website -> R.drawable.ic_social_web
                     is SocialLink.X -> R.drawable.ic_social_x
+                    is SocialLink.Discord -> R.drawable.ic_social_discord
+                    is SocialLink.Telegram -> R.drawable.ic_social_tg
                 }
             ),
             contentDescription = null,
@@ -57,6 +59,8 @@ internal fun SocialChip(
             text = when (socialLink) {
                 is SocialLink.Website -> stringResource(R.string.label_social_website)
                 is SocialLink.X -> stringResource(R.string.label_social_x, socialLink.username)
+                is SocialLink.Discord -> stringResource(R.string.label_social_discord)
+                is SocialLink.Telegram -> stringResource(R.string.label_social_tg)
             },
             color = CodeTheme.colors.textMain,
             style = CodeTheme.typography.textMedium

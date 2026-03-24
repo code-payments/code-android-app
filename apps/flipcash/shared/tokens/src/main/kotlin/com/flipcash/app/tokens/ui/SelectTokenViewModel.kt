@@ -53,6 +53,7 @@ class SelectTokenViewModel @Inject constructor(
         val purpose: TokenPurpose,
         val rate: Rate = Rate.oneToOne,
         val reservesEnabled: Boolean = false,
+        val discoveryEnabled: Boolean = false,
         val preferredOnRampProvider: OnRampProvider? = null,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
@@ -88,6 +89,8 @@ class SelectTokenViewModel @Inject constructor(
 
         data object OnTokenChanged : Event
 
+        data class OnDiscoveryEnabled(val enabled: Boolean): Event
+
         data object OnAddCashClicked : Event
         data object OpenOnRampAmountModal : Event
         data class OpenScreen(val route: AppRoute) : Event
@@ -105,6 +108,10 @@ class SelectTokenViewModel @Inject constructor(
 
         featureFlags.observe(FeatureFlag.CashReservesEnabled)
             .onEach { dispatchEvent(Event.OnReservesEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        featureFlags.observe(FeatureFlag.TokenDiscovery)
+            .onEach { dispatchEvent(Event.OnDiscoveryEnabled(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -160,16 +167,15 @@ class SelectTokenViewModel @Inject constructor(
                         })
                         .filter {
                             val baselineAmount = 0.01.toFiat(rate.currency)
+                            val hasBalance = it.balance.nativeAmount.valueNonZero() &&
+                                    it.balance.nativeAmount.valueGreaterThanOrEqualTo(baselineAmount)
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
                                 // when reserves are enabled, we must prevent sending USDF directly (it's used for reserves)
-                                TokenPurpose.Select -> !state.reservesEnabled || it.token.address != Mint.usdf
+                                TokenPurpose.Select -> (!state.reservesEnabled || it.token.address != Mint.usdf) && hasBalance
                                 // show all tokens with non-zero balance
-                                else -> {
-                                    it.balance.nativeAmount.valueNonZero() &&
-                                            it.balance.nativeAmount.valueGreaterThanOrEqualTo(baselineAmount)
-                                }
+                                else -> hasBalance
                             }
                         }
                 }
@@ -211,6 +217,10 @@ class SelectTokenViewModel @Inject constructor(
 
                 is Event.OnReservesEnabled -> { state ->
                     state.copy(reservesEnabled = event.enabled)
+                }
+
+                is Event.OnDiscoveryEnabled -> { state ->
+                    state.copy(discoveryEnabled = event.enabled)
                 }
 
                 is Event.OnRateChanged -> { state ->

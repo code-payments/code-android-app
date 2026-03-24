@@ -1,6 +1,5 @@
 package com.flipcash.app.purchase.internal
 
-import android.Manifest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,13 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.ui.BrandedGradientIcon
-import com.flipcash.features.purchase.R
 import com.flipcash.app.billing.IapProduct
 import com.flipcash.app.billing.ProductPrice
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.features.purchase.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.theme.CodeTheme
@@ -38,7 +36,6 @@ import com.getcode.ui.theme.CodeButtonSpacer
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.getActivity
-import com.getcode.util.permissions.LocalPermissionChecker
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -47,7 +44,6 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
     val navigator = LocalCodeNavigator.current
-    val permissions = LocalPermissionChecker.current
 
     val state by viewModel.stateFlow.collectAsState()
 
@@ -55,7 +51,7 @@ internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
             .onEach {
-                navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+                navigator.replaceAll(AppRoute.Main.Scanner)
             }.launchIn(this)
     }
 

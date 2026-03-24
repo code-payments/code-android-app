@@ -1,8 +1,8 @@
 package com.getcode.opencode.internal.domain.mapping
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
-import com.getcode.opencode.internal.model.LiveMintDataResponse
-import com.getcode.opencode.internal.model.VerifiedResponseData
+import com.getcode.opencode.model.financial.LiveMintDataResponse
+import com.getcode.opencode.model.financial.VerifiedResponseData
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.extensions.toSignature
 import com.getcode.opencode.mapper.Mapper

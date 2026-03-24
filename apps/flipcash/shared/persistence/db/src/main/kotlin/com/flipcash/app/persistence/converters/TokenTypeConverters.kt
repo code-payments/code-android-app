@@ -40,6 +40,18 @@ class TokenTypeConverters {
     }
 
     // endregion
+
+    // region holder metrics
+    @TypeConverter
+    fun fromHolderMetrics(value: String?): HolderMetricsSerialized? {
+        return value?.let { json.decodeFromString<HolderMetricsSerialized>(it) }
+    }
+
+    @TypeConverter
+    fun toHolderMetrics(metrics: HolderMetricsSerialized?): String? {
+        return metrics?.let { json.encodeToString(it) }
+    }
+    // endregion
 }
 
 @Serializable
@@ -51,6 +63,14 @@ sealed interface SocialLinkSerialized {
     @Serializable
     @SerialName("x")
     data class X(val username: String) : SocialLinkSerialized
+
+    @Serializable
+    @SerialName("tg")
+    data class Telegram(val username: String) : SocialLinkSerialized
+
+    @Serializable
+    @SerialName("discord")
+    data class Discord(val inviteCode: String) : SocialLinkSerialized
 }
 
 @Serializable
@@ -76,4 +96,16 @@ data class BillTextureSerialized(
     val index: Int,
     val blendMode: String,
     val strength: Float,
+)
+
+@Serializable
+data class HolderMetricsSerialized(
+    val currentHolders: Long,
+    val deltas: List<HolderDeltaSerialized>,
+)
+
+@Serializable
+data class HolderDeltaSerialized(
+    val range: String,  // WindowedRange enum name
+    val delta: Long,
 )

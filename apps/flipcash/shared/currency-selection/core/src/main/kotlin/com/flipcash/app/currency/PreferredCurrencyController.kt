@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -36,6 +37,7 @@ class PreferredCurrencyController @Inject constructor(
     private val locale: LocaleHelper,
     private val userManager: UserManager,
     private val exchange: Exchange,
+    private val settingsController: SettingsController,
 ) {
     companion object {
         fun initializedKeyForUser(userIdentifier: String) =
@@ -140,6 +142,7 @@ class PreferredCurrencyController @Inject constructor(
                 val code = CurrencyCode.tryValueOf(currency.code)
                 if (code != null) {
                     exchange.setPreferredBalanceCurrency(code)
+                    settingsController.update()
                 }
             }
         }

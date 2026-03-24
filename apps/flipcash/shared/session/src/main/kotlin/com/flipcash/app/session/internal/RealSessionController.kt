@@ -31,6 +31,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
@@ -105,6 +106,7 @@ class RealSessionController @Inject constructor(
     private val billController: BillController,
     private val userManager: UserManager,
     private val accountController: AccountController,
+    private val settingsController: SettingsController,
     private val feedCoordinator: ActivityFeedCoordinator,
     private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
@@ -205,6 +207,7 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
+        updateSettings()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -254,6 +257,14 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 accountController.getUserFlags()
+            }
+        }
+    }
+
+    private fun updateSettings() {
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                settingsController.update()
             }
         }
     }
@@ -345,6 +356,7 @@ class RealSessionController @Inject constructor(
     }
 
     private fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
+        analytics.transferStart(Analytics.Transfer.Initiate.GiveBillStart)
         billController.awaitGrab(
             amount = bill.amount,
             token = bill.token,
@@ -770,6 +782,7 @@ class RealSessionController @Inject constructor(
         )
         val owner = userManager.accountCluster ?: return
 
+        analytics.transferStart(Analytics.Transfer.Initiate.GrabBillStart)
         billController.attemptGrab(
             owner = owner,
             payload = payload,

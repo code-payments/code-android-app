@@ -8,6 +8,8 @@ android {
 
 dependencies {
     api(project(":ui:navigation"))
-    implementation(project(":apps:flipcash:shared:analytics"))
     api(libs.rinku.compose)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
 }

@@ -6,12 +6,11 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.extensions.fromCode
-import com.getcode.opencode.internal.model.LiveMintDataResponse
+import com.getcode.opencode.model.financial.LiveMintDataResponse
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.Signature
 import com.getcode.util.format
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper

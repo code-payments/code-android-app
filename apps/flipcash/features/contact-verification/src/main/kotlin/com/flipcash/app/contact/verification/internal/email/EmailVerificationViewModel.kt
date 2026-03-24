@@ -105,6 +105,11 @@ class EmailVerificationViewModel @Inject constructor(
             }.onEach { handleSendVerificationCode(it) }
             .launchIn(viewModelScope)
 
+        // Receive verification codes delivered by deeplinks while this screen is already open
+        EmailVerificationFlow.pendingCode
+            .onEach { (email, code) -> dispatchEvent(Event.OnDataProvided(email, code)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnDataProvided>()
             .mapNotNull { (email, code) ->
