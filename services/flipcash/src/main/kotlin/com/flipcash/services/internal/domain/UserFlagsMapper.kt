@@ -5,6 +5,8 @@ import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.toFiat
 import javax.inject.Inject
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -20,6 +22,7 @@ internal class UserFlagsMapper @Inject constructor():
             supportedOnRampProviders = from.supportedOnRampProvidersList.map { it.toDomain() },
             minimumVersion = from.minBuildNumber,
             billExchangeDataTimeout = from.billExchangeDataTimeout.seconds.toDuration(DurationUnit.SECONDS),
+            newCurrencyPurchaseAmount = Fiat(quarks = from.newCurrencyPurchaseAmount)
         )
     }
 }

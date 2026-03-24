@@ -1,6 +1,8 @@
 package com.flipcash.services.internal.model.account
 
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.toFiat
 import kotlin.time.Duration
 
 data class UserFlags(
@@ -11,6 +13,7 @@ data class UserFlags(
     val supportedOnRampProviders: List<OnRampProvider>,
     val minimumVersion: Int?,
     val billExchangeDataTimeout: Duration?,
+    val newCurrencyPurchaseAmount: Fiat,
 ) {
     companion object {
         val Default = UserFlags(
@@ -21,6 +24,7 @@ data class UserFlags(
             supportedOnRampProviders = emptyList(),
             minimumVersion = null,
             billExchangeDataTimeout = null,
+            newCurrencyPurchaseAmount = Fiat.MAX_VALUE,
         )
     }
 }
