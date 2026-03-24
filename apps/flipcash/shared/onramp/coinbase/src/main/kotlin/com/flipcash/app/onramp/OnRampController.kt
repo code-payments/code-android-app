@@ -1,6 +1,7 @@
 package com.flipcash.app.onramp
 
 import android.net.Uri
+import androidx.core.net.toUri
 import com.coinbase.onramp.api.CoinbaseApi
 import com.coinbase.onramp.data.CoinbaseAddress
 import com.coinbase.onramp.data.OnRampApiConfig
@@ -48,14 +49,22 @@ class OnRampController @Inject constructor(
 
         val userRef = userManager.accountId?.base64 ?: return Result.failure(Throwable("User ID not found"))
         val destination = userManager.accountCluster?.usdfDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+
+        val email = userManager.profile?.verifiedEmailAddress
+        val phone = userManager.profile?.verifiedPhoneNumber
+
+        if (email == null || phone == null) {
+            return Result.failure(OnRampAuthError.VerificationRequired(phone = phone == null, email = email == null))
+        }
+
         val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.InclusiveOfFees(
             paymentAmount = usdAmount,
             partnerUserRef = partnerRef,
-            paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY,
-            email = "satoshi.nakamoto@coinbase.com", // TODO: get email from user profile
-            phoneNumber = "+(1)5555555555", // TODO: get phone number from user profile
+            paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
+            email = email,
+            phoneNumber = phone,
             destinationAddress = destination
         )
 
@@ -74,14 +83,22 @@ class OnRampController @Inject constructor(
 
         val userRef = userManager.accountId?.base64 ?: return Result.failure(Throwable("User ID not found"))
         val destination = userManager.accountCluster?.usdfDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+
+        val email = userManager.profile?.verifiedEmailAddress
+        val phone = userManager.profile?.verifiedPhoneNumber
+
+        if (email == null || phone == null) {
+            return Result.failure(OnRampAuthError.VerificationRequired(phone = phone == null, email = email == null))
+        }
+
         val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.ExclusiveOfFees(
             purchaseAmount = usdAmount,
             partnerUserRef = partnerRef,
-            paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY,
-            email = "satoshi.nakamoto@coinbase.com", // TODO: get email from user profile
-            phoneNumber = "+(1)5555555555", // TODO: get phone number from user profile
+            paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
+            email = email,
+            phoneNumber = phone,
             destinationAddress = destination
         )
 
@@ -147,8 +164,8 @@ class OnRampController @Inject constructor(
             onSuccess = { call(it) },
             onFailure = { error ->
                 when (error) {
-                    is GetJwtError.EmailVerificationRequired -> Result.failure(OnRampAuthError.EmailVerificationRequired())
-                    is GetJwtError.PhoneVerificationRequired -> Result.failure(OnRampAuthError.PhoneVerificationRequired())
+                    is GetJwtError.EmailVerificationRequired -> Result.failure(OnRampAuthError.VerificationRequired(email = true))
+                    is GetJwtError.PhoneVerificationRequired -> Result.failure(OnRampAuthError.VerificationRequired(phone = true))
                     else -> Result.failure(error)
                 }
             }
@@ -171,16 +188,26 @@ class OnRampController @Inject constructor(
                         request = order.asMap(),
                         jwt = "Bearer $jwt"
                     )
+                }.map { response ->
+                    response.copy(
+                        paymentLink = response.paymentLink.copy(
+                            url = response.paymentLink.url.let { url ->
+                                if (onRampApiEndpoint.useSandbox) {
+                                    url.toUri().buildUpon()
+                                        .appendQueryParameter("useGooglePaySandbox", "true")
+                                        .build()
+                                        .toString()
+                                } else {
+                                    url
+                                }
+                            }
+                        )
+                    )
                 }
             }
         ).fold(
             onSuccess = { response ->
-                val authStepUrl = response.authSteps.firstOrNull()?.authUrl
-                if (authStepUrl != null) {
-                    Result.failure(OnRampAuthError.CoinbasePhoneVerificationRequired(authStepUrl))
-                } else {
-                    Result.success(response.paymentLink)
-                }
+                Result.success(response.paymentLink)
             },
             onFailure = { error ->
                 if (error is HttpException) {
@@ -223,8 +250,7 @@ sealed class OnRampAuthError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : Throwable(message, cause) {
-    class PhoneVerificationRequired : OnRampAuthError("Phone verification required")
-    class EmailVerificationRequired : OnRampAuthError("Email verification required")
+    class VerificationRequired(val phone: Boolean = false, val email: Boolean = false): OnRampAuthError(message = "Verification required :: phone: $phone, email: $email")
     class CoinbasePhoneVerificationRequired(val url: String) : OnRampAuthError("Phone verification required from Coinbase")
 }
 

@@ -7,7 +7,6 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.utils.base58
 import com.ionspin.kotlin.crypto.secretbox.crypto_secretbox_NONCEBYTES
 import com.ionspin.kotlin.crypto.util.LibsodiumRandom
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 

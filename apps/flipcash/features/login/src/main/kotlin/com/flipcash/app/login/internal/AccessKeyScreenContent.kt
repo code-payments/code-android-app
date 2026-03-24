@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.accesskey.AccessKeyUiModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
@@ -62,8 +61,7 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.util.permissions.PermissionResult
-import com.getcode.util.permissions.getPermissionLauncher
-import com.getcode.util.permissions.rememberPermissionHandler
+import com.getcode.util.permissions.rememberStoragePermission
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -97,9 +95,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         }
     }
 
-    val launcher =
-        getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
-    val permissionChecker = rememberPermissionHandler()
+    val storage = rememberStoragePermission { onPermissionResult(it) }
 
     LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
         if (isExportSeedRequested && isStoragePermissionGranted) {
@@ -120,11 +116,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         if (Build.VERSION.SDK_INT > 29) {
             isStoragePermissionGranted = true
         } else {
-            permissionChecker.request(
-                permission = Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                onPermissionResult = onPermissionResult,
-                launcher = launcher
-            )
+            storage.launch()
         }
     }
 
@@ -144,7 +136,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         onExport = onExportClick,
         onSkip = onSkipClick,
         onExit = {
-            navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login()))
+            navigator.replaceAll(AppRoute.Onboarding.Login())
         }
     )
 }

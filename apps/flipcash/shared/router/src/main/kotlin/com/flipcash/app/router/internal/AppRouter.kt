@@ -1,10 +1,8 @@
 package com.flipcash.app.router.internal
 
 import androidx.core.net.toUri
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
@@ -12,6 +10,7 @@ import com.flipcash.app.core.onramp.deeplinks.ExternalWalletDeeplinkError
 import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
 import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkConnectionResult
 import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkSigningResult
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.external
@@ -19,20 +18,16 @@ import com.flipcash.app.router.internal.AppRouter.Companion.login
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
-import com.flipcash.services.user.UserManager
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.urlDecode
 import dev.theolm.rinku.DeepLink
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import org.json.JSONObject
 
 internal class AppRouter(
-    private val userManager: UserManager,
-    private val analytics: FlipcashAnalyticsService,
-) : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+    private val authStateProvider: () -> AuthState,
+) : Router {
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
@@ -41,74 +36,93 @@ internal class AppRouter(
         val token = listOf("token")
     }
 
-    override suspend fun processDestination(deeplink: DeepLink?): List<Screen> {
-        return deeplink?.let {
-            val type = processType(deeplink) ?: return emptyList()
-            when (type) {
-                is DeeplinkType.Login -> {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login(type.entropy, true)))
-                    }
-                }
-                is DeeplinkType.CashLink -> {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                    }
-                }
+    override fun dispatch(deepLink: DeepLink): DeeplinkAction {
+        val type = classify(deepLink) ?: return DeeplinkAction.None
 
-                is DeeplinkType.ExternalWalletConnection -> {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                    }
-                }
-
-                is DeeplinkType.ExternalWalletSignedTransaction ->  {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                    }
-                }
-
-                is DeeplinkType.EmailVerification -> {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                    }
-                }
-
-                is DeeplinkType.TokenInfo -> {
-                    if (userManager.authState is AuthState.LoggedInWithUser) {
-                        listOf(ScreenRegistry.get(AppRoute.Main.Scanner(type)))
-                    } else {
-                        listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                    }
-                }
+        // Not logged in — redirect to login (or login deeplink itself)
+        if (authStateProvider() !is AuthState.LoggedInWithUser) {
+            return when (type) {
+                is DeeplinkType.Login -> DeeplinkAction.Navigate(
+                    listOf(AppRoute.Onboarding.Login(type.entropy, fromDeeplink = true))
+                )
+                else -> DeeplinkAction.Navigate(listOf(AppRoute.Onboarding.Login()))
             }
-        }.orEmpty()
+        }
+
+        // Logged in — resolve action
+        return when (type) {
+            is DeeplinkType.Login -> DeeplinkAction.Login(type.entropy)
+
+            is DeeplinkType.CashLink -> DeeplinkAction.OpenCashLink(type.entropy)
+
+            is DeeplinkType.TokenInfo -> DeeplinkAction.Navigate(
+                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(type.mint, fromDeeplink = true))
+            )
+
+            is DeeplinkType.ExternalWalletConnection,
+            is DeeplinkType.ExternalWalletSignedTransaction ->
+                DeeplinkAction.ExternalWallet(type)
+
+            is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
+        }
     }
 
-    override fun processType(deeplink: DeepLink?): DeeplinkType? {
-        return deeplink?.let {
-            when {
-                deeplink.isLogin() -> deeplink.handleLoginLink()
-                deeplink.isCashLink() -> deeplink.handleCashLink()
-                deeplink.isToken() -> deeplink.handleTokenLink()
-                deeplink.isExternalWalletConnection() -> deeplink.handleWalletConnect()
-                deeplink.isExternalWalletSignedTransaction() -> deeplink.handleWalletSignedTransaction()
-                deeplink.isEmailVerification() -> deeplink.handleEmailVerification()
-                else -> null
+    override fun classify(deepLink: DeepLink): DeeplinkType? {
+        return when {
+            deepLink.isLogin() -> deepLink.handleLoginLink()
+            deepLink.isCashLink() -> deepLink.handleCashLink()
+            deepLink.isToken() -> deepLink.handleTokenLink()
+            deepLink.isExternalWalletConnection() -> deepLink.handleWalletConnect()
+            deepLink.isExternalWalletSignedTransaction() -> deepLink.handleWalletSignedTransaction()
+            deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
+            else -> null
+        }
+    }
+
+    private fun resolveEmailVerification(type: DeeplinkType.EmailVerification): DeeplinkAction {
+        val origin = EmailDeeplinkOrigin.deserialize(type.origin.orEmpty())
+        val routes: List<AppRoute> = when (origin) {
+            is EmailDeeplinkOrigin.OnRamp -> when (val source = origin.source) {
+                is AppRoute.Sheets.Menu -> {
+                    buildOnRampScreenFlow(source) + AppRoute.Verification(
+                        origin = source,
+                        target = AppRoute.OnRamp.AmountEntry(),
+                        includePhone = false,
+                        email = type.email,
+                        emailVerificationCode = type.code
+                    )
+                }
+                else -> emptyList()
             }
+
+            EmailDeeplinkOrigin.MyAccount ->
+                listOf(
+                    AppRoute.Sheets.Menu,
+                    AppRoute.Menu.MyAccount
+                ) + AppRoute.Verification(
+                    origin = AppRoute.Menu.MyAccount,
+                    target = null,
+                    includePhone = false,
+                    email = type.email,
+                    emailVerificationCode = type.code
+                )
+
+            null -> emptyList()
+        }
+
+        return if (routes.isNotEmpty()) {
+            DeeplinkAction.Navigate(routes)
+        } else {
+            DeeplinkAction.None
         }
     }
 }
+
+private fun buildOnRampScreenFlow(origin: List<AppRoute>) =
+    origin.dropLast(1) +
+    AppRoute.OnRamp.ProviderList(origin.last())
+
+private fun buildOnRampScreenFlow(origin: AppRoute) = buildOnRampScreenFlow(listOf(origin))
 
 private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments[0])
 private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])

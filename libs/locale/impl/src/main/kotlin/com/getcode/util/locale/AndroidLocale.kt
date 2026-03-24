@@ -8,6 +8,10 @@ import javax.inject.Inject
 class AndroidLocale @Inject constructor(
     @ApplicationContext private val context: Context,
 ): LocaleHelper {
+    override fun getLanguageTag(): String {
+        return LocaleUtils.getLanguageTag()
+    }
+
     override fun getDefaultCurrencyName(): String {
         return LocaleUtils.getDefaultCurrency(context)
     }

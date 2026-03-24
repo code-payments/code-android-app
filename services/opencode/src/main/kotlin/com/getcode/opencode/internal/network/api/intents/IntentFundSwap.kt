@@ -2,12 +2,10 @@ package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.manager.VerifiedState
-import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -15,7 +13,6 @@ import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.buildActionGroup
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.base58
 
 internal class IntentFundSwap(
     override val id: PublicKey,

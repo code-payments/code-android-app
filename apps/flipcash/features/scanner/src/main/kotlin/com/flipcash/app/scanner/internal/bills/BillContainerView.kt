@@ -1,6 +1,5 @@
 package com.flipcash.app.scanner.internal.bills
 
-import android.Manifest
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -36,8 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Bill
@@ -59,8 +56,7 @@ import com.getcode.ui.scanner.views.CameraDisabledView
 import com.getcode.ui.scanner.views.CameraPermissionsMissingView
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.util.permissions.PermissionResult
-import com.getcode.util.permissions.getPermissionLauncher
-import com.getcode.util.permissions.rememberPermissionHandler
+import com.getcode.util.permissions.rememberCameraPermission
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -74,11 +70,11 @@ internal fun BillContainer(
     onStartCamera: () -> Unit,
     onAction: (ScannerDecorItem) -> Unit
 ) {
-    val session = LocalSessionController.currentOrThrow
+    val session = LocalSessionController.current!!
     val context = LocalContext.current
     val onPermissionResult = { result: PermissionResult ->
         session.onCameraPermissionResult(result)
-        if (result == PermissionResult.ShouldShowRationale) {
+        if (result == PermissionResult.PermanentlyDenied) {
             BottomBarManager.showError(
                 title = context.getString(R.string.action_allowCameraAccess),
                 message = context.getString(R.string.error_description_cameraAccessRequired),
@@ -95,22 +91,10 @@ internal fun BillContainer(
         }
     }
 
-    val cameraPermissionLauncher =
-        getPermissionLauncher(Manifest.permission.CAMERA, onPermissionResult)
-
-    val permissionChecker = rememberPermissionHandler()
-
-    val checkPermission = { shouldRequest: Boolean ->
-        permissionChecker.request(
-            permission = Manifest.permission.CAMERA,
-            shouldRequest = shouldRequest,
-            onPermissionResult = onPermissionResult,
-            launcher = cameraPermissionLauncher
-        )
-    }
+    val cameraPermission = rememberCameraPermission { onPermissionResult(it) }
 
     SideEffect {
-        checkPermission(false)
+        onPermissionResult(cameraPermission.status)
     }
 
     val state by session.state.collectAsState()
@@ -149,7 +133,7 @@ internal fun BillContainer(
                 CameraPermissionsMissingView(
                     modifier = Modifier.fillMaxSize(),
                     backgroundColor = Color.Black,
-                    onClick = { checkPermission(true) }
+                    onClick = { cameraPermission.launch() }
                 )
             }
         }

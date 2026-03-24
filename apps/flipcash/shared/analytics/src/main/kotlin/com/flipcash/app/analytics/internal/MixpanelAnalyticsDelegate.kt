@@ -56,6 +56,10 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(name = action.value)
     }
 
+    override fun transferStart(event: Analytics.Transfer.Initiate) {
+        track(event.toAnalyticsEvent())
+    }
+
     override fun transfer(
         event: Analytics.Transfer,
         amount: LocalFiat?,

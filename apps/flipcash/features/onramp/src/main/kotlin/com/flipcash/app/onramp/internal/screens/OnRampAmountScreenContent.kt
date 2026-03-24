@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildExternalWalletButtonLabel
@@ -67,10 +66,8 @@ private fun OnRampAmountScreenContent(
             isClickable = provider !is OnRampProvider.Phantom,
             onAmountClicked = {
                 navigator.push(
-                    ScreenRegistry.get(
-                        AppRoute.Main.RegionSelection(
-                            kind = RegionSelectionKind.Entry
-                        )
+                    AppRoute.Main.RegionSelection(
+                        kind = RegionSelectionKind.Entry
                     )
                 )
             },
@@ -98,13 +95,7 @@ private fun ConfirmationButton(
     dispatchEvent: (OnRampViewModel.Event) -> Unit
 ) {
     val (buttonText, assets) = when (provider) {
-        is OnRampProvider.Coinbase -> when (provider.type) {
-            // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
-            OnRampType.Virtual -> AnnotatedString(stringResource(R.string.action_addCashWithGooglePay)) to emptyMap()
-            OnRampType.PhysicalDebit -> AnnotatedString(stringResource(R.string.action_addCashWithDebitCard)) to emptyMap()
-            OnRampType.PhysicalCredit -> AnnotatedString(stringResource(R.string.action_addCashWithCreditCard)) to emptyMap()
-        }
-
+        is OnRampProvider.Coinbase -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
         is OnRampProvider.UsesDeeplinks -> {
             buildExternalWalletButtonLabel(
                 prefix = stringResource(R.string.label_confirmIn),

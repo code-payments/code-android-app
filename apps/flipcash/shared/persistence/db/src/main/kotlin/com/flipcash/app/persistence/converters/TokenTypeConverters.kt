@@ -40,6 +40,18 @@ class TokenTypeConverters {
     }
 
     // endregion
+
+    // region holder metrics
+    @TypeConverter
+    fun fromHolderMetrics(value: String?): HolderMetricsSerialized? {
+        return value?.let { json.decodeFromString<HolderMetricsSerialized>(it) }
+    }
+
+    @TypeConverter
+    fun toHolderMetrics(metrics: HolderMetricsSerialized?): String? {
+        return metrics?.let { json.encodeToString(it) }
+    }
+    // endregion
 }
 
 @Serializable
@@ -84,4 +96,16 @@ data class BillTextureSerialized(
     val index: Int,
     val blendMode: String,
     val strength: Float,
+)
+
+@Serializable
+data class HolderMetricsSerialized(
+    val currentHolders: Long,
+    val deltas: List<HolderDeltaSerialized>,
+)
+
+@Serializable
+data class HolderDeltaSerialized(
+    val range: String,  // WindowedRange enum name
+    val delta: Long,
 )

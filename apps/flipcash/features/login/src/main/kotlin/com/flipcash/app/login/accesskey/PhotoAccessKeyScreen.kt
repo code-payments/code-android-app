@@ -1,6 +1,5 @@
 package com.flipcash.app.login.accesskey
 
-import android.os.Parcelable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,41 +19,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.core.android.extensions.launchPhotos
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.login.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.AppScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
 
-@Parcelize
-class PhotoAccessKeyScreen : AppScreen, Parcelable {
+@Composable
+fun PhotoAccessKeyScreen() {
+    val navigator = LocalCodeNavigator.current
+    val context = LocalContext.current
 
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @IgnoredOnParcel
-    override val testTag: String = "access_key_help_screen"
-
-    @Composable
-    override fun ScreenContent() {
-        val navigator = LocalCodeNavigator.current
-        val context = LocalContext.current
-        
-        AccessKeyInPhotos(
-            goBack = { navigator.pop() },
-            openPhotos = { context.launchPhotos() },
-        )
-    }
+    AccessKeyInPhotos(
+        goBack = { navigator.pop() },
+        openPhotos = { context.launchPhotos() },
+    )
 }
 
 @Composable

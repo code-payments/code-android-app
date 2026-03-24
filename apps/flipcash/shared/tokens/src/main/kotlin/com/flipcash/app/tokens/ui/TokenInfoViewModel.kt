@@ -2,17 +2,21 @@ package com.flipcash.app.tokens.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
@@ -26,18 +30,24 @@ import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.onramp.OnRampAmountController
+import com.flipcash.app.onramp.OnRampController
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
+import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -66,8 +76,10 @@ class TokenInfoViewModel @Inject constructor(
     private val exchange: Exchange,
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalyticsService,
+    private val onramp: OnRampAmountController,
     features: FeatureFlagController,
-    analytics: FlipcashAnalyticsService,
+    userManager: UserManager,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -75,6 +87,7 @@ class TokenInfoViewModel @Inject constructor(
     data class State(
         val mint: Mint? = null,
         val token: Loadable<Token> = Loadable.Loading(),
+        val coinbaseOnRampAvailable: Boolean = false,
         val marketCap: Fiat? = null,
         val cashReservesEnabled: Boolean = false,
         val marketCapChartEnabled: Boolean = false,
@@ -100,6 +113,7 @@ class TokenInfoViewModel @Inject constructor(
     sealed interface Event {
         data class CashReservesEnabled(val enabled: Boolean) : Event
         data class MarketCapChartEnabled(val enabled: Boolean) : Event
+        data class CoinbaseOnRampAvailable(val enabled: Boolean): Event
         data class OnMintProvided(val mint: Mint, val forNeededFunds: Boolean = false) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val forNeededFunds: Boolean = false) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
@@ -134,6 +148,14 @@ class TokenInfoViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(Event.MarketCapChartEnabled(it))
             }.launchIn(viewModelScope)
+
+        combine(
+            features.observe(FeatureFlag.CoinbaseOnRamp),
+            userManager.state.map { it.flags ?: UserFlags.Default }
+                .map { it.supportedOnRampProviders.contains(OnRampProvider.Coinbase(OnRampType.Virtual)) }
+        ) { enabled, available ->
+            dispatchEvent(Event.CoinbaseOnRampAvailable(enabled = enabled && available))
+        }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
@@ -299,94 +321,8 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OpenPurchaseMethods>()
-            .onEach {
-                BottomBarManager.showMessage(
-                    bottomBarMessage = BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
-                        type = BottomBarManager.BottomBarMessageType.DEFAULT,
-                        actions = buildList {
-                            if (stateFlow.value.hasReserves) {
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(
-                                            R.string.action_useCashReservesWithBalance,
-                                            stateFlow.value.reservesBalance.formatted()
-                                        ),
-                                        onClick = {
-                                            analytics.buttonTapped(Button.TokenBuyWithReserves)
-                                            dispatchEvent(
-                                                Event.OpenScreen(
-                                                    AppRoute.Token.SwapTransact(
-                                                        purpose = TokenSwapPurpose.Buy(stateFlow.value.token.dataOrNull!!.address),
-                                                        forNeededFunds = it.forNeededFunds
-                                                    )
-                                                )
-                                            )
-                                        }
-                                    )
-                                )
-                            }
-
-                            add(
-                                BottomBarAction(
-                                    text = buildAnnotatedString {
-                                        append(resources.getString(R.string.label_solanaUsdc))
-                                        appendInlineContent("[icon]", alternateText = " ")
-                                        append(resources.getString(R.string.label_phantom))
-                                    },
-                                    inlineContentMap = mapOf(
-                                        "[icon]" to InlineTextContent(
-                                            placeholder = Placeholder(
-                                                width = 25.sp,
-                                                height = 14.sp,
-                                                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                                            ),
-                                            children = {
-                                                val buttonColors = ButtonState.Filled.colors()
-                                                Box(
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Image(
-                                                        modifier = Modifier.padding(
-                                                            start = CodeTheme.dimens.staticGrid.x1 + 2.dp,
-                                                            end = CodeTheme.dimens.staticGrid.x1
-                                                        ),
-                                                        painter = painterResource(R.drawable.ic_phantom_wallet),
-                                                        colorFilter = ColorFilter.tint(
-                                                            buttonColors.contentColor(
-                                                                true
-                                                            ).value
-                                                        ),
-                                                        contentDescription = null
-                                                    )
-                                                }
-                                            }
-                                        )
-                                    ),
-                                    onClick = {
-                                        // start the onramp flow here since we skip the provider list
-                                        OnRampFlowTracker.start(
-                                            AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
-                                        )
-                                        analytics.buttonTapped(Button.TokenBuyWithPhantom)
-                                        dispatchEvent(Event.ConnectPhantomWallet)
-                                    }
-                                )
-                            )
-
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_dismiss),
-                                    style = BottomBarManager.BottomBarButtonStyle.Text,
-                                )
-                            )
-                        },
-                        showCancel = false,
-                        showScrim = true,
-                    )
-                )
-            }.launchIn(viewModelScope)
+            .onEach { presentPaymentOptions(it.forNeededFunds) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.Share>()
@@ -396,11 +332,150 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    private fun presentPaymentOptions(forNeededFunds: Boolean) {
+        BottomBarManager.showMessage(
+            bottomBarMessage = BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
+                type = BottomBarManager.BottomBarMessageType.DEFAULT,
+                actions = buildList {
+                    if (stateFlow.value.coinbaseOnRampAvailable) {
+                        add(
+                            buildButtonAction(
+                                prefix = resources.getString(R.string.action_debitCardWithPrefix),
+                                suffix = null,
+                                icon = { painterResource(R.drawable.ic_google_pay) },
+                                width = 50.sp,
+                                height = 32.sp,
+                                iconPadding = {
+                                    PaddingValues(horizontal = CodeTheme.dimens.grid.x1)
+                                },
+                                onClick = { handleBuyWithCoinbase() }
+                            )
+                        )
+                    }
+                    if (stateFlow.value.hasReserves) {
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(
+                                    R.string.action_useCashReservesWithBalance,
+                                    stateFlow.value.reservesBalance.formatted()
+                                ),
+                                onClick = { handleBuyWithReserves(forNeededFunds) }
+                            )
+                        )
+                    }
+
+                    add(
+                        buildButtonAction(
+                            prefix = resources.getString(R.string.label_solanaUsdc),
+                            suffix = resources.getString(R.string.label_phantom),
+                            icon = { painterResource(R.drawable.ic_phantom_wallet) },
+                            onClick = { handleBuyWithPhantom() }
+                        )
+                    )
+
+                    add(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_dismiss),
+                            style = BottomBarManager.BottomBarButtonStyle.Text,
+                        )
+                    )
+                },
+                showCancel = false,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun buildButtonAction(
+        prefix: String,
+        suffix: String?,
+        icon: @Composable () -> Painter,
+        width: TextUnit = 25.sp,
+        height: TextUnit = 14.sp,
+        iconPadding: @Composable () -> PaddingValues = {
+            PaddingValues(
+                start = CodeTheme.dimens.grid.x1 + 2.dp,
+                end = CodeTheme.dimens.grid.x1
+            )
+        },
+        onClick: () -> Unit
+    ): BottomBarAction {
+        return BottomBarAction(
+            text = buildAnnotatedString {
+                append(prefix)
+                appendInlineContent("[icon]", alternateText = " ")
+                if (suffix != null) {
+                    append(suffix)
+                }
+            },
+            inlineContentMap = mapOf(
+                "[icon]" to InlineTextContent(
+                    placeholder = Placeholder(
+                        width = width,
+                        height = height,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+                    ),
+                    children = {
+                        val buttonColors = ButtonState.Filled.colors()
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                modifier = Modifier.padding(iconPadding()),
+                                painter = icon(),
+                                colorFilter = ColorFilter.tint(
+                                    buttonColors.contentColor(
+                                        true
+                                    ).value
+                                ),
+                                contentDescription = null
+                            )
+                        }
+                    }
+                )
+            ),
+            onClick = onClick
+        )
+    }
+
+    private fun handleBuyWithCoinbase() {
+        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
+        val mint = stateFlow.value.mint ?: return
+        OnRampFlowTracker.start(
+            AppRoute.Token.Info(mint)
+        )
+        onramp.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual))
+        dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry(mint)))
+    }
+
+    private fun handleBuyWithReserves(forNeededFunds: Boolean) {
+        analytics.buttonTapped(Button.TokenBuyWithReserves)
+        dispatchEvent(
+            Event.OpenScreen(
+                AppRoute.Token.SwapTransact(
+                    purpose = TokenSwapPurpose.Buy(stateFlow.value.token.dataOrNull!!.address),
+                    forNeededFunds = forNeededFunds
+                )
+            )
+        )
+    }
+    private fun handleBuyWithPhantom() {
+        // start the onramp flow here since we skip the provider list
+        OnRampFlowTracker.start(
+            AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
+        )
+        analytics.buttonTapped(Button.TokenBuyWithPhantom)
+        dispatchEvent(Event.ConnectPhantomWallet)
+    }
+
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.CashReservesEnabled -> { state -> state.copy(cashReservesEnabled = event.enabled) }
                 is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }
+                is Event.CoinbaseOnRampAvailable -> { state -> state.copy(coinbaseOnRampAvailable = event.enabled) }
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }

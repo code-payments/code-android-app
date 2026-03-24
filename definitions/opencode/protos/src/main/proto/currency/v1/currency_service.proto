@@ -41,13 +41,6 @@ message GetHistoricalMintDataRequest {
     oneof range {
         PredefinedRange predefined_range = 3;
     }
-    enum PredefinedRange {
-        ALL_TIME   = 0;
-        LAST_DAY   = 1;
-        LAST_WEEK  = 2;
-        LAST_MONTH = 3;
-        LAST_YEAR  = 4;
-    }
 }
 message GetHistoricalMintDataResponse {
     Result result = 1;
@@ -111,6 +104,8 @@ message Mint {
     repeated SocialLink social_links = 10 ;
     // Bill customization for this currency. Use the default if not provided
     BillCustomization bill_customization = 11;
+    // Holder metrics. This is surfaced where needed (e.g. only in the Discover RPC)
+    HolderMetrics holder_metrics = 12;
 }
 message VmMetadata {
     // VM address
@@ -213,6 +208,17 @@ message Color {
     // Hex colour value (e.g. "#19191A")
     string hex = 1 ;
 }
+message HolderMetrics {
+    // The current number of holders for a currency
+    uint64 current_holders = 1;
+    repeated DeltaHolders holder_deltas = 2 ;
+    message DeltaHolders {
+        // Predefined range where delta is calculated from
+        PredefinedRange range = 1;
+        // Net holders within the time range
+        int64 delta = 2;
+    }
+}
 message LaunchRequest {
     // The owner account launching the currency
     common.v1.SolanaAccountId owner = 1;
@@ -294,6 +300,11 @@ message UpdateMetadataResponse {
     }
 }
 message DiscoverRequest {
+    Category category = 1;
+    enum Category {
+        POPULAR = 0;
+        NEW     = 1;
+    }
 }
 message DiscoverResponse {
     Result result = 1;
@@ -301,5 +312,12 @@ message DiscoverResponse {
         OK        = 0;
         NOT_FOUND = 1;
     }
-    repeated Mint mint = 2 ;
+    repeated Mint mints = 2 ;
+}
+enum PredefinedRange {
+    ALL_TIME   = 0;
+    LAST_DAY   = 1;
+    LAST_WEEK  = 2;
+    LAST_MONTH = 3;
+    LAST_YEAR  = 4;
 }

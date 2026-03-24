@@ -76,15 +76,17 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val animationScale by rememberAnimationScale()
     val onClose: suspend (selection: SelectedBottomBarAction, fromTimeout: Boolean) -> Unit =
         { selection, fromTimeout ->
-            bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
+            val dismissingMessage = bottomBarMessage
+            bottomBarMessageDismissId = dismissingMessage?.id ?: 0
+            // Remove message immediately so other screens don't re-show it
+            BottomBarManager.setMessageShown(bottomBarMessageDismissId)
             bottomBarVisibleState.targetState = false
 
             delay(300.scaled(animationScale))
-            BottomBarManager.setMessageShown(bottomBarMessageDismissId)
             if (fromTimeout) {
-                bottomBarMessage?.onTimeout?.invoke()
+                dismissingMessage?.onTimeout?.invoke()
             } else {
-                bottomBarMessage?.onClose?.invoke(selection)
+                dismissingMessage?.onClose?.invoke(selection)
             }
         }
 

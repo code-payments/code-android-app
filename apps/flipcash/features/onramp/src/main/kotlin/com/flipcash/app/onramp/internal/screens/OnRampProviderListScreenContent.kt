@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.onramp.LocalOnRampAmountController
 import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
 import com.flipcash.app.onramp.internal.data.OnRampProviderItem
@@ -54,6 +55,7 @@ private fun OnRampProviderListScreenContent(
     state: OnRampViewModel.State,
     dispatchEvent: (OnRampViewModel.Event) -> Unit,
 ) {
+    val onramp = LocalOnRampAmountController.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
@@ -82,7 +84,7 @@ private fun OnRampProviderListScreenContent(
             OnRampProviderCell(
                 provider = provider,
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { dispatchEvent(OnRampViewModel.Event.OnProviderSelected(provider)) },
+                onClick = { onramp.requestAmountSelection(provider.provider as OnRampProvider) },
             )
         }
     }
@@ -143,7 +145,7 @@ private fun ProviderCellPreview() {
                 OnRampProviderCell(
                     provider = OnRampProviderItem(
                         provider = it,
-                        destination = OnRampProviderDestination.Screen(AppRoute.OnRamp.AmountEntry),
+                        destination = OnRampProviderDestination.Screen(AppRoute.OnRamp.AmountEntry()),
                     ),
                 ) { }
             }

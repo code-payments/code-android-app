@@ -1,6 +1,5 @@
 package com.flipcash.app.backupkey.internal
 
-import android.Manifest
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
@@ -51,10 +50,7 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.util.permissions.PermissionResult
-import com.getcode.util.permissions.getPermissionLauncher
-import com.getcode.util.permissions.rememberPermissionHandler
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.seconds
+import com.getcode.util.permissions.rememberStoragePermission
 
 @Composable
 internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
@@ -84,9 +80,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
         }
     }
 
-    val launcher =
-        getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
-    val permissionChecker = rememberPermissionHandler()
+    val storage = rememberStoragePermission { onPermissionResult(it) }
 
     LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
         if (isExportSeedRequested && isStoragePermissionGranted) {
@@ -103,11 +97,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
         if (Build.VERSION.SDK_INT > 29) {
             isStoragePermissionGranted = true
         } else {
-            permissionChecker.request(
-                permission = Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                onPermissionResult = onPermissionResult,
-                launcher = launcher
-            )
+            storage.launch()
         }
     }
 

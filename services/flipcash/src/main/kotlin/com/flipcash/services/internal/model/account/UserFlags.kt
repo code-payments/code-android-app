@@ -11,4 +11,16 @@ data class UserFlags(
     val supportedOnRampProviders: List<OnRampProvider>,
     val minimumVersion: Int?,
     val billExchangeDataTimeout: Duration?,
-)
+) {
+    companion object {
+        val Default = UserFlags(
+            isStaff = false,
+            isRegistered = false,
+            requiresIapForRegistration = false,
+            preferredOnRampProvider = null,
+            supportedOnRampProviders = emptyList(),
+            minimumVersion = null,
+            billExchangeDataTimeout = null,
+        )
+    }
+}

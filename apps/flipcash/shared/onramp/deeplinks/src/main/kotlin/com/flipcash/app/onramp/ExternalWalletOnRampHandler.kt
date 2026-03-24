@@ -1,67 +1,56 @@
 package com.flipcash.app.onramp
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.canNativelyHandle
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
 import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.onramp.internal.packageName
-import com.flipcash.app.router.Router
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.ui.utils.RepeatOnLifecycle
-import com.getcode.util.permissions.LocalPermissionChecker
-import com.getcode.util.permissions.notificationPermissionCheck
+import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
+import com.getcode.util.permissions.rememberNotificationPermission
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlin.to
 
 @SuppressLint("LocalContextGetResourceValueCall", "InlinedApi")
 @Composable
 fun ExternalWalletOnRampHandler(
     state: ExternalWalletDeeplinkState,
     navigator: CodeNavigator,
-    router: Router,
-    deepLink: DeepLink?,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     content: @Composable () -> Unit
 ) {
-    val permissions = LocalPermissionChecker.current
     val composeScope = rememberCoroutineScope()
     val analytics = rememberAnalytics()
 
     fun close(exit: Boolean) {
+        if (state.origin is AppRoute.Token.Info) {
+            // Token flow screens handle their own navigation via inner navigator
+            return
+        }
+
         if (exit) {
             composeScope.launch {
                 delay(300)
@@ -70,28 +59,21 @@ fun ExternalWalletOnRampHandler(
             return
         }
 
-        state.origin?.let { screenProvider ->
-            val screen = ScreenRegistry.get(screenProvider)
+        state.origin?.let { route ->
             composeScope.launch {
                 delay(300)
-                val popped = navigator.popUntil { it::class == screen::class }
-                if (!popped) navigator.popAll()
+                navigator.popUntil { it::class == route::class }
             }
         } ?: run { navigator.popAll() }
     }
-    var preNavigatedToEntry by remember { mutableStateOf(false) }
-    var preNavigatedToProcessing by remember { mutableStateOf(false) }
 
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
 
-    val onNotificationResult: (Boolean) -> Unit = {
+    val notifications = rememberNotificationPermission {
         composeScope.launch { close(true) }
     }
-
-    val notificationPermissionCheck =
-        notificationPermissionCheck { onNotificationResult(it) }
 
     RepeatOnLifecycle(
         targetState = Lifecycle.State.RESUMED,
@@ -137,31 +119,6 @@ fun ExternalWalletOnRampHandler(
             }.launchIn(this)
     }
 
-    LaunchedEffect(deepLink) {
-        val type = router.processType(deepLink)
-        if (type is DeeplinkType.ExternalWalletConnection) {
-            val result = type.result
-            val error = type.error
-            if (result != null) {
-                state.decrypt(connectionResult = result)
-            } else {
-                val resolvedError = DeeplinkError.fromCode(error?.errorCode)
-                val message = error?.errorMessage ?: "Something went wrong"
-                state.errors.emit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
-            }
-        } else if (type is DeeplinkType.ExternalWalletSignedTransaction) {
-            val result = type.result
-            val error = type.error
-            if (result != null) {
-                state.decrypt(signingResult = result)
-            } else {
-                val resolvedError = DeeplinkError.fromCode(error?.errorCode)
-                val message = error?.errorMessage ?: "Something went wrong"
-                state.errors.emit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
-            }
-        }
-    }
-
     LaunchedEffect(state.deeplinkState, state.amount) {
         when (state.deeplinkState) {
             ExternalWalletState.IDLE -> Unit
@@ -176,14 +133,9 @@ fun ExternalWalletOnRampHandler(
                 if (uri?.canNativelyHandle(context) == true) {
                     val origin = state.origin
                     if (origin is AppRoute.Token.Info) {
-                        preNavigatedToEntry = true
-                        navigator.push(
-                            ScreenRegistry.get(
-                                AppRoute.Token.SwapTransact(
-                                    TokenSwapPurpose.FundWithWallet(origin.mint),
-                                    forNeededFunds = origin.forNeededFunds
-                                )
-                            )
+                        state.pendingNavigation = AppRoute.Token.SwapTransact(
+                            TokenSwapPurpose.FundWithWallet(origin.mint),
+                            forNeededFunds = origin.forNeededFunds
                         )
                     }
 
@@ -216,24 +168,12 @@ fun ExternalWalletOnRampHandler(
                         message = "wallet connected",
                         type = TraceType.Process
                     )
-                    if (preNavigatedToEntry) {
-                        // Already pushed SwapTransact at STARTED
-                        preNavigatedToEntry = false
-                    } else {
-                        when (val origin = state.origin) {
-                            is AppRoute.Token.Info -> {
-                                navigator.push(
-                                    ScreenRegistry.get(
-                                        AppRoute.Token.SwapTransact(
-                                            TokenSwapPurpose.FundWithWallet(origin.mint),
-                                            forNeededFunds = origin.forNeededFunds
-                                        )
-                                    )
-                                )
-                            }
-                            else -> {
-                                navigator.push(ScreenRegistry.get(AppRoute.OnRamp.AmountEntry))
-                            }
+                    when (state.origin) {
+                        is AppRoute.Token.Info -> {
+                            // SwapTransact already navigated via pendingNavigation at STARTED
+                        }
+                        else -> {
+                            navigator.push(AppRoute.OnRamp.AmountEntry(state.tokenToPurchase?.address))
                         }
                     }
                 }
@@ -254,11 +194,8 @@ fun ExternalWalletOnRampHandler(
 
                 val swapId = state.swapId
                 if (state.origin is AppRoute.Token.Info && swapId != null) {
-                    preNavigatedToProcessing = true
-                    navigator.push(
-                        ScreenRegistry.get(
-                            AppRoute.Token.TxProcessing(swapId, awaitExternalWallet = true)
-                        )
+                    state.pendingNavigation = AppRoute.Token.TxProcessing(
+                        swapId, awaitExternalWallet = true
                     )
                 }
 
@@ -291,9 +228,8 @@ fun ExternalWalletOnRampHandler(
                 )
                 analytics.transactionSubmittedToWallet(state.provider!!)
 
-                if (preNavigatedToProcessing) {
+                if (state.origin is AppRoute.Token.Info) {
                     // TxProcessingScreen observes TRANSACTED, calls reset() and dispatches OnSwapIdChanged
-                    preNavigatedToProcessing = false
                     return@LaunchedEffect
                 }
 
@@ -302,9 +238,8 @@ fun ExternalWalletOnRampHandler(
 
                 if (swapId != null) {
                     // confirmation is shown in finalization screen
-                    navigator.push(ScreenRegistry.get(AppRoute.Token.TxProcessing(swapId)))
+                    navigator.push(AppRoute.Token.TxProcessing(swapId))
                 } else {
-                    val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
                     val title = state.tokenToPurchase?.let { token ->
                         context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
                     } ?: context.getString(R.string.prompt_title_cashOnTheWay)
@@ -313,7 +248,7 @@ fun ExternalWalletOnRampHandler(
                         subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
                         showScrim = true,
                         actions = buildList {
-                            if (hasPushPerms) {
+                            if (notifications.isGranted) {
                                 add(
                                     BottomBarAction(
                                         text = context.getString(R.string.action_ok),
@@ -326,7 +261,7 @@ fun ExternalWalletOnRampHandler(
                                     BottomBarAction(
                                         text = context.getString(R.string.action_notifyMe)
                                     ) {
-                                        notificationPermissionCheck(true)
+                                        notifications.launch()
                                     }
                                 )
 

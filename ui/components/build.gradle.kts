@@ -37,6 +37,7 @@ dependencies {
     debugApi(libs.compose.ui.tools)
     api(libs.compose.ui.tools.preview)
     implementation(libs.compose.material)
+    api(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.accompanist)
     implementation(libs.compose.paging)

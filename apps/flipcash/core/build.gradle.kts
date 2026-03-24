@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.auth)
     implementation(libs.androidx.datastore)
+    implementation(libs.compose.material3)
 
     api(libs.coil3)
     api(libs.coil3.network)
@@ -37,6 +38,7 @@ dependencies {
     api(project(":vendor:kik:scanner"))
 
     api(project(":ui:core"))
+    api(libs.navigation3.runtime)
 
     api(project(":vendor:tipkit:tipkit-m2"))
 }

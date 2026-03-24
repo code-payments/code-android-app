@@ -6,10 +6,12 @@ import androidx.compose.runtime.setValue
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.encryption.boxOpen
 import com.flipcash.app.core.encryption.toPublicKey
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
 import com.flipcash.app.core.onramp.deeplinks.ExternallySignedTransaction
 import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkConnectionResult
 import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkSigningResult
+import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
@@ -71,6 +73,12 @@ class ExternalWalletDeeplinkState(
 
     internal var provider: OnRampProvider.UsesDeeplinks? = null
 
+    /**
+     * Pending navigation route for screens to consume.
+     * Used by inner (sheet) navigators that the handler can't access directly.
+     */
+    var pendingNavigation: AppRoute? by mutableStateOf(null)
+
     internal val keyPair = Box.keypair()
     val curvePublicKey: String?
         get() = keyPair.publicKey.toPublicKey().base58()
@@ -100,7 +108,8 @@ class ExternalWalletDeeplinkState(
     internal var signedTransaction: String? = null
     internal var signature: Signature? = null
 
-    internal var swapId: SwapId? = null
+    var swapId: SwapId? = null
+        internal set
 
     /**
      * The public key of the encryption key used by the external wallet
@@ -276,12 +285,44 @@ class ExternalWalletDeeplinkState(
     }
 
     /**
+     * Handle a pre-parsed external wallet deeplink type dispatched from the router.
+     */
+    fun handleWalletDeeplink(type: DeeplinkType) {
+        when (type) {
+            is DeeplinkType.ExternalWalletConnection -> {
+                val result = type.result
+                val error = type.error
+                if (result != null) {
+                    decrypt(connectionResult = result)
+                } else {
+                    val resolvedError = DeeplinkError.fromCode(error?.errorCode)
+                    val message = error?.errorMessage ?: "Something went wrong"
+                    errors.tryEmit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
+                }
+            }
+            is DeeplinkType.ExternalWalletSignedTransaction -> {
+                val result = type.result
+                val error = type.error
+                if (result != null) {
+                    decrypt(signingResult = result)
+                } else {
+                    val resolvedError = DeeplinkError.fromCode(error?.errorCode)
+                    val message = error?.errorMessage ?: "Something went wrong"
+                    errors.tryEmit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
+                }
+            }
+            else -> {}
+        }
+    }
+
+    /**
      * Reset the state of the onramp flow
      */
     fun reset() {
         origin = null
         provider = null
         deeplinkState = ExternalWalletState.IDLE
+        pendingNavigation = null
         phantomEncryptionPublicKey = null
         amount = null
         walletConnection = null
