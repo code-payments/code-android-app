@@ -22,6 +22,7 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
 }
 
 dependencies {
@@ -92,4 +93,5 @@ dependencies {
     implementation(libs.event.bus)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
 }

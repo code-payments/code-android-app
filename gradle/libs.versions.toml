@@ -68,6 +68,8 @@ androidx-test-runner = "1.7.0"
 junit = "4.13.2"
 androidx-junit = "1.3.0"
 espresso = "3.7.0"
+mockk = "1.13.16"
+turbine = "1.2.0"
 robolectric = "4.14.1"
 mixpanel = "8.3.0"
 
@@ -267,6 +269,9 @@ junit = { module = "junit:junit", version.ref = "junit" }
 espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
 espresso-contrib = { module = "androidx.test.espresso:espresso-contrib", version.ref = "espresso" }
 espresso-intents = { module = "androidx.test.espresso:espresso-intents", version.ref = "espresso" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 # Screenshot testing
@@ -285,6 +290,7 @@ compose = ["compose-ui", "compose-foundation", "compose-material", "compose-mate
 hilt = ["hilt-android", "javax-inject"]
 hilt-compiler = ["hilt-android-compiler", "hilt-compiler"]
 testing = ["junit", "androidx-junit", "espresso-core"]
+unit-testing = ["kotlinx-coroutines-test", "mockk", "turbine"]
 voyager = ["voyager-navigator", "voyager-hilt", "voyager-bottomsheet", "voyager-tabs", "voyager-transitions"]
 grpc = ["grpc-okhttp", "grpc-kotlin", "grpc-protobuf-lite", "grpc-stub"]
 
