@@ -85,18 +85,14 @@ internal class TokenDiscoveryViewModel @Inject constructor(
                     dispatchEvent(Event.OnTokensUpdated(Loadable.Loaded(it)))
                 },
                 onError = { error ->
-                    if (error is DiscoverTokensError.NotFound) {
-                        dispatchEvent(Event.OnTokensUpdated(Loadable.Loaded(emptyList())))
-                    } else {
-                        dispatchEvent(
-                            Event.OnTokensUpdated(
-                                Loadable.Error(
-                                    message = resources.getString(R.string.error_discoverFailedToLoad),
-                                    error = error
-                                )
+                    dispatchEvent(
+                        Event.OnTokensUpdated(
+                            Loadable.Error(
+                                message = resources.getString(R.string.error_discoverFailedToLoad),
+                                error = error
                             )
                         )
-                    }
+                    )
                 }
             ).launchIn(viewModelScope)
 

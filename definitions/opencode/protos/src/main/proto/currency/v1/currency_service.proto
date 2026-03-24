@@ -21,6 +21,8 @@ service Currency {
     rpc UpdateMetadata(UpdateMetadataRequest) returns (UpdateMetadataResponse);
     // Discover returns a set of currencies to discover
     rpc Discover(DiscoverRequest) returns (stream DiscoverResponse);
+    // CheckAvailability checks whether a currency name is available for launch
+    rpc CheckAvailability(CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
 }
 message GetMintsRequest {
     repeated common.v1.SolanaAccountId addresses = 1 ;
@@ -231,6 +233,12 @@ message LaunchRequest {
     // The ticker symbol for the currency. If not provided, a default will be
     // generated using the currency name.
     string symbol = 4 ;
+    // Optional description
+    string description = 5 ;
+    // Optional bill customization. If not provided, a default will be set.
+    BillCustomization bill_customization = 6;
+    // The raw image data for the icon. If not provided, a default will be set.
+    bytes icon = 7 ;
 }
 message LaunchResponse {
     Result result = 1;
@@ -239,7 +247,9 @@ message LaunchResponse {
         // The launch was denied
         DENIED = 1;
         // A similar currency already exists
-        EXISTS = 2;
+        NAME_EXISTS = 2;
+        // Provided icon is invalid
+        INVALID_ICON = 3;
     }
     // The mint address of the launched currency on success
     common.v1.SolanaAccountId mint = 2;
@@ -313,6 +323,18 @@ message DiscoverResponse {
         NOT_FOUND = 1;
     }
     repeated Mint mints = 2 ;
+}
+message CheckAvailabilityRequest {
+    // The currency name to check availability for
+    string name = 1 ;
+}
+message CheckAvailabilityResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+    }
+    // Whether the name is available for use
+    bool is_available = 2;
 }
 enum PredefinedRange {
     ALL_TIME   = 0;

@@ -14,6 +14,7 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
 import com.getcode.opencode.internal.network.streamers.ManagedMintStream
+import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.opencode.model.core.errors.DiscoverTokensError
 import com.getcode.opencode.model.core.errors.GetHistoricalMintDataError
 import com.getcode.opencode.model.core.errors.GetMintsError
@@ -24,6 +25,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.TokenUpdateRequest
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
@@ -99,7 +101,7 @@ internal class CurrencyService @Inject constructor(
         onUpdate: (LiveMintDataResponse) -> Unit
     ): ManagedMintStream {
         val streamer = LiveMintDataStreamer(api)
-        return streamer.stream(scope = scope, mints = mints, tag = tag,) { update ->
+        return streamer.stream(scope = scope, mints = mints, tag = tag) { update ->
             // save protos for later use
             when (update.typeCase) {
                 CurrencyService.StreamLiveMintDataResponse.LiveData.TypeCase.CORE_MINT_FIAT_EXCHANGE_RATES -> verifiedStateManager.saveRates(update.coreMintFiatExchangeRates.exchangeRatesList)
@@ -115,15 +117,38 @@ internal class CurrencyService @Inject constructor(
         }
     }
 
-    suspend fun launchNewToken(name: String, symbol: String, owner: Ed25519.KeyPair): Result<Mint> {
+    suspend fun checkTokenAvailability(name: String): Result<Boolean> {
         return runCatching {
-            api.launch(name, symbol, owner)
+            api.checkTokenAvailability(name)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    CurrencyService.CheckAvailabilityResponse.Result.OK -> Result.success(response.isAvailable)
+                    CurrencyService.CheckAvailabilityResponse.Result.UNRECOGNIZED -> Result.failure(CheckTokenAvailabilityError.Unrecognized())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(CheckTokenAvailabilityError.Other(cause))
+            }
+        )
+    }
+
+    suspend fun launchNewToken(
+        name: String,
+        symbol: String,
+        bill: TokenBillCustomizations?,
+        icon: ByteArray?,
+        owner: Ed25519.KeyPair
+    ): Result<Mint> {
+        return runCatching {
+            api.launchToken(name, symbol, bill, icon, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     CurrencyService.LaunchResponse.Result.OK -> Result.success(response.mint.toMint())
                     CurrencyService.LaunchResponse.Result.DENIED -> Result.failure(LaunchTokenError.Denied())
-                    CurrencyService.LaunchResponse.Result.EXISTS -> Result.failure(LaunchTokenError.Exists())
+                    CurrencyService.LaunchResponse.Result.NAME_EXISTS -> Result.failure(LaunchTokenError.Exists())
+                    CurrencyService.LaunchResponse.Result.INVALID_ICON -> Result.failure(LaunchTokenError.InvalidIcon())
                     CurrencyService.LaunchResponse.Result.UNRECOGNIZED -> Result.failure(LaunchTokenError.Unrecognized())
                 }
             },
@@ -133,7 +158,10 @@ internal class CurrencyService @Inject constructor(
         )
     }
 
-    suspend fun updateIcon(updateRequest: TokenUpdateRequest.Icon, owner: Ed25519.KeyPair): Result<Unit> {
+    suspend fun updateIcon(
+        updateRequest: TokenUpdateRequest.Icon,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
         return runCatching {
             api.updateIcon(updateRequest, owner)
         }.foldWithSuppression(
@@ -151,7 +179,11 @@ internal class CurrencyService @Inject constructor(
             }
         )
     }
-    suspend fun updateMetadata(updateRequest: TokenUpdateRequest.Metadata, owner: Ed25519.KeyPair): Result<Unit> {
+
+    suspend fun updateMetadata(
+        updateRequest: TokenUpdateRequest.Metadata,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
         return runCatching {
             api.updateMetadata(updateRequest, owner)
         }.foldWithSuppression(

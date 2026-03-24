@@ -13,6 +13,7 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.TokenUpdateRequest
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
@@ -89,14 +90,35 @@ internal class CurrencyApi @Inject constructor(
         return streamingApi.streamLiveMintData(requests)
     }
 
-    suspend fun launch(
+    suspend fun checkTokenAvailability(name: String): CurrencyService.CheckAvailabilityResponse {
+        val request = CurrencyService.CheckAvailabilityRequest.newBuilder()
+            .setName(name)
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            api.checkAvailability(request)
+        }
+    }
+
+    suspend fun launchToken(
         name: String,
         symbol: String,
+        bill: TokenBillCustomizations?,
+        icon: ByteArray?,
         owner: Ed25519.KeyPair
     ): CurrencyService.LaunchResponse {
         val request = CurrencyService.LaunchRequest.newBuilder()
             .setName(name)
             .setSymbol(symbol)
+            .apply apply@{
+                if (bill != null) {
+                    setBillCustomization(bill.asProto())
+                }
+
+                if (icon != null) {
+                    setIcon(icon.toByteString())
+                }
+            }
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()

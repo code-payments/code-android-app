@@ -1,5 +1,7 @@
 package com.getcode.opencode.controllers
 
+import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.opencode.model.financial.LiveMintDataResponse
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -7,6 +9,7 @@ import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
@@ -117,5 +120,25 @@ class CurrencyController @Inject constructor(
         category: DiscoverCategory
     ): Result<List<Token>> {
         return repository.discoverTokens(category)
+    }
+
+    suspend fun checkTokenAvailability(name: String): Result<Unit> {
+        return repository.checkTokenAvailability(name)
+            .mapCatching { available ->
+                if (!available) {
+                    throw CheckTokenAvailabilityError.Unavailable()
+                }
+            }
+    }
+
+    suspend fun launchToken(
+        name: String,
+        symbol: String,
+        description: String,
+        bill: TokenBillCustomizations?,
+        icon: ByteArray?,
+        owner: Ed25519.KeyPair,
+    ): Result<Mint> {
+        return repository.launchToken(name, symbol, description, bill, icon, owner)
     }
 }

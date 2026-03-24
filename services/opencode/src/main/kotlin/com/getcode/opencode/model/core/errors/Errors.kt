@@ -250,12 +250,22 @@ sealed class SwapError(
     }
 }
 
+sealed class CheckTokenAvailabilityError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Unavailable: CheckTokenAvailabilityError("Unavailable")
+    class Unrecognized: CheckTokenAvailabilityError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : CheckTokenAvailabilityError(message = cause?.message, cause = cause)
+}
+
 sealed class LaunchTokenError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class Denied: LaunchTokenError("Denied")
     class Exists: LaunchTokenError("Token Already Exists")
+    class InvalidIcon: LaunchTokenError("Invalid icon")
     class Unrecognized: LaunchTokenError("Unrecognized")
     data class Other(override val cause: Throwable? = null) : LaunchTokenError(message = cause?.message, cause = cause)
 }
