@@ -47,7 +47,7 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token

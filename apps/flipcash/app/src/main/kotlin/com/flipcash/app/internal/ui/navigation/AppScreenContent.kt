@@ -22,12 +22,12 @@ import com.flipcash.app.advanced.AdvancedFeaturesScreen
 import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
-import com.flipcash.app.balance.PreloadBalance
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositScreen
+import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.PreloadLabs
@@ -41,6 +41,8 @@ import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.onramp.OnRampProviderListScreen
+import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
+import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
@@ -70,7 +72,6 @@ import dev.theolm.rinku.DeepLink
 
 @Composable
 fun AppPreloads() {
-    PreloadBalance()
     PreloadLabs()
 }
 
@@ -89,7 +90,8 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Onboarding.AccessKey> { AccessKeyScreen() }
     annotatedEntry<AppRoute.Onboarding.AccessKeySavedLocation> { PhotoAccessKeyScreen() }
     annotatedEntry<AppRoute.Onboarding.Purchase> { key -> PurchaseAccountScreen(key.fromLogin) }
-    annotatedEntry<AppRoute.Onboarding.NotificationPermission> { }
+    annotatedEntry<AppRoute.Onboarding.NotificationPermission> { key -> NotificationPermissionScreen(key.postCreate) }
+    annotatedEntry<AppRoute.Onboarding.NotificationPermissionRationale> { key -> NotificationPermissionRationaleScreen(key.permanentlyDenied) }
     annotatedEntry<AppRoute.Onboarding.CameraPermission> { }
 
     // Main
@@ -121,6 +123,7 @@ fun appEntryProvider(
         TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet)
     }
     annotatedEntry<AppRoute.Token.SellReceipt> { TokenSellReceiptScreen() }
+    annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
 
     // Verification
     annotatedEntry<AppRoute.Verification> { key ->

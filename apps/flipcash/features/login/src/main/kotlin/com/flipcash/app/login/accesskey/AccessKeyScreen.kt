@@ -12,11 +12,13 @@ import com.flipcash.app.login.internal.AccessKeyScreen
 import com.flipcash.features.login.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.util.permissions.rememberNotificationPermission
 
 @Composable
 fun AccessKeyScreen() {
     val viewModel = hiltViewModel<LoginAccessKeyViewModel>()
     val navigator = LocalCodeNavigator.current
+    val notificationPermissions = rememberNotificationPermission()
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -31,7 +33,11 @@ fun AccessKeyScreen() {
             if (requiresIap) {
                 navigator.push(AppRoute.Onboarding.Purchase())
             } else {
-                navigator.replaceAll(AppRoute.Main.Scanner)
+                if (notificationPermissions.isPermanentlyDenied) {
+                    navigator.push(AppRoute.Onboarding.NotificationPermissionRationale(true))
+                } else {
+                    navigator.push(AppRoute.Onboarding.NotificationPermission(true))
+                }
             }
         }
     }

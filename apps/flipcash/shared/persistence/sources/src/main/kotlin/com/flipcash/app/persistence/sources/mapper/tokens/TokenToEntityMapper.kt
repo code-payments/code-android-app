@@ -4,11 +4,14 @@ import android.util.Base64
 import com.flipcash.app.persistence.converters.BillBackgroundSerialized
 import com.flipcash.app.persistence.converters.BillCustomizationsSerialized
 import com.flipcash.app.persistence.converters.BillTextureSerialized
+import com.flipcash.app.persistence.converters.HolderDeltaSerialized
+import com.flipcash.app.persistence.converters.HolderMetricsSerialized
 import com.flipcash.app.persistence.converters.SocialLinkSerialized
 import com.flipcash.app.persistence.embedded.LaunchpadMetadataEmbedded
 import com.flipcash.app.persistence.embedded.VmMetadataEmbedded
 import com.flipcash.app.persistence.entities.TokenEntity
 import com.getcode.opencode.mapper.Mapper
+import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.SocialLink
@@ -41,6 +44,9 @@ class TokenToEntityMapper @Inject constructor() : Mapper<MintMetadata, TokenEnti
             billCustomizationsJson = from.billCustomizations
                 ?.toSerialized()
                 ?.let { json.encodeToString(it) },
+            holderMetricsJson = from.holderMetrics
+                ?.toSerialized()
+                ?.let { json.encodeToString(it) }
         )
     }
 }
@@ -84,4 +90,14 @@ private fun TokenBillCustomizations.toSerialized() = BillCustomizationsSerialize
         )
     },
     icon = icon?.let { Base64.encodeToString(it, Base64.NO_WRAP) },
+)
+
+private fun HolderMetrics.toSerialized() = HolderMetricsSerialized(
+    currentHolders = currentHolders,
+    deltas = holderDeltas.map { delta ->
+        HolderDeltaSerialized(
+            range = delta.range.name,
+            delta = delta.delta,
+        )
+    },
 )

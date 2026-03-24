@@ -7,8 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.navigation.extensions.getActivityScopedViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.balance.internal.BalanceScreen
 import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.AppRoute
@@ -40,7 +39,7 @@ fun BalanceScreen() {
             }
         )
 
-        val viewModel = getActivityScopedViewModel<BalanceViewModel>()
+        val viewModel = hiltViewModel<BalanceViewModel>()
         val tokenViewModel = hiltViewModel<SelectTokenViewModel>()
         BalanceScreen(viewModel, tokenViewModel)
 
@@ -72,9 +71,4 @@ fun BalanceScreen() {
                 .launchIn(this)
         }
     }
-}
-
-@Composable
-fun PreloadBalance() {
-    val viewModel = getActivityScopedViewModel<BalanceViewModel>()
 }

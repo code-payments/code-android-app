@@ -53,9 +53,6 @@ sealed interface MessageMetadata {
     data object Unknown : MessageMetadata
 
     @Serializable
-    data object WelcomeBonus : MessageMetadata
-
-    @Serializable
     data object GaveCrypto : MessageMetadata
 
     @Serializable

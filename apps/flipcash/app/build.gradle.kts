@@ -187,6 +187,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:features:transactions"))
     implementation(project(":apps:flipcash:features:bill-customization"))
+    implementation(project(":apps:flipcash:features:discovery"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))

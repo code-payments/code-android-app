@@ -1,7 +1,5 @@
-package com.getcode.opencode.internal.model
+package com.getcode.opencode.model.financial
 
-import com.getcode.opencode.model.financial.LaunchpadReserveStateSnapshot
-import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Signature
 import kotlin.time.Instant
 

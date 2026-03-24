@@ -1,4 +1,4 @@
-package com.getcode.opencode.internal.model
+package com.getcode.opencode.model.ui
 
 enum class WindowedRange {
     AllTime,

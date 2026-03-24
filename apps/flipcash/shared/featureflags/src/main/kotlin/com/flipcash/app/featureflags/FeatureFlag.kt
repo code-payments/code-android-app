@@ -109,6 +109,24 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object TokenDiscovery: FeatureFlag {
+        override val key: String = "token_discovery_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
+    @FeatureFlagMarker
+    data object TokenCreate: FeatureFlag {
+        override val key: String = "token_create_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
@@ -133,6 +151,8 @@ val FeatureFlag.title: String
         FeatureFlag.CashReservesEnabled -> "Cash Reserves"
         FeatureFlag.MarketCapChart -> "Market Cap Chart"
         FeatureFlag.CoinbaseOnRamp -> "Coinbase Onramp"
+        FeatureFlag.TokenDiscovery -> "Token Discovery"
+        FeatureFlag.TokenCreate -> "Token Creation"
     }
 
 val FeatureFlag.message: String
@@ -148,6 +168,8 @@ val FeatureFlag.message: String
         FeatureFlag.CashReservesEnabled -> "When enabled, USDC will be brandished as Cash Reserves throughout the app"
         FeatureFlag.MarketCapChart -> "When enabled, you'll gain access to the market cap chart in token info"
         FeatureFlag.CoinbaseOnRamp -> "When enabled, you'll gain access to the Coinbase onramp for token buys"
+        FeatureFlag.TokenDiscovery -> "When enabled, you'll gain access to leaderboards for tokens and discovery"
+        FeatureFlag.TokenCreate -> "When enabled, you'll gain access to create new currencies"
     }
 
 

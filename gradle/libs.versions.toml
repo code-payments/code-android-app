@@ -1,7 +1,7 @@
 [versions]
 java = "21"
 kotlin = "2.3.10"
-ksp = "2.3.4"
+ksp = "2.3.6"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.10.0"
 kotlinx-datetime = "0.7.1"
@@ -12,7 +12,7 @@ google-services = "4.4.4"
 androidx-appcompat = "1.7.1"
 androidx-activity = "1.12.4"
 androidx-annotation = "1.9.1"
-androidx-biometrics = "1.2.0-alpha05"
+androidx-biometrics = "1.4.0-alpha05"
 androidx-camerax = "1.5.3"
 androidx-credentials = "1.5.0"
 androidx-core = "1.17.0"
@@ -26,14 +26,14 @@ androidx-paging = "3.4.1"
 androidx-room = "2.8.4"
 androidx-work = "2.11.1"
 androidx-webkit = "1.14.0"
-androidx-ui = "1.10.4"
+androidx-ui = "1.10.5"
 
 sqlcipher = "4.5.4"
 
 compose-bom = "2026.02.01"
 compose-activities = "1.12.4"
 compose-view-models = "2.10.0"
-compose-paging = "3.4.1"
+compose-paging = "3.4.2"
 compose-webview = "2.0.3"
 compose-accompanist = "0.36.0"
 compose-coil = "3.4.0"
@@ -110,7 +110,7 @@ androidx-camerax-view = { module = "androidx.camera:camera-view", version.ref = 
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
 androidx-credentials-play-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
-androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version = "1.0.0" }
+androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version = "1.1.0" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }

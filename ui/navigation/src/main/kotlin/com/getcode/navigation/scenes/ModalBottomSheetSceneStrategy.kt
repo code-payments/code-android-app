@@ -1,5 +1,6 @@
 package com.getcode.navigation.scenes
 
+import android.os.Build
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -9,14 +10,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -34,6 +40,7 @@ import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavigationRetVal
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.launch
 
 // Adapted from code courtesy of https://github.com/android/nav3-recipes/pull/67
@@ -66,7 +73,7 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
         key(key, navigator.sheetGeneration) {
             val isNonDismissable =
                 (metadata[NavMetadataKeys.IsNonDismissable.key] as? Boolean ?: false)
-                    || navigator.sheetDismissDisabled
+                        || navigator.sheetDismissDisabled
 
             val handleBackResult = {
                 val navResultKey =
@@ -127,42 +134,54 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 }
             }
 
-            // Remove inset padding. Default adds nav bar padding.
-            // Remove grab bar for bleed to top edge of sheet
-            ModalBottomSheet(
-                sheetState = sheetState,
-                onDismissRequest = { if (!isNonDismissable) dismiss(false) },
-                sheetGesturesEnabled = !navigator.sheetDragDisabled,
-                scrimColor = CodeTheme.colors.scrim,
-                properties = if (isNonDismissable) {
-                    ModalBottomSheetProperties(
-                        shouldDismissOnBackPress = false,
-                        shouldDismissOnClickOutside = false,
-                    )
-                } else modalBottomSheetProperties,
-                dragHandle = null,
-                contentWindowInsets = { WindowInsets() },
-                containerColor = CodeTheme.colors.surface,
+            var gesturesEnabled by rememberSaveable(!navigator.sheetDragDisabled) {
+                mutableStateOf(!navigator.sheetDragDisabled)
+            }
+
+            CompositionLocalProvider(
+                LocalSheetGesturesState provides { enabled ->
+                    gesturesEnabled = enabled && !navigator.sheetDragDisabled
+                },
             ) {
-                // The sheet's popup window defaults to dark (black) status bar icons.
-                // Force light icons so they're visible against the dark scrim.
-                val view = LocalView.current
-                SideEffect {
-                    view.rootView.windowInsetsController?.setSystemBarsAppearance(
-                        0, // clear light status bars flag → light (white) icons
-                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
+                // Remove inset padding. Default adds nav bar padding.
+                // Remove grab bar for bleed to top edge of sheet
+                ModalBottomSheet(
+                    sheetState = sheetState,
+                    onDismissRequest = { if (!isNonDismissable) dismiss(false) },
+                    sheetGesturesEnabled = gesturesEnabled,
+                    scrimColor = CodeTheme.colors.scrim,
+                    properties = if (isNonDismissable) {
+                        ModalBottomSheetProperties(
+                            shouldDismissOnBackPress = false,
+                            shouldDismissOnClickOutside = false,
+                        )
+                    } else modalBottomSheetProperties,
+                    dragHandle = null,
+                    contentWindowInsets = { WindowInsets() },
+                    containerColor = CodeTheme.colors.surface,
                 ) {
-                    CompositionLocalProvider(
-                        LocalBottomSheetDismissDispatcher provides { dismiss(true) },
-                        LocalSheetNavigator provides navigator,
+                    // The sheet's popup window defaults to dark (black) status bar icons.
+                    // Force light icons so they're visible against the dark scrim.
+                    val view = LocalView.current
+                    SideEffect {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            view.rootView.windowInsetsController?.setSystemBarsAppearance(
+                                0, // clear light status bars flag → light (white) icons
+                                android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
                     ) {
-                        entry.Content()
+                        CompositionLocalProvider(
+                            LocalBottomSheetDismissDispatcher provides { dismiss(true) },
+                            LocalSheetNavigator provides navigator,
+                        ) {
+                            entry.Content()
+                        }
                     }
                 }
             }

@@ -1,7 +1,7 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.opencode.internal.model.LiveMintDataResponse
-import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.opencode.model.financial.LiveMintDataResponse
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountInfo

@@ -34,7 +34,8 @@ fun TokenList(
     selectedToken: Mint? = null,
     showSelections: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
-    footer: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
+    reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
+    footer: (@Composable LazyItemScope.() -> Unit)? = null,
     reservesEnabled: Boolean = false,
     onTokenSelected: (Token) -> Unit = { },
 ) {
@@ -86,13 +87,25 @@ fun TokenList(
                 Divider(color = CodeTheme.colors.dividerVariant)
             }
 
-            footer?.let {
+            reserves?.let {
                 if (reservesEnabled &&
                     cashReserves.nativeAmount.valueGreaterThan(
                         Fiat(0.0, cashReserves.rate.currency)
                     )
                 ) {
-                    item { it(Mint.usdf, cashReserves) }
+                    item {
+                        it(Mint.usdf, cashReserves)
+                        Divider(
+                            modifier = Modifier.padding(bottom = CodeTheme.dimens.inset),
+                            color = CodeTheme.colors.dividerVariant
+                        )
+                    }
+                }
+            }
+
+            footer?.let {
+                item {
+                    it()
                 }
             }
         }

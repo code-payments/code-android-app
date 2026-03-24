@@ -59,7 +59,6 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
             NotificationMetadata.ReceivedCrypto -> MessageMetadata.ReceivedCrypto
             is NotificationMetadata.SentCrypto -> MessageMetadata.SentCrypto(from.creator, from.canCancel)
             NotificationMetadata.Unknown -> MessageMetadata.Unknown
-            NotificationMetadata.WelcomeBonus -> MessageMetadata.WelcomeBonus
             NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto
             NotificationMetadata.DepositedCrypto -> MessageMetadata.DepositedCrypto
             NotificationMetadata.BoughtToken -> MessageMetadata.BoughtToken

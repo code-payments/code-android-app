@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
+import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
@@ -11,6 +12,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -21,6 +23,8 @@ import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.TransferRequest
+import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
@@ -285,6 +289,7 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
                                     setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
                                     setFundingId(source.transactionSignature.base58)
                                 }
+
                                 is SwapFundingSource.SubmitIntent -> {
                                     setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
                                     setFundingId(source.id.base58)
@@ -305,4 +310,32 @@ internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMeta
                 .setClientParameters(currencyCreatorParams())
 
         )
+}
+
+internal fun TokenBillCustomizations.asProto(): CurrencyService.BillCustomization {
+    return CurrencyService.BillCustomization.newBuilder()
+        .apply {
+            when (background) {
+                is BillBackground.Gradient -> background.colors.onEachIndexed { index, color ->
+                    setColors(index, CurrencyService.Color.newBuilder().setHex(color))
+                }
+
+                is BillBackground.Solid -> setColors(
+                    0,
+                    CurrencyService.Color.newBuilder().setHex(background.colorHex)
+                )
+            }
+        }.build()
+}
+
+internal fun SocialLink.asProto(): CurrencyService.SocialLink {
+    return CurrencyService.SocialLink.newBuilder()
+        .apply {
+            when (this@asProto) {
+                is SocialLink.Discord -> setDiscord(CurrencyService.SocialLink.Discord.newBuilder().setInviteCode(inviteCode))
+                is SocialLink.Telegram -> setTelegram(CurrencyService.SocialLink.Telegram.newBuilder().setUsername(username))
+                is SocialLink.Website -> setWebsite(CurrencyService.SocialLink.Website.newBuilder().setUrl(url))
+                is SocialLink.X -> setX(CurrencyService.SocialLink.X.newBuilder().setUsername(username))
+            }
+        }.build()
 }

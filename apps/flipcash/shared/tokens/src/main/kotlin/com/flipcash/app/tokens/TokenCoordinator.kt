@@ -14,7 +14,7 @@ import com.flipcash.app.persistence.sources.TokenDataSource
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.DataSource

@@ -250,3 +250,43 @@ sealed class SwapError(
     }
 }
 
+sealed class LaunchTokenError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied: LaunchTokenError("Denied")
+    class Exists: LaunchTokenError("Token Already Exists")
+    class Unrecognized: LaunchTokenError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : LaunchTokenError(message = cause?.message, cause = cause)
+}
+
+sealed class UpdateIconError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound: UpdateIconError("Not found")
+    class Denied: UpdateIconError("Denied")
+    class InvalidIcon: UpdateIconError("Invalid icon")
+    class Unrecognized: UpdateIconError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : UpdateIconError(message = cause?.message, cause = cause)
+
+}
+
+sealed class UpdateMetadataError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound: UpdateMetadataError("Not found")
+    class Denied: UpdateMetadataError("Denied")
+    class Unrecognized: UpdateMetadataError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : UpdateMetadataError(message = cause?.message, cause = cause)
+}
+
+sealed class DiscoverTokensError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound: DiscoverTokensError("Not found")
+    class Unrecognized: DiscoverTokensError("Unrecognized")
+    data class Other(override val cause: Throwable? = null) : DiscoverTokensError(message = cause?.message, cause = cause)
+}

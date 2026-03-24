@@ -90,6 +90,7 @@ include(
     ":apps:flipcash:features:tokens",
     ":apps:flipcash:features:transactions",
     ":apps:flipcash:features:bill-customization",
+    ":apps:flipcash:features:discovery",
 
     // protobuf model and service implementations for the Open Code Protocol
     ":definitions:opencode:models",

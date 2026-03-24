@@ -14,6 +14,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 
 interface FlipcashAnalyticsService : AnalyticsService {
+    fun transferStart(event: Analytics.Transfer.Initiate)
     fun transfer(event: Analytics.Transfer, amount: LocalFiat?, successful: Boolean = true, error: Throwable? = null)
     fun transfer(event: Analytics.Transfer, fiat: Fiat?, successful: Boolean = true, error: Throwable? = null)
     fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
@@ -40,6 +41,11 @@ interface FlipcashAnalyticsService : AnalyticsService {
 object Analytics {
 
     sealed interface Transfer {
+        sealed interface Initiate: Transfer {
+            data object GrabBillStart: Initiate
+            data object GiveBillStart: Initiate
+        }
+
         data class GrabBill(val time: Long? = null) : Transfer
         data object GiveBill : Transfer
         data object Withdrawal : Transfer
@@ -70,6 +76,7 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun unintentionalLogout() = Unit
     override fun action(action: AppAction, source: AppActionSource?) = Unit
 
+    override fun transferStart(event: Analytics.Transfer.Initiate) = Unit
     override fun transfer(event: Analytics.Transfer, amount: LocalFiat?, successful: Boolean, error: Throwable?) = Unit
     override fun transfer(event: Analytics.Transfer, fiat: Fiat?, successful: Boolean, error: Throwable?) = Unit
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit

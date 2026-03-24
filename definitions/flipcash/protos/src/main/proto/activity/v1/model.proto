@@ -24,7 +24,6 @@ message Notification {
     NotificationState state = 5;
     // Additional metadata for this notification specific to the notification
     oneof additional_metadata {
-        WelcomeBonusNotificationMetadata      welcome_bonus      = 6;
         GaveCryptoNotificationMetadata        gave_crypto        = 7;
         ReceivedCryptoNotificationMetadata    received_crypto    = 8;
         WithdrewCryptoNotificationMetadata    withdrew_crypto    = 9;
@@ -33,8 +32,7 @@ message Notification {
         BoughtCryptoNotificationMetadata      bought_crypto      = 12;
         SoldCryptoNotificationMetadata        sold_crypto        = 13;
     }
-}
-message WelcomeBonusNotificationMetadata {
+    reserved 6; // Deprecated WelcomeBonusNotificationMetadata
 }
 message GaveCryptoNotificationMetadata {
 }

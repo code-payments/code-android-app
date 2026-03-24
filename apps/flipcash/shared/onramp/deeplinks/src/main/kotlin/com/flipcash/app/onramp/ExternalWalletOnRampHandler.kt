@@ -1,6 +1,5 @@
 package com.flipcash.app.onramp
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -11,7 +10,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
@@ -24,20 +22,17 @@ import com.flipcash.app.onramp.internal.buildTransactionDeeplink
 import com.flipcash.app.onramp.internal.packageName
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
-import com.getcode.util.permissions.LocalPermissionChecker
-import com.getcode.util.permissions.notificationPermissionCheck
+import com.getcode.util.permissions.rememberNotificationPermission
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlin.to
 
 @SuppressLint("LocalContextGetResourceValueCall", "InlinedApi")
 @Composable
@@ -47,7 +42,6 @@ fun ExternalWalletOnRampHandler(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     content: @Composable () -> Unit
 ) {
-    val permissions = LocalPermissionChecker.current
     val composeScope = rememberCoroutineScope()
     val analytics = rememberAnalytics()
 
@@ -77,12 +71,9 @@ fun ExternalWalletOnRampHandler(
     val context = LocalContext.current
 
 
-    val onNotificationResult: (Boolean) -> Unit = {
+    val notifications = rememberNotificationPermission {
         composeScope.launch { close(true) }
     }
-
-    val notificationPermissionCheck =
-        notificationPermissionCheck { onNotificationResult(it) }
 
     RepeatOnLifecycle(
         targetState = Lifecycle.State.RESUMED,
@@ -249,7 +240,6 @@ fun ExternalWalletOnRampHandler(
                     // confirmation is shown in finalization screen
                     navigator.push(AppRoute.Token.TxProcessing(swapId))
                 } else {
-                    val hasPushPerms = permissions.isGranted(Manifest.permission.POST_NOTIFICATIONS)
                     val title = state.tokenToPurchase?.let { token ->
                         context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
                     } ?: context.getString(R.string.prompt_title_cashOnTheWay)
@@ -258,7 +248,7 @@ fun ExternalWalletOnRampHandler(
                         subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
                         showScrim = true,
                         actions = buildList {
-                            if (hasPushPerms) {
+                            if (notifications.isGranted) {
                                 add(
                                     BottomBarAction(
                                         text = context.getString(R.string.action_ok),
@@ -271,7 +261,7 @@ fun ExternalWalletOnRampHandler(
                                     BottomBarAction(
                                         text = context.getString(R.string.action_notifyMe)
                                     ) {
-                                        notificationPermissionCheck(true)
+                                        notifications.launch()
                                     }
                                 )
 

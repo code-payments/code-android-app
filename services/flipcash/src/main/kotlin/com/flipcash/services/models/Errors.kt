@@ -212,3 +212,14 @@ sealed class UnlinkSocialAccountError(
     data class Other(override val cause: Throwable? = null) : UnlinkSocialAccountError(message = cause?.message, cause = cause)
 }
 
+sealed class UpdateSettingsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : UpdateSettingsError("Denied")
+    class Unrecognized : UpdateSettingsError("Unrecognized")
+    class InvalidLocale : UpdateSettingsError("Invalid locale")
+    class InvalidRegion : UpdateSettingsError("Invalid region")
+    data class Other(override val cause: Throwable? = null) : UpdateSettingsError(message = cause?.message, cause = cause)
+
+}
