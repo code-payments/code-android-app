@@ -54,10 +54,6 @@ internal fun Scanner() {
         mutableStateOf<Boolean?>(null)
     }
 
-    var cameraStarted by remember {
-        mutableStateOf(state.autoStartCamera == true)
-    }
-
     var cameraAvailable by remember {
         mutableStateOf(true)
     }
@@ -83,9 +79,6 @@ internal fun Scanner() {
     @SuppressLint("LocalContextGetResourceValueCall")
     BillContainer(
         isPaused = isPaused,
-        isCameraReady = previewing == true,
-        isCameraStarted = cameraStarted,
-        onStartCamera = { cameraStarted = true },
         onAction = {
             when (it) {
                 ScannerDecorItem.Give -> {
@@ -165,9 +158,6 @@ internal fun Scanner() {
 
             Lifecycle.Event.ON_STOP -> {
                 Timber.d("onStop")
-                if (state.autoStartCamera == false) {
-                    cameraStarted = false
-                }
             }
 
             Lifecycle.Event.ON_PAUSE -> {

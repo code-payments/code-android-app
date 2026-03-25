@@ -44,6 +44,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.rpc.RpcConfig
 import com.getcode.ui.testing.LocalUiTesting
 import com.getcode.util.permissions.PermissionChecker
+import com.getcode.util.permissions.ProvidePermissionChecker
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.LocalSystemSettings
 import com.getcode.util.resources.ResourceHelper
@@ -163,11 +164,13 @@ class MainActivity : FragmentActivity() {
                 LocalAppUpdater provides appUpdater,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
-                Rinku {
-                    App(
-                        tipsEngine = tipsEngine,
-                        solanaRpcConfig = solanaRpcConfig,
-                    )
+                ProvidePermissionChecker(permissionChecker) {
+                    Rinku {
+                        App(
+                            tipsEngine = tipsEngine,
+                            solanaRpcConfig = solanaRpcConfig,
+                        )
+                    }
                 }
             }
         }

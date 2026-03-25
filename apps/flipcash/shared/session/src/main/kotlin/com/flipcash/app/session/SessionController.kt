@@ -26,7 +26,6 @@ interface SessionController {
     fun onAppInForeground()
     fun onAppInBackground()
     fun onCameraScanning(scanning: Boolean)
-    fun onCameraPermissionResult(result: PermissionResult)
     fun showBill(bill: Bill)
     fun dismissBill(action: BillDeterminationResult)
     fun onCodeScan(code: ScannableKikCode)
@@ -34,7 +33,6 @@ interface SessionController {
 }
 
 data class SessionState(
-    val isCameraPermissionGranted: Boolean? = null,
     val vibrateOnScan: Boolean = false,
     val giveableBalance: Fiat? = null,
     val logScanTimes: Boolean = false,

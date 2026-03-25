@@ -289,10 +289,6 @@ class RealSessionController @Inject constructor(
         _state.update { it.copy(isCameraUp = scanning) }
     }
 
-    override fun onCameraPermissionResult(result: PermissionResult) {
-        _state.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
-    }
-
     override fun showBill(bill: Bill) {
         if (bill.amount.nativeAmount.decimalValue == 0.0) return
         val owner = userManager.accountCluster ?: return

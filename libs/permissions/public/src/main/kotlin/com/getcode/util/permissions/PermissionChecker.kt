@@ -56,6 +56,36 @@ internal val LocalPermissionChecker: ProvidableCompositionLocal<PermissionChecke
     staticCompositionLocalOf { DefaultPermissionChecker }
 
 /**
+ * Provides the given [PermissionChecker] to the composition tree.
+ *
+ * Call this from your activity's `setContent` block to connect the Hilt-injected
+ * [AndroidPermissionChecker] to [rememberPermission].
+ *
+ * Without this, the default checker (which treats all permissions as denied) is used,
+ * and permission state falls back entirely to SharedPreferences — which can become
+ * stale if the user revokes a permission via system Settings.
+ *
+ * Usage:
+ * ```
+ * setContent {
+ *     ProvidePermissionChecker(permissionChecker) {
+ *         App()
+ *     }
+ * }
+ * ```
+ */
+@Composable
+fun ProvidePermissionChecker(
+    checker: PermissionChecker,
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(
+        LocalPermissionChecker provides checker,
+        content = content,
+    )
+}
+
+/**
  * Provides a [FakePermissionChecker] for use in tests and Compose previews.
  *
  * @param granted The set of permission strings to treat as granted.

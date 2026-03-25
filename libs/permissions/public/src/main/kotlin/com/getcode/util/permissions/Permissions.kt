@@ -25,26 +25,34 @@ private const val PREFS_NAME = "permissions"
  * Returns [PermissionResult.NotRequested] if no result has been persisted,
  * meaning the permission has never been requested in any session.
  */
-private fun SharedPreferences.restoreResult(permission: String): PermissionResult =
+/**
+ * Restores the last known denial state for [permission] from SharedPreferences.
+ *
+ * [PermissionResult.Granted] is never persisted — the OS is the sole source of truth
+ * for granted state. This avoids stale "Granted" entries when the user selects
+ * "Only this time" or revokes the permission via system Settings.
+ */
+private fun SharedPreferences.restoreDenialState(permission: String): PermissionResult =
     when (getString(permission, null)) {
         "Denied" -> PermissionResult.Denied
         "PermanentlyDenied" -> PermissionResult.PermanentlyDenied
-        "Granted" -> PermissionResult.Granted
         else -> PermissionResult.NotRequested
     }
 
 /**
- * Persists [result] for [permission] to SharedPreferences.
- * [PermissionResult.NotRequested] is a no-op — absence of a key represents this state.
+ * Persists denial state for [permission] to SharedPreferences.
+ *
+ * Only [PermissionResult.Denied] and [PermissionResult.PermanentlyDenied] are stored.
+ * [PermissionResult.Granted] clears any prior denial record.
+ * [PermissionResult.NotRequested] is a no-op.
  */
 private fun SharedPreferences.Editor.persistResult(permission: String, result: PermissionResult) {
-    val key = when (result) {
-        PermissionResult.Denied -> "Denied"
-        PermissionResult.PermanentlyDenied -> "PermanentlyDenied"
-        PermissionResult.Granted -> "Granted"
+    when (result) {
+        PermissionResult.Denied -> putString(permission, "Denied")
+        PermissionResult.PermanentlyDenied -> putString(permission, "PermanentlyDenied")
+        PermissionResult.Granted -> remove(permission)
         PermissionResult.NotRequested -> return
     }
-    putString(permission, key)
 }
 
 /**
@@ -88,7 +96,7 @@ fun rememberPermission(
         when {
             checker.isGranted(config.permission) -> PermissionResult.Granted
             !config.requiresRuntimeRequest -> PermissionResult.Granted
-            else -> prefs.restoreResult(config.permission)
+            else -> prefs.restoreDenialState(config.permission)
         }
     }
 
@@ -110,7 +118,7 @@ fun rememberPermission(
                     // Returning from system Settings — re-evaluate from source of truth
                     handle.status = when {
                         checker.isGranted(config.permission) -> PermissionResult.Granted
-                        else -> prefs.restoreResult(config.permission)
+                        else -> prefs.restoreDenialState(config.permission)
                     }
                 }
             }

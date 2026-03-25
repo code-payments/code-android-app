@@ -46,6 +46,8 @@ import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.updates.LocalAppUpdater
+import com.getcode.ui.components.OnLifecycleEvent
+import androidx.lifecycle.Lifecycle
 import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -63,17 +65,13 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun BillContainer(
     modifier: Modifier = Modifier,
-    isCameraReady: Boolean,
-    isCameraStarted: Boolean,
     isPaused: Boolean,
     scannerView: @Composable () -> Unit,
-    onStartCamera: () -> Unit,
     onAction: (ScannerDecorItem) -> Unit
 ) {
     val session = LocalSessionController.current!!
     val context = LocalContext.current
     val onPermissionResult = { result: PermissionResult ->
-        session.onCameraPermissionResult(result)
         if (result == PermissionResult.PermanentlyDenied) {
             BottomBarManager.showError(
                 title = context.getString(R.string.action_allowCameraAccess),
@@ -100,6 +98,15 @@ internal fun BillContainer(
     val state by session.state.collectAsState()
     val billState by session.billState.collectAsState()
 
+    val autoStart = state.autoStartCamera == true
+    var cameraStarted by remember { mutableStateOf(autoStart) }
+
+    OnLifecycleEvent { _, event ->
+        if (event == Lifecycle.Event.ON_STOP && !autoStart) {
+            cameraStarted = false
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -117,24 +124,35 @@ internal fun BillContainer(
                 // waiting for update
             }
 
-            state.isCameraPermissionGranted == true || state.isCameraPermissionGranted == null -> {
-                if (state.autoStartCamera == null) {
-                    // waiting for result
-                } else if (!state.autoStartCamera!! && !isCameraStarted) {
-                    CameraDisabledView(modifier = Modifier.fillMaxSize()) {
-                        onStartCamera()
+            else ->{
+                when (cameraPermission.status) {
+                    PermissionResult.Denied -> {
+                        CameraDisabledView(modifier = Modifier.fillMaxSize()) {
+                            cameraPermission.launch()
+                        }
                     }
-                } else {
-                    scannerView()
+                    PermissionResult.NotRequested -> {
+                        CameraPermissionsMissingView(
+                            modifier = Modifier.fillMaxSize(),
+                            backgroundColor = Color.Black,
+                            onClick = { cameraPermission.launch() }
+                        )
+                    }
+                    PermissionResult.Granted -> {
+                        if (!cameraStarted) {
+                            CameraDisabledView(modifier = Modifier.fillMaxSize()) {
+                                cameraStarted = true
+                            }
+                        } else {
+                            scannerView()
+                        }
+                    }
+                    PermissionResult.PermanentlyDenied -> {
+                        CameraDisabledView(modifier = Modifier.fillMaxSize()) {
+                            context.launchAppSettings()
+                        }
+                    }
                 }
-            }
-
-            else -> {
-                CameraPermissionsMissingView(
-                    modifier = Modifier.fillMaxSize(),
-                    backgroundColor = Color.Black,
-                    onClick = { cameraPermission.launch() }
-                )
             }
         }
 
