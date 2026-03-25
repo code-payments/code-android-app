@@ -7,8 +7,10 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
+import com.getcode.opencode.internal.transactors.AccountClusterFactory
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
 import com.getcode.opencode.internal.transactors.GrabBillTransactor
+import com.getcode.opencode.internal.transactors.PayloadFactory
 import com.getcode.opencode.internal.transactors.ReceiveGiftCardTransactor
 import com.getcode.opencode.internal.transactors.SendGiftCardTransactor
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -42,6 +44,8 @@ class BillTransactionManager @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
     private val verifiedProtoManager: VerifiedProtoManager,
+    private val payloadFactory: PayloadFactory,
+    private val accountClusterFactory: AccountClusterFactory,
 ) {
     private var billDismissTimer: TimerTask? = null
 
@@ -77,6 +81,7 @@ class BillTransactionManager @Inject constructor(
                 transactionController = transactionController,
                 scope = childScope,
                 verifiedProtoManager = verifiedProtoManager,
+                payloadFactory = payloadFactory,
             ).apply {
                 with(token, amount, owner, billExchangeDataTimeout, verifiedState)
             }
@@ -166,7 +171,7 @@ class BillTransactionManager @Inject constructor(
         giftTransactor?.dispose()
 
         sharedScope.launch {
-            val transactor = SendGiftCardTransactor(transactionController).apply {
+            val transactor = SendGiftCardTransactor(transactionController, payloadFactory).apply {
                 with(giftCard, amount, token, owner)
             }
             giftTransactor = transactor
@@ -198,7 +203,8 @@ class BillTransactionManager @Inject constructor(
                 transactionController = transactionController,
                 tokenProvider = tokenProvider,
                 mnemonicManager = mnemonicManager,
-                giftCardManager = giftCardManager
+                giftCardManager = giftCardManager,
+                accountClusterFactory = accountClusterFactory,
             ).apply {
                 with(owner, entropy)
             }

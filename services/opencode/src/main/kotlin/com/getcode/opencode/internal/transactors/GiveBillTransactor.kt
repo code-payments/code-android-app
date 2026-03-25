@@ -10,7 +10,6 @@ import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.extensions.asProtobufMessage
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -20,7 +19,6 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.TraceType
-import com.getcode.utils.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -32,6 +30,7 @@ internal class GiveBillTransactor(
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
     private val verifiedProtoManager: VerifiedProtoManager,
+    private val payloadFactory: PayloadFactory,
 ) : Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
     private var token: Token? = null
     private var amount: LocalFiat? = null
@@ -43,7 +42,6 @@ internal class GiveBillTransactor(
 
     private var providedVerifiedState: VerifiedState? = null
 
-    private var payload: OpenCodePayload = OpenCodePayload.Empty
     var data: List<Byte> = emptyList()
         private set
 
@@ -62,15 +60,14 @@ internal class GiveBillTransactor(
 
         receivingAccount = null
 
-        val payloadInfo = OpenCodePayload(
+        val payloadResult = payloadFactory.create(
             kind = PayloadKind.MultiMintCash,
             value = amount.nativeAmount,
             nonce = nonce
         )
 
-        payload = payloadInfo
-        rendezvousKey = payloadInfo.rendezvous
-        data = payloadInfo.codeData.toList()
+        rendezvousKey = payloadResult.rendezvous
+        data = payloadResult.codeData
     }
 
     /**
@@ -135,7 +132,7 @@ internal class GiveBillTransactor(
 
         trace(
             tag = "Messaging",
-            message = "Waiting for request to grab bill for ${desiredToken.symbol} on ${rendezvous.publicKeyBytes.base58}",
+            message = "Waiting for request to grab bill for ${desiredToken.symbol} on ${rendezvous.publicKey}",
             type = TraceType.Log
         )
 
@@ -200,7 +197,6 @@ internal class GiveBillTransactor(
 
     fun dispose() {
         owner = null
-        payload = OpenCodePayload.Empty
         data = emptyList()
         rendezvousKey = null
         receivingAccount = null

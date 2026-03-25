@@ -71,4 +71,7 @@ dependencies {
     implementation(libs.bugsnag)
 
     implementation(libs.event.bus)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
 }

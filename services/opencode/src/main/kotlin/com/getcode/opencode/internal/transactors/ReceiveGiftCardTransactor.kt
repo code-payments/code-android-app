@@ -24,6 +24,7 @@ internal class ReceiveGiftCardTransactor(
     private val tokenProvider: TokenMetadataProvider,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
+    private val accountClusterFactory: AccountClusterFactory,
 ) : Transactor<ReceiveGiftTransactorError>("Transactor::Receive") {
     private var owner: AccountCluster? = null
     private var mnemonic: MnemonicPhrase? = null
@@ -34,7 +35,7 @@ internal class ReceiveGiftCardTransactor(
     fun with(owner: AccountCluster, entropy: String) {
         this.owner = owner
         mnemonic = mnemonicManager.fromEntropyBase58(entropy)
-        giftCardOwner = AccountCluster.newInstance(
+        giftCardOwner = accountClusterFactory.create(
             DerivedKey.derive(DerivePath.primary, mnemonic = mnemonic!!),
         )
     }

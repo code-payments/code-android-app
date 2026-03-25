@@ -7,7 +7,6 @@ import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.transactors.GiveBillTransactor.GiveTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
-import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -17,13 +16,12 @@ import com.getcode.utils.ErrorUtils
 
 internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
+    private val payloadFactory: PayloadFactory,
 ): Transactor<SendGiftCardTransactor.SendTransactorError>("Transactor::Send") {
     private var giftCardAccount: GiftCardAccount? = null
     private var token: Token? = null
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
-    private var payload: OpenCodePayload? = null
-    private var data: List<Byte>? = null
 
     private var rendezvousKey: KeyPair? = null
 
@@ -33,15 +31,13 @@ internal class SendGiftCardTransactor(
         this.amount = amount
         this.owner = owner
 
-        val payloadInfo = OpenCodePayload(
+        val payloadResult = payloadFactory.create(
             kind = PayloadKind.MultiMintCash,
             value = amount.nativeAmount,
             nonce = nonce
         )
 
-        payload = payloadInfo
-        rendezvousKey = payloadInfo.rendezvous
-        data = payloadInfo.codeData.toList()
+        rendezvousKey = payloadResult.rendezvous
     }
 
     /**
@@ -95,8 +91,6 @@ internal class SendGiftCardTransactor(
         amount = null
         giftCardAccount = null
         owner = null
-        payload = null
-        data = null
         rendezvousKey = null
     }
 
