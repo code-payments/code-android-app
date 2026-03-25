@@ -101,7 +101,6 @@ internal class TokenDiscoveryViewModel @Inject constructor(
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            println("Event: $event")
             when (event) {
                 is Event.OnCategorySelected -> { state ->
                     state.copy(category = event.category)
