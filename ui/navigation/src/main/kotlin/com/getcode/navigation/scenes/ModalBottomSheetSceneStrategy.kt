@@ -2,6 +2,7 @@ package com.getcode.navigation.scenes
 
 import android.os.Build
 import android.os.Parcelable
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -39,6 +40,7 @@ import com.getcode.navigation.results.NavResultKey
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavigationRetVal
+import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy.Companion.modalBottomSheet
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.launch
@@ -89,8 +91,12 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 }
             }
 
+            var allowDismiss by rememberSaveable { mutableStateOf(!navigator.sheetDragDisabled) }
             var sheetState: SheetState = rememberModalBottomSheetState(
                 skipPartiallyExpanded = true,
+                confirmValueChange = { value ->
+                    value != SheetValue.Hidden || allowDismiss
+                }
             )
 
             // Ensure the sheet shows when entering composition. Material3's internal
@@ -134,13 +140,9 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 }
             }
 
-            var gesturesEnabled by rememberSaveable(!navigator.sheetDragDisabled) {
-                mutableStateOf(!navigator.sheetDragDisabled)
-            }
-
             CompositionLocalProvider(
                 LocalSheetGesturesState provides { enabled ->
-                    gesturesEnabled = enabled && !navigator.sheetDragDisabled
+                    allowDismiss = enabled && !navigator.sheetDragDisabled
                 },
             ) {
                 // Remove inset padding. Default adds nav bar padding.
@@ -148,7 +150,7 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 ModalBottomSheet(
                     sheetState = sheetState,
                     onDismissRequest = { if (!isNonDismissable) dismiss(false) },
-                    sheetGesturesEnabled = gesturesEnabled,
+                    sheetGesturesEnabled = !navigator.sheetDragDisabled,
                     scrimColor = CodeTheme.colors.scrim,
                     properties = if (isNonDismissable) {
                         ModalBottomSheetProperties(
