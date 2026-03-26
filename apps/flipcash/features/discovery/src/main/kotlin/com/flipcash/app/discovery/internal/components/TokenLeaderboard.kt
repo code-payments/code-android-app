@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
@@ -74,8 +75,14 @@ internal fun TokenLeaderboard(
                                 text = stringResource(R.string.title_discoverFailedToLoad),
                                 style = CodeTheme.typography.textLarge,
                                 color = CodeTheme.colors.textMain,
+                                textAlign = TextAlign.Center,
                             )
-                            Text(text = tokens.message.orEmpty())
+                            Text(
+                                text = tokens.message.orEmpty(),
+                                style = CodeTheme.typography.textSmall,
+                                color = CodeTheme.colors.textSecondary,
+                                textAlign = TextAlign.Center,
+                            )
 
                             CodeButton(
                                 onClick = {
@@ -104,16 +111,23 @@ internal fun TokenLeaderboard(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = stringResource(R.string.title_discoverEmpty),
+                                    text = when (category) {
+                                        DiscoverCategory.Popular -> stringResource(R.string.title_discoverEmptyPopular)
+                                        DiscoverCategory.New -> stringResource(R.string.title_discoverEmptyNew)
+                                        else -> ""
+                                    },
                                     style = CodeTheme.typography.textLarge,
                                     color = CodeTheme.colors.textMain,
+                                    textAlign = TextAlign.Center,
                                 )
                                 Text(
+                                    modifier = Modifier.fillMaxWidth(0.6f),
                                     text = when (category) {
                                         DiscoverCategory.Popular -> stringResource(R.string.subtitle_discoverEmptyPopular)
                                         DiscoverCategory.New -> stringResource(R.string.subtitle_discoverEmptyNew)
                                         else -> ""
                                     },
+                                    textAlign = TextAlign.Center,
                                     style = CodeTheme.typography.textSmall,
                                     color = CodeTheme.colors.textSecondary,
                                 )

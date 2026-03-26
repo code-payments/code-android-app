@@ -449,9 +449,10 @@
     <string name="label_holdersWithCount">%1$s Holders</string>
     <string name="title_discoverFailedToLoad">Couldn\'t Load Currencies</string>
     <string name="subtitle_discoverFailedToLoad">Check your connection and try again</string>
-    <string name="title_discoverEmpty">No currencies found</string>
+    <string name="title_discoverEmptyPopular">No Popular Currencies</string>
+    <string name="title_discoverEmptyNew">No New Currencies</string>
     <string name="error_discoverFailedToLoad">Check your connection and try again</string>
-    <string name="subtitle_discoverEmptyNew">Check back soon for new currencies</string>
+    <string name="subtitle_discoverEmptyNew">No currencies have been created in the last week</string>
     <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
     <string name="action_createYourOwnCurrency">Create Your Own Currency</string>
     <string name="prompt_title_notYetAvailable">Not Yet Available</string>
