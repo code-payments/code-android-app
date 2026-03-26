@@ -76,7 +76,9 @@ internal fun TokenMetricsRow(
             ) {
                 Text(
                     text = token.name,
-                    modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .alignByBaseline(),
                     color = CodeTheme.colors.textMain,
                     style = CodeTheme.typography.screenTitle,
                     overflow = TextOverflow.Ellipsis,
@@ -108,7 +110,7 @@ internal fun TokenMetricsRow(
                 val change = if (metricsDelta >= 0) LineTrend.Up else LineTrend.Down
                 val deltaForWindow = buildString {
                     when (change) {
-                        LineTrend.Down -> append("-")
+                        LineTrend.Down -> Unit // negative carried over from abbreviated
                         LineTrend.Up -> append("+")
                     }
                     append(metricsDelta.abbreviated())
@@ -135,7 +137,11 @@ internal fun TokenMetricsRow(
 }
 
 @Composable
-fun RankBadge(rank: Int, modifier: Modifier = Modifier, color: Color = CodeTheme.colors.textMain) {
+fun RankBadge(
+    rank: Int,
+    modifier: Modifier = Modifier,
+    color: Color = CodeTheme.colors.textMain
+) {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val style = CodeTheme.typography.screenTitle
@@ -171,7 +177,9 @@ internal fun SkeletonRankedTokenMetricsRow(rank: Int, modifier: Modifier = Modif
         RankBadge(rank, color = Color.White.copy(alpha = shimmerAlpha))
         Spacer(Modifier.width(2.dp))
         // Icon placeholder
-        Box(Modifier.size(CodeTheme.dimens.grid.x9).shimmer(CircleShape))
+        Box(Modifier
+            .size(CodeTheme.dimens.grid.x9)
+            .shimmer(CircleShape))
         Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
         Row(
             modifier = Modifier.weight(1f),
@@ -179,12 +187,20 @@ internal fun SkeletonRankedTokenMetricsRow(rank: Int, modifier: Modifier = Modif
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                Box(Modifier.size(width = 80.dp, height = 14.dp).shimmer()) // name
-                Box(Modifier.size(width = 50.dp, height = 12.dp).shimmer()) // market cap
+                Box(Modifier
+                    .size(width = 80.dp, height = 14.dp)
+                    .shimmer()) // name
+                Box(Modifier
+                    .size(width = 50.dp, height = 12.dp)
+                    .shimmer()) // market cap
             }
             Column(horizontalAlignment = Alignment.End) {
-                Box(Modifier.size(width = 60.dp, height = 14.dp).shimmer()) // holders
-                Box(Modifier.size(width = 40.dp, height = 12.dp).shimmer()) // delta
+                Box(Modifier
+                    .size(width = 60.dp, height = 14.dp)
+                    .shimmer()) // holders
+                Box(Modifier
+                    .size(width = 40.dp, height = 12.dp)
+                    .shimmer()) // delta
             }
         }
     }
