@@ -38,8 +38,8 @@ sealed class PurchaseAckError(
 ) : CodeServerError(message, cause) {
     class Unrecognized : PurchaseAckError("Unrecognized"), NotifiableError
     class Denied : PurchaseAckError("Denied")
-    class InvalidReceipt: PurchaseAckError("Invalid receipt")
-    class InvalidMetadata: PurchaseAckError("Invalid metadata")
+    class InvalidReceipt: PurchaseAckError("Invalid receipt"), NotifiableError
+    class InvalidMetadata: PurchaseAckError("Invalid metadata"), NotifiableError
     data class Other(override val cause: Throwable? = null) : PurchaseAckError(message = cause?.message, cause = cause), NotifiableError
 }
 
@@ -47,7 +47,7 @@ sealed class AddTokenError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class InvalidPushToken : AddTokenError("Invalid push token")
+    class InvalidPushToken : AddTokenError("Invalid push token"), NotifiableError
     class Unrecognized : AddTokenError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -138,8 +138,8 @@ sealed class GetJwtError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class Denied: GetJwtError("Denied")
-    class UnsupportedProvider: GetJwtError("Unsupported provider")
-    class InvalidApiKey: GetJwtError("Invalid api key")
+    class UnsupportedProvider: GetJwtError("Unsupported provider"), NotifiableError
+    class InvalidApiKey: GetJwtError("Invalid api key"), NotifiableError
     class PhoneVerificationRequired: GetJwtError("Phone verification required")
     class EmailVerificationRequired: GetJwtError("Email verification required")
     class Unrecognized : GetJwtError("Unrecognized"), NotifiableError
@@ -197,7 +197,7 @@ sealed class LinkSocialAccountError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class InvalidLinkingToken: LinkSocialAccountError("Invalid linking token")
+    class InvalidLinkingToken: LinkSocialAccountError("Invalid linking token"), NotifiableError
     class ExistingLink: LinkSocialAccountError("Existing link")
     class Denied: LinkSocialAccountError("Denied")
     class Unrecognized : LinkSocialAccountError("Unrecognized"), NotifiableError

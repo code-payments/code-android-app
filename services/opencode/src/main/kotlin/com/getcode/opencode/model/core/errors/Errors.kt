@@ -42,7 +42,7 @@ sealed class LinkAccountsError(
     /**
      * An account being linked is not valid
      */
-    class InvalidAccount : LinkAccountsError("Invalid account")
+    class InvalidAccount : LinkAccountsError("Invalid account"), NotifiableError
     class Unrecognized : LinkAccountsError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : LinkAccountsError(message = cause?.message, cause = cause), NotifiableError
 }
