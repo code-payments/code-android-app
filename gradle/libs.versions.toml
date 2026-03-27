@@ -61,7 +61,7 @@ protobuf = "4.34.0"
 protobuf-plugin = "0.9.6"
 
 lib-phone-number-port = "9.0.24"
-lib-phone-number-google = "9.0.25"
+lib-phone-number-google = "9.0.27"
 zxing = "3.5.4"
 
 androidx-test-runner = "1.7.0"
