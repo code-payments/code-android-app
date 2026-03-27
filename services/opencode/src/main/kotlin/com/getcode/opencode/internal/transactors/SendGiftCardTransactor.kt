@@ -13,6 +13,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.nonce
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.NotifiableError
 
 internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
@@ -101,6 +102,6 @@ internal class SendGiftCardTransactor(
         data class Other(
             override val message: String? = null,
             override val cause: Throwable? = null
-        ) : SendTransactorError(message, cause)
+        ) : SendTransactorError(message, cause), NotifiableError
     }
 }

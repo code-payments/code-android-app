@@ -1,45 +1,46 @@
 package com.flipcash.services.models
 
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.NotifiableError
 
 sealed class LoginError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class InvalidTimestamp : LoginError("Invalid timestamp")
+    class InvalidTimestamp : LoginError("Invalid timestamp"), NotifiableError
     class Denied : LoginError("Denied")
-    class Unrecognized : LoginError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : LoginError(message = cause?.message, cause = cause)
+    class Unrecognized : LoginError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : LoginError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class RegisterError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class InvalidSignature : RegisterError("Invalid signature")
+    class InvalidSignature : RegisterError("Invalid signature"), NotifiableError
     class Denied: RegisterError("Denied")
-    class Unrecognized : RegisterError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : RegisterError(message = cause?.message, cause = cause)
+    class Unrecognized : RegisterError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : RegisterError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetUserFlagsError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unrecognized : GetUserFlagsError("Unrecognized")
+    class Unrecognized : GetUserFlagsError("Unrecognized"), NotifiableError
     class Denied : GetUserFlagsError("Denied")
-    data class Other(override val cause: Throwable? = null) : GetUserFlagsError(message = cause?.message, cause = cause)
+    data class Other(override val cause: Throwable? = null) : GetUserFlagsError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class PurchaseAckError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unrecognized : PurchaseAckError("Unrecognized")
+    class Unrecognized : PurchaseAckError("Unrecognized"), NotifiableError
     class Denied : PurchaseAckError("Denied")
     class InvalidReceipt: PurchaseAckError("Invalid receipt")
     class InvalidMetadata: PurchaseAckError("Invalid metadata")
-    data class Other(override val cause: Throwable? = null) : PurchaseAckError(message = cause?.message, cause = cause)
+    data class Other(override val cause: Throwable? = null) : PurchaseAckError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class AddTokenError(
@@ -47,16 +48,16 @@ sealed class AddTokenError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class InvalidPushToken : AddTokenError("Invalid push token")
-    class Unrecognized : AddTokenError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause)
+    class Unrecognized : AddTokenError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class DeleteTokenError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unrecognized : DeleteTokenError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : DeleteTokenError(message = cause?.message, cause = cause)
+    class Unrecognized : DeleteTokenError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : DeleteTokenError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetActivityFeedMessagesError(
@@ -64,9 +65,9 @@ sealed class GetActivityFeedMessagesError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class Denied : GetActivityFeedMessagesError("Denied")
-    class Unrecognized : GetActivityFeedMessagesError("Unrecognized")
+    class Unrecognized : GetActivityFeedMessagesError("Unrecognized"), NotifiableError
     class NotFound: GetActivityFeedMessagesError("Not found")
-    data class Other(override val cause: Throwable? = null) : GetActivityFeedMessagesError(message = cause?.message, cause = cause)
+    data class Other(override val cause: Throwable? = null) : GetActivityFeedMessagesError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class CreatePoolError(
@@ -76,8 +77,8 @@ sealed class CreatePoolError(
     class RendezvousExists: CreatePoolError("Rendezvous exists")
     class FundingDestinationExists: CreatePoolError("Funding destination exists")
     class Denied: CreatePoolError("Denied")
-    class Unrecognized : CreatePoolError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : CreatePoolError(message = cause?.message, cause = cause)
+    class Unrecognized : CreatePoolError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CreatePoolError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetPoolError(
@@ -85,8 +86,8 @@ sealed class GetPoolError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class NotFound: GetPoolError("Not found")
-    class Unrecognized : GetPoolError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetPoolError(message = cause?.message, cause = cause)
+    class Unrecognized : GetPoolError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPoolError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetPoolPageError(
@@ -94,7 +95,7 @@ sealed class GetPoolPageError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class NotFound: GetPoolPageError("Not found")
-    data class Other(override val cause: Throwable? = null) : GetPoolPageError(message = cause?.message, cause = cause)
+    data class Other(override val cause: Throwable? = null) : GetPoolPageError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class PlacePoolBetError(
@@ -106,8 +107,8 @@ sealed class PlacePoolBetError(
     class BetAlreadyMade: PlacePoolBetError("Bet already made")
     class MaxBetsReceived: PlacePoolBetError("Max bets received")
     class BetOutcomeSolidified: PlacePoolBetError("Bet outcome solidified")
-    class Unrecognized : PlacePoolBetError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : PlacePoolBetError(message = cause?.message, cause = cause)
+    class Unrecognized : PlacePoolBetError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : PlacePoolBetError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class ResolvePoolOutcomeError(
@@ -118,8 +119,8 @@ sealed class ResolvePoolOutcomeError(
     class Denied: ResolvePoolOutcomeError("Denied")
     class PoolOpen: ResolvePoolOutcomeError("Pool still open")
     class AlreadyDeclared: ResolvePoolOutcomeError("Different outcome already declared")
-    class Unrecognized : ResolvePoolOutcomeError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : ResolvePoolOutcomeError(message = cause?.message, cause = cause)
+    class Unrecognized : ResolvePoolOutcomeError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ResolvePoolOutcomeError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class ClosePoolError(
@@ -128,8 +129,8 @@ sealed class ClosePoolError(
 ): CodeServerError(message, cause) {
     class NotFound: ClosePoolError("Not found")
     class Denied: ClosePoolError("Denied")
-    class Unrecognized : ClosePoolError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : ClosePoolError(message = cause?.message, cause = cause)
+    class Unrecognized : ClosePoolError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ClosePoolError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetJwtError(
@@ -141,8 +142,8 @@ sealed class GetJwtError(
     class InvalidApiKey: GetJwtError("Invalid api key")
     class PhoneVerificationRequired: GetJwtError("Phone verification required")
     class EmailVerificationRequired: GetJwtError("Email verification required")
-    class Unrecognized : GetJwtError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetJwtError(message = cause?.message, cause = cause)
+    class Unrecognized : GetJwtError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetJwtError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class EmailVerificationError(
@@ -154,8 +155,8 @@ sealed class EmailVerificationError(
     class InvalidEmailAddress: EmailVerificationError("Invalid email address")
     class InvalidVerificationCode: EmailVerificationError("Invalid verification code")
     class NoVerification: EmailVerificationError("No verification")
-    class Unrecognized : EmailVerificationError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : EmailVerificationError(message = cause?.message, cause = cause)
+    class Unrecognized : EmailVerificationError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : EmailVerificationError(message = cause?.message, cause = cause), NotifiableError
 }
 
 
@@ -169,8 +170,8 @@ sealed class PhoneVerificationError(
     class UnsupportedPhoneType: PhoneVerificationError("Unsupported phone type")
     class InvalidVerificationCode: PhoneVerificationError("Invalid verification code")
     class NoVerification: PhoneVerificationError("No verification")
-    class Unrecognized : PhoneVerificationError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : PhoneVerificationError(message = cause?.message, cause = cause)
+    class Unrecognized : PhoneVerificationError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : PhoneVerificationError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetUserProfileError(
@@ -178,8 +179,8 @@ sealed class GetUserProfileError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class NotFound: GetUserProfileError("Not found")
-    class Unrecognized : GetUserProfileError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : GetUserProfileError(message = cause?.message, cause = cause)
+    class Unrecognized : GetUserProfileError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetUserProfileError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class SetDisplayNameError(
@@ -188,8 +189,8 @@ sealed class SetDisplayNameError(
 ): CodeServerError(message, cause) {
     class InvalidDisplayName: SetDisplayNameError("Invalid display name")
     class Denied: SetDisplayNameError("Denied")
-    class Unrecognized : SetDisplayNameError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : SetDisplayNameError(message = cause?.message, cause = cause)
+    class Unrecognized : SetDisplayNameError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetDisplayNameError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class LinkSocialAccountError(
@@ -199,8 +200,8 @@ sealed class LinkSocialAccountError(
     class InvalidLinkingToken: LinkSocialAccountError("Invalid linking token")
     class ExistingLink: LinkSocialAccountError("Existing link")
     class Denied: LinkSocialAccountError("Denied")
-    class Unrecognized : LinkSocialAccountError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : LinkSocialAccountError(message = cause?.message, cause = cause)
+    class Unrecognized : LinkSocialAccountError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : LinkSocialAccountError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class UnlinkSocialAccountError(
@@ -208,8 +209,8 @@ sealed class UnlinkSocialAccountError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class Denied: UnlinkSocialAccountError("Denied")
-    class Unrecognized : UnlinkSocialAccountError("Unrecognized")
-    data class Other(override val cause: Throwable? = null) : UnlinkSocialAccountError(message = cause?.message, cause = cause)
+    class Unrecognized : UnlinkSocialAccountError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnlinkSocialAccountError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class UpdateSettingsError(
@@ -217,9 +218,9 @@ sealed class UpdateSettingsError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class Denied : UpdateSettingsError("Denied")
-    class Unrecognized : UpdateSettingsError("Unrecognized")
+    class Unrecognized : UpdateSettingsError("Unrecognized"), NotifiableError
     class InvalidLocale : UpdateSettingsError("Invalid locale")
     class InvalidRegion : UpdateSettingsError("Invalid region")
-    data class Other(override val cause: Throwable? = null) : UpdateSettingsError(message = cause?.message, cause = cause)
+    data class Other(override val cause: Throwable? = null) : UpdateSettingsError(message = cause?.message, cause = cause), NotifiableError
 
 }

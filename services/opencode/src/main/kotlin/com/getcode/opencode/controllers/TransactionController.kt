@@ -12,6 +12,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
+import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fee

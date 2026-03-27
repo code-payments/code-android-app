@@ -12,6 +12,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.NotifiableError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
@@ -154,5 +155,5 @@ sealed class GrabTransactorError(
     data class Other(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError(message, cause)
+    ) : GrabTransactorError(message, cause), NotifiableError
 }

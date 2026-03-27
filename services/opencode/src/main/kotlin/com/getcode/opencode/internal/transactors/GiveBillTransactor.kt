@@ -18,6 +18,7 @@ import com.getcode.opencode.utils.nonce
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.NotifiableError
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -257,12 +258,12 @@ internal class GiveBillTransactor(
         override val message: String? = null,
         override val cause: Throwable? = null
     ) : CodeServerError(message, cause) {
-        class DuplicateTransferException : GiveTransactorError(message = "Duplicate Transfer")
-        class DestinationSignatureInvalidException : GiveTransactorError(message = "Destination signature invalid")
-        class ExchangeRateExpiredException : GiveTransactorError(message = "Exchange rate expired")
+        class DuplicateTransferException : GiveTransactorError(message = "Duplicate Transfer"), NotifiableError
+        class DestinationSignatureInvalidException : GiveTransactorError(message = "Destination signature invalid"), NotifiableError
+        class ExchangeRateExpiredException : GiveTransactorError(message = "Exchange rate expired"), NotifiableError
         data class Other(
             override val message: String? = null,
             override val cause: Throwable? = null
-        ) : GiveTransactorError(message, cause)
+        ) : GiveTransactorError(message, cause), NotifiableError
     }
 }

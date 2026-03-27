@@ -64,7 +64,31 @@ object ErrorUtils {
         ) {
             FirebaseCrashlytics.getInstance().recordException(throwable)
             if (Bugsnag.isStarted()) {
-                Bugsnag.notify(throwable)
+                Bugsnag.notify(throwable) { event ->
+                    val isNotifiable = throwable is NotifiableError
+                            || throwableCause is NotifiableError
+                            || throwableCause !is CodeServerError
+                    if (isNotifiable) {
+                        event.addMetadata("alert", "slack_notify", true)
+                        event.addMetadata("alert", "error_type", throwableCause.javaClass.simpleName)
+                        event.addMetadata("alert", "error_family", throwableCause.javaClass.enclosingClass?.simpleName ?: "Unknown")
+                    }
+                    true
+                }
+            }
+        }
+    }
+
+    fun notifyUnexpected(throwable: Throwable, context: String? = null) {
+        if (!BuildConfig.NOTIFY_ERRORS) return
+        Timber.e(throwable)
+        FirebaseCrashlytics.getInstance().recordException(throwable)
+        if (Bugsnag.isStarted()) {
+            Bugsnag.notify(throwable) { event ->
+                event.addMetadata("alert", "slack_notify", true)
+                event.addMetadata("alert", "error_type", throwable.javaClass.simpleName)
+                context?.let { event.addMetadata("alert", "context", it) }
+                true
             }
         }
     }

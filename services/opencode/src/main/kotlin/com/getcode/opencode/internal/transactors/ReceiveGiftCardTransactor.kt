@@ -16,6 +16,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.NotifiableError
 import com.getcode.utils.timedTraceSuspend
 
 internal class ReceiveGiftCardTransactor(
@@ -171,7 +172,7 @@ sealed class ReceiveGiftTransactorError(
     class FailedToQuery(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account")
+    ) : GrabTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account"), NotifiableError
     class AlreadyClaimed : GrabTransactorError(message = "Already claimed")
     class UsersGiftCard : GrabTransactorError(message = "User is gift card issuer")
     class Expired : GrabTransactorError(message = "Expired")
@@ -179,5 +180,5 @@ sealed class ReceiveGiftTransactorError(
     data class Other(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError(message, cause)
+    ) : GrabTransactorError(message, cause), NotifiableError
 }
