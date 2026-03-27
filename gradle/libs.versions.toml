@@ -46,7 +46,7 @@ rxjava = "3.1.12"
 rxandroid = "3.0.2"
 
 kin-sdk = "2.1.2"
-grpc-android = "1.79.0"
+grpc-android = "1.80.0"
 slf4j = "1.7.36"
 firebase-bom = "34.10.0"
 crashlytics-gradle = "3.0.6"
