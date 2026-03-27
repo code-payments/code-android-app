@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:utils"))
