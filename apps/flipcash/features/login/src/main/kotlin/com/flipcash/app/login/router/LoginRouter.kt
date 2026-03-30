@@ -1,5 +1,6 @@
 package com.flipcash.app.login.router
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -29,8 +30,12 @@ fun LoginRouter(
     val state by vm.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
     var visible by remember { mutableStateOf(false) }
+    val activity = LocalActivity.current
 
-    LaunchedEffect(Unit) { visible = true }
+    LaunchedEffect(Unit) {
+        activity?.reportFullyDrawn()
+        visible = true
+    }
 
     LaunchedEffect(vm) {
         vm.eventFlow
