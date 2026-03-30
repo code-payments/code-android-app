@@ -173,7 +173,7 @@ private data class LaunchNavGraph(
  */
 private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
     if (size < prefix.size) return false
-    return prefix.indices.all { i -> this[i] == prefix[i] }
+    return prefix.indices.all { i -> this[i]::class == prefix[i]::class }
 }
 
 private fun buildNavGraphForLaunch(

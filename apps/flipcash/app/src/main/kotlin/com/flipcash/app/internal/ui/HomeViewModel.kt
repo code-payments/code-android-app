@@ -112,6 +112,10 @@ internal class HomeViewModel @Inject constructor(
         )
     }
 
+    fun consumePendingSwitchEntropy(): String? {
+        return authManager.consumePendingSwitchEntropy()
+    }
+
     suspend fun logout(): Result<Unit> {
         return authManager.logout()
     }

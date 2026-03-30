@@ -136,6 +136,9 @@ class RealSessionController @Inject constructor(
 
     private val scannedRendezvous = mutableMapOf<String, Long>()
 
+    @Volatile
+    private var lastForegroundTimestamp = 0L
+
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
     init {
@@ -145,6 +148,7 @@ class RealSessionController @Inject constructor(
             .filterIsInstance<AuthState.LoggedOut>()
             .onEach {
                 _state.update { SessionState() }
+                lastForegroundTimestamp = 0L
             }.launchIn(scope)
 
         userManager.state
@@ -200,6 +204,13 @@ class RealSessionController @Inject constructor(
      * 7. If the user is registered, connects to the billing client.
      */
     override fun onAppInForeground() {
+        val now = Clock.System.now().toEpochMilliseconds()
+        if (now - lastForegroundTimestamp < FOREGROUND_DEDUP_WINDOW_MS) {
+            trace(tag = "Session", message = "onAppInForeground skipped (dedup)", type = TraceType.Process)
+            return
+        }
+        lastForegroundTimestamp = now
+
         trace(
             tag = "Session",
             message = "onAppInForeground",
@@ -857,3 +868,4 @@ class RealSessionController @Inject constructor(
 
 private val AIRDROP_INITIAL_DELAY = 1.seconds
 private val CASH_LINK_CONFIRMATION_DELAY = 500.milliseconds
+private const val FOREGROUND_DEDUP_WINDOW_MS = 2_000L

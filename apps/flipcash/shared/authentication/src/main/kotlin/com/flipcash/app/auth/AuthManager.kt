@@ -43,6 +43,13 @@ class AuthManager @Inject constructor(
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
+    /**
+     * Entropy for the account being switched to. Set before logout so App.kt's
+     * auth guard can navigate to Login(entropy) instead of seedless Login().
+     */
+    var pendingSwitchEntropy: String? = null
+        private set
+
     companion object {
         private const val TAG = "AuthManager"
         internal fun taggedTrace(
@@ -174,13 +181,18 @@ class AuthManager @Inject constructor(
         return logout()
     }
 
+    suspend fun logoutAndSwitchAccount(entropy: String): Result<String> {
+        pendingSwitchEntropy = entropy
+        return logout().map { entropy }
+    }
+
+    fun consumePendingSwitchEntropy(): String? {
+        return pendingSwitchEntropy.also { pendingSwitchEntropy = null }
+    }
+
     suspend fun logout(): Result<Unit> {
         return credentialManager.logout()
             .onSuccess { resetStateForUser() }
-    }
-
-    suspend fun logoutAndSwitchAccount(entropy: String): Result<String> {
-        return logout().map { entropy }
     }
 
     private fun loginAnalytics() {
@@ -192,8 +204,11 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun resetStateForUser() {
-        FirebaseMessaging.getInstance().deleteToken()
-        pushController.deleteTokens()
+        // Fire-and-forget slow network operations to avoid blocking navigation
+        launch {
+            FirebaseMessaging.getInstance().deleteToken()
+            pushController.deleteTokens()
+        }
         notificationManager.cancelAll()
         userManager.clear()
         tokenCoordinator.reset()

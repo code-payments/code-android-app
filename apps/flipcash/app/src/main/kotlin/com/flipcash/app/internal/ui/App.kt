@@ -167,10 +167,12 @@ internal fun App(
                                                 )
                                             } then SinglePaneSceneStrategy(),
                                             transitionSpec = {
-                                                val hasLoading = initialState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key == AppRoute.Loading.toString()
+                                                val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
+                                                        targetState.key == AppRoute.Loading.toString() ||
+                                                        initialState.key.toString().startsWith("Login") ||
+                                                        targetState.key.toString().startsWith("Login")
                                                 when {
-                                                    hasLoading -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                                                     targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
                                                         EnterTransition.None togetherWith ExitTransition.None
                                                     else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
@@ -178,10 +180,12 @@ internal fun App(
                                                 }
                                             },
                                             popTransitionSpec = {
-                                                val hasLoading = initialState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key == AppRoute.Loading.toString()
+                                                val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
+                                                        targetState.key == AppRoute.Loading.toString() ||
+                                                        initialState.key.toString().startsWith("Login") ||
+                                                        targetState.key.toString().startsWith("Login")
                                                 when {
-                                                    hasLoading -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                                                     targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
                                                         EnterTransition.None togetherWith ExitTransition.None
                                                     else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
@@ -189,10 +193,12 @@ internal fun App(
                                                 }
                                             },
                                             predictivePopTransitionSpec = {
-                                                val hasLoading = initialState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key == AppRoute.Loading.toString()
+                                                val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
+                                                        targetState.key == AppRoute.Loading.toString() ||
+                                                        initialState.key.toString().startsWith("Login") ||
+                                                        targetState.key.toString().startsWith("Login")
                                                 when {
-                                                    hasLoading -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                                                     targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
                                                         EnterTransition.None togetherWith ExitTransition.None
                                                     else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
@@ -257,7 +263,8 @@ internal fun App(
                                             val current = codeNavigator.currentRouteKey
                                             if (current !is AppRoute.Loading && current !is AppRoute.Onboarding) {
                                                 codeNavigator.pendingSheetDismiss = null
-                                                codeNavigator.replaceAll(AppRoute.Onboarding.Login())
+                                                val switchEntropy = viewModel.consumePendingSwitchEntropy()
+                                                codeNavigator.replaceAll(AppRoute.Onboarding.Login(switchEntropy))
                                             }
                                         }
                                     }

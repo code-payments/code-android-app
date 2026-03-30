@@ -179,9 +179,7 @@ internal class MenuScreenViewModel @Inject constructor(
                         onFailure = { Result.failure(it) }
                     )
             }.onResult(
-                onError = {
-
-                },
+                onError = { },
                 onSuccess = { dispatchEvent(Event.OnSwitchAccountTo(it)) }
             ).launchIn(viewModelScope)
 

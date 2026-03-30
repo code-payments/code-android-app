@@ -39,10 +39,7 @@ fun MenuScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<MenuScreenViewModel.Event.OnSwitchAccountTo>()
-            .map { it.entropy }
-            .onEach {
-                navigator.hide()
-                navigator.replaceAll(AppRoute.Onboarding.Login(it)) }
+            .onEach { navigator.hide() }
             .launchIn(this)
     }
 }
