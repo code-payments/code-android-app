@@ -253,7 +253,7 @@ class RealSessionController @Inject constructor(
 
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
-            tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 0.seconds)
+            tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 2.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
         }

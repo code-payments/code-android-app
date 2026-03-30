@@ -121,8 +121,6 @@ internal fun App(
         CompositionLocalProvider(
             LocalExternalWalletState provides externalWalletOnRamp
         ) {
-            AppPreloads()
-
             PaymentScaffold {
                 OnRampAmountScaffold {
                     BillPlaygroundScaffold {

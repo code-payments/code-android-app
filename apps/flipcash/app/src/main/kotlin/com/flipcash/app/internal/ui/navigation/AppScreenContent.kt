@@ -30,7 +30,6 @@ import com.flipcash.app.deposit.DepositScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
-import com.flipcash.app.lab.PreloadLabs
 import com.flipcash.app.lab.StandaloneLabsScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.accesskey.PhotoAccessKeyScreen
@@ -69,11 +68,6 @@ import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
 import dev.theolm.rinku.DeepLink
-
-@Composable
-fun AppPreloads() {
-    PreloadLabs()
-}
 
 fun appEntryProvider(
     resultStateRegistry: NavResultStateRegistry,
