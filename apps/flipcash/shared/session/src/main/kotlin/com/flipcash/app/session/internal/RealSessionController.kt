@@ -262,6 +262,7 @@ class RealSessionController @Inject constructor(
     private fun stopPolling() {
         tokenUpdater.stop()
         activityFeedUpdater.stop()
+        profileUpdater.stop()
     }
 
     private fun updateUserFlags() {
