@@ -22,22 +22,31 @@ class LoggingClientCallListener<ReqT, ResT>(
         val requestLog = requestQueue.joinToString(separator = ", ", prefix = "[", postfix = "]") { getObjectDetails(it) }
         val responseLog = responseQueue.joinToString(separator = ", ", prefix = "[", postfix = "]") { getObjectDetails(it) }
 
-        if (status.isOk) {
-            trace(tag = "RpcLogging", message = "Request: $requestLog", type = TraceType.Network)
-            trace(tag = "RpcLogging", message = "Response: $responseLog", type = TraceType.Network)
-            trace(
-                tag = "RpcLogging",
-                message = "The request was processed successfully",
-                type = TraceType.Network
-            )
-        } else {
-            trace(tag = "RpcLogging", message = "Request: $requestLog", type = TraceType.Network)
-            trace(
-                tag = "RpcLogging",
-                message = "An error occurred while processing the request",
-                type = TraceType.Error,
-                error = status.asRuntimeException(trailers)
-            )
+        trace(tag = "RpcLogging", message = "Request: $requestLog", type = TraceType.Network)
+        when {
+            status.isOk -> {
+                trace(tag = "RpcLogging", message = "Response: $responseLog", type = TraceType.Network)
+                trace(
+                    tag = "RpcLogging",
+                    message = "The request was processed successfully",
+                    type = TraceType.Network
+                )
+            }
+            status.code == Status.Code.CANCELLED -> {
+                trace(
+                    tag = "RpcLogging",
+                    message = "Request cancelled",
+                    type = TraceType.Log,
+                )
+            }
+            else -> {
+                trace(
+                    tag = "RpcLogging",
+                    message = "An error occurred while processing the request",
+                    type = TraceType.Error,
+                    error = status.asRuntimeException(trailers)
+                )
+            }
         }
 
         super.onClose(status, trailers)

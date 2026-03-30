@@ -38,9 +38,10 @@ object ErrorUtils {
             else throwable
 
         if (throwableCause is StatusRuntimeException) {
-            when (throwableCause.status) {
-                Status.UNAVAILABLE -> return
-                Status.CANCELLED -> return
+            when (throwableCause.status.code) {
+                Status.Code.UNAVAILABLE -> return
+                Status.Code.CANCELLED -> return
+                else -> { /* fall through */ }
             }
         }
 

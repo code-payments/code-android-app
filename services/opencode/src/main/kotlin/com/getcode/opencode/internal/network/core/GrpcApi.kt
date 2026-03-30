@@ -14,7 +14,6 @@ abstract class GrpcApi(protected val managedChannels: List<ManagedChannel>): Def
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
-
     override fun onStart(owner: LifecycleOwner) {
         super.onStart(owner)
         warmUp()

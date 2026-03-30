@@ -41,6 +41,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import io.grpc.ConnectivityState
 import io.grpc.ManagedChannel
 import io.grpc.android.AndroidChannelBuilder
 import io.grpc.okhttp.OkHttpChannelBuilder
@@ -101,6 +104,7 @@ object OpenCodeModule {
                 }
             }
             .build()
+            .also { observeChannelState("opencode", it) }
     }
 
     @Singleton
@@ -122,6 +126,21 @@ object OpenCodeModule {
                 }
             }
             .build()
+            .also { observeChannelState("opencode-stream", it) }
+    }
+
+    private fun observeChannelState(name: String, channel: ManagedChannel) {
+        val state = channel.getState(false)
+        trace(
+            tag = "gRPC",
+            message = "$name => $state",
+            type = TraceType.StateChange,
+        )
+        if (state != ConnectivityState.SHUTDOWN) {
+            channel.notifyWhenStateChanged(state) {
+                observeChannelState(name, channel)
+            }
+        }
     }
 
     @Provides
