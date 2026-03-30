@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.startup.Initializer
 import com.bugsnag.android.Bugsnag
 import com.flipcash.app.android.BuildConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class TraceInitializer: Initializer<Unit> {
@@ -32,7 +35,9 @@ class TraceInitializer: Initializer<Unit> {
                 }
             })
         } else {
-            Bugsnag.start(context)
+            CoroutineScope(Dispatchers.IO).launch {
+                Bugsnag.start(context)
+            }
         }
     }
 

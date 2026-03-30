@@ -24,6 +24,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -155,16 +156,19 @@ class AuthManager @Inject constructor(
                 persistence.openDatabase(entropyB64)
                 userManager.set(accountId = account.id)
 
-                accountController.getUserFlags()
-                    .onSuccess { flags ->
-                        userManager.set(flags)
-                        userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
-                    }.onFailure {
-                        taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
-                        userManager.set(authState = AuthState.Registered())
+                coroutineScope {
+                    launch {
+                        accountController.getUserFlags()
+                            .onSuccess { flags ->
+                                userManager.set(flags)
+                                userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
+                            }.onFailure {
+                                taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
+                                userManager.set(authState = AuthState.Registered())
+                            }
                     }
-
-                savePrefs()
+                    launch { savePrefs() }
+                }
             }.onFailure {
                 logout()
                 resetStateForUser()

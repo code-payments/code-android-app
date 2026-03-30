@@ -50,7 +50,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
     val userManager = LocalUserManager.current!!
     var showLoading by remember { mutableStateOf(false) }
     val router = LocalRouter.current!!
-    var showLogo by remember { mutableStateOf(false) }
+    var showLogo by remember { mutableStateOf(true) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -86,11 +86,6 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
     }
 
 
-    LaunchedEffect(Unit) {
-        delay(1.seconds)
-        showLogo = true
-    }
-
     LaunchedEffect(userManager) {
         userManager.state
             .map { it.authState to it.flags }
@@ -112,7 +107,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
 
                 when (state) {
                     AuthState.LoggedInAwaitingUser -> {
-                        delay(1.5.seconds)
+                        delay(0.5.seconds)
                         showLoading = true
                     }
 
