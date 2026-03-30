@@ -247,6 +247,8 @@ dependencies {
 
     implementation(libs.androidx.browser)
 
+    implementation(libs.androidx.camerax.lifecycle)
+
     implementation(libs.slf4j)
     implementation(libs.grpc.android)
 

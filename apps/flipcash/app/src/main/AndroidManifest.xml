@@ -275,6 +275,10 @@
                 android:name="com.flipcash.app.internal.startup.DiscreteBondingCurveInitializer"
                 android:value="androidx.startup" />
 
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.CameraXInitializer"
+                android:value="androidx.startup" />
+
         </provider>
     </application>
 
