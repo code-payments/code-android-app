@@ -49,5 +49,5 @@ jobs:
         uses: actions-js/push@master
         with:
           message: "build: bump Flipcash to ${{ steps.version.outputs.VERSION }}"
-          branch: "code/cash2"
+          branch: "code/cash"
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
