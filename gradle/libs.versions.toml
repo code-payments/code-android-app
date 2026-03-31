@@ -6,6 +6,7 @@ kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.10.0"
 kotlinx-datetime = "0.7.1"
 
+kover = "0.9.1"
 agp = "8.9.3"
 google-services = "4.4.4"
 
@@ -284,6 +285,7 @@ ksp-gradle-plugin = { module = "com.google.devtools.ksp:com.google.devtools.ksp.
 hilt-gradle-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
 compose-compiler-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+kover-gradle-plugin = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
 
 [bundles]
 compose = ["compose-ui", "compose-foundation", "compose-material", "compose-material-icons-extended"]
@@ -317,3 +319,4 @@ navigation-safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref 
 protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
 androidx-room = { id = "androidx.room", version.ref = "androidx-room" }
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

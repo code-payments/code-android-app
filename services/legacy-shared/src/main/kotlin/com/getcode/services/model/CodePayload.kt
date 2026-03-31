@@ -1,6 +1,6 @@
 package com.getcode.services.model
 
-import com.getcode.codeScanner.CodeScanner
+import com.kik.scan.Scanner
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.CurrencyCode
@@ -49,7 +49,7 @@ data class CodePayload(
         }
 
     val codeData: ByteArray
-        get() = CodeScanner.encode(encode().toByteArray())
+        get() = Scanner.encode(encode().toByteArray()) ?: byteArrayOf()
 
     fun encode(): List<Byte> {
         return when (value) {

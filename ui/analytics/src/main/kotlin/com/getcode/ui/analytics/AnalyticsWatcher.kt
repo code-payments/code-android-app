@@ -10,7 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.LocalAnalytics
-import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
 
 @Composable
 fun AnalyticsWatcher(

@@ -18,6 +18,7 @@ plugins {
     alias(libs.plugins.secrets)
     alias(libs.plugins.versioning)
     id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.kover)
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)

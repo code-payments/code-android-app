@@ -35,6 +35,7 @@ plugins {
     alias(libs.plugins.protobuf) apply false
     alias(libs.plugins.androidx.room) apply false
     alias(libs.plugins.screenshot) apply false
+    alias(libs.plugins.kover)
 }
 
 allprojects {
@@ -49,6 +50,23 @@ allprojects {
 
     tasks.matching { it.name.contains("kapt") }.configureEach {
         enabled = false
+    }
+}
+
+dependencies {
+    subprojects.forEach { subproject ->
+        subproject.afterEvaluate {
+            if (subproject.plugins.hasPlugin("org.jetbrains.kotlinx.kover")
+                && (subproject.path.startsWith(":apps:flipcash")
+                    || subproject.path.startsWith(":services:flipcash")
+                    || subproject.path.startsWith(":services:opencode")
+                    || subproject.path.startsWith(":libs:")
+                    || subproject.path.startsWith(":ui:")
+                    || subproject.path.startsWith(":definitions:"))
+            ) {
+                kover(subproject)
+            }
+        }
     }
 }
 

@@ -33,6 +33,7 @@ dependencies {
     api(project(":libs:network:exchange"))
     api(project(":libs:network:connectivity:public"))
     implementation(project(":ui:resources"))
+    implementation(project(":vendor:kik:scanner"))
 
     implementation(libs.rxjava)
     implementation(libs.kotlinx.serialization.json)

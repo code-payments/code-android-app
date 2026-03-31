@@ -20,6 +20,7 @@ dependencies {
     compileOnly(libs.hilt.gradle.plugin)
     compileOnly(libs.compose.compiler.gradle.plugin)
     compileOnly(libs.kotlin.serialization.gradle.plugin)
+    compileOnly(libs.kover.gradle.plugin)
 }
 
 gradlePlugin {
