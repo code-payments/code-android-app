@@ -3,7 +3,10 @@ package com.flipcash.app.internal.startup
 import android.content.Context
 import androidx.startup.Initializer
 import com.bugsnag.android.Bugsnag
+import com.bugsnag.android.Configuration
 import com.flipcash.app.android.BuildConfig
+import com.flipcash.app.internal.debug.FlipcashDebugTree
+import com.flipcash.app.internal.debug.FlipcashErrorCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -12,31 +15,12 @@ import timber.log.Timber
 class TraceInitializer: Initializer<Unit> {
     override fun create(context: Context) {
         if (BuildConfig.DEBUG) {
-            Timber.plant(object : Timber.DebugTree() {
-                override fun createStackElementTag(element: StackTraceElement): String {
-                    val elementTag = super.createStackElementTag(element)
-                        .orEmpty()
-                        .split("$")
-                        .filter { it.isNotEmpty() }
-                        .take(2)
-                        .joinToString(" ")
-                        .replace("_", " ")
-
-                    val methodName = element.methodName
-                        .split("$")
-                        .firstOrNull()
-                        .orEmpty()
-
-                    return String.format(
-                        "%s | %s ",
-                        elementTag,
-                        methodName
-                    )
-                }
-            })
+            Timber.plant(FlipcashDebugTree)
         } else {
             CoroutineScope(Dispatchers.IO).launch {
-                Bugsnag.start(context)
+                val config = Configuration.load(context)
+                config.addOnError(FlipcashErrorCallback)
+                Bugsnag.start(context, config)
             }
         }
     }
