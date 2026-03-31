@@ -1,0 +1,53 @@
+name: Bump Flipcash patch version after production release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bump-patch:
+    name: Bump patch version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@master
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: "code/cash"
+
+      - name: Verify Packaging.kt exists
+        run: |
+          if [ ! -f buildSrc/src/main/java/Packaging.kt ]; then
+            echo "Error: Packaging.kt not found"
+            exit 1
+          fi
+
+      - name: Read current patch version and increment
+        id: version
+        run: |
+          CURRENT=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*patchVersion = \([0-9]\+\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+          NEXT=$((CURRENT + 1))
+          echo "CURRENT=$CURRENT" >> $GITHUB_OUTPUT
+          echo "NEXT=$NEXT" >> $GITHUB_OUTPUT
+
+          MAJOR=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*majorVersion = \([0-9]\+\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+          MINOR=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*minorVersion = \([0-9]\+\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+          echo "VERSION=$MAJOR.$MINOR.$NEXT" >> $GITHUB_OUTPUT
+
+      - name: Update patchVersion
+        run: |
+          sed -i '/object Flipcash : Packaging(/,/)/ s/patchVersion = [0-9]\+/patchVersion = ${{ steps.version.outputs.NEXT }}/' buildSrc/src/main/java/Packaging.kt
+
+      - name: Validate updated field
+        run: |
+          if ! grep -A 10 'object Flipcash : Packaging(' buildSrc/src/main/java/Packaging.kt | grep -q "patchVersion = ${{ steps.version.outputs.NEXT }}"; then
+            echo "Error: Failed to update patchVersion to ${{ steps.version.outputs.NEXT }}"
+            exit 1
+          fi
+
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          message: "build: bump Flipcash to ${{ steps.version.outputs.VERSION }}"
+          branch: "code/cash2"
+          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
