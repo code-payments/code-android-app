@@ -30,6 +30,13 @@ abstract class KeyType(bytes: List<Byte>) {
 
 fun KeyType.base58(): String = Base58.encode(bytes.toByteArray())
 fun KeyType.base64(): String = bytes.toByteArray().encodeBase64()
+fun KeyType.base58Redacted(): String = base58().redact(visibleLength = 4)
+fun KeyType.base64Redacted(): String = base64().redact(visibleLength = 8)
+
+fun String.redact(visibleLength: Int = 4): String {
+    if (length <= visibleLength * 2) return this
+    return "${take(visibleLength)}…${takeLast(visibleLength)}"
+}
 
 class Key16(bytes: List<Byte>) : KeyType(bytes) {
     override val size: Int get() = LENGTH_16
