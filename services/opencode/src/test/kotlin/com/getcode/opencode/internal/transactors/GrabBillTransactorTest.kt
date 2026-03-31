@@ -15,6 +15,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -94,6 +95,25 @@ class GrabBillTransactorTest {
 
         // The relaxed mock's default Result return is broken, so the call
         // will fail with a ClassCastException — verifying it doesn't succeed.
+        assertTrue(result.isFailure || result.getOrNull()?.isFailure == true)
+    }
+
+    // endregion
+
+    // region dispose
+
+    @Test
+    fun `dispose clears state so start fails`() = runTest {
+        val childScope = TestScope(UnconfinedTestDispatcher(testScheduler))
+        val transactor = createTransactor(childScope)
+        setupWith(transactor, PayloadKind.MultiMintCash)
+
+        transactor.dispose()
+
+        // After dispose, owner and payload are null.
+        // start() is a suspend function that doesn't use the scope directly,
+        // but the scope is cancelled so we catch any CancellationException too.
+        val result = runCatching { transactor.start() }
         assertTrue(result.isFailure || result.getOrNull()?.isFailure == true)
     }
 

@@ -79,6 +79,20 @@ class ReceiveGiftCardTransactorTest {
 
     // endregion
 
+    // region dispose
+
+    @Test
+    fun `dispose clears state so subsequent start fails`() = runTest {
+        setupWithOwner()
+
+        transactor.dispose()
+
+        val result = transactor.start(claimIfOwned = false)
+        assertTrue(result.isFailure)
+    }
+
+    // endregion
+
     // region helpers
 
     private fun setupWithOwner() {
