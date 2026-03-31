@@ -15,7 +15,6 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.timedTraceSuspend
 
@@ -95,19 +94,9 @@ internal class ReceiveGiftCardTransactor(
 
             val info = accounts.values.first()
 
-            if (info.claimState == AccountInfo.ClaimState.Claimed) {
+            validateClaimEligibility(info, claimIfOwned)?.let { error ->
                 onStep("pre-claim checks")
-                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.AlreadyClaimed())
-            }
-
-            if (info.claimState == AccountInfo.ClaimState.Expired || info.claimState == AccountInfo.ClaimState.Unknown) {
-                onStep("pre-claim checks")
-                return@timedTraceSuspend logAndFail(ReceiveGiftTransactorError.Expired())
-            }
-
-            if (info.isGiftCardIssuer && !claimIfOwned) {
-                onStep("pre-claim checks")
-                return@timedTraceSuspend Result.failure(ReceiveGiftTransactorError.UsersGiftCard())
+                return@timedTraceSuspend Result.failure(error)
             }
 
             val tokenMint = info.mint
@@ -150,9 +139,6 @@ internal class ReceiveGiftCardTransactor(
                 },
                 onFailure = {
                     onStep("intent")
-                    if (it !is ReceiveGiftTransactorError) {
-                        ErrorUtils.handleError(it)
-                    }
                     logAndFail(it)
                 }
             )
@@ -163,6 +149,29 @@ internal class ReceiveGiftCardTransactor(
         owner = null
         giftCardAccount = null
     }
+
+    companion object {
+        /**
+         * Validates whether a gift card account is eligible to be claimed.
+         *
+         * @return null if eligible, or the appropriate error if not.
+         */
+        fun validateClaimEligibility(
+            info: AccountInfo,
+            claimIfOwned: Boolean,
+        ): ReceiveGiftTransactorError? {
+            if (info.claimState == AccountInfo.ClaimState.Claimed) {
+                return ReceiveGiftTransactorError.AlreadyClaimed()
+            }
+            if (info.claimState == AccountInfo.ClaimState.Expired || info.claimState == AccountInfo.ClaimState.Unknown) {
+                return ReceiveGiftTransactorError.Expired()
+            }
+            if (info.isGiftCardIssuer && !claimIfOwned) {
+                return ReceiveGiftTransactorError.UsersGiftCard()
+            }
+            return null
+        }
+    }
 }
 
 sealed class ReceiveGiftTransactorError(
@@ -172,13 +181,13 @@ sealed class ReceiveGiftTransactorError(
     class FailedToQuery(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account"), NotifiableError
-    class AlreadyClaimed : GrabTransactorError(message = "Already claimed")
-    class UsersGiftCard : GrabTransactorError(message = "User is gift card issuer")
-    class Expired : GrabTransactorError(message = "Expired")
+    ) : ReceiveGiftTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account"), NotifiableError
+    class AlreadyClaimed : ReceiveGiftTransactorError(message = "Already claimed")
+    class UsersGiftCard : ReceiveGiftTransactorError(message = "User is gift card issuer")
+    class Expired : ReceiveGiftTransactorError(message = "Expired")
 
     data class Other(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : GrabTransactorError(message, cause), NotifiableError
+    ) : ReceiveGiftTransactorError(message, cause), NotifiableError
 }

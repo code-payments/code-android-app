@@ -11,7 +11,6 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.NotifiableError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -122,9 +121,6 @@ internal class GrabBillTransactor(
     }
 
     private fun handleGrabError(error: Throwable): Result<Nothing> {
-        if (error !is GrabTransactorError) {
-            ErrorUtils.handleError(error)
-        }
         return logAndFail(error)
     }
 

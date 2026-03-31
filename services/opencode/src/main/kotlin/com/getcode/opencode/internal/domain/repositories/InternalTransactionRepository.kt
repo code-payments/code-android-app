@@ -16,6 +16,7 @@ import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Instant
 import javax.inject.Inject
@@ -28,6 +29,7 @@ internal class InternalTransactionRepository @Inject constructor(
         intent: IntentType,
         owner: Ed25519.KeyPair
     ): Result<IntentType> = service.submitIntent(scope, intent, owner)
+        .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun getIntentMetadata(
         intentId: PublicKey,
@@ -48,6 +50,7 @@ internal class InternalTransactionRepository @Inject constructor(
         owner: Ed25519.KeyPair,
         giftCardVault: PublicKey
     ): Result<Unit> = service.voidGiftCard(owner, giftCardVault)
+        .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun buy(
         scope: CoroutineScope,
@@ -67,7 +70,7 @@ internal class InternalTransactionRepository @Inject constructor(
         verifiedState = verifiedState,
         source = source,
         fund = fund
-    )
+    ).onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun sell(
         scope: CoroutineScope,
@@ -81,5 +84,5 @@ internal class InternalTransactionRepository @Inject constructor(
         of = of,
         owner = owner,
         verifiedState = verifiedState
-    )
+    ).onFailure { ErrorUtils.handleError(it) }
 }

@@ -12,7 +12,6 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.nonce
 import com.getcode.utils.CodeServerError
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.NotifiableError
 
 internal class SendGiftCardTransactor(
@@ -79,9 +78,6 @@ internal class SendGiftCardTransactor(
             .fold(
                 onSuccess = { Result.success(it) },
                 onFailure = {
-                    if (it !is SendTransactorError)  {
-                        ErrorUtils.handleError(it)
-                    }
                     logAndFail(it)
                 }
             )

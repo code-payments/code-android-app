@@ -37,6 +37,7 @@ import com.getcode.solana.rpc.doesAccountExist
 import com.getcode.solana.rpc.sendTransaction
 import com.getcode.solana.rpc.simulateTransaction
 import com.getcode.solana.transactions.inspect
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.hexEncodedString
@@ -233,6 +234,7 @@ class ExternalWalletDeeplinkState(
                                 "message" to error.message
                             }
                         )
+                        ErrorUtils.handleError(error)
                         scope.launch {
                             errors.emit(
                                 DeeplinkOnRampError.FailedToSendTransaction(
