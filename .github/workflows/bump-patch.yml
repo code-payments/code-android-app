@@ -1,0 +1,19 @@
+name: Bump Flipcash version post release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-branch:
+    name: Update development branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@master
+        with:
+          ref: main
+      - uses: connor-baer/action-sync-branch@main
+        with:
+          branch: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+          force: false
