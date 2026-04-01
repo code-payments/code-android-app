@@ -117,7 +117,9 @@ internal fun Scanner() {
                             if (deeplink != null) {
                                 vibrator.vibrate(duration = 50)
                                 when (deeplink) {
-                                    is DeeplinkType.CashLink -> session.openCashLink(deeplink.entropy)
+                                    is DeeplinkType.CashLink -> {
+                                        session.openCashLink(deeplink.entropy)
+                                    }
                                     is DeeplinkType.Navigatable -> {
                                         val routes = when (deeplink) {
                                             is DeeplinkType.TokenInfo -> listOf(

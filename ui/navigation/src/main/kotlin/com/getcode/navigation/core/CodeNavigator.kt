@@ -11,6 +11,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import com.getcode.navigation.Sheet
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavResultStoreImpl
@@ -207,7 +208,13 @@ data class CodeNavigator(
     }
 
     /** Hide/dismiss a sheet (pops the current route). */
-    fun hide() = onRootReached()
+    fun hide() {
+        val isSheetOpen = backStack.any { it is Sheet }
+        if (isSheetOpen) {
+            navigateBack()
+        }
+        onRootReached()
+    }
 
     /** Replace the current route with a new one. */
     fun replace(route: NavKey) = navigate(route, NavOptions(popUpTo = NavOptions.PopUpTo.PopLast))
