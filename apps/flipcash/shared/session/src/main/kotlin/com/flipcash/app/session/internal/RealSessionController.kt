@@ -65,7 +65,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -136,31 +135,28 @@ class RealSessionController @Inject constructor(
 
     private val scannedRendezvous = mutableMapOf<String, Long>()
 
-    @Volatile
-    private var lastForegroundTimestamp = 0L
-
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
     init {
-        // reset state on logouts
+        // handle auth state transitions: cleanup on logout, start polling on login
         userManager.state
             .map { it.authState }
-            .filterIsInstance<AuthState.LoggedOut>()
-            .onEach {
-                _state.update { SessionState() }
-                lastForegroundTimestamp = 0L
+            .distinctUntilChanged()
+            .onEach { authState ->
+                when {
+                    authState is AuthState.LoggedOut -> {
+                        stopPolling()
+                        _state.update { SessionState() }
+                    }
+                    authState.canAccessAuthenticatedApis -> {
+                        onAppInForeground()
+                    }
+                }
             }.launchIn(scope)
 
         userManager.state
             .map { it.isTimelockUnlocked }
             .onEach { _state.update { it.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) } }
-            .launchIn(scope)
-
-        userManager.state
-            .mapNotNull { it.authState }
-            .filter { it.canAccessAuthenticatedApis }
-            .distinctUntilChanged()
-            .onEach { onAppInForeground() }
             .launchIn(scope)
 
         userManager.state
@@ -204,13 +200,6 @@ class RealSessionController @Inject constructor(
      * 7. If the user is registered, connects to the billing client.
      */
     override fun onAppInForeground() {
-        val now = Clock.System.now().toEpochMilliseconds()
-        if (now - lastForegroundTimestamp < FOREGROUND_DEDUP_WINDOW_MS) {
-            trace(tag = "Session", message = "onAppInForeground skipped (dedup)", type = TraceType.Process)
-            return
-        }
-        lastForegroundTimestamp = now
-
         trace(
             tag = "Session",
             message = "onAppInForeground",
@@ -869,4 +858,3 @@ class RealSessionController @Inject constructor(
 
 private val AIRDROP_INITIAL_DELAY = 1.seconds
 private val CASH_LINK_CONFIRMATION_DELAY = 500.milliseconds
-private const val FOREGROUND_DEDUP_WINDOW_MS = 2_000L

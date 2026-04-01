@@ -166,7 +166,6 @@ internal fun App(
                                             transitionSpec = {
                                                 val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
                                                         targetState.key == AppRoute.Loading.toString() ||
-                                                        initialState.key.toString().startsWith("Login") ||
                                                         targetState.key.toString().startsWith("Login")
                                                 when {
                                                     shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
@@ -179,7 +178,6 @@ internal fun App(
                                             popTransitionSpec = {
                                                 val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
                                                         targetState.key == AppRoute.Loading.toString() ||
-                                                        initialState.key.toString().startsWith("Login") ||
                                                         targetState.key.toString().startsWith("Login")
                                                 when {
                                                     shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
@@ -192,7 +190,6 @@ internal fun App(
                                             predictivePopTransitionSpec = {
                                                 val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
                                                         targetState.key == AppRoute.Loading.toString() ||
-                                                        initialState.key.toString().startsWith("Login") ||
                                                         targetState.key.toString().startsWith("Login")
                                                 when {
                                                     shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
