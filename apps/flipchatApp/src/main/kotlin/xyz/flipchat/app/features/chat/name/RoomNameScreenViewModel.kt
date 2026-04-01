@@ -9,6 +9,7 @@ import com.getcode.model.NoId
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.services.utils.onSuccessWithDelay
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,9 +43,11 @@ internal class RoomNameScreenViewModel @Inject constructor(
     paymentController: PaymentController,
     profileController: ProfileController,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<RoomNameScreenViewModel.State, RoomNameScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     data class State(
         val roomId: ID = NoId,

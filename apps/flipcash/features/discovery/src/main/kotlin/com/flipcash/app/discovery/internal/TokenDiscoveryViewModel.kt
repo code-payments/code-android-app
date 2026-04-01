@@ -7,11 +7,11 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.discovery.R
 import com.getcode.opencode.controllers.CurrencyController
-import com.getcode.opencode.model.core.errors.DiscoverTokensError
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -27,9 +27,11 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     private val currencyController: CurrencyController,
     private val resources: ResourceHelper,
     featureFlags: FeatureFlagController,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<TokenDiscoveryViewModel.State, TokenDiscoveryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     data class State(
@@ -73,7 +75,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
             .mapNotNull { stateFlow.value.category }
             .onEach { dispatchEvent(Event.OnTokensUpdated(Loadable.Loading())) }
             .onEach { delay(300) }
-            .onEach { dispatchEvent(Event.LoadTokensForCategory(it)) }
+            .onEach { dispatchEvent( Event.LoadTokensForCategory(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -94,7 +96,8 @@ internal class TokenDiscoveryViewModel @Inject constructor(
                         )
                     )
                 }
-            ).launchIn(viewModelScope)
+            )
+            .launchIn(viewModelScope)
 
 
     }

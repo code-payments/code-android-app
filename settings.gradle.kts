@@ -35,6 +35,7 @@ include(
 
     // flipcash modules
     ":apps:flipcash:core",
+    ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
     ":apps:flipcash:shared:accesskey",
     ":apps:flipcash:shared:analytics",
@@ -104,6 +105,7 @@ include(
     ":libs:analytics",
     ":libs:biometrics",
     ":libs:code-detection",
+    ":libs:coroutines",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
     ":libs:currency",

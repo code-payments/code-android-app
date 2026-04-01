@@ -15,7 +15,7 @@ import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.model.LiquidityPool
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -59,7 +59,7 @@ import kotlinx.serialization.json.Json
 
 class ExternalWalletDeeplinkState(
     private val userManager: UserManager,
-    private val transactionController: TransactionController,
+    private val transactionController: TransactionOperations,
     private val scope: CoroutineScope,
     rpcUrl: String,
     networkDriver: HttpNetworkDriver,

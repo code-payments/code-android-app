@@ -7,6 +7,9 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+
     implementation(libs.androidx.browser)
 
     implementation(libs.kotlinx.serialization.core)

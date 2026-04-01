@@ -3,6 +3,7 @@ package xyz.flipchat.app.features.login
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.services.utils.onSuccessWithDelay
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,9 +23,11 @@ import kotlin.time.Duration.Companion.seconds
 class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
     betaFlags: Labs,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     data class State(
         val followerModeEnabled: Boolean = false,

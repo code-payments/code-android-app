@@ -9,10 +9,11 @@ import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Currency
@@ -65,14 +66,16 @@ data class AmountEntryState(
 class BuySellSwapTokenViewModel @Inject constructor(
     userManager: UserManager,
     exchange: Exchange,
-    transactionController: TransactionController,
+    transactionController: TransactionOperations,
     resources: ResourceHelper,
     tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
     private val analytics: FlipcashAnalyticsService,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<BuySellSwapTokenViewModel.State, BuySellSwapTokenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     private val numberInputHelper = NumberInputHelper()
 

@@ -16,6 +16,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,9 +57,11 @@ class ChatInfoViewModel @Inject constructor(
     private val userManager: UserManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<ChatInfoViewModel.State, ChatInfoViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
 
     data class State(

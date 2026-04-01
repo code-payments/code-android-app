@@ -22,6 +22,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -57,10 +58,12 @@ internal class MenuScreenViewModel @Inject constructor(
     featureFlags: FeatureFlagController,
     onrampController: OnRampAmountController,
     analytics: FlipcashAnalyticsService,
+    dispatchers: DispatcherProvider,
 ) :
     BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
-        updateStateForEvent = updateStateForEvent
+        updateStateForEvent = updateStateForEvent,
+        defaultDispatcher = dispatchers.Default,
     ) {
     data class State(
         val items: List<MenuItem<Event>> = FullMenuList,

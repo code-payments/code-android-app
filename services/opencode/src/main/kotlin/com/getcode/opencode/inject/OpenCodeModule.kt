@@ -7,6 +7,7 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
@@ -186,4 +187,8 @@ object OpenCodeModule {
     @Provides
     @Singleton
     internal fun providesEventBus(): ChannelEventBus = ChannelEventBus()
+
+    @Provides
+    @Singleton
+    fun bindTransactionOperations(impl: TransactionController): TransactionOperations = impl
 }

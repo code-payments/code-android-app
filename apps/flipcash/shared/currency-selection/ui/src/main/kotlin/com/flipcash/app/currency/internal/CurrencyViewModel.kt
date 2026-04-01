@@ -9,6 +9,7 @@ import com.flipcash.features.currency.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -27,9 +28,11 @@ class CurrencyViewModel @Inject constructor(
     exchange: Exchange,
     preferredCurrencyController: PreferredCurrencyController,
     private val resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val kind: RegionSelectionKind? = null,

@@ -14,6 +14,7 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.BottomBarManager.BottomBarButtonStyle
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,9 +39,11 @@ class EmailVerificationViewModel @Inject constructor(
     private val verificationController: ContactVerificationController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
+    private val dispatchers: DispatcherProvider,
 ) : BaseViewModel2<EmailVerificationViewModel.State, EmailVerificationViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val email: TextFieldState = TextFieldState(),
@@ -227,7 +230,7 @@ class EmailVerificationViewModel @Inject constructor(
             if (remainingTime <= 0) stopTimer()
             viewModelScope.launch {
                 dispatchEvent(
-                    Dispatchers.Main,
+                    dispatchers.Main,
                     Event.OnTimerTick(
                         isRunning = remainingTime > 0,
                         timeRemaining = remainingTime

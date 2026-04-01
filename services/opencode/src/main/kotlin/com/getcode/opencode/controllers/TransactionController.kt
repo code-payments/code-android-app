@@ -65,17 +65,17 @@ class TransactionController @Inject constructor(
     private val accountController: AccountController,
     private val eventBus: ChannelEventBus,
     private val verifiedStateManager: VerifiedProtoManager,
-) {
+) : TransactionOperations {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _limits = MutableStateFlow<Limits?>(Limits.Empty)
-    val limits: StateFlow<Limits?>
+    override val limits: StateFlow<Limits?>
         get() = _limits.asStateFlow()
 
-    val areLimitsStale: Boolean
+    override val areLimitsStale: Boolean
         get() = _limits.value == null || _limits.value?.isStale == true
 
-    suspend fun updateLimits(owner: AccountCluster, force: Boolean = false) {
+    override suspend fun updateLimits(owner: AccountCluster, force: Boolean) {
         if (areLimitsStale || force) {
             val since = Clock.System.now()
             trace(
@@ -119,14 +119,14 @@ class TransactionController @Inject constructor(
         return submitIntent(scope, intent, source.authority.keyPair)
     }
 
-    suspend fun withdraw(
+    override suspend fun withdraw(
         amount: LocalFiat,
         mint: Mint,
         owner: AccountCluster,
         destination: PublicKey,
         destinationOwner: PublicKey?,
-        fee: Fiat? = null,
-        scope: CoroutineScope = this.scope,
+        fee: Fiat?,
+        scope: CoroutineScope,
     ): Result<IntentType> {
         val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, mint)
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
@@ -181,7 +181,7 @@ class TransactionController @Inject constructor(
             }
     }
 
-    suspend fun cancelRemoteSend(
+    override suspend fun cancelRemoteSend(
         owner: AccountCluster,
         vault: PublicKey,
     ): Result<Unit> {
@@ -233,13 +233,13 @@ class TransactionController @Inject constructor(
         return submitIntent(scope, intent, owner.authority.keyPair)
     }
 
-    suspend fun buy(
+    override suspend fun buy(
         owner: AccountCluster,
         amount: LocalFiat,
-        swapId: SwapId? = null,
+        swapId: SwapId?,
         of: Token,
-        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
-        fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
+        source: SwapFundingSource,
+        fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
         trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
         val tokenizedOwner = owner.withTimelockForToken(of)
@@ -283,7 +283,7 @@ class TransactionController @Inject constructor(
         )
     }
 
-    suspend fun sell(
+    override suspend fun sell(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
@@ -309,7 +309,7 @@ class TransactionController @Inject constructor(
             }
     }
 
-    suspend fun pollSwapForState(
+    override suspend fun pollSwapForState(
         swapId: SwapId,
         owner: AccountCluster,
         targetState: SwapState,
@@ -390,7 +390,7 @@ class TransactionController @Inject constructor(
             ?: Result.failure(IllegalStateException("Never received the desired metadata"))
     }
 
-    suspend fun checkWithdrawalAvailability(
+    override suspend fun checkWithdrawalAvailability(
         address: String,
         mint: Mint,
     ): Result<WithdrawalAvailability> {

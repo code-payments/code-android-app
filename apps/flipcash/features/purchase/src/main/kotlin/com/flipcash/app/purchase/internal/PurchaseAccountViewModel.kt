@@ -15,6 +15,7 @@ import com.flipcash.app.billing.ProductPrice
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,9 +36,11 @@ internal class PurchaseAccountViewModel @Inject constructor(
     private val authManager: AuthManager,
     billingClient: BillingClient,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         internal val productToBuy: IapProduct? = null,

@@ -7,6 +7,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.services.user.UserManager
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -24,9 +25,11 @@ private val FullMenuList = buildList {
 internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     userManager: UserManager,
     featureFlagController: FeatureFlagController,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val isBetaEnabled: Boolean = false,

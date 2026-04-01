@@ -1,7 +1,6 @@
 package com.flipcash.app.transactions.internal
 
 import androidx.lifecycle.viewModelScope
-import androidx.paging.cachedIn
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
@@ -11,11 +10,11 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.transactions.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TokenController
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -35,13 +34,15 @@ import javax.inject.Inject
 class TransactionHistoryViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
-    transactionController: TransactionController,
+    transactionController: TransactionOperations,
     featureFlags: FeatureFlagController,
     userManager: UserManager,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ): BaseViewModel2<TransactionHistoryViewModel.State, TransactionHistoryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     data class State(
