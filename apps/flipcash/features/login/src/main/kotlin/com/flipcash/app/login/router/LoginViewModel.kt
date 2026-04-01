@@ -1,7 +1,6 @@
 package com.flipcash.app.login.router
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
@@ -10,6 +9,7 @@ import com.flipcash.services.controllers.AccountController
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.encodeBase64
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,9 +29,11 @@ class LoginViewModel @Inject constructor(
     private val accounts: AccountController,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val followerModeEnabled: Boolean = false,

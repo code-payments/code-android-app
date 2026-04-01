@@ -105,9 +105,7 @@ object BottomBarManager {
         )
     }
 
-    private val _messages: MutableStateFlow<List<BottomBarMessage>> = MutableStateFlow(
-        listOf()
-    )
+    private val _messages: MutableStateFlow<List<BottomBarMessage>> = MutableStateFlow(emptyList())
     val messages: StateFlow<List<BottomBarMessage>> get() = _messages.asStateFlow()
 
     fun showMessage(bottomBarMessage: BottomBarMessage) {

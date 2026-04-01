@@ -45,6 +45,7 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.DisableSheetGestures
 import com.getcode.util.getActivity
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -185,9 +186,11 @@ private class PurchaseAccountViewModel @Inject constructor(
     private val authManager: AuthManager,
     billingClient: BillingClient,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     data class State(
         val userId: ID? = null,

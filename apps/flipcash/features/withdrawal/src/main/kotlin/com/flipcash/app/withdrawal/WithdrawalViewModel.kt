@@ -15,7 +15,7 @@ import com.flipcash.features.withdrawal.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -31,6 +31,7 @@ import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.vendor.Base58
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,14 +69,16 @@ internal class WithdrawalViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
     private val userManager: UserManager,
-    transactionController: TransactionController,
+    transactionController: TransactionOperations,
     clipboardManager: ClipboardManager,
     activityFeedCoordinator: ActivityFeedCoordinator,
     analytics: FlipcashAnalyticsService,
     tokenCoordinator: TokenCoordinator,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<WithdrawalViewModel.State, WithdrawalViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     private val numberInputHelper = NumberInputHelper()
@@ -307,6 +310,7 @@ internal class WithdrawalViewModel @Inject constructor(
             .map { it.destinationState.textFieldState }
             .flatMapLatest { ts -> snapshotFlow { ts.text } }
             .debounce(500)
+            .filter { stateFlow.value.selectedTokenAddress != null }
             .map {
                 transactionController.checkWithdrawalAvailability(
                     address = it.toString(),

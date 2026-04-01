@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
@@ -31,13 +30,13 @@ import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.OnRampAmountController
-import com.flipcash.app.onramp.OnRampController
 import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
@@ -47,10 +46,10 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
@@ -80,9 +79,11 @@ class TokenInfoViewModel @Inject constructor(
     private val onramp: OnRampAmountController,
     features: FeatureFlagController,
     userManager: UserManager,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val mint: Mint? = null,

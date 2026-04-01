@@ -9,6 +9,7 @@ import xyz.flipchat.app.features.login.register.onResult
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -25,9 +26,11 @@ import javax.inject.Inject
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     private val numberInputHelper = NumberInputHelper()
 

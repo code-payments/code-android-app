@@ -40,6 +40,7 @@ import com.getcode.utils.base58
 import com.getcode.utils.network.retryable
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -117,9 +118,11 @@ class ConversationViewModel @Inject constructor(
     private val currencyUtils: CurrencyUtils,
     clipboardManager: ClipboardManager,
     betaFeatures: Labs,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     private var stopTypingJob: Job? = null
     private var typingStillJob: Job? = null

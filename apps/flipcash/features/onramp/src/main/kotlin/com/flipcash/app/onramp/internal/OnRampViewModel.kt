@@ -15,7 +15,7 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -26,6 +26,7 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -77,13 +78,15 @@ private val DefaultOnRampOptions = listOf(
 internal class OnRampViewModel @Inject constructor(
     userManager: UserManager,
     exchange: Exchange,
-    transactionController: TransactionController,
+    transactionController: TransactionOperations,
     resources: ResourceHelper,
     onRampController: OnRampController,
     amountController: OnRampAmountController,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<OnRampViewModel.State, OnRampViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     private val numberInputHelper = NumberInputHelper()

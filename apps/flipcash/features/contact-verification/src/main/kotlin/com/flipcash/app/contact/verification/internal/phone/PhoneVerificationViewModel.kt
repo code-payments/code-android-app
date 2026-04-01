@@ -3,11 +3,11 @@ package com.flipcash.app.contact.verification.internal.phone
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.contact.verification.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
@@ -17,14 +17,12 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.Timer
@@ -40,9 +38,11 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val verificationController: ContactVerificationController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
+    private val dispatchers: DispatcherProvider,
 ) : BaseViewModel2<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(selectedLocale = phoneUtils.defaultCountryLocale),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val numberTextFieldState: TextFieldState = TextFieldState(),
@@ -260,7 +260,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
             if (remainingTime <= 0) stopTimer()
             viewModelScope.launch {
                 dispatchEvent(
-                    Dispatchers.Main,
+                    dispatchers.Main,
                     Event.OnTimerTick(
                         isRunning = remainingTime > 0,
                         timeRemaining = remainingTime

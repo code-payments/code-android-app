@@ -7,6 +7,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.social.user.SocialProfile
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -38,9 +39,11 @@ class ProfileViewModel @Inject constructor(
     resources: ResourceHelper,
     private val authManager: AuthManager,
     private val chatsController: ChatsController,
+    dispatchers: DispatcherProvider,
 ): BaseViewModel2<ProfileViewModel.State, ProfileViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     data class State(
         val id: ID? = null,

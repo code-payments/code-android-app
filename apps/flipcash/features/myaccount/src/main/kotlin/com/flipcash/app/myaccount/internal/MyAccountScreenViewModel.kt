@@ -4,17 +4,15 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.extensions.setText
-import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.myaccount.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.solana.keys.base58
-import com.getcode.solana.keys.base64
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.base58
 import com.getcode.utils.base64
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,9 +41,11 @@ internal class MyAccountScreenViewModel @Inject constructor(
     resources: ResourceHelper,
     authManager: AuthManager,
     clipboardManager: ClipboardManager,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     internal data class State(
         val isBetaEnabled: Boolean = false,

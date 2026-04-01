@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    api(project(":libs:coroutines"))
     implementation(project(":libs:logging"))
     implementation(project(":ui:core"))
     api(project(":ui:resources"))

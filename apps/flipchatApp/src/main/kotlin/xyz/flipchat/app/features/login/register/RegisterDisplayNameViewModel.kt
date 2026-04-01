@@ -3,6 +3,7 @@ package xyz.flipchat.app.features.login.register
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -21,9 +22,11 @@ class RegisterDisplayNameViewModel @Inject constructor(
     authManager: AuthManager,
     codeController: CodeController,
     userManager: UserManager,
+    dispatchers: DispatcherProvider,
 ): BaseViewModel2<RegisterDisplayNameViewModel.State, RegisterDisplayNameViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     data class State(
         val checkingDisplayName: Boolean = false,

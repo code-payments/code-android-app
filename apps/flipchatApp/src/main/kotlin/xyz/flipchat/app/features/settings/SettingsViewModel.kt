@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.settings
 
 import android.app.Activity
 import androidx.lifecycle.viewModelScope
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
@@ -19,9 +20,11 @@ class SettingsViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val chatsController: ChatsController,
     userManager: UserManager,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<SettingsViewModel.State, SettingsViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    dispatchers = dispatchers,
 ) {
     data class State(
         val isStaff: Boolean = false,

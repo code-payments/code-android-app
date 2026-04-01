@@ -22,6 +22,7 @@ import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -44,9 +45,11 @@ class SelectTokenViewModel @Inject constructor(
     analytics: FlipcashAnalyticsService,
     featureFlags: FeatureFlagController,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
     initialState = State(purpose = TokenPurpose.Balance),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     data class State(

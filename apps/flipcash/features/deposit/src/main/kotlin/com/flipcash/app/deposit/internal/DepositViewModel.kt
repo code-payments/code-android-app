@@ -11,6 +11,7 @@ import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -27,9 +28,11 @@ internal class DepositViewModel @Inject constructor(
     tokenController: TokenMetadataProvider,
     clipboardManager: ClipboardManager,
     resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<DepositViewModel.State, DepositViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     internal data class State(
         val selectedTokenAddress: Mint? = null,

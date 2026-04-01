@@ -15,7 +15,7 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -29,6 +29,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,12 +53,14 @@ internal class CashScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
     tokenCoordinator: TokenCoordinator,
-    transactionController: TransactionController,
+    transactionController: TransactionOperations,
     onrampController: OnRampAmountController,
     analytics: FlipcashAnalyticsService,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<CashScreenViewModel.State, CashScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     private val numberInputHelper = NumberInputHelper()
