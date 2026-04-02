@@ -57,12 +57,12 @@ internal fun BuySellTokenEntryScreen(
             placeholder = "0",
             hint = if (state.isError) {
                 when (state.purpose) {
-                    is TokenSwapPurpose.Buy -> stringResource(
+                    is TokenSwapPurpose.BalanceIncrease -> stringResource(
                         R.string.subtitle_buyHintLimitExceeded,
                         state.maxAvailableToSwap
                     )
 
-                    is TokenSwapPurpose.Sell -> stringResource(
+                    is TokenSwapPurpose.BalanceDecrease -> stringResource(
                         R.string.subtitle_sellHintLimitExceeded,
                         state.maxAvailableToSwap
                     )
