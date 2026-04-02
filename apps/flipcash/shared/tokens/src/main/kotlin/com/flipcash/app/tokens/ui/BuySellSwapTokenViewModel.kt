@@ -152,10 +152,9 @@ class BuySellSwapTokenViewModel @Inject constructor(
                                 amountEntryState.limits?.sendLimitFor(
                                     it
                                 )
-                            }
-                                ?: SendLimit.Zero
+                            } ?: SendLimit.Zero
 
-                        sendLimit.nextTransaction.toFiat(enteredAmount.currencyCode)
+                        sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
                     }
 
                     is TokenSwapPurpose.Sell -> tokenBalance
@@ -450,7 +449,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }
             .onEach { (limits, currency) ->
                 val sendLimit = limits?.sendLimitFor(currency) ?: SendLimit.Zero
-                val nextTransactionLimit = sendLimit.nextTransaction
+                val nextTransactionLimit = sendLimit.maxPerDay
                 dispatchEvent(Event.OnMaxDetermined(nextTransactionLimit, currency))
             }.launchIn(viewModelScope)
 
