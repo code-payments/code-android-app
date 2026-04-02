@@ -10,4 +10,5 @@ dependencies {
     api(libs.google.play.app.updates.runtime)
     api(libs.google.play.app.updates.ktx)
 
+    implementation(project(":apps:flipcash:shared:userflags"))
 }

@@ -1,8 +1,7 @@
-package com.flipcash.services.internal.model.account
+package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.toFiat
 import kotlin.time.Duration
 
 data class UserFlags(

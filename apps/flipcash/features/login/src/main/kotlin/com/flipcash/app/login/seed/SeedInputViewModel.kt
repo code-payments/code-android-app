@@ -5,9 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.userflags.ResolvedFlag
+import com.flipcash.app.userflags.ResolvedUserFlags
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarAction
@@ -41,6 +44,7 @@ class SeedInputViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val accountController: AccountController,
     private val userManager: UserManager,
+    private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
 ) : BaseViewModel(resources) {
@@ -105,11 +109,12 @@ class SeedInputViewModel @Inject constructor(
                     setState(isLoading = false, isSuccess = false, isContinueEnabled = true)
                 }
                 .onSuccess {
-                    val userFlags = userManager.userFlags
-                    if (userFlags == null) {
+                    val resolvedFlags = userFlags.resolvedFlags.value
+                    // check if we have server backed flags
+                    if (resolvedFlags.minimumVersion.serverValue == null) {
                         accountController.getUserFlags()
                             .onSuccess {
-                                postLoginNavigation(navigator, it)
+                                postLoginNavigation(navigator, userFlags.resolvedFlags.value)
                             }.onFailure {
                                 setState(isLoading = false, isSuccess = false, isContinueEnabled = false)
                                 BottomBarManager.showError(
@@ -118,7 +123,7 @@ class SeedInputViewModel @Inject constructor(
                                 )
                             }
                     } else {
-                        postLoginNavigation(navigator, userFlags)
+                        postLoginNavigation(navigator, resolvedFlags)
                     }
                 }
         }
@@ -126,12 +131,12 @@ class SeedInputViewModel @Inject constructor(
 
     private suspend fun postLoginNavigation(
         navigator: CodeNavigator,
-        flags: UserFlags,
+        flags: ResolvedUserFlags?,
     ) {
         setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
         delay(1.seconds)
         when {
-            !flags.isRegistered && flags.requiresIapForRegistration -> {
+            flags?.isRegistered?.effectiveValue == true && flags.requiresIapForRegistration.effectiveValue -> {
                 navigator.push(AppRoute.Onboarding.Purchase(true))
             }
 

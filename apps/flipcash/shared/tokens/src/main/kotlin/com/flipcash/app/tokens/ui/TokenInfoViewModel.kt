@@ -37,7 +37,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.UserManager

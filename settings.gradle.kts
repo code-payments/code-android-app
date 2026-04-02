@@ -67,6 +67,7 @@ include(
     ":apps:flipcash:shared:shareable",
     ":apps:flipcash:shared:tokens",
     ":apps:flipcash:shared:theme",
+    ":apps:flipcash:shared:userflags",
     ":apps:flipcash:shared:workers",
     ":apps:flipcash:shared:web",
     // flipcash features

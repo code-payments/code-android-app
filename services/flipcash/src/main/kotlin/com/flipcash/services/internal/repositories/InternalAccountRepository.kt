@@ -1,7 +1,7 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.domain.UserFlagsMapper
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.repository.AccountRepository
 import com.getcode.ed25519.Ed25519

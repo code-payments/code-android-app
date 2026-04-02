@@ -1,7 +1,7 @@
 package com.flipcash.services.user
 
 import com.bugsnag.android.Bugsnag
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.models.UserProfile
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey

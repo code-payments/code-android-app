@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.app.updates.internal.NoUpdateAvailableException
 import com.flipcash.features.appupdates.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.BiometricsState
@@ -68,6 +69,11 @@ fun UpdateRequiredBlockingView(
                         onClick = {
                             composeScope.launch {
                                 appUpdater.startUpdate()
+                                    .onFailure {
+                                        if (it is NoUpdateAvailableException) {
+                                            appUpdater.reset()
+                                        }
+                                    }
                             }
                         },
                         text = stringResource(id = R.string.action_updateNow),
@@ -130,24 +136,17 @@ fun UpdateRequiredBlockingView(
 private fun PreviewUpdateRequiredView() {
     FlipcashPreview {
         val appUpdater = remember {
-            object : AppUpdateController {
-                override val availableUpdate = MutableStateFlow<UpdateInfo?>(
-                    UpdateInfo(
-                        updateAvailability = UpdateAvailability.UPDATE_AVAILABLE,
-                        updatePriority = 5,
-                        clientVersionStalenessDays = null,
-                        bytesDownloaded = 0,
-                        totalBytesToDownload = 100,
-                        installStatus = InstallStatus.UNKNOWN,
-                        availableVersionCode = 3000
-                    )
+            StubAppUpdateController(
+                UpdateInfo(
+                    updateAvailability = UpdateAvailability.UPDATE_AVAILABLE,
+                    updatePriority = 5,
+                    clientVersionStalenessDays = null,
+                    bytesDownloaded = 0,
+                    totalBytesToDownload = 100,
+                    installStatus = InstallStatus.UNKNOWN,
+                    availableVersionCode = 3000
                 )
-
-                override suspend fun checkForUpdate() = Unit
-
-                override suspend fun startUpdate(): Result<Unit> = Result.success(Unit)
-
-            }
+            )
         }
         CompositionLocalProvider(LocalAppUpdater provides appUpdater) {
             UpdateRequiredBlockingView(

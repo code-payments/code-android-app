@@ -6,6 +6,7 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaScanner
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.opencode.managers.MnemonicManager
@@ -22,43 +23,35 @@ class LoginAccessKeyViewModel @Inject constructor(
     mnemonicManager: MnemonicManager,
     qrCodeGenerator: QRCodeGenerator,
     mediaScanner: MediaScanner,
-    private val userManager: UserManager,
+    userManager: UserManager,
+    private val userFlags: UserFlagsCoordinator,
     private val authManager: AuthManager,
     private val analytics: FlipcashAnalyticsService,
 ): BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, userManager, qrCodeGenerator) {
 
-    suspend fun saveImage(): Result<Boolean> = trackButton(Button.SaveAccessKey)
-        .fold(
-            onSuccess = { saveBitmapToFile() },
-            onFailure = { Result.failure(it) }
-        )
-        .onSuccess { authManager.onUserAccessKeySeen() }
-        .map { authManager.presentCredentialStorage() }
-        .map { userManager.userFlags?.requiresIapForRegistration == true }
-        .map {
-            delay(150)
-            uiFlow.update { s -> s.copy(exportState = LoadingSuccessState(success = true)) }
-            it
-        }
-
-    suspend fun onWroteDownInstead(): Result<Boolean> = trackButton(Button.WroteAccessKey)
-        .map {
-            uiFlow.update { it.copy(skipState = LoadingSuccessState(loading = true)) }
-        }
-        .fold(
-            onSuccess = { authManager.onUserAccessKeySeen() },
-            onFailure = {
-                uiFlow.update { s -> s.copy(skipState = LoadingSuccessState()) }
-                Result.failure(it)
-            }
-        )
-        .map { authManager.presentCredentialStorage() }
-        .map { userManager.userFlags?.requiresIapForRegistration == true }
-        .map {
+    suspend fun onWroteDownInstead(): Result<Boolean> {
+        trackButton(Button.WroteAccessKey)
+        uiFlow.update { it.copy(skipState = LoadingSuccessState(loading = true)) }
+        return runCatching {
+            authManager.onUserAccessKeySeen()
+            authManager.presentCredentialStorage()
             delay(150)
             uiFlow.update { s -> s.copy(skipState = LoadingSuccessState(success = true)) }
-            it
+            userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
         }
+    }
+
+    suspend fun saveImage(): Result<Boolean> {
+        trackButton(Button.SaveAccessKey)
+        return saveBitmapToFile()
+            .onSuccess { authManager.onUserAccessKeySeen() }
+            .mapCatching {
+                authManager.presentCredentialStorage()
+                delay(150)
+                uiFlow.update { s -> s.copy(exportState = LoadingSuccessState(success = true)) }
+                userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
+            }
+    }
 
     private fun trackButton(button: Button): Result<Unit> {
         analytics.buttonTapped(button)

@@ -2,7 +2,7 @@ package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService
 import com.flipcash.services.internal.domain.mapper.Mapper
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.getcode.opencode.model.financial.Fiat

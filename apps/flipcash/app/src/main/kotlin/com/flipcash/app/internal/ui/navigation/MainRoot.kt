@@ -29,7 +29,7 @@ import com.flipcash.app.core.extensions.navigateTo
 import com.flipcash.app.core.extensions.resolveRoutes
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.AuthState
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator

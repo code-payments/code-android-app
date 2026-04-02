@@ -5,7 +5,9 @@ import androidx.activity.ComponentActivity
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.updates.AppUpdateController
 import com.flipcash.app.updates.UpdateInfo
-import com.flipcash.services.user.UserManager
+import com.flipcash.app.userflags.Field
+import com.flipcash.app.userflags.FieldOverride
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.getcode.utils.trace
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -32,7 +34,7 @@ class GooglePlayAppUpdateController @Inject constructor(
     @field:ActivityContext
     private val context: Context,
     private val versionInfo: VersionInfo,
-    private val userManager: UserManager,
+    private val userFlags: UserFlagsCoordinator,
 ) : AppUpdateController {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -48,7 +50,7 @@ class GooglePlayAppUpdateController @Inject constructor(
             message = "Checking for available updates"
         )
 
-        val minimumVersionFromServer = userManager.userFlags?.minimumVersion ?: Int.MIN_VALUE
+        val minimumVersionFromServer = userFlags.resolvedFlags.value.minimumVersion.effectiveValue ?: Int.MIN_VALUE
 
         if (versionInfo.versionCode >= minimumVersionFromServer) {
             trace(
@@ -62,6 +64,11 @@ class GooglePlayAppUpdateController @Inject constructor(
             return
         }
 
+        trace(
+            tag = "App Updates",
+            message = "Checking for available updates - ${versionInfo.versionCode} < $minimumVersionFromServer",
+        )
+
         val task = appUpdateManager.appUpdateInfo
 
         task.addOnSuccessListener { update ->
@@ -70,8 +77,20 @@ class GooglePlayAppUpdateController @Inject constructor(
                 message = "Update info retrieved successfully",
             )
 
+            // allow minimum version override to be visualized
+            val availability = when (val override = userFlags.resolvedFlags.value.minimumVersion.override) {
+                is FieldOverride.Value -> {
+                    if ((override.value ?: Int.MIN_VALUE) > versionInfo.versionCode) {
+                        UpdateAvailability.UPDATE_AVAILABLE
+                    } else {
+                        UpdateAvailability.UPDATE_NOT_AVAILABLE
+                    }
+                }
+                FieldOverride.None -> update.updateAvailability()
+            }
+
             val availableUpdate = UpdateInfo(
-                updateAvailability = update.updateAvailability(),
+                updateAvailability = availability,
                 updatePriority = update.updatePriority(),
                 clientVersionStalenessDays = update.clientVersionStalenessDays(),
                 bytesDownloaded = update.bytesDownloaded(),
@@ -123,12 +142,17 @@ class GooglePlayAppUpdateController @Inject constructor(
     override suspend fun startUpdate(): Result<Unit> = suspendCancellableCoroutine { cont ->
         val info = _availableUpdate.value?.rawAppUpdateInfo as? AppUpdateInfo
         if (info == null) {
-            cont.resumeWith(Result.failure(IllegalStateException("No update available")))
+            cont.resume(Result.failure(NoUpdateAvailableException()))
+            return@suspendCancellableCoroutine
+        }
+
+        if (info.availableVersionCode() <= versionInfo.versionCode) {
+            cont.resume(Result.failure(NoUpdateAvailableException()))
             return@suspendCancellableCoroutine
         }
 
         if (!info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
-            cont.resumeWith(Result.failure(IllegalStateException("Update type is not allowed")))
+            cont.resume(Result.failure(IllegalStateException("Update type is not allowed")))
             return@suspendCancellableCoroutine
         }
 
@@ -151,7 +175,7 @@ class GooglePlayAppUpdateController @Inject constructor(
                 tag = "App Updates",
                 message = "Update flow was canceled"
             )
-            if (cont.isActive) cont.resumeWith(Result.failure(Exception("Update flow was canceled.")))
+            if (cont.isActive) cont.resume(Result.failure(Exception("Update flow was canceled.")))
         }
 
         task.addOnFailureListener {
@@ -160,7 +184,19 @@ class GooglePlayAppUpdateController @Inject constructor(
                 message = "Failed to start update flow",
                 error = it,
             )
-            if (cont.isActive) cont.resumeWith(Result.failure(it))
+            if (cont.isActive) cont.resume(Result.failure(it))
+        }
+    }
+
+    override suspend fun reset() {
+        // only allow reset if staff and minimum version has been overridden
+        if (userFlags.resolvedFlags.value.isStaff.effectiveValue) {
+            if (userFlags.resolvedFlags.value.minimumVersion.isOverridden) {
+                _availableUpdate.update { null }
+                userFlags.clear(Field.MinimumVersion)
+            }
         }
     }
 }
+
+class NoUpdateAvailableException: IllegalStateException("No update available")

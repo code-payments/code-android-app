@@ -1,6 +1,7 @@
 package com.flipcash.app.core.internal.bill
 
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -19,7 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class BillController @Inject constructor(
     private val transactionManager: BillTransactionManager,
-    private val userManager: UserManager,
+    private val userFlags: UserFlagsCoordinator,
 ) {
     private val _state = MutableStateFlow(BillState.Default)
     val state: StateFlow<BillState>
@@ -50,7 +51,7 @@ class BillController @Inject constructor(
         amount = amount,
         owner = owner,
         verifiedState = verifiedState,
-        billExchangeDataTimeout = userManager.userFlags?.billExchangeDataTimeout,
+        billExchangeDataTimeout = userFlags.resolvedFlags.value.billExchangeDataTimeout.effectiveValue,
         present = present,
         onGrabbed = onGrabbed,
         onTimeout = onTimeout,

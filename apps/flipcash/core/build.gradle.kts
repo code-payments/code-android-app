@@ -34,6 +34,7 @@ dependencies {
     api(project(":libs:permissions:public"))
     implementation(project(":libs:vibrator:public"))
 
+    implementation(project(":apps:flipcash:shared:userflags"))
     api(project(":apps:flipcash:shared:theme"))
 
     api(libs.sodium.bindings)
