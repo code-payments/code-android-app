@@ -170,8 +170,8 @@ sealed class GetLimitsError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class Unrecognized : GetIntentMetadataError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : GetIntentMetadataError(message = cause?.message, cause = cause), NotifiableError
+    class Unrecognized : GetLimitsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetLimitsError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class WithdrawalAvailabilityError(
