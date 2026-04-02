@@ -243,9 +243,9 @@ fun ExternalWalletOnRampHandler(
                     val title = state.tokenToPurchase?.let { token ->
                         context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
                     } ?: context.getString(R.string.prompt_title_cashOnTheWay)
-                    BottomBarManager.showMessage(
+                    BottomBarManager.showSuccess(
                         title = title,
-                        subtitle = context.getString(R.string.prompt_description_cashOnTheWay),
+                        message = context.getString(R.string.prompt_description_cashOnTheWay),
                         showScrim = true,
                         actions = buildList {
                             if (notifications.isGranted) {
@@ -275,7 +275,6 @@ fun ExternalWalletOnRampHandler(
                                 )
                             }
                         },
-                        type = BottomBarManager.BottomBarMessageType.SUCCESS,
                     )
                 }
             }

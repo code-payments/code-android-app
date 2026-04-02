@@ -80,30 +80,28 @@ class TransactionHistoryViewModel @Inject constructor(
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)
                 } ?: resources.getString(R.string.prompt_title_cancelTransferNoAmount)
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = title,
-                        subtitle = resources.getString(R.string.prompt_description_cancelTransfer),
-                        showScrim = true,
-                        showCancel = false,
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    style = BottomBarManager.BottomBarButtonStyle.Filled,
-                                    text = resources.getString(R.string.action_cancelTransfer),
-                                ) {
-                                    dispatchEvent(Event.CancelTransfer(vault = metadata.creator))
-                                }
-                            )
+                BottomBarManager.showAlert(
+                    title = title,
+                    message = resources.getString(R.string.prompt_description_cancelTransfer),
+                    showScrim = true,
+                    showCancel = false,
+                    actions = buildList {
+                        add(
+                            BottomBarAction(
+                                style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                text = resources.getString(R.string.action_cancelTransfer),
+                            ) {
+                                dispatchEvent(Event.CancelTransfer(vault = metadata.creator))
+                            }
+                        )
 
-                            add(
-                                BottomBarAction(
-                                    style = BottomBarManager.BottomBarButtonStyle.Text,
-                                    text = resources.getString(R.string.action_nevermind),
-                                )
+                        add(
+                            BottomBarAction(
+                                style = BottomBarManager.BottomBarButtonStyle.Text,
+                                text = resources.getString(R.string.action_nevermind),
                             )
-                        },
-                    )
+                        )
+                    },
                 )
             }.launchIn(viewModelScope)
 

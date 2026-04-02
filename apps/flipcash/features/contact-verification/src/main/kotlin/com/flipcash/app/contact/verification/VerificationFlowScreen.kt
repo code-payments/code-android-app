@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.flipcash.app.contact.verification.email.EmailMagicLinkContent
 import com.flipcash.app.contact.verification.email.EmailVerificationContent
 import com.flipcash.app.contact.verification.internal.VerificationFlowIntroContent
@@ -69,27 +70,19 @@ fun VerificationFlowScreen(
 ) {
     val codeNavigator = LocalCodeNavigator.current
     val context = LocalContext.current
-
+    val resources = LocalResources.current
     fun showSuccess() {
         if (includePhone) {
-            BottomBarManager.showMessage(
-                title = context.getString(R.string.prompt_title_phoneVerifiedSuccessfully),
-                subtitle = context.getString(R.string.prompt_description_phoneVerifiedSuccessfully),
-                actions = listOf(
-                    BottomBarAction(text = context.getString(android.R.string.ok))
-                ),
-                type = BottomBarManager.BottomBarMessageType.SUCCESS,
+            BottomBarManager.showSuccess(
+                title = resources.getString(R.string.prompt_title_phoneVerifiedSuccessfully),
+                message = resources.getString(R.string.prompt_description_phoneVerifiedSuccessfully),
             ) {
                 codeNavigator.pop()
             }
         } else {
-            BottomBarManager.showMessage(
-                title = context.getString(R.string.prompt_title_emailVerifiedSuccessfully),
-                subtitle = context.getString(R.string.prompt_description_emailVerifiedSuccessfully),
-                actions = listOf(
-                    BottomBarAction(text = context.getString(android.R.string.ok))
-                ),
-                type = BottomBarManager.BottomBarMessageType.SUCCESS,
+            BottomBarManager.showSuccess(
+                title = resources.getString(R.string.prompt_title_emailVerifiedSuccessfully),
+                message = resources.getString(R.string.prompt_description_emailVerifiedSuccessfully),
             ) {
                 codeNavigator.pop()
             }

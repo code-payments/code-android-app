@@ -468,9 +468,9 @@ class RealSessionController @Inject constructor(
 
         when (confirmResult) {
             ShareConfirmationResult.Cancelled -> {
-                BottomBarManager.showMessage(
+                BottomBarManager.showAlert(
                     title = "Are You Sure?",
-                    subtitle = "Anyone you sent the link to won’t be able to collect the cash",
+                    message = "Anyone you sent the link to won’t be able to collect the cash",
                     actions = listOf(
                         BottomBarAction(
                             text = "Yes",
@@ -715,9 +715,9 @@ class RealSessionController @Inject constructor(
                 when (cause) {
                     is ReceiveGiftTransactorError.UsersGiftCard -> {
                         // present confirmation to claim (cancel) own gift card
-                        BottomBarManager.showMessage(
+                        BottomBarManager.showAlert(
                             title = resources.getString(R.string.prompt_title_collectOwnCash),
-                            subtitle = resources.getString(R.string.prompt_description_collectOwnCash),
+                            message = resources.getString(R.string.prompt_description_collectOwnCash),
                             isDismissible = false,
                             showScrim = false,
                             actions = buildList {

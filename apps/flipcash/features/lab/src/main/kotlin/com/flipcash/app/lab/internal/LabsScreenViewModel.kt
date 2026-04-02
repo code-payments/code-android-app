@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.features.lab.R
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.models.EmailVerificationError
+import com.flipcash.services.models.PhoneVerificationError
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
@@ -34,7 +36,7 @@ class LabsScreenViewModel @Inject constructor(
     fun unlinkEmail() = viewModelScope.launch {
         val email = userManager.profile?.verifiedEmailAddress
         if (email == null) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_failedToUnlinkEmail),
                 message = resources.getString(R.string.error_description_failedToUnlinkEmailNonePresent)
             )
@@ -48,13 +50,9 @@ class LabsScreenViewModel @Inject constructor(
                     message = resources.getString(R.string.error_description_failedToUnlinkEmail)
                 )
             }.onSuccess {
-                BottomBarManager.showMessage(
+                BottomBarManager.showSuccess(
                     title = resources.getString(R.string.prompt_title_emailUnlinked),
-                    subtitle = resources.getString(R.string.prompt_description_emailUnlinked),
-                    actions = listOf(
-                        BottomBarAction(text = resources.getString(android.R.string.ok))
-                    ),
-                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
+                    message = resources.getString(R.string.prompt_description_emailUnlinked),
                 )
             }
     }
@@ -62,7 +60,7 @@ class LabsScreenViewModel @Inject constructor(
     fun unlinkPhone() = viewModelScope.launch {
         val phone = userManager.profile?.verifiedPhoneNumber
         if (phone == null) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_failedToUnlinkPhone),
                 message = resources.getString(R.string.error_description_failedToUnlinkPhoneNonePresent)
             )
@@ -76,13 +74,9 @@ class LabsScreenViewModel @Inject constructor(
                     message = resources.getString(R.string.error_description_failedToUnlinkPhone)
                 )
             }.onSuccess {
-                BottomBarManager.showMessage(
+                BottomBarManager.showSuccess(
                     title = resources.getString(R.string.prompt_title_phoneUnlinked),
-                    subtitle = resources.getString(R.string.prompt_description_phoneUnlinked),
-                    actions = listOf(
-                        BottomBarAction(text = resources.getString(android.R.string.ok))
-                    ),
-                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
+                    message = resources.getString(R.string.prompt_description_phoneUnlinked),
                 )
             }
     }

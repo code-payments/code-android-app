@@ -111,14 +111,11 @@ internal class MyAccountScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnDeleteAccountClicked>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_deleteAccount),
-                        showScrim = true,
-                        subtitle = resources.getString(R.string.prompt_description_deleteAccount),
-                        positiveText = resources.getString(R.string.action_deleteAccount),
-                        tertiaryText = resources.getString(R.string.action_cancel),
-                        onPositive = {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_deleteAccount),
+                    message = resources.getString(R.string.prompt_description_deleteAccount),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_deleteAccount)) {
                             viewModelScope.launch {
                                 delay(150) // wait for dismiss
                                 authManager.deleteAndLogout()
@@ -131,7 +128,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                                     }
                             }
                         }
-                    )
+                    ),
+                    showCancel = true,
                 )
             }.launchIn(viewModelScope)
 
@@ -168,19 +166,17 @@ internal class MyAccountScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAccessKeyClicked>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_viewAccessKey),
-                        subtitle = resources.getString(R.string.prompt_description_viewAccessKey),
-                        showScrim = true,
-                        showCancel = true,
-                        actions = listOf(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_viewAccessKey),
-                                onClick = { dispatchEvent(Event.OnViewAccessKey) }
-                            )
-                        ),
-                    )
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_viewAccessKey),
+                    message = resources.getString(R.string.prompt_description_viewAccessKey),
+                    showScrim = true,
+                    showCancel = true,
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_viewAccessKey),
+                            onClick = { dispatchEvent(Event.OnViewAccessKey) }
+                        )
+                    ),
                 )
             }.launchIn(viewModelScope)
     }

@@ -335,56 +335,53 @@ class TokenInfoViewModel @Inject constructor(
 
     private fun presentPaymentOptions(forNeededFunds: Boolean) {
         BottomBarManager.showMessage(
-            bottomBarMessage = BottomBarManager.BottomBarMessage(
-                title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
-                type = BottomBarManager.BottomBarMessageType.DEFAULT,
-                actions = buildList {
-                    if (stateFlow.value.coinbaseOnRampAvailable) {
-                        add(
-                            buildButtonAction(
-                                prefix = resources.getString(R.string.action_debitCardWithPrefix),
-                                suffix = null,
-                                icon = { painterResource(R.drawable.ic_google_pay) },
-                                width = 50.sp,
-                                height = 32.sp,
-                                iconPadding = {
-                                    PaddingValues(horizontal = CodeTheme.dimens.grid.x1)
-                                },
-                                onClick = { handleBuyWithCoinbase() }
-                            )
-                        )
-                    }
-                    if (stateFlow.value.hasReserves) {
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(
-                                    R.string.action_useCashReservesWithBalance,
-                                    stateFlow.value.reservesBalance.formatted()
-                                ),
-                                onClick = { handleBuyWithReserves(forNeededFunds) }
-                            )
-                        )
-                    }
-
+            title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
+            actions = buildList {
+                if (stateFlow.value.coinbaseOnRampAvailable) {
                     add(
                         buildButtonAction(
-                            prefix = resources.getString(R.string.label_solanaUsdc),
-                            suffix = resources.getString(R.string.label_phantom),
-                            icon = { painterResource(R.drawable.ic_phantom_wallet) },
-                            onClick = { handleBuyWithPhantom() }
+                            prefix = resources.getString(R.string.action_debitCardWithPrefix),
+                            suffix = null,
+                            icon = { painterResource(R.drawable.ic_google_pay) },
+                            width = 50.sp,
+                            height = 32.sp,
+                            iconPadding = {
+                                PaddingValues(horizontal = CodeTheme.dimens.grid.x1)
+                            },
+                            onClick = { handleBuyWithCoinbase() }
                         )
                     )
-
+                }
+                if (stateFlow.value.hasReserves) {
                     add(
                         BottomBarAction(
-                            text = resources.getString(R.string.action_dismiss),
-                            style = BottomBarManager.BottomBarButtonStyle.Text,
+                            text = resources.getString(
+                                R.string.action_useCashReservesWithBalance,
+                                stateFlow.value.reservesBalance.formatted()
+                            ),
+                            onClick = { handleBuyWithReserves(forNeededFunds) }
                         )
                     )
-                },
-                showCancel = false,
-                showScrim = true,
-            )
+                }
+
+                add(
+                    buildButtonAction(
+                        prefix = resources.getString(R.string.label_solanaUsdc),
+                        suffix = resources.getString(R.string.label_phantom),
+                        icon = { painterResource(R.drawable.ic_phantom_wallet) },
+                        onClick = { handleBuyWithPhantom() }
+                    )
+                )
+
+                add(
+                    BottomBarAction(
+                        text = resources.getString(R.string.action_dismiss),
+                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                    )
+                )
+            },
+            showCancel = false,
+            showScrim = true,
         )
     }
 

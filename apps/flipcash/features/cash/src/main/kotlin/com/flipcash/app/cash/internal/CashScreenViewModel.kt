@@ -136,11 +136,9 @@ internal class CashScreenViewModel @Inject constructor(
 
         val isOverBalance = enteredAmount.valueGreaterThan(tokenBalance)
         if (isOverBalance) {
-            BottomBarManager.showMessage(
+            BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_youNeedMoreCash),
                 resources.getString(R.string.error_description_youNeedMoreCash),
-                type = BottomBarManager.BottomBarMessageType.ERROR,
-                showScrim = true,
                 showCancel = false,
                 actions = listOf(
                     BottomBarAction(

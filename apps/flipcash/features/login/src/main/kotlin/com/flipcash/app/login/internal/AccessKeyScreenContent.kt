@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -69,6 +70,7 @@ import kotlinx.coroutines.launch
 internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (requiresIap: Boolean) -> Unit) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
+    val resources = LocalResources.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     val composeScope = rememberCoroutineScope()
@@ -81,12 +83,12 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
 
         if (!isStoragePermissionGranted) {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_failedToSave),
-                message = context.getString(R.string.error_description_failedToSave),
+                title = resources.getString(R.string.error_title_failedToSave),
+                message = resources.getString(R.string.error_description_failedToSave),
                 actions = listOf(
                     BottomBarAction.Ok,
                     BottomBarAction(
-                        text = context.getString(R.string.action_openSettings),
+                        text = resources.getString(R.string.action_openSettings),
                         style = BottomBarManager.BottomBarButtonStyle.Filled50,
                         onClick = { context.launchAppSettings() }
                     )
@@ -149,6 +151,7 @@ private fun AccessKeyScreenContent(
     onExit: () -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     var buttonHeight by remember {
         mutableStateOf(0.dp)
@@ -196,19 +199,16 @@ private fun AccessKeyScreenContent(
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            BottomBarManager.showMessage(
-                                BottomBarManager.BottomBarMessage(
-                                    title = context.getString(R.string.prompt_title_wroteThemDown),
-                                    subtitle = context
-                                        .getString(R.string.prompt_description_wroteThemDown),
-                                    showScrim = true,
-                                    showCancel = true,
-                                    actions = listOf(
-                                        BottomBarAction(
-                                            text = context
-                                                .getString(R.string.action_wroteThemDownInstead),
-                                            onClick = onSkip
-                                        )
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.prompt_title_wroteThemDown),
+                                message = resources
+                                    .getString(R.string.prompt_description_wroteThemDown),
+                                showCancel = true,
+                                actions = listOf(
+                                    BottomBarAction(
+                                        text = resources
+                                            .getString(R.string.action_wroteThemDownInstead),
+                                        onClick = onSkip
                                     )
                                 )
                             )
@@ -280,22 +280,18 @@ private fun AccessKeyScreenContent(
 
 
         BackHandler {
-            BottomBarManager.showMessage(
-                BottomBarManager.BottomBarMessage(
-                    title = context.getString(R.string.prompt_title_exitAccountCreation),
-                    subtitle = context
-                        .getString(R.string.prompt_description_exitAccountCreation),
-                    showScrim = true,
-                    showCancel = true,
-                    actions = listOf(
-                        BottomBarAction(
-                            text = context
-                                .getString(R.string.action_exit),
-                            onClick = onExit
-                        )
-                    ),
-                    type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
-                )
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.prompt_title_exitAccountCreation),
+                message = resources
+                    .getString(R.string.prompt_description_exitAccountCreation),
+                showCancel = true,
+                actions = listOf(
+                    BottomBarAction(
+                        text = resources
+                            .getString(R.string.action_exit),
+                        onClick = onExit
+                    )
+                ),
             )
         }
 

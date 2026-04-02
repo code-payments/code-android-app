@@ -10,6 +10,7 @@ import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.internal.model.account.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.crypt.MnemonicPhrase
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
@@ -183,16 +184,20 @@ class SeedInputViewModel @Inject constructor(
     }
 
     private fun showError(navigator: CodeNavigator) {
-        BottomBarManager.showMessage(
-            BottomBarManager.BottomBarMessage(
-                title = resources.getString(R.string.prompt_title_notFlipcashAccount),
-                subtitle = resources.getString(R.string.prompt_description_notFlipcashAccount),
-                positiveText = resources.getString(R.string.action_createNewFlipcashAccount),
-                tertiaryText = resources.getString(R.string.action_tryDifferentFlipcashAccount),
-                onPositive = {
+        BottomBarManager.showAlert(
+            title = resources.getString(R.string.prompt_title_notFlipcashAccount),
+            message = resources.getString(R.string.prompt_description_notFlipcashAccount),
+            actions = listOf(
+                BottomBarAction(
+                    resources.getString(R.string.action_createNewFlipcashAccount)
+                ) {
                     navigator.replaceAll(AppRoute.Onboarding.Login())
-                }
-            )
+                },
+                BottomBarAction(
+                    resources.getString(R.string.action_tryDifferentFlipcashAccount),
+                    style = BottomBarManager.BottomBarButtonStyle.Text
+                )
+            ),
         )
     }
 }

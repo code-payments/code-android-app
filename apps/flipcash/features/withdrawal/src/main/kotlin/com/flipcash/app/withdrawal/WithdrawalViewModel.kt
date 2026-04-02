@@ -330,20 +330,9 @@ internal class WithdrawalViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnLearnAboutFee>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_learnAboutWithdrawalFee),
-                        subtitle = resources.getString(R.string.prompt_description_learnAboutWithdrawalFee),
-                        showCancel = false,
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_ok),
-                                )
-                            )
-                        },
-                        type = BottomBarManager.BottomBarMessageType.INFO
-                    )
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.prompt_title_learnAboutWithdrawalFee),
+                    message = resources.getString(R.string.prompt_description_learnAboutWithdrawalFee),
                 )
             }.launchIn(viewModelScope)
 
@@ -365,21 +354,18 @@ internal class WithdrawalViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.ConfirmWithdrawal>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_confirmWithdrawal),
-                        subtitle = resources.getString(R.string.prompt_description_confirmWithdrawal),
-                        showScrim = true,
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_confirmWithdraw),
-                                    onClick = { dispatchEvent(Event.OnWithdrawalConfirmed) }
-                                )
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_confirmWithdrawal),
+                    message = resources.getString(R.string.prompt_description_confirmWithdrawal),
+                    actions = buildList {
+                        add(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_confirmWithdraw),
+                                onClick = { dispatchEvent(Event.OnWithdrawalConfirmed) }
                             )
-                        },
-                        showCancel = true
-                    )
+                        )
+                    },
+                    showCancel = true
                 )
             }
             .launchIn(viewModelScope)

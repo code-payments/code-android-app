@@ -30,6 +30,18 @@ import kotlin.coroutines.resume
 typealias OcpSwapStreamReference = BidirectionalStreamReference<SwapRequest, TransactionService.StatefulSwapResponse>
 
 
+/**
+ * [SwapExecutor] is responsible for orchestrating the execution of token swaps through a
+ * bidirectional gRPC stream.
+ *
+ * It manages the lifecycle of the swap process, including:
+ * 1. Establishing a stateful connection via [TransactionApi.swap].
+ * 2. Handling server-provided parameters and signing required transactions.
+ * 3. Managing stream state and cleanup through [OcpSwapStreamReference].
+ * 4. Mapping server-side responses and errors into [SwapResult].
+ *
+ * @property api The [TransactionApi] used to communicate with the swap service.
+ */
 internal class SwapExecutor(
     private val api: TransactionApi,
 ) {

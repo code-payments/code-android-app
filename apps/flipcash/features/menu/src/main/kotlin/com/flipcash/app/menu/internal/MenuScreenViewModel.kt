@@ -23,6 +23,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.manager.BottomBarAction
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -189,14 +190,11 @@ internal class MenuScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnLogOutClicked>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_logout),
-                        subtitle = resources.getString(R.string.prompt_description_logout),
-                        showScrim = true,
-                        positiveText = resources.getString(R.string.action_logout),
-                        tertiaryText = resources.getString(R.string.action_cancel),
-                        onPositive = {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_logout),
+                    message = resources.getString(R.string.prompt_description_logout),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_logout)) {
                             viewModelScope.launch {
                                 delay(150) // wait for dismiss
                                 authManager.logout()
@@ -210,8 +208,9 @@ internal class MenuScreenViewModel @Inject constructor(
                                         )
                                     }
                             }
-                        }
-                    )
+                        },
+                    ),
+                    showCancel = true,
                 )
             }.launchIn(viewModelScope)
     }

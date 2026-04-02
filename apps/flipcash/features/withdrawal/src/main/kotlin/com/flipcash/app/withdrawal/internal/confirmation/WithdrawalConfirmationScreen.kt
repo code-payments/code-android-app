@@ -25,11 +25,9 @@ import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.app.withdrawal.internal.components.DestinationBox
 import com.flipcash.app.withdrawal.internal.components.TransactionReceipt
 import com.flipcash.features.withdrawal.R
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
@@ -51,22 +49,14 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
         viewModel.eventFlow
             .filterIsInstance<WithdrawalViewModel.Event.OnWithdrawSuccessful>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.success_title_withdrawalComplete),
-                        subtitle = resources.getString(R.string.success_description_withdrawalComplete),
-                        showCancel = false,
-                        showScrim = true,
-                        type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                        actions = listOf(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_ok),
-                            )
-                        ),
-                        onClose = {
-                            navigator.popUntil { it == AppRoute.Sheets.Menu }
-                        }
-                    )
+                BottomBarManager.showSuccess(
+                    title = resources.getString(R.string.success_title_withdrawalComplete),
+                    message = resources.getString(R.string.success_description_withdrawalComplete),
+                    showCancel = false,
+                    showScrim = true,
+                    onDismiss = {
+                        navigator.popUntil { it == AppRoute.Sheets.Menu }
+                    }
                 )
             }.launchIn(this)
     }
@@ -75,23 +65,14 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
         viewModel.eventFlow
             .filterIsInstance<WithdrawalViewModel.Event.OnWithdrawalTooSmall>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.error_title_withdrawalTooSmall),
-                        subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
-                        showCancel = false,
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_ok),
-                                )
-                            )
-                        },
-                        onClose = {
-                            WithdrawalFlow.start()
-                            navigator.popUntil { it is AppRoute.Transfers.Withdrawal.Amount }
-                        }
-                    )
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.error_title_withdrawalTooSmall),
+                    message = resources.getString(R.string.error_description_withdrawalTooSmall),
+                    showCancel = false,
+                    onDismiss = {
+                        WithdrawalFlow.start()
+                        navigator.popUntil { it is AppRoute.Transfers.Withdrawal.Amount }
+                    }
                 )
             }.launchIn(this)
     }

@@ -110,11 +110,9 @@ private fun TokenDiscoveryScreenContent(
                             ),
                         text = stringResource(R.string.action_createYourOwnCurrency),
                     ) {
-                        BottomBarManager.showMessage(
+                        BottomBarManager.showInfo(
                             title = resources.getString(R.string.prompt_title_notYetAvailable),
-                            subtitle = resources.getString(R.string.prompt_message_currencyCreateNotYetAvailable),
-                            type = BottomBarManager.BottomBarMessageType.INFO,
-                            actions = listOf(BottomBarAction.Ok)
+                            message = resources.getString(R.string.prompt_message_currencyCreateNotYetAvailable),
                         )
                     }
                 }
