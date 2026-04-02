@@ -216,6 +216,10 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.DeeplinkEvent.Routed(type, error))
     }
 
+    override fun displayedErrorModal(title: String, message: String) {
+        track(AnalyticsEvent.ErrorModalDisplayed(title, message))
+    }
+
     // region Internal
 
     private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {

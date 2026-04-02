@@ -30,6 +30,17 @@ internal sealed interface AnalyticsEvent {
         )
     }
 
+    data class ErrorModalDisplayed(
+        val title: String,
+        val message: String
+    ): AnalyticsEvent {
+        override val name = "Error Modal Displayed"
+        override fun toProperties() = mapOf(
+            "Title" to title,
+            "Message" to message
+        )
+    }
+
     sealed interface DeeplinkEvent : AnalyticsEvent {
         data class Open(val url: String) : DeeplinkEvent {
             override val name = "Deeplink: Open"

@@ -6,10 +6,14 @@ import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
+import com.flipcash.app.analytics.rememberAnalytics
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavMetadataKeys
 import com.getcode.ui.components.bars.BarManager
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 
 @Suppress("FunctionName")
 fun NavMessagingEntryDecorator(
@@ -17,12 +21,33 @@ fun NavMessagingEntryDecorator(
     barManager: BarManager
 ): NavEntryDecorator<NavKey> {
     return NavEntryDecorator { entry ->
+        val analytics = rememberAnalytics()
         Box {
             entry.Content()
             val isTopEntry = entry.contentKey == backStack.lastOrNull()?.toString()
             if (isTopEntry && entry.metadata[NavMetadataKeys.IsSheet.key] != true) {
-                TopBarContainer(barManager.barMessages)
-                BottomBarContainer(barManager.barMessages)
+                BottomBarContainer(barManager.barMessages) { message ->
+                    trace(
+                        message = "bottom bar message shown [${message.type.name}]",
+                        metadata = {
+                            "title" to message.title
+                            "message" to message.subtitle
+                            "type" to message.type.name
+                            "additionalInfo" to message.additionalInfo
+                        },
+                        type = TraceType.Process,
+                    )
+                    when (message.type) {
+                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> Unit
+                        BottomBarManager.BottomBarMessageType.ERROR -> {
+                            analytics.displayedErrorModal(message.title, message.subtitle)
+                        }
+                        BottomBarManager.BottomBarMessageType.WARNING -> Unit
+                        BottomBarManager.BottomBarMessageType.INFO -> Unit
+                        BottomBarManager.BottomBarMessageType.DEFAULT -> Unit
+                        BottomBarManager.BottomBarMessageType.SUCCESS -> Unit
+                    }
+                }
             }
         }
     }

@@ -68,7 +68,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun BottomBarContainer(barMessages: BarMessages) {
+fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val bottomBarMessage by barMessages.bottomBar.collectAsState()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
@@ -177,6 +177,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
             }
             BottomBarView(
                 bottomBarMessage = bottomBarMessage,
+                onShown = onShown,
                 onClose = closeWith,
                 onBackPressed = { closeWith(SelectedBottomBarAction(-1)) }
             )
@@ -189,10 +190,15 @@ fun BottomBarContainer(barMessages: BarMessages) {
 @Composable
 fun BottomBarView(
     bottomBarMessage: BottomBarManager.BottomBarMessage?,
+    onShown: (BottomBarManager.BottomBarMessage) -> Unit,
     onClose: (selection: SelectedBottomBarAction) -> Unit,
     onBackPressed: () -> Unit
 ) {
     bottomBarMessage ?: return
+
+    LaunchedEffect(bottomBarMessage.id) {
+        onShown(bottomBarMessage)
+    }
 
     BackHandler(enabled = bottomBarMessage.isDismissible) {
         onBackPressed()

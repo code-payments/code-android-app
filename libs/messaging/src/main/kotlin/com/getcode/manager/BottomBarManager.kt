@@ -60,6 +60,7 @@ object BottomBarManager {
         val onClose: (selection: SelectedBottomBarAction) -> Unit = { },
         val onTimeout: () -> Unit = { },
         val type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
+        val isError: Boolean = type == BottomBarMessageType.ERROR,
         val isDismissible: Boolean = true,
         val showScrim: Boolean = true,
         val timeoutSeconds: Int? = null,
