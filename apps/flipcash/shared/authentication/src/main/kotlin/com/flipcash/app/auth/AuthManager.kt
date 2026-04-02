@@ -9,6 +9,7 @@ import com.flipcash.app.auth.internal.extensions.token
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
@@ -40,6 +41,7 @@ class AuthManager @Inject constructor(
     private val persistence: PersistenceProvider,
     private val featureFlagController: FeatureFlagController,
     private val appSettings: AppSettingsCoordinator,
+    private val userFlags: UserFlagsCoordinator,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
@@ -219,6 +221,8 @@ class AuthManager @Inject constructor(
         persistence.close()
         featureFlagController.reset()
         appSettings.reset()
+        userFlags.clearAll()
+
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 
