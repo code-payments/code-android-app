@@ -25,9 +25,9 @@ object CodeToggleSwitchDefaults {
 
     val colors: SwitchColors
         @Composable get() = SwitchDefaults.colors(
-            disabledCheckedThumbColor = White.copy(ContentAlpha.disabled),
-            disabledUncheckedThumbColor = White.copy(ContentAlpha.disabled),
-            disabledCheckedTrackColor = SystemGreen.copy(ContentAlpha.disabled),
+            disabledCheckedThumbColor = Color(0xFFB2B9B5),
+            disabledUncheckedThumbColor = Color(0xFFB2B9B5),
+            disabledCheckedTrackColor = Color(0xFF2A8A4B),
             disabledUncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(ContentAlpha.disabled),
             checkedThumbColor = White,
             uncheckedThumbColor = White,
