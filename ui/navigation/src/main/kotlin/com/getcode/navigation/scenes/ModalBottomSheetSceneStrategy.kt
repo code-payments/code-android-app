@@ -41,6 +41,8 @@ import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavigationRetVal
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy.Companion.modalBottomSheet
+import com.getcode.navigation.scrim.LocalScrimController
+import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.launch
@@ -140,17 +142,20 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 }
             }
 
+            val scrim = LocalScrimController.current
+
             CompositionLocalProvider(
                 LocalSheetGesturesState provides { enabled ->
                     allowDismiss = enabled && !navigator.sheetDragDisabled
                 },
+                LocalScrimController provides scrim,
             ) {
                 // Remove inset padding. Default adds nav bar padding.
                 // Remove grab bar for bleed to top edge of sheet
                 ModalBottomSheet(
                     sheetState = sheetState,
                     onDismissRequest = { if (!isNonDismissable) dismiss(false) },
-                    sheetGesturesEnabled = !navigator.sheetDragDisabled,
+                    sheetGesturesEnabled = !navigator.sheetDragDisabled && !scrim.visible,
                     scrimColor = CodeTheme.colors.scrim,
                     properties = if (isNonDismissable) {
                         ModalBottomSheetProperties(
@@ -184,6 +189,7 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                         ) {
                             entry.Content()
                         }
+                        ScrimOverlay(scrim)
                     }
                 }
             }

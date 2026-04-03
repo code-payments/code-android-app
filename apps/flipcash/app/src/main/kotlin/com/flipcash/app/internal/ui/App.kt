@@ -65,6 +65,9 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
 import com.flipcash.app.core.extensions.navigateTo
+import com.getcode.navigation.scrim.LocalScrimController
+import com.getcode.navigation.scrim.ScrimController
+import com.getcode.navigation.scrim.ScrimOverlay
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
@@ -136,10 +139,13 @@ internal fun App(
                                 Modifier.semantics { testTagsAsResourceId = true }
                             } else Modifier
 
+                            val scrimController = remember { ScrimController() }
+
                             Box(modifier = semanticsModifier) {
                                 CompositionLocalProvider(
                                     LocalCodeNavigator provides codeNavigator,
                                     LocalBiometricsState provides biometricsState,
+                                    LocalScrimController provides scrimController,
                                 ) {
                                     ExternalWalletOnRampHandler(
                                         state = externalWalletOnRamp,
@@ -206,6 +212,8 @@ internal fun App(
                                                 deepLink = { deepLink },
                                             ),
                                         )
+
+                                        ScrimOverlay(scrimController)
                                     }
 
                                     LaunchedEffect(deepLink) {
