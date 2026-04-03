@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.RestorePage
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Redo
+import androidx.compose.material.icons.rounded.RestorePage
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,6 +113,21 @@ object AppBarDefaults {
     ) {
         Icon(
             imageVector = Icons.Outlined.MoreVert,
+            contentDescription = "",
+            tint = Color.White,
+            modifier = modifier
+                .requiredSize(24.dp)
+                .unboundedClickable { onClick() }
+        )
+    }
+
+    @Composable
+    fun Reset(
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.RestorePage,
             contentDescription = "",
             tint = Color.White,
             modifier = modifier

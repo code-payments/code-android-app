@@ -172,5 +172,5 @@ sealed interface AppRoute : NavKey, Parcelable {
 
     @Serializable
     @Parcelize
-    sealed interface Advanced : AppRoute
+    data object UserFlags : AppRoute
 }

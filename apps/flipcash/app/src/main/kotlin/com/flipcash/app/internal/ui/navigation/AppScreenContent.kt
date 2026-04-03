@@ -52,6 +52,7 @@ import com.flipcash.app.tokens.TokenSelectScreen
 import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.tokens.TokenTxProcessingScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
+import com.flipcash.app.userflags.UserFlagsScreen
 import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.WithdrawalEntryScreen
@@ -149,6 +150,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }
 
+    annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
     // Transfers
     annotatedEntry<AppRoute.Transfers.Withdrawal.Amount> { key ->
         remember { WithdrawalFlow.start() }

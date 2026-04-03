@@ -457,4 +457,9 @@
     <string name="prompt_title_notYetAvailable">Not Yet Available</string>
     <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
 
+    <string name="title_settingsSectionFeatures">Features</string>
+    <string name="title_settingsSectionDeveloper">Developer</string>
+    <string name="subtitle_settingsUserFlags">User Flags</string>
+    <string name="title_settingsSectionAccount">Account</string>
+    <string name="title_userFlags">User Flags</string>
 </resources>

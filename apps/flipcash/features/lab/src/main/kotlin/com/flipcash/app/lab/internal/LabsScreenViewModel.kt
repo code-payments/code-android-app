@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.features.lab.R
 import com.flipcash.services.controllers.ContactVerificationController
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.EmailVerificationError
 import com.flipcash.services.models.PhoneVerificationError
@@ -31,6 +32,11 @@ class LabsScreenViewModel @Inject constructor(
         .state.map { it.authState }
         .filterIsInstance<AuthState.LoggedInWithUser>()
         .map { true }
+        .stateIn(viewModelScope, started = SharingStarted.Eagerly , initialValue = false)
+
+    val isStaff = userManager
+        .state.map { it.flags }
+        .map { it?.isStaff == true }
         .stateIn(viewModelScope, started = SharingStarted.Eagerly , initialValue = false)
 
     fun unlinkEmail() = viewModelScope.launch {

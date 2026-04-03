@@ -9,6 +9,8 @@ android {
 dependencies {
     implementation(libs.bundles.hilt)
     implementation(libs.androidx.datastore)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui.text)
 
     implementation(project(":libs:coroutines"))
     implementation(project(":libs:datetime"))

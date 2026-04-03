@@ -189,6 +189,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:transactions"))
     implementation(project(":apps:flipcash:features:bill-customization"))
     implementation(project(":apps:flipcash:features:discovery"))
+    implementation(project(":apps:flipcash:features:userflags"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))

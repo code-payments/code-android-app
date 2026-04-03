@@ -32,8 +32,8 @@ class UserFlagsCoordinator @Inject constructor(
     dispatchers: DispatcherProvider,
 ) {
     data class Overrides(
-        val preferredOnRampProvider: FieldOverride<OnRampProvider?>,
-        val supportedOnRampProviders: FieldOverride<List<OnRampProvider>>,
+        val preferredOnRampProvider: FieldOverride<OnRampProvider.Defined?>,
+        val supportedOnRampProviders: FieldOverride<List<OnRampProvider.Defined>>,
         val minimumVersion: FieldOverride<Int?>,
         val billExchangeDataTimeout: FieldOverride<Duration?>,
         val newCurrencyPurchaseAmount: FieldOverride<Fiat>,
