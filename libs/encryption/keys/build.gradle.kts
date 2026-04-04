@@ -17,4 +17,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.serialization.json)
 }
