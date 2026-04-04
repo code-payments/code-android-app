@@ -16,4 +16,6 @@ dependencies {
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.kotlin)
     implementation(libs.androidx.core)
+
+    testImplementation(kotlin("test"))
 }
