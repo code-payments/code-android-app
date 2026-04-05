@@ -6,6 +6,10 @@ plugins {
 
 android {
     namespace = "${Gradle.codeNamespace}.vendor.solana"
+
+    sourceSets.getByName("test") {
+        java.srcDir(rootProject.file("testing/ed25519-shadow"))
+    }
 }
 
 dependencies {
@@ -32,4 +36,5 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.eddsa)
 }

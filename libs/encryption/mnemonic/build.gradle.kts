@@ -4,6 +4,10 @@ plugins {
 
 android {
     namespace = "${Gradle.codeNamespace}.encryption.mnemonic"
+
+    sourceSets.getByName("test") {
+        java.srcDir(rootProject.file("testing/ed25519-shadow"))
+    }
 }
 
 dependencies {
@@ -18,4 +22,5 @@ dependencies {
     implementation(libs.androidx.core)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.eddsa)
 }

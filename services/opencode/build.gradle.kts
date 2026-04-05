@@ -8,6 +8,10 @@ plugins {
 android {
     namespace = "${Gradle.codeNamespace}.services.opencode"
 
+    sourceSets.getByName("test") {
+        java.srcDir(rootProject.file("testing/ed25519-shadow"))
+    }
+
     defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
 
@@ -93,5 +97,6 @@ dependencies {
     implementation(libs.event.bus)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.eddsa)
     testImplementation(libs.bundles.unit.testing)
 }
