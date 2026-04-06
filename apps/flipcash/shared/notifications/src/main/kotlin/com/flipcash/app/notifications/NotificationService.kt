@@ -58,13 +58,15 @@ class NotificationService : FirebaseMessagingService(),
         super.onNewToken(token)
         authenticateIfNeeded {
             launch {
-                pushController.addToken(token)
-                    .onSuccess {
-                        userManager.set(pushToken = token)
-                        trace("push token updated onNewToken", type = TraceType.Silent)
-                    }.onFailure {
-                        trace(message = "Failure updating push token", error = it)
-                    }
+                if (userManager.state.value.authState.canAccessAuthenticatedApis) {
+                    pushController.addToken(token)
+                        .onSuccess {
+                            userManager.set(pushToken = token)
+                            trace("push token updated onNewToken", type = TraceType.Silent)
+                        }.onFailure {
+                            trace(message = "Failure updating push token", error = it)
+                        }
+                }
             }
         }
     }
