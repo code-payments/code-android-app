@@ -73,9 +73,7 @@ fun CashScreen(
     }
 
     LaunchedEffect(viewModel, selectedMint) {
-        selectedMint?.let {
-            viewModel.dispatchEvent(CashScreenViewModel.Event.OnTokenSelected(it))
-        }
+        viewModel.dispatchEvent(CashScreenViewModel.Event.InitializeToken(selectedMint))
     }
 
     LaunchedEffect(viewModel) {

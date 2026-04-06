@@ -33,8 +33,10 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -64,6 +66,7 @@ internal class CashScreenViewModel @Inject constructor(
 ) {
 
     private val numberInputHelper = NumberInputHelper()
+    private val tokenInitialized = CompletableDeferred<Mint?>()
 
     internal data class State(
         val selectedTokenAddress: Mint? = null,
@@ -101,6 +104,7 @@ internal class CashScreenViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data class InitializeToken(val mint: Mint?) : Event
         data class OnTokenSelected(val address: Mint) : Event
         data class OnTokenUpdated(val token: TokenWithLocalizedBalance) : Event
         data class OnNumberPressed(val number: Int) : Event
@@ -187,10 +191,24 @@ internal class CashScreenViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        tokenCoordinator.observeSelectedTokenMint()
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnTokenSelected(it)) }
-            .launchIn(viewModelScope)
+        eventFlow
+            .filterIsInstance<Event.InitializeToken>()
+            .take(1)
+            .onEach { event ->
+                if (event.mint != null) {
+                    dispatchEvent(Event.OnTokenSelected(event.mint))
+                }
+                tokenInitialized.complete(event.mint)
+            }.launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            val navMint = tokenInitialized.await()
+            tokenCoordinator.observeSelectedTokenMint()
+                .distinctUntilChanged()
+                .let { if (navMint != null) it.drop(1) else it }
+                .onEach { dispatchEvent(Event.OnTokenSelected(it)) }
+                .launchIn(viewModelScope)
+        }
 
         stateFlow
             .mapNotNull { it.selectedTokenAddress }
@@ -374,6 +392,8 @@ internal class CashScreenViewModel @Inject constructor(
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
                 }
+
+                is Event.InitializeToken -> { state -> state }
 
                 is Event.OpenOnRampAmountModal -> { state -> state }
 
