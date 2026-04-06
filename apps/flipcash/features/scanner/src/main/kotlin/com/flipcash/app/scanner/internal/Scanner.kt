@@ -85,7 +85,7 @@ internal fun Scanner() {
                     // only allow navigation to give when there is something to give
                     val hasBalance = state.giveableBalance.orZero().isPositive
                     if (!hasBalance) {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             title = context.getString(R.string.title_noBalanceYet),
                             message = context.getString(R.string.description_noBalanceYet),
                         )
