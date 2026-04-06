@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
     id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
     id("org.jetbrains.kotlin.plugin.parcelize")

@@ -258,6 +258,7 @@ mixpanel = { module = "com.mixpanel.android:mixpanel-android", version.ref = "mi
 
 # Crypto
 sodium-bindings = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android", version.ref = "sodium-bindings" }
+eddsa = { module = "net.i2p.crypto:eddsa", version = "0.3.0" }
 
 # Misc
 cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
@@ -312,6 +313,7 @@ grpc = ["grpc-okhttp", "grpc-kotlin", "grpc-protobuf-lite", "grpc-stub"]
 flipcash-android-library = { id = "flipcash.android.library" }
 flipcash-android-library-compose = { id = "flipcash.android.library.compose" }
 flipcash-android-feature = { id = "flipcash.android.feature" }
+flipcash-android-ed25519-shadow = { id = "flipcash.android.ed25519.shadow" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

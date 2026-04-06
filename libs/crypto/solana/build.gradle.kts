@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
     id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
 }
@@ -30,4 +31,6 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     ksp(libs.hilt.compiler)
+
+    testImplementation(kotlin("test"))
 }

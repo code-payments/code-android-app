@@ -299,7 +299,9 @@ class ExternalWalletDeeplinkState(
                 } else {
                     val resolvedError = DeeplinkError.fromCode(error?.errorCode)
                     val message = error?.errorMessage ?: "Something went wrong"
-                    errors.tryEmit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
+                    scope.launch {
+                        errors.emit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
+                    }
                 }
             }
             is DeeplinkType.ExternalWalletSignedTransaction -> {
@@ -310,7 +312,9 @@ class ExternalWalletDeeplinkState(
                 } else {
                     val resolvedError = DeeplinkError.fromCode(error?.errorCode)
                     val message = error?.errorMessage ?: "Something went wrong"
-                    errors.tryEmit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
+                    scope.launch {
+                        errors.emit(DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message))
+                    }
                 }
             }
             else -> {}

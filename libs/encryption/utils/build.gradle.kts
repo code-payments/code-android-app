@@ -11,4 +11,7 @@ dependencies {
     implementation(libs.protobuf.kotlin.lite)
     implementation(project(":libs:encryption:ed25519"))
     implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
 }

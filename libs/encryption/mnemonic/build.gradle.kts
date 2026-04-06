@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
 }
 
 android {
@@ -16,4 +17,6 @@ dependencies {
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.kotlin)
     implementation(libs.androidx.core)
+
+    testImplementation(kotlin("test"))
 }
