@@ -1,6 +1,6 @@
 [versions]
 java = "21"
-kotlin = "2.3.10"
+kotlin = "2.3.20"
 ksp = "2.3.6"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.10.0"
