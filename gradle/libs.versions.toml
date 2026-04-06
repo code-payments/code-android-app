@@ -75,7 +75,7 @@ turbine = "1.2.0"
 robolectric = "4.14.1"
 slf4j-simple = "2.0.17"
 androidxUiJUnit = "1.10.6"
-mixpanel = "8.3.0"
+mixpanel = "8.4.0"
 
 timber = "5.0.1"
 voyager = "1.1.0-beta03"
