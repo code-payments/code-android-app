@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:bill-customization"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:menu"))
+    implementation(project(":apps:flipcash:shared:userflags"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))

@@ -5,6 +5,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -25,6 +26,7 @@ private val FullMenuList = buildList {
 internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     userManager: UserManager,
     featureFlagController: FeatureFlagController,
+    userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
     initialState = State(),
@@ -52,7 +54,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
         combine(
             featureFlagController.observeOverride(),
-            userManager.state.map { it.flags?.isStaff == true }
+            userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
         ) { override, isStaff ->
             override || isStaff
         }.map {

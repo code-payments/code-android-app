@@ -14,6 +14,7 @@ import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.onramp.ConfirmationEvent
 import com.flipcash.app.onramp.OnRampAmount
 import com.flipcash.app.onramp.OnRampAmountController
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.menu.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
@@ -53,6 +54,7 @@ private val FullMenuList = buildList {
 internal class MenuScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     userManager: UserManager,
+    userFlags: UserFlagsCoordinator,
     authManager: AuthManager,
     versionInfo: VersionInfo,
     mnemonicManager: MnemonicManager,
@@ -70,7 +72,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
-        val preferredOnRampProvider: OnRampProvider? = null,
+        val preferredOnRampProvider: OnRampProvider.Defined? = null,
         val showQuickActions: Boolean = false,
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
@@ -81,7 +83,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogoTapped: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?): Event
+        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
@@ -100,8 +102,8 @@ internal class MenuScreenViewModel @Inject constructor(
 
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
-            .mapNotNull { it.flags }
-            .map { it.isStaff }
+            .flatMapLatest { userFlags.resolvedFlags }
+            .mapNotNull { it.isStaff.effectiveValue }
             .onEach {
                 dispatchEvent(Event.OnStaffUserDetermined(it))
             }.launchIn(viewModelScope)
@@ -116,8 +118,9 @@ internal class MenuScreenViewModel @Inject constructor(
 
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
-            .mapNotNull { it.flags }
-            .map { it.preferredOnRampProvider }
+            .flatMapLatest { userFlags.resolvedFlags }
+            .mapNotNull { it.preferredOnRampProvider.effectiveValue }
+            .filterIsInstance<OnRampProvider.Defined>()
             .onEach { provider ->
                 dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
             }

@@ -2,6 +2,7 @@ package com.flipcash.app.lab.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.lab.R
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.models.UserFlags
@@ -24,20 +25,19 @@ import javax.inject.Inject
 @HiltViewModel
 class LabsScreenViewModel @Inject constructor(
     private val userManager: UserManager,
+    userFlags: UserFlagsCoordinator,
     private val contactController: ContactVerificationController,
     private val resources: ResourceHelper,
-): ViewModel() {
+) : ViewModel() {
 
     val isLoggedIn = userManager
         .state.map { it.authState }
         .filterIsInstance<AuthState.LoggedInWithUser>()
         .map { true }
-        .stateIn(viewModelScope, started = SharingStarted.Eagerly , initialValue = false)
+        .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = false)
 
-    val isStaff = userManager
-        .state.map { it.flags }
-        .map { it?.isStaff == true }
-        .stateIn(viewModelScope, started = SharingStarted.Eagerly , initialValue = false)
+    val isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
+        .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = false)
 
     fun unlinkEmail() = viewModelScope.launch {
         val email = userManager.profile?.verifiedEmailAddress

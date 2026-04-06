@@ -8,6 +8,7 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
@@ -44,6 +45,7 @@ class SelectTokenViewModel @Inject constructor(
     exchange: Exchange,
     analytics: FlipcashAnalyticsService,
     featureFlags: FeatureFlagController,
+    userFlags: UserFlagsCoordinator,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
@@ -57,7 +59,7 @@ class SelectTokenViewModel @Inject constructor(
         val rate: Rate = Rate.oneToOne,
         val reservesEnabled: Boolean = false,
         val discoveryEnabled: Boolean = false,
-        val preferredOnRampProvider: OnRampProvider? = null,
+        val preferredOnRampProvider: OnRampProvider.Defined? = null,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
     ) {
@@ -80,7 +82,7 @@ class SelectTokenViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
+        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
         data class OnReservesEnabled(val enabled: Boolean) : Event
 
         data class OnRateChanged(val rate: Rate): Event
@@ -102,8 +104,9 @@ class SelectTokenViewModel @Inject constructor(
     init {
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
-            .mapNotNull { it.flags }
-            .map { it.preferredOnRampProvider }
+            .flatMapLatest { userFlags.resolvedFlags }
+            .mapNotNull { it.preferredOnRampProvider.effectiveValue }
+            .filterIsInstance<OnRampProvider.Defined>()
             .onEach { provider ->
                 dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
             }
