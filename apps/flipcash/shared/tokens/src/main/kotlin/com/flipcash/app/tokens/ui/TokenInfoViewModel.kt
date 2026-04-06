@@ -289,8 +289,10 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnBalanceUpdated>()
             .mapNotNull { stateFlow.value.mint }
-            .onEach {
-                val hasAccount = accountController.hasAccountFor(it)
+            .flatMapLatest { mint ->
+                accountController.observeHasAccountFor(mint)
+            }
+            .onEach { hasAccount ->
                 dispatchEvent(Event.OnAppreciatedEnabled(hasAccount))
                 dispatchEvent(Event.OnTransactionHistoryEnabled(hasAccount))
             }.launchIn(viewModelScope)
