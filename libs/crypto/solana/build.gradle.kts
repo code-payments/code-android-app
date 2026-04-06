@@ -1,15 +1,12 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
     id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.vendor.solana"
-
-    sourceSets.getByName("test") {
-        java.srcDir(rootProject.file("testing/ed25519-shadow"))
-    }
 }
 
 dependencies {
@@ -36,5 +33,4 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(kotlin("test"))
-    testImplementation(libs.eddsa)
 }

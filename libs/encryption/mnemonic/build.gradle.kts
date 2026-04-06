@@ -1,13 +1,10 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.encryption.mnemonic"
-
-    sourceSets.getByName("test") {
-        java.srcDir(rootProject.file("testing/ed25519-shadow"))
-    }
 }
 
 dependencies {
@@ -22,5 +19,4 @@ dependencies {
     implementation(libs.androidx.core)
 
     testImplementation(kotlin("test"))
-    testImplementation(libs.eddsa)
 }

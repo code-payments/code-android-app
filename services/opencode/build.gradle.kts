@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
     id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
     id("org.jetbrains.kotlin.plugin.parcelize")
@@ -7,10 +8,6 @@ plugins {
 
 android {
     namespace = "${Gradle.codeNamespace}.services.opencode"
-
-    sourceSets.getByName("test") {
-        java.srcDir(rootProject.file("testing/ed25519-shadow"))
-    }
 
     defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
@@ -97,6 +94,5 @@ dependencies {
     implementation(libs.event.bus)
 
     testImplementation(kotlin("test"))
-    testImplementation(libs.eddsa)
     testImplementation(libs.bundles.unit.testing)
 }

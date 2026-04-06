@@ -37,5 +37,9 @@ gradlePlugin {
             id = "flipcash.android.feature"
             implementationClass = "AndroidFeatureConventionPlugin"
         }
+        register("androidEd25519Shadow") {
+            id = "flipcash.android.ed25519.shadow"
+            implementationClass = "AndroidEd25519ShadowConventionPlugin"
+        }
     }
 }
