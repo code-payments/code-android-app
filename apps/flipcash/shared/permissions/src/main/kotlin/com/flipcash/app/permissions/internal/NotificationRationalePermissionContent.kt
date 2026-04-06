@@ -87,7 +87,7 @@ internal fun NotificationRationalePermissionContent(permanentlyDenied: Boolean =
                     .align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                AnimatedSwitchPreview()
+                AnimatedSwitchPreview(animate = false)
 
                 Column(
                     modifier = Modifier
