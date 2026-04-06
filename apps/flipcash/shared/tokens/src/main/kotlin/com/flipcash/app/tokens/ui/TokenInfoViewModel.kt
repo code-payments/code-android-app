@@ -36,6 +36,7 @@ import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -79,6 +80,7 @@ class TokenInfoViewModel @Inject constructor(
     private val onramp: OnRampAmountController,
     features: FeatureFlagController,
     userManager: UserManager,
+    userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -152,8 +154,9 @@ class TokenInfoViewModel @Inject constructor(
 
         combine(
             features.observe(FeatureFlag.CoinbaseOnRamp),
-            userManager.state.map { it.flags ?: UserFlags.Default }
-                .map { it.supportedOnRampProviders.contains(OnRampProvider.Coinbase(OnRampType.Virtual)) }
+            userFlags.resolvedFlags
+                .map { it.supportedOnRampProviders.effectiveValue }
+                .map { it.contains(OnRampProvider.Coinbase(OnRampType.Virtual)) }
         ) { enabled, available ->
             dispatchEvent(Event.CoinbaseOnRampAvailable(enabled = enabled && available))
         }.launchIn(viewModelScope)
