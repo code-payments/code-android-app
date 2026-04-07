@@ -1,12 +1,13 @@
 package com.getcode.utils
 
 import android.annotation.SuppressLint
+import android.content.Context
 import com.bugsnag.android.BreadcrumbType
 import com.bugsnag.android.Bugsnag
-import com.getcode.libs.logging.BuildConfig
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
+import java.io.File
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 import kotlin.time.measureTime
@@ -68,30 +69,36 @@ private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
 }
 
 object TraceManager {
-    private val productionTraceTree = object: Timber.Tree() {
-        override fun log(
-            priority: Int,
-            tag: String?,
-            message: String,
-            t: Throwable?
-        ) {
-            println("[TRACE] $tag $message")
-            t?.printStackTrace()
-        }
+    private var fileTree: FileTree? = null
+    val plugins: MutableList<TraceLogPlugin> = mutableListOf()
 
+    fun addPlugin(plugin: TraceLogPlugin) {
+        plugins.add(plugin)
     }
-    fun enableProductionTraces(enable: Boolean) {
-        if (!BuildConfig.DEBUG) {
-            if (enable) {
-                if (!Timber.forest().contains(productionTraceTree)) {
-                    Timber.plant(productionTraceTree)
-                }
-            } else {
-                if (Timber.forest().contains(productionTraceTree)) {
-                    Timber.uproot(productionTraceTree)
-                }
-            }
-        }
+
+    fun removePlugin(plugin: TraceLogPlugin) {
+        plugins.remove(plugin)
+    }
+
+    fun initialize(context: Context) {
+        if (fileTree != null) return
+        val tree = FileTree(context, plugins = { plugins })
+        fileTree = tree
+        addPlugin(PiiMaskingPlugin())
+        Timber.plant(tree)
+    }
+
+    fun getLogFile(): File? = fileTree?.getLogFile()
+
+    fun clearLogs() {
+        fileTree?.clearLogs()
+    }
+
+    @androidx.annotation.VisibleForTesting
+    internal fun reset() {
+        fileTree?.let { Timber.uproot(it) }
+        fileTree = null
+        plugins.clear()
     }
 }
 

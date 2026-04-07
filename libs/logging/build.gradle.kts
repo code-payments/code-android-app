@@ -24,6 +24,9 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
+
     api(libs.timber)
     implementation(libs.bugsnag)
     implementation(libs.rxjava)

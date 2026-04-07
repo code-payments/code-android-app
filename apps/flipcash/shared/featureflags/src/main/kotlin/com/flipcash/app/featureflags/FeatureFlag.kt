@@ -1,7 +1,6 @@
 package com.flipcash.app.featureflags
 
 import com.flipcash.app.ksp.annotations.FeatureFlagMarker
-import com.flipcash.shared.flags.BuildConfig
 
 sealed interface FeatureFlag {
     val key: String
@@ -71,15 +70,6 @@ sealed interface FeatureFlag {
         override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
-    }
-
-    @FeatureFlagMarker
-    data object ProductionLogging: FeatureFlag {
-        override val key: String = "production_logging_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = !BuildConfig.DEBUG
-        override val persistLogOut: Boolean = true
     }
 
     @FeatureFlagMarker
@@ -156,7 +146,6 @@ val FeatureFlag.title: String
         FeatureFlag.Pools -> "Betting Pools"
         FeatureFlag.OnRamp -> "Onramp"
         FeatureFlag.BillCustomizer -> "Bill Customizer"
-        FeatureFlag.ProductionLogging -> "Production Logging"
         FeatureFlag.CashReservesEnabled -> "Cash Reserves"
         FeatureFlag.MarketCapChart -> "Market Cap Chart"
         FeatureFlag.CoinbaseOnRamp -> "Coinbase Onramp"
@@ -174,7 +163,6 @@ val FeatureFlag.message: String
         FeatureFlag.Pools -> "When enabled, you'll be able to participate in and create betting pools with other users for a chance to win a share of the prize"
         FeatureFlag.OnRamp -> "When enabled, you'll gain the ability to fund your wallet from external sources via providers using a debit card or via another wallet (like Phantom)"
         FeatureFlag.BillCustomizer -> "When enabled, you'll gain access to the bill customization playground"
-        FeatureFlag.ProductionLogging -> "When enabled, traces will print to log output"
         FeatureFlag.CashReservesEnabled -> "When enabled, USDC will be brandished as Cash Reserves throughout the app"
         FeatureFlag.MarketCapChart -> "When enabled, you'll gain access to the market cap chart in token info"
         FeatureFlag.CoinbaseOnRamp -> "When enabled, you'll gain access to the Coinbase onramp for token buys"

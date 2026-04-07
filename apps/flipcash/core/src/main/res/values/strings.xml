@@ -364,6 +364,7 @@
     <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 
     <string name="title_billCustomizer">Bill Creator</string>
+    <string name="title_exportLogs">Export Logs</string>
 
     <string name="error_title_CashReturnedToWallet">Something Went Wrong</string>
     <string name="error_description_CashReturnedToWallet">The cash was returned to your wallet</string>

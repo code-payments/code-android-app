@@ -7,6 +7,7 @@ import com.bugsnag.android.Configuration
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.internal.debug.FlipcashDebugTree
 import com.flipcash.app.internal.debug.FlipcashErrorCallback
+import com.getcode.utils.TraceManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,6 +15,8 @@ import timber.log.Timber
 
 class TraceInitializer: Initializer<Unit> {
     override fun create(context: Context) {
+        TraceManager.initialize(context)
+
         if (BuildConfig.DEBUG) {
             Timber.plant(FlipcashDebugTree)
         } else {

@@ -20,6 +20,7 @@ import javax.inject.Inject
 private val FullMenuList = buildList {
     add(BillCustomizer)
     add(Deposit)
+    add(ExportLogs)
 }
 
 @HiltViewModel
@@ -44,6 +45,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
         data class OpenScreen(val screen: AppRoute) : Event
 
         data object OpenBillPlayground: Event
+        data object ExportLogs: Event
     }
 
     init {
@@ -83,6 +85,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
                 is Event.OpenScreen -> { state -> state }
                 is Event.OpenBillPlayground -> { state -> state }
+                is Event.ExportLogs -> { state -> state }
             }
         }
     }
