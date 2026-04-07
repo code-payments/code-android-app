@@ -6,6 +6,8 @@ import com.coinbase.onramp.data.OnRampApiConfig
 import com.coinbase.onramp.data.OnRampPaymentMethod
 import com.coinbase.onramp.data.OnRampPurchaseRequest
 import com.coinbase.onramp.data.OnRampPurchaseResponse
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.services.models.GetJwtError
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.onramp.coinbase.BuildConfig
@@ -36,6 +38,7 @@ class OnRampController @Inject constructor(
     private val api: CoinbaseApi,
     private val userManager: UserManager,
     private val exchange: Exchange,
+    private val featureFlags: FeatureFlagController,
 ) {
 
     suspend fun placeOrderInclusiveOfFees(
@@ -69,7 +72,8 @@ class OnRampController @Inject constructor(
             )
         }
 
-        val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
+        val useSandbox = featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)
+        val partnerRef = if (useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.InclusiveOfFees(
             paymentAmount = usdAmount,
@@ -114,7 +118,8 @@ class OnRampController @Inject constructor(
             )
         }
 
-        val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
+        val useSandbox = featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)
+        val partnerRef = if (useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.ExclusiveOfFees(
             purchaseAmount = usdAmount,
@@ -189,6 +194,7 @@ class OnRampController @Inject constructor(
         order: OnRampPurchaseRequest,
         endpoint: OnRampApiConfig,
     ): Result<OrderWithPaymentLink> {
+        val useSandbox = featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)
         return requestJwtAndExecute(
             scheme = endpoint.scheme,
             host = endpoint.host,
@@ -205,7 +211,7 @@ class OnRampController @Inject constructor(
                     response.copy(
                         paymentLink = response.paymentLink.copy(
                             url = response.paymentLink.url.let { url ->
-                                if (onRampApiEndpoint.useSandbox) {
+                                if (useSandbox) {
                                     url.toUri().buildUpon()
                                         .appendQueryParameter("useGooglePaySandbox", "true")
                                         .build()
