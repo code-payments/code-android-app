@@ -85,6 +85,7 @@ object TraceManager {
         val tree = FileTree(context, plugins = { plugins })
         fileTree = tree
         addPlugin(PiiMaskingPlugin())
+        addPlugin(RpcBodyFilterPlugin())
         Timber.plant(tree)
     }
 

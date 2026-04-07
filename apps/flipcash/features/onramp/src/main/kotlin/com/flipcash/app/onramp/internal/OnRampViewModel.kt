@@ -341,7 +341,7 @@ internal class OnRampViewModel @Inject constructor(
                 val token = stateFlow.value.token
                     ?: return@flatMapResult Result.failure(IllegalStateException("No token"))
                 val amount = stateFlow.value.amountEntryState.selectedAmount
-                println("attempting buy of $amount of ${token.symbol} with $txHash")
+
                 transactionController.buy(
                     owner = owner,
                     amount = amount,

@@ -82,8 +82,9 @@ class FileTreeTest {
         Timber.d("second")
         Timber.d("third")
 
-        val lines = fileTree.getLogFile()!!.readLines().filter { it.isNotBlank() }
-        assertEquals(3, lines.size)
+        val content = fileTree.getLogFile()!!.readText()
+        val logLines = content.lines().filter { it.startsWith("[") }
+        assertEquals(3, logLines.size)
     }
 
     @Test
@@ -200,8 +201,9 @@ class FileTreeTest {
         latch.await()
         executor.shutdown()
 
-        val lines = fileTree.getLogFile()!!.readLines().filter { it.isNotBlank() }
-        assertEquals(threadCount * linesPerThread, lines.size)
+        val content = fileTree.getLogFile()!!.readText()
+        val logLines = content.lines().filter { it.startsWith("[") }
+        assertEquals(threadCount * linesPerThread, logLines.size)
     }
 
     @Test
@@ -237,16 +239,28 @@ class FileTreeTest {
         Timber.d("contains SECRET data")
         Timber.d("another normal message")
 
-        val lines = tree.getLogFile()!!.readLines().filter { it.isNotBlank() }
-        assertEquals(2, lines.size)
-        assertTrue(lines.all { !it.contains("SECRET") })
+        val content = tree.getLogFile()!!.readText()
+        val logLines = content.lines().filter { it.startsWith("[") }
+        assertEquals(2, logLines.size)
+        assertTrue(logLines.all { !it.contains("SECRET") })
     }
 
     @Test
     fun `log file path is inside traces directory`() {
         Timber.d("path check")
         val file = fileTree.getLogFile()!!
-        assertEquals("trace.log", file.name)
+        assertEquals("trace_export.log", file.name)
         assertEquals("traces", file.parentFile?.name)
+    }
+
+    @Test
+    fun `exported log file includes device header`() {
+        Timber.d("header check")
+        val content = fileTree.getLogFile()!!.readText()
+        assertTrue(content.contains("DEVICE & APP INFO"))
+        assertTrue(content.contains("App Version:"))
+        assertTrue(content.contains("Device:"))
+        assertTrue(content.contains("Android:"))
+        assertTrue(content.contains("Exported:"))
     }
 }
