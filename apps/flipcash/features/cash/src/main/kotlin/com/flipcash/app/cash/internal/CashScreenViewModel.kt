@@ -1,18 +1,12 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.ui.CurrencyHolder
-import com.flipcash.app.onramp.ConfirmationEvent
-import com.flipcash.app.onramp.OnRampAmount
-import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
@@ -29,7 +23,6 @@ import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
-import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,8 +49,6 @@ internal class CashScreenViewModel @Inject constructor(
     private val exchange: Exchange,
     tokenCoordinator: TokenCoordinator,
     transactionController: TransactionOperations,
-    onrampController: OnRampAmountController,
-    analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<CashScreenViewModel.State, CashScreenViewModel.Event>(
     initialState = State(),
@@ -76,7 +67,6 @@ internal class CashScreenViewModel @Inject constructor(
         val limits: Limits? = null,
         val maxForGive: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
-        val preferredOnRampProvider: OnRampProvider? = null,
     ) {
         val canGive: Boolean
             get() = (amountAnimatedModel.amountData.amount) > 0.00
@@ -118,10 +108,8 @@ internal class CashScreenViewModel @Inject constructor(
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
 
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
 
         data class AddCashToWallet(val amount: Fiat) : Event
-        data class OpenOnRampAmountModal(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
 
@@ -334,41 +322,16 @@ internal class CashScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
-            .onEach { amount ->
-                val provider = stateFlow.value.preferredOnRampProvider
-                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    analytics.openOnramp(Analytics.OnrampSource.Give)
-                    // has coinbase provider supporting google pay - pop selection for quick add
-                    dispatchEvent(Event.OpenOnRampAmountModal(amount))
-                } else {
-                    // route to buy the token
-                    dispatchEvent(
-                        Event.OpenScreen(
-                            AppRoute.Token.Info(
-                                mint = stateFlow.value.selectedTokenAddress!!,
-                                forNeededFunds = true
-                            ),
-                        )
+            .onEach {
+                // route to buy the token
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.Token.Info(
+                            mint = stateFlow.value.selectedTokenAddress!!,
+                            forNeededFunds = true
+                        ),
                     )
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OpenOnRampAmountModal>()
-            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-            .flatMapLatest {
-                onrampController.confirmationEvents.take(1)
-            }.onEach { event ->
-                when (event) {
-                    is ConfirmationEvent.OnConfirmationSuccess -> {
-                        when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry()))
-                            is OnRampAmount.Predefined -> Unit
-                        }
-                    }
-
-                    ConfirmationEvent.Cancelled -> Unit
-                }
+                )
             }.launchIn(viewModelScope)
     }
 
@@ -389,13 +352,7 @@ internal class CashScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnPreferredOnRampProviderChanged -> { state ->
-                    state.copy(preferredOnRampProvider = event.provider)
-                }
-
                 is Event.InitializeToken -> { state -> state }
-
-                is Event.OpenOnRampAmountModal -> { state -> state }
 
                 is Event.OpenScreen -> { state -> state }
 

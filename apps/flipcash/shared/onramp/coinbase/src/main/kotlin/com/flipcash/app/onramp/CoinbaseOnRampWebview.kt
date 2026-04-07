@@ -21,12 +21,15 @@ import com.flipcash.app.onramp.internal.CoinbaseOnRampEventHandler
 import com.flipcash.app.onramp.internal.CoinbaseOnRampScripts
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.flipcash.app.web.ComposeWebView
+import com.getcode.utils.trace
+import kotlin.time.TimeSource
 
 @SuppressLint("SetJavaScriptEnabled", "WrongConstant")
 @Composable
 fun CoinbaseOnRampWebview(
+    orderId: String,
     paymentLinkUrl: String,
-    onPaymentSuccess: () -> Unit,
+    onPaymentSuccess: (String) -> Unit,
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -37,7 +40,7 @@ fun CoinbaseOnRampWebview(
         url = paymentLinkUrl,
         factoryExtension = {
             configureForCoinbaseOnRamp(
-                onPaymentSuccess = onPaymentSuccess,
+                onPaymentSuccess = { onPaymentSuccess(orderId) },
                 onPaymentFailure = onPaymentFailure,
                 onCancel = onCancel,
             )
@@ -51,6 +54,9 @@ private fun WebView.configureForCoinbaseOnRamp(
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val startMark = TimeSource.Monotonic.markNow()
+    trace(tag = "CoinbaseOnRamp", message = "WebView configured")
+
     var messageListenerInstalled = false
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
@@ -62,6 +68,7 @@ private fun WebView.configureForCoinbaseOnRamp(
         .replace("Version/4.0 ", "")
 
     val eventHandler = CoinbaseOnRampEventHandler(
+        startMark = startMark,
         onPaymentSuccess = onPaymentSuccess,
         onPaymentFailure = onPaymentFailure,
         onCancel = onCancel,
@@ -85,6 +92,11 @@ private fun WebView.configureForCoinbaseOnRamp(
         override fun onPageFinished(view: WebView?, url: String?) {
             if (messageListenerInstalled) return
             messageListenerInstalled = true
+            trace(
+                tag = "CoinbaseOnRamp",
+                message = "Page finished",
+                metadata = { "elapsed_ms" to startMark.elapsedNow().inWholeMilliseconds },
+            )
             view?.evaluateJavascript(CoinbaseOnRampScripts.MESSAGE_BRIDGE, null)
         }
 
@@ -94,7 +106,7 @@ private fun WebView.configureForCoinbaseOnRamp(
             error: WebResourceError?
         ) {
             if (request?.isForMainFrame == true) {
-                onPaymentFailure(CoinbaseOnRampWebError.ERROR_CODE_GUEST_GOOGLE_PAY_ERROR)
+                onPaymentFailure(CoinbaseOnRampWebError.GuestGooglePayError())
             }
         }
     }

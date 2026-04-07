@@ -106,18 +106,25 @@ fun trace(
     val tagBlock = tag?.let { "[$it] " }
     val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 
-    when (type) {
-        TraceType.Error -> tree.e(message)
-        TraceType.Log -> tree.d(message)
-        TraceType.Navigation -> tree.d(message)
-        TraceType.Network -> tree.i(message)
-        TraceType.Process -> tree.d(message)
-        TraceType.Silent -> tree.d(message)
-        TraceType.StateChange -> tree.d(message)
-        TraceType.User -> tree.d(message)
+    val metadataMap = metadata { metadata() }
+
+    val logMessage = if (metadataMap.isNotEmpty()) {
+        val metaString = metadataMap.entries.joinToString(", ") { "${it.key}=${it.value}" }
+        "$message | $metaString"
+    } else {
+        message
     }
 
-    val metadataMap = metadata { metadata() }
+    when (type) {
+        TraceType.Error -> tree.e(logMessage)
+        TraceType.Log -> tree.d(logMessage)
+        TraceType.Navigation -> tree.d(logMessage)
+        TraceType.Network -> tree.i(logMessage)
+        TraceType.Process -> tree.d(logMessage)
+        TraceType.Silent -> tree.d(logMessage)
+        TraceType.StateChange -> tree.d(logMessage)
+        TraceType.User -> tree.d(logMessage)
+    }
 
     val breadcrumb = if (tag != null) {
         "$tagBlock $message"

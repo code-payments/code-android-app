@@ -1,9 +1,11 @@
 package com.coinbase.onramp.api
 
+import com.coinbase.onramp.data.OnRampOrderResponse
 import com.coinbase.onramp.data.OnRampPurchaseResponse
 import com.coinbase.onramp.data.SessionTokenRequest
 import com.coinbase.onramp.data.SessionTokenResponse
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Url
@@ -16,6 +18,13 @@ interface CoinbaseApi {
         @Header("Authorization") jwt: String,
         @Body request: Map<String, String>
     ): OnRampPurchaseResponse
+
+    @GET
+    suspend fun getOrderById(
+        // URL is provided by [OnRampApiConfig] to keep it centralized for the JWT request as well
+        @Url url: String,
+        @Header("Authorization") jwt: String,
+    ): OnRampOrderResponse
 
     @POST("/onramp/v1/token")
     suspend fun generateSessionToken(

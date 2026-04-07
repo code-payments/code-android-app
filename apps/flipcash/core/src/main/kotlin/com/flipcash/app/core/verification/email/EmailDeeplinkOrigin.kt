@@ -25,7 +25,7 @@ sealed class EmailDeeplinkOrigin {
                 val amountString = amount?.let { Json.encodeToString(Fiat.Companion.serializer(), it) }
                 when (source) {
                     is AppRoute.Sheets.Menu -> "onramp|menu|$amountString"
-                    is AppRoute.OnRamp.AmountEntry -> "onramp|amountentry|${source.mint?.base58()}"
+                    is AppRoute.OnRamp.AmountEntry -> "onramp|amountentry|${source.mint.base58()}"
 
                     else -> "onramp|null|$amountString"
                 }
@@ -60,6 +60,12 @@ sealed class EmailDeeplinkOrigin {
                                 println("deeplink mint = $it")
                                 Mint(it)
                             }
+
+                            if (mint == null) {
+                                println("deeplink mint is null")
+                                return null
+                            }
+
                             AppRoute.OnRamp.AmountEntry(mint)
                         }
                         else -> null

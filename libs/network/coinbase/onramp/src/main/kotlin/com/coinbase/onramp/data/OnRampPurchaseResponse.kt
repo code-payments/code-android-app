@@ -6,6 +6,11 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
+data class OnRampOrderResponse(
+    val order: OnRampPurchaseResponse.Order,
+)
+
+@Serializable
 data class OnRampPurchaseResponse(
     val order: Order,
     val paymentLink: PaymentLink,

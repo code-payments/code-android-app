@@ -10,6 +10,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.time.TimeSource
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
@@ -33,6 +36,7 @@ class CoinbaseOnRampEventHandlerTest {
     private var lastError: CoinbaseOnRampWebError? = null
 
     private val handler = CoinbaseOnRampEventHandler(
+        startMark = TimeSource.Monotonic.markNow(),
         onPaymentSuccess = { successCount++ },
         onPaymentFailure = { lastError = it },
         onCancel = { cancelCount++ },
@@ -70,43 +74,54 @@ class CoinbaseOnRampEventHandlerTest {
     @Test
     fun commitErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":"ERROR_CODE_INTERNAL"}}""")
-        assertEquals(CoinbaseOnRampWebError.ERROR_CODE_INTERNAL, lastError)
+        assertIs<CoinbaseOnRampWebError.Internal>(lastError)
     }
 
     @Test
     fun loadErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.load_error","data":{"errorCode":"ERROR_CODE_GUEST_GOOGLE_PAY_ERROR"}}""")
-        assertEquals(CoinbaseOnRampWebError.ERROR_CODE_GUEST_GOOGLE_PAY_ERROR, lastError)
+        assertIs<CoinbaseOnRampWebError.GuestGooglePayError>(lastError)
     }
 
     @Test
     fun pollingErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.polling_error","data":{"errorCode":"ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED"}}""")
-        assertEquals(CoinbaseOnRampWebError.ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED, lastError)
+        assertIs<CoinbaseOnRampWebError.GuestTransactionBuyFailed>(lastError)
     }
 
     @Test
     fun sessionErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.session_error","data":{"errorCode":"ERROR_CODE_GUEST_CARD_NOT_DEBIT"}}""")
-        assertEquals(CoinbaseOnRampWebError.ERROR_CODE_GUEST_CARD_NOT_DEBIT, lastError)
+        assertIs<CoinbaseOnRampWebError.GuestCardNotDebit>(lastError)
     }
 
     @Test
     fun errorWithUnknownCodeFallsBackToUnknown() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":"SOME_NEW_ERROR"}}""")
-        assertEquals(CoinbaseOnRampWebError.UNKNOWN, lastError)
+        assertIs<CoinbaseOnRampWebError.Unknown>(lastError)
     }
 
     @Test
     fun errorWithMissingDataFallsBackToUnknown() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error"}""")
-        assertEquals(CoinbaseOnRampWebError.UNKNOWN, lastError)
+        assertIs<CoinbaseOnRampWebError.Unknown>(lastError)
     }
 
     @Test
     fun errorWithEmptyErrorCodeFallsBackToUnknown() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":""}}""")
-        assertEquals(CoinbaseOnRampWebError.UNKNOWN, lastError)
+        assertIs<CoinbaseOnRampWebError.Unknown>(lastError)
+    }
+
+    // --- Data payload ---
+
+    @Test
+    fun errorCarriesJsonData() {
+        handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":"ERROR_CODE_INTERNAL","transactionId":"abc-123"}}""")
+        val error = lastError
+        assertIs<CoinbaseOnRampWebError.Internal>(error)
+        assertNotNull(error.data)
+        assertTrue(error.data!!.contains("abc-123"))
     }
 
     // --- Edge cases ---
@@ -137,36 +152,37 @@ class CoinbaseOnRampEventHandlerTest {
 class CoinbaseOnRampWebErrorTest {
 
     @Test
-    fun tryValueOfAllKnownCodes() {
+    fun fromErrorCodeAllKnownCodes() {
         val expected = mapOf(
-            "ERROR_CODE_MISSING_TRANSACTION_UUID" to CoinbaseOnRampWebError.ERROR_CODE_MISSING_TRANSACTION_UUID,
-            "ERROR_CODE_GUEST_CARD_NOT_DEBIT" to CoinbaseOnRampWebError.ERROR_CODE_GUEST_CARD_NOT_DEBIT,
-            "ERROR_CODE_GUEST_GOOGLE_PAY_ERROR" to CoinbaseOnRampWebError.ERROR_CODE_GUEST_GOOGLE_PAY_ERROR,
-            "ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED" to CoinbaseOnRampWebError.ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED,
-            "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" to CoinbaseOnRampWebError.ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED,
-            "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" to CoinbaseOnRampWebError.ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED,
-            "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" to CoinbaseOnRampWebError.ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED,
-            "ERROR_CODE_INTERNAL" to CoinbaseOnRampWebError.ERROR_CODE_INTERNAL,
-            "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" to CoinbaseOnRampWebError.ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND,
+            "ERROR_CODE_MISSING_TRANSACTION_UUID" to CoinbaseOnRampWebError.MissingTransactionUuid::class,
+            "ERROR_CODE_GUEST_CARD_NOT_DEBIT" to CoinbaseOnRampWebError.GuestCardNotDebit::class,
+            "ERROR_CODE_GUEST_GOOGLE_PAY_ERROR" to CoinbaseOnRampWebError.GuestGooglePayError::class,
+            "ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED" to CoinbaseOnRampWebError.GuestTransactionBuyFailed::class,
+            "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" to CoinbaseOnRampWebError.GuestTransactionSendFailed::class,
+            "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" to CoinbaseOnRampWebError.GuestTransactionAvsValidationFailed::class,
+            "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" to CoinbaseOnRampWebError.GuestTransactionTransactionFailed::class,
+            "ERROR_CODE_INTERNAL" to CoinbaseOnRampWebError.Internal::class,
+            "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" to CoinbaseOnRampWebError.GooglePayButtonNotFound::class,
         )
 
-        for ((code, expectedError) in expected) {
-            assertEquals(expectedError, CoinbaseOnRampWebError.tryValueOf(code), "Failed for code: $code")
+        for ((code, expectedType) in expected) {
+            val result = CoinbaseOnRampWebError.fromErrorCode(code)
+            assertTrue(expectedType.isInstance(result), "Failed for code: $code")
         }
     }
 
     @Test
-    fun tryValueOfUnknownCodeReturnsUnknown() {
-        assertEquals(CoinbaseOnRampWebError.UNKNOWN, CoinbaseOnRampWebError.tryValueOf("SOMETHING_NEW"))
+    fun fromErrorCodeUnknownCodeReturnsUnknown() {
+        assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode("SOMETHING_NEW"))
     }
 
     @Test
-    fun tryValueOfEmptyStringReturnsUnknown() {
-        assertEquals(CoinbaseOnRampWebError.UNKNOWN, CoinbaseOnRampWebError.tryValueOf(""))
+    fun fromErrorCodeEmptyStringReturnsUnknown() {
+        assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode(""))
     }
 
     @Test
-    fun tryValueOfCaseSensitive() {
-        assertEquals(CoinbaseOnRampWebError.UNKNOWN, CoinbaseOnRampWebError.tryValueOf("error_code_internal"))
+    fun fromErrorCodeCaseSensitive() {
+        assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode("error_code_internal"))
     }
 }

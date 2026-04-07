@@ -35,7 +35,7 @@ sealed interface OnRampPurchaseRequest {
      * @property email The user's email address.
      * @property phoneNumber The user's phone number.
      * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.
-     * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
+     * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDF is supported.
      */
     data class InclusiveOfFees(
         val paymentAmount: String, // "10"
@@ -46,7 +46,7 @@ sealed interface OnRampPurchaseRequest {
         override val destinationAddress: String,
     ): OnRampPurchaseRequest {
         override val paymentCurrency: String = "USD"
-        override val purchaseCurrency: String = "USDC"
+        override val purchaseCurrency: String = "USDF"
         override val destinationNetwork: String = "solana"
     }
 
@@ -59,7 +59,7 @@ sealed interface OnRampPurchaseRequest {
      * @property paymentMethod The payment method to use for the purchase. Currently only [OnRampPaymentMethod.GUEST_CHECKOUT_APPLE_PAY] is supported.
      * @property phoneNumber The user's phone number.
      * @property paymentCurrency The currency of the fiat to spend. Currently only “USD” is supported.
-     * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDC is supported.
+     * @property purchaseCurrency The cryptocurrency to purchase. Currently, only USDF is supported.
      */
     data class ExclusiveOfFees(
         val purchaseAmount: String, // "10"
@@ -70,7 +70,7 @@ sealed interface OnRampPurchaseRequest {
         override val destinationAddress: String,
     ): OnRampPurchaseRequest {
         override val paymentCurrency: String = "USD"
-        override val purchaseCurrency: String = "USDC"
+        override val purchaseCurrency: String = "USDF"
         override val destinationNetwork: String = "solana"
     }
 

@@ -20,6 +20,15 @@ fun <T, R> Flow<Result<T>>.mapResult(block: (T) -> R): Flow<Result<R>> {
     }
 }
 
+fun <T, R> Flow<Result<T>>.flatMapResult(block: suspend (T) -> Result<R>): Flow<Result<R>> {
+    return this.map {
+        it.fold(
+            onSuccess = { value -> block(value) },
+            onFailure = { error -> Result.failure(error) }
+        )
+    }
+}
+
 fun <T> Flow<Result<T>>.onError(block: (Throwable) -> Unit): Flow<Result<T>> {
     return this.map {
         it.onFailure(block)

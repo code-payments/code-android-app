@@ -59,8 +59,6 @@ internal class MenuScreenViewModel @Inject constructor(
     versionInfo: VersionInfo,
     mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
-    onrampController: OnRampAmountController,
-    analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
 ) :
     BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
@@ -72,8 +70,6 @@ internal class MenuScreenViewModel @Inject constructor(
         val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
-        val preferredOnRampProvider: OnRampProvider.Defined? = null,
-        val showQuickActions: Boolean = false,
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
@@ -83,7 +79,6 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogoTapped: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
@@ -91,9 +86,6 @@ internal class MenuScreenViewModel @Inject constructor(
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
-        data object OnAddCashClicked: Event
-        data object OpenOnRampAmountModal: Event
-        data object OnWithdrawClicked: Event
     }
 
     init {
@@ -116,16 +108,6 @@ internal class MenuScreenViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
 
-        userManager.state
-            .filter { it.authState is AuthState.LoggedInWithUser }
-            .flatMapLatest { userFlags.resolvedFlags }
-            .mapNotNull { it.preferredOnRampProvider.effectiveValue }
-            .filterIsInstance<OnRampProvider.Defined>()
-            .onEach { provider ->
-                dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
-            }
-            .launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.OnLogoTapped>()
             .map { stateFlow.value.logoTapCount }
@@ -133,45 +115,6 @@ internal class MenuScreenViewModel @Inject constructor(
             .filterNot { stateFlow.value.unlockedBetaFeaturesManually }
             .onEach { featureFlags.enableBetaFeatures() }
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnAddCashClicked>()
-            .onEach {
-                analytics.openOnramp(Analytics.OnrampSource.Settings)
-                val provider = stateFlow.value.preferredOnRampProvider
-                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    // has coinbase provider supporting google pay - pop selection for quick add
-                    dispatchEvent(Event.OpenOnRampAmountModal)
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnWithdrawClicked>()
-            .onEach {
-                dispatchEvent(
-                    Event.OpenScreen(
-                        AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw)
-                    )
-                )
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OpenOnRampAmountModal>()
-            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-            .flatMapLatest {
-                onrampController.confirmationEvents.take(1)
-            }.onEach { event ->
-                when (event) {
-                    is ConfirmationEvent.OnConfirmationSuccess -> {
-                        when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry()))
-                            is OnRampAmount.Predefined -> Unit
-                        }
-                    }
-
-                    ConfirmationEvent.Cancelled -> Unit
-                }
-            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnSwitchAccountsClicked>()
@@ -288,13 +231,6 @@ internal class MenuScreenViewModel @Inject constructor(
                 is Event.OpenScreen,
                 Event.OnLoggedOutCompletely,
                 is Event.OnSwitchAccountTo -> { state -> state }
-
-                Event.OnAddCashClicked -> { state -> state }
-                Event.OnWithdrawClicked -> { state -> state }
-                Event.OpenOnRampAmountModal -> { state -> state }
-                is Event.OnPreferredOnRampProviderChanged -> { state ->
-                    state.copy(preferredOnRampProvider = event.provider)
-                }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->
                     state.copy(

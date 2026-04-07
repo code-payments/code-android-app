@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
 import com.getcode.solana.keys.Mint
 import com.flipcash.app.onramp.internal.OnRampViewModel
+import com.flipcash.app.onramp.internal.OnrampOrder
 import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -26,10 +27,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun OnRampCustomAmountScreen(mint: Mint?) {
+fun OnRampCustomAmountScreen(mint: Mint) {
     val navigator = LocalCodeNavigator.current
     val viewModel = flowScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
-    var paymentLink by rememberSaveable { mutableStateOf<String?>(null) }
+    var order by rememberSaveable { mutableStateOf<OnrampOrder?>(null) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -42,20 +43,21 @@ fun OnRampCustomAmountScreen(mint: Mint?) {
             titleAlignment = Alignment.CenterHorizontally,
         )
         Box {
-            paymentLink?.let {
+            order?.let {
                 CoinbaseOnRampWebview(
-                    paymentLinkUrl = it,
-                    onPaymentSuccess = {
-                        paymentLink = null
-                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentSuccess)
+                    orderId = it.orderId,
+                    paymentLinkUrl = it.paymentLink,
+                    onPaymentSuccess = { orderId ->
+                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentSuccess(orderId))
+                        order = null
                     },
-                    onPaymentFailure = {
-                        paymentLink = null
-                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentError(it))
+                    onPaymentFailure = { error ->
+                        viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentError(error))
+                        order = null
                     },
                     onCancel = {
-                        paymentLink = null
                         viewModel.dispatchEvent(OnRampViewModel.Event.OnPaymentCancel)
+                        order = null
                     },
                 )
             }
@@ -63,11 +65,17 @@ fun OnRampCustomAmountScreen(mint: Mint?) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        if (mint != null) {
+            viewModel.dispatchEvent(OnRampViewModel.Event.OnMintChanged(mint))
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<OnRampViewModel.Event.OnPaymentLinkGenerated>()
-            .map { it.url }
-            .onEach { paymentLink = it }
+            .filterIsInstance<OnRampViewModel.Event.OnOrderCreated>()
+            .map { it.order }
+            .onEach { order = it }
             .launchIn(this)
     }
 
@@ -92,6 +100,15 @@ fun OnRampCustomAmountScreen(mint: Mint?) {
                         includeEmail = email,
                     )
                 )
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<OnRampViewModel.Event.OnBuySubmitted>()
+            .map { it.swapId }
+            .onEach { swapId ->
+                navigator.push(AppRoute.Token.TxProcessing(swapId))
             }.launchIn(this)
     }
 }
