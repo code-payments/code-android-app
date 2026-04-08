@@ -31,7 +31,7 @@ platform :android do
   desc "Runs all the tests for Flipcash"
     lane :flipcash_tests do
       gradle(task: "generateEmojiList")
-      gradle(task: "app:flipcash:app:testDebug")
+      gradle(task: "testDebug")
     end
     
   desc "Runs all the tests for Flipcash2"
