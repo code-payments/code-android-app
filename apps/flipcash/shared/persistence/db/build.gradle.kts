@@ -13,6 +13,9 @@ android {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.room.testing)
 
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)

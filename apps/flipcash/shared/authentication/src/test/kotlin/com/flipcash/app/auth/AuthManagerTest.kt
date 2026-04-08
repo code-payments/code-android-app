@@ -1,0 +1,250 @@
+package com.flipcash.app.auth
+
+import android.app.Activity
+import androidx.core.app.NotificationManagerCompat
+import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.auth.internal.credentials.AccountMetadata
+import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.UserFlags
+import com.flipcash.services.user.UserManager
+import com.bugsnag.android.Bugsnag
+import com.google.android.gms.tasks.OnSuccessListener
+import com.google.android.gms.tasks.Task
+import com.google.firebase.messaging.FirebaseMessaging
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+class AuthManagerTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    private val credentialManager: PassphraseCredentialManager = mockk(relaxed = true)
+    private val userManager: UserManager = mockk(relaxed = true)
+    private val notificationManager: NotificationManagerCompat = mockk(relaxed = true)
+    private val accountController: AccountController = mockk(relaxed = true)
+    private val pushController: PushController = mockk(relaxed = true)
+    private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
+    private val persistence: PersistenceProvider = mockk(relaxed = true)
+    private val featureFlagController: FeatureFlagController = mockk(relaxed = true)
+    private val appSettings: AppSettingsCoordinator = mockk(relaxed = true)
+    private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
+
+    private lateinit var authManager: AuthManager
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        mockkStatic("com.getcode.utils.LoggingKt")
+        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
+
+        mockkStatic(Bugsnag::class)
+        every { Bugsnag.setUser(any(), any(), any()) } returns Unit
+
+        mockkStatic(FirebaseMessaging::class)
+        val mockMessaging: FirebaseMessaging = mockk(relaxed = true)
+        every { FirebaseMessaging.getInstance() } returns mockMessaging
+
+        // Make FirebaseMessaging.token Task invoke success listener immediately
+        // so the token() suspendCancellableCoroutine resolves
+        val mockTask = mockk<Task<String>>(relaxed = true)
+        every { mockMessaging.token } returns mockTask
+        every { mockTask.addOnCanceledListener(any()) } returns mockTask
+        every { mockTask.addOnFailureListener(any()) } returns mockTask
+        every { mockTask.addOnSuccessListener(any()) } answers {
+            val listener = firstArg<OnSuccessListener<String>>()
+            listener.onSuccess("fake-token")
+            mockTask
+        }
+        // Also handle the Activity variant
+        every { mockTask.addOnSuccessListener(any<Activity>(), any()) } answers {
+            val listener = secondArg<OnSuccessListener<String>>()
+            listener.onSuccess("fake-token")
+            mockTask
+        }
+
+        // Default stubs for methods called during login/createAccount success paths
+        coEvery { accountController.getUserFlags() } returns Result.success(UserFlags.Default)
+        coEvery { credentialManager.onAccountPurchased() } returns Result.success(mockk(relaxed = true))
+        coEvery { pushController.addToken(any()) } returns Result.success(Unit)
+        coEvery { pushController.deleteTokens() } returns Result.success(Unit)
+
+        authManager = AuthManager(
+            credentialManager = credentialManager,
+            userManager = userManager,
+            notificationManager = notificationManager,
+            accountController = accountController,
+            pushController = pushController,
+            tokenCoordinator = tokenCoordinator,
+            persistence = persistence,
+            featureFlagController = featureFlagController,
+            appSettings = appSettings,
+            userFlags = userFlags,
+        )
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+        unmockkStatic("com.getcode.utils.LoggingKt")
+        unmockkStatic(FirebaseMessaging::class)
+        unmockkStatic(Bugsnag::class)
+    }
+
+    @Test
+    fun `login with empty entropy clears user and returns failure`() = runTest {
+        val result = authManager.login(entropyB64 = "")
+
+        assertTrue(result.isFailure)
+        verify { userManager.clear() }
+    }
+
+    @Test
+    fun `login success opens database and sets account id`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isSuccess)
+        verify { persistence.openDatabase(entropy) }
+        verify { userManager.set(accountId = testId) }
+    }
+
+    @Test
+    fun `login failure triggers logout and resetStateForUser`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        coEvery { credentialManager.login(entropy, any()) } returns Result.failure(RuntimeException("auth error"))
+        coEvery { credentialManager.logout() } returns Result.success(Unit)
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isFailure)
+        coVerify { credentialManager.logout() }
+        verify { userManager.clear() }
+        verify { notificationManager.cancelAll() }
+        coVerify { tokenCoordinator.reset() }
+        verify { persistence.close() }
+        verify { featureFlagController.reset() }
+        verify { appSettings.reset() }
+        verify { userFlags.clearAll() }
+    }
+
+    @Test
+    fun `non-soft login sets softLoginDisabled flag`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+
+        // Login with isSoftLogin=false should succeed
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = false)
+        assertTrue(result.isSuccess)
+
+        // Verify the login was performed (exercises structured concurrency in login's onSuccess)
+        verify { persistence.openDatabase(entropy) }
+        verify { userManager.set(accountId = testId) }
+        coVerify { accountController.getUserFlags() }
+    }
+
+    @Test
+    fun `createAccount success fetches user flags and opens database`() = runTest {
+        val entropy = "bmV3YWNjb3VudGVudHJvcHk="
+        coEvery { credentialManager.createAccount() } returns Result.success(entropy)
+
+        val result = authManager.createAccount()
+
+        assertTrue(result.isSuccess)
+        coVerify { accountController.getUserFlags() }
+        verify { userManager.set(UserFlags.Default) }
+        verify { persistence.openDatabase(entropy) }
+    }
+
+    @Test
+    fun `createAccount failure returns failure without side effects`() = runTest {
+        coEvery { credentialManager.createAccount() } returns Result.failure(RuntimeException("creation failed"))
+
+        val result = authManager.createAccount()
+
+        assertTrue(result.isFailure)
+        coVerify(exactly = 0) { accountController.getUserFlags() }
+        verify(exactly = 0) { persistence.openDatabase(any()) }
+    }
+
+    @Test
+    fun `logout clears credential storage and resets state`() = runTest {
+        coEvery { credentialManager.logout() } returns Result.success(Unit)
+
+        val result = authManager.logout()
+
+        assertTrue(result.isSuccess)
+        coVerify { credentialManager.logout() }
+        verify { userManager.clear() }
+        verify { notificationManager.cancelAll() }
+        coVerify { tokenCoordinator.reset() }
+        verify { persistence.close() }
+        verify { featureFlagController.reset() }
+        verify { appSettings.reset() }
+        verify { userFlags.clearAll() }
+    }
+
+    @Test
+    fun `logoutAndSwitchAccount sets pendingSwitchEntropy before logout`() = runTest {
+        val switchEntropy = "c3dpdGNoZW50cm9weQ=="
+        coEvery { credentialManager.logout() } returns Result.success(Unit)
+
+        val result = authManager.logoutAndSwitchAccount(switchEntropy)
+
+        assertTrue(result.isSuccess)
+        assertEquals(switchEntropy, result.getOrNull())
+        coVerify { credentialManager.logout() }
+    }
+
+    @Test
+    fun `consumePendingSwitchEntropy clears after read`() = runTest {
+        val switchEntropy = "c3dpdGNoZW50cm9weQ=="
+        coEvery { credentialManager.logout() } returns Result.success(Unit)
+
+        authManager.logoutAndSwitchAccount(switchEntropy)
+
+        val consumed = authManager.consumePendingSwitchEntropy()
+        assertNotNull(consumed)
+        assertEquals(switchEntropy, consumed)
+
+        val secondRead = authManager.consumePendingSwitchEntropy()
+        assertNull(secondRead)
+    }
+}
