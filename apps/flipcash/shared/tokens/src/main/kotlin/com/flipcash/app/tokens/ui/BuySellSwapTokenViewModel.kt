@@ -16,6 +16,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -584,9 +585,18 @@ class BuySellSwapTokenViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                     // sell submitted, drop from balance
                     tokenCoordinator.subtract(token, amount)
-                }.onFailure {
-                    trackTransaction(token, error = it)
+                }.onFailure { cause ->
+                    trackTransaction(token, error = cause)
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
+                    if (cause is SwapError.Denied) {
+                        if (cause.amountTooLowForFee) {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_sellFailedDueToBeingTooLow),
+                                message = resources.getString(R.string.error_description_sellFailedDueToBeingTooLow),
+                            )
+                            return@onFailure
+                        }
+                    }
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_buySellFailed),
                         message = resources.getString(R.string.error_description_buySellFailed),

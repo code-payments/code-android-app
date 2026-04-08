@@ -423,6 +423,9 @@
     <string name="error_title_buySellFailed">Something Went Wrong</string>
     <string name="error_description_buySellFailed">Please try again</string>
 
+    <string name="error_title_sellFailedDueToBeingTooLow">Amount Too Low</string>
+    <string name="error_description_sellFailedDueToBeingTooLow">The amount you entered is too small to cover the required transaction fee. Please enter a larger amount</string>
+
     <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
     <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
 

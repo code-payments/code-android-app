@@ -215,7 +215,9 @@ sealed class SwapError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    data class Denied(private val reasons: List<String>) : SwapError(message = reasons.joinToString())
+    data class Denied(private val reasons: List<String>) : SwapError(message = reasons.joinToString()) {
+        val amountTooLowForFee = reasons.contains("swap would not generate a sell fee")
+    }
     class Signature : SwapError(), NotifiableError
     class Unrecognized : SwapError("Unrecognized"), NotifiableError
     class InvalidSwap(reasons: List<String>): SwapError(message = reasons.joinToString()), NotifiableError
