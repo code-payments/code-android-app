@@ -334,7 +334,11 @@ class RealSessionController @Inject constructor(
                                                     message = "Cash link not sent. Restarting awaiting grab",
                                                     type = TraceType.User,
                                                 )
-                                                awaitBillGrab(bill, owner)
+                                                // Use the state-enriched bill which carries the
+                                                // nonce from the first presentation, so the
+                                                // restarted give reuses the same rendezvous.
+                                                val currentBill = billController.state.value.bill ?: bill
+                                                awaitBillGrab(currentBill, owner)
                                             }
                                         }
                                     ),
