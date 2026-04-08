@@ -1,22 +1,18 @@
 package com.flipcash.app.auth
 
-import android.app.Activity
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.AccountMetadata
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
-import com.bugsnag.android.Bugsnag
-import com.google.android.gms.tasks.OnSuccessListener
-import com.google.android.gms.tasks.Task
-import com.google.firebase.messaging.FirebaseMessaging
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -51,6 +47,7 @@ class AuthManagerTest {
     private val notificationManager: NotificationManagerCompat = mockk(relaxed = true)
     private val accountController: AccountController = mockk(relaxed = true)
     private val pushController: PushController = mockk(relaxed = true)
+    private val pushTokenProvider: PushTokenProvider = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
     private val persistence: PersistenceProvider = mockk(relaxed = true)
     private val featureFlagController: FeatureFlagController = mockk(relaxed = true)
@@ -65,30 +62,7 @@ class AuthManagerTest {
         mockkStatic("com.getcode.utils.LoggingKt")
         every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
-        mockkStatic(Bugsnag::class)
-        every { Bugsnag.setUser(any(), any(), any()) } returns Unit
-
-        mockkStatic(FirebaseMessaging::class)
-        val mockMessaging: FirebaseMessaging = mockk(relaxed = true)
-        every { FirebaseMessaging.getInstance() } returns mockMessaging
-
-        // Make FirebaseMessaging.token Task invoke success listener immediately
-        // so the token() suspendCancellableCoroutine resolves
-        val mockTask = mockk<Task<String>>(relaxed = true)
-        every { mockMessaging.token } returns mockTask
-        every { mockTask.addOnCanceledListener(any()) } returns mockTask
-        every { mockTask.addOnFailureListener(any()) } returns mockTask
-        every { mockTask.addOnSuccessListener(any()) } answers {
-            val listener = firstArg<OnSuccessListener<String>>()
-            listener.onSuccess("fake-token")
-            mockTask
-        }
-        // Also handle the Activity variant
-        every { mockTask.addOnSuccessListener(any<Activity>(), any()) } answers {
-            val listener = secondArg<OnSuccessListener<String>>()
-            listener.onSuccess("fake-token")
-            mockTask
-        }
+        coEvery { pushTokenProvider.getToken() } returns "fake-token"
 
         // Default stubs for methods called during login/createAccount success paths
         coEvery { accountController.getUserFlags() } returns Result.success(UserFlags.Default)
@@ -102,6 +76,7 @@ class AuthManagerTest {
             notificationManager = notificationManager,
             accountController = accountController,
             pushController = pushController,
+            pushTokenProvider = pushTokenProvider,
             tokenCoordinator = tokenCoordinator,
             persistence = persistence,
             featureFlagController = featureFlagController,
@@ -114,8 +89,6 @@ class AuthManagerTest {
     fun tearDown() {
         Dispatchers.resetMain()
         unmockkStatic("com.getcode.utils.LoggingKt")
-        unmockkStatic(FirebaseMessaging::class)
-        unmockkStatic(Bugsnag::class)
     }
 
     @Test

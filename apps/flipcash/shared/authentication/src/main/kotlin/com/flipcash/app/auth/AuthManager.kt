@@ -1,13 +1,12 @@
 package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
-import com.bugsnag.android.Bugsnag
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
-import com.flipcash.app.auth.internal.extensions.token
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
@@ -18,11 +17,9 @@ import com.flipcash.shared.authentication.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import com.google.firebase.Firebase
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -37,6 +34,7 @@ class AuthManager @Inject constructor(
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
     private val pushController: PushController,
+    private val pushTokenProvider: PushTokenProvider,
     private val tokenCoordinator: TokenCoordinator,
     private val persistence: PersistenceProvider,
     private val featureFlagController: FeatureFlagController,
@@ -212,7 +210,7 @@ class AuthManager @Inject constructor(
     private suspend fun resetStateForUser() {
         // Fire-and-forget slow network operations to avoid blocking navigation
         launch {
-            FirebaseMessaging.getInstance().deleteToken()
+            pushTokenProvider.deleteToken()
             pushController.deleteTokens()
         }
         notificationManager.cancelAll()
@@ -223,7 +221,7 @@ class AuthManager @Inject constructor(
         appSettings.reset()
         userFlags.clearAll()
 
-        if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
+        if (!BuildConfig.DEBUG) TraceManager.userId = null
     }
 
     private suspend fun savePrefs() {
@@ -231,7 +229,7 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun updateFcmToken() {
-        val pushToken = Firebase.messaging.token() ?: return
+        val pushToken = pushTokenProvider.getToken() ?: return
         pushController.addToken(pushToken)
             .onSuccess {
                 userManager.set(pushToken = pushToken)
