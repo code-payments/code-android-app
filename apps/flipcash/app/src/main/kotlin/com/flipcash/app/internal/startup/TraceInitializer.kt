@@ -7,6 +7,7 @@ import com.bugsnag.android.Configuration
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.internal.debug.FlipcashDebugTree
 import com.flipcash.app.internal.debug.FlipcashErrorCallback
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,12 @@ class TraceInitializer: Initializer<Unit> {
                 val config = Configuration.load(context)
                 config.addOnError(FlipcashErrorCallback)
                 Bugsnag.start(context, config)
+
+                ErrorUtils.addReporter(BugsnagErrorReporter())
+                TraceManager.addSink(BugsnagBreadcrumbSink())
+                TraceManager.setOnUserIdChanged { id ->
+                    Bugsnag.setUser(id, null, null)
+                }
             }
         }
     }

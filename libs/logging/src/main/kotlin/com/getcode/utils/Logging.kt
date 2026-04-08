@@ -2,10 +2,6 @@ package com.getcode.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.bugsnag.android.BreadcrumbType
-import com.bugsnag.android.Bugsnag
-import com.google.firebase.crashlytics.CustomKeysAndValues
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
 import java.io.File
 import kotlin.time.Duration
@@ -55,22 +51,23 @@ sealed interface TraceType {
     data object User : TraceType
 }
 
-private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
-    return when (this) {
-        TraceType.Silent -> null
-        TraceType.Error -> BreadcrumbType.ERROR
-        TraceType.Log -> BreadcrumbType.LOG
-        TraceType.Navigation -> BreadcrumbType.NAVIGATION
-        TraceType.Network -> BreadcrumbType.REQUEST
-        TraceType.Process -> BreadcrumbType.PROCESS
-        TraceType.StateChange -> BreadcrumbType.STATE
-        TraceType.User -> BreadcrumbType.USER
-    }
-}
-
 object TraceManager {
     private var fileTree: FileTree? = null
     val plugins: MutableList<TraceLogPlugin> = mutableListOf()
+    private val breadcrumbSinks = mutableListOf<BreadcrumbSink>()
+    private var _userId: String? = null
+    private var onUserIdChanged: ((String?) -> Unit)? = null
+
+    var userId: String?
+        get() = _userId
+        set(value) {
+            _userId = value
+            onUserIdChanged?.invoke(value)
+        }
+
+    fun setOnUserIdChanged(listener: ((String?) -> Unit)?) {
+        onUserIdChanged = listener
+    }
 
     fun addPlugin(plugin: TraceLogPlugin) {
         plugins.add(plugin)
@@ -79,6 +76,10 @@ object TraceManager {
     fun removePlugin(plugin: TraceLogPlugin) {
         plugins.remove(plugin)
     }
+
+    fun addSink(sink: BreadcrumbSink) { breadcrumbSinks.add(sink) }
+    fun removeSink(sink: BreadcrumbSink) { breadcrumbSinks.remove(sink) }
+    fun sinks(): List<BreadcrumbSink> = breadcrumbSinks
 
     fun initialize(context: Context) {
         if (fileTree != null) return
@@ -100,6 +101,9 @@ object TraceManager {
         fileTree?.let { Timber.uproot(it) }
         fileTree = null
         plugins.clear()
+        breadcrumbSinks.clear()
+        _userId = null
+        onUserIdChanged = null
     }
 }
 
@@ -140,27 +144,8 @@ fun trace(
         message
     }
 
-    if (Bugsnag.isStarted()) {
-        val breadcrumbType = type.toBugsnagBreadcrumbType()
-        if (breadcrumbType != null) {
-            Bugsnag.leaveBreadcrumb(
-                breadcrumb,
-                metadataMap,
-                breadcrumbType
-            )
-        }
-    }
-
-    if (FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled) {
-        FirebaseCrashlytics.getInstance().log(breadcrumb)
-        FirebaseCrashlytics.getInstance().setCustomKeys(
-            CustomKeysAndValues.Builder()
-                .apply {
-                    metadataMap.entries.onEach {
-                        putString(it.key, it.value.toString())
-                    }
-                }.build()
-        )
+    TraceManager.sinks().forEach { sink ->
+        sink.record(breadcrumb, metadataMap, type)
     }
 
     error?.let(ErrorUtils::handleError)

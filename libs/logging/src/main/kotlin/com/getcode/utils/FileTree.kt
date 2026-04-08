@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
-import com.bugsnag.android.Bugsnag
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -107,7 +106,7 @@ private fun buildDeviceHeader(context: Context): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) it.longVersionCode else it.versionCode.toLong()
     } ?: -1
 
-    val userId = if (Bugsnag.isStarted()) Bugsnag.getUser().id else null
+    val userId = TraceManager.userId
 
     return buildString {
         appendLine("=".repeat(60))
