@@ -26,8 +26,6 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -66,8 +64,6 @@ class CashScreenViewModelTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
         // Stub resource strings used by the ViewModel
         every { resources.getString(R.string.error_title_youNeedMoreCash) } returns "error_title_youNeedMoreCash"
@@ -88,7 +84,6 @@ class CashScreenViewModelTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     private fun createViewModel(): CashScreenViewModel {

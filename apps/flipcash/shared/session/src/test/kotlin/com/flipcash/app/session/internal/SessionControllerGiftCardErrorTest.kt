@@ -30,9 +30,7 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.util.vibration.Vibrator
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.slot
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -60,8 +58,6 @@ class SessionControllerGiftCardErrorTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
         every { userManager.accountCluster } returns accountCluster
         every { networkObserver.isConnected } returns true
@@ -81,7 +77,6 @@ class SessionControllerGiftCardErrorTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     private fun createController(): RealSessionController {

@@ -16,15 +16,11 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.slot
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -41,17 +37,6 @@ class GiftCardFundingWorkerTest {
     private val transactionManager: BillTransactionManager = mockk(relaxed = true)
     private val giftCardManager: GiftCardManager = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
-
-    @Before
-    fun setUp() {
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic("com.getcode.utils.LoggingKt")
-    }
 
     private fun createWorker(inputData: Data = Data.EMPTY): GiftCardFundingWorker {
         every { workerParams.inputData } returns inputData

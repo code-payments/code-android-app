@@ -25,8 +25,6 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import io.mockk.slot
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -43,17 +41,6 @@ class GiveBillTransactorTest {
 
     private val payloadFactory = PayloadFactory { _, _, _ ->
         PayloadResult(rendezvous = mockk(relaxed = true), codeData = emptyList())
-    }
-
-    @Before
-    fun setUp() {
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     private fun createTransactor(scope: TestScope): GiveBillTransactor {
