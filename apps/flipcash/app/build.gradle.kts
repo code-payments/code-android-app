@@ -62,7 +62,6 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
@@ -98,6 +97,10 @@ configurations.all {
     // protobuf-javalite 4.x already includes well-known types, making
     // Firebase's protolite-well-known-types redundant and conflicting.
     exclude(group = "com.google.firebase", module = "protolite-well-known-types")
+    // Crashlytics SDK is pulled transitively via firebase-bom but we use Bugsnag
+    // for error reporting. Without the Crashlytics Gradle plugin the SDK crashes
+    // at startup due to a missing build ID resource.
+    exclude(group = "com.google.firebase", module = "firebase-crashlytics")
 }
 
 versioning {
