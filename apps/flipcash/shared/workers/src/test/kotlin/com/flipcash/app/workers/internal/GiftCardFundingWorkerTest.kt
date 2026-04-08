@@ -23,15 +23,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -148,33 +145,25 @@ class GiftCardFundingWorkerTest {
     // ---- buildInputData serialization roundtrip ----
 
     @Test
-    fun `buildInputData serializes amount to valid JSON`() {
+    fun `buildInputData serializes and deserializes amount roundtrip`() {
         val amount = testLocalFiat()
         val serialized = Json.encodeToString(LocalFiat.serializer(), amount)
+        val deserialized = Json.decodeFromString(LocalFiat.serializer(), serialized)
 
-        // Verify the JSON is valid and contains expected fields
-        val jsonElement = Json.parseToJsonElement(serialized)
-        val jsonObject = jsonElement.jsonObject
-
-        // Verify structure: underlyingTokenAmount, nativeAmount, rate, mint
-        assertTrue(jsonObject.containsKey("underlyingTokenAmount"), "Missing underlyingTokenAmount")
-        assertTrue(jsonObject.containsKey("nativeAmount"), "Missing nativeAmount")
-        assertTrue(jsonObject.containsKey("rate"), "Missing rate")
-        assertTrue(jsonObject.containsKey("mint"), "Missing mint")
-
-        // Verify mint serializes as base58 string
-        val mintValue = jsonObject["mint"]?.jsonPrimitive?.content
-        assertEquals("5AMAA9JV9H97YYVxx8F6FsCMmTwXSuTTQneiup4RYAUQ", mintValue)
+        assertEquals(amount.underlyingTokenAmount.quarks, deserialized.underlyingTokenAmount.quarks)
+        assertEquals(amount.underlyingTokenAmount.currencyCode, deserialized.underlyingTokenAmount.currencyCode)
+        assertEquals(amount.nativeAmount.quarks, deserialized.nativeAmount.quarks)
+        assertEquals(amount.nativeAmount.currencyCode, deserialized.nativeAmount.currencyCode)
+        assertEquals(amount.rate.fx, deserialized.rate.fx)
+        assertEquals(amount.rate.currency, deserialized.rate.currency)
+        assertEquals(amount.mint.bytes, deserialized.mint.bytes)
     }
 
     @Test
     fun `buildInputData serializes and deserializes token roundtrip`() {
-        // Mint uses PublicKeyAsStringSerializer which deserializes to PublicKey (parent class).
-        // We verify the base58 string roundtrips correctly — this is what the worker uses.
         val mint = Mint.usdf
         val serialized = Json.encodeToString(mint)
-        // Deserialize as PublicKey since the serializer returns PublicKey, then verify bytes match
-        val deserialized = Json.decodeFromString<com.getcode.solana.keys.PublicKey>(serialized)
+        val deserialized = Json.decodeFromString<Mint>(serialized)
 
         assertEquals(mint.bytes, deserialized.bytes)
     }
