@@ -15,9 +15,7 @@ import com.solana.networking.HttpNetworkDriver
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
-import io.mockk.mockkStatic
 import io.mockk.unmockkObject
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -41,9 +39,6 @@ class ExternalWalletDeeplinkStateErrorTest {
 
     @Before
     fun setUp() {
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
-
         // Mock the native crypto keypair generation
         mockkObject(Box)
         every { Box.keypair() } returns mockk<BoxKeyPair>(relaxed = true)
@@ -52,7 +47,6 @@ class ExternalWalletDeeplinkStateErrorTest {
     @After
     fun tearDown() {
         unmockkObject(Box)
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     private fun createState(): ExternalWalletDeeplinkState {

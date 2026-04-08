@@ -11,13 +11,9 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -29,17 +25,6 @@ class ProfileControllerTest {
     private val userManager = mockk<UserManager>(relaxed = true)
 
     private val controller = ProfileController(repository, userManager)
-
-    @Before
-    fun setUp() {
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic("com.getcode.utils.LoggingKt")
-    }
 
     private fun stubOwner() {
         val keyPair = mockk<Ed25519.KeyPair>(relaxed = true)

@@ -1,10 +1,5 @@
 package com.flipcash.app.onramp.internal
 
-import io.mockk.every
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -18,17 +13,6 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class CoinbaseOnRampEventHandlerTest {
-
-    @Before
-    fun setUp() {
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic("com.getcode.utils.LoggingKt")
-    }
 
     private var successCount = 0
     private var cancelCount = 0
@@ -52,9 +36,9 @@ class CoinbaseOnRampEventHandlerTest {
     }
 
     @Test
-    fun commitSuccessTriggersPaymentSuccess() {
+    fun commitSuccessIsExplicitlySkipped() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_success"}""")
-        assertEquals(1, successCount)
+        assertEquals(0, successCount, "commit_success should not trigger onPaymentSuccess")
     }
 
     @Test

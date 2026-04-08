@@ -18,14 +18,11 @@ class OpenCodePayloadTest {
     fun setUp() {
         mockkStatic("com.getcode.opencode.utils.KeyPairKt")
         every { com.getcode.opencode.utils.deriveRendezvousKey(any()) } returns mockk(relaxed = true)
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
     }
 
     @After
     fun tearDown() {
         unmockkStatic("com.getcode.opencode.utils.KeyPairKt")
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     // region encode / decode

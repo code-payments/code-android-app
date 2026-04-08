@@ -17,8 +17,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,8 +57,6 @@ class AuthManagerTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
         coEvery { pushTokenProvider.getToken() } returns "fake-token"
 
@@ -88,7 +84,6 @@ class AuthManagerTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     @Test

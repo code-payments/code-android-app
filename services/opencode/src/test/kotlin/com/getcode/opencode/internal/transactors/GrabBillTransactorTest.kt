@@ -11,14 +11,10 @@ import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.solana.keys.Key32
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertTrue
 
@@ -29,17 +25,6 @@ class GrabBillTransactorTest {
     private val messagingController = mockk<MessagingController>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
     private val tokenProvider = mockk<TokenMetadataProvider>(relaxed = true)
-
-    @Before
-    fun setUp() {
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic("com.getcode.utils.LoggingKt")
-    }
 
     private fun createTransactor(scope: TestScope): GrabBillTransactor {
         return GrabBillTransactor(

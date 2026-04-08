@@ -47,8 +47,6 @@ class LoginViewModelErrorTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
         // android.util.Base64 is stubbed in unit tests; mock it so encodeBase64() doesn't NPE
         mockkStatic(android.util.Base64::class)
         every { android.util.Base64.encodeToString(any(), any()) } answers { java.util.Base64.getEncoder().encodeToString(firstArg()) }
@@ -61,7 +59,6 @@ class LoginViewModelErrorTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
-        unmockkStatic("com.getcode.utils.LoggingKt")
         unmockkStatic(android.util.Base64::class)
     }
 
