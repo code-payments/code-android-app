@@ -8,56 +8,62 @@ import kotlin.time.Duration
 import kotlin.time.TimeSource
 import kotlin.time.measureTime
 
+/**
+ * Categorizes trace events for routing through Timber and [BreadcrumbSink]s.
+ *
+ * Each type maps to a Timber log level and is forwarded to all registered
+ * breadcrumb sinks, except [Silent] which is only written to the local log file.
+ */
 sealed interface TraceType {
-    /**
-     * This is not forwarded to logging services
-     */
-
+    /** Local-only; not forwarded to external logging services. */
     data object Silent : TraceType
 
-    /**
-     * An error event
-     */
+    /** An error event. */
     data object Error: TraceType
 
-    /**
-     * A log message
-     */
+    /** A general log message. */
     data object Log : TraceType
 
-    /**
-     * A navigation event, such as a window opening or closing
-     */
+    /** A navigation event, such as a screen opening or closing. */
     data object Navigation : TraceType
 
-    /**
-     * A background process such as a database query
-     */
+    /** A background process such as a database query. */
     data object Process : TraceType
 
-    /**
-     * A network request
-     */
+    /** A network request. */
     data object Network : TraceType
 
-    /**
-     * A change in application state, such as launch or memory warning
-     */
+    /** A change in application state, such as launch or memory warning. */
     data object StateChange : TraceType
 
-    /**
-     * A user action, such as tapping a button
-     */
+    /** A user action, such as tapping a button. */
     data object User : TraceType
 }
 
+/**
+ * Central coordinator for the tracing/logging subsystem.
+ *
+ * Must be [initialized][initialize] before any [trace] calls will produce output.
+ * Calls to [trace] made before initialization are silently dropped so that
+ * modules which log during early startup don't crash.
+ *
+ * Supports two extension points:
+ * - [TraceLogPlugin]s — transform log messages before they reach Timber (e.g. PII masking).
+ * - [BreadcrumbSink]s — forward structured breadcrumbs to external services (e.g. Bugsnag).
+ */
 object TraceManager {
     private var fileTree: FileTree? = null
+
+    /** `true` after [initialize] has been called. [trace] is a no-op until then. */
+    var initialized: Boolean = false
+        private set
+
     val plugins: MutableList<TraceLogPlugin> = mutableListOf()
     private val breadcrumbSinks = mutableListOf<BreadcrumbSink>()
     private var _userId: String? = null
     private var onUserIdChanged: ((String?) -> Unit)? = null
 
+    /** The current user identifier, forwarded to error reporters when set. */
     var userId: String?
         get() = _userId
         set(value) {
@@ -65,6 +71,7 @@ object TraceManager {
             onUserIdChanged?.invoke(value)
         }
 
+    /** Register a listener invoked whenever [userId] changes. */
     fun setOnUserIdChanged(listener: ((String?) -> Unit)?) {
         onUserIdChanged = listener
     }
@@ -81,25 +88,34 @@ object TraceManager {
     fun removeSink(sink: BreadcrumbSink) { breadcrumbSinks.remove(sink) }
     fun sinks(): List<BreadcrumbSink> = breadcrumbSinks
 
+    /**
+     * Bootstraps Timber with a [FileTree], plants default plugins
+     * ([PiiMaskingPlugin], [RpcBodyFilterPlugin]), and marks the manager
+     * as [initialized]. Safe to call multiple times; subsequent calls are no-ops.
+     */
     fun initialize(context: Context) {
-        if (fileTree != null) return
+        if (initialized) return
         val tree = FileTree(context, plugins = { plugins })
         fileTree = tree
         addPlugin(PiiMaskingPlugin())
         addPlugin(RpcBodyFilterPlugin())
         Timber.plant(tree)
+        initialized = true
     }
 
+    /** Returns the current log file, or `null` if not yet initialized. */
     fun getLogFile(): File? = fileTree?.getLogFile()
 
     fun clearLogs() {
         fileTree?.clearLogs()
     }
 
+    /** Tears down all state. Intended for tests only. */
     @androidx.annotation.VisibleForTesting
     internal fun reset() {
         fileTree?.let { Timber.uproot(it) }
         fileTree = null
+        initialized = false
         plugins.clear()
         breadcrumbSinks.clear()
         _userId = null
@@ -107,6 +123,19 @@ object TraceManager {
     }
 }
 
+/**
+ * Primary logging entry point. Writes [message] to Timber and forwards a
+ * breadcrumb to every registered [BreadcrumbSink].
+ *
+ * No-op if [TraceManager] has not been [initialized][TraceManager.initialize],
+ * so callers in early startup paths don't need their own guard.
+ *
+ * @param message Human-readable description of the event.
+ * @param tag Optional tag rendered as `[tag]` prefix in the log line.
+ * @param metadata Builder for structured key-value pairs appended to the log line.
+ * @param error If non-null, forwarded to [ErrorUtils.handleError] after logging.
+ * @param type Categorization that determines the Timber log level.
+ */
 @SuppressLint("TimberExceptionLogging")
 fun trace(
     message: String,
@@ -115,6 +144,8 @@ fun trace(
     error: Throwable? = null,
     type: TraceType = if (error != null) TraceType.Error else TraceType.Log,
 ) {
+    if (!TraceManager.initialized) return
+
     val tagBlock = tag?.let { "[$it] " }
     val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 
@@ -151,6 +182,15 @@ fun trace(
     error?.let(ErrorUtils::handleError)
 }
 
+/**
+ * Executes [block], measures its wall-clock duration, and emits a [trace]
+ * with the duration appended to [metadata].
+ *
+ * The block always runs even if [TraceManager] is not initialized; only
+ * the trace output is gated.
+ *
+ * @param onComplete Called after tracing with the block's result and measured duration.
+ */
 fun <T> timedTrace(
     message: String,
     tag: String? = null,
@@ -176,6 +216,13 @@ fun <T> timedTrace(
     return result
 }
 
+/**
+ * Suspend variant of [timedTrace] that additionally tracks named steps.
+ *
+ * Call the `onStep` lambda inside [block] to record intermediate durations;
+ * each step's elapsed time (relative to the previous step) is appended to
+ * the metadata alongside the total duration.
+ */
 suspend fun <T> timedTraceSuspend(
     message: String,
     tag: String? = null,
@@ -214,6 +261,17 @@ suspend fun <T> timedTraceSuspend(
     return result
 }
 
+/**
+ * DSL builder for structured key-value metadata attached to [trace] calls.
+ *
+ * ```
+ * trace("payment sent", metadata = {
+ *     "amount" to 5.00
+ *     "token"  to "JFY"
+ *     "currency" to "USD"
+ * })
+ * ```
+ */
 class MetadataBuilder {
     private val map = mutableMapOf<String, Any>()
 
@@ -224,7 +282,8 @@ class MetadataBuilder {
     fun build(): Map<String, Any> = map
 }
 
-fun metadata(block: MetadataBuilder.() -> Unit): Map<String, Any> {
+/** Convenience factory that builds a metadata map from [block]. */
+private fun metadata(block: MetadataBuilder.() -> Unit): Map<String, Any> {
     val builder = MetadataBuilder()
     builder.block()
     return builder.build()
