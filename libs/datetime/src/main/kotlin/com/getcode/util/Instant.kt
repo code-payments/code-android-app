@@ -2,7 +2,6 @@ package com.getcode.util
 
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -12,6 +11,7 @@ import kotlinx.datetime.toLocalDateTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.time.Instant
 
 fun Instant.toLocalDate(timeZone: TimeZone = TimeZone.currentSystemDefault()) =
     toLocalDateTime(timeZone).date

@@ -25,7 +25,7 @@ import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.util.formatTimeRelatively
 import kotlin.time.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 object DateWithStatusDefaults {
     val DateTextStyle: TextStyle

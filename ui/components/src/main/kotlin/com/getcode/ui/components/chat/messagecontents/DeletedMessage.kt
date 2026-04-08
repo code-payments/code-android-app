@@ -16,7 +16,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.getcode.model.ID
 import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Sender
@@ -25,7 +24,7 @@ import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 @Composable
 internal fun MessageNodeScope.DeletedMessage(
