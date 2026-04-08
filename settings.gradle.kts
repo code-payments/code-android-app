@@ -58,6 +58,7 @@ include(
     ":apps:flipcash:shared:notifications",
     ":apps:flipcash:shared:payments",
     ":apps:flipcash:shared:permissions",
+    ":apps:flipcash:shared:push",
     ":apps:flipcash:shared:persistence:db",
     ":apps:flipcash:shared:persistence:provider",
     ":apps:flipcash:shared:persistence:sources",
