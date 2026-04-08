@@ -23,15 +23,17 @@ private class NotificationAnimationState(
 )
 
 @Composable
-private fun rememberNotificationAnimation(): NotificationAnimationState {
+private fun rememberNotificationAnimation(animate: Boolean = true): NotificationAnimationState {
     val density = LocalDensity.current
-    val progress = remember { Animatable(0f) }
+    val progress = remember { Animatable(if (animate) 0f else 2f) }
 
     LaunchedEffect(Unit) {
-        delay(300)
-        progress.animateTo(1f, tween(600))
-        delay(600)
-        progress.animateTo(2f, tween(600))
+        if (animate) {
+            delay(300)
+            progress.animateTo(1f, tween(600))
+            delay(600)
+            progress.animateTo(2f, tween(600))
+        }
     }
 
     val p = progress.value
@@ -52,8 +54,8 @@ private fun rememberNotificationAnimation(): NotificationAnimationState {
 }
 
 @Composable
-internal fun AnimatedNotificationPreview() {
-    val animation = rememberNotificationAnimation()
+internal fun AnimatedNotificationPreview(animate: Boolean = true) {
+    val animation = rememberNotificationAnimation(animate)
 
     DeviceFrame(
         clipToFrame = animation.isInsidePhone

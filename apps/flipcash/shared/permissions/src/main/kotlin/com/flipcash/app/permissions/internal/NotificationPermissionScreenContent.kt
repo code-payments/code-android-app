@@ -44,7 +44,7 @@ internal fun NotificationScreenContent(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                AnimatedNotificationPreview()
+                AnimatedNotificationPreview(animate = false)
 
                 Text(
                     text = stringResource(R.string.permissions_title_push),

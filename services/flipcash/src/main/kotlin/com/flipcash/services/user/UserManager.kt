@@ -1,6 +1,5 @@
 package com.flipcash.services.user
 
-import com.bugsnag.android.Bugsnag
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.models.UserProfile
 import com.getcode.crypt.DerivePath
@@ -16,6 +15,7 @@ import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.services.opencode.BuildConfig
+import com.getcode.utils.TraceManager
 import com.getcode.utils.base58
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.messaging
@@ -182,10 +182,7 @@ class UserManager @Inject constructor(
 
     private fun associate() {
         if (!BuildConfig.DEBUG) {
-            if (Bugsnag.isStarted()) {
-                Bugsnag.setUser(accountId?.base58, null, "")
-            }
-
+            TraceManager.userId = accountId?.base58
             mixpanelAPI.identify(accountId?.base58)
         }
     }

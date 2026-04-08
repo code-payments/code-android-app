@@ -1,14 +1,13 @@
 package com.flipcash.app.onramp
 
-import android.net.Uri
 import androidx.core.net.toUri
 import com.coinbase.onramp.api.CoinbaseApi
-import com.coinbase.onramp.data.CoinbaseAddress
 import com.coinbase.onramp.data.OnRampApiConfig
 import com.coinbase.onramp.data.OnRampPaymentMethod
 import com.coinbase.onramp.data.OnRampPurchaseRequest
 import com.coinbase.onramp.data.OnRampPurchaseResponse
-import com.coinbase.onramp.data.SessionTokenRequest
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.services.models.GetJwtError
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.onramp.coinbase.BuildConfig
@@ -16,18 +15,21 @@ import com.getcode.network.jwt.ApiProvider
 import com.getcode.network.jwt.Jwt
 import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.base58
-import com.getcode.utils.base58
 import com.getcode.utils.base64
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
 import retrofit2.HttpException
-import java.net.URLEncoder
 import javax.inject.Inject
+
+typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
+
+private val json = Json { encodeDefaults = true }
 
 class OnRampController @Inject constructor(
     private val jwtProvider: OnRampJwtProvider,
@@ -35,29 +37,42 @@ class OnRampController @Inject constructor(
     private val api: CoinbaseApi,
     private val userManager: UserManager,
     private val exchange: Exchange,
+    private val featureFlags: FeatureFlagController,
 ) {
 
     suspend fun placeOrderInclusiveOfFees(
         amount: Fiat,
-    ): Result<OnRampPurchaseResponse.PaymentLink> {
+    ): Result<OrderWithPaymentLink> {
         val usdAmount = if (amount.currencyCode == CurrencyCode.USD) {
             amount.decimalValue.toInt().toString()
         } else {
-            val rate = exchange.rateToUsd(amount.currencyCode) ?: return Result.failure(Throwable("Exchange rate to USD not found"))
+            val rate = exchange.rateToUsd(amount.currencyCode)
+                ?: return Result.failure(Throwable("Exchange rate to USD not found"))
             amount.convertingTo(rate).decimalValue.toInt().toString()
         }
 
-        val userRef = userManager.accountId?.base64 ?: return Result.failure(Throwable("User ID not found"))
-        val destination = userManager.accountCluster?.usdfDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("Owner not found"))
+        val userRef = userManager.accountId?.base64
+            ?: return Result.failure(Throwable("User ID not found"))
+        val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
+
+        val destination = usdfSwapAccounts.ata.publicKey.base58()
 
         val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
 
         if (email == null || phone == null) {
-            return Result.failure(OnRampAuthError.VerificationRequired(phone = phone == null, email = email == null))
+            return Result.failure(
+                OnRampAuthError.VerificationRequired(
+                    phone = phone == null,
+                    email = email == null
+                )
+            )
         }
 
-        val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
+        val useSandbox = featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)
+        val partnerRef = if (useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.InclusiveOfFees(
             paymentAmount = usdAmount,
@@ -73,25 +88,37 @@ class OnRampController @Inject constructor(
 
     suspend fun placeOrderExclusiveOfFees(
         amount: Fiat,
-    ): Result<OnRampPurchaseResponse.PaymentLink> {
+    ): Result<OrderWithPaymentLink> {
         val usdAmount = if (amount.currencyCode == CurrencyCode.USD) {
             amount.decimalValue.toInt().toString()
         } else {
-            val rate = exchange.rateToUsd(amount.currencyCode) ?: return Result.failure(Throwable("Exchange rate to USD not found"))
+            val rate = exchange.rateToUsd(amount.currencyCode)
+                ?: return Result.failure(Throwable("Exchange rate to USD not found"))
             amount.convertingTo(rate).decimalValue.toInt().toString()
         }
 
-        val userRef = userManager.accountId?.base64 ?: return Result.failure(Throwable("User ID not found"))
-        val destination = userManager.accountCluster?.usdfDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("Owner not found"))
+        val userRef = userManager.accountId?.base64
+            ?: return Result.failure(Throwable("User ID not found"))
+        val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
+
+        val destination = usdfSwapAccounts.ata.publicKey.base58()
 
         val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
 
         if (email == null || phone == null) {
-            return Result.failure(OnRampAuthError.VerificationRequired(phone = phone == null, email = email == null))
+            return Result.failure(
+                OnRampAuthError.VerificationRequired(
+                    phone = phone == null,
+                    email = email == null
+                )
+            )
         }
 
-        val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
+        val useSandbox = featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)
+        val partnerRef = if (useSandbox) "sandbox-$userRef" else userRef
 
         val order = OnRampPurchaseRequest.ExclusiveOfFees(
             purchaseAmount = usdAmount,
@@ -105,42 +132,22 @@ class OnRampController @Inject constructor(
         return requestJwtAndPlaceOrder(order, onRampApiEndpoint)
     }
 
-    suspend fun generateLegacyOnRampUrl(
-        amount: Fiat,
-    ): Result<String> {
+    suspend fun lookupOrder(orderId: String): Result<OnRampPurchaseResponse.Order> {
+        val path = "${onRampApiEndpoint.path}/$orderId"
         return requestJwtAndExecute(
             scheme = onRampApiEndpoint.scheme,
             host = onRampApiEndpoint.host,
-            path = "onramp/v1/token",
-            method = onRampApiEndpoint.method,
-        ) { jwt ->
-            requestSessionToken(jwt) { token ->
-                val userRef = userManager.accountId?.base58 ?: return@requestSessionToken Result.failure(Throwable("User ID not found"))
-                val destination = userManager.accountCluster?.usdfDepositAddress?.base58() ?: return@requestSessionToken Result.failure(Throwable("Deposit address not found"))
-                val partnerRef = if (onRampApiEndpoint.useSandbox) "sandbox-$userRef" else userRef
-
-                val url = Uri.Builder()
-                    .scheme("https")
-                    .authority("pay.coinbase.com")
-                    .appendPath("buy")
-                    .appendPath("select-asset")
-                    .appendQueryParameter("sessionToken", token)
-                    .appendQueryParameter("addresses", buildJsonObject {
-                        put(destination, buildJsonArray { "solana" })
-                    }.toString())
-                    .appendQueryParameter("assets", buildJsonArray { "USDC" }.toString())
-                    .appendQueryParameter("presetCryptoAmount", amount.decimalValue.toString())
-                    .appendQueryParameter("partnerUserId", partnerRef)
-                    .appendQueryParameter("defaultPaymentMethod", "debit_card")
-                    .appendQueryParameter("fiatCurrency", amount.currencyCode.name)
-                    .appendQueryParameter("defaultExperience", "buy")
-                    .appendQueryParameter("redirectUrl", URLEncoder.encode("https://app.flipcash.com/purchase/success", "UTF-8"))
-                    .build()
-                    .toString()
-
-                Result.success(url)
+            path = path,
+            method = "GET",
+            call = { jwt ->
+                runCatching {
+                    api.getOrderById(
+                        url = "${onRampApiEndpoint.baseUrl}$path",
+                        jwt = "Bearer $jwt",
+                    )
+                }.map { it.order }
             }
-        }
+        )
     }
 
     private suspend fun <T> requestJwtAndExecute(
@@ -164,8 +171,18 @@ class OnRampController @Inject constructor(
             onSuccess = { call(it) },
             onFailure = { error ->
                 when (error) {
-                    is GetJwtError.EmailVerificationRequired -> Result.failure(OnRampAuthError.VerificationRequired(email = true))
-                    is GetJwtError.PhoneVerificationRequired -> Result.failure(OnRampAuthError.VerificationRequired(phone = true))
+                    is GetJwtError.EmailVerificationRequired -> Result.failure(
+                        OnRampAuthError.VerificationRequired(
+                            email = true
+                        )
+                    )
+
+                    is GetJwtError.PhoneVerificationRequired -> Result.failure(
+                        OnRampAuthError.VerificationRequired(
+                            phone = true
+                        )
+                    )
+
                     else -> Result.failure(error)
                 }
             }
@@ -175,7 +192,8 @@ class OnRampController @Inject constructor(
     private suspend fun requestJwtAndPlaceOrder(
         order: OnRampPurchaseRequest,
         endpoint: OnRampApiConfig,
-    ): Result<OnRampPurchaseResponse.PaymentLink> {
+    ): Result<OrderWithPaymentLink> {
+        val useSandbox = featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)
         return requestJwtAndExecute(
             scheme = endpoint.scheme,
             host = endpoint.host,
@@ -192,7 +210,7 @@ class OnRampController @Inject constructor(
                     response.copy(
                         paymentLink = response.paymentLink.copy(
                             url = response.paymentLink.url.let { url ->
-                                if (onRampApiEndpoint.useSandbox) {
+                                if (useSandbox) {
                                     url.toUri().buildUpon()
                                         .appendQueryParameter("useGooglePaySandbox", "true")
                                         .build()
@@ -207,39 +225,17 @@ class OnRampController @Inject constructor(
             }
         ).fold(
             onSuccess = { response ->
-                Result.success(response.paymentLink)
+                Result.success(response.order.orderId to response.paymentLink)
             },
             onFailure = { error ->
                 if (error is HttpException) {
                     val errorBody = error.response()?.errorBody()?.string()
                     if (errorBody != null) {
-                        val coinbaseError = Json.decodeFromString<CoinbaseOnRampApiError>(errorBody)
+                        val coinbaseError = json.decodeFromString<CoinbaseOnRampApiError>(errorBody)
                         return Result.failure(Throwable(coinbaseError.message))
                     }
                 }
 
-                Result.failure(error)
-            }
-        )
-    }
-
-    private suspend fun requestSessionToken(
-        jwt: Jwt,
-        block: (String) -> Result<String>
-    ): Result<String> {
-        val destination = userManager.accountCluster?.usdfDepositAddress?.base58() ?: return Result.failure(Throwable("Deposit address not found"))
-        val blockchain = "solana"
-        val addresses = listOf(CoinbaseAddress(destination, blockchain))
-        return runCatching {
-            api.generateSessionToken(
-                jwt = "Bearer $jwt",
-                request = SessionTokenRequest(addresses)
-            )
-        }.fold(
-            onSuccess = { response ->
-               block(response.token)
-            },
-            onFailure = { error ->
                 Result.failure(error)
             }
         )
@@ -250,12 +246,15 @@ sealed class OnRampAuthError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : Throwable(message, cause) {
-    class VerificationRequired(val phone: Boolean = false, val email: Boolean = false): OnRampAuthError(message = "Verification required :: phone: $phone, email: $email")
-    class CoinbasePhoneVerificationRequired(val url: String) : OnRampAuthError("Phone verification required from Coinbase")
+    class VerificationRequired(val phone: Boolean = false, val email: Boolean = false) :
+        OnRampAuthError(message = "Verification required :: phone: $phone, email: $email")
+
+    class CoinbasePhoneVerificationRequired(val url: String) :
+        OnRampAuthError("Phone verification required from Coinbase")
 }
 
 @Serializable
 data class CoinbaseOnRampApiError(
     val code: String,
     override val message: String,
-): Throwable(message = message)
+) : Throwable(message = message)

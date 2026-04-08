@@ -136,7 +136,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         ) : OnRamp
 
         @Serializable
-        data class AmountEntry(val mint: Mint? = null) : OnRamp
+        data class AmountEntry(val mint: Mint) : OnRamp
     }
 
     @Serializable

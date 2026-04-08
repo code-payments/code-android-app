@@ -11,8 +11,6 @@ import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -43,8 +41,6 @@ class PhoneVerificationViewModelErrorTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
         every { resources.getString(R.string.error_title_failedToSendCodeToPhone) } returns "error_title_failedToSendCodeToPhone"
         every { resources.getString(R.string.error_description_failedToSendCodeToPhone) } returns "error_description_failedToSendCodeToPhone"
@@ -59,7 +55,6 @@ class PhoneVerificationViewModelErrorTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     private fun createViewModel(): PhoneVerificationViewModel {

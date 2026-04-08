@@ -32,7 +32,6 @@ object CoinbaseModule {
         host = "api.cdp.coinbase.com/platform/",
         path = "/v2/onramp/orders",
         method = "POST",
-        useSandbox = true // for now
     )
 
     @Singleton

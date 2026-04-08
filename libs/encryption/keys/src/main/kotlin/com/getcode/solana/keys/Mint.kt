@@ -1,10 +1,10 @@
 package com.getcode.solana.keys
 
-import com.getcode.utils.serializer.PublicKeyAsStringSerializer
+import com.getcode.utils.serializer.MintAsStringSerializer
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 
-@Serializable(with = PublicKeyAsStringSerializer::class)
+@Serializable(with = MintAsStringSerializer::class)
 class Mint(bytes: List<Byte>): PublicKey(bytes) {
     constructor(base58: String) : this(Base58.decode(base58).toList())
 

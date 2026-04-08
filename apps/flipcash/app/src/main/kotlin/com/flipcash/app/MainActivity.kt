@@ -55,7 +55,6 @@ import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.LocalCurrencyUtils
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.compose.ext.Rinku
@@ -186,8 +185,6 @@ private fun Activity.handleUncaughtException() {
     if (intent.getBooleanExtra(crashedKey, false)) return
     Thread.setDefaultUncaughtExceptionHandler { _, throwable ->
         if (BuildConfig.DEBUG) throw throwable
-
-        FirebaseCrashlytics.getInstance().recordException(throwable)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra(crashedKey, true)

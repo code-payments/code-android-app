@@ -15,6 +15,15 @@ import com.getcode.utils.NotifiableError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
+/**
+ * Transactor for the **grab** side of a peer-to-peer cash bill.
+ *
+ * Lifecycle: call [with] to set the owner and scanned payload, then
+ * [start] to claim the bill from the sender. For multi-mint payloads
+ * this involves polling the rendezvous stream, creating a token account
+ * if needed, and sending the grab request back. Call [dispose] to tear
+ * down state when finished.
+ */
 internal class GrabBillTransactor(
     private val accountController: AccountController,
     private val messagingController: MessagingController,
@@ -25,6 +34,7 @@ internal class GrabBillTransactor(
     private var owner: AccountCluster? = null
     private var payload: OpenCodePayload? = null
 
+    /** Configures this transactor with the owner and scanned payload. Must be called before [start]. */
     fun with(owner: AccountCluster, payload: OpenCodePayload) {
         this.owner = owner
         this.payload = payload
@@ -72,6 +82,7 @@ internal class GrabBillTransactor(
         }
     }
 
+    /** Cancels the coroutine scope and clears all held state. */
     fun dispose() {
         owner = null
         payload = null

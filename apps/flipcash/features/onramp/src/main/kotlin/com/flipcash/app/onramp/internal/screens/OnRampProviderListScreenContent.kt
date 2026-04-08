@@ -34,6 +34,7 @@ import com.flipcash.app.onramp.internal.data.OnRampProviderItem
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.onramp.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.ui.core.rememberedClickable
@@ -145,7 +146,7 @@ private fun ProviderCellPreview() {
                 OnRampProviderCell(
                     provider = OnRampProviderItem(
                         provider = it,
-                        destination = OnRampProviderDestination.Screen(AppRoute.OnRamp.AmountEntry()),
+                        destination = OnRampProviderDestination.Screen(AppRoute.OnRamp.AmountEntry(Mint.usdf)),
                     ),
                 ) { }
             }

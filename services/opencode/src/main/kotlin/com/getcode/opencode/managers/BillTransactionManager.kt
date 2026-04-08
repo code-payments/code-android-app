@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.AccountClusterFactory
+import com.getcode.opencode.internal.transactors.BillPresentationData
 import com.getcode.opencode.internal.transactors.GiveBillTransactor
 import com.getcode.opencode.internal.transactors.GrabBillTransactor
 import com.getcode.opencode.internal.transactors.PayloadFactory
@@ -34,6 +35,17 @@ import javax.inject.Singleton
 import kotlin.concurrent.schedule
 import kotlin.time.Duration
 
+/**
+ * Coordinates the four bill transaction flows by owning transactor lifecycles
+ * and bridging between the UI layer ([BillController]) and the lower-level
+ * transactors.
+ *
+ * Flows managed:
+ * - **Give bill** ([awaitGrabFromRecipient]) — present a cash bill and wait for a scan.
+ * - **Grab bill** ([attemptGrabFromSender]) — claim a scanned bill from a sender.
+ * - **Send cash link** ([fundGiftCard]) — fund a gift card for remote sending.
+ * - **Receive cash link** ([receiveGiftCard]) — claim a gift card via entropy.
+ */
 @Singleton
 class BillTransactionManager @Inject constructor(
     private val accountController: AccountController,
@@ -59,13 +71,26 @@ class BillTransactionManager @Inject constructor(
 
     val sharedScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    /**
+     * Starts the **give** flow: creates a [GiveBillTransactor], generates a
+     * rendezvous payload, calls [present] with the [BillPresentationData] so the
+     * UI can display the scannable code, then blocks until a recipient grabs it.
+     *
+     * @param nonce optional nonce to reuse from a prior presentation of the same
+     *   bill (e.g. after a cancelled share-sheet).
+     * @param present callback invoked with the payload data + nonce for UI display.
+     * @param onGrabbed called with the grabbed amount on successful transfer.
+     * @param onTimeout called if the bill expires before being grabbed.
+     * @param onError called on any transactor failure.
+     */
     fun awaitGrabFromRecipient(
         token: Token,
         amount: LocalFiat,
         owner: AccountCluster,
         verifiedState: VerifiedState?,
         billExchangeDataTimeout: Duration?,
-        present:  (List<Byte>) -> Unit,
+        nonce: List<Byte>? = null,
+        present: (BillPresentationData) -> Unit,
         onGrabbed: suspend (LocalFiat) -> Unit,
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit,
@@ -83,12 +108,12 @@ class BillTransactionManager @Inject constructor(
                 verifiedProtoManager = verifiedProtoManager,
                 payloadFactory = payloadFactory,
             ).apply {
-                with(token, amount, owner, billExchangeDataTimeout, verifiedState)
+                with(token, amount, owner, billExchangeDataTimeout, verifiedState, nonce)
             }
 
             giveTransactor = transactor
 
-            present(transactor.data)
+            present(transactor.presentationData)
             presentBillForGive(onTimeout)
 
             transactor.start()
@@ -103,6 +128,14 @@ class BillTransactionManager @Inject constructor(
         }
     }
 
+    /**
+     * Starts the **grab** flow: creates a [GrabBillTransactor] for the scanned
+     * [payload] and attempts to claim the bill from the sender.
+     *
+     * @param onGrabbed called with the token, amount, and optional verified state
+     *   once the grab completes.
+     * @param onError called on any transactor failure.
+     */
     fun attemptGrabFromSender(
         owner: AccountCluster,
         payload: OpenCodePayload,
@@ -160,6 +193,13 @@ class BillTransactionManager @Inject constructor(
         }
     }
 
+    /**
+     * Starts the **send cash link** flow: creates a [SendGiftCardTransactor] and
+     * submits a remote-send intent to fund the [giftCard] on-chain.
+     *
+     * @param onFunded called with the funded amount on success.
+     * @param onError called on any transactor failure.
+     */
     fun fundGiftCard(
         giftCard: GiftCardAccount,
         amount: LocalFiat,
@@ -188,6 +228,15 @@ class BillTransactionManager @Inject constructor(
         }
     }
 
+    /**
+     * Starts the **receive cash link** flow: creates a [ReceiveGiftCardTransactor]
+     * and attempts to claim the gift card identified by [entropy].
+     *
+     * @param claimIfOwned when `true`, allows the issuer to reclaim their own
+     *   gift card.
+     * @param onReceived called with the token and amount on success.
+     * @param onError called on any transactor failure.
+     */
     fun receiveGiftCard(
         owner: AccountCluster,
         entropy: String,

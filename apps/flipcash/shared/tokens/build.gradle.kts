@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))
 }

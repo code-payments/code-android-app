@@ -2,6 +2,7 @@ package com.flipcash.app.advanced.internal
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -28,4 +29,12 @@ internal data object Deposit : FullMenuItem<AdvancedFeaturesScreenViewModel.Even
     override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenScreen(
         AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit)
     )
+}
+
+internal data object ExportLogs : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Share)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_exportLogs)
+    override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.ExportLogs
 }

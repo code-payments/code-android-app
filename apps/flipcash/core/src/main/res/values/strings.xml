@@ -3,9 +3,9 @@
     <string name="action_createNewAccount">Create a New Account</string>
     <string name="title_enterAccessKeyWords">Enter Access Key</string>
     <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Flipcash</string>
-    <string name="title_cantFindYourAccessKey">Can\’t Find Your Access Key?</string>
+    <string name="title_cantFindYourAccessKey">Can\'t Find Your Access Key?</string>
     <string name="action_openPhotos">Open Photos</string>
-    <string name="description_cantFindYourAccessKey">Go to your photos app and search ‘Flipcash’</string>
+    <string name="description_cantFindYourAccessKey">Go to your photos app and search \'Flipcash\'</string>
     <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Flipcash</string>
     <string name="prompt_title_notFlipcashAccount">Not a Flipcash Account</string>
     <string name="prompt_description_notFlipcashAccount">Only accounts created through Flipcash are currently supported</string>
@@ -145,7 +145,7 @@
     <string name="title_enterAddress">Enter address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
 
-    <string name="error_title_destinationAccountNotInitialized">Destination Account Not Initialized\nPlease make sure the address you’re withdrawing to has been initialized by your wallet provider. A quick way to do this is to make sure there is already some USDC in the address you’re trying to withdraw to</string>
+    <string name="error_title_destinationAccountNotInitialized">Destination Account Not Initialized\nPlease make sure the address you\'re withdrawing to has been initialized by your wallet provider. A quick way to do this is to make sure there is already some USDC in the address you\'re trying to withdraw to</string>
     <string name="error_title_invalidAddress">Invalid address</string>
 
     <string name="action_withdraw">Withdraw</string>
@@ -154,7 +154,7 @@
 
     <string name="prompt_description_confirmWithdrawal">Withdrawals are irreversible and cannot be undone once initiated</string>
     <string name="prompt_title_learnAboutWithdrawalFee">What Is This Fee?</string>
-    <string name="prompt_description_learnAboutWithdrawalFee">The account you’re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you’re withdrawing</string>
+    <string name="prompt_description_learnAboutWithdrawalFee">The account you\'re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you\'re withdrawing</string>
     <string name="error_title_withdrawalTooSmall">Withdrawal Amount Too Small</string>
     <string name="error_description_withdrawalTooSmall">Your withdrawal amount is too small to cover the one time fee. Please try a different amount</string>
     <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
@@ -193,7 +193,7 @@
     <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>
 
     <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
-    <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough funds to complete this payment</string>
+    <string name="error_description_paymentFailedDueToInsufficientFunds">You don\'t have enough funds to complete this payment</string>
 
     <plurals name="subtitle_personCount">
         <item quantity="zero">0 people</item>
@@ -214,7 +214,7 @@
     <string name="title_addCashToWallet">Add cash to your Flipcash wallet</string>
     <string name="action_addMoreCash">Add More Cash</string>
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
-    <string name="title_tapBelowToAddCashWallet">You don’t have any cash yet.\nTap below to add cash to your wallet</string>
+    <string name="title_tapBelowToAddCashWallet">You don\'t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
     <string name="description_noBalanceYet">Get another Flipcash user to give you some cash to get a balance</string>
     <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
@@ -299,7 +299,8 @@
     <string name="action_unlinkEmail">Unlink Email</string>
 
     <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
-    <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>"
+    <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>
+    "
 
     <string name="title_email">Email</string>
     <string name="action_openMail">Open Mail</string>
@@ -363,6 +364,7 @@
     <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 
     <string name="title_billCustomizer">Bill Creator</string>
+    <string name="title_exportLogs">Export Logs</string>
 
     <string name="error_title_CashReturnedToWallet">Something Went Wrong</string>
     <string name="error_description_CashReturnedToWallet">The cash was returned to your wallet</string>
@@ -421,6 +423,9 @@
     <string name="error_title_buySellFailed">Something Went Wrong</string>
     <string name="error_description_buySellFailed">Please try again</string>
 
+    <string name="error_title_sellFailedDueToBeingTooLow">Amount Too Low</string>
+    <string name="error_description_sellFailedDueToBeingTooLow">The amount you entered is too small to cover the required transaction fee. Please enter a larger amount</string>
+
     <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
     <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
 
@@ -462,4 +467,62 @@
     <string name="subtitle_settingsUserFlags">User Flags</string>
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>
+
+    <string name="error_title_onrampInvalidCard">Debit Cards Only</string>
+    <string name="error_description_onrampInvalidCard">The transaction was declined. Please make sure you are using a debit card and the billing address is correct</string>
+
+    <string name="error_title_onrampTransactionLimit">Weekly Limit Exceeded</string>
+    <string name="error_description_onrampTransactionLimit">You can only add up to $1,000 per week</string>
+
+    <string name="error_title_onrampTransactionCount">Maximum Purchases Reached</string>
+    <string name="error_description_onrampTransactionCount">Each user is limited to 15 purchases total. To add more funds, you will need to purchase USDC on an exchange and deposit it into Flipcash</string>
+
+    <string name="error_title_onrampCardRiskDeclined">Something Went Wrong</string>
+    <string name="error_description_onrampCardRiskDeclined">Please contact support@flipcash.com</string>
+
+    <string name="error_title_onrampCardPermissionDenied">Something Went Wrong</string>
+    <string name="error_description_onrampCardPermissionDenied">Please contact support@flipcash.com</string>
+
+    <string name="error_title_onrampRegionMismatch">Your Region Isn\'t Supported</string>
+    <string name="error_description_onrampRegionMismatch">This feature isn\'t currently available in your region</string>
+
+    <string name="error_title_onrampNetworkNotTradable">Your Region Isn\'t Supported</string>
+    <string name="error_description_onrampNetworkNotTradable">This feature isn\'t currently available in your region</string>
+
+    <string name="error_title_onrampRegionForbidden">Your Region Isn\'t Supported</string>
+    <string name="error_description_onrampRegionForbidden">This feature isn\'t currently available in your region</string>
+
+    <string name="error_title_onrampCardSoftDeclined">Card Declined</string>
+    <string name="error_description_onrampCardSoftDeclined">Your purchase was declined by your bank. Please contact your bank or try again with a different card</string>
+
+    <string name="error_title_onrampCardHardDeclined">Card Declined</string>
+    <string name="error_description_onrampCardHardDeclined">Your purchase was declined by your bank. Please contact your bank or try again with a different card</string>
+
+    <string name="error_title_onrampTransactionBuyFailed">Card Declined</string>
+    <string name="error_description_onrampTransactionBuyFailed">Your purchase was declined by your bank. Please contact your bank or try again with a different card</string>
+
+    <string name="error_title_onrampCardInsufficientBalance">Insufficient Funds</string>
+    <string name="error_description_onrampCardInsufficientBalance">Please make sure you have enough funds in the account tied to your debit card and try again</string>
+
+    <string name="error_title_onrampCardPrepaidDeclined">Card Not Supported</string>
+    <string name="error_description_onrampCardPrepaidDeclined">Prepaid debit cards are not supported. Please try again with another debit card</string>
+
+    <string name="error_title_onrampTransactionAvsValidationFailed">Billing Address Invalid</string>
+    <string name="error_description_onrampTransactionAvsValidationFailed">Please check that your billing address is correct and try again</string>
+
+    <string name="error_title_onrampTransactionFailed">Something Went Wrong</string>
+    <string name="error_description_onrampTransactionFailed">The Coinbase team has been notified and is investigating the issue. Your funds will arrive once resolved. We appreciate your patience</string>
+
+    <string name="error_title_onrampInternal">Something Went Wrong</string>
+    <string name="error_description_onrampInternal">The Coinbase team has been notified and is investigating the issue. Your funds will arrive once resolved. We appreciate your patience</string>
+
+    <string name="error_title_onrampTransactionSendFailed">Something Went Wrong</string>
+    <string name="error_description_onrampTransactionSendFailed">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
+
+    <string name="error_title_onrampInvalidRequest">Something Went Wrong</string>
+    <string name="error_description_onrampInvalidRequest">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
+
+    <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
+    <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
+
 </resources>

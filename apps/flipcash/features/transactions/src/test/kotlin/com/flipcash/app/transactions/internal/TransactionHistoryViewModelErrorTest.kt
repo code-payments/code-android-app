@@ -14,8 +14,6 @@ import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -50,8 +48,6 @@ class TransactionHistoryViewModelErrorTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
         every { userManager.accountCluster } returns accountCluster
         every { resources.getString(R.string.error_title_failedToCancelTransfer) } returns "error_title_failedToCancelTransfer"
@@ -61,7 +57,6 @@ class TransactionHistoryViewModelErrorTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
-        unmockkStatic("com.getcode.utils.LoggingKt")
     }
 
     private fun createViewModel(): TransactionHistoryViewModel {

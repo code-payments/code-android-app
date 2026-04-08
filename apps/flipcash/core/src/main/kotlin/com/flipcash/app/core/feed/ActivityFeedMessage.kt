@@ -4,9 +4,9 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.Instant
 
 data class ActivityFeedMessageWithToken(
     val message: ActivityFeedMessage,

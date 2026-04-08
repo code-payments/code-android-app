@@ -1,5 +1,6 @@
 package com.getcode.utils.serializer
 
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -71,6 +72,15 @@ class SerializerTest {
         val json = Json.encodeToString(original)
         val decoded = Json.decodeFromString<PublicKeyWrapper>(json)
         assertEquals(original.key, decoded.key)
+    }
+
+    @Test
+    fun mintSerializerRoundtrip() {
+        val mint = Mint.usdf
+        val json = Json.encodeToString(mint)
+        val decoded = Json.decodeFromString<Mint>(json)
+        assertEquals(mint.bytes, decoded.bytes)
+        assertTrue(decoded is Mint, "Deserialized value should be Mint, not just PublicKey")
     }
 
     @Test

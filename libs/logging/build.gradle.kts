@@ -24,11 +24,12 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
+
     api(libs.timber)
-    implementation(libs.bugsnag)
+    implementation(libs.androidx.annotation)
     implementation(libs.rxjava)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
     implementation(libs.grpc.kotlin)
     implementation(project(":libs:messaging"))
 }

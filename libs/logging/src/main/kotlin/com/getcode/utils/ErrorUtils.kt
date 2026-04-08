@@ -1,8 +1,6 @@
 package com.getcode.utils
 
 import android.database.SQLException
-import com.bugsnag.android.Bugsnag
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.manager.TopBarManager
 import io.grpc.Status
@@ -17,6 +15,10 @@ import java.util.concurrent.TimeoutException
 
 object ErrorUtils {
     private var isDisplayErrors = false
+    private val reporters = mutableListOf<ErrorReporter>()
+
+    fun addReporter(reporter: ErrorReporter) { reporters.add(reporter) }
+    fun removeReporter(reporter: ErrorReporter) { reporters.remove(reporter) }
 
     fun setDisplayErrors(isDisplayErrors: Boolean) {
         ErrorUtils.isDisplayErrors = isDisplayErrors
@@ -63,34 +65,11 @@ object ErrorUtils {
             ignoredErrors.none { it.isInstance(throwable) } &&
             ignoredErrors.none { it.isInstance(throwableCause) }
         ) {
-            FirebaseCrashlytics.getInstance().recordException(throwable)
-            if (Bugsnag.isStarted()) {
-                Bugsnag.notify(throwable) { event ->
-                    val isNotifiable = throwable is NotifiableError
-                            || throwableCause is NotifiableError
-                            || throwableCause !is CodeServerError
-                    if (isNotifiable) {
-                        event.addMetadata("alert", "slack_notify", true)
-                        event.addMetadata("alert", "error_type", throwableCause.javaClass.simpleName)
-                        event.addMetadata("alert", "error_family", throwableCause.javaClass.enclosingClass?.simpleName ?: "Unknown")
-                    }
-                    true
-                }
-            }
-        }
-    }
+            val isNotifiable = throwable is NotifiableError
+                || throwableCause is NotifiableError
+                || throwableCause !is CodeServerError
 
-    fun notifyUnexpected(throwable: Throwable, context: String? = null) {
-        if (!BuildConfig.NOTIFY_ERRORS) return
-        Timber.e(throwable)
-        FirebaseCrashlytics.getInstance().recordException(throwable)
-        if (Bugsnag.isStarted()) {
-            Bugsnag.notify(throwable) { event ->
-                event.addMetadata("alert", "slack_notify", true)
-                event.addMetadata("alert", "error_type", throwable.javaClass.simpleName)
-                context?.let { event.addMetadata("alert", "context", it) }
-                true
-            }
+            reporters.forEach { it.report(throwable, throwableCause, isNotifiable) }
         }
     }
 

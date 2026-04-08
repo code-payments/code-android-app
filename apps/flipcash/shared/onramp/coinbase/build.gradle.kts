@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.androidx.localbroadcastmanager)
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:web"))
     api(project(":libs:network:coinbase:onramp"))
     implementation(project(":libs:network:jwt"))

@@ -68,8 +68,6 @@ dependencies {
     ksp(libs.hilt.android.compiler)
     ksp(libs.hilt.compiler)
 
-    implementation(libs.bugsnag)
-
     implementation(libs.event.bus)
 
     testImplementation(kotlin("test"))

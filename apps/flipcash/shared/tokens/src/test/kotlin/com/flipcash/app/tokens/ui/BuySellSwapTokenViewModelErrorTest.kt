@@ -61,8 +61,6 @@ class BuySellSwapTokenViewModelErrorTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-        mockkStatic("com.getcode.utils.LoggingKt")
-        every { com.getcode.utils.trace(any(), any(), any(), any(), any()) } returns Unit
 
         // Mock PublicKey.generate() to prevent Ed25519 native lib load
         // (TransactionController.buy default param evaluates SwapFundingSource.SubmitIntent which calls Ed25519)
@@ -80,7 +78,6 @@ class BuySellSwapTokenViewModelErrorTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
-        unmockkStatic("com.getcode.utils.LoggingKt")
         unmockkStatic("com.getcode.opencode.utils.PublicKeyKt")
     }
 

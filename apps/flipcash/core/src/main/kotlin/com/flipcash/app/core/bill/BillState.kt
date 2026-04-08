@@ -124,6 +124,7 @@ sealed interface Bill {
         override val data: List<Byte> = emptyList(),
         val kind: Kind = Kind.cash,
         val verifiedState: VerifiedState? = null,
+        val nonce: List<Byte> = emptyList(),
     ) : Bill {
         override val canFlip: Boolean = false
     }

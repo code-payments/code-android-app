@@ -95,20 +95,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            header = if (state.showQuickActions) {
-                {
-                    AddCashRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = CodeTheme.dimens.inset,
-                                vertical = CodeTheme.dimens.grid.x4,
-                            ),
-                        onAddCash = { viewModel.dispatchEvent(MenuScreenViewModel.Event.OnAddCashClicked) },
-                        onWithdraw = { viewModel.dispatchEvent(MenuScreenViewModel.Event.OnWithdrawClicked) },
-                    )
-                }
-            } else null,
             items = state.items,
             contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x6),
             onItemClick = {
