@@ -1,6 +1,5 @@
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -12,7 +11,6 @@ plugins {
     alias(libs.plugins.navigation.safeargs)
     id("dagger.hilt.android.plugin")
     alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
     alias(libs.plugins.bugsnag.gradle)
     alias(libs.plugins.secrets)
@@ -65,9 +63,6 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = true
-            }
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
@@ -85,9 +80,6 @@ android {
                 )
             }
 
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanStrictOrNull() ?: false
-            }
         }
     }
 
@@ -256,7 +248,6 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.messaging)
 
     implementation(libs.mixpanel)
