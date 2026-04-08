@@ -25,6 +25,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlin.time.Duration
 
+/**
+ * Transactor for the **give** side of a peer-to-peer cash bill.
+ *
+ * Lifecycle: call [with] to configure the bill parameters and generate
+ * a rendezvous payload, then [start] to advertise the bill on the
+ * messaging stream and block until a recipient grabs it and the on-chain
+ * transfer completes. Call [dispose] to tear down the coroutine scope
+ * and clear state when the bill is dismissed or times out.
+ */
 internal class GiveBillTransactor(
     private val currencyController: CurrencyController,
     private val messagingController: MessagingController,
@@ -43,15 +52,23 @@ internal class GiveBillTransactor(
 
     private var providedVerifiedState: VerifiedState? = null
 
-    var data: List<Byte> = emptyList()
+    var presentationData: BillPresentationData = BillPresentationData(emptyList(), emptyList())
         private set
 
+    /**
+     * Configures this transactor for a new bill and generates the rendezvous
+     * payload. Must be called before [start].
+     *
+     * @param providedNonce optional nonce to reuse from a previous presentation
+     *   of the same bill. When `null` a fresh random nonce is generated.
+     */
     fun with(
         token: Token,
         amount: LocalFiat,
         owner: AccountCluster,
         billExchangeDataTimeout: Duration?,
-        verifiedState: VerifiedState?
+        verifiedState: VerifiedState?,
+        providedNonce: List<Byte>? = null,
     ) {
         this.token = token
         this.amount = amount
@@ -61,14 +78,16 @@ internal class GiveBillTransactor(
 
         receivingAccount = null
 
+        val resolvedNonce = providedNonce ?: nonce
+
         val payloadResult = payloadFactory.create(
             kind = PayloadKind.MultiMintCash,
             value = amount.nativeAmount,
-            nonce = nonce
+            nonce = resolvedNonce
         )
 
         rendezvousKey = payloadResult.rendezvous
-        data = payloadResult.codeData
+        presentationData = BillPresentationData(data = payloadResult.codeData, nonce = resolvedNonce)
     }
 
     /**
@@ -196,13 +215,14 @@ internal class GiveBillTransactor(
         )
     }
 
+    /** Cancels the coroutine scope and clears all held state. */
     fun dispose() {
         owner = null
-        data = emptyList()
+        presentationData = BillPresentationData(emptyList(), emptyList())
         rendezvousKey = null
         receivingAccount = null
         token = null
-
+        providedVerifiedState = null
         scope.cancel()
     }
 

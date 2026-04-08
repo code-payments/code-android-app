@@ -24,10 +24,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import io.mockk.slot
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -145,7 +148,100 @@ class GiveBillTransactorTest {
         transactor.dispose()
 
         // After dispose, data should be empty
-        assertTrue(transactor.data.isEmpty())
+        assertTrue(transactor.presentationData.data.isEmpty())
+    }
+
+    // endregion
+
+    // region nonce reuse
+
+    @Test
+    fun `with() uses provided nonce and passes it to payload factory`() = runTest {
+        val capturedNonce = slot<List<Byte>>()
+        val factory = PayloadFactory { _, _, nonce ->
+            capturedNonce.captured = nonce
+            PayloadResult(rendezvous = mockk(relaxed = true), codeData = listOf(1, 2, 3))
+        }
+
+        val transactor = GiveBillTransactor(
+            currencyController = currencyController,
+            messagingController = messagingController,
+            transactionController = transactionController,
+            scope = this,
+            verifiedProtoManager = verifiedProtoManager,
+            payloadFactory = factory,
+        )
+
+        val providedNonce = listOf<Byte>(10, 20, 30, 40)
+        setupWith(transactor, nonce = providedNonce)
+
+        assertEquals(providedNonce, capturedNonce.captured)
+        assertEquals(providedNonce, transactor.presentationData.nonce)
+    }
+
+    @Test
+    fun `with() generates fresh nonce when none provided`() = runTest {
+        val transactor = createTransactor(this)
+        setupWith(transactor)
+
+        assertTrue(transactor.presentationData.nonce.isNotEmpty())
+    }
+
+    @Test
+    fun `calling with() twice with same nonce produces same usedNonce`() = runTest {
+        val capturedNonces = mutableListOf<List<Byte>>()
+        val factory = PayloadFactory { _, _, nonce ->
+            capturedNonces.add(nonce)
+            PayloadResult(rendezvous = mockk(relaxed = true), codeData = listOf(1, 2, 3))
+        }
+
+        val transactor = GiveBillTransactor(
+            currencyController = currencyController,
+            messagingController = messagingController,
+            transactionController = transactionController,
+            scope = this,
+            verifiedProtoManager = verifiedProtoManager,
+            payloadFactory = factory,
+        )
+
+        val nonce = listOf<Byte>(10, 20, 30, 40)
+        setupWith(transactor, nonce = nonce)
+        setupWith(transactor, nonce = nonce)
+
+        assertEquals(2, capturedNonces.size)
+        assertEquals(capturedNonces[0], capturedNonces[1])
+    }
+
+    @Test
+    fun `calling with() twice without nonce produces different nonces`() = runTest {
+        val capturedNonces = mutableListOf<List<Byte>>()
+        val factory = PayloadFactory { _, _, nonce ->
+            capturedNonces.add(nonce)
+            PayloadResult(rendezvous = mockk(relaxed = true), codeData = listOf(1, 2, 3))
+        }
+
+        val transactor1 = GiveBillTransactor(
+            currencyController = currencyController,
+            messagingController = messagingController,
+            transactionController = transactionController,
+            scope = this,
+            verifiedProtoManager = verifiedProtoManager,
+            payloadFactory = factory,
+        )
+        val transactor2 = GiveBillTransactor(
+            currencyController = currencyController,
+            messagingController = messagingController,
+            transactionController = transactionController,
+            scope = this,
+            verifiedProtoManager = verifiedProtoManager,
+            payloadFactory = factory,
+        )
+
+        setupWith(transactor1)
+        setupWith(transactor2)
+
+        assertEquals(2, capturedNonces.size)
+        assertNotEquals(capturedNonces[0], capturedNonces[1])
     }
 
     // endregion
@@ -155,6 +251,7 @@ class GiveBillTransactorTest {
     private fun setupWith(
         transactor: GiveBillTransactor,
         verifiedState: VerifiedState? = null,
+        nonce: List<Byte>? = null,
     ) {
         val token = mockk<Token>(relaxed = true) {
             every { address } returns Mint.usdf
@@ -177,6 +274,7 @@ class GiveBillTransactorTest {
             owner = owner,
             billExchangeDataTimeout = null,
             verifiedState = verifiedState,
+            providedNonce = nonce,
         )
     }
 

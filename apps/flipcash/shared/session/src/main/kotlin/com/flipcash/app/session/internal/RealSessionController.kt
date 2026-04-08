@@ -358,6 +358,7 @@ class RealSessionController @Inject constructor(
             amount = bill.amount,
             token = bill.token,
             verifiedState = (bill as? Bill.Cash)?.verifiedState,
+            nonce = (bill as? Bill.Cash)?.nonce?.takeIf { it.isNotEmpty() },
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
@@ -383,7 +384,7 @@ class RealSessionController @Inject constructor(
                     message = resources.getString(R.string.error_description_CashReturnedToWallet)
                 )
             },
-            present = { data ->
+            present = { (data, nonce) ->
                 if (!bill.didReceive) {
                     trace(
                         tag = "Session",
@@ -398,7 +399,7 @@ class RealSessionController @Inject constructor(
                         type = TraceType.User,
                     )
                 }
-                presentBillToUser(data, bill)
+                presentBillToUser(data, nonce, bill)
             },
         )
     }
@@ -818,7 +819,7 @@ class RealSessionController @Inject constructor(
         )
     }
 
-    private fun presentBillToUser(data: List<Byte>, bill: Bill) {
+    private fun presentBillToUser(data: List<Byte>, nonce: List<Byte>, bill: Bill) {
         if (billController.state.value.bill != null) return
 
         billController.update {
@@ -830,6 +831,7 @@ class RealSessionController @Inject constructor(
                     confirmationDelay = bill.confirmationDelay,
                     token = bill.token,
                     verifiedState = (bill as? Bill.Cash)?.verifiedState,
+                    nonce = nonce,
                 ),
                 valuation = PaymentValuation(bill.amount.nativeAmount),
             )

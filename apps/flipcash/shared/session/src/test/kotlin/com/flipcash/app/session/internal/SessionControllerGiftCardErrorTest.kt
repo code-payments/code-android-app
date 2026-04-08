@@ -170,6 +170,7 @@ class SessionControllerGiftCardErrorTest {
                 token = any(),
                 owner = any(),
                 verifiedState = any(),
+                nonce = any(),
                 present = any(),
                 onGrabbed = any(),
                 onTimeout = any(),

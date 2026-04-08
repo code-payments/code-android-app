@@ -14,6 +14,13 @@ import com.getcode.opencode.utils.nonce
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 
+/**
+ * Transactor for **sending a cash link** (gift card).
+ *
+ * Lifecycle: call [with] to set the gift card account, amount, token,
+ * and owner, then [start] to submit the remote-send intent that funds
+ * the gift card on-chain. Call [dispose] to clear state when finished.
+ */
 internal class SendGiftCardTransactor(
     private val transactionController: TransactionController,
     private val payloadFactory: PayloadFactory,
@@ -25,6 +32,7 @@ internal class SendGiftCardTransactor(
 
     private var rendezvousKey: KeyPair? = null
 
+    /** Configures this transactor for a new gift card send. Must be called before [start]. */
     fun with(giftCard: GiftCardAccount, amount: LocalFiat, token: Token, owner: AccountCluster) {
         this.giftCardAccount = giftCard
         this.token = token
@@ -84,6 +92,7 @@ internal class SendGiftCardTransactor(
 
     }
 
+    /** Clears all held state. */
     fun dispose() {
         amount = null
         giftCardAccount = null

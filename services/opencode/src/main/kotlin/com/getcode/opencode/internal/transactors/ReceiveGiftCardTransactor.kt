@@ -18,6 +18,14 @@ import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.timedTraceSuspend
 
+/**
+ * Transactor for **receiving (claiming) a cash link** (gift card).
+ *
+ * Lifecycle: call [with] to set the owner and gift card entropy, then
+ * [start] to look up the gift card on-chain, validate eligibility, and
+ * transfer the balance into the receiver's vault. Call [dispose] to
+ * clear state when finished.
+ */
 internal class ReceiveGiftCardTransactor(
     private val accountController: AccountController,
     private val transactionController: TransactionController,
@@ -32,6 +40,7 @@ internal class ReceiveGiftCardTransactor(
 
     private var giftCardOwner: AccountCluster? = null
 
+    /** Configures this transactor with the owner and gift card entropy. Must be called before [start]. */
     fun with(owner: AccountCluster, entropy: String) {
         this.owner = owner
         mnemonic = mnemonicManager.fromEntropyBase58(entropy)
@@ -145,6 +154,7 @@ internal class ReceiveGiftCardTransactor(
         }
     }
 
+    /** Clears all held state. */
     fun dispose() {
         owner = null
         giftCardAccount = null
