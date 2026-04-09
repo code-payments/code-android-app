@@ -4,6 +4,11 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -27,6 +32,19 @@ class FileTree(
 
     private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
         .withZone(ZoneId.systemDefault())
+
+    private val logFlow = MutableSharedFlow<String>(
+        replay = LOG_STREAM_BUFFER_CAPACITY,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
+    /**
+     * Hot stream of processed log lines, post plugin pipeline. New collectors
+     * immediately receive the most recent [LOG_STREAM_BUFFER_CAPACITY] lines
+     * via replay cache, so the in-app viewer opens already populated.
+     */
+    val logStream: SharedFlow<String> = logFlow.asSharedFlow()
 
     init {
         // Clear previous session logs on cold launch
@@ -69,6 +87,10 @@ class FileTree(
                 // Silently ignore file write failures to avoid infinite logging loops
             }
         }
+
+        // Tee the processed (PII-masked, RPC-filtered) line into the live stream
+        // for in-app viewers. tryEmit is non-suspending and thread-safe.
+        logFlow.tryEmit(processed!!)
     }
 
     fun getLogFile(): File? {
@@ -85,11 +107,19 @@ class FileTree(
         return exportFile
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun clearLogs() {
         synchronized(lock) {
             logFile.delete()
             exportFile.delete()
         }
+        // Ensure any new collector observes an empty backlog after a clear.
+        logFlow.resetReplayCache()
+    }
+
+    companion object {
+        /** Max number of log lines retained in the live stream's replay cache. */
+        const val LOG_STREAM_BUFFER_CAPACITY = 1000
     }
 }
 

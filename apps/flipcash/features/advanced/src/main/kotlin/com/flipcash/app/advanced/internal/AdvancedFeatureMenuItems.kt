@@ -1,8 +1,8 @@
 package com.flipcash.app.advanced.internal
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -31,10 +31,11 @@ internal data object Deposit : FullMenuItem<AdvancedFeaturesScreenViewModel.Even
     )
 }
 
-internal data object ExportLogs : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+internal data object DeviceLogs : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.Share)
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Description)
     override val name: String
-        @Composable get() = stringResource(R.string.title_exportLogs)
-    override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.ExportLogs
+        @Composable get() = stringResource(R.string.title_deviceLogs)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.DeviceLogs)
 }

@@ -2,6 +2,10 @@ package com.getcode.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import timber.log.Timber
 import java.io.File
 import kotlin.time.Duration
@@ -105,6 +109,20 @@ object TraceManager {
 
     /** Returns the current log file, or `null` if not yet initialized. */
     fun getLogFile(): File? = fileTree?.getLogFile()
+
+    /**
+     * Hot stream of processed log lines for live in-app viewers. Emits only
+     * after [initialize] has been called; before initialization, returns an
+     * empty [SharedFlow] that will never emit.
+     */
+    val logStream: SharedFlow<String>
+        get() = fileTree?.logStream ?: EmptyLogStream
+
+    private val EmptyLogStream: SharedFlow<String> = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 0,
+        onBufferOverflow = BufferOverflow.SUSPEND,
+    ).asSharedFlow()
 
     fun clearLogs() {
         fileTree?.clearLogs()

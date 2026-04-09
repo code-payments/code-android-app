@@ -364,7 +364,13 @@
     <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 
     <string name="title_billCustomizer">Bill Creator</string>
-    <string name="title_exportLogs">Export Logs</string>
+    <string name="title_deviceLogs">Application Logs</string>
+    <string name="action_clearLogs">Clear</string>
+    <string name="action_shareLogs">Share</string>
+    <string name="hint_filterLogs">Filter logs</string>
+    <string name="label_streamLive">Live</string>
+    <string name="label_streamPaused">Paused</string>
+    <string name="label_pausedBacklog">Paused • %1$d new</string>
 
     <string name="error_title_CashReturnedToWallet">Something Went Wrong</string>
     <string name="error_description_CashReturnedToWallet">The cash was returned to your wallet</string>

@@ -167,6 +167,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data object AdvancedFeatures : Menu
         @Serializable
+        data object DeviceLogs : Menu
+        @Serializable
         data object Lab : Menu
     }
 
