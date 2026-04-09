@@ -34,6 +34,7 @@ internal fun OnRampAmountScreen(
     OnRampAmountScreenContent(
         state = state.amountEntryState,
         provider = state.selectedProvider,
+        canChangeCurrency = state.canChangeCurrency,
         dispatchEvent = viewModel::dispatchEvent,
     )
 }
@@ -41,6 +42,7 @@ internal fun OnRampAmountScreen(
 @Composable
 private fun OnRampAmountScreenContent(
     state: AmountEntryState,
+    canChangeCurrency: Boolean,
     provider: OnRampProvider.ThirdParty?,
     dispatchEvent: (OnRampViewModel.Event) -> Unit,
 ) {
@@ -63,7 +65,7 @@ private fun OnRampAmountScreenContent(
                 stringResource(R.string.subtitle_onrampPurchaseHint, state.maxAvailableToAdd)
             },
             decimalPlaces = state.currencyModel.fractionUnits,
-            isClickable = provider !is OnRampProvider.Phantom,
+            isClickable = canChangeCurrency,
             onAmountClicked = {
                 navigator.push(
                     AppRoute.Main.RegionSelection(

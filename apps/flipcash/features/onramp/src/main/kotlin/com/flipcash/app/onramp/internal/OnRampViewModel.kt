@@ -30,6 +30,7 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
@@ -113,15 +114,18 @@ internal class OnRampViewModel @Inject constructor(
         val mint: Mint? = null,
         val token: Token? = null,
         val providers: List<OnRampProviderItem> = DefaultOnRampOptions,
+        val canChangeCurrency: Boolean = false,
         val hasVerifiedPhone: Boolean = false,
         val hasVerifiedEmail: Boolean = false,
         val selectedProvider: OnRampProvider.ThirdParty? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
-    )
+    ) {
+        val minimumPurchaseAmount = 5.toFiat()
+    }
 
     sealed interface Event {
-        data class OnMintChanged(val mint: Mint): Event
-        data class OnTokenChanged(val token: Token): Event
+        data class OnMintChanged(val mint: Mint) : Event
+        data class OnTokenChanged(val token: Token) : Event
         data class OnProvidersUpdated(val providers: List<OnRampProviderItem>) : Event
 
         data class OnPhoneVerificationChanged(val verified: Boolean) : Event
@@ -129,16 +133,18 @@ internal class OnRampViewModel @Inject constructor(
 
         data class OnProviderSelected(val item: OnRampProvider) : Event
 
-        data class OnVerificationNeeded(val phone: Boolean = false, val email: Boolean = false): Event
+        data class OnVerificationNeeded(val phone: Boolean = false, val email: Boolean = false) :
+            Event
 
-        data class OnOrderCreated(val order: OnrampOrder): Event {
-            constructor(orderId: String, url: String): this(OnrampOrder(orderId, url))
+        data class OnOrderCreated(val order: OnrampOrder) : Event {
+            constructor(orderId: String, url: String) : this(OnrampOrder(orderId, url))
         }
+
         data class OnBuyUrlGenerated(val url: String) : Event
 
         data class OnPaymentSuccess(val orderId: String) : Event
         data class OnPaymentError(val error: CoinbaseOnRampWebError) : Event
-        data object OnPaymentCancel: Event
+        data object OnPaymentCancel : Event
 
         // region amount entry events
         data class OnMaxDetermined(val max: Double, val currencyCode: CurrencyCode) : Event
@@ -161,7 +167,7 @@ internal class OnRampViewModel @Inject constructor(
         data class OnAmountAccepted(val amount: LocalFiat) : Event
 
         data class CreateAndSendTransactionToWallet(val amount: LocalFiat) : Event
-        data class OnBuySubmitted(val swapId: SwapId): Event
+        data class OnBuySubmitted(val swapId: SwapId) : Event
         // endregion
     }
 
@@ -295,10 +301,22 @@ internal class OnRampViewModel @Inject constructor(
             .filter { !(checkFundingAmount()) }
             .onEach { data ->
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
-                val rate = exchange.rateFor(stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD)
-                    ?: exchange.entryRate
+                val rate = exchange.rateFor(
+                    stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
+                ) ?: exchange.entryRate
 
                 val localizedAmount = Fiat(data.amountData.amount, rate.currency)
+
+                if (stateFlow.value.selectedProvider is OnRampProvider.Coinbase) {
+                    if (localizedAmount < stateFlow.value.minimumPurchaseAmount) {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_onrampAmountTooLow),
+                            message = resources.getString(R.string.error_description_onrampAmountTooLow)
+                        )
+                        dispatchEvent(Event.UpdateConfirmingAmountState())
+                        return@onEach
+                    }
+                }
 
                 val amountFiat = LocalFiat(
                     usdf = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
@@ -401,23 +419,32 @@ internal class OnRampViewModel @Inject constructor(
                                             else -> return@mapNotNull null
                                         }
 
-                                        val destination = if (!(hasVerifiedPhone && hasVerifiedEmail)) {
-                                            AppRoute.Verification(
-                                                origin = AppRoute.OnRamp.ProviderList(
-                                                    from = OnRampFlowTracker.source!!
-                                                ),
-                                                target = AppRoute.OnRamp.AmountEntry(mint),
-                                                includePhone = !hasVerifiedPhone,
-                                                includeEmail = !hasVerifiedEmail,
-                                            )
-                                        } else {
-                                            AppRoute.OnRamp.AmountEntry(mint)
-                                        }
+                                        val destination =
+                                            if (!(hasVerifiedPhone && hasVerifiedEmail)) {
+                                                AppRoute.Verification(
+                                                    origin = AppRoute.OnRamp.ProviderList(
+                                                        from = OnRampFlowTracker.source!!
+                                                    ),
+                                                    target = AppRoute.OnRamp.AmountEntry(mint),
+                                                    includePhone = !hasVerifiedPhone,
+                                                    includeEmail = !hasVerifiedEmail,
+                                                )
+                                            } else {
+                                                AppRoute.OnRamp.AmountEntry(mint)
+                                            }
 
                                         when (provider.type) {
-                                            OnRampType.Virtual -> OnRampProviderDestination.Screen(destination)
-                                            OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(destination)
-                                            OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(destination)
+                                            OnRampType.Virtual -> OnRampProviderDestination.Screen(
+                                                destination
+                                            )
+
+                                            OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(
+                                                destination
+                                            )
+
+                                            OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(
+                                                destination
+                                            )
                                         }
                                     }
 
@@ -433,8 +460,8 @@ internal class OnRampViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnProviderSelected>()
             .map { it.item }
-            // we are locking deeplink transfers to USD
-            .filterIsInstance<OnRampProvider.UsesDeeplinks>()
+            // we are locking deeplink transfers and onramp buys to USD
+            .filter { it is OnRampProvider.UsesDeeplinks || it is OnRampProvider.Coinbase }
             .mapNotNull { exchange.getCurrency(CurrencyCode.USD.name) }
             .onEach { dispatchEvent(Event.OnCurrencyChanged(it)) }
             .launchIn(viewModelScope)
@@ -454,14 +481,24 @@ internal class OnRampViewModel @Inject constructor(
                                     .onSuccess {
                                         dispatchEvent(Event.OnOrderCreated(it.first, it.second.url))
                                     }.onFailure { error ->
-                                        dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = false))
+                                        dispatchEvent(
+                                            Event.UpdateConfirmingAmountState(
+                                                loading = false,
+                                                success = false
+                                            )
+                                        )
                                         when (error) {
                                             is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
                                                 dispatchEvent(Event.OnVerificationNeeded(phone = true))
                                             }
 
                                             is OnRampAuthError.VerificationRequired -> {
-                                                dispatchEvent(Event.OnVerificationNeeded(phone = error.phone, email = error.email))
+                                                dispatchEvent(
+                                                    Event.OnVerificationNeeded(
+                                                        phone = error.phone,
+                                                        email = error.email
+                                                    )
+                                                )
                                             }
 
                                             else -> {
@@ -473,6 +510,7 @@ internal class OnRampViewModel @Inject constructor(
                                         }
                                     }
                             }
+
                             else -> Unit
                         }
                     }
@@ -492,54 +530,63 @@ internal class OnRampViewModel @Inject constructor(
                     message = resources.getString(R.string.error_description_onrampUnknownFailure)
                 )
             }
+
             is CoinbaseOnRampWebError.MissingTransactionUuid -> { // TODO:
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampUnknownFailure),
                     message = resources.getString(R.string.error_description_onrampUnknownFailure)
                 )
             }
+
             is CoinbaseOnRampWebError.GuestCardNotDebit -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampInvalidCard),
                     message = resources.getString(R.string.error_description_onrampInvalidCard)
                 )
             }
+
             is CoinbaseOnRampWebError.GuestGooglePayError -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampTransactionFailed),
                     message = resources.getString(R.string.error_description_onrampTransactionFailed)
                 )
             }
+
             is CoinbaseOnRampWebError.GuestTransactionBuyFailed -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampTransactionBuyFailed),
                     message = resources.getString(R.string.error_description_onrampTransactionBuyFailed)
                 )
             }
+
             is CoinbaseOnRampWebError.GuestTransactionSendFailed -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampTransactionSendFailed),
                     message = resources.getString(R.string.error_description_onrampTransactionSendFailed)
                 )
             }
+
             is CoinbaseOnRampWebError.GuestTransactionAvsValidationFailed -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampTransactionAvsValidationFailed),
                     message = resources.getString(R.string.error_description_onrampTransactionAvsValidationFailed)
                 )
             }
+
             is CoinbaseOnRampWebError.GuestTransactionTransactionFailed -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampTransactionFailed),
                     message = resources.getString(R.string.error_description_onrampTransactionFailed)
                 )
             }
+
             is CoinbaseOnRampWebError.Internal -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampInternal),
                     message = resources.getString(R.string.error_description_onrampInternal)
                 )
             }
+
             is CoinbaseOnRampWebError.GooglePayButtonNotFound -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_onrampInternal),
@@ -554,7 +601,13 @@ internal class OnRampViewModel @Inject constructor(
             when (event) {
                 is Event.OnMintChanged -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
-                is Event.OnProviderSelected -> { state -> state.copy(selectedProvider = event.item as? OnRampProvider.ThirdParty) }
+                is Event.OnProviderSelected -> { state ->
+                    state.copy(
+                        canChangeCurrency = event.item !is OnRampProvider.Phantom && event.item !is OnRampProvider.Coinbase,
+                        selectedProvider = event.item as? OnRampProvider.ThirdParty
+                    )
+                }
+
                 is Event.OnProvidersUpdated -> { state -> state.copy(providers = event.providers) }
 
                 is Event.OnPhoneVerificationChanged -> { state -> state.copy(hasVerifiedPhone = event.verified) }

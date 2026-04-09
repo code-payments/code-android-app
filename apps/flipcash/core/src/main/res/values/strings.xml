@@ -474,6 +474,9 @@
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>
 
+    <string name="error_title_onrampAmountTooLow">$5 Minimum Purchase</string>
+    <string name="error_description_onrampAmountTooLow">Please enter an amount of $5 or higher</string>
+
     <string name="error_title_onrampInvalidCard">Debit Cards Only</string>
     <string name="error_description_onrampInvalidCard">The transaction was declined. Please make sure you are using a debit card and the billing address is correct</string>
 
