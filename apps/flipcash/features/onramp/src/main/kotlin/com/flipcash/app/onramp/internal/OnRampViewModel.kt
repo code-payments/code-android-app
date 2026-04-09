@@ -450,7 +450,7 @@ internal class OnRampViewModel @Inject constructor(
                     is OnRampProvider.Coinbase -> {
                         when (provider.type) {
                             OnRampType.Virtual -> {
-                                onRampController.placeOrderExclusiveOfFees(selectedAmount.underlyingTokenAmount)
+                                onRampController.placeOrderInclusiveOfFees(selectedAmount.underlyingTokenAmount)
                                     .onSuccess {
                                         dispatchEvent(Event.OnOrderCreated(it.first, it.second.url))
                                     }.onFailure { error ->
