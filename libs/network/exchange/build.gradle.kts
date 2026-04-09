@@ -17,6 +17,4 @@ dependencies {
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
     implementation(libs.hilt.android)
-
-    implementation(libs.bugsnag)
 }

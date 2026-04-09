@@ -15,7 +15,6 @@ dependencies {
 
     implementation(libs.javax.inject)
     implementation(libs.hilt.android)
-    implementation(libs.bugsnag)
 
     testImplementation(kotlin("test"))
 }

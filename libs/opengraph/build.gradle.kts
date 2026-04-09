@@ -15,6 +15,4 @@ dependencies {
 
     implementation(libs.androidx.datastore)
     implementation(libs.hilt.android)
-
-    implementation(libs.bugsnag)
 }

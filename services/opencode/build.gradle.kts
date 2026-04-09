@@ -62,7 +62,6 @@ dependencies {
     implementation(libs.mixpanel)
 
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.installations)
     implementation(libs.firebase.perf)
     implementation(libs.firebase.messaging)
@@ -88,8 +87,6 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     ksp(libs.hilt.compiler)
-
-    implementation(libs.bugsnag)
 
     implementation(libs.event.bus)
 

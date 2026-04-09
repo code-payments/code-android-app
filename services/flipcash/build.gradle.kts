@@ -46,7 +46,6 @@ dependencies {
     implementation(libs.mixpanel)
 
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.installations)
     implementation(libs.firebase.messaging)
 

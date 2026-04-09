@@ -4,7 +4,6 @@ date="$(date '+%m.%d.%y')"
 
 export NOTIFY_ERRORS=true
 export DEBUG_MINIFY=true
-export DEBUG_CRASHLYTICS_UPLOAD=true
 
 ./gradlew :flipchatApp:assembleDebug
 
@@ -13,4 +12,3 @@ mv "${outputDir}/flipchatApp-debug.apk" "${outputDir}/flipchatApp-${date}-debug.
 
 unset NOTIFY_ERRORS
 unset DEBUG_MINIFY
-unset DEBUG_CRASHLYTICS_UPLOAD
