@@ -5,8 +5,11 @@ import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
+import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -73,12 +76,20 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     data class Verification(
         val origin: AppRoute,
-        val target: AppRoute? = null,
         val includePhone: Boolean = true,
         val includeEmail: Boolean = true,
         val email: String? = null,
         val emailVerificationCode: String? = null,
-    ) : AppRoute
+    ) : AppRoute, FlowRouteWithResult<VerificationResult> {
+        override val initialStack: List<NavKey>
+            get() = buildVerificationInitialStack(
+                origin = origin,
+                includePhone = includePhone,
+                includeEmail = includeEmail,
+                emailAddress = email,
+                emailVerificationCode = emailVerificationCode,
+            )
+    }
 
     @Serializable
     @Parcelize
@@ -175,4 +186,28 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Serializable
     @Parcelize
     data object UserFlags : AppRoute
+}
+
+private fun buildVerificationInitialStack(
+    origin: AppRoute,
+    includePhone: Boolean,
+    includeEmail: Boolean,
+    emailAddress: String?,
+    emailVerificationCode: String?,
+): List<NavKey> {
+    if (includePhone && includeEmail) {
+        return listOf(VerificationStep.Intro(origin is AppRoute.OnRamp.AmountEntry))
+    }
+    if (includePhone) {
+        return listOf(VerificationStep.PhoneEntry)
+    }
+    if (includeEmail) {
+        return buildList {
+            add(VerificationStep.EmailEntry)
+            if (emailAddress != null && emailVerificationCode != null) {
+                add(VerificationStep.EmailMagicLink(emailAddress, emailVerificationCode))
+            }
+        }
+    }
+    return emptyList()
 }

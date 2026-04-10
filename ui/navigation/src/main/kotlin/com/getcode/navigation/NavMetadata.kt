@@ -7,7 +7,8 @@ import androidx.navigation3.runtime.NavKey
 import com.getcode.navigation.results.NavResultKey
 import com.getcode.navigation.results.NavigationRetVal
 import kotlin.reflect.KClass
-import kotlin.reflect.full.isSuperclassOf
+import kotlin.reflect.KType
+import kotlin.reflect.full.allSupertypes
 
 enum class NavMetadataKeys(val key: String, ) {
     IsNonDismissable("non_dismissable"),
@@ -30,7 +31,8 @@ inline fun <reified T : NavKey> EntryProviderScope<NavKey>.annotatedEntry(
  * Compute metadata from a [KClass] by inspecting its marker interfaces.
  */
 fun KClass<*>.metadata(): Map<String, Any> {
-    val retValType = supertypes.find { it.classifier == NavigationRetVal::class }
+    val retValType: KType? = allSupertypes
+        .find { it.classifier == NavigationRetVal::class }
     val resultClass = retValType?.arguments?.firstOrNull()?.type?.classifier as? KClass<*>
 
     return mapOf(
@@ -38,7 +40,7 @@ fun KClass<*>.metadata(): Map<String, Any> {
         NavMetadataKeys.IsSolitarySheet.key to SolitarySheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDismissable.key to NonDismissableRoute::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDraggable.key to NonDraggableRoute::class.java.isAssignableFrom(this.java),
-        NavMetadataKeys.NavResultKey.key to (if (NavigationRetVal::class.isSuperclassOf(this)) {
+        NavMetadataKeys.NavResultKey.key to (if (resultClass != null) {
             @Suppress("UNCHECKED_CAST")
             NavResultKey(
                 this as KClass<NavigationRetVal<Parcelable>>,

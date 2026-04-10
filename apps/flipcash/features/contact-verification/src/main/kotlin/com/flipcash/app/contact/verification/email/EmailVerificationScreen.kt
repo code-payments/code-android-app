@@ -12,9 +12,12 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.email.EmailEntryScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
@@ -22,11 +25,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun EmailVerificationContent(
-    onPushMagicLink: () -> Unit = {},
-) {
+fun EmailVerificationContent() {
     val codeNavigator = LocalCodeNavigator.current
-    val viewModel = hiltViewModel<EmailVerificationViewModel>()
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
+    val viewModel = flowSharedViewModel<EmailVerificationViewModel>()
     val keyboard = rememberKeyboardController()
 
     Column(
@@ -63,7 +65,7 @@ fun EmailVerificationContent(
             .filterIsInstance<EmailVerificationViewModel.Event.OnCodeSent>()
             .onEach {
                 keyboard.hideIfVisible {
-                    onPushMagicLink()
+                    flowNavigator.navigateTo(VerificationStep.EmailMagicLink())
                 }
             }.launchIn(this)
     }

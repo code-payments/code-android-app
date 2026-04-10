@@ -9,18 +9,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.contact.verification.internal.phone.PhoneCountryCodeScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.features.contact.verification.R
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun PhoneCountryCodeContent(
-    onPop: () -> Unit = {},
-) {
-    val viewModel = hiltViewModel<PhoneVerificationViewModel>()
+fun PhoneCountryCodeContent() {
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
+    val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -31,7 +33,7 @@ fun PhoneCountryCodeContent(
             isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
-            onBackIconClicked = { onPop() },
+            onBackIconClicked = { flowNavigator.back() },
         )
         PhoneCountryCodeScreen(viewModel = viewModel)
     }
@@ -39,7 +41,7 @@ fun PhoneCountryCodeContent(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnCountrySelected>()
-            .onEach { onPop() }
+            .onEach { flowNavigator.back() }
             .launchIn(this)
     }
 }

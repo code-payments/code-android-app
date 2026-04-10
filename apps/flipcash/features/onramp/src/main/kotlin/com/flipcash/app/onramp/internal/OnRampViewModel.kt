@@ -1,5 +1,6 @@
 package com.flipcash.app.onramp.internal
 
+import android.os.Parcelable
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.flatMapResult
@@ -47,13 +48,15 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.parcelize.Parcelize
 import java.security.SecureRandom
 import javax.inject.Inject
 
+@Parcelize
 internal data class OnrampOrder(
     val orderId: String,
     val paymentLink: String,
-)
+): Parcelable
 
 internal data class AmountEntryState(
     val limits: Limits? = null,
@@ -425,7 +428,6 @@ internal class OnRampViewModel @Inject constructor(
                                                     origin = AppRoute.OnRamp.ProviderList(
                                                         from = OnRampFlowTracker.source!!
                                                     ),
-                                                    target = AppRoute.OnRamp.AmountEntry(mint),
                                                     includePhone = !hasVerifiedPhone,
                                                     includeEmail = !hasVerifiedEmail,
                                                 )

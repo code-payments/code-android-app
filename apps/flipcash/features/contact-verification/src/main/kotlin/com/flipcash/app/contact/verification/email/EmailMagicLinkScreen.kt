@@ -1,6 +1,5 @@
 package com.flipcash.app.contact.verification.email
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -11,14 +10,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.android.IntentUtils
-import com.flipcash.app.navigation.FlowNavigator
-import com.flipcash.app.navigation.LocalFlowNavigator
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.features.contact.verification.R
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -29,12 +28,8 @@ fun EmailMagicLinkContent(
     email: String? = null,
     code: String? = null,
 ) {
-    val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
-    val viewModel = hiltViewModel<EmailVerificationViewModel>()
-
-    BackHandler {
-        flowNavigator.exit(false)
-    }
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
+    val viewModel = flowSharedViewModel<EmailVerificationViewModel>()
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
@@ -50,7 +45,7 @@ fun EmailMagicLinkContent(
             isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
-            onBackIconClicked = { flowNavigator.exit(false) },
+            onBackIconClicked = { flowNavigator.back() },
         )
         EmailMagicLinkScreen(viewModel)
     }
@@ -71,21 +66,21 @@ fun EmailMagicLinkContent(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<EmailVerificationViewModel.Event.OnMaxAttemptsReached>()
-            .onEach { flowNavigator.exit(false) }
+            .onEach { flowNavigator.exitCanceled() }
             .launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<EmailVerificationViewModel.Event.Exit>()
-            .onEach { flowNavigator.exit(false) }
+            .onEach { flowNavigator.exitCanceled() }
             .launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<EmailVerificationViewModel.Event.OnCodeVerified>()
-            .onEach { flowNavigator.continueFlowFrom(VerificationFlowStep.Email) }
+            .onEach { flowNavigator.exitWithResult(VerificationResult.Success) }
             .launchIn(this)
     }
 }

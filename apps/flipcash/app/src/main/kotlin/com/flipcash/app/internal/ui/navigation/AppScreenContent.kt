@@ -123,14 +123,7 @@ fun appEntryProvider(
 
     // Verification
     annotatedEntry<AppRoute.Verification> { key ->
-        VerificationFlowScreen(
-            origin = key.origin,
-            target = key.target,
-            includePhone = key.includePhone,
-            includeEmail = key.includeEmail,
-            emailAddress = key.email,
-            emailVerificationCode = key.emailVerificationCode,
-        )
+        VerificationFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
 
     // OnRamp

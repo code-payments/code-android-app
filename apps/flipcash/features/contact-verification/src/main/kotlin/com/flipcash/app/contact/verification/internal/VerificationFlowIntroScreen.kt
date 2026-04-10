@@ -1,6 +1,5 @@
 package com.flipcash.app.contact.verification.internal
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -25,40 +24,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.contact.verification.VerificationFlowStep
-import com.flipcash.app.navigation.FlowNavigator
-import com.flipcash.app.navigation.LocalFlowNavigator
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.contact.verification.R
-import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
 fun VerificationFlowIntroContent(
     isForOnRamp: Boolean = true,
 ) {
-    val codeNavigator = LocalCodeNavigator.current
-    val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
-    val keyboard = rememberKeyboardController()
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
 
     VerificationFlowIntroScreenContent(
         isForOnRamp = isForOnRamp,
-        onClick = { flowNavigator.continueFlowFrom(VerificationFlowStep.Intro) },
+        onClick = { flowNavigator.navigateTo(VerificationStep.PhoneEntry) },
     )
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
         analytics.onrampVerification(Analytics.OnrampVerificationStep.ShowInfo)
-    }
-
-    BackHandler {
-        keyboard.hideIfVisible {
-            codeNavigator.pop()
-        }
     }
 }
 

@@ -95,7 +95,6 @@ fun OnRampCustomAmountScreen(mint: Mint) {
                 navigator.push(
                     AppRoute.Verification(
                         origin = AppRoute.OnRamp.AmountEntry(mint),
-                        target = null,
                         includePhone = phone,
                         includeEmail = email,
                     )

@@ -1,6 +1,5 @@
 package com.flipcash.app.contact.verification.phone
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -10,24 +9,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.phone.PhoneCodeScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
-import com.flipcash.app.navigation.FlowNavigator
-import com.flipcash.app.navigation.LocalFlowNavigator
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.features.contact.verification.R
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun PhoneCodeContent() {
-    val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
-    val viewModel = hiltViewModel<PhoneVerificationViewModel>()
+fun PhoneCodeContent(
+    includeEmail: Boolean,
+) {
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
+    val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
 
-    BackHandler { flowNavigator.exit(false) }
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -37,7 +37,7 @@ fun PhoneCodeContent() {
             isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
-            onBackIconClicked = { flowNavigator.exit(false) },
+            onBackIconClicked = { flowNavigator.back() },
         )
         PhoneCodeScreen(viewModel)
     }
@@ -50,14 +50,20 @@ fun PhoneCodeContent() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnMaxAttemptsReached>()
-            .onEach { flowNavigator.exit(false) }
+            .onEach { flowNavigator.exitCanceled() }
             .launchIn(this)
     }
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(viewModel, includeEmail) {
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnCodeVerified>()
-            .onEach { flowNavigator.continueFlowFrom(VerificationFlowStep.Phone) }
+            .onEach {
+                if (includeEmail) {
+                    flowNavigator.navigateTo(VerificationStep.EmailEntry)
+                } else {
+                    flowNavigator.exitWithResult(VerificationResult.Success)
+                }
+            }
             .launchIn(this)
     }
 }

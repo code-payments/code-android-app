@@ -86,7 +86,6 @@ internal class AppRouter(
                 is AppRoute.Sheets.Menu -> {
                     buildOnRampScreenFlow(source) + AppRoute.Verification(
                         origin = source,
-                        target = null,
                         includePhone = false,
                         email = type.email,
                         emailVerificationCode = type.code
@@ -98,7 +97,6 @@ internal class AppRouter(
                         AppRoute.OnRamp.AmountEntry(source.mint),
                     ) + AppRoute.Verification(
                         origin = AppRoute.OnRamp.AmountEntry(source.mint),
-                        target = null,
                         includePhone = false,
                         email = type.email,
                         emailVerificationCode = type.code
@@ -113,7 +111,6 @@ internal class AppRouter(
                     AppRoute.Menu.MyAccount
                 ) + AppRoute.Verification(
                     origin = AppRoute.Menu.MyAccount,
-                    target = null,
                     includePhone = false,
                     email = type.email,
                     emailVerificationCode = type.code

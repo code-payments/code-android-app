@@ -54,7 +54,6 @@ include(
     ":apps:flipcash:shared:featureflags",
     ":apps:flipcash:shared:ksp",
     ":apps:flipcash:shared:menu",
-    ":apps:flipcash:shared:navigation-flow",
     ":apps:flipcash:shared:notifications",
     ":apps:flipcash:shared:payments",
     ":apps:flipcash:shared:permissions",
