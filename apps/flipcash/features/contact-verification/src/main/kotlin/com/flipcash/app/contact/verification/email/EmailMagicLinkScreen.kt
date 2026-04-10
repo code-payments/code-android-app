@@ -15,6 +15,7 @@ import com.flipcash.app.contact.verification.internal.email.EmailVerificationVie
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -25,11 +26,16 @@ import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun EmailMagicLinkContent(
+    origin: EmailDeeplinkOrigin? = null,
     email: String? = null,
     code: String? = null,
 ) {
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<EmailVerificationViewModel>()
+
+    LaunchedEffect(origin) {
+        viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnOriginSet(origin))
+    }
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {

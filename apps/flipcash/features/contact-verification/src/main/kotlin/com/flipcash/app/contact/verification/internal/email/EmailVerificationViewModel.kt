@@ -3,8 +3,12 @@ package com.flipcash.app.contact.verification.internal.email
 import android.util.Patterns
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.contact.verification.EmailVerificationFlow
+import com.flipcash.app.core.verification.email.EmailCodeChannel
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.core.extensions.onResult
+import com.getcode.opencode.utils.base64
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.flipcash.features.contact.verification.R
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
@@ -40,6 +44,7 @@ class EmailVerificationViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
+    private val emailCodeChannel: EmailCodeChannel,
 ) : BaseViewModel2<EmailVerificationViewModel.State, EmailVerificationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -58,6 +63,7 @@ class EmailVerificationViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data class OnOriginSet(val origin: EmailDeeplinkOrigin?) : Event
         data class OnDataProvided(val email: String?, val code: String?) : Event
         data object OnSendCodeClicked : Event
         data object OnResendCodeClicked: Event
@@ -88,14 +94,26 @@ class EmailVerificationViewModel @Inject constructor(
     }
 
     private var timer: Timer? = null
+    private var origin: EmailDeeplinkOrigin? = null
+
+    private fun computeClientData(): String {
+        val data = buildMap {
+            put("origin", origin?.serialize()?.base64)
+        }
+        return Json.encodeToString(data)
+    }
 
     init {
+        eventFlow
+            .filterIsInstance<Event.OnOriginSet>()
+            .onEach { origin = it.origin }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnSendCodeClicked>()
             .map {
                 val emailAddress = stateFlow.value.email.text.toString()
-                val clientData = EmailVerificationFlow.clientData
-                ContactMethod.Email(emailAddress, clientData)
+                ContactMethod.Email(emailAddress, computeClientData())
             }.onEach { handleSendVerificationCode(it) }
             .launchIn(viewModelScope)
 
@@ -103,13 +121,12 @@ class EmailVerificationViewModel @Inject constructor(
             .filterIsInstance<Event.OnResendCodeClicked>()
             .map {
                 val emailAddress = stateFlow.value.email.text.toString()
-                val clientData = EmailVerificationFlow.clientData
-                ContactMethod.Email(emailAddress, clientData)
+                ContactMethod.Email(emailAddress, computeClientData())
             }.onEach { handleSendVerificationCode(it) }
             .launchIn(viewModelScope)
 
         // Receive verification codes delivered by deeplinks while this screen is already open
-        EmailVerificationFlow.pendingCode
+        emailCodeChannel.pendingCode
             .onEach { (email, code) -> dispatchEvent(Event.OnDataProvided(email, code)) }
             .launchIn(viewModelScope)
 
@@ -252,6 +269,7 @@ class EmailVerificationViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                is Event.OnOriginSet -> { state -> state }
                 is Event.OnDataProvided -> { state ->
                     state.copy(
                         email = TextFieldState(event.email ?: state.email.text.toString()),

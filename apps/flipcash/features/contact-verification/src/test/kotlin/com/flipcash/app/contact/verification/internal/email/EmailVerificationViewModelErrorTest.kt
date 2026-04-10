@@ -1,6 +1,7 @@
 package com.flipcash.app.contact.verification.internal.email
 
 import com.flipcash.features.contact.verification.R
+import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.EmailVerificationError
@@ -65,6 +66,7 @@ class EmailVerificationViewModelErrorTest {
             profileController = profileController,
             resources = resources,
             dispatchers = dispatchers,
+            emailCodeChannel = EmailCodeChannel(),
         )
     }
 

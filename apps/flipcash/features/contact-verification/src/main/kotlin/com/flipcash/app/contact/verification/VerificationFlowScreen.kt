@@ -1,7 +1,6 @@
 package com.flipcash.app.contact.verification
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -35,11 +34,6 @@ fun VerificationFlowScreen(
     val initialStack = remember(route) {
         @Suppress("UNCHECKED_CAST")
         route.initialStack as List<VerificationStep>
-    }
-
-    LaunchedEffect(Unit) {
-        PhoneVerificationFlow.start(route.origin)
-        EmailVerificationFlow.start(EmailDeeplinkOrigin.fromRoute(route.origin))
     }
 
     FlowHost(
@@ -77,9 +71,15 @@ private fun verificationEntryProvider(
         PhoneCountryCodeContent()
     }
     annotatedEntry<VerificationStep.EmailEntry> {
-        EmailVerificationContent()
+        EmailVerificationContent(
+            origin = EmailDeeplinkOrigin.fromRoute(route.origin),
+        )
     }
     annotatedEntry<VerificationStep.EmailMagicLink> { step ->
-        EmailMagicLinkContent(email = step.email, code = step.code)
+        EmailMagicLinkContent(
+            origin = EmailDeeplinkOrigin.fromRoute(route.origin),
+            email = step.email,
+            code = step.code,
+        )
     }
 }

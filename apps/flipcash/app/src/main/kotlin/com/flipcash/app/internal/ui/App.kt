@@ -34,7 +34,7 @@ import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.contact.verification.EmailVerificationFlow
+import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
@@ -216,6 +216,7 @@ internal fun App(
                                         ScrimOverlay(scrimController)
                                     }
 
+                                    val emailCodeChannel = LocalEmailCodeChannel.current
                                     LaunchedEffect(deepLink) {
                                         val link = deepLink ?: return@LaunchedEffect
 
@@ -234,7 +235,7 @@ internal fun App(
                                                 val email = verification?.email
                                                 val code = verification?.emailVerificationCode
                                                 val delivered = if (email != null && code != null) {
-                                                    EmailVerificationFlow.deliverCode(email, code)
+                                                    emailCodeChannel.deliverCode(email, code)
                                                 } else false
 
                                                 if (!delivered) {

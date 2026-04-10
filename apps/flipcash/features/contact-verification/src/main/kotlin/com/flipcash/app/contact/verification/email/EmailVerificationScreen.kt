@@ -14,6 +14,7 @@ import com.flipcash.app.contact.verification.internal.email.EmailEntryScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -25,11 +26,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun EmailVerificationContent() {
+fun EmailVerificationContent(
+    origin: EmailDeeplinkOrigin? = null,
+) {
     val codeNavigator = LocalCodeNavigator.current
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<EmailVerificationViewModel>()
     val keyboard = rememberKeyboardController()
+
+    LaunchedEffect(origin) {
+        viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnOriginSet(origin))
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),

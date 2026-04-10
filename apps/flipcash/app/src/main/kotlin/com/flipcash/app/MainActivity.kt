@@ -18,6 +18,8 @@ import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.billing.LocalBillingClient
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.verification.email.EmailCodeChannel
+import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
@@ -133,6 +135,8 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var transactionController: TransactionController
 
+    @Inject
+    lateinit var emailCodeChannel: EmailCodeChannel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,6 +165,7 @@ class MainActivity : FragmentActivity() {
                 LocalPhoneUtils provides phoneUtils,
                 LocalBillPlaygroundController provides billPlaygroundController,
                 LocalAppUpdater provides appUpdater,
+                LocalEmailCodeChannel provides emailCodeChannel,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {
