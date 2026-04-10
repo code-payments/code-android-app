@@ -2,7 +2,7 @@ package com.flipcash.app.tokens.ui
 
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
@@ -40,7 +40,7 @@ import org.mockito.kotlin.whenever
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class BuySellSwapTokenViewModelErrorTest {
+class SwapViewModelErrorTest {
 
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
@@ -81,8 +81,8 @@ class BuySellSwapTokenViewModelErrorTest {
         unmockkStatic("com.getcode.opencode.utils.PublicKeyKt")
     }
 
-    private fun createViewModel(): BuySellSwapTokenViewModel {
-        return BuySellSwapTokenViewModel(
+    private fun createViewModel(): SwapViewModel {
+        return SwapViewModel(
             userManager = userManager,
             exchange = exchange,
             transactionController = transactionController,
@@ -109,9 +109,9 @@ class BuySellSwapTokenViewModelErrorTest {
         val amount = mockk<LocalFiat>(relaxed = true)
 
         val vm = createViewModel()
-        vm.dispatchEvent(BuySellSwapTokenViewModel.Event.OnPurposeChanged(TokenSwapPurpose.Buy(mockk(relaxed = true))))
-        vm.dispatchEvent(BuySellSwapTokenViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
-        vm.dispatchEvent(BuySellSwapTokenViewModel.Event.ProceedWithPurchase(amount))
+        vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(mockk(relaxed = true))))
+        vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+        vm.dispatchEvent(SwapViewModel.Event.ProceedWithPurchase(amount))
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
@@ -130,9 +130,9 @@ class BuySellSwapTokenViewModelErrorTest {
         val amount = mockk<LocalFiat>(relaxed = true)
 
         val vm = createViewModel()
-        vm.dispatchEvent(BuySellSwapTokenViewModel.Event.OnPurposeChanged(TokenSwapPurpose.Sell(mockk(relaxed = true))))
-        vm.dispatchEvent(BuySellSwapTokenViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
-        vm.dispatchEvent(BuySellSwapTokenViewModel.Event.ProceedWithSale(amount))
+        vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Sell(mockk(relaxed = true))))
+        vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+        vm.dispatchEvent(SwapViewModel.Event.ProceedWithSale(amount))
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })

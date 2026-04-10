@@ -18,8 +18,8 @@ import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.OnrampOrder
 import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.flowScopedViewModel
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun OnRampCustomAmountScreen(mint: Mint) {
     val navigator = LocalCodeNavigator.current
-    val viewModel = flowScopedViewModel<OnRampViewModel>(key = OnRampFlowTracker.key)
+    val viewModel = hiltViewModel<OnRampViewModel>()
     var order by rememberSaveable { mutableStateOf<OnrampOrder?>(null) }
 
     Column(
@@ -94,7 +94,7 @@ fun OnRampCustomAmountScreen(mint: Mint) {
             .onEach { (phone, email) ->
                 navigator.push(
                     AppRoute.Verification(
-                        origin = AppRoute.OnRamp.AmountEntry(mint),
+                        origin = AppRoute.Token.OnRamp(mint),
                         includePhone = phone,
                         includeEmail = email,
                     )

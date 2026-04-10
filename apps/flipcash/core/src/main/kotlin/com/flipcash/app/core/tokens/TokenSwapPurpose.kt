@@ -16,11 +16,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 @Parcelize
-sealed interface TokenSwapPurpose : Parcelable {
+sealed interface SwapPurpose : Parcelable {
     sealed interface BalanceIncrease
     sealed interface BalanceDecrease
-    @Serializable data class Buy(val mint: Mint) : TokenSwapPurpose, BalanceIncrease
-    @Serializable data class FundWithWallet(val mint: Mint): TokenSwapPurpose, BalanceIncrease
-    @Serializable data class Sell(val mint: Mint) : TokenSwapPurpose, BalanceDecrease
-//    data class Swap(val from: Mint, val to: Mint) : TokenSwapPurpose
+    @Serializable data class Buy(val mint: Mint) : SwapPurpose, BalanceIncrease
+    @Serializable data class FundWithWallet(val mint: Mint): SwapPurpose, BalanceIncrease
+    @Serializable data class Sell(val mint: Mint) : SwapPurpose, BalanceDecrease
 }

@@ -36,7 +36,7 @@ import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.RegionSelectionKind
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
@@ -318,8 +318,8 @@ private fun BottomBarButtons(
                             analytics.buttonTapped(Button.TokenSell)
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Token.SwapTransact(
-                                        purpose = TokenSwapPurpose.Sell(loadable.data.address),
+                                    AppRoute.Token.Swap(
+                                        purpose = SwapPurpose.Sell(loadable.data.address),
                                     )
                                 )
                             )

@@ -16,7 +16,6 @@ import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.onramp.LocalExternalWalletState
-import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
@@ -122,7 +121,7 @@ fun TokenInfoScreen(
                 .filterIsInstance<TokenInfoViewModel.Event.ConnectPhantomWallet>()
                 .onEach { delay(300.scaled(animationScale)) }
                 .onEach {
-                    externalWalletOnRamp.start(OnRampFlowTracker.source, OnRampProvider.Phantom)
+                    externalWalletOnRamp.start(AppRoute.Token.Info(mint), OnRampProvider.Phantom)
                 }.launchIn(this)
         }
 
@@ -130,7 +129,7 @@ fun TokenInfoScreen(
         // sheet's inner navigator (which the handler can't access directly).
         val pendingNav = externalWalletOnRamp.pendingNavigation
         LaunchedEffect(pendingNav) {
-            if (pendingNav is AppRoute.Token.SwapTransact) {
+            if (pendingNav is AppRoute.Token.Swap) {
                 navigator.push(pendingNav)
                 externalWalletOnRamp.pendingNavigation = null
             }

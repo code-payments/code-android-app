@@ -73,6 +73,15 @@ sealed interface FeatureFlag {
     }
 
     @FeatureFlagMarker
+    data object CurrencyCreator: FeatureFlag {
+        override val key: String = "currency_creator_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
+    @FeatureFlagMarker
     data object CashReservesEnabled: FeatureFlag {
         override val key: String = "cash_reserves_enabled"
         override val default: Boolean = true
@@ -152,6 +161,7 @@ val FeatureFlag.title: String
         FeatureFlag.CoinbaseOnRampSandbox -> "Coinbase Onramp Sandbox"
         FeatureFlag.TokenDiscovery -> "Token Discovery"
         FeatureFlag.TokenCreate -> "Token Creation"
+        FeatureFlag.CurrencyCreator -> "Currency Creator"
     }
 
 val FeatureFlag.message: String
@@ -169,6 +179,7 @@ val FeatureFlag.message: String
         FeatureFlag.CoinbaseOnRampSandbox -> "When enabled, Coinbase onramp purchases will use the sandbox environment for testing"
         FeatureFlag.TokenDiscovery -> "When enabled, you'll gain access to leaderboards for tokens and discovery"
         FeatureFlag.TokenCreate -> "When enabled, you'll gain access to create new currencies"
+        FeatureFlag.CurrencyCreator -> "When enabled, you'll gain access to create new currencies"
     }
 
 

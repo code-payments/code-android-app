@@ -14,7 +14,7 @@ import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.canNativelyHandle
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
 import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
@@ -133,8 +133,8 @@ fun ExternalWalletOnRampHandler(
                 if (uri?.canNativelyHandle(context) == true) {
                     val origin = state.origin
                     if (origin is AppRoute.Token.Info) {
-                        state.pendingNavigation = AppRoute.Token.SwapTransact(
-                            TokenSwapPurpose.FundWithWallet(origin.mint),
+                        state.pendingNavigation = AppRoute.Token.Swap(
+                            SwapPurpose.FundWithWallet(origin.mint),
                             forNeededFunds = origin.forNeededFunds
                         )
                     }
@@ -170,10 +170,10 @@ fun ExternalWalletOnRampHandler(
                     )
                     when (state.origin) {
                         is AppRoute.Token.Info -> {
-                            // SwapTransact already navigated via pendingNavigation at STARTED
+                            // Swap already navigated via pendingNavigation at STARTED
                         }
                         else -> {
-                            navigator.push(AppRoute.OnRamp.AmountEntry(state.tokenToPurchase!!.address))
+                            navigator.push(AppRoute.Token.OnRamp(state.tokenToPurchase!!.address))
                         }
                     }
                 }

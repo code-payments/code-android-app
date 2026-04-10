@@ -19,11 +19,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.buildNotifyButtonLabel
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.internal.components.processing.ProcessingLoadingIndicator
-import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -36,7 +36,7 @@ import com.getcode.view.LoadingSuccessState
 
 @Composable
 internal fun TokenTxProcessingScreen(
-    viewModel: BuySellSwapTokenViewModel,
+    viewModel: SwapViewModel,
     processingProgressOverride: LoadingSuccessState? = null,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -50,8 +50,8 @@ internal fun TokenTxProcessingScreen(
 
 @Composable
 private fun TokenTxProcessingScreen(
-    state: BuySellSwapTokenViewModel.State,
-    dispatch: (BuySellSwapTokenViewModel.Event) -> Unit,
+    state: SwapViewModel.State,
+    dispatch: (SwapViewModel.Event) -> Unit,
 ) {
     val notifications = rememberNotificationPermission()
 
@@ -60,12 +60,12 @@ private fun TokenTxProcessingScreen(
             AppBarWithTitle(
                 isInModal = true,
                 title = when (state.purpose) {
-                    is TokenSwapPurpose.BalanceIncrease -> stringResource(
+                    is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.title_purchasingToken,
                         state.tokenName
                     )
 
-                    is TokenSwapPurpose.BalanceDecrease -> stringResource(
+                    is SwapPurpose.BalanceDecrease -> stringResource(
                         R.string.title_sellingToken,
                         state.tokenName
                     )
@@ -114,7 +114,7 @@ private fun TokenTxProcessingScreen(
                         text = stringResource(R.string.action_ok),
                         buttonState = ButtonState.Filled,
                         onClick = {
-                            dispatch(BuySellSwapTokenViewModel.Event.OnTransactionSuccessful)
+                            dispatch(SwapViewModel.Event.OnTransactionSuccessful)
                         }
                     )
                 }
@@ -155,7 +155,7 @@ private fun TokenTxProcessingScreen(
                             LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
                             LoadingSuccessState.State.Success -> {
                                 val name = when (state.purpose) {
-                                    is TokenSwapPurpose.BalanceIncrease -> state.tokenName
+                                    is SwapPurpose.BalanceIncrease -> state.tokenName
                                     else -> stringResource(R.string.title_cashReserves)
                                 }
                                 state.netTransferAmount.formatted(suffix = stringResource(R.string.label_ofToken, name))
@@ -189,7 +189,7 @@ private fun TxProcessiongPreview() {
     FlipcashPreview {
         ProvideTestPermissions(granted = setOf(Manifest.permission.POST_NOTIFICATIONS)) {
             TokenTxProcessingScreen(
-                state = BuySellSwapTokenViewModel.State(
+                state = SwapViewModel.State(
                     processingProgress = LoadingSuccessState(loading = true)
                 )
             ) { }

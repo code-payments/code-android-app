@@ -3,8 +3,10 @@ package com.flipcash.app.core
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.SwapResult
+import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.withdrawal.WithdrawalResult
@@ -123,33 +125,24 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Transactions(val mint: Mint) : Token
         @Serializable
-        data class SwapTransact(
-            val purpose: TokenSwapPurpose,
-            val forNeededFunds: Boolean = false
-        ) : Token
+        data class Swap(
+            val purpose: SwapPurpose,
+            val forNeededFunds: Boolean = false,
+        ) : Token, FlowRouteWithResult<SwapResult> {
+            override val initialStack: List<NavKey>
+                get() = listOf(SwapStep.Entry(purpose))
+        }
 
         @Serializable
         data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false) :
             Token, NonDismissableRoute, NonDraggableRoute
 
         @Serializable
-        data object SellReceipt : Token
+        data class OnRamp(val mint: Mint) : Token
 
         @Serializable
         data object Discovery: AppRoute
 
-    }
-    @Serializable
-    @Parcelize
-    sealed interface OnRamp : AppRoute {
-        @Serializable
-        data class ProviderList(
-            val from: AppRoute? = null,
-            val neededAmount: Fiat? = null,
-        ) : OnRamp
-
-        @Serializable
-        data class AmountEntry(val mint: Mint) : OnRamp
     }
 
     @Serializable
@@ -195,7 +188,7 @@ private fun buildVerificationInitialStack(
     emailVerificationCode: String?,
 ): List<NavKey> {
     if (includePhone && includeEmail) {
-        return listOf(VerificationStep.Intro(origin is AppRoute.OnRamp.AmountEntry))
+        return listOf(VerificationStep.Intro(origin is AppRoute.Token.OnRamp))
     }
     if (includePhone) {
         return listOf(VerificationStep.PhoneEntry)

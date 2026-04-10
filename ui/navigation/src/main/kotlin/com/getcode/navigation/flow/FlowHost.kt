@@ -10,7 +10,10 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.Snapshot
@@ -24,6 +27,8 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.getcode.navigation.AppNavHost
+import com.getcode.navigation.NonDismissableRoute
+import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavOptions
@@ -31,6 +36,7 @@ import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.asKey
+import com.getcode.navigation.scenes.LocalSheetNavigator
 
 /**
  * Why the flow exited.
@@ -151,6 +157,25 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         )
     }
 
+    // Propagate NonDismissableRoute / NonDraggableRoute from the current inner step
+    // to the enclosing sheet so that drag-to-dismiss is blocked when a step requires it.
+    val sheetNavigator = LocalSheetNavigator.current
+    if (sheetNavigator != null) {
+        val currentInnerRoute by remember {
+            derivedStateOf { innerBackStack.lastOrNull() }
+        }
+        val isDragDisabled = currentInnerRoute is NonDraggableRoute
+        val isDismissDisabled = currentInnerRoute is NonDismissableRoute
+        DisposableEffect(isDragDisabled, isDismissDisabled) {
+            if (isDragDisabled) sheetNavigator.sheetDragDisabled = true
+            if (isDismissDisabled) sheetNavigator.sheetDismissDisabled = true
+            onDispose {
+                if (isDragDisabled) sheetNavigator.sheetDragDisabled = false
+                if (isDismissDisabled) sheetNavigator.sheetDismissDisabled = false
+            }
+        }
+    }
+
     CompositionLocalProvider(
         LocalCodeNavigator provides innerNavigator,
         LocalFlowNavigator provides flowNavigator,
@@ -204,6 +229,7 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
             navigator.backStack.removeAt(navigator.backStack.lastIndex)
             true
         } else {
+            onExit(FlowExitReason.BackedOutOfRoot)
             false
         }
     }

@@ -16,9 +16,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.AmountWithKeypad
-import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -26,17 +26,17 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 @Composable
-internal fun BuySellTokenEntryScreen(
-    viewModel: BuySellSwapTokenViewModel,
+internal fun SwapEntryScreenContent(
+    viewModel: SwapViewModel,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    BuySellTokenEntryScreen(state, viewModel::dispatchEvent)
+    SwapEntryScreenContent(state, viewModel::dispatchEvent)
 }
 
 @Composable
-internal fun BuySellTokenEntryScreen(
-    state: BuySellSwapTokenViewModel.State,
-    dispatchEvent: (BuySellSwapTokenViewModel.Event) -> Unit,
+internal fun SwapEntryScreenContent(
+    state: SwapViewModel.State,
+    dispatchEvent: (SwapViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
 
@@ -57,12 +57,12 @@ internal fun BuySellTokenEntryScreen(
             placeholder = "0",
             hint = if (state.isError) {
                 when (state.purpose) {
-                    is TokenSwapPurpose.BalanceIncrease -> stringResource(
+                    is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.subtitle_buyHintLimitExceeded,
                         state.maxAvailableToSwap
                     )
 
-                    is TokenSwapPurpose.BalanceDecrease -> stringResource(
+                    is SwapPurpose.BalanceDecrease -> stringResource(
                         R.string.subtitle_sellHintLimitExceeded,
                         state.maxAvailableToSwap
                     )
@@ -76,7 +76,7 @@ internal fun BuySellTokenEntryScreen(
                 )
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
-            isClickable = state.purpose !is TokenSwapPurpose.FundWithWallet,
+            isClickable = state.purpose !is SwapPurpose.FundWithWallet,
             onAmountClicked = {
                 navigator.push(
                     AppRoute.Main.RegionSelection(
@@ -87,23 +87,23 @@ internal fun BuySellTokenEntryScreen(
             isError = state.isError,
             onNumberPressed = {
                 dispatchEvent(
-                    BuySellSwapTokenViewModel.Event.OnNumberPressed(
+                    SwapViewModel.Event.OnNumberPressed(
                         it
                     )
                 )
             },
-            onBackspace = { dispatchEvent(BuySellSwapTokenViewModel.Event.OnBackspace) },
-            onDecimal = { dispatchEvent(BuySellSwapTokenViewModel.Event.OnDecimalPressed) }
+            onBackspace = { dispatchEvent(SwapViewModel.Event.OnBackspace) },
+            onDecimal = { dispatchEvent(SwapViewModel.Event.OnDecimalPressed) }
         )
 
         Box(modifier = Modifier.fillMaxWidth()) {
             val (text, inlineContent) = when (state.purpose) {
-                is TokenSwapPurpose.Buy -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
-                is TokenSwapPurpose.FundWithWallet -> buildPhantomButtonLabel(
+                is SwapPurpose.Buy -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
+                is SwapPurpose.FundWithWallet -> buildPhantomButtonLabel(
                     prefix = stringResource(R.string.label_confirmIn),
                     isEnabled = state.canTransact
                 )
-                is TokenSwapPurpose.Sell -> AnnotatedString(stringResource(R.string.action_next)) to emptyMap()
+                is SwapPurpose.Sell -> AnnotatedString(stringResource(R.string.action_next)) to emptyMap()
                 else -> AnnotatedString("") to emptyMap()
             }
 
@@ -120,7 +120,7 @@ internal fun BuySellTokenEntryScreen(
                 text = text,
                 inlineContent = inlineContent,
             ) {
-                dispatchEvent(BuySellSwapTokenViewModel.Event.OnAmountConfirmed)
+                dispatchEvent(SwapViewModel.Event.OnAmountConfirmed)
             }
         }
     }

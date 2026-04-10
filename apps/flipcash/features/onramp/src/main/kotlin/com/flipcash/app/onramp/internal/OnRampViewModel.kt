@@ -2,18 +2,13 @@ package com.flipcash.app.onramp.internal
 
 import android.os.Parcelable
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.OnRampController
-import com.flipcash.app.onramp.OnRampFlowTracker
-import com.flipcash.app.onramp.internal.data.OnRampProviderDestination
-import com.flipcash.app.onramp.internal.data.OnRampProviderItem
 import com.flipcash.features.onramp.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -87,13 +82,6 @@ internal data class AmountEntryState(
         }
 }
 
-private val DefaultOnRampOptions = listOf(
-    OnRampProviderItem(
-        provider = OnRampProvider.ManualDeposit,
-        destination = OnRampProviderDestination.Screen(AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit))
-    )
-)
-
 @HiltViewModel
 internal class OnRampViewModel @Inject constructor(
     userManager: UserManager,
@@ -116,7 +104,6 @@ internal class OnRampViewModel @Inject constructor(
         val loading: Boolean = false,
         val mint: Mint? = null,
         val token: Token? = null,
-        val providers: List<OnRampProviderItem> = DefaultOnRampOptions,
         val canChangeCurrency: Boolean = false,
         val hasVerifiedPhone: Boolean = false,
         val hasVerifiedEmail: Boolean = false,
@@ -129,7 +116,6 @@ internal class OnRampViewModel @Inject constructor(
     sealed interface Event {
         data class OnMintChanged(val mint: Mint) : Event
         data class OnTokenChanged(val token: Token) : Event
-        data class OnProvidersUpdated(val providers: List<OnRampProviderItem>) : Event
 
         data class OnPhoneVerificationChanged(val verified: Boolean) : Event
         data class OnEmailVerificationChanged(val verified: Boolean) : Event
@@ -393,72 +379,6 @@ internal class OnRampViewModel @Inject constructor(
             )
             .launchIn(viewModelScope)
 
-        userManager.state
-            .map { it.flags?.supportedOnRampProviders.orEmpty() }
-            .onEach { providers ->
-                val providersWithDeposit = providers
-                    // always ensure that deposit is available
-                    .ifEmpty { listOf(OnRampProvider.ManualDeposit) }
-                    // ensure deposit is last
-                    .sortedBy { if (it is OnRampProvider.ManualDeposit) 1 else 0 }
-
-                val filteredProviders =
-                    providersWithDeposit.filterIsInstance<OnRampProvider.Defined>()
-                        .mapNotNull { provider ->
-                            OnRampProviderItem(
-                                provider = provider,
-                                destination = when (provider) {
-                                    OnRampProvider.ManualDeposit ->
-                                        OnRampProviderDestination.Screen(
-                                            AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit)
-                                        )
-
-                                    is OnRampProvider.Coinbase -> {
-                                        val hasVerifiedPhone = stateFlow.value.hasVerifiedPhone
-                                        val hasVerifiedEmail = stateFlow.value.hasVerifiedEmail
-
-                                        val mint = when (OnRampFlowTracker.source) {
-                                            is AppRoute.Token.Info -> (OnRampFlowTracker.source as AppRoute.Token.Info).mint
-                                            else -> return@mapNotNull null
-                                        }
-
-                                        val destination =
-                                            if (!(hasVerifiedPhone && hasVerifiedEmail)) {
-                                                AppRoute.Verification(
-                                                    origin = AppRoute.OnRamp.ProviderList(
-                                                        from = OnRampFlowTracker.source!!
-                                                    ),
-                                                    includePhone = !hasVerifiedPhone,
-                                                    includeEmail = !hasVerifiedEmail,
-                                                )
-                                            } else {
-                                                AppRoute.OnRamp.AmountEntry(mint)
-                                            }
-
-                                        when (provider.type) {
-                                            OnRampType.Virtual -> OnRampProviderDestination.Screen(
-                                                destination
-                                            )
-
-                                            OnRampType.PhysicalDebit -> OnRampProviderDestination.Screen(
-                                                destination
-                                            )
-
-                                            OnRampType.PhysicalCredit -> OnRampProviderDestination.Screen(
-                                                destination
-                                            )
-                                        }
-                                    }
-
-                                    is OnRampProvider.UsesDeeplinks -> {
-                                        OnRampProviderDestination.ExternalWalletConnection(provider)
-                                    }
-                                }
-                            )
-                        }
-                dispatchEvent(Event.OnProvidersUpdated(filteredProviders))
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.OnProviderSelected>()
             .map { it.item }
@@ -609,8 +529,6 @@ internal class OnRampViewModel @Inject constructor(
                         selectedProvider = event.item as? OnRampProvider.ThirdParty
                     )
                 }
-
-                is Event.OnProvidersUpdated -> { state -> state.copy(providers = event.providers) }
 
                 is Event.OnPhoneVerificationChanged -> { state -> state.copy(hasVerifiedPhone = event.verified) }
                 is Event.OnEmailVerificationChanged -> { state -> state.copy(hasVerifiedEmail = event.verified) }

@@ -382,7 +382,7 @@ class AppRouterTest {
     }
 
     @Test
-    fun `dispatch builds onramp routes for email verification from menu`() {
+    fun `dispatch returns None for email verification from menu onramp (unsupported source)`() {
         loggedIn()
         val origin = Base64.encodeToString("onramp|menu|null".toByteArray(), Base64.NO_WRAP)
         val clientData = """{"origin":"$origin"}"""
@@ -392,13 +392,7 @@ class AppRouterTest {
                 "&client_data=${URLEncoder.encode(clientData, "UTF-8")}"
 
         val action = router.dispatch(DeepLink(url))
-        assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(2, action.routes.size)
-        assertIs<AppRoute.OnRamp.ProviderList>(action.routes[0])
-        val verification = action.routes[1]
-        assertIs<AppRoute.Verification>(verification)
-        assertEquals("user@mail.com", verification.email)
-        assertEquals("654321", verification.emailVerificationCode)
+        assertIs<DeeplinkAction.None>(action)
     }
 
     @Test

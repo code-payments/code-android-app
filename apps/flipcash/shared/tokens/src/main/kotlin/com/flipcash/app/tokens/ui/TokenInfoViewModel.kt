@@ -26,11 +26,10 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.money.formatted
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.OnRampAmountController
-import com.flipcash.app.onramp.OnRampFlowTracker
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
@@ -446,29 +445,22 @@ class TokenInfoViewModel @Inject constructor(
     private fun handleBuyWithCoinbase() {
         analytics.buttonTapped(Button.TokenBuyWithCoinbase)
         val mint = stateFlow.value.mint ?: return
-        OnRampFlowTracker.start(
-            AppRoute.Token.Info(mint)
-        )
         onramp.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual))
-        dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry(mint)))
+        dispatchEvent(Event.OpenScreen(AppRoute.Token.OnRamp(mint)))
     }
 
     private fun handleBuyWithReserves(forNeededFunds: Boolean) {
         analytics.buttonTapped(Button.TokenBuyWithReserves)
         dispatchEvent(
             Event.OpenScreen(
-                AppRoute.Token.SwapTransact(
-                    purpose = TokenSwapPurpose.Buy(stateFlow.value.token.dataOrNull!!.address),
+                AppRoute.Token.Swap(
+                    purpose = SwapPurpose.Buy(stateFlow.value.token.dataOrNull!!.address),
                     forNeededFunds = forNeededFunds
                 )
             )
         )
     }
     private fun handleBuyWithPhantom() {
-        // start the onramp flow here since we skip the provider list
-        OnRampFlowTracker.start(
-            AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
-        )
         analytics.buttonTapped(Button.TokenBuyWithPhantom)
         dispatchEvent(Event.ConnectPhantomWallet)
     }

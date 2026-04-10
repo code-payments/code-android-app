@@ -10,13 +10,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.SwapResult
+import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.onramp.LocalExternalWalletState
-import com.flipcash.app.tokens.internal.BuySellTokenEntryScreen
-import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.internal.SwapEntryScreenContent
+import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
-import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.flowScopedViewModel
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -24,11 +26,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun TokenBuySellEntryScreen(
-    purpose: TokenSwapPurpose,
+internal fun SwapEntryContent(
+    purpose: SwapPurpose,
 ) {
-    val navigator = LocalCodeNavigator.current
-    val viewModel = flowScopedViewModel<BuySellSwapTokenViewModel>(BuySellFlow.key)
+    val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+    val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val externalWalletOnRamp = LocalExternalWalletState.current
 
@@ -39,8 +41,8 @@ fun TokenBuySellEntryScreen(
         AppBarWithTitle(
             isInModal = true,
             title = when (purpose) {
-                is TokenSwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
-                is TokenSwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
+                is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
+                is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
@@ -48,29 +50,29 @@ fun TokenBuySellEntryScreen(
                 if (state.buyProgress.loading) {
                     // swallow
                 } else {
-                    navigator.pop()
+                    flowNavigator.back()
                 }
             }
         )
 
-        BuySellTokenEntryScreen(viewModel)
+        SwapEntryScreenContent(viewModel)
     }
 
     LaunchedEffect(viewModel) {
-        viewModel.dispatchEvent(BuySellSwapTokenViewModel.Event.OnPurposeChanged(purpose))
+        viewModel.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(purpose))
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<BuySellSwapTokenViewModel.Event.ShowSellReceipt>()
+            .filterIsInstance<SwapViewModel.Event.ShowSellReceipt>()
             .onEach {
-                navigator.push(AppRoute.Token.SellReceipt)
+                flowNavigator.navigateTo(SwapStep.SellReceipt)
             }.launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<BuySellSwapTokenViewModel.Event.CreateAndSendTransactionToWallet>()
+            .filterIsInstance<SwapViewModel.Event.CreateAndSendTransactionToWallet>()
             .onEach { (token, amount) ->
                 externalWalletOnRamp.tokenToPurchase = token
                 externalWalletOnRamp.amount = amount
@@ -79,27 +81,28 @@ fun TokenBuySellEntryScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<BuySellSwapTokenViewModel.Event.Exit>()
+            .filterIsInstance<SwapViewModel.Event.Exit>()
             .onEach {
-                navigator.popUntil { it is AppRoute.Token.Info }
+                flowNavigator.exitCanceled()
             }.launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<BuySellSwapTokenViewModel.Event.OnPurchaseSubmitted>()
+            .filterIsInstance<SwapViewModel.Event.OnPurchaseSubmitted>()
             .map { it.swapId }
             .onEach { swapId ->
-                navigator.push(AppRoute.Token.TxProcessing(swapId))
+                flowNavigator.navigateTo(SwapStep.Processing(swapId))
             }.launchIn(this)
     }
 
-    // Navigate to pending routes from ExternalWalletOnRampHandler using the
-    // sheet's inner navigator (which the handler can't access directly).
+    // Navigate to pending processing step from ExternalWalletOnRampHandler
     val pendingNav = externalWalletOnRamp.pendingNavigation
     LaunchedEffect(pendingNav) {
         if (pendingNav is AppRoute.Token.TxProcessing) {
-            navigator.push(pendingNav)
+            flowNavigator.navigateTo(
+                SwapStep.Processing(pendingNav.swapId, pendingNav.awaitExternalWallet)
+            )
             externalWalletOnRamp.pendingNavigation = null
         }
     }

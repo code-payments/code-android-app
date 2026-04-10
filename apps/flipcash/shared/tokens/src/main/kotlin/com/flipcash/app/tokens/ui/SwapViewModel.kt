@@ -6,7 +6,7 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -64,7 +64,7 @@ data class AmountEntryState(
 )
 
 @HiltViewModel
-class BuySellSwapTokenViewModel @Inject constructor(
+class SwapViewModel @Inject constructor(
     userManager: UserManager,
     exchange: Exchange,
     transactionController: TransactionOperations,
@@ -73,7 +73,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
     feedCoordinator: ActivityFeedCoordinator,
     private val analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<BuySellSwapTokenViewModel.State, BuySellSwapTokenViewModel.Event>(
+) : BaseViewModel2<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
@@ -82,7 +82,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
     data class State(
         val loading: Boolean = false,
-        val purpose: TokenSwapPurpose? = null,
+        val purpose: SwapPurpose? = null,
         val tokenWithBalance: TokenWithBalance? = null,
         val reservesWithBalance: TokenWithBalance? = null,
         val swapId: SwapId? = null,
@@ -107,15 +107,15 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         val maxAvailableToSwap: String
             get() = when (purpose) {
-                is TokenSwapPurpose.Buy -> reservesBalance.formatted()
-                is TokenSwapPurpose.FundWithWallet -> amountEntryState.maxToAdd?.let {
+                is SwapPurpose.Buy -> reservesBalance.formatted()
+                is SwapPurpose.FundWithWallet -> amountEntryState.maxToAdd?.let {
                     Fiat(
                         it.first,
                         it.second
                     ).formatted()
                 }.orEmpty()
 
-                is TokenSwapPurpose.Sell -> tokenBalance.formatted()
+                is SwapPurpose.Sell -> tokenBalance.formatted()
                 null -> ""
             }
 
@@ -139,15 +139,15 @@ class BuySellSwapTokenViewModel @Inject constructor(
 
         val netTransferAmount: Fiat
             get() = confirmedNetTransferAmount ?: when (purpose) {
-               is TokenSwapPurpose.BalanceIncrease -> enteredAmount
+               is SwapPurpose.BalanceIncrease -> enteredAmount
                else -> Fiat(fiat = enteredAmount.decimalValue - feeAmount.decimalValue, currencyCode = enteredAmount.currencyCode)
             }
 
         val transactionLimit: Fiat
             get() {
                 return when (purpose) {
-                    is TokenSwapPurpose.Buy -> reservesBalance
-                    is TokenSwapPurpose.FundWithWallet -> {
+                    is SwapPurpose.Buy -> reservesBalance
+                    is SwapPurpose.FundWithWallet -> {
                         val sendLimit =
                             enteredAmount.currencyCode.let {
                                 amountEntryState.limits?.sendLimitFor(
@@ -158,7 +158,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
                     }
 
-                    is TokenSwapPurpose.Sell -> tokenBalance
+                    is SwapPurpose.Sell -> tokenBalance
                     null -> Fiat.Zero
                 }
             }
@@ -171,7 +171,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnPurposeChanged(val purpose: TokenSwapPurpose) : Event
+        data class OnPurposeChanged(val purpose: SwapPurpose) : Event
         data class OnSelectedTokenChanged(val token: TokenWithBalance) : Event
         data class OnReservesUpdated(val reserves: TokenWithBalance) : Event
 
@@ -243,7 +243,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
         val reservesBalance = stateFlow.value.reservesBalance
 
         when (stateFlow.value.purpose) {
-            is TokenSwapPurpose.BalanceIncrease -> {
+            is SwapPurpose.BalanceIncrease -> {
                 val isOverBalance = enteredInUsdf > reservesBalance.rounded()
                 if (isOverBalance || conversionRate == Rate.ignore) {
                     BottomBarManager.showError(
@@ -254,7 +254,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                 isOverBalance
             }
 
-            is TokenSwapPurpose.BalanceDecrease -> {
+            is SwapPurpose.BalanceDecrease -> {
                 val isOverBalance = enteredInUsdf > tokenBalance.rounded()
                 if (isOverBalance || conversionRate == Rate.ignore) {
                     BottomBarManager.showError(
@@ -288,15 +288,15 @@ class BuySellSwapTokenViewModel @Inject constructor(
             .map { it.purpose }
             .flatMapLatest { purpose ->
                 val mint = when (purpose) {
-                    is TokenSwapPurpose.Buy -> purpose.mint
-                    is TokenSwapPurpose.FundWithWallet -> purpose.mint
-                    is TokenSwapPurpose.Sell -> purpose.mint
+                    is SwapPurpose.Buy -> purpose.mint
+                    is SwapPurpose.FundWithWallet -> purpose.mint
+                    is SwapPurpose.Sell -> purpose.mint
                 }
 
                 combine(
                     tokenCoordinator.tokenBalances,
                     when (purpose) {
-                        is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
+                        is SwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
                         else -> exchange.observeEntryRate()
                     },
                 ) { tokens, rate ->
@@ -334,16 +334,16 @@ class BuySellSwapTokenViewModel @Inject constructor(
             .map { it.purpose }
             .flatMapLatest { purpose ->
                 val tokenAddress = when (purpose) {
-                    is TokenSwapPurpose.Buy -> Mint.usdf
-                    is TokenSwapPurpose.FundWithWallet -> Mint.usdf
-                    is TokenSwapPurpose.Sell -> purpose.mint
+                    is SwapPurpose.Buy -> Mint.usdf
+                    is SwapPurpose.FundWithWallet -> Mint.usdf
+                    is SwapPurpose.Sell -> purpose.mint
                 }
 
                 combine(
                     tokenCoordinator.tokens,
                     tokenCoordinator.balanceForToken(tokenAddress),
                     when (purpose) {
-                        is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
+                        is SwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
                         else -> exchange.observeEntryRate()
                     },
                 ) { tokens, balance, rate ->
@@ -365,7 +365,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
         combine(
             tokenCoordinator.observeReservesBalance(),
             when (stateFlow.value.purpose) {
-                is TokenSwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
+                is SwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
                 else -> exchange.observeEntryRate()
             },
         ) { balance, rate ->
@@ -460,7 +460,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             .filterNot {
                 val purpose = stateFlow.value.purpose
                 // Don't check balance if funds are coming from external
-                if (purpose !is TokenSwapPurpose.FundWithWallet) {
+                if (purpose !is SwapPurpose.FundWithWallet) {
                     checkBalanceLimit()
                 } else {
                     false
@@ -472,7 +472,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }
             .onEach { (data, purpose) ->
                 when (purpose) {
-                    is TokenSwapPurpose.Buy -> {
+                    is SwapPurpose.Buy -> {
                         val rate = exchange.entryRate
                         // buy with reserves
                         val amountFiat = LocalFiat.valueExchangeIn(
@@ -488,7 +488,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                     }
 
-                    is TokenSwapPurpose.FundWithWallet -> {
+                    is SwapPurpose.FundWithWallet -> {
                         val rate = exchange.rateForUsd()
                         // funding through external wallet
                         val nativeAmount = Fiat(data.amountData.amount, rate.currency)
@@ -508,7 +508,7 @@ class BuySellSwapTokenViewModel @Inject constructor(
                         )
                     }
 
-                    is TokenSwapPurpose.Sell -> {
+                    is SwapPurpose.Sell -> {
                         val rate = exchange.entryRate
                         val tokenWithBalance = stateFlow.value.tokenWithBalance!!
                         val amountFiat = LocalFiat.valueExchangeIn(
@@ -621,8 +621,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
             }.onResult(
                 onSuccess = {
                     val token = stateFlow.value.tokenWithBalance!!.token
-                    val isUsingReserves = stateFlow.value.purpose is TokenSwapPurpose.Buy ||
-                            stateFlow.value.purpose is TokenSwapPurpose.Sell
+                    val isUsingReserves = stateFlow.value.purpose is SwapPurpose.Buy ||
+                            stateFlow.value.purpose is SwapPurpose.Sell
                     viewModelScope.launch { tokenCoordinator.updateTokenAccount(token) }
                     if (isUsingReserves) {
                         viewModelScope.launch { tokenCoordinator.updateTokenAccount(Mint.usdf) }
@@ -642,8 +642,8 @@ class BuySellSwapTokenViewModel @Inject constructor(
     private fun trackTransaction(token: Token, error: Throwable? = null) {
         val purpose = stateFlow.value.purpose
         val method = when (purpose) {
-            is TokenSwapPurpose.Buy -> Analytics.SwapMethod.Buy.Reserves
-            is TokenSwapPurpose.FundWithWallet -> Analytics.SwapMethod.Buy.Phantom
+            is SwapPurpose.Buy -> Analytics.SwapMethod.Buy.Reserves
+            is SwapPurpose.FundWithWallet -> Analytics.SwapMethod.Buy.Phantom
             else -> Analytics.SwapMethod.Sell
         }
 

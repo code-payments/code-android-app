@@ -39,18 +39,14 @@ import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampCustomAmountScreen
-import com.flipcash.app.onramp.OnRampFlowTracker
-import com.flipcash.app.onramp.OnRampProviderListScreen
 import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
-import com.flipcash.app.tokens.BuySellFlow
-import com.flipcash.app.tokens.TokenBuySellEntryScreen
+import com.flipcash.app.tokens.SwapFlowScreen
 import com.flipcash.app.tokens.TokenInfoScreen
 import com.flipcash.app.tokens.TokenSelectScreen
-import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.tokens.TokenTxProcessingScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.userflags.UserFlagsScreen
@@ -108,30 +104,19 @@ fun appEntryProvider(
         TokenInfoScreen(key.mint, key.forNeededFunds, key.fromDeeplink)
     }
     annotatedEntry<AppRoute.Token.Transactions> { key -> TransactionHistoryScreen(key.mint) }
-    annotatedEntry<AppRoute.Token.SwapTransact> { key ->
-        remember { BuySellFlow.start(key.forNeededFunds) }
-        TokenBuySellEntryScreen(key.purpose)
+    annotatedEntry<AppRoute.Token.Swap> { key ->
+        SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
         TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet)
     }
-    annotatedEntry<AppRoute.Token.SellReceipt> { TokenSellReceiptScreen() }
+    annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
 
     // Verification
     annotatedEntry<AppRoute.Verification> { key ->
         VerificationFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-
-    // OnRamp
-    annotatedEntry<AppRoute.OnRamp.ProviderList> { key ->
-        remember { OnRampFlowTracker.start(key.from) }
-        OnRampProviderListScreen(
-            neededAmount = key.neededAmount?.quarks,
-            neededCurrency = key.neededAmount?.currencyCode,
-        )
-    }
-    annotatedEntry<AppRoute.OnRamp.AmountEntry> { key -> OnRampCustomAmountScreen(key.mint) }
 
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }

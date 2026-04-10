@@ -50,5 +50,8 @@ jobs:
       - name: Setup Mixpanel API Key
         run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
 
+      - name: Setup Coinbase OnRamp API Key
+        run: echo COINBASE_ONRAMP_API_KEY=${{ secrets.COINBASE_ONRAMP_API_KEY }} >> ./local.properties
+
       - name: Run Flipcash tests
         run: bundle exec fastlane android flipcash_tests
