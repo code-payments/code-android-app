@@ -41,7 +41,7 @@ sealed interface TransferDirection : Parcelable {
 
     data object Outgoing : TransferDirection {
         @IgnoredOnParcel
-        override val nextScreen: AppRoute = AppRoute.Transfers.Withdrawal.Amount(Mint.usdf)
+        override val nextScreen: AppRoute = AppRoute.Transfers.Withdrawal(Mint.usdf)
         override val title: String
             @Composable get() = stringResource(R.string.title_withdrawFunds)
         override val description: String

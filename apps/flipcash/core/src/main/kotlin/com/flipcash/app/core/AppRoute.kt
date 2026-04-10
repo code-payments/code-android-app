@@ -7,6 +7,8 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.tokens.TokenSwapPurpose
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
+import com.flipcash.app.core.withdrawal.WithdrawalResult
+import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
@@ -154,13 +156,10 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Transfers : AppRoute {
 
-        sealed interface Withdrawal {
-            @Serializable
-            data class Amount(val mint: Mint) : Transfers
-            @Serializable
-            data object Destination : Transfers
-            @Serializable
-            data object Confirmation : Transfers
+        @Serializable
+        data class Withdrawal(val mint: Mint) : Transfers, FlowRouteWithResult<WithdrawalResult> {
+            override val initialStack: List<NavKey>
+                get() = listOf(WithdrawalStep.Amount(mint))
         }
     }
 

@@ -54,10 +54,7 @@ import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.tokens.TokenTxProcessingScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.userflags.UserFlagsScreen
-import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
-import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
-import com.flipcash.app.withdrawal.WithdrawalEntryScreen
-import com.flipcash.app.withdrawal.WithdrawalFlow
+import com.flipcash.app.withdrawal.WithdrawalFlowScreen
 import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
@@ -147,12 +144,9 @@ fun appEntryProvider(
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
     // Transfers
-    annotatedEntry<AppRoute.Transfers.Withdrawal.Amount> { key ->
-        remember { WithdrawalFlow.start() }
-        WithdrawalEntryScreen(key.mint)
+    annotatedEntry<AppRoute.Transfers.Withdrawal> { key ->
+        WithdrawalFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-    annotatedEntry<AppRoute.Transfers.Withdrawal.Destination> { WithdrawalDestinationScreen() }
-    annotatedEntry<AppRoute.Transfers.Withdrawal.Confirmation> { WithdrawalConfirmationScreen() }
 }
 
 /**
