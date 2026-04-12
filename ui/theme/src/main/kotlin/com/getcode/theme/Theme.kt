@@ -43,6 +43,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     successText = Success,
     textMain = TextMain,
     textSecondary = TextSecondary,
+    textTertiary = White50,
     border = BrandLight,
     divider = White10,
     dividerVariant = White05,
@@ -135,6 +136,7 @@ class ColorScheme(
     successText: Color,
     textMain: Color,
     textSecondary: Color,
+    textTertiary: Color,
     trackColor: Color,
     toggleUncheckedTrackColor: Color,
     cashBill: Color,
@@ -184,6 +186,8 @@ class ColorScheme(
     var textMain by mutableStateOf(textMain)
         private set
     var textSecondary by mutableStateOf(textSecondary)
+        private set
+    var textTertiary by mutableStateOf(textTertiary)
         private set
     var secondary by mutableStateOf(secondary)
         private set
@@ -248,6 +252,7 @@ class ColorScheme(
         successText = other.successText
         textMain = other.textMain
         textSecondary = other.textSecondary
+        textTertiary = other.textTertiary
         secondary = other.secondary
         tertiary = other.tertiary
         indicator = other.indicator
@@ -289,6 +294,7 @@ class ColorScheme(
         successText = successText,
         textMain = textMain,
         textSecondary = textSecondary,
+        textTertiary = textTertiary,
         secondary = secondary,
         tertiary = tertiary,
         indicator = indicator,
@@ -355,7 +361,7 @@ fun inputColors(
     borderColor: Color = CodeTheme.colors.border,
     unfocusedBorderColor: Color = borderColor,
     backgroundColor: Color = White05,
-    placeholderColor: Color = White50,
+    placeholderColor: Color = CodeTheme.colors.textTertiary,
     cursorColor: Color = Color.White,
     errorBorderColor: Color = CodeTheme.colors.error,
 ) = TextFieldDefaults.outlinedTextFieldColors(

@@ -43,6 +43,7 @@ val BetaIndicator = Color(0xFFFEF383)
 
 val TextMain = White
 val TextSecondary = BrandLight
+val TextTertiary = BrandMuted
 val TextError = Alert
 
 val SystemGreen = Color(0xFF04C759)
