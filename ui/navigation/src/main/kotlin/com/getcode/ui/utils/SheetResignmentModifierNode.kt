@@ -1,5 +1,6 @@
 package com.getcode.ui.utils
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -56,15 +57,12 @@ internal class SheetResignmentConnection(
 }
 
 private class SheetResignmentModifierNode(
-    private val listState: LazyListState,
+    private val isAtTopProvider: () -> Boolean,
     private val connection: SheetResignmentConnection,
     private val autoResetDelayMs: Long,
 ) : Modifier.Node(), DelegatableNode {
 
-    private val isAtTop by derivedStateOf {
-        listState.firstVisibleItemIndex == 0 &&
-                listState.firstVisibleItemScrollOffset == 0
-    }
+    private val isAtTop by derivedStateOf { isAtTopProvider() }
 
     private var observeJob: Job? = null
 
@@ -96,18 +94,17 @@ private class SheetResignmentModifierNode(
 }
 
 private data class SheetResignmentElement(
-    val listState: LazyListState,
+    val isAtTopProvider: () -> Boolean,
     val connection: SheetResignmentConnection,
     val autoResetDelayMs: Long,
 ) : ModifierNodeElement<SheetResignmentModifierNode>() {
 
-    override fun create() = SheetResignmentModifierNode(listState, connection, autoResetDelayMs)
+    override fun create() = SheetResignmentModifierNode(isAtTopProvider, connection, autoResetDelayMs)
 
     override fun update(node: SheetResignmentModifierNode) = Unit
 
     override fun InspectorInfo.inspectableProperties() {
         name = "sheetResignmentBehavior"
-        properties["listState"] = listState
         properties["autoResetDelayMs"] = autoResetDelayMs
     }
 }
@@ -135,5 +132,41 @@ fun Modifier.sheetResignmentBehavior(
     }
     return this
         .nestedScroll(connection)
-        .then(SheetResignmentElement(listState, connection, autoResetDelayMs))
+        .then(SheetResignmentElement(
+            isAtTopProvider = {
+                listState.firstVisibleItemIndex == 0 &&
+                        listState.firstVisibleItemScrollOffset == 0
+            },
+            connection = connection,
+            autoResetDelayMs = autoResetDelayMs,
+        ))
+}
+
+/**
+ * Prevents a [ModalBottomSheet] from starting dismiss on the first downward drag after the
+ * internal [ScrollState] reaches the top. The first drag triggers overscroll bounce only;
+ * a subsequent downward drag (or after [autoResetDelayMs]) will dismiss normally.
+ *
+ * Requires [LocalSheetGesturesState] to be provided, or pass [setGesturesEnabled] explicitly.
+ *
+ * @param scrollState the [ScrollState] of the scrollable Column inside the sheet
+ * @param setGesturesEnabled callback to toggle sheet gesture handling (e.g. `sheetState.gesturesEnabled`)
+ * @param autoResetDelayMs time after which a paused-then-drag will re-enable dismiss; 0 to disable
+ */
+@Composable
+fun Modifier.sheetResignmentBehavior(
+    scrollState: ScrollState,
+    setGesturesEnabled: (Boolean) -> Unit = LocalSheetGesturesState.current,
+    autoResetDelayMs: Long = 700L,
+): Modifier {
+    val connection = remember(setGesturesEnabled, autoResetDelayMs) {
+        SheetResignmentConnection(setGesturesEnabled, autoResetDelayMs)
+    }
+    return this
+        .nestedScroll(connection)
+        .then(SheetResignmentElement(
+            isAtTopProvider = { scrollState.value == 0 },
+            connection = connection,
+            autoResetDelayMs = autoResetDelayMs,
+        ))
 }
