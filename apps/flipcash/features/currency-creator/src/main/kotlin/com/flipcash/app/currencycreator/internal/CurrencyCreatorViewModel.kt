@@ -46,6 +46,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val nameFieldState: TextFieldState = TextFieldState(),
         val descriptionFieldState: TextFieldState = TextFieldState(),
         val icon: Loadable<Uri> = Loadable.Loading(),
+        val customizations: TokenBillCustomizations? = null,
         val bill: Bill? = null,
         val purchaseAmount: Fiat = 20.toFiat(),
         val processingState: LoadingSuccessState = LoadingSuccessState(),

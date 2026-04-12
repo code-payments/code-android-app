@@ -1,7 +1,7 @@
 package com.flipcash.app.currencycreator.internal.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
@@ -10,11 +10,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -35,8 +36,8 @@ import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White10
 import com.getcode.ui.components.text.AnimatedNumberText
+import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
@@ -59,47 +60,32 @@ internal fun DescriptionSelectionContent(
     CodeScaffold(
         modifier = Modifier
             .padding(horizontal = CodeTheme.dimens.inset),
-        topBar = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
-            ) {
-                TokenIconWithName(
-                    tokenName = state.nameFieldState.text.let {
-                        if (it.isNotBlank()) it.toString() else stringResource(
-                            R.string.placeholder_currencyName
-                        )
-                    },
-                    tokenImage = state.icon.dataOrNull,
-                    imageSize = CodeTheme.dimens.staticGrid.x6,
-                    spacing = CodeTheme.dimens.grid.x2
-                )
-
-                Text(
-                    text = stringResource(R.string.title_currencyCreatorDescription),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
-                )
-            }
-        },
         bottomBar = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x1),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    val isOverLimit = remember(state.remainingSpaceForDescription) {
+                        state.remainingSpaceForDescription < 0
+                    }
+                    val textColor by animateColorAsState(
+                        if (isOverLimit) CodeTheme.colors.errorText else CodeTheme.colors.textSecondary
+                    )
+
                     AnimatedNumberText(
                         value = state.remainingSpaceForDescription.toString(),
                         style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
+                        color = textColor,
                     )
 
                     Text(
                         text = stringResource(R.string.label_characters),
                         style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
+                        color = textColor,
                     )
 
                     AnimatedVisibility(
@@ -110,7 +96,7 @@ internal fun DescriptionSelectionContent(
                         Text(
                             text = stringResource(R.string.label_remaining),
                             style = CodeTheme.typography.textSmall,
-                            color = CodeTheme.colors.textSecondary,
+                            color = textColor,
                         )
                     }
                 }
@@ -134,30 +120,61 @@ internal fun DescriptionSelectionContent(
         }
     ) { padding ->
         val focusRequester = remember { FocusRequester() }
-        DisplayTextInput(
-            state = state.descriptionFieldState,
-            placeholder = stringResource(R.string.hint_description),
+        val scrollState = rememberScrollState()
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(padding)
-                .padding(top = CodeTheme.dimens.inset)
-                .focusRequester(focusRequester),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done,
-            ),
-            style = CodeTheme.typography.screenTitle,
-            placeholderStyle = CodeTheme.typography.screenTitle.copy(
-                color = CodeTheme.colors.textTertiary,
-            ),
-            minLines = 3,
-            maxLines = 6,
-            onKeyboardAction = {
-                keyboard.hideIfVisible {
-                    flowNavigator.navigateTo(CurrencyCreatorStep.BillCustomization())
-                }
-            },
-        )
+                .verticalScroll(scrollState)
+                .verticalScrollStateGradient(
+                    scrollState = scrollState,
+                    color = CodeTheme.colors.background,
+                    isLongGradient = true
+                ),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+            ) {
+                TokenIconWithName(
+                    tokenName = state.nameFieldState.text.let {
+                        if (it.isNotBlank()) it.toString() else stringResource(
+                            R.string.placeholder_currencyName
+                        )
+                    },
+                    tokenImage = state.icon.dataOrNull,
+                    imageSize = CodeTheme.dimens.staticGrid.x6,
+                    spacing = CodeTheme.dimens.grid.x2
+                )
+
+                Text(
+                    text = stringResource(R.string.title_currencyCreatorDescription),
+                    style = CodeTheme.typography.textLarge,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
+
+            DisplayTextInput(
+                state = state.descriptionFieldState,
+                placeholder = stringResource(R.string.hint_description),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done,
+                ),
+                style = CodeTheme.typography.screenTitle,
+                placeholderStyle = CodeTheme.typography.screenTitle.copy(
+                    color = CodeTheme.colors.textTertiary,
+                ),
+                maxLines = Int.MAX_VALUE,
+                onKeyboardAction = {
+                    keyboard.hideIfVisible {
+                        flowNavigator.navigateTo(CurrencyCreatorStep.BillCustomization())
+                    }
+                },
+            )
+        }
 
         LaunchedEffect(Unit) {
             focusRequester.requestFocus()
