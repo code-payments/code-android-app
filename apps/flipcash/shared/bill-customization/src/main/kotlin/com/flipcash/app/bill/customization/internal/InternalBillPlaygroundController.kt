@@ -15,10 +15,13 @@ import com.flipcash.app.bill.customization.models.PlaygroundFeature
 import com.flipcash.app.core.bill.Bill
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.toHex
@@ -77,12 +80,12 @@ class InternalBillPlaygroundController(
         get() = !undoStack.isEmpty()
 
     override val canCopy: Boolean
-        get() = true
+        get() = false
 
-    override fun customizeFor(token: Token) {
+    private fun customizeFor(token: Token, amount: Fiat, customizations: TokenBillCustomizations?) {
         // create amount for the bill
         val demoAmount = LocalFiat(
-            usdf = 5.toFiat(),
+            usdf = amount,
         )
 
         // provide bill "data" to render the scan code
@@ -93,7 +96,7 @@ class InternalBillPlaygroundController(
         )
         // create bill for token
         val bill = Bill.Cash(
-            token = token.copy(billCustomizations = null),
+            token = token.copy(billCustomizations = customizations),
             amount = demoAmount,
             disableGestures = true,
             data = payloadInfo.codeData.toList()
@@ -105,6 +108,9 @@ class InternalBillPlaygroundController(
     override fun dispatchEvent(event: Event) {
         when (event) {
             // high level actions
+            is Event.Load -> {
+                customizeFor(Token.usdf, event.amount, event.customizations)
+            }
             
             // selecting feature from tab row
             is Event.SelectFeature -> selectFeature(event.feature)

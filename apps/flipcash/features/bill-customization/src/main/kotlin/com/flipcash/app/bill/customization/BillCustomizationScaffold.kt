@@ -42,7 +42,6 @@ import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.features.bill.playground.R
-import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.core.measured
@@ -64,20 +63,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         )
     }
 
-    val customizationsOptions by remember(
-        playgroundState.backgroundState.selectedColors,
-        playgroundState.textureState.selectedOption,
-        playgroundState.textureState.selectedBlendMode,
-        playgroundState.bill?.token?.billCustomizations
-    ) {
-        derivedStateOf {
-            return@derivedStateOf TokenBillCustomizations(
-                background = playgroundState.background,
-                texture = playgroundState.texture,
-                icon = null,
-            )
-        }
-    }
+    val customizationsOptions = playgroundState.customizations
 
     val augmentedBill by remember(playgroundState.bill, customizationsOptions) {
         derivedStateOf {

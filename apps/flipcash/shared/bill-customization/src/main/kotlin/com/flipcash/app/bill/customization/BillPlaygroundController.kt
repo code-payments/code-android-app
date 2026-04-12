@@ -7,9 +7,12 @@ import com.flipcash.app.bill.customization.internal.features.ColorState
 import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
 import com.flipcash.app.core.bill.Bill
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.opencode.model.ui.BillTexture
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.toAGColor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +22,6 @@ interface BillPlaygroundController {
     val state: StateFlow<PlaygroundState>
     val canUndo: Boolean
     val canCopy: Boolean
-    fun customizeFor(token: Token)
 
     fun dispatchEvent(event: Event)
     fun cancel()
@@ -67,6 +69,24 @@ data class PlaygroundState(
             }
         }
 
+    val customizations: TokenBillCustomizations
+        get() = TokenBillCustomizations(
+            background = background,
+            texture = texture,
+            icon = null,
+        )
+
+    val customizedBill: Bill?
+        get() {
+            if (bill == null) return null
+            if (bill !is Bill.Cash) return null
+            return bill.copy(
+                token = bill.token.copy(
+                    billCustomizations = customizations
+                )
+            )
+        }
+
     val backgroundBrush: Brush
         get() {
             with (backgroundState) {
@@ -80,6 +100,10 @@ data class PlaygroundState(
 }
 
 sealed interface Event {
+    data class Load(
+        val customizations: TokenBillCustomizations?,
+        val amount: Fiat = 5.toFiat(),
+    ): Event
     data class SelectFeature(val feature: PlaygroundFeature): Event
     sealed interface Colors: Event {
         data object AddSlot : Colors
@@ -105,7 +129,6 @@ internal object StubPlaygroundController : BillPlaygroundController {
     override val state: StateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val canUndo: Boolean = false
     override val canCopy: Boolean = false
-    override fun customizeFor(token: Token) = Unit
     override fun dispatchEvent(event: Event) = Unit
     override fun cancel() = Unit
 }

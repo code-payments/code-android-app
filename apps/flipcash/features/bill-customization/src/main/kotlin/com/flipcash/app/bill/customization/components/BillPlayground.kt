@@ -54,11 +54,12 @@ import com.getcode.ui.core.rememberedClickable
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-internal fun BillPlayground(
+fun BillPlayground(
+    modifier: Modifier = Modifier,
     state: PlaygroundState,
     dispatchEvent: (Event) -> Unit,
 ) {
-    BoxWithConstraints {
+    Box(modifier = modifier) {
         val screenWidth = CodeTheme.dimens.screenWidth
         var firstFeatureWidth by remember { mutableStateOf(0.dp) }
         var lastFeatureWidth by remember { mutableStateOf(0.dp) }
