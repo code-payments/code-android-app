@@ -15,7 +15,7 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.DesignSystem
 
 @Composable
-internal fun RenderedBill(
+fun RenderedBill(
     modifier: Modifier = Modifier,
     bill: Bill,
 ) {
