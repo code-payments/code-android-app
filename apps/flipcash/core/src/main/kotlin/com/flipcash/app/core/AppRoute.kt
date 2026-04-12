@@ -3,6 +3,8 @@ package com.flipcash.app.core
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.app.core.tokens.CurrencyCreatorResult
+import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
@@ -143,6 +145,11 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data object Discovery: AppRoute
 
+        @Serializable
+        data object CurrencyCreator : Token, FlowRouteWithResult<CurrencyCreatorResult> {
+            override val initialStack: List<NavKey>
+                get() = listOf(CurrencyCreatorStep.Info)
+        }
     }
 
     @Serializable

@@ -25,6 +25,7 @@ import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
+import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositScreen
@@ -112,6 +113,9 @@ fun appEntryProvider(
     }
     annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
+    annotatedEntry<AppRoute.Token.CurrencyCreator> { key ->
+        CurrencyCreatorFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
 
     // Verification
     annotatedEntry<AppRoute.Verification> { key ->

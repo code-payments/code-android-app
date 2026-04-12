@@ -184,6 +184,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:features:transactions"))
     implementation(project(":apps:flipcash:features:bill-customization"))
+    implementation(project(":apps:flipcash:features:currency-creator"))
     implementation(project(":apps:flipcash:features:discovery"))
     implementation(project(":apps:flipcash:features:userflags"))
 
