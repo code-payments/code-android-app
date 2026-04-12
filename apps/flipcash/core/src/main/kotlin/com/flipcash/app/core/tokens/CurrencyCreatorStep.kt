@@ -1,13 +1,15 @@
 package com.flipcash.app.core.tokens
 
 import android.os.Parcelable
+import com.getcode.navigation.NonDismissableRoute
+import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowStep
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface CurrencyCreatorStep: FlowStep, Parcelable {
+sealed interface CurrencyCreatorStep: FlowStep, Parcelable, NonDismissableRoute, NonDraggableRoute {
 
     @Parcelize
     @Serializable
