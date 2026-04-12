@@ -78,7 +78,6 @@ class TokenInfoViewModel @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
     private val onramp: OnRampAmountController,
     features: FeatureFlagController,
-    userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
