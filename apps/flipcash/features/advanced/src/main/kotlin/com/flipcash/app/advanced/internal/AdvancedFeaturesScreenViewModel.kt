@@ -6,8 +6,6 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.services.user.UserManager
-import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,14 +16,13 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(BillCustomizer)
+    add(CurrencyCreator)
     add(Deposit)
     add(DeviceLogs)
 }
 
 @HiltViewModel
 internal class AdvancedFeaturesScreenViewModel @Inject constructor(
-    userManager: UserManager,
     featureFlagController: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
@@ -41,16 +38,14 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
-        data class OnBillCustomizerEnabled(val enabled: Boolean) : Event
+        data class OnCurrencyCreatorEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
-
-        data object OpenBillPlayground: Event
     }
 
     init {
         featureFlagController.observe(FeatureFlag.BillCustomizer)
             .onEach {
-                dispatchEvent(Event.OnBillCustomizerEnabled(it))
+                dispatchEvent(Event.OnCurrencyCreatorEnabled(it))
             }.launchIn(viewModelScope)
 
         combine(
@@ -72,18 +67,17 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnBillCustomizerEnabled -> { state ->
+                is Event.OnCurrencyCreatorEnabled -> { state ->
                     state.copy(
                         items = if (event.enabled) {
                             FullMenuList
                         } else {
-                            FullMenuList.filterNot { it is BillCustomizer }
+                            FullMenuList.filterNot { it is CurrencyCreator }
                         }
                     )
                 }
 
                 is Event.OpenScreen -> { state -> state }
-                is Event.OpenBillPlayground -> { state -> state }
             }
         }
     }
