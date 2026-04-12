@@ -1,7 +1,6 @@
 package com.flipcash.app.tokens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -11,6 +10,7 @@ import com.flipcash.app.core.tokens.SwapStep
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.deliverFlowResult
@@ -23,10 +23,7 @@ fun SwapFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
-    val initialStack = remember(route) {
-        @Suppress("UNCHECKED_CAST")
-        route.initialStack as List<SwapStep>
-    }
+    val initialStack = route.rememberInitialStack<SwapStep>()
 
     FlowHost<SwapStep, SwapResult>(
         initialStack = initialStack,

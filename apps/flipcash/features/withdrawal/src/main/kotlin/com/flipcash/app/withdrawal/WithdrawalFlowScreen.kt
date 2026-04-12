@@ -1,13 +1,13 @@
 package com.flipcash.app.withdrawal
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
+import com.getcode.navigation.flow.rememberInitialStack
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalConfirmationContent
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalDestinationContent
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalEntryContent
@@ -28,10 +28,7 @@ fun WithdrawalFlowScreen(
 ) {
     val outerNavigator = LocalCodeNavigator.current
 
-    val initialStack = remember(route) {
-        @Suppress("UNCHECKED_CAST")
-        route.initialStack as List<WithdrawalStep>
-    }
+    val initialStack = route.rememberInitialStack<WithdrawalStep>()
 
     FlowHost(
         initialStack = initialStack,

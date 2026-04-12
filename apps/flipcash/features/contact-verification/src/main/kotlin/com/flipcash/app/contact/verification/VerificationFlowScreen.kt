@@ -1,7 +1,6 @@
 package com.flipcash.app.contact.verification
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -18,6 +17,7 @@ import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowExitReason
+import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.results.NavResultOrCanceled
@@ -31,10 +31,7 @@ fun VerificationFlowScreen(
     // Capture the outer navigator before FlowHost overrides LocalCodeNavigator.
     val outerNavigator = LocalCodeNavigator.current
 
-    val initialStack = remember(route) {
-        @Suppress("UNCHECKED_CAST")
-        route.initialStack as List<VerificationStep>
-    }
+    val initialStack = route.rememberInitialStack<VerificationStep>()
 
     FlowHost(
         initialStack = initialStack,

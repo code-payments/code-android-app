@@ -44,6 +44,20 @@ val LocalFlowNavigator =
     staticCompositionLocalOf<FlowNavigator<*, *>> { error("No FlowNavigator provided") }
 
 /**
+ * A no-op [FlowNavigator] for use in Compose `@Preview` functions.
+ * All navigation calls are silently ignored.
+ */
+class PreviewFlowNavigator<S : FlowStep, R : Parcelable> : FlowNavigator<S, R> {
+    override val currentStep: S? = null
+    override val canGoBack: Boolean = false
+    override fun navigateTo(step: S, popCurrent: Boolean) {}
+    override fun replaceStack(steps: List<S>) {}
+    override fun back(): Boolean = false
+    override fun exitWithResult(result: R) {}
+    override fun exitCanceled() {}
+}
+
+/**
  * Returns the currently provided [FlowNavigator] typed to the step and result types of the
  * enclosing [FlowHost]. The cast is unchecked but is safe by construction — a step composable
  * only runs inside the [FlowHost] that owns its step type.

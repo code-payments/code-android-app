@@ -1,6 +1,8 @@
 package com.getcode.navigation.flow
 
 import android.os.Parcelable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavKey
 import com.getcode.navigation.results.NavigationRetVal
 
@@ -25,3 +27,15 @@ interface FlowRoute : NavKey {
  * [com.getcode.navigation.results.navigateForResult].
  */
 interface FlowRouteWithResult<T : Parcelable> : FlowRoute, NavigationRetVal<T>
+
+/**
+ * Remembers the [FlowRoute.initialStack] cast to the concrete [FlowStep] type.
+ * Eliminates boilerplate from every flow screen wrapper.
+ */
+@Composable
+inline fun <reified S : FlowStep> FlowRoute.rememberInitialStack(): List<S> {
+    return remember(this) {
+        @Suppress("UNCHECKED_CAST")
+        initialStack as List<S>
+    }
+}
