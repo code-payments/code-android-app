@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -86,8 +87,9 @@ internal fun TokenMetricsRow(
                 )
                 Text(
                     modifier = Modifier.alignByBaseline(),
-                    text = stringResource(
-                        R.string.label_holdersWithCount,
+                    text = pluralStringResource(
+                        R.plurals.subtitle_personCount,
+                        token.holderMetrics.currentHolders.toInt(),
                         token.holderMetrics.currentHolders.abbreviated()
                     ),
                     color = CodeTheme.colors.textMain,
