@@ -335,6 +335,10 @@ internal class CashScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
+    override fun onCleared() {
+        exchange.resetEntryToBalance()
+    }
+
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {

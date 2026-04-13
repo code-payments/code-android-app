@@ -66,7 +66,7 @@ data class AmountEntryState(
 @HiltViewModel
 class SwapViewModel @Inject constructor(
     userManager: UserManager,
-    exchange: Exchange,
+    private val exchange: Exchange,
     transactionController: TransactionOperations,
     resources: ResourceHelper,
     tokenCoordinator: TokenCoordinator,
@@ -665,6 +665,10 @@ class SwapViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    override fun onCleared() {
+        exchange.resetEntryToBalance()
     }
 
     internal companion object {

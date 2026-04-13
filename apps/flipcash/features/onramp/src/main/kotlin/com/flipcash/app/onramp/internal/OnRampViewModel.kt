@@ -84,7 +84,7 @@ internal data class AmountEntryState(
 @HiltViewModel
 internal class OnRampViewModel @Inject constructor(
     userManager: UserManager,
-    exchange: Exchange,
+    private val exchange: Exchange,
     transactionController: TransactionOperations,
     private val resources: ResourceHelper,
     onRampController: OnRampController,
@@ -511,6 +511,10 @@ internal class OnRampViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    override fun onCleared() {
+        exchange.resetEntryToBalance()
     }
 
     internal companion object {
