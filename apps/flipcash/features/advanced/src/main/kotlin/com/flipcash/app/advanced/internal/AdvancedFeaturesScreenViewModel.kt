@@ -17,6 +17,7 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(CurrencyCreator)
+    add(BillCustomizer)
     add(Deposit)
     add(DeviceLogs)
 }
@@ -40,10 +41,11 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
         data class OnCurrencyCreatorEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
+        data object OpenBillPlayground : Event
     }
 
     init {
-        featureFlagController.observe(FeatureFlag.BillCustomizer)
+        featureFlagController.observe(FeatureFlag.CurrencyCreator)
             .onEach {
                 dispatchEvent(Event.OnCurrencyCreatorEnabled(it))
             }.launchIn(viewModelScope)
@@ -70,7 +72,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                 is Event.OnCurrencyCreatorEnabled -> { state ->
                     state.copy(
                         items = if (event.enabled) {
-                            FullMenuList
+                            FullMenuList.filterNot { it is BillCustomizer }
                         } else {
                             FullMenuList.filterNot { it is CurrencyCreator }
                         }
@@ -78,6 +80,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                 }
 
                 is Event.OpenScreen -> { state -> state }
+                is Event.OpenBillPlayground -> { state -> state }
             }
         }
     }

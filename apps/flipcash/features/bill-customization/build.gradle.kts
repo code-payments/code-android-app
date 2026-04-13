@@ -13,6 +13,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:shared:bills"))
     api(project(":apps:flipcash:shared:bill-customization"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))

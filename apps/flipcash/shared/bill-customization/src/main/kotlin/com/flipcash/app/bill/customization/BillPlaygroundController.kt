@@ -101,7 +101,7 @@ data class PlaygroundState(
 
 sealed interface Event {
     data class Load(
-        val customizations: TokenBillCustomizations?,
+        val customizations: TokenBillCustomizations? = null,
         val amount: Fiat = 5.toFiat(),
     ): Event
     data class SelectFeature(val feature: PlaygroundFeature): Event

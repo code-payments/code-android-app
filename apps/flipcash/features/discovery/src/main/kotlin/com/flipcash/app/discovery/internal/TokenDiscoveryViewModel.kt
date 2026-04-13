@@ -56,7 +56,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     }
 
     init {
-        featureFlags.observe(FeatureFlag.TokenCreate)
+        featureFlags.observe(FeatureFlag.CurrencyCreator)
             .onEach { dispatchEvent(Event.OnCreateAllowed(it)) }
             .launchIn(viewModelScope)
 

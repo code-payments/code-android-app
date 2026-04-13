@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.Event
-import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
-import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
 import com.flipcash.app.bill.customization.PlaygroundState
 import com.flipcash.app.bill.customization.internal.features.BackgroundController
 import com.flipcash.app.bill.customization.internal.features.BlendMode
@@ -18,7 +16,6 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.opencode.model.ui.TokenBillCustomizations
@@ -35,6 +32,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
+import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
 
 @OptIn(ExperimentalStdlibApi::class)
 class InternalBillPlaygroundController(
