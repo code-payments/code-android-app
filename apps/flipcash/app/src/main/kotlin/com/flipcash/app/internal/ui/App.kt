@@ -2,6 +2,7 @@ package com.flipcash.app.internal.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,7 +32,6 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.android.BuildConfig
-import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
@@ -63,6 +63,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
 import com.flipcash.app.core.extensions.navigateTo
+import com.getcode.navigation.animation.LocalSharedTransitionScope
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimController
 import com.getcode.navigation.scrim.ScrimOverlay
@@ -137,156 +138,192 @@ internal fun App(
                         val scrimController = remember { ScrimController() }
 
                         Box(modifier = semanticsModifier) {
-                            CompositionLocalProvider(
-                                LocalCodeNavigator provides codeNavigator,
-                                LocalBiometricsState provides biometricsState,
-                                LocalScrimController provides scrimController,
-                            ) {
-                                ExternalWalletOnRampHandler(
-                                    state = externalWalletOnRamp,
-                                    lifecycleOwner = LocalLifecycleOwner.current,
-                                    navigator = codeNavigator,
+                            SharedTransitionLayout {
+                                CompositionLocalProvider(
+                                    LocalCodeNavigator provides codeNavigator,
+                                    LocalBiometricsState provides biometricsState,
+                                    LocalScrimController provides scrimController,
+                                    LocalSharedTransitionScope provides this,
                                 ) {
-                                    AppNavHost(
+                                    ExternalWalletOnRampHandler(
+                                        state = externalWalletOnRamp,
+                                        lifecycleOwner = LocalLifecycleOwner.current,
                                         navigator = codeNavigator,
-                                        resultStateRegistry = resultStateRegistry,
-                                        decorators = listOf(
-                                            rememberNavMessagingEntryDecorator(
-                                                codeNavigator.backStack,
-                                                barManager
-                                            ),
-                                            rememberNavBlockingOverlayEntryDecorator(),
-                                        ),
-                                        sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
-                                            codeNavigator.resultStore
-                                        ) {
-                                            codeNavigator.backStack.getOrNull(
-                                                codeNavigator.backStack.lastIndex - 1
-                                            )
-                                        } then SinglePaneSceneStrategy(),
-                                        transitionSpec = {
-                                            val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
-                                                    targetState.key == AppRoute.Loading.toString() ||
-                                                    targetState.key.toString().startsWith("Login")
-                                            when {
-                                                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                                                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                    EnterTransition.None togetherWith ExitTransition.None
-                                                else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
-                                                        slideOutHorizontally(targetOffsetX = { -it })
-                                            }
-                                        },
-                                        popTransitionSpec = {
-                                            val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
-                                                    targetState.key == AppRoute.Loading.toString() ||
-                                                    targetState.key.toString().startsWith("Login")
-                                            when {
-                                                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                                                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                    EnterTransition.None togetherWith ExitTransition.None
-                                                else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                                        slideOutHorizontally(targetOffsetX = { it })
-                                            }
-                                        },
-                                        predictivePopTransitionSpec = {
-                                            val shouldCrossfade = initialState.key == AppRoute.Loading.toString() ||
-                                                    targetState.key == AppRoute.Loading.toString() ||
-                                                    targetState.key.toString().startsWith("Login")
-                                            when {
-                                                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                                                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                    EnterTransition.None togetherWith ExitTransition.None
-                                                else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                                        slideOutHorizontally(targetOffsetX = { it })
-                                            }
-                                        },
-                                        onBack = { codeNavigator.navigateBack() },
-                                        entryProvider = appEntryProvider(
+                                    ) {
+                                        AppNavHost(
+                                            navigator = codeNavigator,
                                             resultStateRegistry = resultStateRegistry,
-                                            barManager = barManager,
-                                            deepLink = { deepLink },
-                                        ),
-                                    )
+                                            decorators = listOf(
+                                                rememberNavMessagingEntryDecorator(
+                                                    codeNavigator.backStack,
+                                                    barManager
+                                                ),
+                                                rememberNavBlockingOverlayEntryDecorator(),
+                                            ),
+                                            sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
+                                                codeNavigator.resultStore
+                                            ) {
+                                                codeNavigator.backStack.getOrNull(
+                                                    codeNavigator.backStack.lastIndex - 1
+                                                )
+                                            } then SinglePaneSceneStrategy(),
+                                            transitionSpec = {
+                                                val shouldCrossfade =
+                                                    initialState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key.toString()
+                                                                .startsWith("Login")
+                                                when {
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
+                                                        tween(300)
+                                                    )
 
-                                    ScrimOverlay(scrimController)
-                                }
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
 
-                                val emailCodeChannel = LocalEmailCodeChannel.current
-                                LaunchedEffect(deepLink) {
-                                    val link = deepLink ?: return@LaunchedEffect
+                                                    else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { -it })
+                                                }
+                                            },
+                                            popTransitionSpec = {
+                                                val shouldCrossfade =
+                                                    initialState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key.toString()
+                                                                .startsWith("Login")
+                                                when {
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
+                                                        tween(300)
+                                                    )
 
-                                    if (codeNavigator.currentRouteKey is AppRoute.Loading) {
-                                        // Cold start — MainRoot handles it via the deepLink lambda
-                                        return@LaunchedEffect
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+
+                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { it })
+                                                }
+                                            },
+                                            predictivePopTransitionSpec = {
+                                                val shouldCrossfade =
+                                                    initialState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key.toString()
+                                                                .startsWith("Login")
+                                                when {
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
+                                                        tween(300)
+                                                    )
+
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+
+                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { it })
+                                                }
+                                            },
+                                            onBack = { codeNavigator.navigateBack() },
+                                            entryProvider = appEntryProvider(
+                                                resultStateRegistry = resultStateRegistry,
+                                                barManager = barManager,
+                                                deepLink = { deepLink },
+                                            ),
+                                        )
+
+                                        ScrimOverlay(scrimController)
                                     }
 
-                                    when (val action = router.dispatch(link)) {
-                                        is DeeplinkAction.Navigate -> {
-                                            // If a verification code targets a screen already open,
-                                            // deliver via side-channel and skip navigation.
-                                            val verification = action.routes
-                                                .filterIsInstance<AppRoute.Verification>()
-                                                .firstOrNull()
-                                            val email = verification?.email
-                                            val code = verification?.emailVerificationCode
-                                            val delivered = if (email != null && code != null) {
-                                                emailCodeChannel.deliverCode(email, code)
-                                            } else false
+                                    val emailCodeChannel = LocalEmailCodeChannel.current
+                                    LaunchedEffect(deepLink) {
+                                        val link = deepLink ?: return@LaunchedEffect
 
-                                            if (!delivered) {
-                                                codeNavigator.navigateTo(action.routes)
-                                            }
+                                        if (codeNavigator.currentRouteKey is AppRoute.Loading) {
+                                            // Cold start — MainRoot handles it via the deepLink lambda
+                                            return@LaunchedEffect
                                         }
-                                        is DeeplinkAction.ExternalWallet -> externalWalletOnRamp.handleWalletDeeplink(action.type)
-                                        is DeeplinkAction.Login -> viewModel.handleLoginEntropy(
-                                            action.entropy,
-                                            onSwitchAccount = {
+
+                                        when (val action = router.dispatch(link)) {
+                                            is DeeplinkAction.Navigate -> {
+                                                // If a verification code targets a screen already open,
+                                                // deliver via side-channel and skip navigation.
+                                                val verification = action.routes
+                                                    .filterIsInstance<AppRoute.Verification>()
+                                                    .firstOrNull()
+                                                val email = verification?.email
+                                                val code = verification?.emailVerificationCode
+                                                val delivered = if (email != null && code != null) {
+                                                    emailCodeChannel.deliverCode(email, code)
+                                                } else false
+
+                                                if (!delivered) {
+                                                    codeNavigator.navigateTo(action.routes)
+                                                }
+                                            }
+
+                                            is DeeplinkAction.ExternalWallet -> externalWalletOnRamp.handleWalletDeeplink(
+                                                action.type
+                                            )
+
+                                            is DeeplinkAction.Login -> viewModel.handleLoginEntropy(
+                                                action.entropy,
+                                                onSwitchAccount = {
+                                                    codeNavigator.replaceAll(
+                                                        AppRoute.Onboarding.Login(
+                                                            action.entropy,
+                                                            fromDeeplink = true
+                                                        )
+                                                    )
+                                                },
+                                                onDismissed = { }
+                                            )
+
+                                            is DeeplinkAction.OpenCashLink -> session.openCashLink(
+                                                action.entropy
+                                            )
+
+                                            DeeplinkAction.None -> {}
+                                        }
+                                        deepLink = null
+                                    }
+
+                                    LaunchedEffect(userState.authState) {
+                                        if (userState.authState == AuthState.LoggedOut) {
+                                            val current = codeNavigator.currentRouteKey
+                                            if (current !is AppRoute.Loading && current !is AppRoute.Onboarding) {
+                                                codeNavigator.pendingSheetDismiss = null
+                                                val switchEntropy =
+                                                    viewModel.consumePendingSwitchEntropy()
                                                 codeNavigator.replaceAll(
                                                     AppRoute.Onboarding.Login(
-                                                        action.entropy,
-                                                        fromDeeplink = true
+                                                        switchEntropy
                                                     )
                                                 )
-                                            },
-                                            onDismissed = { }
-                                        )
-                                        is DeeplinkAction.OpenCashLink -> session.openCashLink(action.entropy)
-                                        DeeplinkAction.None -> {}
-                                    }
-                                    deepLink = null
-                                }
-
-                                LaunchedEffect(userState.authState) {
-                                    if (userState.authState == AuthState.LoggedOut) {
-                                        val current = codeNavigator.currentRouteKey
-                                        if (current !is AppRoute.Loading && current !is AppRoute.Onboarding) {
-                                            codeNavigator.pendingSheetDismiss = null
-                                            val switchEntropy = viewModel.consumePendingSwitchEntropy()
-                                            codeNavigator.replaceAll(AppRoute.Onboarding.Login(switchEntropy))
+                                            }
                                         }
                                     }
-                                }
 
-                                LaunchedEffect(userState.isTimelockUnlocked) {
-                                    if (userState.isTimelockUnlocked) {
-                                        codeNavigator.replaceAll(
-                                            AppRoute.Main.AppRestricted(
-                                                RestrictionType.TIMELOCK_UNLOCKED
+                                    LaunchedEffect(userState.isTimelockUnlocked) {
+                                        if (userState.isTimelockUnlocked) {
+                                            codeNavigator.replaceAll(
+                                                AppRoute.Main.AppRestricted(
+                                                    RestrictionType.TIMELOCK_UNLOCKED
+                                                )
                                             )
-                                        )
+                                        }
                                     }
-                                }
 
-                                OnLifecycleEvent { _, event ->
-                                    when (event) {
-                                        Lifecycle.Event.ON_RESUME -> {
-                                            session.onAppInForeground()
+                                    OnLifecycleEvent { _, event ->
+                                        when (event) {
+                                            Lifecycle.Event.ON_RESUME -> {
+                                                session.onAppInForeground()
+                                            }
+
+                                            Lifecycle.Event.ON_STOP,
+                                            Lifecycle.Event.ON_DESTROY -> {
+                                                session.onAppInBackground()
+                                            }
+
+                                            else -> Unit
                                         }
-                                        Lifecycle.Event.ON_STOP,
-                                        Lifecycle.Event.ON_DESTROY -> {
-                                            session.onAppInBackground()
-                                        }
-                                        else -> Unit
                                     }
                                 }
                             }
