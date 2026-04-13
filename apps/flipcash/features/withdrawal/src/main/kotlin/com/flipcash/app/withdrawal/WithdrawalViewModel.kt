@@ -168,7 +168,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
         val isOverBalance = enteredInUsdc > tokenBalance.rounded()
         if (isOverBalance || conversionRate == Rate.ignore) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_insufficientFunds),
                 message = resources.getString(R.string.error_description_insufficientFunds)
             )

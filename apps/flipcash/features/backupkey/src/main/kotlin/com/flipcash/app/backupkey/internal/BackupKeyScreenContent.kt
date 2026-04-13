@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -55,6 +56,7 @@ import com.getcode.util.permissions.rememberStoragePermission
 @Composable
 internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     var isExportSeedRequested by remember { mutableStateOf(false) }
@@ -66,12 +68,12 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
 
         if (!isStoragePermissionGranted) {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_failedToSave),
-                message = context.getString(R.string.error_description_failedToSave),
+                title = resources.getString(R.string.error_title_failedToSave),
+                message = resources.getString(R.string.error_description_failedToSave),
                 actions = listOf(
                     BottomBarAction.Ok,
                     BottomBarAction(
-                        text = context.getString(R.string.action_openSettings),
+                        text = resources.getString(R.string.action_openSettings),
                         style = BottomBarManager.BottomBarButtonStyle.Filled50,
                         onClick = { context.launchAppSettings() }
                     )

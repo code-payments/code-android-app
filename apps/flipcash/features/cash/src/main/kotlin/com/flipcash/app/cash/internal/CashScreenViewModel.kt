@@ -168,7 +168,7 @@ internal class CashScreenViewModel @Inject constructor(
             currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero
         val isOverLimit = amount > sendLimit.nextTransaction
         if (isOverLimit) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_sendLimitReached),
                 resources.getString(R.string.error_description_sendLimitReached)
             )

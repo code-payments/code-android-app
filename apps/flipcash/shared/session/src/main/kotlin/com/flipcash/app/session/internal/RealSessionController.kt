@@ -751,14 +751,14 @@ class RealSessionController @Inject constructor(
                     }
 
                     is ReceiveGiftTransactorError.AlreadyClaimed -> {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             resources.getString(R.string.error_title_alreadyCollected),
                             resources.getString(R.string.error_description_alreadyCollected)
                         )
                     }
 
                     is ReceiveGiftTransactorError.Expired -> {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             resources.getString(R.string.error_title_linkExpired),
                             resources.getString(R.string.error_description_linkExpired)
                         )
