@@ -1,6 +1,7 @@
 package com.flipcash.app.currencycreator.internal.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,6 +32,9 @@ import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.core.ui.transitions.CircleOverlayClip
+import com.flipcash.app.core.ui.transitions.SharedTransition
+import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -49,6 +53,7 @@ internal fun DescriptionSelectionScreen() {
     DescriptionSelectionContent(state, viewModel::dispatchEvent)
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun DescriptionSelectionContent(
     state: CurrencyCreatorViewModel.State,
@@ -141,6 +146,12 @@ internal fun DescriptionSelectionContent(
                             R.string.placeholder_currencyName
                         )
                     },
+                    iconModifier = Modifier.sharedBoundsTransition(
+                        transition = SharedTransition.CurrencyIcon,
+                    ),
+                    textModifier = Modifier.sharedBoundsTransition(
+                        transition = SharedTransition.CurrencyName,
+                    ),
                     tokenImage = state.icon.dataOrNull,
                     imageSize = CodeTheme.dimens.staticGrid.x6,
                     spacing = CodeTheme.dimens.grid.x2

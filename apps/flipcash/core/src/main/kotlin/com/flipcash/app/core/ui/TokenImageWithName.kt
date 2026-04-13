@@ -30,6 +30,8 @@ fun TokenIconWithName(
     tokenImage: Any?,
     imageSize: Dp,
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
+    iconModifier: Modifier = Modifier,
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
     spacing: Dp = 0.dp,
@@ -41,9 +43,10 @@ fun TokenIconWithName(
     ) {
         TokenIcon(
             image = tokenImage,
-            modifier = Modifier.size(imageSize)
+            modifier = Modifier.size(imageSize).then(iconModifier)
         )
         Text(
+            modifier = textModifier,
             text = tokenName,
             style = textStyle,
             color = textColor,
@@ -56,6 +59,8 @@ fun TokenIconWithName(
     token: Token,
     imageSize: Dp,
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
+    iconModifier: Modifier = Modifier,
     displayName: (Token) -> String = { it.name },
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
@@ -66,6 +71,8 @@ fun TokenIconWithName(
         tokenImage = token.imageUrl,
         imageSize = imageSize,
         modifier = modifier,
+        textModifier = textModifier,
+        iconModifier = iconModifier,
         textStyle = textStyle,
         textColor = textColor,
         spacing = spacing
@@ -89,7 +96,7 @@ fun TokenIcon(
     modifier: Modifier = Modifier,
 ) {
     AsyncImage(
-        modifier = modifier.clip(CircleShape),
+        modifier = Modifier.clip(CircleShape).then(modifier),
         model = ImageRequest.Builder(LocalPlatformContext.current)
             .data(image)
             .crossfade(false)

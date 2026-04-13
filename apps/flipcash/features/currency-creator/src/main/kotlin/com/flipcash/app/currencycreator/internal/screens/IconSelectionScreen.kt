@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,9 @@ import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.data.isLoading
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
+import com.flipcash.app.core.ui.transitions.CircleOverlayClip
+import com.flipcash.app.core.ui.transitions.SharedTransition
+import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -58,6 +62,7 @@ internal fun IconSelectionScreen() {
 }
 
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun IconSelectionContent(
     state: CurrencyCreatorViewModel.State,
@@ -138,6 +143,9 @@ internal fun IconSelectionContent(
                 Box(
                     modifier = Modifier
                         .size(150.dp)
+                        .sharedBoundsTransition(
+                            transition = SharedTransition.CurrencyIcon,
+                        )
                         .background(
                             color = CodeTheme.colors.divider,
                             shape = CircleShape,
@@ -182,7 +190,11 @@ internal fun IconSelectionContent(
                 }
 
                 val name = state.nameFieldState.text
+
                 Text(
+                    modifier = Modifier.sharedBoundsTransition(
+                        transition = SharedTransition.CurrencyName,
+                    ),
                     text = if (name.isNotBlank()) name.toString() else stringResource(R.string.placeholder_currencyName),
                     style = CodeTheme.typography.displaySmall,
                     color = Color.White,

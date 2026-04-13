@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun TextInput(
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
     placeholder: String = "",
     minLines: Int = 1,
     maxLines: Int = 4,
@@ -144,7 +145,8 @@ fun TextInput(
                     contentPadding = contentPadding,
                     textFieldAlignment = textFieldAlignment,
                     shape = shape,
-                    innerTextField = it
+                    innerTextField = it,
+                    textModifier = textModifier,
                 )
             },
             scrollState = scrollState
@@ -172,6 +174,7 @@ private fun DecoratorBox(
     placeholder: String,
     placeholderStyle: TextStyle,
     placeholderColor: Color,
+    textModifier: Modifier = Modifier,
     borderColor: Color = CodeTheme.colors.brandLight,
     contentPadding: PaddingValues,
     leadingIcon: (@Composable () -> Unit)?,
@@ -197,7 +200,7 @@ private fun DecoratorBox(
                 .weight(1f),
             contentAlignment = textFieldAlignment
         ) {
-            Box(modifier = Modifier.padding(contentPadding)) {
+            Box(modifier = Modifier.padding(contentPadding).then(textModifier)) {
                 innerTextField()
             }
             if (state.text.isEmpty() && placeholder.isNotEmpty()) {

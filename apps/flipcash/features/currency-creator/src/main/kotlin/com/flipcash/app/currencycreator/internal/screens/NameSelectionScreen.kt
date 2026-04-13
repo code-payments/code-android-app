@@ -19,6 +19,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.DisplayTextInput
+import com.flipcash.app.core.ui.transitions.SharedTransition
+import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
+import com.flipcash.app.core.ui.transitions.sharedElementTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -85,6 +88,9 @@ internal fun NameSelectionContent(
                 .fillMaxWidth()
                 .padding(padding)
                 .focusRequester(focusRequester),
+            textModifier = Modifier.sharedElementTransition(
+                transition = SharedTransition.CurrencyName,
+            ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done,

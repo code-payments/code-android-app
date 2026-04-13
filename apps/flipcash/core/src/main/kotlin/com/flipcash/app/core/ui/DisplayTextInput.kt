@@ -29,6 +29,7 @@ fun DisplayTextInput(
     state: TextFieldState,
     placeholder: String,
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
     style: TextStyle = CodeTheme.typography.displayMedium.copy(
         color = CodeTheme.colors.textMain,
         fontWeight = FontWeight.SemiBold,
@@ -44,6 +45,7 @@ fun DisplayTextInput(
     TextInput(
         state = state,
         modifier = modifier,
+        textModifier = textModifier,
         placeholder = placeholder,
         style = style,
         placeholderStyle = placeholderStyle,

@@ -24,6 +24,8 @@ import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.RenderedBill
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.ui.transitions.SharedTransition
+import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.theme.CodeTheme
@@ -75,23 +77,17 @@ internal fun BillCustomizationContent(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AnimatedContent(
-            modifier = Modifier
-                .padding(top = CodeTheme.dimens.grid.x3)
-                .fillMaxWidth()
-                .weight(1f),
-            targetState = augmentedBill,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            contentKey = { it?.data },
-        ) { bill ->
-            if (bill != null) {
-                RenderedBill(
-                    modifier = Modifier.weight(1f),
-                    bill = augmentedBill as Bill,
-                )
-            } else {
-                Spacer(Modifier.weight(1f))
-            }
+        augmentedBill?.let { bill ->
+            RenderedBill(
+                modifier = Modifier
+                    .padding(top = CodeTheme.dimens.grid.x3)
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .sharedBoundsTransition(
+                        transition = SharedTransition.CurrencyBill
+                    ),
+                bill = bill as Bill,
+            )
         }
 
         BillPlayground(

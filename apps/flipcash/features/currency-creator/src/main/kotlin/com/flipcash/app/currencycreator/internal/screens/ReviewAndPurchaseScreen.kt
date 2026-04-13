@@ -21,6 +21,8 @@ import com.flipcash.app.bills.RenderedBill
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.core.ui.transitions.SharedTransition
+import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -85,23 +87,17 @@ internal fun ReviewAndPurchaseContent(
                 spacing = CodeTheme.dimens.grid.x2,
             )
 
-            AnimatedContent(
-                modifier = Modifier
-                    .padding(top = CodeTheme.dimens.grid.x3)
-                    .fillMaxWidth()
-                    .weight(1f),
-                targetState = state.bill,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                contentKey = { it?.data },
-            ) { bill ->
-                if (bill != null) {
-                    RenderedBill(
-                        modifier = Modifier.weight(1f),
-                        bill = bill,
-                    )
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
+            state.bill?.let { bill ->
+                RenderedBill(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = CodeTheme.dimens.grid.x3)
+                        .fillMaxWidth()
+                        .sharedBoundsTransition(
+                            transition = SharedTransition.CurrencyBill
+                        ),
+                    bill = bill,
+                )
             }
         }
     }
