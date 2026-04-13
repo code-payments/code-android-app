@@ -7,12 +7,10 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
-import com.flipcash.services.user.AuthState
-import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
@@ -34,18 +32,16 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
 class SelectTokenViewModel @Inject constructor(
-    userManager: UserManager,
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
     analytics: FlipcashAnalyticsService,
     featureFlags: FeatureFlagController,
-    userFlags: UserFlagsCoordinator,
+    private val purchaseMethodController: PurchaseMethodController,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
@@ -57,9 +53,7 @@ class SelectTokenViewModel @Inject constructor(
     data class State(
         val purpose: TokenPurpose,
         val rate: Rate = Rate.oneToOne,
-        val reservesEnabled: Boolean = false,
         val discoveryEnabled: Boolean = false,
-        val preferredOnRampProvider: OnRampProvider.Defined? = null,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
     ) {
@@ -82,9 +76,6 @@ class SelectTokenViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
-        data class OnReservesEnabled(val enabled: Boolean) : Event
-
         data class OnRateChanged(val rate: Rate): Event
 
         data class OnPurposeChanged(val purpose: TokenPurpose) : Event
@@ -102,20 +93,6 @@ class SelectTokenViewModel @Inject constructor(
     }
 
     init {
-        userManager.state
-            .filter { it.authState is AuthState.LoggedInWithUser }
-            .flatMapLatest { userFlags.resolvedFlags }
-            .mapNotNull { it.preferredOnRampProvider.effectiveValue }
-            .filterIsInstance<OnRampProvider.Defined>()
-            .onEach { provider ->
-                dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
-            }
-            .launchIn(viewModelScope)
-
-        featureFlags.observe(FeatureFlag.CashReservesEnabled)
-            .onEach { dispatchEvent(Event.OnReservesEnabled(it)) }
-            .launchIn(viewModelScope)
-
         featureFlags.observe(FeatureFlag.TokenDiscovery)
             .onEach { dispatchEvent(Event.OnDiscoveryEnabled(it)) }
             .launchIn(viewModelScope)
@@ -168,7 +145,7 @@ class SelectTokenViewModel @Inject constructor(
                             )
                         }
                         .sortedWith(compareByDescending { item ->
-                            if (state.reservesEnabled && item.isReserves) Fiat.MIN_VALUE
+                            if (item.isReserves) Fiat.MIN_VALUE
                             else item.balance.nativeAmount
                         })
                         .filter {
@@ -178,8 +155,8 @@ class SelectTokenViewModel @Inject constructor(
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
-                                // when reserves are enabled, we must prevent sending USDF directly (it's used for reserves)
-                                TokenPurpose.Select -> (!state.reservesEnabled || it.token.address != Mint.usdf) && hasBalance
+                                // prevent sending USDF directly (it's used for reserves)
+                                TokenPurpose.Select -> it.token.address != Mint.usdf && hasBalance
                                 // show all tokens with non-zero balance
                                 else -> hasBalance
                             }
@@ -192,7 +169,7 @@ class SelectTokenViewModel @Inject constructor(
             .filterIsInstance<Event.OnAddCashClicked>()
             .onEach {
                 analytics.openOnramp(Analytics.OnrampSource.Balance)
-                val provider = stateFlow.value.preferredOnRampProvider
+                val provider = purchaseMethodController.state.value.preferredProvider
                 if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
                     // has coinbase provider supporting google pay - pop selection for quick add
                     dispatchEvent(Event.OpenOnRampAmountModal)
@@ -217,14 +194,6 @@ class SelectTokenViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnPreferredOnRampProviderChanged -> { state ->
-                    state.copy(preferredOnRampProvider = event.provider)
-                }
-
-                is Event.OnReservesEnabled -> { state ->
-                    state.copy(reservesEnabled = event.enabled)
-                }
-
                 is Event.OnDiscoveryEnabled -> { state ->
                     state.copy(discoveryEnabled = event.enabled)
                 }

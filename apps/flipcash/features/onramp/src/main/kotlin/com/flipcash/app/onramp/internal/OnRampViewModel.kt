@@ -6,7 +6,6 @@ import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
-import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.OnRampController
 import com.flipcash.features.onramp.R
@@ -89,7 +88,6 @@ internal class OnRampViewModel @Inject constructor(
     transactionController: TransactionOperations,
     private val resources: ResourceHelper,
     onRampController: OnRampController,
-    amountController: OnRampAmountController,
     tokenController: TokenController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<OnRampViewModel.State, OnRampViewModel.Event>(
@@ -197,10 +195,7 @@ internal class OnRampViewModel @Inject constructor(
                 dispatchEvent(Event.OnEmailVerificationChanged(it?.verifiedEmailAddress != null))
             }.launchIn(viewModelScope)
 
-        amountController.state
-            .mapNotNull { it.provider }
-            .onEach { dispatchEvent(Event.OnProviderSelected(it)) }
-            .launchIn(viewModelScope)
+        dispatchEvent(Event.OnProviderSelected(OnRampProvider.Coinbase(OnRampType.Virtual)))
 
         exchange.observeEntryRate()
             .mapNotNull {

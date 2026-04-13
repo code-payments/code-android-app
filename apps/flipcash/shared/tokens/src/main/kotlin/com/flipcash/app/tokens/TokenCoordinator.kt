@@ -11,6 +11,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.persistence.sources.TokenDataSource
+import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
@@ -82,7 +83,7 @@ class TokenCoordinator @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
     private val dataSource: TokenDataSource,
-) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver {
+) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider {
 
     companion object {
         private const val TAG = "TokenCoordinator"
@@ -188,7 +189,7 @@ class TokenCoordinator @Inject constructor(
 
     fun reservesBalance(): Fiat = balanceForToken(Token.usdf)
 
-    fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
+    override fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
 
     suspend fun add(token: Token, fiat: LocalFiat) {
         val rate = exchange.rateToUsd(fiat.rate.currency)

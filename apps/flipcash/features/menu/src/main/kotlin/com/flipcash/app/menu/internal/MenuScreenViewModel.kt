@@ -11,9 +11,6 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
-import com.flipcash.app.onramp.ConfirmationEvent
-import com.flipcash.app.onramp.OnRampAmount
-import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.menu.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider

@@ -135,7 +135,7 @@ fun ExternalWalletOnRampHandler(
                     if (origin is AppRoute.Token.Info) {
                         state.pendingNavigation = AppRoute.Token.Swap(
                             SwapPurpose.FundWithWallet(origin.mint),
-                            forNeededFunds = origin.forNeededFunds
+                            isFundingShortfall = origin.isFundingShortfall
                         )
                     }
 

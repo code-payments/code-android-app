@@ -102,14 +102,14 @@ fun appEntryProvider(
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info> { key ->
-        TokenInfoScreen(key.mint, key.forNeededFunds, key.fromDeeplink)
+        TokenInfoScreen(key.mint, key.isFundingShortfall, key.fromDeeplink)
     }
     annotatedEntry<AppRoute.Token.Transactions> { key -> TransactionHistoryScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Swap> { key ->
         SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
-        TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet)
+        TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet, key.isFundingShortfall)
     }
     annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }

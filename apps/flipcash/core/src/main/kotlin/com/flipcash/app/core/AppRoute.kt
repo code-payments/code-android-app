@@ -17,7 +17,6 @@ import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
@@ -120,7 +119,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Info(
             val mint: Mint,
-            val forNeededFunds: Boolean = false,
+            val isFundingShortfall: Boolean = false,
             val fromDeeplink: Boolean = false
         ) : Token
 
@@ -129,15 +128,18 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Swap(
             val purpose: SwapPurpose,
-            val forNeededFunds: Boolean = false,
+            val isFundingShortfall: Boolean = false,
         ) : Token, FlowRouteWithResult<SwapResult> {
             override val initialStack: List<NavKey>
                 get() = listOf(SwapStep.Entry(purpose))
         }
 
         @Serializable
-        data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false) :
-            Token, NonDismissableRoute, NonDraggableRoute
+        data class TxProcessing(
+            val swapId: SwapId,
+            val awaitExternalWallet: Boolean = false,
+            val isFundingShortfall: Boolean = false,
+        ) : Token, NonDismissableRoute, NonDraggableRoute
 
         @Serializable
         data class OnRamp(val mint: Mint) : Token

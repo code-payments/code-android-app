@@ -178,7 +178,7 @@ private fun TokenInfoScreen(
 
                         // currency info
                         item {
-                            if (state.isCashReserve && state.cashReservesEnabled) {
+                            if (state.isCashReserve) {
                                 Text(
                                     modifier = Modifier
                                         .fillParentMaxWidth()
@@ -285,55 +285,41 @@ private fun BottomBarButtons(
                 if (state.isCashReserve) return@Row
                 val canGive = state.balance.nativeAmount.isPositive
 
-                if (state.cashReservesEnabled) {
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    buttonState = ButtonState.Filled,
+                    text = stringResource(R.string.action_buy),
+                ) {
+                    dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
+                }
+
+                if (canGive) {
                     CodeButton(
                         modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(R.string.action_buy),
-                    ) {
-                        dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
-                    }
-
-                    if (canGive) {
-                        CodeButton(
-                            modifier = Modifier.weight(1f),
-                            buttonState = ButtonState.Filled20,
-                            text = stringResource(R.string.action_give),
-                        ) {
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Sheets.Give(mint = loadable.data.address, fromTokenInfo = true)
-                                )
-                            )
-                        }
-                    }
-
-                    if (state.canSell) {
-                        CodeButton(
-                            modifier = Modifier
-                                .weight(1f),
-                            buttonState = ButtonState.Filled20,
-                            text = stringResource(R.string.action_sell),
-                        ) {
-                            analytics.buttonTapped(Button.TokenSell)
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Token.Swap(
-                                        purpose = SwapPurpose.Sell(loadable.data.address),
-                                    )
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
+                        buttonState = ButtonState.Filled20,
                         text = stringResource(R.string.action_give),
                     ) {
                         dispatch(
                             TokenInfoViewModel.Event.OpenScreen(
                                 AppRoute.Sheets.Give(mint = loadable.data.address, fromTokenInfo = true)
+                            )
+                        )
+                    }
+                }
+
+                if (state.canSell) {
+                    CodeButton(
+                        modifier = Modifier
+                            .weight(1f),
+                        buttonState = ButtonState.Filled20,
+                        text = stringResource(R.string.action_sell),
+                    ) {
+                        analytics.buttonTapped(Button.TokenSell)
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Token.Swap(
+                                    purpose = SwapPurpose.Sell(loadable.data.address),
+                                )
                             )
                         )
                     }

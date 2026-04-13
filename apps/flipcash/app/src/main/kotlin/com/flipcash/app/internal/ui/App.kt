@@ -41,9 +41,7 @@ import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOve
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.onramp.LocalExternalWalletState
-import com.flipcash.app.onramp.OnRampAmountScaffold
 import com.flipcash.app.onramp.rememberExternalWalletState
-import com.flipcash.app.payments.PaymentScaffold
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
@@ -123,9 +121,7 @@ internal fun App(
         CompositionLocalProvider(
             LocalExternalWalletState provides externalWalletOnRamp
         ) {
-            PaymentScaffold {
-                OnRampAmountScaffold {
-                    TipScaffold(tipsEngine = tipsEngine) {
+            TipScaffold(tipsEngine = tipsEngine) {
                         val backStack = remember { NavBackStack<NavKey>(AppRoute.Loading) }
                         val resultStateRegistry = rememberNavResultStateRegistry()
                         val codeNavigator = rememberCodeNavigator(
@@ -295,10 +291,9 @@ internal fun App(
                                 }
                             }
                         }
-                    }
-                }
             }
-
         }
     }
 }
+
+

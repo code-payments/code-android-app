@@ -23,10 +23,6 @@ import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
-import com.flipcash.app.onramp.LocalOnRampAmountController
-import com.flipcash.app.onramp.OnRampAmountController
-import com.flipcash.app.payments.LocalPaymentController
-import com.flipcash.app.payments.PaymentController
 import com.flipcash.app.phone.LocalPhoneUtils
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.router.LocalRouter
@@ -112,9 +108,6 @@ class MainActivity : FragmentActivity() {
     lateinit var featureFlagController: FeatureFlagController
 
     @Inject
-    lateinit var paymentController: PaymentController
-
-    @Inject
     lateinit var analytics: FlipcashAnalyticsService
 
     @Inject
@@ -122,9 +115,6 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var phoneUtils: PhoneUtils
-
-    @Inject
-    lateinit var onRampAmountController: OnRampAmountController
 
     @Inject
     lateinit var billPlaygroundController: BillPlaygroundController
@@ -159,8 +149,6 @@ class MainActivity : FragmentActivity() {
                 LocalShareController provides shareController,
                 LocalAppSettings provides appSettingsCoordinator,
                 LocalFeatureFlags provides featureFlagController,
-                LocalPaymentController provides paymentController,
-                LocalOnRampAmountController provides onRampAmountController,
                 LocalTransactionController provides transactionController,
                 LocalPhoneUtils provides phoneUtils,
                 LocalBillPlaygroundController provides billPlaygroundController,

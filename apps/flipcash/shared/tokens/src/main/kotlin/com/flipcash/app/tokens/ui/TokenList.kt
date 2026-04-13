@@ -36,7 +36,6 @@ fun TokenList(
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
     footer: (@Composable LazyItemScope.() -> Unit)? = null,
-    reservesEnabled: Boolean = false,
     onTokenSelected: (Token) -> Unit = { },
 ) {
     val listState = rememberLazyListState()
@@ -46,9 +45,8 @@ fun TokenList(
             tokens?.find { it.token.address == Mint.usdf }?.balance ?: LocalFiat.Zero
         }
     }
-    val filteredTokens by remember(tokens, reservesEnabled) {
+    val filteredTokens by remember(tokens) {
         derivedStateOf {
-            if (!reservesEnabled) return@derivedStateOf tokens
             tokens?.filter { it.token.address != Mint.usdf }
         }
     }
@@ -88,8 +86,7 @@ fun TokenList(
             }
 
             reserves?.let {
-                if (reservesEnabled &&
-                    cashReserves.nativeAmount.valueGreaterThan(
+                if (cashReserves.nativeAmount.valueGreaterThan(
                         Fiat(0.0, cashReserves.rate.currency)
                     )
                 ) {

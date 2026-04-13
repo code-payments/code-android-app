@@ -53,7 +53,7 @@ fun TokenInfoScreen(
             isInModal = true,
             title = {
                 state.token.dataOrNull?.let { token ->
-                    if (state.isCashReserve && state.cashReservesEnabled) {
+                    if (state.isCashReserve) {
                         AppBarDefaults.Title(text = stringResource(R.string.title_cashReserves))
                     } else {
                         TokenIconWithName(

@@ -40,7 +40,7 @@ fun SwapFlowScreen(
             )
             when (result) {
                 SwapResult.Success -> {
-                    if (route.forNeededFunds) outerNavigator.popAll()
+                    if (route.isFundingShortfall) outerNavigator.popAll()
                     else outerNavigator.popUntil { it is AppRoute.Token.Info }
                 }
                 SwapResult.Canceled -> outerNavigator.pop()

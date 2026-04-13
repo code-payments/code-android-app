@@ -328,7 +328,7 @@ internal class CashScreenViewModel @Inject constructor(
                     Event.OpenScreen(
                         AppRoute.Token.Info(
                             mint = stateFlow.value.selectedTokenAddress!!,
-                            forNeededFunds = true
+                            isFundingShortfall = true
                         ),
                     )
                 )

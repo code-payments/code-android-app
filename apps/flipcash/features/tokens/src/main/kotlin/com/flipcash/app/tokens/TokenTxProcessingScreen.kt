@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
@@ -17,7 +18,6 @@ import com.flipcash.app.tokens.internal.TokenTxProcessingScreen
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.app.tokens.ui.SwapViewModel.Event
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.flowScopedViewModel
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -91,15 +91,16 @@ internal fun SwapProcessingContent(
 
 /**
  * Standalone processing screen for OnRamp and external wallet paths that
- * live outside the swap flow. Uses the old `flowScopedViewModel` pattern.
+ * live outside the swap flow.
  */
 @Composable
 fun TokenTxProcessingScreen(
     swapId: SwapId,
     awaitExternalWallet: Boolean = false,
+    isFundingShortfall: Boolean = false,
 ) {
     val navigator = LocalCodeNavigator.current
-    val viewModel = flowScopedViewModel<SwapViewModel>(BuySellFlow.key)
+    val viewModel = hiltViewModel<SwapViewModel>()
 
     var awaitingWallet by remember { mutableStateOf(awaitExternalWallet) }
 
@@ -137,7 +138,7 @@ fun TokenTxProcessingScreen(
         viewModel.eventFlow
             .filterIsInstance<Event.OnTransactionSuccessful>()
             .onEach {
-                if (BuySellFlow.isForNeededFunds) {
+                if (isFundingShortfall) {
                     navigator.popAll()
                 } else {
                     navigator.popUntil { it is AppRoute.Token.Info }
