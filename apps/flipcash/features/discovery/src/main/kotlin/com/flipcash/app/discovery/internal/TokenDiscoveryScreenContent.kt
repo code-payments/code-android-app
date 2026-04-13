@@ -61,28 +61,6 @@ private fun TokenDiscoveryScreenContent(
 ) {
     val listState = rememberLazyListState()
     CodeScaffold(
-        topBar = {
-            CodeSegmentedControl(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset),
-                options = DiscoverCategory.entries.toList(),
-                selected = state.category,
-                mapper = { category ->
-                    Text(
-                        text = when (category) {
-                            DiscoverCategory.Popular -> stringResource(R.string.title_discoverPopular)
-                            DiscoverCategory.New -> stringResource(R.string.title_discoverNew)
-                        },
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textMain,
-                    )
-                },
-                onSelectionChanged = {
-                    dispatch(TokenDiscoveryViewModel.Event.OnCategorySelected(it, true))
-                }
-            )
-        },
         bottomBar = {
             if (state.createEnabled) {
                 Box {
