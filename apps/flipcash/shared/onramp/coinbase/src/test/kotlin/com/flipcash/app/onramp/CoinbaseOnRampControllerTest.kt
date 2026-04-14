@@ -31,7 +31,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
-class OnRampControllerTest {
+class CoinbaseOnRampControllerTest {
 
     private val jwtProvider = mockk<OnRampJwtProvider>(relaxed = true)
     private val api = mockk<CoinbaseApi>(relaxed = true)
@@ -46,7 +46,7 @@ class OnRampControllerTest {
         method = "POST",
     )
 
-    private lateinit var controller: OnRampController
+    private lateinit var controller: CoinbaseOnRampController
 
     @Before
     fun setUp() {
@@ -58,13 +58,15 @@ class OnRampControllerTest {
         every { Token.usdf } returns fakeToken
         every { fakeToken.timelockSwapAccounts(any()) } returns mockk(relaxed = true)
 
-        controller = OnRampController(
+        controller = CoinbaseOnRampController(
             jwtProvider = jwtProvider,
             onRampApiEndpoint = onRampApiEndpoint,
             api = api,
             userManager = userManager,
             exchange = exchange,
             featureFlags = featureFlags,
+            transactionController = mockk(relaxed = true),
+            googlePayReadiness = mockk(relaxed = true),
         )
     }
 

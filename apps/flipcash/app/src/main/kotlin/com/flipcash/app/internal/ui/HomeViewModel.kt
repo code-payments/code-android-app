@@ -6,8 +6,6 @@ import com.flipcash.app.android.R
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.onramp.CoinbaseOnRampManager
-import com.flipcash.app.onramp.OnRampController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
@@ -28,8 +26,6 @@ internal class HomeViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val appSettingsCoordinator: AppSettingsCoordinator,
     private val shareSheetController: ShareSheetController,
-    val coinbaseOnRampManager: CoinbaseOnRampManager,
-    val onRampController: OnRampController,
 ) : ViewModel() {
 
     private val _requireBiometrics = MutableStateFlow<Boolean?>(null)

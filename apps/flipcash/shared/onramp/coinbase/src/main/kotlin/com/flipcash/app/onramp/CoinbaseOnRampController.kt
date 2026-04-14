@@ -27,7 +27,12 @@ import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base64
 import com.getcode.vendor.Base58
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
+import dagger.hilt.android.scopes.ActivityRetainedScoped
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import retrofit2.HttpException
@@ -38,19 +43,45 @@ typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink
 
 private val json = Json { encodeDefaults = true }
 
-class OnRampController @Inject constructor(
+@ActivityRetainedScoped
+class CoinbaseOnRampController @Inject constructor(
     private val jwtProvider: OnRampJwtProvider,
     private val onRampApiEndpoint: OnRampApiConfig,
     private val api: CoinbaseApi,
     private val userManager: UserManager,
     private val exchange: Exchange,
     private val featureFlags: FeatureFlagController,
-    private val coinbaseOnRampManager: CoinbaseOnRampManager,
     private val transactionController: TransactionOperations,
     private val googlePayReadiness: GooglePayReadiness,
 ) {
 
-    val state: StateFlow<CoinbaseOnRampState> get() = coinbaseOnRampManager.state
+    private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
+    val state: StateFlow<CoinbaseOnRampState> = _state.asStateFlow()
+
+    fun startPayment(order: OnrampOrder, token: Token, amount: LocalFiat) {
+        _state.value = CoinbaseOnRampState.Paying(order, token, amount)
+    }
+
+    fun onPaymentSuccess(orderId: String) {
+        val current = _state.value
+        if (current is CoinbaseOnRampState.Paying) {
+            _state.update {
+                CoinbaseOnRampState.Processing(orderId, current.token, current.amount)
+            }
+        }
+    }
+
+    fun onPaymentFailure(error: CoinbaseOnRampWebError) {
+        _state.update { CoinbaseOnRampState.Failed(error) }
+    }
+
+    fun onPaymentCancel() {
+        _state.update { CoinbaseOnRampState.Idle }
+    }
+
+    fun reset() {
+        _state.update { CoinbaseOnRampState.Idle }
+    }
 
     suspend fun placeOrderAndStartPayment(
         amount: Fiat,
@@ -68,12 +99,12 @@ class OnRampController @Inject constructor(
         return placeOrderInclusiveOfFees(amount)
             .map { (orderId, paymentLink) ->
                 val order = OnrampOrder(orderId, paymentLink.url)
-                coinbaseOnRampManager.startPayment(order, token, localFiat)
+                startPayment(order, token, localFiat)
             }
     }
 
     suspend fun processPayment(): Result<SwapId> {
-        val current = coinbaseOnRampManager.state.value
+        val current = _state.value
         if (current !is CoinbaseOnRampState.Processing) {
             return Result.failure(IllegalStateException("Not in Processing state"))
         }
@@ -99,10 +130,10 @@ class OnRampController @Inject constructor(
                 ).getOrThrow()
             }
             .onSuccess { swapId ->
-                coinbaseOnRampManager.onCompleted(swapId)
+                _state.update { CoinbaseOnRampState.Completed(swapId) }
             }
             .onFailure {
-                coinbaseOnRampManager.reset()
+                reset()
             }
     }
 

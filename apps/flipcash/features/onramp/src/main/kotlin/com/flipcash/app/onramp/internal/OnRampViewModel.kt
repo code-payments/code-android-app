@@ -6,7 +6,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.OnRampAuthError
-import com.flipcash.app.onramp.OnRampController
+import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.OnRampPaymentError
 import com.flipcash.features.onramp.R
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -72,7 +72,7 @@ internal data class AmountEntryState(
 internal class OnRampViewModel @Inject constructor(
     private val exchange: Exchange,
     private val resources: ResourceHelper,
-    private val onRampController: OnRampController,
+    private val onRampController: CoinbaseOnRampController,
     tokenController: TokenController,
     transactionController: TransactionOperations,
     dispatchers: DispatcherProvider,

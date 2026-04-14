@@ -21,6 +21,8 @@ import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.onramp.ExternalWalletOnRampController
 import com.flipcash.app.onramp.LocalExternalWalletOnRampController
+import com.flipcash.app.onramp.LocalCoinbaseOnRampController
+import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
@@ -118,6 +120,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var externalWalletOnRampController: ExternalWalletOnRampController
 
+    @Inject
+    lateinit var coinbaseOnRampController: CoinbaseOnRampController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -142,6 +147,7 @@ class MainActivity : FragmentActivity() {
                 LocalAppUpdater provides appUpdater,
                 LocalEmailCodeChannel provides emailCodeChannel,
                 LocalExternalWalletOnRampController provides externalWalletOnRampController,
+                LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {

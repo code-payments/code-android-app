@@ -42,6 +42,7 @@ import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEn
 import com.flipcash.app.onramp.CoinbaseOnRampHandler
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.onramp.LocalExternalWalletOnRampController
+import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
@@ -145,8 +146,7 @@ internal fun App(
                                     navigator = codeNavigator,
                                 ) {
                                     CoinbaseOnRampHandler(
-                                        manager = viewModel.coinbaseOnRampManager,
-                                        controller = viewModel.onRampController,
+                                        controller = LocalCoinbaseOnRampController.current,
                                         navigator = codeNavigator,
                                     ) {
                                         AppNavHost(

@@ -15,12 +15,11 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun CoinbaseOnRampHandler(
-    manager: CoinbaseOnRampManager,
-    controller: OnRampController,
+    controller: CoinbaseOnRampController,
     navigator: CodeNavigator,
     content: @Composable () -> Unit,
 ) {
-    val state by manager.state.collectAsState()
+    val state by controller.state.collectAsState()
     val context = LocalContext.current
 
     when (val current = state) {
@@ -29,13 +28,13 @@ fun CoinbaseOnRampHandler(
                 orderId = current.order.orderId,
                 paymentLinkUrl = current.order.paymentLink,
                 onPaymentSuccess = { orderId ->
-                    manager.onPaymentSuccess(orderId)
+                    controller.onPaymentSuccess(orderId)
                 },
                 onPaymentFailure = { error ->
-                    manager.onPaymentFailure(error)
+                    controller.onPaymentFailure(error)
                 },
                 onCancel = {
-                    manager.onPaymentCancel()
+                    controller.onPaymentCancel()
                 },
             )
         }
@@ -56,7 +55,7 @@ fun CoinbaseOnRampHandler(
         is CoinbaseOnRampState.Completed -> {
             LaunchedEffect(current) {
                 navigator.push(AppRoute.Token.TxProcessing(current.swapId))
-                manager.reset()
+                controller.reset()
             }
         }
 
@@ -64,7 +63,7 @@ fun CoinbaseOnRampHandler(
             LaunchedEffect(current) {
                 delay(400) // let the system payment sheet finish its dismiss animation
                 showOnRampFailure(context, current.error)
-                manager.reset()
+                controller.reset()
             }
         }
 
