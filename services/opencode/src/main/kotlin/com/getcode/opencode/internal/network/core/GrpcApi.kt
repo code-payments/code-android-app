@@ -20,6 +20,8 @@ abstract class GrpcApi(protected val managedChannels: List<ManagedChannel>): Def
     }
 
     private fun warmUp() {
-        managedChannels.onEach { it.enterIdle() }
+        // getState(true) requests a connection attempt if idle,
+        // pre-connecting TCP + TLS + HTTP/2 in the background
+        managedChannels.onEach { it.getState(true) }
     }
 }
