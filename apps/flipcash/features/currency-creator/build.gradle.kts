@@ -9,6 +9,7 @@ android {
 dependencies {
     implementation(project(":apps:flipcash:features:bill-customization"))
     implementation(project(":apps:flipcash:shared:bills"))
+    implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:messaging"))
 

@@ -63,7 +63,7 @@ internal fun ReviewAndPurchaseContent(
                 ),
                 enabled = state.hasName,
                 onClick = {
-
+                    dispatch(CurrencyCreatorViewModel.Event.Purchase)
                 },
             )
         }

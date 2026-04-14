@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
@@ -15,6 +16,9 @@ import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
+import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.payments.PurchaseMethod
+import com.flipcash.app.payments.PurchaseMethodController
 import com.getcode.util.resources.ContentReader
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
@@ -33,6 +37,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     userFlags: UserFlagsCoordinator,
     val contentReader: ContentReader,
+    val purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel2<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -119,7 +124,25 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.Purchase>()
-            .onEach {  }
+            .onEach { purchaseMethodController.present() }
+            .launchIn(viewModelScope)
+
+        purchaseMethodController.selections
+            .onEach { (method, metadata) ->
+                when (method) {
+                    PurchaseMethod.CoinbaseOnRamp -> {
+                        val mint = metadata.mint ?: return@onEach
+                    }
+                    is PurchaseMethod.CashReserves -> {
+                        val mint = metadata.mint ?: return@onEach
+
+                    }
+                    PurchaseMethod.PhantomWallet -> {
+
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     /**
@@ -139,7 +162,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
     internal companion object {
         val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
-            println("Event: $event")
             when (event) {
                 is Event.OnStepChanged -> { state ->
                     state.copy(currentStep = event.step)
