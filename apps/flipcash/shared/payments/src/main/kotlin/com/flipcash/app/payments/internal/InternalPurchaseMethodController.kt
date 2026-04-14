@@ -40,7 +40,6 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +53,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -117,14 +117,12 @@ class InternalPurchaseMethodController @Inject constructor(
                 if (current.coinbaseOnRampAvailable) {
                     add(
                         buildButtonAction(
-                            prefix = resources.getString(R.string.action_debitCardWithPrefix),
+                            prefix = null,
                             suffix = null,
-                            iconRes = R.drawable.ic_google_pay,
-                            width = 50.sp,
-                            height = 32.sp,
-                            iconPadding = {
-                                PaddingValues(horizontal = CodeTheme.dimens.grid.x1)
-                            },
+                            iconRes = R.drawable.ic_buy_with_google_pay,
+                            width = 150.sp,
+                            height = 24.sp,
+                            tintIcon = false,
                             onClick = { select(PurchaseMethod.CoinbaseOnRamp) }
                         )
                     )
@@ -163,7 +161,7 @@ class InternalPurchaseMethodController @Inject constructor(
     }
 
     private fun buildButtonAction(
-        prefix: String,
+        prefix: String?,
         suffix: String?,
         iconRes: Int,
         width: TextUnit = 25.sp,
@@ -174,11 +172,14 @@ class InternalPurchaseMethodController @Inject constructor(
                 end = CodeTheme.dimens.grid.x1
             )
         },
+        tintIcon: Boolean = true,
         onClick: () -> Unit
     ): BottomBarAction {
         return BottomBarAction(
             text = buildAnnotatedString {
-                append(prefix)
+                if (prefix != null) {
+                    append(prefix)
+                }
                 appendInlineContent("[icon]", alternateText = " ")
                 if (suffix != null) {
                     append(suffix)
@@ -200,11 +201,11 @@ class InternalPurchaseMethodController @Inject constructor(
                             Image(
                                 modifier = Modifier.padding(iconPadding()),
                                 painter = painterResource(iconRes),
-                                colorFilter = ColorFilter.tint(
-                                    buttonColors.contentColor(
-                                        true
-                                    ).value
-                                ),
+                                colorFilter = if (tintIcon) {
+                                    ColorFilter.tint(buttonColors.contentColor(true).value)
+                                } else {
+                                    null
+                                },
                                 contentDescription = null
                             )
                         }
