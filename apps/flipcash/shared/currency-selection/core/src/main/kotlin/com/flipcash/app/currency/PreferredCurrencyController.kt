@@ -138,6 +138,7 @@ class PreferredCurrencyController @Inject constructor(
                     prefs[recentKey] = updateRecents(recents, currency.code)
                 }
                 exchange.setPreferredBalanceCurrency(code)
+                exchange.setPreferredEntryCurrency(code)
                 settingsController.update()
             }
         }
