@@ -130,7 +130,7 @@ class AuthManager @Inject constructor(
                         .onSuccess { userManager.set(it) }
                 },
                 onFailure = { Result.failure(it) }
-            ).map { Unit }
+            ).onSuccess { savePrefs() }.map { Unit }
     }
 
     suspend fun login(
