@@ -44,12 +44,12 @@ fun OnRampCustomAmountScreen(mint: Mint) {
         }
     }
 
-    val externalWalletOnRamp = LocalExternalWalletState.current
+    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<OnRampViewModel.Event.CreateAndSendTransactionToWallet>()
             .map { it.amount }
-            .onEach { externalWalletOnRamp.amount = it }
+            .onEach { externalWalletOnRampController.setAmount(it) }
             .launchIn(this)
     }
 

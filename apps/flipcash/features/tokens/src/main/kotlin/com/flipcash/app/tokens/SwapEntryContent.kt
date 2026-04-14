@@ -13,7 +13,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
-import com.flipcash.app.onramp.LocalExternalWalletState
+import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
@@ -32,7 +32,7 @@ internal fun SwapEntryContent(
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val externalWalletOnRamp = LocalExternalWalletState.current
+    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -74,8 +74,8 @@ internal fun SwapEntryContent(
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.CreateAndSendTransactionToWallet>()
             .onEach { (token, amount) ->
-                externalWalletOnRamp.tokenToPurchase = token
-                externalWalletOnRamp.amount = amount
+                externalWalletOnRampController.setTokenToPurchase(token)
+                externalWalletOnRampController.setAmount(amount)
             }.launchIn(this)
     }
 
@@ -97,13 +97,13 @@ internal fun SwapEntryContent(
     }
 
     // Navigate to pending processing step from ExternalWalletOnRampHandler
-    val pendingNav = externalWalletOnRamp.pendingNavigation
-    LaunchedEffect(pendingNav) {
-        if (pendingNav is AppRoute.Token.TxProcessing) {
-            flowNavigator.navigateTo(
-                SwapStep.Processing(pendingNav.swapId, pendingNav.awaitExternalWallet)
-            )
-            externalWalletOnRamp.pendingNavigation = null
+    LaunchedEffect(Unit) {
+        externalWalletOnRampController.pendingNavigation.collect { nav ->
+            if (nav is AppRoute.Token.TxProcessing) {
+                flowNavigator.navigateTo(
+                    SwapStep.Processing(nav.swapId, nav.awaitExternalWallet)
+                )
+            }
         }
     }
 }

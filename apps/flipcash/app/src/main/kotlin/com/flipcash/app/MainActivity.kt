@@ -16,10 +16,11 @@ import com.flipcash.app.appsettings.LocalAppSettings
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.billing.BillingClient
-import com.flipcash.app.billing.LocalBillingClient
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
+import com.flipcash.app.onramp.ExternalWalletOnRampController
+import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
@@ -36,10 +37,7 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
-import com.getcode.opencode.compose.LocalTransactionController
-import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.solana.rpc.RpcConfig
 import com.getcode.ui.testing.LocalUiTesting
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.permissions.ProvidePermissionChecker
@@ -49,8 +47,6 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.SettingsHelper
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
-import com.getcode.utils.CurrencyUtils
-import com.getcode.utils.LocalCurrencyUtils
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.AndroidEntryPoint
@@ -73,9 +69,6 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var networkObserver: NetworkConnectivityListener
-
-    @Inject
-    lateinit var currencyUtils: CurrencyUtils
 
     @Inject
     lateinit var vibrator: Vibrator
@@ -111,9 +104,6 @@ class MainActivity : FragmentActivity() {
     lateinit var analytics: FlipcashAnalyticsService
 
     @Inject
-    lateinit var solanaRpcConfig: RpcConfig
-
-    @Inject
     lateinit var phoneUtils: PhoneUtils
 
     @Inject
@@ -123,10 +113,10 @@ class MainActivity : FragmentActivity() {
     lateinit var appUpdater: AppUpdateController
 
     @Inject
-    lateinit var transactionController: TransactionController
+    lateinit var emailCodeChannel: EmailCodeChannel
 
     @Inject
-    lateinit var emailCodeChannel: EmailCodeChannel
+    lateinit var externalWalletOnRampController: ExternalWalletOnRampController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -140,27 +130,24 @@ class MainActivity : FragmentActivity() {
                 LocalNetworkObserver provides networkObserver,
                 LocalExchange provides exchange,
                 LocalAnalytics provides analytics,
-                LocalCurrencyUtils provides currencyUtils,
                 LocalVibrator provides vibrator,
                 LocalRouter provides router,
                 LocalUserManager provides userManager,
                 LocalSessionController provides sessionController,
-                LocalBillingClient provides billing,
                 LocalShareController provides shareController,
                 LocalAppSettings provides appSettingsCoordinator,
                 LocalFeatureFlags provides featureFlagController,
-                LocalTransactionController provides transactionController,
                 LocalPhoneUtils provides phoneUtils,
                 LocalBillPlaygroundController provides billPlaygroundController,
                 LocalAppUpdater provides appUpdater,
                 LocalEmailCodeChannel provides emailCodeChannel,
+                LocalExternalWalletOnRampController provides externalWalletOnRampController,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {
                     Rinku {
                         App(
                             tipsEngine = tipsEngine,
-                            solanaRpcConfig = solanaRpcConfig,
                         )
                     }
                 }

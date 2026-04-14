@@ -12,8 +12,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
-import com.flipcash.app.onramp.LocalExternalWalletState
-import com.flipcash.app.onramp.internal.ExternalWalletState
+import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.tokens.internal.TokenTxProcessingScreen
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.app.tokens.ui.SwapViewModel.Event
@@ -46,17 +46,17 @@ internal fun SwapProcessingContent(
     )
 
     if (awaitExternalWallet) {
-        val externalWalletState = LocalExternalWalletState.current
+        val controller = LocalExternalWalletOnRampController.current
         LaunchedEffect(viewModel, swapId) {
-            val terminalState = snapshotFlow { externalWalletState.deeplinkState }
-                .firstOrNull { it == ExternalWalletState.TRANSACTED || it == ExternalWalletState.IDLE }
+            val terminalState = controller.state
+                .firstOrNull { it is ExternalWalletOnRampState.Transacted || it is ExternalWalletOnRampState.Idle }
 
-            if (terminalState != ExternalWalletState.TRANSACTED) {
+            if (terminalState !is ExternalWalletOnRampState.Transacted) {
                 flowNavigator.back()
                 return@LaunchedEffect
             }
 
-            externalWalletState.reset()
+            controller.reset()
             viewModel.dispatchEvent(Event.OnSwapIdChanged(swapId))
 
             snapshotFlow { viewModel.stateFlow.value.processingProgress }
@@ -110,17 +110,17 @@ fun TokenTxProcessingScreen(
     )
 
     if (awaitExternalWallet) {
-        val externalWalletState = LocalExternalWalletState.current
+        val controller = LocalExternalWalletOnRampController.current
         LaunchedEffect(viewModel, swapId) {
-            val terminalState = snapshotFlow { externalWalletState.deeplinkState }
-                .firstOrNull { it == ExternalWalletState.TRANSACTED || it == ExternalWalletState.IDLE  }
+            val terminalState = controller.state
+                .firstOrNull { it is ExternalWalletOnRampState.Transacted || it is ExternalWalletOnRampState.Idle }
 
-            if (terminalState != ExternalWalletState.TRANSACTED) {
+            if (terminalState !is ExternalWalletOnRampState.Transacted) {
                 navigator.pop()
                 return@LaunchedEffect
             }
 
-            externalWalletState.reset()
+            controller.reset()
             viewModel.dispatchEvent(Event.OnSwapIdChanged(swapId))
 
             snapshotFlow { viewModel.stateFlow.value.processingProgress }

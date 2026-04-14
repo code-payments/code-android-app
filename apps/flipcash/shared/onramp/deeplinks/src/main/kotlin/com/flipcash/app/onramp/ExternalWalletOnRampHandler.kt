@@ -4,50 +4,52 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.canNativelyHandle
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.onramp.internal.ExternalWalletDeeplinkState
-import com.flipcash.app.onramp.internal.ExternalWalletState
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
+import com.flipcash.app.onramp.internal.curvePublicKey
 import com.flipcash.app.onramp.internal.packageName
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
 import com.getcode.util.permissions.rememberNotificationPermission
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 @SuppressLint("LocalContextGetResourceValueCall", "InlinedApi")
 @Composable
 fun ExternalWalletOnRampHandler(
-    state: ExternalWalletDeeplinkState,
+    controller: ExternalWalletOnRampController,
     navigator: CodeNavigator,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val composeScope = rememberCoroutineScope()
     val analytics = rememberAnalytics()
+    val state by controller.state.collectAsStateWithLifecycle()
+    val amount by controller.amount.collectAsStateWithLifecycle()
+
+    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
 
     fun close(exit: Boolean) {
-        if (state.origin is AppRoute.Token.Info) {
-            // Token flow screens handle their own navigation via inner navigator
+        val origin = (state as? ExternalWalletOnRampState.Transacted)?.origin
+            ?: (state as? ExternalWalletOnRampState.Failed)?.origin
+
+        if (origin is AppRoute.Token.Info) {
             return
         }
 
@@ -59,7 +61,7 @@ fun ExternalWalletOnRampHandler(
             return
         }
 
-        state.origin?.let { route ->
+        origin?.let { route ->
             composeScope.launch {
                 delay(300)
                 navigator.popUntil { it::class == route::class }
@@ -67,100 +69,56 @@ fun ExternalWalletOnRampHandler(
         } ?: run { navigator.popAll() }
     }
 
-    val uriHandler = LocalUriHandler.current
-    val context = LocalContext.current
-
-
     val notifications = rememberNotificationPermission {
         composeScope.launch { close(true) }
     }
 
-    RepeatOnLifecycle(
-        targetState = Lifecycle.State.RESUMED,
-        lifecycleOwner = lifecycleOwner,
-    ) {
-        state.errors
-            .onEach { error ->
-                val (title, message) = error.messaging(
-                    context = context,
-                    provider = when (state.provider) {
-                        OnRampProvider.Backpack -> context.getString(R.string.label_backpack)
-                        OnRampProvider.Phantom -> context.getString(R.string.label_phantom)
-                        OnRampProvider.Solflare -> context.getString(R.string.label_solflare)
-                        null -> ""
-                    }
+    LaunchedEffect(state, amount) {
+        when (val current = state) {
+            is ExternalWalletOnRampState.Idle -> Unit
+
+            is ExternalWalletOnRampState.Started -> {
+                val uri = buildConnectDeeplink(
+                    provider = current.provider,
+                    curvePublicKey = controller.keyPair.curvePublicKey,
+                    origin = current.origin,
                 )
-
-                if (error is DeeplinkOnRampError.WalletProvidedError && error.code == DeeplinkError.UserRejectedRequest.code) {
-                    analytics.walletTransactionCancelled(state.provider!!)
-                } else if (error is DeeplinkOnRampError.FailedToSendTransaction) {
-                    analytics.walletTransactionFailed(state.provider!!)
-                }
-
-                trace(
-                    tag = TAG,
-                    message = "Something went wrong during deeplink onramp",
-                    type = TraceType.Error,
-                    metadata = {
-                        "errorMessage" to error.message
-                        "userMessage" to message
-                        "code" to error.code
-                    },
-                    error = error
-                )
-
-                BottomBarManager.showError(
-                    title = title,
-                    message = message,
-                ) {
-                    close(false)
-                    state.reset()
-                }
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(state.deeplinkState, state.amount) {
-        when (state.deeplinkState) {
-            ExternalWalletState.IDLE -> Unit
-            ExternalWalletState.STARTING -> Unit
-            ExternalWalletState.STARTED -> {
-                val uri = buildConnectDeeplink(state)
                 trace(
                     tag = TAG,
                     message = "wallet connect uri: $uri",
                     type = TraceType.Process
                 )
                 if (uri?.canNativelyHandle(context) == true) {
-                    val origin = state.origin
-                    if (origin is AppRoute.Token.Info) {
-                        state.pendingNavigation = AppRoute.Token.Swap(
-                            SwapPurpose.FundWithWallet(origin.mint),
-                            isFundingShortfall = origin.isFundingShortfall
+                    if (current.origin is AppRoute.Token.Info) {
+                        controller.emitPendingNavigation(
+                            AppRoute.Token.Swap(
+                                SwapPurpose.FundWithWallet(current.origin.mint),
+                                isFundingShortfall = current.origin.isFundingShortfall
+                            )
                         )
                     }
 
-                    analytics.connectWallet(state.provider!!)
+                    analytics.connectWallet(current.provider)
                     uriHandler.openUri(uri.toString())
-                    state.deeplinkState = ExternalWalletState.CONNECTING
+                    controller.transitionTo(
+                        ExternalWalletOnRampState.Connecting(
+                            origin = current.origin,
+                            provider = current.provider,
+                        )
+                    )
                 } else {
-                    val provider = state.provider ?: return@LaunchedEffect
-                    context.startActivity(IntentUtils.appStoreListing(provider.packageName))
-                    state.reset()
+                    context.startActivity(IntentUtils.appStoreListing(current.provider.packageName))
+                    controller.reset()
                 }
             }
 
-            ExternalWalletState.CONNECTING -> {
-                state.walletConnection?.let {
-                    state.deeplinkState = ExternalWalletState.CONNECTED
-                }
-            }
+            is ExternalWalletOnRampState.Connecting -> Unit
 
-            ExternalWalletState.CONNECTED -> {
-                // if amount was provided, send the transaction
-                if (state.amount != null) {
-                    when (state.origin) {
-                        is AppRoute.Token.Info -> state.createAndValidateSwapTransaction()
-                        else -> state.createAndValidateDepositTransaction()
+            is ExternalWalletOnRampState.Connected -> {
+                if (amount != null) {
+                    when (current.origin) {
+                        is AppRoute.Token.Info -> controller.createAndValidateSwapTransaction()
+                        else -> controller.createAndValidateDepositTransaction()
                     }
                 } else {
                     trace(
@@ -168,21 +126,35 @@ fun ExternalWalletOnRampHandler(
                         message = "wallet connected",
                         type = TraceType.Process
                     )
-                    when (state.origin) {
+                    when (current.origin) {
                         is AppRoute.Token.Info -> {
-                            // Swap already navigated via pendingNavigation at STARTED
+                            // Swap already navigated via pendingNavigation at Started
                         }
                         else -> {
-                            navigator.push(AppRoute.Token.OnRamp(state.tokenToPurchase!!.address))
+                            navigator.push(AppRoute.Token.OnRamp(controller.tokenToPurchase.value!!.address))
                         }
                     }
                 }
             }
 
-            ExternalWalletState.SIGNING -> {
-                val uri = buildTransactionDeeplink(state)
+            is ExternalWalletOnRampState.Signing -> {
+                val uri = buildTransactionDeeplink(
+                    provider = current.provider,
+                    curvePublicKey = controller.keyPair.curvePublicKey,
+                    encryptionPublicKey = current.encryptionPublicKey,
+                    unsignedTransaction = current.unsignedTransaction,
+                    session = current.connection.session,
+                    secretKey = controller.keyPair.secretKey.map { it.toByte() },
+                    origin = current.origin,
+                )
                 if (uri == null) {
-                    state.errors.tryEmit(DeeplinkOnRampError.FailedToGenerateDeeplink())
+                    controller.transitionTo(
+                        ExternalWalletOnRampState.Failed(
+                            error = DeeplinkOnRampError.FailedToGenerateDeeplink(),
+                            origin = current.origin,
+                            provider = current.provider,
+                        )
+                    )
                     return@LaunchedEffect
                 }
 
@@ -192,27 +164,29 @@ fun ExternalWalletOnRampHandler(
                     type = TraceType.Process
                 )
 
-                val swapId = state.swapId
-                if (state.origin is AppRoute.Token.Info && swapId != null) {
-                    state.pendingNavigation = AppRoute.Token.TxProcessing(
-                        swapId, awaitExternalWallet = true
+                val swapId = current.swapId
+                if (current.origin is AppRoute.Token.Info && swapId != null) {
+                    controller.emitPendingNavigation(
+                        AppRoute.Token.TxProcessing(
+                            swapId, awaitExternalWallet = true
+                        )
                     )
                 }
 
-                analytics.amountSelectedForWalletTransfer(state.provider!!, state.amount!!.underlyingTokenAmount)
+                analytics.amountSelectedForWalletTransfer(current.provider, current.amount.underlyingTokenAmount)
                 uriHandler.openUri(uri.toString())
             }
 
-            ExternalWalletState.SIGNED -> {
+            is ExternalWalletOnRampState.Signed -> {
                 trace(
                     tag = TAG,
                     message = "wallet transaction signed!",
                     type = TraceType.Process
                 )
-                state.sendTransaction()
+                controller.sendTransaction()
             }
 
-            ExternalWalletState.TRANSACTING -> {
+            is ExternalWalletOnRampState.Transacting -> {
                 trace(
                     tag = TAG,
                     message = "transaction in progress",
@@ -220,28 +194,28 @@ fun ExternalWalletOnRampHandler(
                 )
             }
 
-            ExternalWalletState.TRANSACTED -> {
+            is ExternalWalletOnRampState.Transacted -> {
                 trace(
                     tag = TAG,
                     message = "transaction complete",
                     type = TraceType.Process
                 )
-                analytics.transactionSubmittedToWallet(state.provider!!)
+                analytics.transactionSubmittedToWallet(current.provider)
 
-                if (state.origin is AppRoute.Token.Info) {
-                    // TxProcessingScreen observes TRANSACTED, calls reset() and dispatches OnSwapIdChanged
+                if (current.origin is AppRoute.Token.Info) {
+                    // TxProcessingScreen observes Transacted, calls reset() and dispatches OnSwapIdChanged
                     return@LaunchedEffect
                 }
 
-                val swapId = state.swapId
-                state.reset()
+                val swapId = current.swapId
+                val token = current.token
+                controller.reset()
 
                 if (swapId != null) {
-                    // confirmation is shown in finalization screen
                     navigator.push(AppRoute.Token.TxProcessing(swapId))
                 } else {
-                    val title = state.tokenToPurchase?.let { token ->
-                        context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, token.name)
+                    val title = token?.let {
+                        context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, it.name)
                     } ?: context.getString(R.string.prompt_title_cashOnTheWay)
                     BottomBarManager.showSuccess(
                         title = title,
@@ -276,6 +250,45 @@ fun ExternalWalletOnRampHandler(
                             }
                         },
                     )
+                }
+            }
+
+            is ExternalWalletOnRampState.Failed -> {
+                val error = current.error
+                val (title, message) = error.messaging(
+                    context = context,
+                    provider = when (current.provider) {
+                        OnRampProvider.Backpack -> context.getString(R.string.label_backpack)
+                        OnRampProvider.Phantom -> context.getString(R.string.label_phantom)
+                        OnRampProvider.Solflare -> context.getString(R.string.label_solflare)
+                        null -> ""
+                    }
+                )
+
+                if (error is DeeplinkOnRampError.WalletProvidedError && error.code == DeeplinkError.UserRejectedRequest.code) {
+                    analytics.walletTransactionCancelled(current.provider!!)
+                } else if (error is DeeplinkOnRampError.FailedToSendTransaction) {
+                    analytics.walletTransactionFailed(current.provider!!)
+                }
+
+                trace(
+                    tag = TAG,
+                    message = "Something went wrong during deeplink onramp",
+                    type = TraceType.Error,
+                    metadata = {
+                        "errorMessage" to error.message
+                        "userMessage" to message
+                        "code" to error.code
+                    },
+                    error = error
+                )
+
+                BottomBarManager.showError(
+                    title = title,
+                    message = message,
+                ) {
+                    close(false)
+                    controller.reset()
                 }
             }
         }

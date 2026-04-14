@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -42,8 +41,7 @@ import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOve
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.CoinbaseOnRampHandler
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
-import com.flipcash.app.onramp.LocalExternalWalletState
-import com.flipcash.app.onramp.rememberExternalWalletState
+import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
@@ -57,7 +55,6 @@ import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
-import com.getcode.solana.rpc.RpcConfig
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.biometrics.rememberBiometricsState
@@ -77,7 +74,6 @@ import dev.theolm.rinku.compose.ext.DeepLinkListener
 @Composable
 internal fun App(
     tipsEngine: TipsEngine,
-    solanaRpcConfig: RpcConfig,
 ) {
     val router = LocalRouter.current!!
     val analytics = rememberAnalytics()
@@ -119,13 +115,9 @@ internal fun App(
         )
 
         val barManager = rememberBarManager()
-        val externalWalletOnRamp = rememberExternalWalletState(solanaRpcConfig)
 
-        CompositionLocalProvider(
-            LocalExternalWalletState provides externalWalletOnRamp
-        ) {
-            BillPlaygroundScaffold {
-                TipScaffold(tipsEngine = tipsEngine) {
+        BillPlaygroundScaffold {
+            TipScaffold(tipsEngine = tipsEngine) {
                     val backStack = remember { NavBackStack<NavKey>(AppRoute.Loading) }
                     val resultStateRegistry = rememberNavResultStateRegistry()
                     val codeNavigator = rememberCodeNavigator(
@@ -149,8 +141,7 @@ internal fun App(
                                 LocalSharedTransitionScope provides this,
                             ) {
                                 ExternalWalletOnRampHandler(
-                                    state = externalWalletOnRamp,
-                                    lifecycleOwner = LocalLifecycleOwner.current,
+                                    controller = LocalExternalWalletOnRampController.current,
                                     navigator = codeNavigator,
                                 ) {
                                     CoinbaseOnRampHandler(
@@ -242,6 +233,7 @@ internal fun App(
                                 }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
+                                val externalWalletController = LocalExternalWalletOnRampController.current
                                 LaunchedEffect(deepLink) {
                                     val link = deepLink ?: return@LaunchedEffect
 
@@ -268,7 +260,7 @@ internal fun App(
                                             }
                                         }
 
-                                        is DeeplinkAction.ExternalWallet -> externalWalletOnRamp.handleWalletDeeplink(
+                                        is DeeplinkAction.ExternalWallet -> externalWalletController.handleWalletDeeplink(
                                             action.type
                                         )
 
@@ -341,6 +333,4 @@ internal fun App(
             }
         }
     }
-}
-
 
